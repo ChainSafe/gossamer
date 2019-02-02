@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/libp2p/go-libp2p"
-	net "github.com/libp2p/go-libp2p-net"
+	libp2pnet "github.com/libp2p/go-libp2p-net"
 	libp2phost "github.com/libp2p/go-libp2p-host"
 	//multiaddr "github.com/multiformats/go-multiaddr"
-	//dht "github.com/libp2p/go-libp2p-kad-dht"
+	libp2pdht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
 func Start() (libp2phost.Host, error) {
@@ -24,13 +24,27 @@ func Start() (libp2phost.Host, error) {
 	fmt.Println("Host created. We are:", host.ID())
 	fmt.Println(host.Addrs())
 
-	// new dht client
-	//dht, err := dht.New(context.Background(), host)
+	// start dht; used for peer discovery
+	// each node keeps a local copy of the dht
+	_, err = startDHT(host)
+	if err != nil {
+		return nil, err
+	}
 
 	return host, nil
 }
 
-func handleStream(stream net.Stream) {
+// start the kademlia DHT 
+func startDHT(host libp2phost.Host) (*libp2pdht.IpfsDHT, error) {
+	dht, err := libp2pdht.New(context.Background(), host)
+	if err != nil {
+		return nil, err
+	}
+
+	return dht, nil
+}
+
+func handleStream(stream libp2pnet.Stream) {
     // Create a buffer stream for non blocking read and write.
     rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
