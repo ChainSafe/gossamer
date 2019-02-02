@@ -7,24 +7,27 @@ import (
 	"os"
 
 	"github.com/libp2p/go-libp2p"
-	net "gx/ipfs/QmNgLg1NTw37iWbYPKcyK85YJ9Whs1MkPtJwhfqbNYAyKg/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-net"
+	libp2phost "github.com/libp2p/go-libp2p-host"
 	//multiaddr "github.com/multiformats/go-multiaddr"
 	//dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
-func Start() {
+func Start() (libp2phost.Host, error) {
 	host, err := libp2p.New(context.Background())
 	host.SetStreamHandler("/chat/1.1.0", handleStream)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	
+
 	fmt.Println("Host created. We are:", host.ID())
 	fmt.Println(host.Addrs())
 
 	// new dht client
 	//dht, err := dht.New(context.Background(), host)
+
+	return host, nil
 }
 
 func handleStream(stream net.Stream) {
@@ -49,8 +52,6 @@ func readData(rw *bufio.ReadWriter) {
 			return
 		}
 		if str != "\n" {
-			// Green console colour: 	\x1b[32m
-			// Reset console colour: 	\x1b[0m
 			fmt.Printf("\x1b[32m%s\x1b[0m> ", str)
 		}
 

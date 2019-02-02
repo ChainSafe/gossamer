@@ -5,5 +5,8 @@ import (
 )
 
 func TestStart(t *testing.T) {
-	Start()
+	_, err := Start()
+	if err != nil {
+		t.Errorf("TestStart:%s", err)
+	}
 }
