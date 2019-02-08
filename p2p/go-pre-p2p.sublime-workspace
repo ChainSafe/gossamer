@@ -1,0 +1,933 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"TestSt",
+				"TestStartDHT"
+			],
+			[
+				"lib",
+				"libp2pdht"
+			],
+			[
+				"li",
+				"libp2pdht"
+			],
+			[
+				"err",
+				"err"
+			],
+			[
+				"ipfs",
+				"ipfsaddr"
+			],
+			[
+				"asser",
+				"assertNull"
+			],
+			[
+				"KVS",
+				"KVServer"
+			],
+			[
+				"assert",
+				"assertTrue"
+			],
+			[
+				"key",
+				"keyToCount"
+			],
+			[
+				"Link",
+				"LinkedHashMap"
+			],
+			[
+				"cach",
+				"cacheSize"
+			],
+			[
+				"cac",
+				"cacheSize"
+			],
+			[
+				"unde",
+				"undefined"
+			],
+			[
+				"buff",
+				"buffer_to_uint8array"
+			],
+			[
+				"has",
+				"hash_to_curve"
+			],
+			[
+				"sca",
+				"scalar_base_mult"
+			],
+			[
+				"ring",
+				"ringVerify"
+			],
+			[
+				"pri",
+				"provider"
+			],
+			[
+				"rin",
+				"ringVerifyFactory"
+			],
+			[
+				"provd",
+				"provider"
+			],
+			[
+				"public",
+				"publicKeys"
+			],
+			[
+				"C_",
+				"C_i"
+			],
+			[
+				"Sca",
+				"ScalarBaseMult"
+			],
+			[
+				"priv",
+				"privkey"
+			],
+			[
+				"ri",
+				"ringsize"
+			],
+			[
+				"Pub",
+				"PublicKey"
+			],
+			[
+				"pub",
+				"pubkey"
+			],
+			[
+				"contr",
+				"contractArr"
+			],
+			[
+				"main",
+				"mainStr"
+			],
+			[
+				"string",
+				"string"
+			],
+			[
+				"sh",
+				"shyftSafe"
+			],
+			[
+				"rela",
+				"relayerAddrTmp"
+			],
+			[
+				"root",
+				"rootStr"
+			],
+			[
+				"rel",
+				"relayFromChain"
+			],
+			[
+				"last",
+				"lastBlock"
+			],
+			[
+				"relayFrom",
+				"relayFromChain"
+			],
+			[
+				"relay",
+				"relayToChain"
+			],
+			[
+				"las",
+				"lastBlock"
+			],
+			[
+				"is",
+				"isRelayerCheck"
+			],
+			[
+				"neto",
+				"networks"
+			],
+			[
+				"tr",
+				"transaction"
+			],
+			[
+				"owner",
+				"ownerRes"
+			],
+			[
+				"own",
+				"ownerRes"
+			],
+			[
+				"cha",
+				"chain"
+			],
+			[
+				"byte",
+				"bytesPrefix"
+			],
+			[
+				"padd",
+				"paddedEnd"
+			],
+			[
+				"add",
+				"addRootRes"
+			],
+			[
+				"sign",
+				"signedMsg"
+			],
+			[
+				"si",
+				"signedMsg"
+			],
+			[
+				"head",
+				"headerutil"
+			],
+			[
+				"isAd",
+				"isAdminRes"
+			],
+			[
+				"net",
+				"network"
+			],
+			[
+				"header",
+				"headerslice"
+			],
+			[
+				"nu",
+				"number"
+			],
+			[
+				"time",
+				"timestamp"
+			],
+			[
+				"get",
+				"getModifiedHeaders"
+			],
+			[
+				"sol",
+				"solidityHeader"
+			],
+			[
+				"hea",
+				"headerTest"
+			],
+			[
+				"num",
+				"numSuperHeaders"
+			],
+			[
+				"ge",
+				"genesisHeader"
+			],
+			[
+				"block",
+				"blockNumber"
+			],
+			[
+				"bloc",
+				"blockNumber"
+			],
+			[
+				"blo",
+				"blockNumber"
+			],
+			[
+				"logs",
+				"logs"
+			],
+			[
+				"dep",
+				"deployTx"
+			],
+			[
+				"depl",
+				"deployShyftBridge"
+			],
+			[
+				"addRela",
+				"addRelayerHash"
+			],
+			[
+				"setPrimar",
+				"setPrimaryAdministratorRes"
+			],
+			[
+				"br",
+				"bridgeContract"
+			],
+			[
+				"com",
+				"common"
+			],
+			[
+				"addre",
+				"addressString"
+			],
+			[
+				"ad",
+				"addressString"
+			],
+			[
+				"De",
+				"DefaultNetwork"
+			],
+			[
+				"Fata",
+				"FatalError"
+			],
+			[
+				"init",
+				"initCommand"
+			],
+			[
+				"Exit",
+				"ExitOnError"
+			],
+			[
+				"bind",
+				"bindCommand"
+			],
+			[
+				"contract",
+				"contractAddress"
+			],
+			[
+				"test",
+				"testCommand"
+			],
+			[
+				"re",
+				"receipt"
+			],
+			[
+				"con",
+				"contractAddr"
+			],
+			[
+				"eth",
+				"ethclient"
+			],
+			[
+				"cont",
+				"contracts"
+			],
+			[
+				"bride",
+				"bridgedAddr"
+			],
+			[
+				"getPro",
+				"getProofStr"
+			],
+			[
+				"relayerI",
+				"relayerIndices"
+			],
+			[
+				"log",
+				"logsBloom"
+			],
+			[
+				"hold",
+				"holdBalanceHash"
+			],
+			[
+				"deposit",
+				"depositBlock"
+			],
+			[
+				"EV",
+				"EVT_WithdrawAsset"
+			],
+			[
+				"EVT",
+				"EVT_TokenAdded"
+			],
+			[
+				"EVT_",
+				"EVT_heldSafeBalanceForType"
+			],
+			[
+				"GET_T",
+				"GET_TURN_ABI"
+			],
+			[
+				"getRe",
+				"getRelayersRes"
+			],
+			[
+				"getRel",
+				"getRelayerRes"
+			],
+			[
+				"shy",
+				"shyftBridge"
+			],
+			[
+				"curr",
+				"currentBlock"
+			],
+			[
+				"hand",
+				"handleBridgeEvents"
+			],
+			[
+				"ca",
+				"cacheblock"
+			],
+			[
+				"curre",
+				"currentBlockN"
+			],
+			[
+				"acc",
+				"accessList"
+			],
+			[
+				"roots",
+				"rootsRelayed"
+			],
+			[
+				"from",
+				"fromPtr"
+			],
+			[
+				"Sta",
+				"StartBlock"
+			],
+			[
+				"pas",
+				"ParseJsonForEntry"
+			],
+			[
+				"getBlock",
+				"getBlockByNumber"
+			],
+			[
+				"end",
+				"endBytes"
+			],
+			[
+				"s",
+				"startBytes"
+			],
+			[
+				"pad",
+				"padTo32Bytes"
+			],
+			[
+				"print",
+				"printHeader"
+			],
+			[
+				"sta",
+				"startBlock"
+			],
+			[
+				"lat",
+				"lastBlocks"
+			],
+			[
+				"paid",
+				"paidHash"
+			],
+			[
+				"bri",
+				"bridgeEvents"
+			],
+			[
+				"with",
+				"withdrawCommand"
+			],
+			[
+				"pay",
+				"payCommand"
+			],
+			[
+				"fund",
+				"fundCommand"
+			],
+			[
+				"depos",
+				"depositCommand"
+			],
+			[
+				"depo",
+				"depositToChain"
+			],
+			[
+				"wit",
+				"withdrawPtr"
+			],
+			[
+				"pe",
+				"percentBig"
+			],
+			[
+				"per",
+				"percents"
+			],
+			[
+				"data",
+				"dataStr"
+			],
+			[
+				"_to",
+				"_toChain"
+			],
+			[
+				"noL",
+				"noListen"
+			],
+			[
+				"no",
+				"noListen"
+			],
+			[
+				"noList",
+				"noListenPtr"
+			],
+			[
+				"pr",
+				"promptWait"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/home/elizabeth/go/src/github.com/noot/libp2p_examples/main.go",
+			"settings":
+			{
+				"buffer_size": 4873,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "package main"
+			}
+		},
+		{
+			"file": "p2p.go",
+			"settings":
+			{
+				"buffer_size": 1987,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "p2p_test.go",
+			"settings":
+			{
+				"buffer_size": 332,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "package p2p"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"pac",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 497.0
+	},
+	"console":
+	{
+		"height": 200.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = 'df21e130d211cfc94d9b0905775a7c0f' + '1e3d39e33b79698005270310898eea76'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/elizabeth/ece419/M1/src/server/cache/Cache.java",
+		"/home/elizabeth/ece419/M1/src/app_kvServer/IKVServer.java",
+		"/home/elizabeth/ece419/M1/src/server/ClientConnection.java",
+		"/home/elizabeth/ece419/M1/src/server/cache/FIFOCache.java",
+		"/home/elizabeth/ece419/M1/src/testing/CacheTest.java",
+		"/home/elizabeth/ece419/M1/src/app_kvClient/KVClient.java",
+		"/home/elizabeth/ece419/M1/src/client/KVStore.java",
+		"/home/elizabeth/ece419/M1/src/client/KVCommInterface.java",
+		"/home/elizabeth/ece419/M1/src/app_kvServer/KVServer.java",
+		"/home/elizabeth/ece419/M1/src/testing/AllTests.java",
+		"/home/elizabeth/bls-js/milagro-crypto-js/src/rand.js",
+		"/home/elizabeth/js-libp2p/src/pubsub.js",
+		"/home/elizabeth/bls-js/src/sign.js",
+		"/home/elizabeth/ring-mixer/scripts/deploy.js",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/message.txt",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/test/linkable_test.go",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/main.go",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/test/ring_test.go",
+		"/home/elizabeth/ring-mixer/contracts/ContractMixer.sol",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/core/genesis.go",
+		"/home/elizabeth/ring-mixer/contracts/RingMixer.sol",
+		"/home/elizabeth/ring-mixer/test/verify_test.js",
+		"/home/elizabeth/ring-mixer/test/deploy.js",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/ring/ring.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/deploy.go",
+		"/home/elizabeth/go/src/github.com/noot/ring-mixer/contracts/RingMixer.sol",
+		"/home/elizabeth/go/src/github.com/noot/ring-mixer/bindings/RingVerify.go",
+		"/home/elizabeth/ring-mixer/build/RingVerify.abi",
+		"/home/elizabeth/go/src/github.com/noot/ring-mixer/test/RingVerify_test.go",
+		"/home/elizabeth/go/src/github.com/noot/ring-mixer/main.go",
+		"/home/elizabeth/shyftcorecontracts/test/14_test_safeAndBridge.js",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/crypto/crypto.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/params/gas_table.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/params/protocol_params.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/aura/aura.go",
+		"/home/elizabeth/go/src/github.com/noot/ring-go/ring/ring_test.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/ChainBridge/main.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/ChainBridge/config.json",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/main.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/ChainBridge/client/client.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/migrations/migrate.go",
+		"/home/elizabeth/go/src/github.com/noot/token/bindings/Token.go",
+		"/home/elizabeth/go/src/github.com/noot/token/contracts/Token.sol",
+		"/home/elizabeth/go/src/github.com/noot/token/main.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/migrate.go",
+		"/home/elizabeth/go/src/github.com/noot/token/config.json",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/compile.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/helpers.go",
+		"/home/elizabeth/go/src/github.com/noot/token/test/token.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/test/example.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/bindings/Example.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/leth-main.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/test.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/contract.go",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/contracts/Libraries/MerklePatriciaProof.sol",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/truffle.js",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/contracts/relayerElection.sol",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/test/9_test_shyftBridge.js",
+		"/home/elizabeth/shyft_jsbridge/lib/merkle.js",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/contracts/ShyftBridge.sol",
+		"/home/elizabeth/shyft_jsbridge/config.json",
+		"/home/elizabeth/shyft_jsbridge/tests/merkle-tests.js",
+		"/home/elizabeth/shyft_jsbridge/package.json",
+		"/home/elizabeth/shyft_jsbridge/lib/logger.js",
+		"/home/elizabeth/shyft_jsbridge/.gitignore",
+		"/home/elizabeth/shyft_jsbridge/truffle/test/headertest.js",
+		"/home/elizabeth/shyft_jsbridge/truffle/contracts/HeaderTest.sol",
+		"/home/elizabeth/shyft_jsbridge/truffle/truffle.js",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/params/config.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/cmd/utils/flags.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/aura/snapshot.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/aura/api.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/consensus.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/params/bootnodes.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/ethdb/database.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/cmd/utils/customflags.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/cmd/utils/cmd.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/ethash/ethash.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/clique/clique.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/ethash/api.go",
+		"/home/elizabeth/go/src/github.com/ethereum/go-ethereum/consensus/clique/api.go",
+		"/home/elizabeth/shyft_jsbridge/lib/setup.js",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/jsonrpc/jsonrpc.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/contracts/Example.sol",
+		"/home/elizabeth/go/src/github.com/noot/leth_test/contracts/ModifierContract.sol",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/leth/core/bindings.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/types.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/helpers.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/main.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/bindings.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/test/example.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/test.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/deploy.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/create/bindings.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/core/compile.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/create/dial.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/create/contract.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/bind/Example.go",
+		"/home/elizabeth/go/src/github.com/noot/leth/contracts/Example.sol",
+		"/home/elizabeth/go/src/github.com/noot/leth/config.json",
+		"/home/elizabeth/go/src/github.com/noot/leth/jsonrpc/jsonrpc.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/gobridge/client/client.go",
+		"/home/elizabeth/shyft_bridge_client/src/lib/util/networking.js",
+		"/home/elizabeth/shyft_bridge_client/src/lib/util/util.js",
+		"/home/elizabeth/shyft_bridge_client/src/clients.js",
+		"/home/elizabeth/shyft_bridge_client/src/config.js",
+		"/home/elizabeth/shyft_bridge_client/src/lib/Listener.js",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/test/util/merkle.js",
+		"/home/elizabeth/shyft_bridge_client/src/log.js",
+		"/home/elizabeth/shyft_bridge_client/data/bridge.json",
+		"/home/elizabeth/Documents/shyftcorecontracts_bridge/build/contracts/ShyftBridge.json",
+		"/home/elizabeth/shyft_bridge_client/data/config.json",
+		"/home/elizabeth/shyft_bridge_client/src/lib/Peer.js",
+		"/home/elizabeth/shyft_bridge_client/src/lib/util/bridges.js",
+		"/home/elizabeth/shyft_bridge_client/src/lib/util/signatures.js",
+		"/home/elizabeth/shyft_bridge_client/src/peers.js",
+		"/home/elizabeth/shyft_bridge_client/data/bridgeAbi",
+		"/home/elizabeth/shyft_bridge_client/node_modules/jsonfile/index.js",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/multi_directional_bridge/client/merkle.go",
+		"/home/elizabeth/go/src/github.com/ChainSafeSystems/multi_directional_bridge/client/client.go",
+		"/home/elizabeth/go/src/github.com/ShyftNetwork/bridge/client/transaction_test.go",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/truffle/contracts/Plasma.sol",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/config.json",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/client/merkle.go",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/client/transaction.go",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/client/client.go",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/main.go",
+		"/home/elizabeth/go/src/github.com/noot/root-relay/truffle/contracts/HealthXV1.sol"
+	],
+	"find":
+	{
+		"height": 40.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/home/elizabeth/go/src/github.com/noot/libp2p_examples/main.go",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4873,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								31,
+								31
+							]
+						],
+						"settings":
+						{
+							"auto_name": "package main",
+							"syntax": "Packages/Go/Go.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "p2p.go",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1987,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								422,
+								422
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "p2p_test.go",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 332,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11,
+								11
+							]
+						],
+						"settings":
+						{
+							"auto_name": "package p2p",
+							"syntax": "Packages/Go/Go.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 37.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.unsaved_changes":
+	{
+		"height": 28.0
+	},
+	"pinned_build_system": "",
+	"project": "go-pre-p2p.sublime-project",
+	"replace":
+	{
+		"height": 70.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"~/Documents/shyft_shyftcorecontracts_mikerah/contracts/ShyftBridge.sol"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": false,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
