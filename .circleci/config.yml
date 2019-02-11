@@ -8,3 +8,14 @@ jobs:
       - checkout
       # - run: go get -v -t -d ./...
       # - run: go test -v ./...
+
+      
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+        filters:
+          branches:
+            only:
+              develop
