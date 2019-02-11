@@ -18,5 +18,5 @@ workflows:
         filters:
           branches:
             only:
-              develop
+              development
 
