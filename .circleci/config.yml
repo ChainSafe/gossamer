@@ -6,8 +6,8 @@ jobs:
 
     steps:
       - checkout
-      # - run: go get -v -t -d ./...
-      # - run: go test -v ./...
+      - run: go get -v -t -d ./...
+      - run: go test -v ./...
 
       
 workflows:
@@ -19,3 +19,4 @@ workflows:
           branches:
             only:
               develop
+
