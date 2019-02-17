@@ -1,11 +1,16 @@
 version: 2
 jobs:
-  build:
+  test:
+    working_directory: $HOME/go/src/github.com/ChainSafeSystems/go-pre
     docker:
       - image: circleci/golang:1.11
 
     steps:
-      - checkout
+      - checkout:
+          path: $HOME/go/src/github.com/ChainSafeSystems/go-pre
+      - attach_workspace:
+          at: $HOME/go/src/github.com/ChainSafeSystems/go-pre
+
       - run: go get -v -t -d ./...
       - run: go test -v ./...
 
@@ -14,9 +19,9 @@ workflows:
   version: 2
   go-pre:
     jobs:
-      - build:
-        filters:
-          branches:
-            only:
-              - development
+      - test:
+          filters:
+            branches:
+              only:
+                - development
 
