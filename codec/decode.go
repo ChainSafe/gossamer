@@ -86,3 +86,13 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 
 	return nil, errors.New("could not decode invalid byte array")
 }
+
+func DecodeBool(b byte) (bool, error) {
+	if b == 1 {
+		return true, nil
+	} else if b == 0 {
+		return false, nil
+	}
+
+	return false, errors.New("cannot decode invalid boolean")
+}
