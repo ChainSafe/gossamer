@@ -68,7 +68,20 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 
 		return b[4:length+4], nil
 	} else if b[0] & 0x03 == 3 { // encoding of length: big-integer mode
+		length, err := DecodeInteger(b)
+		if err != nil {
+			return nil, err
+		}
 
+		// get the length of the encoded length
+		topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
+		byteLen := topSixBits + 4
+
+		if length < 1 << 30  || int64(len(b)) < length + int64(byteLen) {
+			return nil, errors.New("Could not decode invalid byte array")
+		}
+
+		return b[int64(byteLen):length+int64(byteLen)], nil
 	}
 	return []byte{}, nil
 }

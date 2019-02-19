@@ -40,6 +40,7 @@ var decodeByteArrayTests = []decodeByteArrayTest{
 	{val: append([]byte{0x01, 0x01}, byteArray(64)...), output: byteArray(64)},
 	{val: append([]byte{0xfd, 0xff}, byteArray(16384)...), output: byteArray(16383)},
 	{val: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), output: byteArray(16384)},
+	{val: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40}, byteArray(1073741824)...), output: byteArray(1073741824)},
 }
 
 func TestDecodeInts(t *testing.T) {
