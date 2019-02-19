@@ -1,6 +1,6 @@
 version: 2
 jobs:
-  test:
+  build:
     working_directory: $HOME/go/src/github.com/ChainSafeSystems/go-pre
     docker:
       - image: circleci/golang:1.11
