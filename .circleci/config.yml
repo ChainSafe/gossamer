@@ -15,14 +15,4 @@ jobs:
       - run: go test -v ./...
       - run: gometalinter ./...
 
-      
-workflows:
-  version: 2
-  go-pre:
-    jobs:
-      - test:
-          filters:
-            branches:
-              only:
-                - development
 
