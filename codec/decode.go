@@ -38,7 +38,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		if length == 0 || length > 1 << 6 {
+		if length == 0 || length > 1 << 6 || int64(len(b)) < length + 1 {
 			return nil, errors.New("Could not decode invalid byte array")
 		}
 
@@ -50,7 +50,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		if length < 1 << 6 || length > 1 << 14 {
+		if length < 1 << 6 || length > 1 << 14 || int64(len(b)) < length + 2 { 
 			return nil, errors.New("Could not decode invalid byte array")
 		}
 
@@ -62,7 +62,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		if length < 1 << 14 || length > 1 << 30 {
+		if length < 1 << 14 || length > 1 << 30 || int64(len(b)) < length + 4 {
 			return nil, errors.New("Could not decode invalid byte array")
 		}
 
