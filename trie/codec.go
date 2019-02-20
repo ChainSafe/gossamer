@@ -1,6 +1,5 @@
 package trie
 
-
 // keyEncodeByte swaps the two nibbles of a byte to result in 'LE'
 func keyEncodeByte(b byte) byte {
 	b1 := (uint(b) & 240) >> 4
@@ -18,4 +17,3 @@ func KeyEncode(k []byte) []byte {
 	}
 	return result
 }
-
