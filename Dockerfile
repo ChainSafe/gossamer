@@ -4,7 +4,7 @@ RUN apk --no-cache add git linux-headers ca-certificates
 COPY . /go/src/github.com/ChainSafeSystems/go-pre
 WORKDIR /go/src/github.com/ChainSafeSystems/go-pre
 ENV GO111MODULE=off
-RUN go mod vendor
+RUN go install
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-pre .
 
 
