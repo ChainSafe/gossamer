@@ -87,7 +87,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
 			byteLen := topSixBits + 4
 
-			if (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) {
+			if (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) + 1 {
 				err = errors.New("could not decode invalid byte array")
 			} else {
 				o = b[int64(byteLen)+1:length+int64(byteLen)+1]
