@@ -8,30 +8,36 @@ import (
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the
 // int, then returns it
 func DecodeInteger(b []byte) (int64, error) {
-	var o int64
-	var err error 
-
 	if len(b) == 1 {
-		o = int64(b[0] >> 2)
+		return int64(b[0] >> 2), nil
 	} else if len(b) == 2 {
-		o = int64(binary.LittleEndian.Uint16(b) >> 2)
+		o := binary.LittleEndian.Uint16(b) >> 2
+		return int64(o), nil
 	} else if len(b) == 4 {
-		o = int64(binary.LittleEndian.Uint32(b) >> 2)
-	} else {
-		topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
-		byteLen := topSixBits + 4
+		o := binary.LittleEndian.Uint32(b) >> 2
+		return int64(o), nil
+	} 
 
-		if byteLen == 4 {
-			o = int64(binary.LittleEndian.Uint32(b[1 : byteLen+1]))
-		} else if byteLen > 4 && byteLen < 8 {
-			upperBytes := make([]byte, 8-byteLen)
-			upperBytes = append(b[5:byteLen+1], upperBytes...)
-			upper := int64(binary.LittleEndian.Uint32(upperBytes)) << 32
-			lower := int64(binary.LittleEndian.Uint32(b[1:5]))
-			o = upper + lower
-		}
+	var o int64
+	var err error
+
+	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
+	byteLen := topSixBits + 4
+
+	if byteLen == 4 {
+		o = int64(binary.LittleEndian.Uint32(b[1 : byteLen+1]))
+	} else if byteLen > 4 && byteLen < 8 {
+		upperBytes := make([]byte, 8-byteLen)
+		upperBytes = append(b[5:byteLen+1], upperBytes...)
+		upper := int64(binary.LittleEndian.Uint32(upperBytes)) << 32
+		lower := int64(binary.LittleEndian.Uint32(b[1:5]))
+		o = upper + lower
 	}
 	
+	if o == 0 {
+		err = errors.New("could not decode invalid integer")
+	}
+
 	return o, err
 }
 
@@ -43,42 +49,48 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 
 	if b[0] & 0x03 == 0 { // encoding of length: 1 byte mode
 		length, err := DecodeInteger([]byte{b[0]})
-
-		if err == nil && (length == 0 || length > 1 << 6 || int64(len(b)) < length + 1) {
-			err = errors.New("could not decode invalid byte array")
+		if err == nil {
+			if length == 0 || length > 1 << 6 || int64(len(b)) < length + 1 {
+				err = errors.New("could not decode invalid byte array")
+			} else {
+				o = b[1:length+1]
+			}
 		}
-
-		o = b[1:length+1]
 	} else if b[0] & 0x03 == 1 { // encoding of length: 2 byte mode
 		// pass first two bytes of byte array to decode length
 		length, err := DecodeInteger(b[0:2]) 
 
-		if err == nil && (length < 1 << 6 || length > 1 << 14 || int64(len(b)) < length + 2) { 
-			err = errors.New("could not decode invalid byte array")
-		}
-
-		o = b[2:length+2]
+		if err == nil {
+			if length < 1 << 6 || length > 1 << 14 || int64(len(b)) < length + 2 { 
+				err = errors.New("could not decode invalid byte array")
+			} else {
+				o = b[2:length+2]
+			}
+		} 
 	} else if b[0] & 0x03 == 2 { // encoding of length: 4 byte mode
 		// pass first four bytes of byte array to decode length
 		length, err := DecodeInteger(b[0:4]) 
 
-		if err == nil && (length < 1 << 14 || length > 1 << 30 || int64(len(b)) < length + 4) {
-			err = errors.New("could not decode invalid byte array")
+		if err == nil {
+			if length < 1 << 14 || length > 1 << 30 || int64(len(b)) < length + 4 {
+				err = errors.New("could not decode invalid byte array")
+			} else {
+				o = b[4:length+4]
+			}
 		}
-
-		o = b[4:length+4]
 	} else if b[0] & 0x03 == 3 { // encoding of length: big-integer mode
 		length, err := DecodeInteger(b)
+		if err == nil {
+			// get the length of the encoded length
+			topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
+			byteLen := topSixBits + 4
 
-		// get the length of the encoded length
-		topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
-		byteLen := topSixBits + 4
-
-		if err == nil && (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) {
-			err = errors.New("could not decode invalid byte array")
+			if (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) {
+				err = errors.New("could not decode invalid byte array")
+			} else {
+				o = b[int64(byteLen):length+int64(byteLen)]
+			}
 		}
-
-		o = b[int64(byteLen):length+int64(byteLen)]
 	}
 
 	return o, err
