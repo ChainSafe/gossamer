@@ -8,30 +8,31 @@ import (
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the
 // int, then returns it
 func DecodeInteger(b []byte) (int64, error) {
+	var o int64
+	var err error 
+
 	if len(b) == 1 {
-		return int64(b[0] >> 2), nil
+		o = int64(b[0] >> 2)
 	} else if len(b) == 2 {
-		o := binary.LittleEndian.Uint16(b) >> 2
-		return int64(o), nil
+		o = int64(binary.LittleEndian.Uint16(b) >> 2)
 	} else if len(b) == 4 {
-		o := binary.LittleEndian.Uint32(b) >> 2
-		return int64(o), nil
-	} 
+		o = int64(binary.LittleEndian.Uint32(b) >> 2)
+	} else {
+		topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
+		byteLen := topSixBits + 4
 
-	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
-	byteLen := topSixBits + 4
-
-	if byteLen == 4 {
-		return int64(binary.LittleEndian.Uint32(b[1 : byteLen+1])), nil
-	} else if byteLen > 4 && byteLen < 8 {
-		upperBytes := make([]byte, 8-byteLen)
-		upperBytes = append(b[5:byteLen+1], upperBytes...)
-		upper := int64(binary.LittleEndian.Uint32(upperBytes)) << 32
-		lower := int64(binary.LittleEndian.Uint32(b[1:5]))
-		return upper + lower, nil
+		if byteLen == 4 {
+			o = int64(binary.LittleEndian.Uint32(b[1 : byteLen+1]))
+		} else if byteLen > 4 && byteLen < 8 {
+			upperBytes := make([]byte, 8-byteLen)
+			upperBytes = append(b[5:byteLen+1], upperBytes...)
+			upper := int64(binary.LittleEndian.Uint32(upperBytes)) << 32
+			lower := int64(binary.LittleEndian.Uint32(b[1:5]))
+			o = upper + lower
+		}
 	}
 	
-	return int64(0), nil
+	return o, err
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
@@ -62,7 +63,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 		length, err := DecodeInteger(b[0:4]) 
 
 		if err == nil && (length < 1 << 14 || length > 1 << 30 || int64(len(b)) < length + 4) {
-			return nil, errors.New("could not decode invalid byte array")
+			err = errors.New("could not decode invalid byte array")
 		}
 
 		o = b[4:length+4]
@@ -73,7 +74,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 		topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
 		byteLen := topSixBits + 4
 
-		if err == nil && (length < 1 << 30  || int64(len(b)) < length + int64(byteLen)) {
+		if err == nil && (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) {
 			err = errors.New("could not decode invalid byte array")
 		}
 
@@ -81,7 +82,6 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 	}
 
 	return o, err
-	//return nil, errors.New("could not decode invalid byte array")
 }
 
 // DecodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
