@@ -16,8 +16,8 @@ type decodeByteArrayTest struct {
 }
 
 type decodeBoolTest struct {
-	val 	byte
-	output  bool
+	val    byte
+	output bool
 }
 
 var decodeIntTests = []decodeIntTest{
@@ -59,7 +59,7 @@ func TestDecodeInts(t *testing.T) {
 			t.Error(err)
 		} else if output != test.output {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
-		} 
+		}
 	}
 }
 
@@ -70,7 +70,7 @@ func TestDecodeByteArrays(t *testing.T) {
 			t.Error(err)
 		} else if !bytes.Equal(output, test.output) {
 			t.Errorf("Fail: got %d expected %d", len(output), len(test.output))
-		} 
+		}
 	}
 }
 
@@ -81,7 +81,7 @@ func TestDecodeBool(t *testing.T) {
 			t.Error(err)
 		} else if output != test.output {
 			t.Errorf("Fail: got %t expected %t", output, test.output)
-		} 
+		}
 	}
 
 	output, err := DecodeBool(0xff)

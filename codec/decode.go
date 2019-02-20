@@ -33,7 +33,7 @@ func DecodeInteger(b []byte) (int64, error) {
 		lower := int64(binary.LittleEndian.Uint32(b[1:5]))
 		o = upper + lower
 	}
-	
+
 	if o == 0 {
 		err = errors.New("could not decode invalid integer")
 	}
@@ -45,38 +45,38 @@ func DecodeInteger(b []byte) (int64, error) {
 // of the byte array, then returns it.  If it is invalid, return nil and error
 func DecodeByteArray(b []byte) ([]byte, error) {
 	var o []byte
-	var err error 
+	var err error
 
 	mode := b[0] & 0x03
 	if mode == 0 { // encoding of length: 1 byte mode
 		length, err := DecodeInteger([]byte{b[0]})
 		if err == nil {
-			if length == 0 || length > 1 << 6 || int64(len(b)) < length + 1 {
+			if length == 0 || length > 1<<6 || int64(len(b)) < length+1 {
 				err = errors.New("could not decode invalid byte array")
 			} else {
-				o = b[1:length+1]
+				o = b[1 : length+1]
 			}
 		}
 	} else if mode == 1 { // encoding of length: 2 byte mode
 		// pass first two bytes of byte array to decode length
-		length, err := DecodeInteger(b[0:2]) 
+		length, err := DecodeInteger(b[0:2])
 
 		if err == nil {
-			if length < 1 << 6 || length > 1 << 14 || int64(len(b)) < length + 2 { 
+			if length < 1<<6 || length > 1<<14 || int64(len(b)) < length+2 {
 				err = errors.New("could not decode invalid byte array")
 			} else {
-				o = b[2:length+2]
+				o = b[2 : length+2]
 			}
-		} 
+		}
 	} else if mode == 2 { // encoding of length: 4 byte mode
 		// pass first four bytes of byte array to decode length
-		length, err := DecodeInteger(b[0:4]) 
+		length, err := DecodeInteger(b[0:4])
 
 		if err == nil {
-			if length < 1 << 14 || length > 1 << 30 || int64(len(b)) < length + 4 {
+			if length < 1<<14 || length > 1<<30 || int64(len(b)) < length+4 {
 				err = errors.New("could not decode invalid byte array")
 			} else {
-				o = b[4:length+4]
+				o = b[4 : length+4]
 			}
 		}
 	} else if mode == 3 { // encoding of length: big-integer mode
@@ -87,10 +87,10 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
 			byteLen := topSixBits + 4
 
-			if (length < 1 << 30 || int64(len(b)) < (length + int64(byteLen)) + 1) {
+			if length < 1<<30 || int64(len(b)) < (length+int64(byteLen))+1 {
 				err = errors.New("could not decode invalid byte array")
 			} else {
-				o = b[int64(byteLen)+1:length+int64(byteLen)+1]
+				o = b[int64(byteLen)+1 : length+int64(byteLen)+1]
 			}
 		}
 	}
