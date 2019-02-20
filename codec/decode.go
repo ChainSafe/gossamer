@@ -17,7 +17,7 @@ func DecodeInteger(b []byte) (int64, error) {
 		o := binary.LittleEndian.Uint32(b) >> 2
 		return int64(o), nil
 	}
-	
+
 	var o int64
 	var err error
 
@@ -81,6 +81,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 		}
 	} else if mode == 3 { // encoding of length: big-integer mode
 		length, err := DecodeInteger(b)
+
 		if err == nil {
 			// get the length of the encoded length
 			topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
@@ -89,7 +90,7 @@ func DecodeByteArray(b []byte) ([]byte, error) {
 			if (length < 1 << 30 || int64(len(b)) < length + int64(byteLen)) {
 				err = errors.New("could not decode invalid byte array")
 			} else {
-				o = b[int64(byteLen):length+int64(byteLen)]
+				o = b[int64(byteLen)+1:length+int64(byteLen)+1]
 			}
 		}
 	}
