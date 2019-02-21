@@ -22,7 +22,7 @@ jobs:
 
       - run:
           name: Code Formatting
-          command: gofmt -w ./..
+          command: gofmt -d ./..
 
       - run:
           name: Run the Linter
