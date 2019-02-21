@@ -23,8 +23,8 @@ go test -v ./...
 ```
 
 ## Contributing
-Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
+Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 
 ## License
-`GNU General Public License v3.0`
+_GNU General Public License v3.0_
 
