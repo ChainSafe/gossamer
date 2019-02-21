@@ -63,6 +63,10 @@ var decodeBoolTests = []decodeBoolTest{
 
 var decodeTupleTests = []decodeTupleTest{
 	{val: []byte{0x04, 0x01, 0x08}, t: &struct{Foo []byte; Bar int64}{}, output: &struct{Foo []byte; Bar int64}{[]byte{0x01}, 2}},
+	{val: []byte{0x04, 0x01, 0x08}, t: &struct{Foo []byte; Bar int64}{}, output: &struct{Foo []byte; Bar int64}{[]byte{0x01}, 2}},
+	{val: []byte{0x04, 0x01, 0x08}, t: &struct{Foo []byte; Bar int64}{}, output: &struct{Foo []byte; Bar int64}{[]byte{0x01}, 2}},
+	{val: []byte{0x04, 0x01, 0x08}, t: &struct{Foo []byte; Bar int64}{}, output: &struct{Foo []byte; Bar int64}{[]byte{0x01}, 2}},
+
 }
 
 func TestDecodeInts(t *testing.T) {
