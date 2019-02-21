@@ -24,14 +24,14 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
 	byteLen := topSixBits + 4
 
-	if len(b) < int(byteLen) + 1 {
+	if len(b) < int(byteLen)+1 {
 		err = errors.New("could not decode invalid integer")
 	}
 
 	if err == nil {
 		bytesDecoded = int64(byteLen) + 1
 		if byteLen == 4 {
-			o = int64(binary.LittleEndian.Uint32(b[1 : bytesDecoded]))
+			o = int64(binary.LittleEndian.Uint32(b[1:bytesDecoded]))
 		} else if byteLen > 4 && byteLen < 8 {
 			// need to pad upper bytes with zeros so that we can perform binary decoding
 			upperBytes := make([]byte, 8-byteLen)
@@ -116,12 +116,12 @@ func DecodeBool(b byte) (bool, error) {
 		return false, nil
 	}
 
-	return false, errors.New("cannot decode invalid boolean") 
+	return false, errors.New("cannot decode invalid boolean")
 }
 
 func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 	v := reflect.ValueOf(t).Elem()
-	
+
 	var bytesDecoded int64 = 0
 	var byteLen int64
 	var err error
@@ -131,6 +131,7 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 
 	// iterate through each field in the struct
 	for i := 0; i < v.NumField(); i++ {
+
 		// get the field value at i
 		fieldValue := val.Field(i)
 
@@ -138,7 +139,7 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 		case []byte:
 			o, byteLen, err = DecodeByteArray(b[bytesDecoded:])
 			if err != nil {
-				return nil, err
+				break
 			}
 
 			// get the pointer to the value and set the value
@@ -147,15 +148,31 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 		case int64:
 			o, byteLen, err = DecodeInteger(b[bytesDecoded:])
 			if err != nil {
-				return nil, err
+				break
 			}
 
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*int64)
 			*ptr = o.(int64)
+		case bool:
+			o, err = DecodeBool(b[bytesDecoded])
+			if err != nil {
+				break
+			}
+
+			// get the pointer to the value and set the value
+			ptr := fieldValue.Addr().Interface().(*bool)
+			*ptr = o.(bool)		
+			byteLen = 1
 		}
 
+		if len(b) < int(bytesDecoded) + 1 {
+			err = errors.New("could not decode invalid byte array into tuple")
+		}
 		bytesDecoded = bytesDecoded + byteLen
+		if err != nil {
+			break
+		}
 	}
 
 	return t, err

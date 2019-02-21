@@ -61,7 +61,7 @@ func encodeInteger(i int) ([]byte, error) {
 		o := make([]byte, 4)
 		binary.LittleEndian.PutUint32(o, uint32(i<<2)+2)
 		return o, nil
-	} 
+	}
 
 	// TODO: this case only works for integers between 2**30 and 2**64 due to the fact that Go's integers only hold up
 	// to 2 ** 64. need to implement this case for integers > 2**64 using the big.Int library
@@ -94,7 +94,7 @@ func encodeInteger(i int) ([]byte, error) {
 func encodeBool(l bool) ([]byte, error) {
 	if l {
 		return []byte{0x01}, nil
-	} 
+	}
 	return []byte{0x00}, nil
 }
 
