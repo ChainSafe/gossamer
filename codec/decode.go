@@ -54,8 +54,7 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
 // of the byte array
-// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded byte array, bytesDecoded is
-// the number of input bytes decoded, and err is nil
+// if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
 // otherwise, it returns nil, 0, and error
 func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 	var length int64
@@ -130,7 +129,7 @@ func DecodeBool(b byte) (bool, error) {
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
 // to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the
-// decoded struct and nil, otherwise return nil, err.
+// decoded struct, otherwise error,
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
 func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
