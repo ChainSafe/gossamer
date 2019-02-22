@@ -2,6 +2,7 @@ package codec
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 )
 
@@ -35,6 +36,14 @@ var encodeTests = []encodeTest{
 	{val: true, output: []byte{0x01}},
 	{val: false, output: []byte{0x00}},
 
+	// big ints
+	{val: big.NewInt(0), output: []byte{0x00}},
+	{val: big.NewInt(1), output: []byte{0x04}},
+	{val: big.NewInt(42), output: []byte{0xa8}},
+	{val: big.NewInt(69), output: []byte{0x15, 0x01}},
+	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}},
+	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}},
+
 	// structs
 	{val: struct {
 		Foo []byte
@@ -65,3 +74,14 @@ func TestEncode(t *testing.T) {
 		}
 	}
 }
+
+// func TestEncodeBig(t *testing.T) {
+// 	for _, test := range encodeTests {
+// 		output, err := Encode(test.val, &new(io.Writer))
+// 		if err != nil {
+// 			t.Error(err)
+// 		} else if !bytes.Equal(output, test.output) {
+// 			t.Errorf("Fail: got %x expected %x", output, test.output)
+// 		}
+// 	}
+// }
