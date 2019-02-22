@@ -10,9 +10,9 @@ func TestKeyEncodeByte(t *testing.T) {
 		input    byte
 		expected byte
 	}{
-		{byte(36), byte(66)},
+		{byte(0xA0), byte(0x0A)},
 		{byte(0), byte(0)},
-		{byte(240), byte(15)},
+		{byte(0x24), byte(0x42)},
 	}
 
 	for _, test := range tests {
