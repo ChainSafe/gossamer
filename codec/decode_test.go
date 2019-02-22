@@ -2,6 +2,7 @@ package codec
 
 import (
 	"bytes"
+	"math/big"
 	"reflect"
 	"testing"
 )
@@ -9,6 +10,12 @@ import (
 type decodeIntTest struct {
 	val          []byte
 	output       int64
+	bytesDecoded int64
+}
+
+type decodeBigIntTest struct {
+	val          []byte
+	output       *big.Int
 	bytesDecoded int64
 }
 
@@ -42,6 +49,21 @@ var decodeIntTests = []decodeIntTest{
 	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: int64(1073741824), bytesDecoded: 5},
 	{val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: int64(1<<32 - 1), bytesDecoded: 5},
 	{val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: int64(1 << 32), bytesDecoded: 6},
+}
+
+var decodeBigIntTests = []decodeBigIntTest{
+	// compact integers
+	{val: []byte{0x00}, output: big.NewInt(0), bytesDecoded: 1},
+	{val: []byte{0x04}, output: big.NewInt(1), bytesDecoded: 1},
+	{val: []byte{0xa8}, output: big.NewInt(42), bytesDecoded: 1},
+	{val: []byte{0x01, 0x01}, output: big.NewInt(64), bytesDecoded: 2},
+	{val: []byte{0x15, 0x01}, output: big.NewInt(69), bytesDecoded: 2},
+	{val: []byte{0xfd, 0xff}, output: big.NewInt(16383), bytesDecoded: 2},
+	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: big.NewInt(16384), bytesDecoded: 4},
+	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: big.NewInt(1073741823), bytesDecoded: 4},
+	// {val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: big.NewInt(1073741824), bytesDecoded: 5},
+	// {val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: big.NewInt(1<<32 - 1), bytesDecoded: 5},
+	// {val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: big.NewInt(1 << 32), bytesDecoded: 6},
 }
 
 var decodeByteArrayTests = []decodeByteArrayTest{
@@ -116,6 +138,21 @@ func TestDecodeInts(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else if output != test.output {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		} else if bytesDecoded != test.bytesDecoded {
+			t.Errorf("Fail: got %d bytesDecoded expected %d", bytesDecoded, test.bytesDecoded)
+		}
+	}
+}
+
+func TestDecodeBigInts(t *testing.T) {
+	for _, test := range decodeBigIntTests {
+		buf := bytes.Buffer{}
+		sd := Decoder{&buf}
+		output, bytesDecoded, err := sd.DecodeBigInt(test.val)
+		if err != nil {
+			t.Error(err)
+		} else if output.Cmp(test.output) != 0 {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
 		} else if bytesDecoded != test.bytesDecoded {
 			t.Errorf("Fail: got %d bytesDecoded expected %d", bytesDecoded, test.bytesDecoded)

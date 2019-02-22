@@ -3,8 +3,14 @@ package codec
 import (
 	"encoding/binary"
 	"errors"
+	"io"
+	"math/big"
 	"reflect"
 )
+
+type Decoder struct {
+	reader 	io.Reader
+}
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
@@ -50,6 +56,30 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	}
 
 	return o, bytesDecoded, err
+}
+
+func (sd *Decoder) DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err error) {
+	// check mode of encoding, stored at 2 least significant bits
+	mode := b[0] & 0x03
+	if mode <= 2 {
+		tmp, bytesDecoded, err := DecodeInteger(b)
+		return big.NewInt(tmp), bytesDecoded, err
+	}
+
+	// >4 byte mode
+	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
+	byteLen := topSixBits + 4
+
+	if len(b) < int(byteLen)+1 {
+		err = errors.New("could not decode invalid integer")
+	}
+
+	if err == nil {
+		bytesDecoded = int64(byteLen) + 1
+		binary.Read(sd.reader, binary.LittleEndian, b[1:byteLen+1])
+	}
+
+	return nil, 0, nil
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
