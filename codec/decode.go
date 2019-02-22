@@ -6,10 +6,9 @@ import (
 	"reflect"
 )
 
-// DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
-// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
-// number of input bytes decoded, and err is nil
-// otherwise, it returns 0, 0, and error
+// DecodeInteger accepts a SCALE encoded integer and performs SCALE decoding of it
+// if the encoding is valid, it then returns the decoded integer and the total number of input bytes decoded
+// otherwise, it returns an error
 func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
@@ -52,10 +51,9 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	return o, bytesDecoded, err
 }
 
-// DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
-// of the byte array
-// if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
-// otherwise, it returns nil, 0, and error
+// DecodeByteArray accepts a SCALE encoded byte array and performs SCALE decoding of it
+// If the encoding is valid, it returns the decoded byte array, the total number of input bytes decoded including
+// the length bits and the byte array itself, and nil. Otherwise, it returns an error.
 func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 	var length int64
 
