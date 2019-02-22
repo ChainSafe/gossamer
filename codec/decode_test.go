@@ -48,11 +48,12 @@ var decodeByteArrayTests = []decodeByteArrayTest{
 	// byte arrays
 	{val: []byte{0x04, 0x01}, output: []byte{0x01}, bytesDecoded: 2},
 	{val: []byte{0x04, 0xff}, output: []byte{0xff}, bytesDecoded: 2},
-	{val: []byte{0x08, 0x01, 0x01}, output: []byte{0x01, 0x01}},
+	{val: []byte{0x08, 0x01, 0x01}, output: []byte{0x01, 0x01}, bytesDecoded: 3},
 	{val: append([]byte{0x01, 0x01}, byteArray(64)...), output: byteArray(64)},
 	{val: append([]byte{0xfd, 0xff}, byteArray(16384)...), output: byteArray(16383)},
 	{val: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), output: byteArray(16384)},
 	{val: append([]byte{0xfe, 0xff, 0xff, 0xff}, byteArray(1073741823)...), output: byteArray(1073741823)},
+	// Causes CI to crash
 	//{val: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40}, byteArray(1073741824)...), output: byteArray(1073741824)},
 }
 

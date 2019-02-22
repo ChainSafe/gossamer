@@ -58,10 +58,12 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 // the number of input bytes decoded, and err is nil
 // otherwise, it returns nil, 0, and error
 func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
+	var length int64
+
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode == 0 { // encoding of length: 1 byte mode
-		length, _, err := DecodeInteger([]byte{b[0]})
+		length, _, err = DecodeInteger([]byte{b[0]})
 		if err == nil {
 			if length == 0 || length > 1<<6 || int64(len(b)) < length+1 {
 				err = errors.New("could not decode invalid byte array")
@@ -72,7 +74,7 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 		}
 	} else if mode == 1 { // encoding of length: 2 byte mode
 		// pass first two bytes of byte array to decode length
-		length, _, err := DecodeInteger(b[0:2])
+		length, _, err = DecodeInteger(b[0:2])
 
 		if err == nil {
 			if length < 1<<6 || length > 1<<14 || int64(len(b)) < length+2 {
@@ -84,7 +86,7 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 		}
 	} else if mode == 2 { // encoding of length: 4 byte mode
 		// pass first four bytes of byte array to decode length
-		length, _, err := DecodeInteger(b[0:4])
+		length, _, err = DecodeInteger(b[0:4])
 
 		if err == nil {
 			if length < 1<<14 || length > 1<<30 || int64(len(b)) < length+4 {
@@ -95,7 +97,7 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 			}
 		}
 	} else if mode == 3 { // encoding of length: big-integer mode
-		length, _, err := DecodeInteger(b)
+		length, _, err = DecodeInteger(b)
 
 		if err == nil {
 			// get the length of the encoded length
