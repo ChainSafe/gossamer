@@ -2,10 +2,10 @@ package trie
 
 type Trie struct {
 	db *Database
-	root []byte
+	root [32]byte
 }
 
-func NewTrie(db *Database, root []byte) *Trie {
+func NewTrie(db *Database, root [32]byte) *Trie {
 
 
 	return &Trie{
@@ -14,8 +14,8 @@ func NewTrie(db *Database, root []byte) *Trie {
 	}
 }
 
-
+func(t *Trie) Put(k, v  []byte){}
 
 func(t *Trie) Get(key []byte){}
-func(t *Trie) Put(key []byte){}
+
 func(t *Trie) Del(key []byte){}
