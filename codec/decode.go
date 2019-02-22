@@ -128,8 +128,8 @@ func DecodeBool(b byte) (bool, error) {
 	return false, errors.New("cannot decode invalid boolean")
 }
 
-// DecodeTuple acceps a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
-// to a struct which the encoded tuple shpuld be marshalled into. If it is a valid encoding for the struct, it returns the
+// DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
+// to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the
 // decoded struct and nil, otherwise return nil, err.
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
