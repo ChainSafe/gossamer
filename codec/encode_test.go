@@ -53,7 +53,6 @@ var encodeTests = []encodeTest{
 		Foo int64
 		Bar []byte
 	}{int64(1073741824), byteArray(64)}, output: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x01, 0x01}, byteArray(64)...)},
-	//{val: struct{Foo []byte; Bar Noot}{[]byte{0x01}, {1}}, output: []byte{0x04, 0x01, 0x04}},
 }
 
 func TestEncode(t *testing.T) {
