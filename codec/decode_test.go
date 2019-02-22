@@ -87,24 +87,24 @@ var decodeTupleTests = []decodeTupleTest{
 	}{[]byte{0x01}, byteArray(16384)}},
 
 	{val: []byte{0x04, 0x01, 0xfd, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, t: &struct {
-		Foo []byte
-		Bar int64
+		Foo  []byte
+		Bar  int64
 		Noot int64
 	}{}, output: &struct {
-		Foo []byte
-		Bar int64
+		Foo  []byte
+		Bar  int64
 		Noot int64
 	}{[]byte{0x01}, 16383, int64(1 << 32)}},
 
 	{val: []byte{0x04, 0x01, 0xfd, 0xff, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, t: &struct {
-		Foo []byte
-		Bar int64
-		Bo 	bool
+		Foo  []byte
+		Bar  int64
+		Bo   bool
 		Noot int64
 	}{}, output: &struct {
-		Foo []byte
-		Bar int64
-		Bo  bool
+		Foo  []byte
+		Bar  int64
+		Bo   bool
 		Noot int64
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
 }

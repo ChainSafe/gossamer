@@ -6,9 +6,12 @@ import (
 	"reflect"
 )
 
-// DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the
-// int, then returns it
+// DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
+// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the 
+// number of input bytes decoded, and err is nil
+// otherwise, it returns 0, 0, and error
 func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
+	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode == 0 { // 1 byte mode
 		return int64(b[0] >> 2), 1, nil
@@ -50,8 +53,12 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
-// of the byte array, then returns it.  If it is invalid, return nil and error
+// of the byte array
+// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded byte array, bytesDecoded is 
+// the number of input bytes decoded, and err is nil
+// otherwise, it returns nil, 0, and error
 func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
+	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode == 0 { // encoding of length: 1 byte mode
 		length, _, err := DecodeInteger([]byte{b[0]})
@@ -119,6 +126,9 @@ func DecodeBool(b byte) (bool, error) {
 	return false, errors.New("cannot decode invalid boolean")
 }
 
+// DecodeTuple acceps a byte array representing the SCALE encoded tuple and an interface. This interface should be the 
+// struct which the encoded tuple shpuld be marshalled into. If it is a valid encoding for the struct, it returns the
+// decoded struct and nil, otherwise return nil, err.
 func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 	v := reflect.ValueOf(t).Elem()
 
@@ -141,7 +151,6 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 			if err != nil {
 				break
 			}
-
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
@@ -150,7 +159,6 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 			if err != nil {
 				break
 			}
-
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*int64)
 			*ptr = o.(int64)
@@ -159,14 +167,13 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 			if err != nil {
 				break
 			}
-
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*bool)
-			*ptr = o.(bool)		
+			*ptr = o.(bool)
 			byteLen = 1
 		}
 
-		if len(b) < int(bytesDecoded) + 1 {
+		if len(b) < int(bytesDecoded)+1 {
 			err = errors.New("could not decode invalid byte array into tuple")
 		}
 		bytesDecoded = bytesDecoded + byteLen
