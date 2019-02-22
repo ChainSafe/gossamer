@@ -44,7 +44,8 @@ var decodeByteArrayTests = []decodeByteArrayTest{
 	{val: append([]byte{0xfd, 0xff}, byteArray(16384)...), output: byteArray(16383)},
 	{val: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), output: byteArray(16384)},
 	{val: append([]byte{0xfe, 0xff, 0xff, 0xff}, byteArray(1073741823)...), output: byteArray(1073741823)},
-	{val: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40}, byteArray(1073741824)...), output: byteArray(1073741824)},
+	// Causes CI to crash
+	//{val: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40}, byteArray(1073741824)...), output: byteArray(1073741824)},
 }
 
 var decodeBoolTests = []decodeBoolTest{
