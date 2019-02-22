@@ -23,3 +23,5 @@
 
 # Sublime
 *.sublime*
+
+go-pre.db
