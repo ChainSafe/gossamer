@@ -20,3 +20,8 @@
 
 # VS Code
 .vscode
+
+# Sublime
+*.sublime*
+
+go-pre.db
