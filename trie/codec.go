@@ -1,5 +1,7 @@
 package trie
 
+import "fmt"
+
 // keyEncodeByte swaps the two nibbles of a byte to result in 'LE'
 func keyEncodeByte(b byte) byte {
 	b1 := (uint(b) & 240) >> 4
@@ -17,3 +19,16 @@ func KeyEncode(k []byte) []byte {
 	}
 	return result
 }
+
+func keybytesReturnNib(str []byte) []byte {
+	l := len(str)*2 + 1
+	fmt.Println(l, str)
+	var nibbles = make([]byte, l)
+	for i, b := range str {
+		nibbles[i*2] = b / 16
+		nibbles[i*2+1] = b % 16
+	}
+	nibbles[l-1] = 16
+	return nibbles
+}
+
