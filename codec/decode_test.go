@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+type reverseByteTest struct {
+	val          []byte
+	output       []byte
+}
+
 type decodeIntTest struct {
 	val          []byte
 	output       int64
@@ -61,9 +66,9 @@ var decodeBigIntTests = []decodeBigIntTest{
 	{val: []byte{0xfd, 0xff}, output: big.NewInt(16383), bytesDecoded: 2},
 	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: big.NewInt(16384), bytesDecoded: 4},
 	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: big.NewInt(1073741823), bytesDecoded: 4},
-	// {val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: big.NewInt(1073741824), bytesDecoded: 5},
-	// {val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: big.NewInt(1<<32 - 1), bytesDecoded: 5},
-	// {val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: big.NewInt(1 << 32), bytesDecoded: 6},
+	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: big.NewInt(1073741824), bytesDecoded: 5},
+	{val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: big.NewInt(1<<32 - 1), bytesDecoded: 5},
+	{val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: big.NewInt(1 << 32), bytesDecoded: 6},
 }
 
 var decodeByteArrayTests = []decodeByteArrayTest{
@@ -132,6 +137,21 @@ var decodeTupleTests = []decodeTupleTest{
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
 }
 
+var reverseByteTests = []reverseByteTest{
+	{val: []byte{0x00, 0x01, 0x02}, output: []byte{0x02, 0x01, 0x00}},
+	{val: []byte{0x04, 0x05, 0x06, 0x07}, output: []byte{0x07, 0x06, 0x05, 0x04}},
+	{val: []byte{0xff}, output: []byte{0xff}},
+}
+
+func TestReverseBytes(t *testing.T) {
+	for _, test := range reverseByteTests {
+		output := reverseBytes(test.val)
+		if !bytes.Equal(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		} 
+	}	
+}
+
 func TestDecodeInts(t *testing.T) {
 	for _, test := range decodeIntTests {
 		output, bytesDecoded, err := DecodeInteger(test.val)
@@ -147,9 +167,7 @@ func TestDecodeInts(t *testing.T) {
 
 func TestDecodeBigInts(t *testing.T) {
 	for _, test := range decodeBigIntTests {
-		buf := bytes.Buffer{}
-		sd := Decoder{&buf}
-		output, bytesDecoded, err := sd.DecodeBigInt(test.val)
+		output, bytesDecoded, err := DecodeBigInt(test.val)
 		if err != nil {
 			t.Error(err)
 		} else if output.Cmp(test.output) != 0 {

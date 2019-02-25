@@ -58,7 +58,7 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	return o, bytesDecoded, err
 }
 
-func (sd *Decoder) DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err error) {
+func DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode <= 2 {
@@ -74,12 +74,16 @@ func (sd *Decoder) DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err e
 		err = errors.New("could not decode invalid integer")
 	}
 
+	output := make([]byte, byteLen)
+
+	// TODO: use io.Writer to return number of bytesDecoded
 	if err == nil {
+		output = reverseBytes(b[1:byteLen+1])
+		o = new(big.Int).SetBytes(output)
 		bytesDecoded = int64(byteLen) + 1
-		binary.Read(sd.reader, binary.LittleEndian, b[1:byteLen+1])
 	}
 
-	return nil, 0, nil
+	return o, bytesDecoded, nil
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
