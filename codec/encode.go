@@ -16,18 +16,16 @@ type Encoder struct {
 
 // Encode is the top-level function which performs SCALE encoding of b which may be of type []byte, int16, int32, int64,
 // or bool
-func Encode(b interface{}) ([]byte, error) {
+func Encode(b interface{}) (encodedItem []byte, err error) {
 	var buffer = bytes.Buffer{}
 	se := Encoder{&buffer}
 
 	switch v := b.(type) {
 	case []byte:
-		return encodeByteArray(v)
+		_, err = se.encodeByteArray(v)
+		return buffer.Bytes(), err
 	case *big.Int:
-		_, err := se.encodeBigInteger(v)
-		if err != nil {
-			return nil, err
-		}
+		_, err = se.encodeBigInteger(v)
 		return buffer.Bytes(), nil
 	case int16:
 		return encodeInteger(int(v))
@@ -35,8 +33,8 @@ func Encode(b interface{}) ([]byte, error) {
 		return encodeInteger(int(v))
 	case int64:
 		return encodeInteger(int(v))
-	case string:
-		return encodeByteArray([]byte(v))
+	// case string:
+	// 	return encodeByteArray([]byte(v))
 	case bool:
 		return encodeBool(v)
 	case interface{}:
@@ -49,12 +47,21 @@ func Encode(b interface{}) ([]byte, error) {
 // encodeByteArray performs the following:
 // b -> [encodeInteger(len(b)) b]
 // it returns a byte array where the first byte is the length of b encoded with SCALE, followed by the byte array b itself
-func encodeByteArray(b []byte) ([]byte, error) {
+func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 	encodedLen, err := encodeInteger(len(b))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return append(encodedLen, b...), nil
+
+	var n int
+	n, err = se.writer.Write(encodedLen)
+	if err != nil {
+		return n, err
+	}
+
+	bytesEncoded = bytesEncoded + n
+	n, err = se.writer.Write(b)
+	return bytesEncoded + n, err
 }
 
 // encodeInteger performs the following on integer i:
@@ -66,7 +73,7 @@ func encodeByteArray(b []byte) ([]byte, error) {
 // if 2^14 <= n < 2^30 return [10 i^2...i^32] [ 32 bits = 4 byte output ]
 // if n >= 2^30 return [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
-func encodeInteger(i int) ([]byte, error) {
+func (se *Encoder) encodeInteger(i int) (bytesEncoded int64, err error) {
 	if i < 1<<6 {
 		o := byte(i) << 2
 		return []byte{o}, nil
@@ -106,7 +113,7 @@ func encodeInteger(i int) ([]byte, error) {
 // encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
 // if 2^30 <= n < 2^536 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
-func (se *Encoder) encodeBigInteger(i *big.Int) (bytesDecoded int, err error) {
+func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 	if i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0 { // if i < 1<<6
 		err = binary.Write(se.writer, binary.LittleEndian, uint8(i.Int64()<<2))
 		return 1, err
