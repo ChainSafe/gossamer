@@ -3,9 +3,29 @@ package codec
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 	"math/big"
 	"reflect"
 )
+
+type Decoder struct {
+	reader io.Reader
+}
+
+func (sd *Decoder) Decode(t interface{}) (err error) {
+	v := reflect.ValueOf(t).Elem()
+	switch v.Interface().(type) {
+	case int64:
+		b := make([]byte, 8)
+		sd.reader.Read(b)
+		var o int64
+		o, _, err = DecodeInteger(b)
+		ptr := v.Addr().Interface().(*int64)
+		*ptr = o
+	}
+
+	return err
+}
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the

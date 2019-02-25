@@ -68,7 +68,7 @@ func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 // [append i as a byte array to the first byte]
 func (se *Encoder) encodeInteger(i int) (bytesEncoded int, err error) {
 	if i < 1<<6 {
-		err = binary.Write(se.writer, binary.LittleEndian, uint8(byte(i)<<2))
+		err = binary.Write(se.writer, binary.LittleEndian, byte(i)<<2)
 		return 1, err
 	} else if i < 1<<14 {
 		err = binary.Write(se.writer, binary.LittleEndian, uint16(i<<2)+1)
@@ -94,10 +94,14 @@ func (se *Encoder) encodeInteger(i int) (bytesEncoded int, err error) {
 	lengthByte := topSixBits<<2 + 3
 
 	err = binary.Write(se.writer, binary.LittleEndian, lengthByte)
-	binary.LittleEndian.PutUint64(o, uint64(i))
-	err = binary.Write(se.writer, binary.LittleEndian, o[0:numBytes])
+	bytesEncoded++
+	if err == nil {
+		binary.LittleEndian.PutUint64(o, uint64(i))
+		err = binary.Write(se.writer, binary.LittleEndian, o[0:numBytes])
+		bytesEncoded += numBytes
+	}
 
-	return numBytes + 1, err
+	return bytesEncoded, err
 }
 
 // encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
@@ -134,11 +138,11 @@ func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 // l = false -> write [0]
 func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 	if l {
-		se.writer.Write([]byte{0x01})
-		return 1, nil
+		bytesEncoded, err = se.writer.Write([]byte{0x01})
+		return bytesEncoded, err
 	}
-	se.writer.Write([]byte{0x00})
-	return 1, nil
+	bytesEncoded, err = se.writer.Write([]byte{0x00})
+	return bytesEncoded, err
 }
 
 // encodeTuple reads the number of fields in the struct and their types and writes to the buffer each of the struct fields

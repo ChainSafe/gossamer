@@ -152,6 +152,22 @@ func TestReverseBytes(t *testing.T) {
 	}
 }
 
+func TestDecode(t *testing.T) {
+	for _, test := range decodeIntTests {
+		buf := bytes.Buffer{}
+		sd := Decoder{&buf}
+		buf.Write(test.val)
+		var i int64
+		err := sd.Decode(&i)
+		output := i
+		if err != nil {
+			t.Error(err)
+		} else if output != test.output {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		}
+	}
+}
+
 func TestDecodeInts(t *testing.T) {
 	for _, test := range decodeIntTests {
 		output, bytesDecoded, err := DecodeInteger(test.val)

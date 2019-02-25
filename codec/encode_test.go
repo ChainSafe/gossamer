@@ -7,8 +7,8 @@ import (
 )
 
 type encodeTest struct {
-	val    interface{}
-	output []byte
+	val          interface{}
+	output       []byte
 	bytesEncoded int
 }
 
@@ -76,7 +76,7 @@ func TestEncode(t *testing.T) {
 		} else if !bytes.Equal(output, test.output) {
 			t.Errorf("Fail: input %x got %x expected %x", test.val, output, test.output)
 		} else if bytesEncoded != test.bytesEncoded {
-			t.Errorf("Fail: input %x  got %d bytes encoded expected %d", test.val, bytesEncoded, test.bytesEncoded)		
+			t.Errorf("Fail: input %x  got %d bytes encoded expected %d", test.val, bytesEncoded, test.bytesEncoded)
 		}
 	}
 }
