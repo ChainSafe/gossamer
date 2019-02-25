@@ -171,7 +171,7 @@ func TestDecodeBigInts(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else if output.Cmp(test.output) != 0 {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
+			t.Errorf("Fail: got %t expected %t", output, test.output)
 		} else if bytesDecoded != test.bytesDecoded {
 			t.Errorf("Fail: got %d bytesDecoded expected %d", bytesDecoded, test.bytesDecoded)
 		}
