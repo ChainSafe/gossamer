@@ -1,6 +1,9 @@
 package hexcodec
 
-// Encode assumes its input is an array of nibbles (4bits).
+// Encode assumes its input is an array of nibbles (4bits), and produces Hex-Encoded output.
+// HexEncoded: For PK = (k_1,...,k_n), Enc_hex(PK) :=
+// (0, k_1 + k_2 * 16,...) for even length
+// (k_1, k_2 + k_3 * 16,...) for odd length
 func Encode(in []byte) (res []byte) {
 	resI := 1
 	if len(in)%2 == 1 { // Odd length
@@ -23,8 +26,8 @@ func Encode(in []byte) (res []byte) {
 	return res
 }
 
-// combineNibbles concatenates the upper, most significant nibble with the lower, least significant nibble.
-// Assumes nibles are the lower 4 bits of each of the inputs
+// combineNibbles concatenates two nibble to make a byte.
+// Assumes nibbles are the lower 4 bits of each of the inputs
 func combineNibbles(ms byte, ls byte) byte {
 	return byte(ms<<4 | (ls & 0xF))
 }
