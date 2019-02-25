@@ -23,28 +23,25 @@ func Encode(b interface{}) (encodedItem []byte, err error) {
 	switch v := b.(type) {
 	case []byte:
 		_, err = se.encodeByteArray(v)
-		return buffer.Bytes(), err
 	case *big.Int:
 		_, err = se.encodeBigInteger(v)
-		return buffer.Bytes(), err
 	case int16:
 		_, err = se.encodeInteger(int(v))
-		return buffer.Bytes(), err
 	case int32:
 		_, err = se.encodeInteger(int(v))
-		return buffer.Bytes(), err
 	case int64:
 		_, err = se.encodeInteger(int(v))
-		return buffer.Bytes(), err
 	// case string:
 	// 	return encodeByteArray([]byte(v))
 	case bool:
-		return encodeBool(v)
+		_, err = se.encodeBool(v)
 	case interface{}:
 		return encodeTuple(v)
 	default:
 		return nil, errors.New("unsupported type")
 	}
+
+	return buffer.Bytes(), err
 }
 
 // encodeByteArray performs the following:
@@ -137,11 +134,13 @@ func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 // encodeBool performs the following:
 // l = true -> return [1]
 // l = false -> return [0]
-func encodeBool(l bool) ([]byte, error) {
+func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 	if l {
-		return []byte{0x01}, nil
+		se.writer.Write([]byte{0x01})
+		return 1, nil
 	}
-	return []byte{0x00}, nil
+	se.writer.Write([]byte{0x00})
+	return 1, nil
 }
 
 func encodeTuple(t interface{}) ([]byte, error) {
