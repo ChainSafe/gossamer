@@ -54,7 +54,7 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 }
 
 // DecodeBigInt decodes a SCALE encoded byte array into a *big.Int
-// Works for all integers, including ints > 2**64 
+// Works for all integers, including ints > 2**64
 func DecodeBigInt(b []byte) (output *big.Int, bytesDecoded int64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03

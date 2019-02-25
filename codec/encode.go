@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -16,37 +15,36 @@ type Encoder struct {
 
 // Encode is the top-level function which performs SCALE encoding of b which may be of type []byte, int16, int32, int64,
 // or bool
-func Encode(b interface{}) (encodedItem []byte, err error) {
-	var buffer = bytes.Buffer{}
-	se := Encoder{&buffer}
-
+func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	switch v := b.(type) {
 	case []byte:
-		_, err = se.encodeByteArray(v)
+		n, err = se.encodeByteArray(v)
 	case *big.Int:
-		_, err = se.encodeBigInteger(v)
+		n, err = se.encodeBigInteger(v)
 	case int16:
-		_, err = se.encodeInteger(int(v))
+		n, err = se.encodeInteger(int(v))
 	case int32:
-		_, err = se.encodeInteger(int(v))
+		n, err = se.encodeInteger(int(v))
 	case int64:
-		_, err = se.encodeInteger(int(v))
+		n, err = se.encodeInteger(int(v))
 	// case string:
 	// 	return encodeByteArray([]byte(v))
 	case bool:
-		_, err = se.encodeBool(v)
+		n, err = se.encodeBool(v)
 	case interface{}:
-		return encodeTuple(v)
+		n, err = se.encodeTuple(v)
 	default:
-		return nil, errors.New("unsupported type")
+		return 0, errors.New("unsupported type")
 	}
 
-	return buffer.Bytes(), err
+	return n, err
+	//return buffer.Bytes(), err
 }
 
 // encodeByteArray performs the following:
 // b -> [encodeInteger(len(b)) b]
-// it returns a byte array where the first byte is the length of b encoded with SCALE, followed by the byte array b itself
+// it writes to the buffer a byte array where the first byte is the length of b encoded with SCALE, followed by the
+// byte array b itself
 func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 	var n int
 	n, err = se.encodeInteger(len(b))
@@ -63,14 +61,14 @@ func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 // i  -> i^0...i^n where n is the length in bits of i
 // note that the bit representation of i is in little endian; ie i^0 is the least significant bit of i,
 // and i^n is the most significant bit
-// if n < 2^6 return [00 i^2...i^8 ] [ 8 bits = 1 byte output ]
-// if 2^6 <= n < 2^14 return [01 i^2...i^16] [ 16 bits = 2 byte output ]
-// if 2^14 <= n < 2^30 return [10 i^2...i^32] [ 32 bits = 4 byte output ]
-// if n >= 2^30 return [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
+// if n < 2^6 write [00 i^2...i^8 ] [ 8 bits = 1 byte encoded ]
+// if 2^6 <= n < 2^14 write [01 i^2...i^16] [ 16 bits = 2 byte encoded ]
+// if 2^14 <= n < 2^30 write [10 i^2...i^32] [ 32 bits = 4 byte encoded ]
+// if n >= 2^30 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
 func (se *Encoder) encodeInteger(i int) (bytesEncoded int, err error) {
 	if i < 1<<6 {
-		err = binary.Write(se.writer, binary.LittleEndian, uint8(byte(i) << 2))
+		err = binary.Write(se.writer, binary.LittleEndian, uint8(byte(i)<<2))
 		return 1, err
 	} else if i < 1<<14 {
 		err = binary.Write(se.writer, binary.LittleEndian, uint16(i<<2)+1)
@@ -132,8 +130,8 @@ func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 }
 
 // encodeBool performs the following:
-// l = true -> return [1]
-// l = false -> return [0]
+// l = true -> write [1]
+// l = false -> write [0]
 func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 	if l {
 		se.writer.Write([]byte{0x01})
@@ -143,7 +141,9 @@ func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 	return 1, nil
 }
 
-func encodeTuple(t interface{}) ([]byte, error) {
+// encodeTuple reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
+// encoded as their respective types
+func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	v := reflect.ValueOf(t)
 
 	values := make([]interface{}, v.NumField())
@@ -152,15 +152,15 @@ func encodeTuple(t interface{}) ([]byte, error) {
 		values[i] = v.Field(i).Interface()
 	}
 
-	o := []byte{}
 	for _, item := range values {
-		encodedItem, err := Encode(item)
+		n, err := se.Encode(item)
 		if err != nil {
-			return nil, err
+			return bytesEncoded, err
 		}
 
-		o = append(o, encodedItem...)
+		bytesEncoded += n
+		//se.writer.Write(encodedItem)
 	}
 
-	return o, nil
+	return bytesEncoded, nil
 }
