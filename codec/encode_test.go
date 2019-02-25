@@ -67,7 +67,7 @@ var encodeTests = []encodeTest{
 
 func TestEncode(t *testing.T) {
 	for _, test := range encodeTests {
-		var buffer = bytes.Buffer{}
+		buffer := bytes.Buffer{}
 		se := Encoder{&buffer}
 		bytesEncoded, err := se.Encode(test.val)
 		output := buffer.Bytes()

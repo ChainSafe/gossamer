@@ -159,7 +159,6 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 		}
 
 		bytesEncoded += n
-		//se.writer.Write(encodedItem)
 	}
 
 	return bytesEncoded, nil
