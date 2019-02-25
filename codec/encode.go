@@ -26,13 +26,16 @@ func Encode(b interface{}) (encodedItem []byte, err error) {
 		return buffer.Bytes(), err
 	case *big.Int:
 		_, err = se.encodeBigInteger(v)
-		return buffer.Bytes(), nil
+		return buffer.Bytes(), err
 	case int16:
-		return encodeInteger(int(v))
+		_, err = se.encodeInteger(int(v))
+		return buffer.Bytes(), err
 	case int32:
-		return encodeInteger(int(v))
+		_, err = se.encodeInteger(int(v))
+		return buffer.Bytes(), err
 	case int64:
-		return encodeInteger(int(v))
+		_, err = se.encodeInteger(int(v))
+		return buffer.Bytes(), err
 	// case string:
 	// 	return encodeByteArray([]byte(v))
 	case bool:
@@ -48,15 +51,10 @@ func Encode(b interface{}) (encodedItem []byte, err error) {
 // b -> [encodeInteger(len(b)) b]
 // it returns a byte array where the first byte is the length of b encoded with SCALE, followed by the byte array b itself
 func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
-	encodedLen, err := encodeInteger(len(b))
+	var n int
+	n, err = se.encodeInteger(len(b))
 	if err != nil {
 		return 0, err
-	}
-
-	var n int
-	n, err = se.writer.Write(encodedLen)
-	if err != nil {
-		return n, err
 	}
 
 	bytesEncoded = bytesEncoded + n
@@ -73,23 +71,21 @@ func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 // if 2^14 <= n < 2^30 return [10 i^2...i^32] [ 32 bits = 4 byte output ]
 // if n >= 2^30 return [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
-func (se *Encoder) encodeInteger(i int) (bytesEncoded int64, err error) {
+func (se *Encoder) encodeInteger(i int) (bytesEncoded int, err error) {
 	if i < 1<<6 {
-		o := byte(i) << 2
-		return []byte{o}, nil
+		err = binary.Write(se.writer, binary.LittleEndian, uint8(byte(i) << 2))
+		return 1, err
 	} else if i < 1<<14 {
-		o := make([]byte, 2)
-		binary.LittleEndian.PutUint16(o, uint16(i<<2)+1)
-		return o, nil
+		err = binary.Write(se.writer, binary.LittleEndian, uint16(i<<2)+1)
+		return 2, err
 	} else if i < 1<<30 {
-		o := make([]byte, 4)
-		binary.LittleEndian.PutUint32(o, uint32(i<<2)+2)
-		return o, nil
+		err = binary.Write(se.writer, binary.LittleEndian, uint32(i<<2)+2)
+		return 4, err
 	}
 
 	o := make([]byte, 8)
 	m := i
-	var numBytes uint
+	var numBytes int
 
 	// calculate the number of bytes needed to store i
 	// the most significant byte cannot be zero
@@ -102,12 +98,11 @@ func (se *Encoder) encodeInteger(i int) (bytesEncoded int64, err error) {
 	topSixBits := uint8(numBytes - 4)
 	lengthByte := topSixBits<<2 + 3
 
-	bl := make([]byte, 2)
-
-	binary.LittleEndian.PutUint16(bl, uint16(lengthByte))
+	err = binary.Write(se.writer, binary.LittleEndian, lengthByte)
 	binary.LittleEndian.PutUint64(o, uint64(i))
+	err = binary.Write(se.writer, binary.LittleEndian, o[0:numBytes])
 
-	return append([]byte{bl[0]}, o[0:numBytes]...), nil
+	return numBytes + 1, err
 }
 
 // encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
