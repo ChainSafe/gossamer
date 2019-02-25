@@ -4,25 +4,28 @@ package hexcodec
 // HexEncoded: For PK = (k_1,...,k_n), Enc_hex(PK) :=
 // (0, k_1 + k_2 * 16,...) for even length
 // (k_1, k_2 + k_3 * 16,...) for odd length
-func Encode(in []byte) (res []byte) {
-	resI := 1
-	if len(in)%2 == 1 { // Odd length
-		res := make([]byte, (len(in)/2)+1)
+func Encode(in []byte) []byte {
+	res := make([]byte, (len(in)/2)+1)
+	if len(in) == 1 { // Single byte
 		res[0] = in[0]
+	} else {
+		resI := 1
+		var i int
 
-		for i := 1; i < len(in)-1; i += 2 {
-			res[resI] = combineNibbles(in[i], in[i+1])
-			resI++
+		if len(in)%2 == 1 { // Odd length
+			res[0] = in[0]
+			i = 1 // Skip first nibble
+		} else { // Even length
+			res[0] = 0x0
+			i = 0 // Start loop with first nibble
 		}
-	} else { // Even length
-		res := make([]byte, (len(in)/2)+1)
-		res[0] = 0x0
 
-		for i := 0; i < len(in)-1; i += 2 {
-			res[resI] = combineNibbles(in[i], in[i+1])
+		for ; i < len(in); i += 2 {
+			res[resI] = combineNibbles(in[i+1], in[i])
 			resI++
 		}
 	}
+
 	return res
 }
 
