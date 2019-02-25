@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -27,8 +28,8 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		n, err = se.encodeInteger(int(v))
 	case int64:
 		n, err = se.encodeInteger(int(v))
-	// case string:
-	// 	return encodeByteArray([]byte(v))
+	case string:
+		n, err = se.encodeByteArray([]byte(v))
 	case bool:
 		n, err = se.encodeBool(v)
 	case interface{}:
@@ -38,7 +39,6 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	}
 
 	return n, err
-	//return buffer.Bytes(), err
 }
 
 // encodeByteArray performs the following:
@@ -102,6 +102,35 @@ func (se *Encoder) encodeInteger(i int) (bytesEncoded int, err error) {
 	}
 
 	return bytesEncoded, err
+}
+
+// encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
+// if 2^30 <= n < 2^536 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
+// [append i as a byte array to the first byte]
+func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
+	if i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0 { // if i < 1<<6
+		err = binary.Write(se.writer, binary.LittleEndian, uint8(i.Int64()<<2))
+		return 1, err
+	} else if i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0 { // if i < 1<<14
+		err = binary.Write(se.writer, binary.LittleEndian, uint16(i.Int64()<<2)+1)
+		return 2, err
+	} else if i.Cmp(new(big.Int).Lsh(big.NewInt(1), 30)) < 0 { //if i < 1<<30
+		err = binary.Write(se.writer, binary.LittleEndian, uint32(i.Int64()<<2)+2)
+		return 4, err
+	}
+
+	numBytes := len(i.Bytes())
+	topSixBits := uint8(numBytes - 4)
+	lengthByte := topSixBits<<2 + 3
+
+	// write byte which encodes mode and length
+	err = binary.Write(se.writer, binary.LittleEndian, lengthByte)
+	if err == nil {
+		// write integer itself
+		err = binary.Write(se.writer, binary.LittleEndian, i.Bytes())
+	}
+
+	return numBytes + 1, err
 }
 
 // encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
