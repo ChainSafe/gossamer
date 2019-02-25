@@ -3,14 +3,9 @@ package codec
 import (
 	"encoding/binary"
 	"errors"
-	"io"
 	"math/big"
 	"reflect"
 )
-
-type Decoder struct {
-	reader 	io.Reader
-}
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
@@ -58,7 +53,9 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	return o, bytesDecoded, err
 }
 
-func DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err error) {
+// DecodeBigInt decodes a SCALE encoded byte array into a *big.Int
+// Works for all integers, including ints > 2**64 
+func DecodeBigInt(b []byte) (output *big.Int, bytesDecoded int64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode <= 2 {
@@ -74,16 +71,14 @@ func DecodeBigInt(b []byte) (o *big.Int, bytesDecoded int64, err error) {
 		err = errors.New("could not decode invalid integer")
 	}
 
-	output := make([]byte, byteLen)
-
 	// TODO: use io.Writer to return number of bytesDecoded
 	if err == nil {
-		output = reverseBytes(b[1:byteLen+1])
-		o = new(big.Int).SetBytes(output)
+		o := reverseBytes(b[1 : byteLen+1])
+		output = new(big.Int).SetBytes(o)
 		bytesDecoded = int64(byteLen) + 1
 	}
 
-	return o, bytesDecoded, nil
+	return output, bytesDecoded, nil
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding

@@ -8,8 +8,8 @@ import (
 )
 
 type reverseByteTest struct {
-	val          []byte
-	output       []byte
+	val    []byte
+	output []byte
 }
 
 type decodeIntTest struct {
@@ -148,8 +148,8 @@ func TestReverseBytes(t *testing.T) {
 		output := reverseBytes(test.val)
 		if !bytes.Equal(output, test.output) {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
-		} 
-	}	
+		}
+	}
 }
 
 func TestDecodeInts(t *testing.T) {

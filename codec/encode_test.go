@@ -74,14 +74,3 @@ func TestEncode(t *testing.T) {
 		}
 	}
 }
-
-// func TestEncodeBig(t *testing.T) {
-// 	for _, test := range encodeTests {
-// 		output, err := Encode(test.val, &new(io.Writer))
-// 		if err != nil {
-// 			t.Error(err)
-// 		} else if !bytes.Equal(output, test.output) {
-// 			t.Errorf("Fail: got %x expected %x", output, test.output)
-// 		}
-// 	}
-// }
