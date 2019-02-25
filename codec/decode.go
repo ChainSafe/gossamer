@@ -7,7 +7,8 @@ import (
 )
 
 // DecodeInteger accepts a SCALE encoded integer and performs SCALE decoding of it
-// if the encoding is valid, it then returns the decoded integer and the total number of input bytes decoded
+// if the encoding is valid, it then returns the decoded integer and the total number of input bytes
+// used to create the decoded integer, including the mode/length byte
 // otherwise, it returns an error
 func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
