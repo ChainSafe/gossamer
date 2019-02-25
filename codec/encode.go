@@ -106,7 +106,7 @@ func encodeInteger(i int) ([]byte, error) {
 // encodeBigInteger performs the same encoding as encodeInteger, except on a big.Int.
 // if 2^30 <= n < 2^536 write [lower 2 bits of first byte = 11] [upper 6 bits of first byte = # of bytes following less 4]
 // [append i as a byte array to the first byte]
-func (se *Encoder) encodeBigInteger(i *big.Int) (bytesDecoded int, err error) {
+func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 	if i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0 { // if i < 1<<6
 		err = binary.Write(se.writer, binary.LittleEndian, uint8(i.Int64()<<2))
 		return 1, err
