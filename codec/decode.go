@@ -12,6 +12,7 @@ type Decoder struct {
 	reader io.Reader
 }
 
+// Decode is the high level function wrapping the specific type decoding functions
 func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
@@ -32,7 +33,7 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 
 // ReadByte reads the one byte from the buffer
 func (sd *Decoder) ReadByte() (byte, error) {
-	b := make([]byte, 1) // make buffer
+	b := make([]byte, 1)        // make buffer
 	_, err := sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
 	return b[0], err
 }
@@ -48,7 +49,7 @@ func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 		if err != nil {
 			return 0, err
 		}
-		o := binary.LittleEndian.Uint16([]byte{firstByte,c}) >> 2
+		o := binary.LittleEndian.Uint16([]byte{firstByte, c}) >> 2
 		return int64(o), nil
 	} else if mode == 2 { // 4 byte mode
 		c := make([]byte, 3)
@@ -163,9 +164,9 @@ func (sd *Decoder) DecodeByteArray() (o []byte, err error) {
 // of the bool then returns it. if invalid, return false and an error
 func (sd *Decoder) DecodeBool() (bool, error) {
 	b, err := sd.ReadByte()
- 	if err != nil {
- 		return false, err
- 	}
+	if err != nil {
+		return false, err
+	}
 
 	if b == 1 {
 		return true, nil

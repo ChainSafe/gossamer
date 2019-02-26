@@ -242,7 +242,7 @@ func TestDecodeTuples(t *testing.T) {
 		output, err := sd.Decode(test.t)
 		if err != nil {
 			t.Error(err)
-		} else if !reflect.DeepEqual(output,test.output) {
+		} else if !reflect.DeepEqual(output, test.output) {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
 		}
 	}
