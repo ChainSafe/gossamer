@@ -12,75 +12,97 @@ type Decoder struct {
 	reader io.Reader
 }
 
-func (sd *Decoder) Decode(t interface{}) (err error) {
-	v := reflect.ValueOf(t).Elem()
-	switch t.(type) {
-	case int8:
-		b := make([]byte, 1) // make buffer
-		sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
-		ptr := v.Addr().Interface().(*int64) // get pointer to interface
-		*ptr, _, err = DecodeInteger(b) // assign decoded value
-	case int16:
-		b := make([]byte, 2)
-		sd.reader.Read(b)
-		ptr := v.Addr().Interface().(*int64)
-		*ptr, _, err = DecodeInteger(b)
-	case int32:
-		b := make([]byte, 4)
-		sd.reader.Read(b)
-		ptr := v.Addr().Interface().(*int64)
-		*ptr, _, err = DecodeInteger(b)
-	case int64:
-		b := make([]byte, 8)
-		sd.reader.Read(b)
-		ptr := v.Addr().Interface().(*int64)
-		*ptr, _, err = DecodeInteger(b)
-	case interface{}:
-		b := make([]byte, reflect.TypeOf(t).Size())
-		sd.reader.Read(b)
-		//ptr := v.Addr().Interface()
-		t, err = DecodeTuple(b, t)		
+func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
+	//v := reflect.ValueOf(t).Elem()
+
+	switch reflect.TypeOf(t).Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		out, err = sd.DecodeInteger() // assign decoded value
+	// case reflect.Struct:
+	// 	b := make([]byte, reflect.TypeOf(t).Size())
+	// 	sd.reader.Read(b)
+	// 	//ptr := v.Addr().Interface()
+	// 	fmt.Println(t)
+	// 	fmt.Println(&t)
+	// 	out, err = DecodeTuple(b, t)		
+
+	case reflect.Ptr:
+		out, err = sd.DecodeTuple(t)		
+		//ptr = out
 	}
 
-	return err
+	return out, err
+}
+
+// ReadByte reads the one byte from the buffer
+func (sd *Decoder) ReadByte() (byte, error) {
+	b := make([]byte, 1) // make buffer
+	_, err := sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+	return b[0], err
+}
+
+// decodeSmallInt is used in the DecodeInteger and DecodeBigInteger functions when the mode is <= 2
+// need to pass in the first byte, since we assume it's already been read
+func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
+	mode := firstByte & 3
+	if mode == 0 { // 1 byte mode
+		return int64(firstByte >> 2), nil
+	} else if mode == 1 { // 2 byte mode
+		c, err := sd.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		o := binary.LittleEndian.Uint16([]byte{firstByte,c}) >> 2
+		return int64(o), nil
+	} else if mode == 2 { // 4 byte mode
+		c := make([]byte, 3)
+		_, err := sd.reader.Read(c)
+		if err != nil {
+			return 0, err
+		}
+		o := binary.LittleEndian.Uint32(append([]byte{firstByte}, c...)) >> 2
+		return int64(o), nil
+	}
+
+	return 0, errors.New("could not decode small int: mode not <= 2")
 }
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
 // number of input bytes decoded, and err is nil
 // otherwise, it returns 0, 0, and error
-func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
+func (sd *Decoder) DecodeInteger() (o int64, err error) {
+	//b := make([]byte, 1) // make buffer
+	//bytesDecoded, err = sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+
+	b, err := sd.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+
 	// check mode of encoding, stored at 2 least significant bits
-	mode := b[0] & 0x03
-	if mode == 0 { // 1 byte mode
-		return int64(b[0] >> 2), 1, nil
-	} else if mode == 1 { // 2 byte mode
-		o := binary.LittleEndian.Uint16(b) >> 2
-		return int64(o), 2, nil
-	} else if mode == 2 { // 4 byte mode
-		o := binary.LittleEndian.Uint32(b) >> 2
-		return int64(o), 4, nil
+	mode := b & 3
+	if mode <= 2 {
+		return sd.decodeSmallInt(b)
 	}
 
 	// >4 byte mode
-	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
-	byteLen := topSixBits + 4
+	topSixBits := b >> 2
+	byteLen := int(topSixBits) + 4
 
-	if len(b) < int(byteLen)+1 {
-		err = errors.New("could not decode invalid integer")
+	c := make([]byte, byteLen)
+	_, err = sd.reader.Read(c)
+	if err != nil {
+		return 0, err
 	}
 
 	if err == nil {
-		bytesDecoded = int64(byteLen) + 1
 		if byteLen == 4 {
-			o = int64(binary.LittleEndian.Uint32(b[1:bytesDecoded]))
+			o = int64(binary.LittleEndian.Uint32(c))
 		} else if byteLen > 4 && byteLen < 8 {
-			// need to pad upper bytes with zeros so that we can perform binary decoding
-			upperBytes := make([]byte, 8-byteLen)
-			upperBytes = append(b[5:bytesDecoded], upperBytes...)
-			upper := int64(binary.LittleEndian.Uint32(upperBytes)) << 32
-			lower := int64(binary.LittleEndian.Uint32(b[1:5]))
-			o = upper + lower
+			d := make([]byte, 8)
+			copy(d, c)
+			o = int64(binary.LittleEndian.Uint64(d))
 		}
 
 		if o == 0 {
@@ -88,48 +110,61 @@ func DecodeInteger(b []byte) (o int64, bytesDecoded int64, err error) {
 		}
 	}
 
-	return o, bytesDecoded, err
+	return o, err
 }
 
 // DecodeBigInt decodes a SCALE encoded byte array into a *big.Int
 // Works for all integers, including ints > 2**64
-func DecodeBigInt(b []byte) (output *big.Int, bytesDecoded int64, err error) {
+func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
+	b, err := sd.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+
 	// check mode of encoding, stored at 2 least significant bits
-	mode := b[0] & 0x03
+	mode := b & 0x03
 	if mode <= 2 {
-		tmp, bytesDecoded, err := DecodeInteger(b)
-		return big.NewInt(tmp), bytesDecoded, err
+		tmp, err := sd.decodeSmallInt(b)
+		if err != nil {
+			return nil, err
+		}
+		return new(big.Int).SetInt64(tmp), nil
 	}
 
 	// >4 byte mode
-	topSixBits := (binary.LittleEndian.Uint16(b) & 0xff) >> 2
-	byteLen := topSixBits + 4
+	topSixBits := b >> 2
+	byteLen := int(topSixBits) + 4
 
-	if len(b) < int(byteLen)+1 {
-		err = errors.New("could not decode invalid integer")
+	// if len(b) < int(byteLen)+1 {
+	// 	err = errors.New("could not decode invalid integer")
+	// }
+
+	c := make([]byte, byteLen)
+	_, err = sd.reader.Read(c)
+	if err != nil {
+		return nil, errors.New("could not decode invalid big.Int")
 	}
 
-	// TODO: use io.Writer to return number of bytesDecoded
-	if err == nil {
-		o := reverseBytes(b[1 : byteLen+1])
-		output = new(big.Int).SetBytes(o)
-		bytesDecoded = int64(byteLen) + 1
-	}
+	o := reverseBytes(c)
+	output = new(big.Int).SetBytes(o)
 
-	return output, bytesDecoded, nil
+	return output, nil
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
 // of the byte array
 // if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
 // otherwise, it returns nil, 0, and error
-func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
-	var length int64
+func (sd *Decoder) DecodeByteArray() (o []byte, bytesDecoded int64, err error) {
+	//var length int64
+	b := make([]byte, 1) // make buffer
+	sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
 
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b[0] & 0x03
 	if mode == 0 { // encoding of length: 1 byte mode
-		length, _, err = DecodeInteger([]byte{b[0]})
+		//length, _, err = sd.DecodeInteger([]byte{b[0]})
+		length, err := sd.DecodeInteger()
 		if err == nil {
 			if length == 0 || length > 1<<6 || int64(len(b)) < length+1 {
 				err = errors.New("could not decode invalid byte array")
@@ -140,7 +175,8 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 		}
 	} else if mode == 1 { // encoding of length: 2 byte mode
 		// pass first two bytes of byte array to decode length
-		length, _, err = DecodeInteger(b[0:2])
+		//length, _, err = sd.DecodeInteger(b[0:2])
+		length, err := sd.DecodeInteger()
 
 		if err == nil {
 			if length < 1<<6 || length > 1<<14 || int64(len(b)) < length+2 {
@@ -152,7 +188,8 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 		}
 	} else if mode == 2 { // encoding of length: 4 byte mode
 		// pass first four bytes of byte array to decode length
-		length, _, err = DecodeInteger(b[0:4])
+		//length, _, err = sd.DecodeInteger(b[0:4])
+		length, err := sd.DecodeInteger()
 
 		if err == nil {
 			if length < 1<<14 || length > 1<<30 || int64(len(b)) < length+4 {
@@ -163,7 +200,8 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 			}
 		}
 	} else if mode == 3 { // encoding of length: big-integer mode
-		length, _, err = DecodeInteger(b)
+		//length, _, err = sd.DecodeInteger(b)
+		length, err := sd.DecodeInteger()
 
 		if err == nil {
 			// get the length of the encoded length
@@ -184,10 +222,13 @@ func DecodeByteArray(b []byte) (o []byte, bytesDecoded int64, err error) {
 
 // DecodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
 // of the bool then returns it. if invalid, return false and an error
-func DecodeBool(b byte) (bool, error) {
-	if b == 1 {
+func (sd *Decoder) DecodeBool() (bool, error) {
+	b := make([]byte, 1)
+	sd.reader.Read(b)
+
+	if b[0] == 1 {
 		return true, nil
-	} else if b == 0 {
+	} else if b[0] == 0 {
 		return false, nil
 	}
 
@@ -199,7 +240,7 @@ func DecodeBool(b byte) (bool, error) {
 // decoded struct, otherwise error,
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
-func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
+func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	v := reflect.ValueOf(t).Elem()
 
 	var bytesDecoded int64
@@ -212,20 +253,28 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 	// iterate through each field in the struct
 	for i := 0; i < v.NumField(); i++ {
 
+		// b := make([]byte, reflect.TypeOf(v.Field(i)).Size()) // make buffer
+		// fmt.Println(reflect.TypeOf(v.Field(i).Interface()).Size())
+		// sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+
 		// get the field value at i
 		fieldValue := val.Field(i)
 
 		switch v.Field(i).Interface().(type) {
 		case []byte:
-			o, byteLen, err = DecodeByteArray(b[bytesDecoded:])
+			//b := make([]byte, sizeof(v))
+			//o, byteLen, err = sd.DecodeByteArray(b[bytesDecoded:])
+			o, byteLen, err = sd.DecodeByteArray()
 			if err != nil {
 				break
 			}
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
-		case int64:
-			o, byteLen, err = DecodeInteger(b[bytesDecoded:])
+		case int8, int16, int32, int64:
+			//o, byteLen, err = sd.DecodeInteger(b[bytesDecoded:])
+			o, byteLen, err = sd.DecodeByteArray()
+
 			if err != nil {
 				break
 			}
@@ -233,7 +282,9 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 			ptr := fieldValue.Addr().Interface().(*int64)
 			*ptr = o.(int64)
 		case bool:
-			o, err = DecodeBool(b[bytesDecoded])
+			//o, err = sd.DecodeBool(b[bytesDecoded])
+			o, byteLen, err = sd.DecodeByteArray()
+
 			if err != nil {
 				break
 			}
@@ -243,9 +294,9 @@ func DecodeTuple(b []byte, t interface{}) (interface{}, error) {
 			byteLen = 1
 		}
 
-		if len(b) < int(bytesDecoded)+1 {
-			err = errors.New("could not decode invalid byte array into tuple")
-		}
+		// if len(b) < int(bytesDecoded)+1 {
+		// 	err = errors.New("could not decode invalid byte array into tuple")
+		// }
 		bytesDecoded = bytesDecoded + byteLen
 		if err != nil {
 			break
