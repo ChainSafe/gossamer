@@ -130,7 +130,7 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 
 	c := make([]byte, byteLen)
 	_, err = sd.reader.Read(c)
-	if err == nil {	
+	if err == nil {
 		o := reverseBytes(c)
 		output = new(big.Int).SetBytes(o)
 	} else {
