@@ -1,12 +1,12 @@
 package codec
 
 import (
-	//"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
 	"math/big"
 	"reflect"
+	"fmt"
 )
 
 // Encoder is a wrapping around io.Writer
@@ -33,7 +33,15 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case bool:
 		n, err = se.encodeBool(v)
 	case interface{}:
-		n, err = se.encodeTuple(v)
+		t := reflect.TypeOf(b).Kind()
+		switch t {
+		case reflect.Struct:
+			n, err = se.encodeTuple(v)
+		case reflect.Slice, reflect.Array:
+			n, err = se.encodeVector(v)
+		default:
+			return 0, errors.New("unsupported type")
+		}
 	default:
 		return 0, errors.New("unsupported type")
 	}
@@ -166,4 +174,64 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	}
 
 	return bytesEncoded, nil
+}
+
+func (se *Encoder) encodeIntegerElements(arr []int) (bytesEncoded int, err error) {
+	var n int
+	n, err = se.encodeInteger(len(arr))
+	bytesEncoded += n
+
+	for _, elem := range arr {
+		n, err = se.encodeInteger(int(elem))
+		bytesEncoded += n
+	}
+
+	return bytesEncoded, err
+}
+// encodeVector encodes an interface where the underlying type is an array or slice
+// it writes the encoded length of the vector to the Encoder, then encodes and writes each value in the vector
+func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
+	fmt.Println(reflect.TypeOf(t))
+
+	var n int
+	switch arr := t.(type) {
+	case []int:
+		n, err = se.encodeIntegerElements(arr)
+		bytesEncoded += n
+	case []*big.Int:
+		n, err = se.encodeInteger(len(arr))
+		bytesEncoded += n
+
+		for _, elem := range arr {
+			n, err = se.encodeBigInteger(elem)
+			bytesEncoded += n
+		}		
+	case []bool:
+		n, err = se.encodeInteger(len(arr))
+		bytesEncoded += n
+
+		for _, elem := range arr {
+			n, err = se.encodeBool(elem)
+			bytesEncoded += n
+		}
+	case [][]byte:
+		n, err = se.encodeInteger(len(arr))
+		bytesEncoded += n
+
+		for _, elem := range arr {
+			n, err = se.encodeByteArray(elem)
+			bytesEncoded += n
+		}
+	case [][]int:
+		n, err = se.encodeInteger(len(arr))
+		bytesEncoded += n
+
+		for _, elem := range arr {
+			n, err = se.encodeVector(elem)
+			bytesEncoded += n
+		}
+	// TODO: case struct ?
+	}
+
+	return bytesEncoded, err
 }

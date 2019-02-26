@@ -12,6 +12,10 @@ type encodeTest struct {
 	bytesEncoded int
 }
 
+type testStruct struct {
+	val			int64
+}
+
 var encodeTests = []encodeTest{
 	// compact integers
 	{val: int64(0), output: []byte{0x00}, bytesEncoded: 1},
@@ -71,6 +75,16 @@ var encodeTests = []encodeTest{
 		Foo int64
 		Bar []byte
 	}{int64(1073741824), byteArray(64)}, output: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x01, 0x01}, byteArray(64)...), bytesEncoded: 71},
+
+	// vectors
+	{val: []int{1, 2, 3, 4}, output: []byte{0x10, 0x04, 0x08, 0x0c, 0x10}, bytesEncoded: 5},
+	{val: []int{16384, 2, 3, 4}, output: []byte{0x10, 0x02, 0x00, 0x01, 0x00, 0x08, 0x0c, 0x10}, bytesEncoded: 8},
+	{val: []int{1073741824, 2, 3, 4}, output: []byte{0x10, 0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10}, bytesEncoded: 9},
+	{val: []int{1<<32, 2, 3, 1<<32}, output: []byte{0x10, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01, 0x08, 0x0c, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, bytesEncoded: 15},
+	{val: []bool{true, false, true}, output: []byte{0x0c, 0x01, 0x00, 0x01}, bytesEncoded: 4},
+	{val: [][]int{[]int{0, 1}, []int{1, 0}}, output: []byte{0x08, 0x08, 0x00, 0x04, 0x08, 0x04, 0x00}, bytesEncoded: 7},
+	//{val: []testStruct{testStruct{1}, testStruct{2}, testStruct{3}}, output: []byte{0x0c, 0x04, 0x08, 0x0c}, bytesEncoded: 4},
+
 }
 
 func TestEncode(t *testing.T) {

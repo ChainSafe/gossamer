@@ -220,6 +220,12 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 			ptr := fieldValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
+		default:
+			o, err = sd.Decode(v.Field(i).Interface())
+			if err != nil {
+				break
+			}
+			// TODO: complete this
 		}
 
 		if err != nil {
@@ -228,4 +234,8 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	}
 
 	return t, err
+}
+
+func (sd *Decoder) DecodeVector(t []interface{}) ([]interface{}, error) {
+	return nil, nil
 }
