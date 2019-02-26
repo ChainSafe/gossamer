@@ -200,11 +200,12 @@ func TestDecodeByteArrays(t *testing.T) {
 		sd := Decoder{&buf}
 		buf.Write(test.val)
 		var tmp []byte
-		output, err := sd.Decode(tmp)
+		o, err := sd.Decode(tmp)
+		output := o.([]byte)
 		if err != nil {
 			t.Error(err)
-		} else if !bytes.Equal(output.([]byte), test.output) {
-			t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
+		} else if !bytes.Equal(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", len(output), len(test.output))
 		}
 	}
 }
