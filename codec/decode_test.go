@@ -41,6 +41,12 @@ type decodeTupleTest struct {
 	output interface{}
 }
 
+type decodeVectorTest struct {
+	val 	[]byte
+	t 		interface{}
+	output 	interface{}
+}
+
 var decodeIntTests = []decodeIntTest{
 	// compact integers
 	{val: []byte{0x00}, output: int64(0), bytesDecoded: 1},
@@ -135,6 +141,10 @@ var decodeTupleTests = []decodeTupleTest{
 		Bo   bool
 		Noot int64
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
+}
+
+var decodeVectorTests = []decodeVectorTest{
+	{val: []byte{0x10, 0x04, 0x08, 0x0c, 0x10}, t: []int{}, output: []int{1, 2, 3, 4}},
 }
 
 var reverseByteTests = []reverseByteTest{
@@ -236,6 +246,20 @@ func TestDecodeBool(t *testing.T) {
 
 func TestDecodeTuples(t *testing.T) {
 	for _, test := range decodeTupleTests {
+		buf := bytes.Buffer{}
+		buf.Write(test.val)
+		sd := Decoder{&buf}
+		output, err := sd.Decode(test.t)
+		if err != nil {
+			t.Error(err)
+		} else if !reflect.DeepEqual(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		}
+	}
+}
+
+func TestDecodeVectors(t *testing.T) {
+	for _, test := range decodeVectorTests {
 		buf := bytes.Buffer{}
 		buf.Write(test.val)
 		sd := Decoder{&buf}

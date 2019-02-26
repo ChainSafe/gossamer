@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	"fmt"
 )
 
 // Encoder is a wrapping around io.Writer
@@ -191,8 +190,6 @@ func (se *Encoder) encodeIntegerElements(arr []int) (bytesEncoded int, err error
 // encodeVector encodes an interface where the underlying type is an array or slice
 // it writes the encoded length of the vector to the Encoder, then encodes and writes each value in the vector
 func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
-	fmt.Println(reflect.TypeOf(t))
-
 	var n int
 	switch arr := t.(type) {
 	case []int:

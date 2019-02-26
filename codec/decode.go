@@ -24,6 +24,10 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.DecodeByteArray()
 	case bool:
 		out, err = sd.DecodeBool()
+	case []int:
+		out, err = sd.DecodeIntVector()
+	case []int:
+		out, err = sd.DecodeIntVector()
 	case interface{}:
 		out, err = sd.DecodeTuple(t)
 	default:
@@ -236,6 +240,40 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	return t, err
 }
 
-func (sd *Decoder) DecodeVector(t []interface{}) ([]interface{}, error) {
-	return nil, nil
+// DecodeIntVector
+func (sd *Decoder) DecodeIntVector() ([]int, error) {
+	length, err := sd.DecodeInteger()
+	if err != nil {
+		return nil, err
+	}
+
+	sl := make([]int, length)
+	for i, _ := range sl {
+		var t int64
+		t, err = sd.DecodeInteger()
+		sl[i] = int(t)
+		if err != nil {
+			break
+		}
+	}
+	return sl, nil
+}
+
+// DecodeIntVector
+func (sd *Decoder) DecodeIntVector() ([]int, error) {
+	length, err := sd.DecodeInteger()
+	if err != nil {
+		return nil, err
+	}
+
+	sl := make([]int, length)
+	for i, _ := range sl {
+		var t int64
+		t, err = sd.DecodeInteger()
+		sl[i] = int(t)
+		if err != nil {
+			break
+		}
+	}
+	return sl, nil
 }
