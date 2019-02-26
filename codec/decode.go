@@ -8,6 +8,7 @@ import (
 	"reflect"
 )
 
+// Decoder is a wrapping around io.Reader
 type Decoder struct {
 	reader io.Reader
 }
@@ -43,25 +44,23 @@ func (sd *Decoder) ReadByte() (byte, error) {
 func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 	mode := firstByte & 3
 	if mode == 0 { // 1 byte mode
-		return int64(firstByte >> 2), nil
+		o = int64(firstByte >> 2)
 	} else if mode == 1 { // 2 byte mode
 		c, err := sd.ReadByte()
-		if err != nil {
-			return 0, err
+		if err == nil {
+			o = int64(binary.LittleEndian.Uint16([]byte{firstByte, c}) >> 2)
 		}
-		o := binary.LittleEndian.Uint16([]byte{firstByte, c}) >> 2
-		return int64(o), nil
 	} else if mode == 2 { // 4 byte mode
 		c := make([]byte, 3)
 		_, err := sd.reader.Read(c)
-		if err != nil {
-			return 0, err
+		if err == nil {
+			o = int64(binary.LittleEndian.Uint32(append([]byte{firstByte}, c...)) >> 2)
 		}
-		o := binary.LittleEndian.Uint32(append([]byte{firstByte}, c...)) >> 2
-		return int64(o), nil
+	} else {
+		err = errors.New("could not decode small int: mode not <= 2")
 	}
 
-	return 0, errors.New("could not decode small int: mode not <= 2")
+	return o, err
 }
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
@@ -131,12 +130,12 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 
 	c := make([]byte, byteLen)
 	_, err = sd.reader.Read(c)
-	if err != nil {
-		return nil, errors.New("could not decode invalid big.Int: reached early EOF")
+	if err == nil {	
+		o := reverseBytes(c)
+		output = new(big.Int).SetBytes(o)
+	} else {
+		err = errors.New("could not decode invalid big.Int: reached early EOF")
 	}
-
-	o := reverseBytes(c)
-	output = new(big.Int).SetBytes(o)
 
 	return output, nil
 }
