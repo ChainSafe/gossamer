@@ -226,12 +226,26 @@ func TestDecodeBool(t *testing.T) {
 }
 
 func TestDecodeTuples(t *testing.T) {
+	// for _, test := range decodeTupleTests {
+	// 	output, err := DecodeTuple(test.val, test.t)
+	// 	if err != nil {
+	// 		t.Error(err)
+	// 	} else if !reflect.DeepEqual(output, test.output) {
+	// 		t.Errorf("Fail: got %t expected %t", output, test.output)
+	// 	}
+	// }
+
 	for _, test := range decodeTupleTests {
-		output, err := DecodeTuple(test.val, test.t)
+		buf := bytes.Buffer{}
+		buf.Write(test.val)
+		sd := Decoder{&buf}
+		var i interface{}
+		err := sd.Decode(i)
+		output := i
 		if err != nil {
 			t.Error(err)
-		} else if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("Fail: got %t expected %t", output, test.output)
+		} else if !reflect.DeepEqual(output,test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
 		}
 	}
 }

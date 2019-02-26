@@ -46,12 +46,12 @@ var encodeTests = []encodeTest{
 	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}, bytesEncoded: 4},
 
 	// big ints
-	{val: big.NewInt(0), output: []byte{0x00}},
-	{val: big.NewInt(1), output: []byte{0x04}},
-	{val: big.NewInt(42), output: []byte{0xa8}},
-	{val: big.NewInt(69), output: []byte{0x15, 0x01}},
-	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}},
-	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}},
+	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
+	{val: big.NewInt(1), output: []byte{0x04}, bytesEncoded: 1},
+	{val: big.NewInt(42), output: []byte{0xa8}, bytesEncoded: 1},
+	{val: big.NewInt(69), output: []byte{0x15, 0x01}, bytesEncoded: 2},
+	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}, bytesEncoded: 2},
+	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}, bytesEncoded: 4},
 
 	// structs
 	{val: struct {

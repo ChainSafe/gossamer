@@ -14,14 +14,32 @@ type Decoder struct {
 
 func (sd *Decoder) Decode(t interface{}) (err error) {
 	v := reflect.ValueOf(t).Elem()
-	switch v.Interface().(type) {
+	switch t.(type) {
+	case int8:
+		b := make([]byte, 1) // make buffer
+		sd.reader.Read(b) // read what's in the Decoder's underlying buffer to our new buffer b
+		ptr := v.Addr().Interface().(*int64) // get pointer to interface
+		*ptr, _, err = DecodeInteger(b) // assign decoded value
+	case int16:
+		b := make([]byte, 2)
+		sd.reader.Read(b)
+		ptr := v.Addr().Interface().(*int64)
+		*ptr, _, err = DecodeInteger(b)
+	case int32:
+		b := make([]byte, 4)
+		sd.reader.Read(b)
+		ptr := v.Addr().Interface().(*int64)
+		*ptr, _, err = DecodeInteger(b)
 	case int64:
 		b := make([]byte, 8)
 		sd.reader.Read(b)
-		var o int64
-		o, _, err = DecodeInteger(b)
 		ptr := v.Addr().Interface().(*int64)
-		*ptr = o
+		*ptr, _, err = DecodeInteger(b)
+	case interface{}:
+		b := make([]byte, reflect.TypeOf(t).Size())
+		sd.reader.Read(b)
+		//ptr := v.Addr().Interface()
+		t, err = DecodeTuple(b, t)		
 	}
 
 	return err
