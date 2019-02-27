@@ -25,11 +25,11 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	case bool:
 		out, err = sd.DecodeBool()
 	case []int:
-		out, err = sd.DecodeIntVector()
+		out, err = sd.DecodeIntArray()
 	case []bool:
-		out, err = sd.DecodeBoolVector()
+		out, err = sd.DecodeBoolArray()
 	case []*big.Int:
-		out, err = sd.DecodeBigIntVector()
+		out, err = sd.DecodeBigIntArray()
 	case interface{}:
 		out, err = sd.DecodeTuple(t)
 	default:
@@ -249,57 +249,56 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 }
 
 // DecodeIntVector decodes a byte array to an array of ints
-func (sd *Decoder) DecodeIntVector() ([]int, error) {
+func (sd *Decoder) DecodeIntArray() ([]int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
 	}
 
-	sl := make([]int, length)
-	for i := range sl {
+	o := make([]int, length)
+	for i := range o {
 		var t int64
 		t, err = sd.DecodeInteger()
-		sl[i] = int(t)
+		o[i] = int(t)
 		if err != nil {
 			break
 		}
 	}
-	return sl, nil
+	return o, nil
 }
 
 // DecodeBigIntVector decodes a byte array to an array of *big.Ints
-func (sd *Decoder) DecodeBigIntVector() ([]*big.Int, error) {
+func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
 	}
 
-	sl := make([]*big.Int, length)
-	for i := range sl {
+	o := make([]*big.Int, length)
+	for i := range o {
 		var t *big.Int
 		t, err = sd.DecodeBigInt()
-		sl[i] = t
+		o[i] = t
 		if err != nil {
 			break
 		}
 	}
-	return sl, nil
+	return o, nil
 }
 
 // DecodeBoolVector decodes a byte array to an array of bools
-func (sd *Decoder) DecodeBoolVector() ([]bool, error) {
+func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
 	}
 
-	sl := make([]bool, length)
-	for i := range sl {
-		sl[i], err = sd.DecodeBool()
-		//sl[i] = int(t)
+	o := make([]bool, length)
+	for i := range o {
+		o[i], err = sd.DecodeBool()
 		if err != nil {
 			break
 		}
 	}
-	return sl, nil
+	return o, nil
 }
