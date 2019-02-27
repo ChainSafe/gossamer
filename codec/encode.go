@@ -228,7 +228,6 @@ func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
 			n, err = se.encodeVector(elem)
 			bytesEncoded += n
 		}
-		// TODO: case struct ?
 	}
 
 	return bytesEncoded, err
