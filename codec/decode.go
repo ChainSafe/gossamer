@@ -52,13 +52,14 @@ func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 	if mode == 0 { // 1 byte mode
 		o = int64(firstByte >> 2)
 	} else if mode == 1 { // 2 byte mode
-		buf, err := sd.ReadByte()
+		var buf byte
+		buf, err = sd.ReadByte()
 		if err == nil {
 			o = int64(binary.LittleEndian.Uint16([]byte{firstByte, buf}) >> 2)
 		}
 	} else if mode == 2 { // 4 byte mode
 		buf := make([]byte, 3)
-		_, err := sd.reader.Read(buf)
+		_, err = sd.reader.Read(buf)
 		if err == nil {
 			o = int64(binary.LittleEndian.Uint32(append([]byte{firstByte}, buf...)) >> 2)
 		}
@@ -123,7 +124,8 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b & 0x03
 	if mode <= 2 {
-		tmp, err := sd.decodeSmallInt(b)
+		var tmp int64
+		tmp, err = sd.decodeSmallInt(b)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +234,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			ptr := fieldValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
 		default:
-			o, err = sd.Decode(v.Field(i).Interface())
+			_, err = sd.Decode(v.Field(i).Interface())
 			if err != nil {
 				break
 			}
@@ -246,7 +248,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	return t, err
 }
 
-// DecodeIntVector
+// DecodeIntVector decodes a byte array to an array of ints
 func (sd *Decoder) DecodeIntVector() ([]int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
@@ -254,7 +256,7 @@ func (sd *Decoder) DecodeIntVector() ([]int, error) {
 	}
 
 	sl := make([]int, length)
-	for i, _ := range sl {
+	for i := range sl {
 		var t int64
 		t, err = sd.DecodeInteger()
 		sl[i] = int(t)
@@ -265,7 +267,7 @@ func (sd *Decoder) DecodeIntVector() ([]int, error) {
 	return sl, nil
 }
 
-// DecodeBigIntVector
+// DecodeBigIntVector decodes a byte array to an array of *big.Ints
 func (sd *Decoder) DecodeBigIntVector() ([]*big.Int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
@@ -273,7 +275,7 @@ func (sd *Decoder) DecodeBigIntVector() ([]*big.Int, error) {
 	}
 
 	sl := make([]*big.Int, length)
-	for i, _ := range sl {
+	for i := range sl {
 		var t *big.Int
 		t, err = sd.DecodeBigInt()
 		sl[i] = t
@@ -284,7 +286,7 @@ func (sd *Decoder) DecodeBigIntVector() ([]*big.Int, error) {
 	return sl, nil
 }
 
-// DecodeBoolVector
+// DecodeBoolVector decodes a byte array to an array of bools
 func (sd *Decoder) DecodeBoolVector() ([]bool, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
@@ -292,7 +294,7 @@ func (sd *Decoder) DecodeBoolVector() ([]bool, error) {
 	}
 
 	sl := make([]bool, length)
-	for i, _ := range sl {
+	for i := range sl {
 		sl[i], err = sd.DecodeBool()
 		//sl[i] = int(t)
 		if err != nil {

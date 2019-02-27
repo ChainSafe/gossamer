@@ -181,12 +181,13 @@ func (se *Encoder) encodeIntegerElements(arr []int) (bytesEncoded int, err error
 	bytesEncoded += n
 
 	for _, elem := range arr {
-		n, err = se.encodeInteger(int(elem))
+		n, err = se.encodeInteger(elem)
 		bytesEncoded += n
 	}
 
 	return bytesEncoded, err
 }
+
 // encodeVector encodes an interface where the underlying type is an array or slice
 // it writes the encoded length of the vector to the Encoder, then encodes and writes each value in the vector
 func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
@@ -202,7 +203,7 @@ func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
 		for _, elem := range arr {
 			n, err = se.encodeBigInteger(elem)
 			bytesEncoded += n
-		}		
+		}
 	case []bool:
 		n, err = se.encodeInteger(len(arr))
 		bytesEncoded += n
@@ -227,7 +228,7 @@ func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
 			n, err = se.encodeVector(elem)
 			bytesEncoded += n
 		}
-	// TODO: case struct ?
+		// TODO: case struct ?
 	}
 
 	return bytesEncoded, err
