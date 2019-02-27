@@ -38,7 +38,7 @@ type decodeTupleTest struct {
 	output interface{}
 }
 
-type decodeVectorTest struct {
+type decodeArrayTest struct {
 	val    []byte
 	t      interface{}
 	output interface{}
@@ -140,7 +140,7 @@ var decodeTupleTests = []decodeTupleTest{
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
 }
 
-var decodeVectorTests = []decodeVectorTest{
+var decodeArrayTests = []decodeArrayTest{
 	{val: []byte{0x00}, t: []int{}, output: []int{}},
 	{val: []byte{0x04, 0x04}, t: []int{}, output: []int{1}},
 	{val: []byte{0x10, 0x04, 0x08, 0x0c, 0x10}, t: []int{}, output: []int{1, 2, 3, 4}},
@@ -263,8 +263,8 @@ func TestDecodeTuples(t *testing.T) {
 	}
 }
 
-func TestDecodeVectors(t *testing.T) {
-	for _, test := range decodeVectorTests {
+func TestDecodeArrays(t *testing.T) {
+	for _, test := range decodeArrayTests {
 		buf := bytes.Buffer{}
 		buf.Write(test.val)
 		sd := Decoder{&buf}

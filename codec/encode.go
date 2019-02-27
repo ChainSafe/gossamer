@@ -37,7 +37,7 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		case reflect.Struct:
 			n, err = se.encodeTuple(v)
 		case reflect.Slice, reflect.Array:
-			n, err = se.encodeVector(v)
+			n, err = se.encodeArray(v)
 		default:
 			return 0, errors.New("unsupported type")
 		}
@@ -188,9 +188,9 @@ func (se *Encoder) encodeIntegerElements(arr []int) (bytesEncoded int, err error
 	return bytesEncoded, err
 }
 
-// encodeVector encodes an interface where the underlying type is an array or slice
-// it writes the encoded length of the vector to the Encoder, then encodes and writes each value in the vector
-func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
+// encodeArray encodes an interface where the underlying type is an array or slice
+// it writes the encoded length of the Array to the Encoder, then encodes and writes each value in the Array
+func (se *Encoder) encodeArray(t interface{}) (bytesEncoded int, err error) {
 	var n int
 	switch arr := t.(type) {
 	case []int:
@@ -225,7 +225,7 @@ func (se *Encoder) encodeVector(t interface{}) (bytesEncoded int, err error) {
 		bytesEncoded += n
 
 		for _, elem := range arr {
-			n, err = se.encodeVector(elem)
+			n, err = se.encodeArray(elem)
 			bytesEncoded += n
 		}
 	}
