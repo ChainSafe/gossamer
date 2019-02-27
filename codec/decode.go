@@ -81,7 +81,7 @@ func (sd *Decoder) DecodeInteger() (o int64, err error) {
 
 	// >4 byte mode
 	topSixBits := b >> 2
-	byteLen := int(topSixBits) + 4
+	byteLen := int(topSixBits) + 4 
 
 	buf := make([]byte, byteLen)
 	_, err = sd.reader.Read(buf)
@@ -128,10 +128,10 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 	topSixBits := b >> 2
 	byteLen := int(topSixBits) + 4
 
-	c := make([]byte, byteLen)
-	_, err = sd.reader.Read(c)
+	buf := make([]byte, byteLen)
+	_, err = sd.reader.Read(buf)
 	if err == nil {
-		o := reverseBytes(c)
+		o := reverseBytes(buf)
 		output = new(big.Int).SetBytes(o)
 	} else {
 		err = errors.New("could not decode invalid big.Int: reached early EOF")
