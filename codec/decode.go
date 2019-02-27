@@ -248,7 +248,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	return t, err
 }
 
-// DecodeIntVector decodes a byte array to an array of ints
+// DecodeIntArray decodes a byte array to an array of ints
 func (sd *Decoder) DecodeIntArray() ([]int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
@@ -267,7 +267,7 @@ func (sd *Decoder) DecodeIntArray() ([]int, error) {
 	return o, nil
 }
 
-// DecodeBigIntVector decodes a byte array to an array of *big.Ints
+// DecodeBigIntArray decodes a byte array to an array of *big.Ints
 func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
@@ -286,7 +286,7 @@ func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	return o, nil
 }
 
-// DecodeBoolVector decodes a byte array to an array of bools
+// DecodeBoolArray decodes a byte array to an array of bools
 func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
