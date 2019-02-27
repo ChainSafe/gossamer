@@ -81,7 +81,7 @@ func (sd *Decoder) DecodeInteger() (o int64, err error) {
 
 	// >4 byte mode
 	topSixBits := b >> 2
-	byteLen := int(topSixBits) + 4 
+	byteLen := int(topSixBits) + 4
 
 	buf := make([]byte, byteLen)
 	_, err = sd.reader.Read(buf)
