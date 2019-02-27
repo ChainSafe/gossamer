@@ -52,15 +52,15 @@ func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 	if mode == 0 { // 1 byte mode
 		o = int64(firstByte >> 2)
 	} else if mode == 1 { // 2 byte mode
-		c, err := sd.ReadByte()
+		buf, err := sd.ReadByte()
 		if err == nil {
-			o = int64(binary.LittleEndian.Uint16([]byte{firstByte, c}) >> 2)
+			o = int64(binary.LittleEndian.Uint16([]byte{firstByte, buf}) >> 2)
 		}
 	} else if mode == 2 { // 4 byte mode
-		c := make([]byte, 3)
-		_, err := sd.reader.Read(c)
+		buf := make([]byte, 3)
+		_, err := sd.reader.Read(buf)
 		if err == nil {
-			o = int64(binary.LittleEndian.Uint32(append([]byte{firstByte}, c...)) >> 2)
+			o = int64(binary.LittleEndian.Uint32(append([]byte{firstByte}, buf...)) >> 2)
 		}
 	} else {
 		err = errors.New("could not decode small int: mode not <= 2")
@@ -89,19 +89,19 @@ func (sd *Decoder) DecodeInteger() (o int64, err error) {
 	topSixBits := b >> 2
 	byteLen := int(topSixBits) + 4
 
-	c := make([]byte, byteLen)
-	_, err = sd.reader.Read(c)
+	buf := make([]byte, byteLen)
+	_, err = sd.reader.Read(buf)
 	if err != nil {
 		return 0, err
 	}
 
 	if err == nil {
 		if byteLen == 4 {
-			o = int64(binary.LittleEndian.Uint32(c))
+			o = int64(binary.LittleEndian.Uint32(buf))
 		} else if byteLen > 4 && byteLen < 8 {
-			d := make([]byte, 8)
-			copy(d, c)
-			o = int64(binary.LittleEndian.Uint64(d))
+			tmp := make([]byte, 8)
+			copy(tmp, buf)
+			o = int64(binary.LittleEndian.Uint64(tmp))
 		}
 
 		if o == 0 {
@@ -134,16 +134,16 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 	topSixBits := b >> 2
 	byteLen := int(topSixBits) + 4
 
-	c := make([]byte, byteLen)
-	_, err = sd.reader.Read(c)
-	if err == nil {	
-		o := reverseBytes(c)
+	buf := make([]byte, byteLen)
+	_, err = sd.reader.Read(buf)
+	if err == nil {
+		o := reverseBytes(buf)
 		output = new(big.Int).SetBytes(o)
 	} else {
 		err = errors.New("could not decode invalid big.Int: reached early EOF")
 	}
 
-	return output, nil
+	return output, err
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
@@ -236,7 +236,6 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			if err != nil {
 				break
 			}
-			// TODO: complete this
 		}
 
 		if err != nil {

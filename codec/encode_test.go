@@ -12,10 +12,6 @@ type encodeTest struct {
 	bytesEncoded int
 }
 
-type testStruct struct {
-	val			int64
-}
-
 var encodeTests = []encodeTest{
 	// compact integers
 	{val: int64(0), output: []byte{0x00}, bytesEncoded: 1},
@@ -40,14 +36,6 @@ var encodeTests = []encodeTest{
 	// booleans
 	{val: true, output: []byte{0x01}, bytesEncoded: 1},
 	{val: false, output: []byte{0x00}, bytesEncoded: 1},
-
-	// big ints
-	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
-	{val: big.NewInt(1), output: []byte{0x04}, bytesEncoded: 1},
-	{val: big.NewInt(42), output: []byte{0xa8}, bytesEncoded: 1},
-	{val: big.NewInt(69), output: []byte{0x15, 0x01}, bytesEncoded: 2},
-	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}, bytesEncoded: 2},
-	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}, bytesEncoded: 4},
 
 	// big ints
 	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
@@ -84,8 +72,6 @@ var encodeTests = []encodeTest{
 	{val: []bool{true, false, true}, output: []byte{0x0c, 0x01, 0x00, 0x01}, bytesEncoded: 4},
 	{val: [][]int{[]int{0, 1}, []int{1, 0}}, output: []byte{0x08, 0x08, 0x00, 0x04, 0x08, 0x04, 0x00}, bytesEncoded: 7},
 	{val: []*big.Int{big.NewInt(0), big.NewInt(1)}, output: []byte{0x08, 0x00, 0x04}, bytesEncoded: 3},
-	//{val: []testStruct{testStruct{1}, testStruct{2}, testStruct{3}}, output: []byte{0x0c, 0x04, 0x08, 0x0c}, bytesEncoded: 4},
-
 }
 
 func TestEncode(t *testing.T) {
