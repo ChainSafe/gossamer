@@ -26,8 +26,10 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.DecodeBool()
 	case []int:
 		out, err = sd.DecodeIntVector()
-	case []int:
-		out, err = sd.DecodeIntVector()
+	case []bool:
+		out, err = sd.DecodeBoolVector()
+	case []*big.Int:
+		out, err = sd.DecodeBigIntVector()
 	case interface{}:
 		out, err = sd.DecodeTuple(t)
 	default:
@@ -186,6 +188,11 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
 func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
+	switch reflect.ValueOf(t).Kind() {
+	case reflect.Slice, reflect.Array:
+		return nil, errors.New("cannot decode invalid tuple")
+	}
+
 	v := reflect.ValueOf(t).Elem()
 
 	var err error
@@ -259,18 +266,36 @@ func (sd *Decoder) DecodeIntVector() ([]int, error) {
 	return sl, nil
 }
 
-// DecodeIntVector
-func (sd *Decoder) DecodeIntVector() ([]int, error) {
+// DecodeBigIntVector
+func (sd *Decoder) DecodeBigIntVector() ([]*big.Int, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
 	}
 
-	sl := make([]int, length)
+	sl := make([]*big.Int, length)
 	for i, _ := range sl {
-		var t int64
-		t, err = sd.DecodeInteger()
-		sl[i] = int(t)
+		var t *big.Int
+		t, err = sd.DecodeBigInt()
+		sl[i] = t
+		if err != nil {
+			break
+		}
+	}
+	return sl, nil
+}
+
+// DecodeBoolVector
+func (sd *Decoder) DecodeBoolVector() ([]bool, error) {
+	length, err := sd.DecodeInteger()
+	if err != nil {
+		return nil, err
+	}
+
+	sl := make([]bool, length)
+	for i, _ := range sl {
+		sl[i], err = sd.DecodeBool()
+		//sl[i] = int(t)
 		if err != nil {
 			break
 		}
