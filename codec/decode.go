@@ -137,7 +137,7 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 		err = errors.New("could not decode invalid big.Int: reached early EOF")
 	}
 
-	return output, nil
+	return output, err
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
