@@ -10,6 +10,6 @@ type Database interface {
 	PutIt
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) (bool, error)
-	Delete(key []byte) error
+	Del(key []byte) error
 	Close()
 }

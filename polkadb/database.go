@@ -16,11 +16,6 @@ type table struct {
 	prefix string
 }
 
-type badgerIterator struct {
-	txn *badger.Txn
-	itIterator *badger.Iterator
-}
-
 // NewBadgerDB opens and returns a new DB object
 func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts := badger.DefaultOptions
@@ -31,7 +26,6 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 		log.Fatal(err)
 		return nil, err
 	}
-	defer db.Close()
 
 	return &BadgerDB{
 		dir: file,
@@ -96,6 +90,7 @@ func (db *BadgerDB) Del(key []byte) error {
 	})
 }
 
+// Close closes a DB
 func (db *BadgerDB) Close() {
 	err := db.db.Close()
 	if err == nil {
@@ -126,8 +121,8 @@ func (dt *table) Get(key []byte) ([]byte, error) {
 	return dt.db.Get(append([]byte(dt.prefix), key...))
 }
 
-func (dt *table) Delete(key []byte) error {
-	return dt.db.Delete(append([]byte(dt.prefix), key...))
+func (dt *table) Del(key []byte) error {
+	return dt.db.Del(append([]byte(dt.prefix), key...))
 }
 
 func (dt *table) Close() {
