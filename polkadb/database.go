@@ -11,6 +11,16 @@ type BadgerDB struct {
 	db *badger.DB
 }
 
+type table struct {
+	db     Database
+	prefix string
+}
+
+type badgerIterator struct {
+	txn *badger.Txn
+	itIterator *badger.Iterator
+}
+
 // NewBadgerDB opens and returns a new DB object
 func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts := badger.DefaultOptions
@@ -42,6 +52,22 @@ func (db *BadgerDB) Put(key []byte, value []byte) error {
 	})
 }
 
+// Has checks the given key exists already; returning true or false
+func (db *BadgerDB) Has(key []byte) (exists bool, err error) {
+	err = db.db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(snappy.Encode(nil, key))
+		if item != nil {
+			exists = true
+		}
+		if err == badger.ErrKeyNotFound {
+			exists = false
+			err = nil
+		}
+		return err
+	})
+	return exists, err
+}
+
 // Get returns the given key
 func (db *BadgerDB) Get(key []byte) (data []byte, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
@@ -68,6 +94,44 @@ func (db *BadgerDB) Del(key []byte) error {
 		}
 		return err
 	})
+}
+
+func (db *BadgerDB) Close() {
+	err := db.db.Close()
+	if err == nil {
+		log.Println("Database closed")
+	} else {
+		log.Fatal("Failed to close database", "err", err)
+	}
+}
+
+// NewTable returns a Database object that prefixes all keys with a given
+// string.
+func NewTable(db Database, prefix string) Database {
+	return &table{
+		db:     db,
+		prefix: prefix,
+	}
+}
+
+func (dt *table) Put(key []byte, value []byte) error {
+	return dt.db.Put(append([]byte(dt.prefix), key...), value)
+}
+
+func (dt *table) Has(key []byte) (bool, error) {
+	return dt.db.Has(append([]byte(dt.prefix), key...))
+}
+
+func (dt *table) Get(key []byte) ([]byte, error) {
+	return dt.db.Get(append([]byte(dt.prefix), key...))
+}
+
+func (dt *table) Delete(key []byte) error {
+	return dt.db.Delete(append([]byte(dt.prefix), key...))
+}
+
+func (dt *table) Close() {
+	// Do nothing; don't close the underlying DB.
 }
 
 
