@@ -6,6 +6,7 @@ import (
 	"log"
 )
 
+// BadgerDB struct that contains directory path to data and db instance
 type BadgerDB struct {
 	dir string
 	db *badger.DB

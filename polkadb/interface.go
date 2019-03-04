@@ -1,6 +1,6 @@
 package polkadb
 
-// PutIt wraps the database write operation supported by both batches and regular databases.
+// PutIt wraps the database write operation supported by regular database.
 type PutIt interface {
 	Put(key []byte, value []byte) error
 }
