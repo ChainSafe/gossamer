@@ -1,4 +1,4 @@
-package polkadb_test
+package polkadb
 
 import (
 	"io/ioutil"
@@ -6,17 +6,15 @@ import (
 	"testing"
 	"bytes"
 	"fmt"
-
-	"github.com/ChainSafeSystems/go-pre/polkadb"
 )
 
-func newTestBadgerDB() (*polkadb.BadgerDB, func()) {
+func newTestBadgerDB() (*BadgerDB, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "badger-test")
 	fmt.Println(dir)
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
-	db, err := polkadb.NewBadgerDB(dir)
+	db, err := NewBadgerDB(dir)
 	if err != nil {
 		panic("failed to create test database: " + err.Error())
 	}
@@ -33,7 +31,7 @@ func TestBadgerDB_PutGetDel(t *testing.T) {
 	testDelGet(db ,t)
 }
 
-func testPutGetter(db polkadb.Database, t *testing.T) {
+func testPutGetter(db Database, t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -89,7 +87,7 @@ func testPutGetter(db polkadb.Database, t *testing.T) {
 	}
 }
 
-func testDelGet(db polkadb.Database, t *testing.T) {
+func testDelGet(db Database, t *testing.T) {
 	tests := []struct {
 		input    string
 		expected string
