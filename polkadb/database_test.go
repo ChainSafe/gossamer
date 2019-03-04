@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/chainsafe/go-pre/polkadb"
+	"github.com/ChainSafeSystems/go-pre/polkadb"
 )
 
 func newTestBadgerDB() (*polkadb.BadgerDB, func()) {
