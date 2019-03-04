@@ -62,6 +62,16 @@ func testPutGetter(db polkadb.Database, t *testing.T) {
 	}
 
 	for _, v := range tests {
+		exists, err := db.Has([]byte(v.input))
+		if err != nil {
+			t.Fatalf("has operation failed: %v", err)
+		}
+		if !exists {
+			t.Fatalf("has operation returned wrong result, got %t expected %t", exists, true)
+		}
+	}
+
+	for _, v := range tests {
 		err := db.Put([]byte(v.input), []byte("?"))
 		if err != nil {
 			t.Fatalf("put override failed: %v", err)
