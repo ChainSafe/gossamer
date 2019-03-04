@@ -9,7 +9,7 @@ import (
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
 	dir string
-	db *badger.DB
+	db  *badger.DB
 }
 
 type table struct {
@@ -129,15 +129,3 @@ func (dt *table) Del(key []byte) error {
 func (dt *table) Close() {
 	// Do nothing; don't close the underlying DB.
 }
-
-
-
-
-
-
-
-
-
-
-
-

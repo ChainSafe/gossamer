@@ -1,11 +1,11 @@
 package polkadb
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
-	"bytes"
-	"fmt"
 )
 
 func newTestBadgerDB() (*BadgerDB, func()) {
@@ -28,7 +28,7 @@ func TestBadgerDB_PutGetDel(t *testing.T) {
 	db, remove := newTestBadgerDB()
 	defer remove()
 	testPutGetter(db, t)
-	testDelGet(db ,t)
+	testDelGet(db, t)
 }
 
 func testPutGetter(db Database, t *testing.T) {
