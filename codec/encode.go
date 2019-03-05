@@ -66,7 +66,7 @@ func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 
 // encodeFixedWidthInteger encodes an int with size < 2**32 by putting it into little endian byte format
 func (se *Encoder) encodeFixedWidthInteger(i int) (bytesEncoded int, err error) {
-	if i > 1<<32 {
+	if i >= 1<<32 {
 		return 0, errors.New("error encoding fixed width int: int greater than 32 bits")
 	}
 
