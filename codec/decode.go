@@ -72,7 +72,7 @@ func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 	return o, err
 }
 
-// DecodeFixedWidthInt decodes integers < 2**32
+// DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
 func (sd *Decoder) DecodeFixedWidthInt() (o int32, err error) {
 	buf := make([]byte, 4)
 	_, err = sd.Reader.Read(buf)

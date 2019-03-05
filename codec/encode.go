@@ -71,14 +71,14 @@ func (se *Encoder) encodeFixedWidthInteger(i int) (bytesEncoded int, err error) 
 	}
 
 	if i < 1<<8 {
-			err = binary.Write(se.Writer, binary.LittleEndian, byte(i))
-			bytesEncoded = 1
+		err = binary.Write(se.Writer, binary.LittleEndian, byte(i))
+		bytesEncoded = 1
 	} else if i < 1<<16 {
-			err = binary.Write(se.Writer, binary.LittleEndian, uint16(i))
-			bytesEncoded = 2
+		err = binary.Write(se.Writer, binary.LittleEndian, uint16(i))
+		bytesEncoded = 2
 	} else if i < 1<<32 {
-			err = binary.Write(se.Writer, binary.LittleEndian, uint32(i))
-			bytesEncoded = 4
+		err = binary.Write(se.Writer, binary.LittleEndian, uint32(i))
+		bytesEncoded = 4
 	}
 	return bytesEncoded, err
 }
