@@ -9,7 +9,7 @@ import (
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
 	path string
-	db  *badger.DB
+	db   *badger.DB
 }
 
 type table struct {
@@ -30,7 +30,7 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 
 	return &BadgerDB{
 		path: file,
-		db:  db,
+		db:   db,
 	}, nil
 }
 

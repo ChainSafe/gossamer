@@ -84,7 +84,7 @@ func testPutGetter(db Database, t *testing.T) {
 			t.Fatalf("get returned wrong result, got %q expected ?", string(data))
 		}
 	}
-	t.Run("TestDelGet", func (t *testing.T) {
+	t.Run("TestDelGet", func(t *testing.T) {
 		for _, v := range tests {
 			err := db.Del([]byte(v.input))
 			if err != nil {
