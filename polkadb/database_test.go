@@ -28,7 +28,6 @@ func TestBadgerDB_PutGetDel(t *testing.T) {
 	db, remove := newTestBadgerDB()
 	defer remove()
 	testPutGetter(db, t)
-	testDelGet(db, t)
 }
 
 func testPutGetter(db Database, t *testing.T) {
@@ -85,33 +84,22 @@ func testPutGetter(db Database, t *testing.T) {
 			t.Fatalf("get returned wrong result, got %q expected ?", string(data))
 		}
 	}
-}
-
-func testDelGet(db Database, t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"camel", "camel"},
-		{"walrus", "walrus"},
-		{"296204", "296204"},
-		{"\x00123\x00", "\x00123\x00"},
-	}
-
-	for _, v := range tests {
-		err := db.Del([]byte(v.input))
-		if err != nil {
-			t.Fatalf("delete %q failed: %v", v.input, err)
+	t.Run("TestDelGet", func (t *testing.T) {
+		for _, v := range tests {
+			err := db.Del([]byte(v.input))
+			if err != nil {
+				t.Fatalf("delete %q failed: %v", v.input, err)
+			}
 		}
-	}
 
-	for _, v := range tests {
-		d, err := db.Get([]byte(v.input))
-		if err != nil {
-			t.Fatalf("got deleted value %q failed: %v", v.input, err)
+		for _, v := range tests {
+			d, err := db.Get([]byte(v.input))
+			if err != nil {
+				t.Fatalf("got deleted value %q failed: %v", v.input, err)
+			}
+			if len(d) > 1 {
+				t.Fatalf("failed to delete value %q", v.input)
+			}
 		}
-		if len(d) > 1 {
-			t.Fatalf("failed to delete value %q", v.input)
-		}
-	}
+	})
 }

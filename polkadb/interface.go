@@ -11,5 +11,4 @@ type Database interface {
 	Get(key []byte) ([]byte, error)
 	Has(key []byte) (bool, error)
 	Del(key []byte) error
-	Close()
 }
