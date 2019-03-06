@@ -23,6 +23,8 @@ test:
 
 $(GOLANGCI-LINT):
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+	cd $(GOPATH)/src/github.com/golangci/golangci-lint/cmd/golangci-lint
+    go install -ldflags "-X 'main.version=$(git describe --tags)' -X 'main.commit=$(git rev-parse --short HEAD)' -X 'main.date=$(date)'"
 	@echo "  >  \033[32mGolangci-lint version...\033[0m "
 	golangci-lint --version
 
