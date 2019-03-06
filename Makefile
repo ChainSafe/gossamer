@@ -24,7 +24,7 @@ test:
 $(GOLANGCI-LINT):
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	cd $(GOPATH)/src/github.com/golangci/golangci-lint/cmd/golangci-lint
-    go install -ldflags "-X 'main.version=$(git describe --tags)' -X 'main.commit=$(git rev-parse --short HEAD)' -X 'main.date=$(date)'"
+	go install -ldflags "-X 'main.version=$(git describe --tags)' -X 'main.commit=$(git rev-parse --short HEAD)' -X 'main.date=$(date)'"
 
 ## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint run` on project files.
 .PHONY: lint
