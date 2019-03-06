@@ -2,7 +2,6 @@ package polkadb
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -10,7 +9,6 @@ import (
 
 func newTestBadgerDB() (*BadgerDB, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "badger-test")
-	fmt.Println(dir)
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
