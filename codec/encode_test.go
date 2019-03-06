@@ -31,6 +31,10 @@ var encodeTests = []encodeTest{
 	{val: byteArray(64), output: append([]byte{0x01, 0x01}, byteArray(64)...)},
 	{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...)},
 
+	// strings
+	{val: string("a"), output: []byte{0x04, 0x61}},
+	{val: string("go-pre"), output: []byte{0x04, 0x67, 0x6F, 0x2D, 0x70, 0x72, 0x65}},
+
 	// booleans
 	{val: true, output: []byte{0x01}},
 	{val: false, output: []byte{0x00}},

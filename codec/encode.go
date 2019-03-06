@@ -11,6 +11,8 @@ func Encode(b interface{}) ([]byte, error) {
 	switch v := b.(type) {
 	case []byte:
 		return encodeByteArray(v)
+	case string:
+		return encodeByteArray([]byte(v))
 	case int16:
 		return encodeInteger(int(v))
 	case int32:
