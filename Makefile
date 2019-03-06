@@ -25,12 +25,11 @@ $(GOLANGCI-LINT):
 	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 	cd $(GOPATH)/src/github.com/golangci/golangci-lint/cmd/golangci-lint
     go install -ldflags "-X 'main.version=$(git describe --tags)' -X 'main.commit=$(git rev-parse --short HEAD)' -X 'main.date=$(date)'"
-	@echo "  >  \033[32mGolangci-lint version...\033[0m "
-	golangci-lint --version
 
 ## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint run` on project files.
 .PHONY: lint
 lint: $(GOLANGCI-LINT)
+	golangci-lint --version
 	golangci-lint run ./... --enable gofmt --enable goimports
 
 ## install: Install missing dependencies. Runs `go get` internally.
