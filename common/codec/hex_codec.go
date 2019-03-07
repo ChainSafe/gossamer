@@ -29,6 +29,17 @@ func Encode(in []byte) []byte {
 	return res
 }
 
+// Decode turns bytes into nibbles
+func Decode(in []byte) []byte {
+	res := make([]byte, len(in)*2)
+	for i, b := range in {
+		res[2*i] = b/16
+		res[2*i + 1] = b%16
+	}
+
+	return res
+}
+
 // combineNibbles concatenates two nibble to make a byte.
 // Assumes nibbles are the lower 4 bits of each of the inputs
 func combineNibbles(ms byte, ls byte) byte {
