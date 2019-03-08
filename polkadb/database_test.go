@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+type Data struct {
+	input string
+	expected string
+}
+
 func newTestBadgerDB() (*BadgerDB, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "badger-test")
 	if err != nil {
@@ -22,24 +27,28 @@ func newTestBadgerDB() (*BadgerDB, func()) {
 	}
 }
 
-func TestBadgerDB_PutGetDel(t *testing.T) {
-	db, remove := newTestBadgerDB()
-	defer remove()
-	testPutGetter(db, t)
-}
-
-func testPutGetter(db Database, t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		input    string
-		expected string
-	}{
+func testSetup() []Data {
+	tests := []Data {
 		{"camel", "camel"},
 		{"walrus", "walrus"},
 		{"296204", "296204"},
 		{"\x00123\x00", "\x00123\x00"},
 	}
+	return tests
+}
+
+func TestBadgerDB_PutGetDel(t *testing.T) {
+	db, remove := newTestBadgerDB()
+	defer remove()
+	testPutGetter(db, t)
+	testHasGetter(db, t)
+	testUpdateGetter(db, t)
+	testDelGetter(db, t)
+}
+
+func testPutGetter(db Database, t *testing.T) {
+	tests := testSetup()
+
 	for _, v := range tests {
 		err := db.Put([]byte(v.input), []byte(v.input))
 		if err != nil {
@@ -55,6 +64,10 @@ func testPutGetter(db Database, t *testing.T) {
 			t.Fatalf("get returned wrong result, got %q expected %q", string(data), v.expected)
 		}
 	}
+}
+
+func testHasGetter(db Database, t *testing.T) {
+	tests := testSetup()
 
 	for _, v := range tests {
 		exists, err := db.Has([]byte(v.input))
@@ -65,6 +78,10 @@ func testPutGetter(db Database, t *testing.T) {
 			t.Fatalf("has operation returned wrong result, got %t expected %t", exists, true)
 		}
 	}
+}
+
+func testUpdateGetter(db Database, t *testing.T) {
+	tests := testSetup()
 
 	for _, v := range tests {
 		err := db.Put([]byte(v.input), []byte("?"))
@@ -82,22 +99,25 @@ func testPutGetter(db Database, t *testing.T) {
 			t.Fatalf("get returned wrong result, got %q expected ?", string(data))
 		}
 	}
-	t.Run("TestDelGet", func(t *testing.T) {
-		for _, v := range tests {
-			err := db.Del([]byte(v.input))
-			if err != nil {
-				t.Fatalf("delete %q failed: %v", v.input, err)
-			}
-		}
+}
 
-		for _, v := range tests {
-			d, err := db.Get([]byte(v.input))
-			if err != nil {
-				t.Fatalf("got deleted value %q failed: %v", v.input, err)
-			}
-			if len(d) > 1 {
-				t.Fatalf("failed to delete value %q", v.input)
-			}
+func testDelGetter(db Database, t *testing.T) {
+	tests := testSetup()
+
+	for _, v := range tests {
+		err := db.Del([]byte(v.input))
+		if err != nil {
+			t.Fatalf("delete %q failed: %v", v.input, err)
 		}
-	})
+	}
+
+	for _, v := range tests {
+		d, err := db.Get([]byte(v.input))
+		if err != nil {
+			t.Fatalf("got deleted value %q failed: %v", v.input, err)
+		}
+		if len(d) > 1 {
+			t.Fatalf("failed to delete value %q", v.input)
+		}
+	}
 }
