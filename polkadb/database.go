@@ -1,9 +1,10 @@
 package polkadb
 
 import (
+	"log"
+
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
-	"log"
 )
 
 // BadgerDB struct contains directory path to data and db instance

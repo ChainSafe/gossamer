@@ -5,11 +5,12 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"github.com/pkg/errors"
+
+	"fmt"
 )
 
 type data struct {
-	input string
+	input    string
 	expected string
 }
 
@@ -25,13 +26,13 @@ func newTestBadgerDB() (*BadgerDB, func()) {
 	return db, func() {
 		db.Close()
 		if err := os.RemoveAll(dir); err != nil {
-			errors.New("removal of temp directory badger-test failed")
+			fmt.Println("removal of temp directory badger-test failed")
 		}
 	}
 }
 
 func testSetup() []data {
-	tests := []data {
+	tests := []data{
 		{"camel", "camel"},
 		{"walrus", "walrus"},
 		{"296204", "296204"},
