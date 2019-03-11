@@ -5,7 +5,8 @@ import (
 )
 
 var testServiceConfig = &ServiceConfig{
-	bootstrapNode: "/ip4/0.0.0.0/tcp/7000",
+	BootstrapNode: "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
+	Port:          7001,
 }
 
 func TestStart(t *testing.T) {
@@ -28,6 +29,13 @@ func TestStartDHT(t *testing.T) {
 
 	err = s.startDHT()
 	if err != nil {
-		t.Errorf("TestStartDHT:%s", err)
+		t.Errorf("TestStartDHT error: %s", err)
+	}
+}
+
+func TestBuildOpts(t *testing.T) {
+	_, err := testServiceConfig.buildOpts()
+	if err != nil {
+		t.Fatalf("TestBuildOpts error: %s", err)
 	}
 }

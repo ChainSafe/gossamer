@@ -4,30 +4,34 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	//"os"
 
-	ma "github.com/multiformats/go-multiaddr"
+	ds "github.com/ipfs/go-datastore"
+	dsync "github.com/ipfs/go-datastore/sync"
+	iaddr "github.com/ipfs/go-ipfs-addr"
 	libp2p "github.com/libp2p/go-libp2p"
 	host "github.com/libp2p/go-libp2p-host"
-	net "github.com/libp2p/go-libp2p-net"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	iaddr "github.com/ipfs/go-ipfs-addr"
+	net "github.com/libp2p/go-libp2p-net"
+	peer "github.com/libp2p/go-libp2p-peer"
 	ps "github.com/libp2p/go-libp2p-peerstore"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
 
+// Service defines a p2p service, including host and dht
 type Service struct {
-	ctx 			context.Context
-	host 			host.Host
-	dht 			*kaddht.IpfsDHT
-	bootstrapNode 	string
+	ctx           context.Context
+	host          host.Host
+	dht           *kaddht.IpfsDHT
+	bootstrapNode string
 }
 
+// ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	bootstrapNode 	string
-	port 			int
+	BootstrapNode string
+	Port          int
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -45,25 +49,23 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 
 	h.SetStreamHandler(protocolPrefix, handleStream)
 
-	dht, err := kaddht.New(ctx, h)
-	if err != nil {
-		return nil, err
-	}
+	dstore := dsync.MutexWrap(ds.NewMapDatastore())
+	dht := kaddht.NewDHT(ctx, h, dstore)
 
 	// wrap the host with routed host so we can look up peers in DHT
 	h = rhost.Wrap(h, dht)
 
-	return &Service {
-		ctx: ctx,
-		host: h,
-		dht: dht,
-		bootstrapNode: conf.bootstrapNode,
+	return &Service{
+		ctx:           ctx,
+		host:          h,
+		dht:           dht,
+		bootstrapNode: conf.BootstrapNode,
 	}, nil
 }
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start() error {
-	fmt.Println("Host created. We are:", s.host.ID())
+	fmt.Println("Host created. We are:", s.host.ID().Pretty())
 	fmt.Println(s.host.Addrs())
 
 	return nil
@@ -71,14 +73,29 @@ func (s *Service) Start() error {
 
 // Stop stops the p2p service
 func (s *Service) Stop() {
+	// TODO
+}
 
+// Broadcast sends a message to all peers
+func (s *Service) Broadcast() {
+	// TODO
+}
+
+// Send sends a message to a specific peer
+func (s *Service) Send(peer peer.ID) {
+	// TODO
+}
+
+// Ping pings a peer
+func (s *Service) Ping(peer peer.ID) {
+	// TODO
 }
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
 	ip := "0.0.0.0"
 
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.port))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +107,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 }
 
 // start DHT discovery
-func (s *Service) startDHT() (error) {
+func (s *Service) startDHT() error {
 	err := s.dht.Bootstrap(s.ctx)
 	if err != nil {
 		return err
@@ -114,51 +131,10 @@ func (s *Service) startDHT() (error) {
 func handleStream(stream net.Stream) {
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	str, err := rw.ReadString('\n')
+	if err != nil {
+		return
+	}
 
-	go readData(rw)
-	go writeData(rw)
-
-	// 'stream' will stay open until you close it (or the other side closes it).
-}
-
-func readData(rw *bufio.ReadWriter) {
-	// for {
-	// 	str, err := rw.ReadString('\n')
-	// 	if err != nil {
-	// 		fmt.Println("Error reading from buffer")
-	// 		panic(err)
-	// 	}
-
-	// 	if str == "" {
-	// 		return
-	// 	}
-	// 	if str != "\n" {
-	// 		fmt.Printf("\x1b[32m%s\x1b[0m> ", str)
-	// 	}
-
-	// }
-}
-
-func writeData(rw *bufio.ReadWriter) {
-	// stdReader := bufio.NewReader(os.Stdin)
-
-	// for {
-	// 	fmt.Print("> ")
-	// 	sendData, err := stdReader.ReadString('\n')
-	// 	if err != nil {
-	// 		fmt.Println("Error reading from stdin")
-	// 		panic(err)
-	// 	}
-
-	// 	_, err = rw.WriteString(fmt.Sprintf("%s\n", sendData))
-	// 	if err != nil {
-	// 		fmt.Println("Error writing to buffer")
-	// 		panic(err)
-	// 	}
-	// 	err = rw.Flush()
-	// 	if err != nil {
-	// 		fmt.Println("Error flushing buffer")
-	// 		panic(err)
-	// 	}
-	// }
+	fmt.Println("got stream: ", str)
 }
