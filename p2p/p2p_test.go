@@ -5,7 +5,7 @@ import (
 )
 
 var testServiceConfig = &ServiceConfig{
-	//bootstrapNode: ""
+	bootstrapNode: "/ip4/0.0.0.0/tcp/7000",
 }
 
 func TestStart(t *testing.T) {

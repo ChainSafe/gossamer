@@ -12,6 +12,8 @@ import (
 	net "github.com/libp2p/go-libp2p-net"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	iaddr "github.com/ipfs/go-ipfs-addr"
+	ps "github.com/libp2p/go-libp2p-peerstore"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -89,7 +91,23 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 // start DHT discovery
 func (s *Service) startDHT() (error) {
-	return nil
+	err := s.dht.Bootstrap(s.ctx)
+	if err != nil {
+		return err
+	}
+
+	addr, err := iaddr.ParseString(s.bootstrapNode)
+	if err != nil {
+		return err
+	}
+
+	peerinfo, err := ps.InfoFromP2pAddr(addr.Multiaddr())
+	if err != nil {
+		return err
+	}
+
+	err = s.host.Connect(s.ctx, *peerinfo)
+	return err
 }
 
 // TODO: stream handling
