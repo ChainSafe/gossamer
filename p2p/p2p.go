@@ -6,10 +6,12 @@ import (
 	"fmt"
 	//"os"
 
+	ma "github.com/multiformats/go-multiaddr"
 	libp2p "github.com/libp2p/go-libp2p"
 	host "github.com/libp2p/go-libp2p-host"
 	net "github.com/libp2p/go-libp2p-net"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -23,24 +25,34 @@ type Service struct {
 
 type ServiceConfig struct {
 	bootstrapNode 	string
+	port 			int
 }
 
-// NewService creates a new p2p.Service using the config. It initializes the host and dht
+// NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *ServiceConfig) (*Service, error) {
-	h, err := libp2p.New(context.Background())
+	ctx := context.Background()
+	opts, err := conf.buildOpts()
+	if err != nil {
+		return nil, err
+	}
+
+	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	h.SetStreamHandler(protocolPrefix, handleStream)
 
-	dht, err := startDHT(h)
+	dht, err := kaddht.New(ctx, h)
 	if err != nil {
 		return nil, err
 	}
 
+	// wrap the host with routed host so we can look up peers in DHT
+	h = rhost.Wrap(h, dht)
+
 	return &Service {
-		ctx: context.Background(),
+		ctx: ctx,
 		host: h,
 		dht: dht,
 		bootstrapNode: conf.bootstrapNode,
@@ -60,15 +72,24 @@ func (s *Service) Stop() {
 
 }
 
-// start dht; dht used for peer discovery. it keeps a list of peers in the network
-// each node keeps a local copy of the dht
-func startDHT(host host.Host) (*kaddht.IpfsDHT, error) {
-	dht, err := kaddht.New(context.Background(), host)
+func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
+	// TODO: get external ip
+	ip := "0.0.0.0"
+
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.port))
 	if err != nil {
 		return nil, err
 	}
 
-	return dht, nil
+	return []libp2p.Option{
+		libp2p.ListenAddrs(addr),
+		libp2p.EnableRelay(),
+	}, nil
+}
+
+// start DHT discovery
+func (s *Service) startDHT() (error) {
+	return nil
 }
 
 // TODO: stream handling

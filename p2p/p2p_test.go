@@ -26,12 +26,7 @@ func TestStartDHT(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	err = s.Start()
-	if err != nil {
-		t.Errorf("TestStart:%s", err)
-	}
-
-	_, err = startDHT(s.host)
+	err = s.startDHT()
 	if err != nil {
 		t.Errorf("TestStartDHT:%s", err)
 	}
