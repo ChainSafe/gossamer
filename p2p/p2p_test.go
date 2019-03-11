@@ -4,20 +4,34 @@ import (
 	"testing"
 )
 
+var testServiceConfig = &ServiceConfig{
+	//bootstrapNode: ""
+}
+
 func TestStart(t *testing.T) {
-	_, err := Start()
+	s, err := NewService(testServiceConfig)
 	if err != nil {
-		t.Errorf("TestStart:%s", err)
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	err = s.Start()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
 	}
 }
 
 func TestStartDHT(t *testing.T) {
-	host, err := Start()
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	err = s.Start()
 	if err != nil {
 		t.Errorf("TestStart:%s", err)
 	}
 
-	_, err = startDHT(host)
+	_, err = startDHT(s.host)
 	if err != nil {
 		t.Errorf("TestStartDHT:%s", err)
 	}
