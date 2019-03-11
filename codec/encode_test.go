@@ -44,6 +44,7 @@ func setUpStringTests() {
 	testString2 := strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 230) //n = 16560
 	//testString3 := strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 14913081) //n = 1 073 741 832 (> 2^30 = 1 073 741 824)
 
+
 	var testStrings = []encodeTest{
 		{val: string("a"),
 			output: []byte{0x04, 0x61}},
@@ -53,8 +54,8 @@ func setUpStringTests() {
 			output: append([]byte{0x0D,0x01}, testString1...)}, 				// n|mode = 0b00000001 00001101 = 0x010D (big endian) = 0x0D01 (little endian), Enc = n | mode | 0x("We love you!...")
 		{val: testString2,														// n = 16560 = 0b1000000 10110000, mode = 2 = 0b10
 			output: append([]byte{0xC2,0x02,0x01,0x00}, testString2...)},		// n|mode = 0b 00000001 00000010 11000010 = 0x102C2 (big endian) = 0xC20201 (little endian), Enc = n | mode | 0x("We need a...")
-		//{val: testString3,													// n = 14913081 = 11100011 10001110 00111001, mode = 3 = 0b11, num_bytes_n = 3
-		//output: append([]byte{0x08,0x00,0x00,0x40,0x03}, testString3...)},	// (num_bytes_n - 4)|mode|n = 0b 00000011 01000000 00000000 00000000 00001000 = 0x03 40 00 00 08 (big endian) = 0x08 00 00 40 03 (little endian), Enc = (num_bytes_n - 4)|mode|n| 0x("We need a...")
+		//{val: testString3,													// n = 1 073 741 832 = 01000000 00000000 00000000 00001000, mode = 3 = 0b11, num_bytes_n = 4
+		//output: append([]byte{0x08,0x00,0x00,0x40,0x03}, testString3...)},	// (num_bytes_n - 4)|mode|n = 0b 00000011 01000000 00000000 00000000 00001000 = 0x03 40 00 00 08 (big endian) = 0x08 00 00 40 03 (little endian), Enc = (num_bytes_n - 4)|mode|n| 0x("We need a..."
 	}
 
 	//Append stringTests to all other tests
@@ -73,7 +74,13 @@ func TestEncode(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else if !bytes.Equal(output, test.output) {
-			t.Errorf("Fail: got %x expected %x", output, test.output)
+			if test.val != strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 14913081) {
+				t.Errorf("Fail: got %x expected %x", output, test.output)
+			} else {
+				//Temporarily have this if statement, which only prints first 10 bytes of the failed test, because it crashes the tests when you try and print such a large output
+				t.Errorf("Failed final test %x expected %x", output[0:10], test.output[0:10] )
+			}
+
 		}
 	}
 }
