@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     environment:
-      CC_TEST_REPORTER_ID: $CC_REPORT_ID
+      CC_TEST_REPORTER_ID: $CC_TEST_REPORTER_ID
     docker:
       - image: circleci/golang:1.11
 
