@@ -4,15 +4,16 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
-	mrand "math/rand"
 	"io"
+	"log"
+	mrand "math/rand"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-	iaddr "github.com/ipfs/go-ipfs-addr"
 	libp2p "github.com/libp2p/go-libp2p"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	net "github.com/libp2p/go-libp2p-net"
@@ -26,18 +27,18 @@ const protocolPrefix = "/polkadot/0.0.0"
 
 // Service defines a p2p service, including host and dht
 type Service struct {
-	ctx           context.Context
-	host          host.Host
-	hostAddr		ma.Multiaddr
-	dht           *kaddht.IpfsDHT
-	bootstrapNode string
+	ctx            context.Context
+	host           host.Host
+	hostAddr       ma.Multiaddr
+	dht            *kaddht.IpfsDHT
+	bootstrapNodes []ps.PeerInfo
 }
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	BootstrapNode 	string
-	Port          	int
-	RandSeed 		int64
+	BootstrapNodes []string
+	Port           int
+	RandSeed       int64
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -61,41 +62,58 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	// wrap the host with routed host so we can look up peers in DHT
 	h = rhost.Wrap(h, dht)
 
-	// fmt.Println("Host created. We are:", s.host.ID().Pretty())
-	// fmt.Println(s.host.Addrs())
-
 	// build host multiaddress
 	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
 
+	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
-		ctx:           ctx,
-		host:          h,
-		hostAddr:		hostAddr,
-		dht:           dht,
-		bootstrapNode: conf.BootstrapNode,
+		ctx:            ctx,
+		host:           h,
+		hostAddr:       hostAddr,
+		dht:            dht,
+		bootstrapNodes: bootstrapNodes,
 	}, nil
 }
 
 // Start begins the p2p Service, including discovery
-func (s *Service) Start() error {
-	ipfsPeers, err := stringsToPeerInfos(IPFS_PEERS)
-	if err != nil {
-		return err
+func (s *Service) Start() <-chan error {
+	e := make(chan error)
+	go s.start(e)
+	return e
+}
+
+// start begins the p2p Service, including discovery. start does not terminate once called.
+func (s *Service) start(e chan error) {
+	if len(s.bootstrapNodes) == 0 {
+		e <- errors.New("no peers to bootstrap to")
 	}
 
-	// connect to the chosen ipfs nodes
-	err = bootstrapConnect(s.ctx, s.host, ipfsPeers)
+ 	// connect to the bootstrap nodes
+	err := bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
 	if err != nil {
-		return err
+		e <- err
 	}
 
 	// bootstrap the host
 	err = s.dht.Bootstrap(s.ctx)
 	if err != nil {
-		return err
+		e <- err
 	}
 
-	return nil
+	// Now we can build a full multiaddress to reach this host
+	// by encapsulating both addresses:
+	addrs := s.host.Addrs()
+	log.Println("I can be reached at:")
+	for _, addr := range addrs {
+		log.Println(addr.Encapsulate(s.hostAddr))
+	}
+
+	log.Println("listening for connections...")
+	e <- nil
 }
 
 // Stop stops the p2p service
@@ -104,18 +122,32 @@ func (s *Service) Stop() {
 }
 
 // Broadcast sends a message to all peers
-func (s *Service) Broadcast() {
+func (s *Service) Broadcast(msg []byte) {
 	// TODO
 }
 
 // Send sends a message to a specific peer
-func (s *Service) Send(peer peer.ID) {
-	// TODO
+func (s *Service) Send(peer peer.ID, msg []byte) error {
+	stream, err := s.host.NewStream(context.Background(), peer, protocolPrefix)
+	if err != nil {
+		return err
+	}
+
+	_, err = stream.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Ping pings a peer
 func (s *Service) Ping(peer peer.ID) {
 	// TODO
+}
+
+func (s *Service) Host() host.Host {
+	return s.host
 }
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
@@ -159,27 +191,6 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	}
 
 	return priv, nil
-}
-
-// start DHT discovery
-func (s *Service) startDHT() error {
-	err := s.dht.Bootstrap(s.ctx)
-	if err != nil {
-		return err
-	}
-
-	addr, err := iaddr.ParseString(s.bootstrapNode)
-	if err != nil {
-		return err
-	}
-
-	peerinfo, err := ps.InfoFromP2pAddr(addr.Multiaddr())
-	if err != nil {
-		return err
-	}
-
-	err = s.host.Connect(s.ctx, *peerinfo)
-	return err
 }
 
 // TODO: stream handling
