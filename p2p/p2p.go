@@ -3,8 +3,12 @@ package p2p
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"fmt"
+	mrand "math/rand"
+	"io"
 
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	iaddr "github.com/ipfs/go-ipfs-addr"
@@ -30,8 +34,9 @@ type Service struct {
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	BootstrapNode string
-	Port          int
+	BootstrapNode 	string
+	Port          	int
+	RandSeed 		int64
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -95,6 +100,11 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
 	ip := "0.0.0.0"
 
+	priv, err := generateKey(sc.RandSeed)
+	if err != nil {
+		return nil, err
+	}
+
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
 	if err != nil {
 		return nil, err
@@ -103,7 +113,30 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
 		libp2p.EnableRelay(),
+		libp2p.Identity(priv),
 	}, nil
+}
+
+// generateKey generates a libp2p private key which is used for secure messaging
+func generateKey(seed int64) (crypto.PrivKey, error) {
+	// If the seed is zero, use real cryptographic randomness. Otherwise, use a
+	// deterministic randomness source to make generated keys stay the same
+	// across multiple runs
+	var r io.Reader
+	if seed == 0 {
+		r = rand.Reader
+	} else {
+		r = mrand.New(mrand.NewSource(seed))
+	}
+
+	// Generate a key pair for this host. We will use it at least
+	// to obtain a valid host ID.
+	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return priv, nil
 }
 
 // start DHT discovery
