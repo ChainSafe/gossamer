@@ -28,6 +28,7 @@ const protocolPrefix = "/polkadot/0.0.0"
 type Service struct {
 	ctx           context.Context
 	host          host.Host
+	hostAddr		ma.Multiaddr
 	dht           *kaddht.IpfsDHT
 	bootstrapNode string
 }
@@ -60,9 +61,16 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	// wrap the host with routed host so we can look up peers in DHT
 	h = rhost.Wrap(h, dht)
 
+	// fmt.Println("Host created. We are:", s.host.ID().Pretty())
+	// fmt.Println(s.host.Addrs())
+
+	// build host multiaddress
+	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
+
 	return &Service{
 		ctx:           ctx,
 		host:          h,
+		hostAddr:		hostAddr,
 		dht:           dht,
 		bootstrapNode: conf.BootstrapNode,
 	}, nil
@@ -70,8 +78,22 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start() error {
-	fmt.Println("Host created. We are:", s.host.ID().Pretty())
-	fmt.Println(s.host.Addrs())
+	ipfsPeers, err := stringsToPeerInfos(IPFS_PEERS)
+	if err != nil {
+		return err
+	}
+
+	// connect to the chosen ipfs nodes
+	err = bootstrapConnect(s.ctx, s.host, ipfsPeers)
+	if err != nil {
+		return err
+	}
+
+	// bootstrap the host
+	err = s.dht.Bootstrap(s.ctx)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

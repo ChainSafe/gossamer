@@ -11,6 +11,33 @@ var testServiceConfig = &ServiceConfig{
 	Port:          7001,
 }
 
+func TestGenerateKey(t *testing.T) {
+	privA, err := generateKey(7777)
+	if err != nil {
+		t.Fatalf("GenerateKey error: %s", err)
+	}
+
+	privB, err := generateKey(7777)
+	if err != nil {
+		t.Fatalf("GenerateKey error: %s", err)
+	}
+
+	t.Log(privA)
+	t.Log(privB)
+	if !crypto.KeyEqual(privA, privB) {
+		t.Error("GenerateKey error: did not create same key for same seed")
+	} 
+
+	privC, err := generateKey(0)
+	if err != nil {
+		t.Fatalf("GenerateKey error: %s", err)
+	}
+
+	if crypto.KeyEqual(privA, privC) {
+		t.Fatal("GenerateKey error: created same key for different seed")
+	} 
+}
+
 func TestStart(t *testing.T) {
 	s, err := NewService(testServiceConfig)
 	if err != nil {
@@ -40,32 +67,4 @@ func TestBuildOpts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestBuildOpts error: %s", err)
 	}
-}
-
-
-func TestGenerateKey(t *testing.T) {
-	privA, err := generateKey(7777)
-	if err != nil {
-		t.Fatalf("GenerateKey error: %s", err)
-	}
-
-	privB, err := generateKey(7777)
-	if err != nil {
-		t.Fatalf("GenerateKey error: %s", err)
-	}
-
-	t.Log(privA)
-	t.Log(privB)
-	if !crypto.KeyEqual(privA, privB) {
-		t.Error("GenerateKey error: did not create same key for same seed")
-	} 
-
-	privC, err := generateKey(0)
-	if err != nil {
-		t.Fatalf("GenerateKey error: %s", err)
-	}
-
-	if crypto.KeyEqual(privA, privC) {
-		t.Fatal("GenerateKey error: created same key for different seed")
-	} 
 }
