@@ -98,16 +98,13 @@ func setUpStringTests() {
 	}
 
 	//Append stringTests to all other tests
-	for _, testString := range testStrings {
-		encodeTests = append(encodeTests, testString)
-	}
+	encodeTests = append(encodeTests, testStrings...)
 }
 
 func TestEncode(t *testing.T) {
 
 	setUpStringTests()
 
-	//Run all tests
 	for _, test := range encodeTests {
 	    
 		buffer := bytes.Buffer{}
