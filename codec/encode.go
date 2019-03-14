@@ -21,8 +21,6 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		n, err = se.encodeByteArray(v)
 	case *big.Int:
 		n, err = se.encodeBigInteger(v)
-	case string:
-		n, err = se.encodeByteArray([]byte(v))
 	case int16:
 		n, err = se.encodeInteger(int(v))
 	case int32:
