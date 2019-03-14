@@ -93,7 +93,7 @@ func (s *Service) start(e chan error) {
 	}
 
  	// connect to the bootstrap nodes
-	err := bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
+	err := s.bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
 	if err != nil {
 		e <- err
 	}

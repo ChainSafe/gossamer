@@ -6,10 +6,20 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	//"io"
+	//"os"
 
 	host "github.com/libp2p/go-libp2p-host"
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	net "github.com/libp2p/go-libp2p-net"
+	tcp "github.com/libp2p/go-tcp-transport"
+	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	secio "github.com/libp2p/go-libp2p-secio"
+	yamux "github.com/whyrusleeping/go-smux-yamux"
+	csms "github.com/libp2p/go-conn-security-multistream"
+	msmux "github.com/whyrusleeping/go-smux-multistream"
 )
 
 func stringToPeerInfo(peer string) (ps.PeerInfo, error) {
@@ -30,12 +40,46 @@ func stringsToPeerInfos(peers []string) ([]ps.PeerInfo, error) {
 	return pinfos, nil
 }
 
+// GenUpgrader creates a new connection upgrader for use with this swarm.
+func GenUpgrader(n *swarm.Swarm) *tptu.Upgrader {
+	id := n.LocalPeer()
+	pk := n.Peerstore().PrivKey(id)
+	secMuxer := new(csms.SSMuxer)
+	secMuxer.AddTransport(secio.ID, &secio.Transport{
+		LocalID:    id,
+		PrivateKey: pk,
+	})
+
+	stMuxer := msmux.NewBlankTransport()
+	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
+
+	return &tptu.Upgrader{
+		Secure:  secMuxer,
+		Muxer:   stMuxer,
+		Filters: n.Filters,
+	}
+}
+
 // This code is borrowed from the go-ipfs bootstrap process
-func bootstrapConnect(ctx context.Context, ph host.Host, peers []ps.PeerInfo) error {
+func (s *Service) bootstrapConnect(ctx context.Context, ph host.Host, peers []ps.PeerInfo) error {
 	if len(peers) < 1 {
 		return errors.New("not enough bootstrap peers")
 	}
 
+	// create new swarm which will be used to handle the network of peers
+	swarm := swarm.NewSwarm(s.ctx, s.host.ID(), s.host.Peerstore(), nil)
+	swarm.SetStreamHandler(func(s net.Stream) {
+		defer s.Close()
+		fmt.Println("Got a stream from: ", s.Conn().RemotePeer(), s)
+		fmt.Fprintln(s, "Hello Friend!")
+	})
+
+	err := swarm.AddTransport(tcp.NewTCPTransport(GenUpgrader(swarm)))
+	if err != nil {
+		return err
+	}
+
+	// begin bootstrapping
 	errs := make(chan error, len(peers))
 	var wg sync.WaitGroup
 	for _, p := range peers {
@@ -60,6 +104,14 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []ps.PeerInfo) er
 			}
 			log.Println(ctx, "bootstrapDialSuccess", p.ID)
 			log.Printf("bootstrapped with %v", p.ID)
+
+			// open new stream with each peer
+			s, err := swarm.NewStream(s.ctx, p.ID)
+			if err != nil {
+				panic(err)
+			}
+			defer s.Close()
+			//io.Copy(os.Stdout, s) // pipe the stream to stdout
 		}(p)
 	}
 	wg.Wait()
@@ -68,7 +120,6 @@ func bootstrapConnect(ctx context.Context, ph host.Host, peers []ps.PeerInfo) er
 	// So drain the errs channel, counting the results.
 	close(errs)
 	count := 0
-	var err error
 	for err = range errs {
 		if err != nil {
 			count++
