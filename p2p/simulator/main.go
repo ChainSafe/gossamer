@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -48,6 +48,7 @@ func NewSimulator(num int) (sim *Simulator, err error) {
 		if err != nil {
 			return nil, err
 		}
+
 	}
 
 	return sim, nil
@@ -149,7 +150,13 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	stream, err := s.Host().NewStream(context.Background(), peerid, "/polkadot/0.0.0")
+	peer, err := s.DHT().FindPeer(s.Ctx(), peerid)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(peer)
+	stream, err := s.Host().NewStream(s.Ctx(), peer.ID, "/polkadot/0.0.0")
 	if err != nil {
 		log.Fatalln(err)
 	}

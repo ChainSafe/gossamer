@@ -93,7 +93,8 @@ func (s *Service) start(e chan error) {
 	}
 
  	// connect to the bootstrap nodes
-	err := s.bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
+	//err := s.bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
+	err := s.bootstrapConnect()
 	if err != nil {
 		e <- err
 	}
@@ -150,6 +151,14 @@ func (s *Service) Host() host.Host {
 	return s.host
 }
 
+func (s *Service) DHT() *kaddht.IpfsDHT {
+	return s.dht
+}
+
+func (s *Service) Ctx() context.Context {
+	return s.ctx
+}
+
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
 	ip := "0.0.0.0"
@@ -166,7 +175,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.EnableRelay(),
+		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 	}, nil
 }
@@ -195,6 +204,7 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 
 // TODO: stream handling
 func handleStream(stream net.Stream) {
+	defer stream.Close()
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')
@@ -202,5 +212,6 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	fmt.Println("got stream: ", str)
+	fmt.Printf("got stream from %s:  %s", stream.Conn().RemotePeer(), str)
+	rw.WriteString("hello friend")
 }
