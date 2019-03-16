@@ -5,12 +5,27 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
+	"fmt"
 )
 
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
 	path string
 	db   *badger.DB
+}
+
+// Iterator struct contains a transaction, iterator and context fields released, initialized
+type Iterator struct {
+	txn *badger.Txn
+	iter *badger.Iterator
+	released bool
+	init 	bool
+}
+
+type batch struct {
+	db *BadgerDB
+	b map[string][]byte
+	size int
 }
 
 type table struct {
@@ -100,6 +115,116 @@ func (db *BadgerDB) Close() {
 	} else {
 		log.Fatal("Failed to close database", "err", err)
 	}
+}
+
+// NewIterator returns a new iterator within the Iterator struct along with a new transaction
+func(db *BadgerDB) NewIterator() Iterator {
+	txn := db.db.NewTransaction(false)
+	opts := badger.DefaultIteratorOptions
+	iter := txn.NewIterator(opts)
+	return Iterator{
+		txn: 	  txn,
+		iter:	  iter,
+		released: false,
+		init: 	  false,
+	}
+}
+
+// Release closes the iterator, discards the created transaction and sets released value to true
+func(i *Iterator) Release() {
+	i.iter.Close()
+	i.txn.Discard()
+	i.released = true
+}
+
+// Released returns the boolean indicating whether the iterator and transaction was successfully released
+func(i *Iterator) Released() bool {
+	return i.released
+}
+
+// Next rewinds the iterator to the zero-th position if uninitialized, and then will advance the iterator by one
+// returns bool to ensure access to the item
+func(i *Iterator) Next() bool {
+	if !i.init {
+		i.iter.Rewind()
+		i.init = true
+	}
+	i.iter.Next()
+	return i.iter.Valid()
+}
+
+// Seek will look for the provided key if present
+func(i *Iterator) Seek(key []byte) {
+	i.iter.Seek(snappy.Encode(nil, key))
+}
+
+// Key returns a key
+func(i *Iterator) Key() []byte {
+	ret, err := snappy.Decode(nil, i.iter.Item().Key())
+	if err != nil {
+		fmt.Println("key retrieval error ", err.Error())
+	}
+	return ret
+}
+
+// Value returns a copy of the value of the item
+func(i *Iterator) Value() []byte {
+	val, err := i.iter.Item().ValueCopy(nil)
+	if err != nil {
+		fmt.Println("value retrieval error ", err.Error())
+	}
+	ret, err := snappy.Decode(nil, val)
+	if err != nil {
+		fmt.Println("value decoding error ", err.Error())
+	}
+	return ret
+}
+
+// Put encodes key-values and adds them to a mapping for batch writes, sets the size of item value
+func(b *batch) Put(key, value []byte) error {
+	encodedKey := snappy.Encode(nil, key)
+	encodedVal := snappy.Encode(nil, value)
+	b.b[string(encodedKey)] = encodedVal
+	b.size += len(value)
+	return nil
+}
+
+// Write performs batched writes
+func(b *batch) Write() error {
+	wb := b.db.db.NewWriteBatch()
+	defer wb.Cancel()
+
+	for k, v := range b.b {
+		err := wb.Set([]byte(k), v, 0)
+		if err != nil {
+			fmt.Println("error writing batch txs", err.Error())
+		}
+	}
+	if err := wb.Flush(); err != nil {
+		fmt.Println("error stored by writeBatch ", err.Error())
+	}
+	return nil
+}
+
+// ValueSize returns the length of the item value
+func (b *batch) ValueSize() int {
+	return b.size
+}
+
+// Delete removes the key from the batch and database
+func (b *batch) Delete(key []byte) error {
+	err := b.db.db.NewWriteBatch().Delete(key)
+	if err != nil {
+		fmt.Println("error batch deleting key ", err.Error())
+	}
+	b.size++
+	return nil
+}
+
+// Reset clears batch key-values and resets the size to zero
+func (b *batch) Reset() {
+	b.b = make(map[string][]byte)
+	b.size = 0
 }
 
 // NewTable returns a Database object that prefixes all keys with a given
