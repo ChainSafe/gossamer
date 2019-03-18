@@ -32,7 +32,7 @@ var encodeTests = []encodeTest{
 	{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
 	{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
 	{val: byteArray(64), output: append([]byte{0x01, 0x01}, byteArray(64)...), bytesEncoded: 66},
-	//{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), bytesEncoded: 16388},
+	{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), bytesEncoded: 16388},
 
 	// booleans
 	{val: true, output: []byte{0x01}, bytesEncoded: 1},
@@ -75,11 +75,13 @@ var encodeTests = []encodeTest{
 	{val: []*big.Int{big.NewInt(0), big.NewInt(1)}, output: []byte{0x08, 0x00, 0x04}, bytesEncoded: 3},
 }
 
+// Test strings for various values of n & mode. Also test strings with special characters
+// Commented out testString3 since it causes the CI to fail.
 func setUpStringTests() {
-	// Test strings for various values of n & mode. Also test strings with special characters
+
 	testString1 := "We love you! We believe in open source as wonderful form of giving." 	// n = 67
 	testString2 := strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 230) 		// n = 72 * 230 = 16560
-	//testString3 := strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 14913081) 	// n = 72 * 14913081 = 1073741832 (> 2^30 = 1073741824)
+	//testString3 := strings.Repeat("We need a longer string to test with. Let's multiple this several times.", 14913081) 			// n = 72 * 14913081 = 1073741832 (> 2^30 = 1073741824)
 	testString4 := "Let's test some special ASCII characters: ~  · © ÿ" 															// n = 55 (UTF-8 encoding versus n = 51 with ASCII encoding)
 
 	testStrings := []encodeTest{
@@ -91,7 +93,7 @@ func setUpStringTests() {
 			output: append([]byte{0x0D,0x01}, testString1...), bytesEncoded: 69}, 						// n|mode = 0x010D (BE) = 0x0D01 (LE)
 		{val: testString2,																				// n = 16560, mode = 2
 			output: append([]byte{0xC2,0x02,0x01,0x00}, testString2...), bytesEncoded: 16564},			// n|mode = 0x102C2 (BE) = 0xC20201 (LE)
-		//{val: testString3,																				// n = 1073741832, mode = 3, num_bytes_n = 4
+		//{val: testString3,																			// n = 1073741832, mode = 3, num_bytes_n = 4
 		//output: append([]byte{0x03,0x08,0x00,0x00,0x40}, testString3...), bytesEncoded: 1073741837},	// (num_bytes_n - 4)|mode|n = 0x40 00 00 08 03 (BE) = 0x03 08 00 00 40 (LE)
 		{val: testString4,																				// n = 55, mode = 0
 			output: append([]byte{0xDC}, testString4...), bytesEncoded: 56},							// n|mode = 0xDC (BE/LE)
