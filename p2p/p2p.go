@@ -175,8 +175,9 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.DisableRelay(),
+		libp2p.EnableRelay(),
 		libp2p.Identity(priv),
+		libp2p.NATPortMap(),
 	}, nil
 }
 
@@ -212,6 +213,6 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	fmt.Printf("got stream from %s:  %s", stream.Conn().RemotePeer(), str)
+	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
 	rw.WriteString("hello friend")
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -155,15 +156,44 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(peer)
-	stream, err := s.Host().NewStream(s.Ctx(), peer.ID, "/polkadot/0.0.0")
+	swarm, err := s.NewSwarm()
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
 
-	_, err = stream.Write([]byte("Hello, world!\n"))
+	fmt.Println(s.Host().Peerstore().Peers())
+
+	// open new stream with each peer
+	stream, err := swarm.NewStream(s.Ctx(), s.Host().Peerstore().Peers()[0])
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatal(err)
 	}
+	stream.Write([]byte("Hello friend :)"))
+	defer stream.Close()
+	io.Copy(os.Stdout, stream) // pipe the stream to stdout
+
+	// open new stream with each peer
+	conn, err := swarm.DialPeer(s.Ctx(), peer.ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stream, err = conn.NewStream()
+	if err != nil {
+		log.Fatal(err)
+	}
+	stream.Write([]byte("Hello friend :)"))
+	defer stream.Close()
+	io.Copy(os.Stdout, stream) // pipe the stream to stdout
+
+	// stream, err := s.Host().NewStream(s.Ctx(), peer.ID, "/polkadot/0.0.0") 
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
+
+	// _, err = stream.Write([]byte("Hello, world!\n"))
+	// if err != nil {
+	// 	log.Fatalln(err)
+	// }
 
 }

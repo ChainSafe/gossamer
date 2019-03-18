@@ -5,14 +5,10 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	//"io"
-	//"os"
 
-	//host "github.com/libp2p/go-libp2p-host"
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	swarm "github.com/libp2p/go-libp2p-swarm"
-	//net "github.com/libp2p/go-libp2p-net"
 	tcp "github.com/libp2p/go-tcp-transport"
 	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
 	secio "github.com/libp2p/go-libp2p-secio"
@@ -59,16 +55,10 @@ func GenUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 	}
 }
 
+// NewSwarm creates a new swarm which will be used to handle the network of peers
 func (s *Service) NewSwarm() (*swarm.Swarm, error) {
-		// create new swarm which will be used to handle the network of peers
 	swarm := swarm.NewSwarm(s.ctx, s.host.ID(), s.host.Peerstore(), nil)
 	swarm.SetStreamHandler(handleStream)
-	// swarm.SetStreamHandler(func(s net.Stream) {
-	// 	defer s.Close()
-	// 	fmt.Println("Got a stream from: ", s.Conn().RemotePeer(), s)
-	// 	fmt.Fprintln(s, "Hello Friend!")
-	// })
-
 	err := swarm.AddTransport(tcp.NewTCPTransport(GenUpgrader(swarm)))
 	return swarm, err
 }
@@ -105,15 +95,6 @@ func (s *Service) bootstrapConnect() error {
 			}
 			log.Println(s.ctx, "bootstrapDialSuccess", p.ID)
 			log.Printf("bootstrapped with %v", p.ID)
-
-			// open new stream with each peer
-			// s, err := swarm.NewStream(s.ctx, p.ID)
-			// if err != nil {
-			// 	return nil,
-			// }
-			// s.Write([]byte("Hello friend :)"))
-			// defer s.Close()
-			//io.Copy(os.Stdout, s) // pipe the stream to stdout
 		}(p)
 	}
 	wg.Wait()

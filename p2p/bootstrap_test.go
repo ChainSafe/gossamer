@@ -31,3 +31,16 @@ func TestStringToPeerInfo(t *testing.T) {
 		}
 	}
 }
+
+func TestStringToPeerInfo(t *testing.T) {
+	for _, str := range IPFS_PEERS {
+		pi, err := stringToPeerInfo(str)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if pi.ID.Pretty() != str {
+			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), str)
+		}
+	}
+}
