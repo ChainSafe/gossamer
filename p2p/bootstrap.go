@@ -2,29 +2,29 @@ package p2p
 
 import (
 	"errors"
-	"fmt"
+	//"fmt"
 	"log"
 	"sync"
 
-	ps "github.com/libp2p/go-libp2p-peerstore"
-	ma "github.com/multiformats/go-multiaddr"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	tcp "github.com/libp2p/go-tcp-transport"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
-	secio "github.com/libp2p/go-libp2p-secio"
-	yamux "github.com/whyrusleeping/go-smux-yamux"
 	csms "github.com/libp2p/go-conn-security-multistream"
+	ps "github.com/libp2p/go-libp2p-peerstore"
+	secio "github.com/libp2p/go-libp2p-secio"
+	swarm "github.com/libp2p/go-libp2p-swarm"
+	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
+	tcp "github.com/libp2p/go-tcp-transport"
+	ma "github.com/multiformats/go-multiaddr"
 	msmux "github.com/whyrusleeping/go-smux-multistream"
+	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
-func stringToPeerInfo(peer string) (ps.PeerInfo, error) {
+func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
 	maddr := ma.StringCast(peer)
 	p, err := ps.InfoFromP2pAddr(maddr)
-	return *p, err
+	return p, err
 }
 
-func stringsToPeerInfos(peers []string) ([]ps.PeerInfo, error) {
-	pinfos := make([]ps.PeerInfo, len(peers))
+func stringsToPeerInfos(peers []string) ([]*ps.PeerInfo, error) {
+	pinfos := make([]*ps.PeerInfo, len(peers))
 	for i, peer := range peers {
 		p, err := stringToPeerInfo(peer)
 		if err != nil {
@@ -74,6 +74,7 @@ func (s *Service) bootstrapConnect() error {
 	errs := make(chan error, len(peers))
 	var wg sync.WaitGroup
 
+	var err error
 	for _, p := range peers {
 
 		// performed asynchronously because when performed synchronously, if
@@ -81,13 +82,13 @@ func (s *Service) bootstrapConnect() error {
 		// fail/abort due to an expiring context.
 
 		wg.Add(1)
-		go func(p ps.PeerInfo) {
+		go func(p *ps.PeerInfo) {
 			defer wg.Done()
 			defer log.Println(s.ctx, "bootstrapDial", s.host.ID(), p.ID)
 			log.Printf("%s bootstrapping to %s", s.host.ID(), p.ID)
 
 			s.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
-			if err := s.host.Connect(s.ctx, p); err != nil {
+			if err = s.host.Connect(s.ctx, *p); err != nil {
 				log.Println(s.ctx, "bootstrapDialFailed", p.ID)
 				log.Printf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
@@ -101,16 +102,16 @@ func (s *Service) bootstrapConnect() error {
 
 	// our failure condition is when no connection attempt succeeded.
 	// drain the errs channel, counting the results.
-	close(errs)
-	count := 0
-	var err error
-	for err = range errs {
-		if err != nil {
-			count++
-		}
-	}
-	if count == len(peers) {
-		return fmt.Errorf("failed to bootstrap. %s", err)
-	}
-	return nil
+	// close(errs)
+	// count := 0
+	// var err error
+	// for err = range errs {
+	// 	if err != nil {
+	// 		count++
+	// 	}
+	// }
+	// if count == len(peers) {
+	// 	return fmt.Errorf("failed to bootstrap. %s", err)
+	// }
+	return err
 }

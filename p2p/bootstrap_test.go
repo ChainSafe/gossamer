@@ -32,7 +32,7 @@ func TestStringToPeerInfo(t *testing.T) {
 	}
 }
 
-func TestStringToPeerInfo(t *testing.T) {
+func TestStringsToPeerInfos(t *testing.T) {
 	for _, str := range IPFS_PEERS {
 		pi, err := stringToPeerInfo(str)
 		if err != nil {

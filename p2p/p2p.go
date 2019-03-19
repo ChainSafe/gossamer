@@ -31,7 +31,7 @@ type Service struct {
 	host           host.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []ps.PeerInfo
+	bootstrapNodes []*ps.PeerInfo
 }
 
 // ServiceConfig is used to initialize a new p2p service
@@ -92,18 +92,23 @@ func (s *Service) start(e chan error) {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
- 	// connect to the bootstrap nodes
-	//err := s.bootstrapConnect(s.ctx, s.host, s.bootstrapNodes)
-	err := s.bootstrapConnect()
-	if err != nil {
-		e <- err
-	}
+	// connect to the bootstrap nodes
+	// go func(e chan error) {
+	// 	for {
+			err := s.bootstrapConnect()
+			if err != nil {
+				e <- err
+			}
+
+			//time.Sleep(0000)
+	// 	}
+	// }(e)
 
 	// bootstrap the host
-	err = s.dht.Bootstrap(s.ctx)
-	if err != nil {
-		e <- err
-	}
+	// err = s.dht.Bootstrap(s.ctx)
+	// if err != nil {
+	// 	e <- err
+	// }
 
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
@@ -175,7 +180,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.EnableRelay(),
+		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 	}, nil
@@ -214,5 +219,8 @@ func handleStream(stream net.Stream) {
 	}
 
 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	rw.WriteString("hello friend")
+	_, err = rw.WriteString("hello friend")
+	if err != nil {
+		return
+	}
 }

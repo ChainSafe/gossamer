@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	//"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 	//gologging "github.com/whyrusleeping/go-logging"
 	peer "github.com/libp2p/go-libp2p-peer"
 	//iaddr "github.com/ipfs/go-ipfs-addr"
-	"github.com/ChainSafeSystems/go-pre/p2p"
+	"github.com/ChainSafeSystems/gossamer/p2p"
 )
 
 var LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
@@ -129,19 +129,7 @@ func main() {
 		log.Fatalf("Start error: %s", err)
 	}
 
-	// peer, err := iaddr.ParseString("/ip4/127.0.0.1/tcp/4000/ipfs/QmbtdfA4rPEkkub6YK3NijSGPaoxrYgPXMsWeg4Tu4zkxT")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// msg := []byte("hello")
-	// err = s.Send(peer.ID(), msg)
-	// if err != nil {
-	// 	log.Fatalf("Send error: %s", err)
-	// }
-
 	if len(os.Args) < 2 {
-		log.Println("listening")
 		select{}
 	}
 	
@@ -151,49 +139,24 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	peer, err := s.DHT().FindPeer(s.Ctx(), peerid)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	swarm, err := s.NewSwarm()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(s.Host().Peerstore().Peers())
+	fmt.Println("peers: ", s.Host().Peerstore().Peers())
 
 	// open new stream with each peer
-	stream, err := swarm.NewStream(s.Ctx(), s.Host().Peerstore().Peers()[0])
-	if err != nil {
-		log.Fatal(err)
-	}
-	stream.Write([]byte("Hello friend :)"))
-	defer stream.Close()
-	io.Copy(os.Stdout, stream) // pipe the stream to stdout
-
-	// open new stream with each peer
-	conn, err := swarm.DialPeer(s.Ctx(), peer.ID)
+	ps, err := s.DHT().FindPeer(s.Ctx(), peerid)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	stream, err = conn.NewStream()
+	stream, err := s.Host().NewStream(s.Ctx(), ps.ID, "/polkadot/0.0.0") 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	stream.Write([]byte("Hello friend :)"))
-	defer stream.Close()
-	io.Copy(os.Stdout, stream) // pipe the stream to stdout
 
-	// stream, err := s.Host().NewStream(s.Ctx(), peer.ID, "/polkadot/0.0.0") 
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
+	fmt.Println("sending message...")
+	_, err = stream.Write([]byte("Hello, world!\n"))
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	// _, err = stream.Write([]byte("Hello, world!\n"))
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-
+	select{}
 }
