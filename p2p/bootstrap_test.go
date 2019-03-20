@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -15,13 +16,6 @@ var IPFS_PEERS = []string{
 	"/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
 	"/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
 	"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
-}
-
-func TestGetLocalPeerInfo(t *testing.T) {
-	addr, err := GetLocalPeerInfo()
-	if addr == "" || err != nil {
-		t.Error("Could not get local ipfs daemon addr:", err)
-	}
 }
 
 func TestStringToPeerInfo(t *testing.T) {
@@ -51,10 +45,14 @@ func TestStringsToPeerInfos(t *testing.T) {
 }
 
 func TestBootstrapConnect(t *testing.T) {
-	ipfsAddr, err := GetLocalPeerInfo()
+	ipfsNode, err := StartIpfsNode()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Could not start IPFS node: %s", err)
 	}
+
+	defer ipfsNode.Close()
+
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
 
 	testServiceConfig := &ServiceConfig{
 		BootstrapNodes: []string{

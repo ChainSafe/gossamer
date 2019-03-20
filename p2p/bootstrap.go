@@ -1,55 +1,14 @@
 package p2p
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"sync"
 
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )
-
-const LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
-
-// IDOutput is borrowed from ipfs code to parse the results of the command `ipfs id`
-type IDOutput struct {
-	ID              string
-	PublicKey       string
-	Addresses       []string
-	AgentVersion    string
-	ProtocolVersion string
-}
-
-// GetLocalPeerInfo gets the local ipfs daemon's address for bootstrapping
-func GetLocalPeerInfo() (string, error) {
-	resp, err := http.Get(LOCAL_PEER_ENDPOINT)
-	if err != nil {
-		return "", err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var js IDOutput
-	err = json.Unmarshal(body, &js)
-	if err != nil {
-		return "", err
-	}
-
-	for _, addr := range js.Addresses {
-		if addr[0:8] == "/ip4/127" {
-			return addr, nil
-		}
-	}
-
-	return "", err
-}
 
 func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
 	maddr := ma.StringCast(peer)
