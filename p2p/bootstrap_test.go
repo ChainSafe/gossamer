@@ -4,6 +4,13 @@ import (
 	"testing"
 )
 
+var testServiceConfig = &ServiceConfig{
+	BootstrapNodes: []string{
+		GetLocalPeerInfo(),
+	},
+	Port: 7001,
+}
+
 // list of IPFS peers, eventually change this to polkadot bootstrap nodes
 var (
 	IPFS_PEERS = []string{
@@ -44,3 +51,16 @@ func TestStringsToPeerInfos(t *testing.T) {
 		}
 	}
 }
+
+func TestBootstrapConnect(t *testing.T) {
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	err = s.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+}
+
