@@ -10,7 +10,11 @@ import (
 )
 
 func StartIpfsNode() (*ipfs.IpfsNode, error) {
-	cfg := &ipfs.BuildCfg{}
+	cfg := &ipfs.BuildCfg{
+		Online: true,
+		Host: ipfs.DefaultHostOption,
+		Routing: ipfs.DHTClientOption,
+	}
 	node, err := ipfs.NewNode(context.Background(), cfg)
 	return node, err
 }
