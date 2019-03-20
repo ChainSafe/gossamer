@@ -62,15 +62,6 @@ func TestGenerateKey(t *testing.T) {
 		t.Fatalf("GenerateKey error: %s", err)
 	}
 
-	// privB, err := generateKey(33)
-	// if err != nil {
-	// 	t.Fatalf("GenerateKey error: %s", err)
-	// }
-
-	// if !crypto.KeyEqual(privA, privB) {
-	// 	t.Error("GenerateKey error: did not create same key for same seed")
-	// }
-
 	privC, err := generateKey(0)
 	if err != nil {
 		t.Fatalf("GenerateKey error: %s", err)
@@ -82,11 +73,6 @@ func TestGenerateKey(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	// ipfsAddr, err := GetLocalPeerInfo()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
 	ipfsNode, err := StartIpfsNode()
 	if err != nil {
 		t.Fatalf("Could not start IPFS node: %s", err)
@@ -118,11 +104,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestSend(t *testing.T) {
-	// ipfsAddr, err := GetLocalPeerInfo()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
 	ipfsNode, err := StartIpfsNode()
 	if err != nil {
 		t.Fatalf("Could not start IPFS node: %s", err)
