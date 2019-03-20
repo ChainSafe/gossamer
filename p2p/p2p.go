@@ -213,8 +213,8 @@ func handleStream(stream net.Stream) {
 	}
 
 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
-	if err != nil {
-		return
-	}
+	// _, err = rw.WriteString("hello friend")
+	// if err != nil {
+	// 	return
+	// }
 }
