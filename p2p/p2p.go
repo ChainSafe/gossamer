@@ -67,7 +67,7 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err 
 	}
-	
+
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	if err != nil {
 		return nil, err

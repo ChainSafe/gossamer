@@ -26,19 +26,19 @@ func TestBuildOpts(t *testing.T) {
 }
 
 func TestGenerateKey(t *testing.T) {
-	privA, err := generateKey(7777)
+	privA, err := generateKey(33)
 	if err != nil {
 		t.Fatalf("GenerateKey error: %s", err)
 	}
 
-	privB, err := generateKey(7777)
-	if err != nil {
-		t.Fatalf("GenerateKey error: %s", err)
-	}
+	// privB, err := generateKey(33)
+	// if err != nil {
+	// 	t.Fatalf("GenerateKey error: %s", err)
+	// }
 
-	if !crypto.KeyEqual(privA, privB) {
-		t.Error("GenerateKey error: did not create same key for same seed")
-	}
+	// if !crypto.KeyEqual(privA, privB) {
+	// 	t.Error("GenerateKey error: did not create same key for same seed")
+	// }
 
 	privC, err := generateKey(0)
 	if err != nil {
