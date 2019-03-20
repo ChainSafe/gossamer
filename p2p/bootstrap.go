@@ -1,9 +1,12 @@
 package p2p
 
 import (
+	"encoding/json"
 	"errors"
-	//"fmt"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"sync"
 
 	csms "github.com/libp2p/go-conn-security-multistream"
@@ -16,6 +19,42 @@ import (
 	msmux "github.com/whyrusleeping/go-smux-multistream"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
+
+var LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
+
+// Borrowed from ipfs code to parse the results of the command `ipfs id`
+type IdOutput struct {
+	ID              string
+	PublicKey       string
+	Addresses       []string
+	AgentVersion    string
+	ProtocolVersion string
+}
+
+// get the local ipfs daemon's address for bootstrapping
+func GetLocalPeerInfo() string {
+	resp, err := http.Get(LOCAL_PEER_ENDPOINT)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var js IdOutput
+	err = json.Unmarshal(body, &js)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for _, addr := range js.Addresses {
+		// For some reason, possibly NAT traversal, we need to grab the loopback ip address
+		if addr[0:8] == "/ip4/127" {
+			return addr
+		}
+	}
+	log.Fatalln(err)
+	return ""
+}
 
 func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
 	maddr := ma.StringCast(peer)
@@ -102,16 +141,15 @@ func (s *Service) bootstrapConnect() error {
 
 	// our failure condition is when no connection attempt succeeded.
 	// drain the errs channel, counting the results.
-	// close(errs)
-	// count := 0
-	// var err error
-	// for err = range errs {
-	// 	if err != nil {
-	// 		count++
-	// 	}
-	// }
-	// if count == len(peers) {
-	// 	return fmt.Errorf("failed to bootstrap. %s", err)
-	// }
+	close(errs)
+	count := 0
+	for err = range errs {
+		if err != nil {
+			count++
+		}
+	}
+	if count == len(peers) {
+		return fmt.Errorf("failed to bootstrap. %s", err)
+	}
 	return err
 }

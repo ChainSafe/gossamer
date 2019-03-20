@@ -1,12 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	//"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 
 	//golog "github.com/ipfs/go-log"
@@ -20,15 +16,6 @@ var LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
 
 type Simulator struct {
 	nodes []*p2p.Service
-}
-
-// Borrowed from ipfs code to parse the results of the command `ipfs id`
-type IdOutput struct {
-	ID              string
-	PublicKey       string
-	Addresses       []string
-	AgentVersion    string
-	ProtocolVersion string
 }
 
 func NewSimulator(num int) (sim *Simulator, err error) {
@@ -53,31 +40,6 @@ func NewSimulator(num int) (sim *Simulator, err error) {
 	}
 
 	return sim, nil
-}
-
-// quick and dirty function to get the local ipfs daemons address for bootstrapping
-func getLocalPeerInfo() string {
-	resp, err := http.Get(LOCAL_PEER_ENDPOINT)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	var js IdOutput
-	err = json.Unmarshal(body, &js)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	for _, addr := range js.Addresses {
-		// For some reason, possibly NAT traversal, we need to grab the loopback ip address
-		if addr[0:8] == "/ip4/127" {
-			return addr
-		}
-	}
-	log.Fatalln(err)
-	return ""
 }
 
 func main() {
@@ -114,9 +76,9 @@ func main() {
 
 	conf := &p2p.ServiceConfig{
 		BootstrapNodes: []string{
-			getLocalPeerInfo(),
+			p2p.GetLocalPeerInfo(),
 		},
-		Port: 4000,
+		Port: 4002,
 	}
 
 	s, err := p2p.NewService(conf)

@@ -133,8 +133,8 @@ func (s *Service) Broadcast(msg []byte) {
 }
 
 // Send sends a message to a specific peer
-func (s *Service) Send(peer peer.ID, msg []byte) error {
-	stream, err := s.host.NewStream(context.Background(), peer, protocolPrefix)
+func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
+	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
 	if err != nil {
 		return err
 	}

@@ -24,9 +24,9 @@ func TestStringToPeerInfo(t *testing.T) {
 		pi, err := stringToPeerInfo(str)
 		if err != nil {
 			t.Error(err)
-		}
+		} 
 
-		if pi.ID.Pretty() != str {
+		if pi.ID.Pretty() != str[len(str)-46:] {
 			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), str)
 		}
 	}
@@ -39,7 +39,7 @@ func TestStringsToPeerInfos(t *testing.T) {
 			t.Error(err)
 		}
 
-		if pi.ID.Pretty() != str {
+		if pi.ID.Pretty() != str[len(str)-46:] {
 			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), str)
 		}
 	}
