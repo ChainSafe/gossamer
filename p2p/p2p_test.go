@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	ipfs "github.com/ipfs/go-ipfs/core"
-	repo "github.com/ipfs/go-ipfs/repo"
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	crypto "github.com/libp2p/go-libp2p-crypto"
 	config "github.com/ipfs/go-ipfs-config"
-
+	ipfs "github.com/ipfs/go-ipfs/core"
+	repo "github.com/ipfs/go-ipfs/repo"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 )
 
 var testIdentity = config.Identity{
@@ -23,12 +22,12 @@ func StartIpfsNode() (*ipfs.IpfsNode, error) {
 	id := testIdentity
 
 	c := &config.Config{
-			Identity: id,
-			Addresses: config.Addresses{
-				Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
-				API:   []string{"/ip4/127.0.0.1/tcp/8000"},
-			},
-		}
+		Identity: id,
+		Addresses: config.Addresses{
+			Swarm: []string{"/ip4/0.0.0.0/tcp/4001"},
+			API:   []string{"/ip4/127.0.0.1/tcp/8000"},
+		},
+	}
 
 	r := &repo.Mock{
 		C: *c,
@@ -36,9 +35,9 @@ func StartIpfsNode() (*ipfs.IpfsNode, error) {
 	}
 
 	cfg := &ipfs.BuildCfg{
-		Online: true,
-		Host: ipfs.DefaultHostOption,
-		Repo: r,
+		Online:    true,
+		Host:      ipfs.DefaultHostOption,
+		Repo:      r,
 		Permanent: true,
 	}
 	node, err := ipfs.NewNode(context.Background(), cfg)
@@ -47,9 +46,8 @@ func StartIpfsNode() (*ipfs.IpfsNode, error) {
 
 func TestBuildOpts(t *testing.T) {
 	testServiceConfig := &ServiceConfig{
-		BootstrapNodes: []string{
-		},
-		Port: 7001,
+		BootstrapNodes: []string{},
+		Port:           7001,
 	}
 
 	_, err := testServiceConfig.buildOpts()

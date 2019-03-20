@@ -65,7 +65,7 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	// build host multiaddress
 	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
