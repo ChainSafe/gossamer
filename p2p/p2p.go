@@ -63,8 +63,11 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
-
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
+	if err != nil {
+		return nil, err 
+	}
+	
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	if err != nil {
 		return nil, err
@@ -140,14 +143,17 @@ func (s *Service) Ping(peer peer.ID) {
 	// TODO
 }
 
+// Host returns the service's host
 func (s *Service) Host() host.Host {
 	return s.host
 }
 
+// DHT returns the service's dht
 func (s *Service) DHT() *kaddht.IpfsDHT {
 	return s.dht
 }
 
+// Ctx returns the service's ctx
 func (s *Service) Ctx() context.Context {
 	return s.ctx
 }

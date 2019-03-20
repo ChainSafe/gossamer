@@ -13,10 +13,10 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
+const LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
 
-// Borrowed from ipfs code to parse the results of the command `ipfs id`
-type IdOutput struct {
+// IDOutput is borrowed from ipfs code to parse the results of the command `ipfs id`
+type IDOutput struct {
 	ID              string
 	PublicKey       string
 	Addresses       []string
@@ -24,29 +24,31 @@ type IdOutput struct {
 	ProtocolVersion string
 }
 
-// get the local ipfs daemon's address for bootstrapping
-func GetLocalPeerInfo() string {
+// GetLocalPeerInfo gets the local ipfs daemon's address for bootstrapping
+func GetLocalPeerInfo() (string, error) {
 	resp, err := http.Get(LOCAL_PEER_ENDPOINT)
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
-	var js IdOutput
+
+	var js IDOutput
 	err = json.Unmarshal(body, &js)
 	if err != nil {
-		log.Fatalln(err)
+		return "", err
 	}
+
 	for _, addr := range js.Addresses {
-		// For some reason, possibly NAT traversal, we need to grab the loopback ip address
 		if addr[0:8] == "/ip4/127" {
-			return addr
+			return addr, nil
 		}
 	}
-	log.Fatalln(err)
-	return ""
+
+	return "", err
 }
 
 func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
