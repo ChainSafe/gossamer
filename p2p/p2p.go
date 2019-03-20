@@ -93,22 +93,10 @@ func (s *Service) start(e chan error) {
 	}
 
 	// connect to the bootstrap nodes
-	// go func(e chan error) {
-	// 	for {
-			err := s.bootstrapConnect()
-			if err != nil {
-				e <- err
-			}
-
-			//time.Sleep(0000)
-	// 	}
-	// }(e)
-
-	// bootstrap the host
-	// err = s.dht.Bootstrap(s.ctx)
-	// if err != nil {
-	// 	e <- err
-	// }
+	err := s.bootstrapConnect()
+	if err != nil {
+		e <- err
+	}
 
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:

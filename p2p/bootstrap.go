@@ -9,15 +9,8 @@ import (
 	"net/http"
 	"sync"
 
-	csms "github.com/libp2p/go-conn-security-multistream"
 	ps "github.com/libp2p/go-libp2p-peerstore"
-	secio "github.com/libp2p/go-libp2p-secio"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	tptu "github.com/libp2p/go-libp2p-transport-upgrader"
-	tcp "github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
-	msmux "github.com/whyrusleeping/go-smux-multistream"
-	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
 var LOCAL_PEER_ENDPOINT = "http://localhost:5001/api/v0/id"
@@ -72,34 +65,6 @@ func stringsToPeerInfos(peers []string) ([]*ps.PeerInfo, error) {
 		pinfos[i] = p
 	}
 	return pinfos, nil
-}
-
-// GenUpgrader creates a new connection upgrader for use with this swarm.
-func GenUpgrader(n *swarm.Swarm) *tptu.Upgrader {
-	id := n.LocalPeer()
-	pk := n.Peerstore().PrivKey(id)
-	secMuxer := new(csms.SSMuxer)
-	secMuxer.AddTransport(secio.ID, &secio.Transport{
-		LocalID:    id,
-		PrivateKey: pk,
-	})
-
-	stMuxer := msmux.NewBlankTransport()
-	stMuxer.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
-
-	return &tptu.Upgrader{
-		Secure:  secMuxer,
-		Muxer:   stMuxer,
-		Filters: n.Filters,
-	}
-}
-
-// NewSwarm creates a new swarm which will be used to handle the network of peers
-func (s *Service) NewSwarm() (*swarm.Swarm, error) {
-	swarm := swarm.NewSwarm(s.ctx, s.host.ID(), s.host.Peerstore(), nil)
-	swarm.SetStreamHandler(handleStream)
-	err := swarm.AddTransport(tcp.NewTCPTransport(GenUpgrader(swarm)))
-	return swarm, err
 }
 
 // this code is borrowed from the go-ipfs bootstrap process
