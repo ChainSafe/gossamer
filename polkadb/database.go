@@ -3,9 +3,9 @@ package polkadb
 import (
 	"log"
 
+	"fmt"
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
-	"fmt"
 )
 
 // BadgerDB struct contains directory path to data and db instance
@@ -16,20 +16,26 @@ type BadgerDB struct {
 
 // Iterator struct contains a transaction, iterator and context fields released, initialized
 type Iterator struct {
-	txn *badger.Txn
-	iter *badger.Iterator
+	txn      *badger.Txn
+	iter     *badger.Iterator
 	released bool
-	init 	bool
+	init     bool
 }
 
-type batch struct {
-	db *BadgerDB
-	b map[string][]byte
+// Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
+type batchWriter struct {
+	db   *BadgerDB
+	b    map[string][]byte
 	size int
 }
 
 type table struct {
 	db     Database
+	prefix string
+}
+
+type tableBatch struct {
+	batch  Batch
 	prefix string
 }
 
@@ -53,6 +59,13 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 // Path returns the path to the database directory.
 func (db *BadgerDB) Path() string {
 	return db.path
+}
+
+func (db *BadgerDB) NewBatch() Batch {
+	return &batchWriter{
+		db: db,
+		b: make(map[string][]byte),
+	}
 }
 
 // Put puts the given key / value to the queue
@@ -118,33 +131,33 @@ func (db *BadgerDB) Close() {
 }
 
 // NewIterator returns a new iterator within the Iterator struct along with a new transaction
-func(db *BadgerDB) NewIterator() Iterator {
+func (db *BadgerDB) NewIterator() Iterator {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
 	iter := txn.NewIterator(opts)
 	return Iterator{
-		txn: 	  txn,
-		iter:	  iter,
+		txn:      txn,
+		iter:     iter,
 		released: false,
-		init: 	  false,
+		init:     false,
 	}
 }
 
 // Release closes the iterator, discards the created transaction and sets released value to true
-func(i *Iterator) Release() {
+func (i *Iterator) Release() {
 	i.iter.Close()
 	i.txn.Discard()
 	i.released = true
 }
 
 // Released returns the boolean indicating whether the iterator and transaction was successfully released
-func(i *Iterator) Released() bool {
+func (i *Iterator) Released() bool {
 	return i.released
 }
 
 // Next rewinds the iterator to the zero-th position if uninitialized, and then will advance the iterator by one
 // returns bool to ensure access to the item
-func(i *Iterator) Next() bool {
+func (i *Iterator) Next() bool {
 	if !i.init {
 		i.iter.Rewind()
 		i.init = true
@@ -154,12 +167,13 @@ func(i *Iterator) Next() bool {
 }
 
 // Seek will look for the provided key if present
-func(i *Iterator) Seek(key []byte) {
+func (i *Iterator) Seek(key []byte) {
 	i.iter.Seek(snappy.Encode(nil, key))
 }
 
-// Key returns a key
-func(i *Iterator) Key() []byte {
+// Key returns an item key
+func (i *Iterator) Key() []byte {
+	fmt.Println("key")
 	ret, err := snappy.Decode(nil, i.iter.Item().Key())
 	if err != nil {
 		fmt.Println("key retrieval error ", err.Error())
@@ -168,7 +182,7 @@ func(i *Iterator) Key() []byte {
 }
 
 // Value returns a copy of the value of the item
-func(i *Iterator) Value() []byte {
+func (i *Iterator) Value() []byte {
 	val, err := i.iter.Item().ValueCopy(nil)
 	if err != nil {
 		fmt.Println("value retrieval error ", err.Error())
@@ -181,7 +195,7 @@ func(i *Iterator) Value() []byte {
 }
 
 // Put encodes key-values and adds them to a mapping for batch writes, sets the size of item value
-func(b *batch) Put(key, value []byte) error {
+func (b *batchWriter) Put(key, value []byte) error {
 	encodedKey := snappy.Encode(nil, key)
 	encodedVal := snappy.Encode(nil, value)
 	b.b[string(encodedKey)] = encodedVal
@@ -190,7 +204,7 @@ func(b *batch) Put(key, value []byte) error {
 }
 
 // Write performs batched writes
-func(b *batch) Write() error {
+func (b *batchWriter) Write() error {
 	wb := b.db.db.NewWriteBatch()
 	defer wb.Cancel()
 
@@ -206,13 +220,13 @@ func(b *batch) Write() error {
 	return nil
 }
 
-// ValueSize returns the length of the item value
-func (b *batch) ValueSize() int {
+// ValueSize returns the amount of data in the batch
+func (b *batchWriter) ValueSize() int {
 	return b.size
 }
 
 // Delete removes the key from the batch and database
-func (b *batch) Delete(key []byte) error {
+func (b *batchWriter) Delete(key []byte) error {
 	err := b.db.db.NewWriteBatch().Delete(key)
 	if err != nil {
 		fmt.Println("error batch deleting key ", err.Error())
@@ -222,7 +236,7 @@ func (b *batch) Delete(key []byte) error {
 }
 
 // Reset clears batch key-values and resets the size to zero
-func (b *batch) Reset() {
+func (b *batchWriter) Reset() {
 	b.b = make(map[string][]byte)
 	b.size = 0
 }
@@ -250,4 +264,33 @@ func (dt *table) Get(key []byte) ([]byte, error) {
 
 func (dt *table) Del(key []byte) error {
 	return dt.db.Del(append([]byte(dt.prefix), key...))
+}
+
+// NewTableBatch returns a Batch object which prefixes all keys with a given string.
+func NewTableBatch(db Database, prefix string) Batch {
+	return &tableBatch{db.NewBatch(), prefix}
+}
+
+func (dt *table) NewBatch() Batch {
+	return &tableBatch{dt.db.NewBatch(), dt.prefix}
+}
+
+func (tb *tableBatch) Put(key, value []byte) error {
+	return tb.batch.Put(append([]byte(tb.prefix), key...), value)
+}
+
+func (tb *tableBatch) Write() error {
+	return tb.batch.Write()
+}
+
+func (tb *tableBatch) ValueSize() int {
+	return tb.batch.ValueSize()
+}
+
+func (tb *tableBatch) Reset() {
+	tb.batch.Reset()
+}
+
+func (tb *tableBatch) Delete(k []byte) {
+	return tb.batch.Delete(k)
 }

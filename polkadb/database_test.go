@@ -125,3 +125,92 @@ func testDelGetter(db Database, t *testing.T) {
 		}
 	}
 }
+
+func TestBadgerDB_Batch(t *testing.T) {
+	db, remove := newTestBadgerDB()
+	defer remove()
+	testBatchPut(db, t)
+}
+
+func batchTestSetup(db *BadgerDB) (func(i int) []byte, []byte, Batch) {
+	testKey := func(i int) []byte {
+		return []byte(fmt.Sprintf("%04d", i))
+	}
+	value := []byte("test-value")
+	b := db.NewBatch()
+	return testKey, value, b
+}
+
+func testBatchPut(db *BadgerDB, t *testing.T) {
+	k, v, b := batchTestSetup(db)
+
+	for i := 0; i < 10000; i++ {
+
+		err := b.Put(k(i), v)
+		if err != nil {
+			t.Fatalf("failed to add key-value to batch mapping  %q", err)
+		}
+		err = b.Write()
+		if err != nil {
+			t.Fatalf("failed to write batch %q", err)
+		}
+		size := b.ValueSize()
+		if size == 0 {
+			t.Fatalf("failed to set size of data in each batch, got %v", size)
+		}
+		err = b.Delete([]byte(k(i)))
+		if err != nil {
+			t.Fatalf("failed to delete batch key %v", k(i))
+		}
+		b.Reset()
+		if b.size != 0 {
+			t.Fatalf("failed to reset batch mapping to zero, got %v, expected %v", b.size, 0)
+		}
+	}
+}
+
+func TestBadgerDB_Iterator(t *testing.T) {
+	db, remove := newTestBadgerDB()
+	defer remove()
+
+	testNewIterator(db, t)
+	// NewIterator
+	// Release
+	// Next
+	// Seek
+	// Key
+	// Value
+}
+
+func testIteratorSetup(db *BadgerDB, t *testing.T) {
+	k, v, b := batchTestSetup(db)
+
+	for i := 0; i < 10000; i++ {
+		b.b = make(map[string][]byte)
+		err := b.Put(k(i), v)
+		if err != nil {
+			t.Fatalf("failed to add key-value to batch mapping  %q", err)
+		}
+		err = b.Write()
+		if err != nil {
+			t.Fatalf("failed to write batch %q", err)
+		}
+	}
+	fmt.Println(b.size)
+}
+
+func testNewIterator(db *BadgerDB, t *testing.T) {
+	testIteratorSetup(db, t)
+
+	it := db.NewIterator()
+	defer func() {
+		if it.Released() != true {
+			it.Release()
+		}
+	}()
+
+	lol := it.Key()
+	fmt.Println(lol)
+}
+
+
