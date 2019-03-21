@@ -69,17 +69,13 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
 		ctx:            ctx,
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
-	}, nil
+	}, err
 }
 
 // Start begins the p2p Service, including discovery
@@ -204,17 +200,18 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 
 // TODO: stream handling
 func handleStream(stream net.Stream) {
-	defer stream.Close()
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')
 	if err != nil {
+		log.Println("error: ", err)
 		return
 	}
 
 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	// _, err = rw.WriteString("hello friend")
-	// if err != nil {
-	// 	return
-	// }
+	_, err = rw.WriteString("hello friend")
+	if err != nil {
+		log.Println("error: ", err)
+		return
+	}
 }
