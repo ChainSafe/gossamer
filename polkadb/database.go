@@ -65,7 +65,7 @@ func (db *BadgerDB) Path() string {
 func (db *BadgerDB) NewBatch() Batch {
 	return &batchWriter{
 		db: db,
-		b: make(map[string][]byte),
+		b:  make(map[string][]byte),
 	}
 }
 
@@ -244,7 +244,7 @@ func (b *batchWriter) Reset() {
 // NewTable returns a Database object that prefixes all keys with a given
 // string.
 func NewTable(db Database, prefix string) Database {
-	return &table{ db:     db, prefix: prefix, }
+	return &table{db: db, prefix: prefix}
 }
 
 func (dt *table) Put(key []byte, value []byte) error {
