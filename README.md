@@ -28,3 +28,4 @@ Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 _GNU General Public License v3.0_
+
