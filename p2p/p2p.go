@@ -69,17 +69,13 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
 		ctx:            ctx,
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
-	}, nil
+	}, err
 }
 
 // Start begins the p2p Service, including discovery
