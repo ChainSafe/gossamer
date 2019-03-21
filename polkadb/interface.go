@@ -1,6 +1,6 @@
 package polkadb
 
-// PutIt wraps the database write operation supported by regular database.
+// PutItem wraps the database write operation supported by regular database.
 type PutItem interface {
 	Put(key []byte, value []byte) error
 }
