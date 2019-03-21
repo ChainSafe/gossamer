@@ -135,8 +135,8 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 }
 
 // Ping pings a peer
-func (s *Service) Ping(peer peer.ID) {
-	// TODO
+func (s *Service) Ping(peer peer.ID) error {
+	return s.dht.Ping(s.ctx, peer)
 }
 
 // Host returns the service's host

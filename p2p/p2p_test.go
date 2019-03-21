@@ -152,10 +152,64 @@ func TestSend(t *testing.T) {
 		t.Fatalf("could not find peer: %s", err)
 	}
 
-	t.Log(peer)
 	msg := []byte("hello there")
 	err = sa.Send(peer, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
+	}
+}
+
+func TestPing(t *testing.T) {
+	ipfsNode, err := StartIpfsNode()
+	if err != nil {
+		t.Fatalf("Could not start IPFS node: %s", err)
+	}
+
+	defer ipfsNode.Close()
+
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+
+	testServiceConfigA := &ServiceConfig{
+		BootstrapNodes: []string{
+			ipfsAddr,
+		},
+		Port: 7001,
+	}
+
+	testServiceConfigB := &ServiceConfig{
+		BootstrapNodes: []string{
+			ipfsAddr,
+		},
+		Port: 7002,
+	}
+
+	sa, err := NewService(testServiceConfigA)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := sa.Start()
+	if <-e != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	sb, err := NewService(testServiceConfigB)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e = sb.Start()
+	if <-e != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	_, err = sa.dht.FindPeer(sa.ctx, sb.host.ID())
+	if err != nil {
+		t.Fatalf("could not find peer: %s", err)
+	}
+
+	err = sa.Ping(sb.host.ID())
+	if err != nil {
+		t.Errorf("Ping error: %s", err)
 	}
 }
