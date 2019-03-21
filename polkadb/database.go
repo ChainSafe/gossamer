@@ -3,9 +3,9 @@ package polkadb
 import (
 	"log"
 
-	"fmt"
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
+	"github.com/pkg/errors"
 )
 
 // BadgerDB struct contains directory path to data and db instance
@@ -61,6 +61,7 @@ func (db *BadgerDB) Path() string {
 	return db.path
 }
 
+// NewBatch returns batchWriter with a badgerDB instance and an initialized mapping
 func (db *BadgerDB) NewBatch() Batch {
 	return &batchWriter{
 		db: db,
@@ -173,10 +174,9 @@ func (i *Iterator) Seek(key []byte) {
 
 // Key returns an item key
 func (i *Iterator) Key() []byte {
-	fmt.Println("key")
 	ret, err := snappy.Decode(nil, i.iter.Item().Key())
 	if err != nil {
-		fmt.Println("key retrieval error ", err.Error())
+		log.Printf("%+v", errors.Wrap(err, "key retrieval error"))
 	}
 	return ret
 }
@@ -185,11 +185,11 @@ func (i *Iterator) Key() []byte {
 func (i *Iterator) Value() []byte {
 	val, err := i.iter.Item().ValueCopy(nil)
 	if err != nil {
-		fmt.Println("value retrieval error ", err.Error())
+		log.Printf("%+v", errors.Wrap(err, "value retrieval error"))
 	}
 	ret, err := snappy.Decode(nil, val)
 	if err != nil {
-		fmt.Println("value decoding error ", err.Error())
+		log.Printf("%+v", errors.Wrap(err, "value decoding error"))
 	}
 	return ret
 }
@@ -211,11 +211,11 @@ func (b *batchWriter) Write() error {
 	for k, v := range b.b {
 		err := wb.Set([]byte(k), v, 0)
 		if err != nil {
-			fmt.Println("error writing batch txs", err.Error())
+			log.Printf("%+v", errors.Wrap(err, "error writing batch txs"))
 		}
 	}
 	if err := wb.Flush(); err != nil {
-		fmt.Println("error stored by writeBatch ", err.Error())
+		log.Printf("%+v", errors.Wrap(err, "error stored by writeBatch"))
 	}
 	return nil
 }
@@ -229,7 +229,7 @@ func (b *batchWriter) ValueSize() int {
 func (b *batchWriter) Delete(key []byte) error {
 	err := b.db.db.NewWriteBatch().Delete(key)
 	if err != nil {
-		fmt.Println("error batch deleting key ", err.Error())
+		log.Printf("%+v", errors.Wrap(err, "error batch deleting key"))
 	}
 	b.size++
 	return nil
@@ -244,10 +244,7 @@ func (b *batchWriter) Reset() {
 // NewTable returns a Database object that prefixes all keys with a given
 // string.
 func NewTable(db Database, prefix string) Database {
-	return &table{
-		db:     db,
-		prefix: prefix,
-	}
+	return &table{ db:     db, prefix: prefix, }
 }
 
 func (dt *table) Put(key []byte, value []byte) error {
@@ -291,6 +288,10 @@ func (tb *tableBatch) Reset() {
 	tb.batch.Reset()
 }
 
-func (tb *tableBatch) Delete(k []byte) {
-	return tb.batch.Delete(k)
+func (tb *tableBatch) Delete(k []byte) error {
+	err := tb.batch.Delete(k)
+	if err != nil {
+		return err
+	}
+	return nil
 }
