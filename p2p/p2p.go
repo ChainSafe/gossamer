@@ -115,8 +115,9 @@ func (s *Service) Stop() {
 }
 
 // Broadcast sends a message to all peers
-func (s *Service) Broadcast(msg []byte) {
+func (s *Service) Broadcast(msg []byte) (err error) {
 	// TODO
+	return nil
 }
 
 // Send sends a message to a specific peer
@@ -198,7 +199,7 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
-// TODO: stream handling
+// TODO: message handling
 func handleStream(stream net.Stream) {
 	defer stream.Close()
 	// Create a buffer stream for non blocking read and write.
