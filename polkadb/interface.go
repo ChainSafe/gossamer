@@ -22,3 +22,17 @@ type Batch interface {
 	Reset()
 	Delete(key []byte) error
 }
+
+// Iterator iterates over BadgerDBs key/value pairs in ascending key order
+// must be released after use
+type Iterator interface {
+	Next() bool
+	Key() []byte
+	Value() []byte
+	Release()
+}
+
+// Iteratee wraps the NewIterator methods of BadgerDB
+type Iteratee interface {
+	NewIterator() Iterate
+}

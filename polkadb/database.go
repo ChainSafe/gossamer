@@ -15,7 +15,7 @@ type BadgerDB struct {
 }
 
 // Iterator struct contains a transaction, iterator and context fields released, initialized
-type Iterator struct {
+type Iterate struct {
 	txn      *badger.Txn
 	iter     *badger.Iterator
 	released bool
@@ -132,11 +132,11 @@ func (db *BadgerDB) Close() {
 }
 
 // NewIterator returns a new iterator within the Iterator struct along with a new transaction
-func (db *BadgerDB) NewIterator() Iterator {
+func (db *BadgerDB) NewIterator() Iterate {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
 	iter := txn.NewIterator(opts)
-	return Iterator{
+	return Iterate{
 		txn:      txn,
 		iter:     iter,
 		released: false,
@@ -145,20 +145,20 @@ func (db *BadgerDB) NewIterator() Iterator {
 }
 
 // Release closes the iterator, discards the created transaction and sets released value to true
-func (i *Iterator) Release() {
+func (i *Iterate) Release() {
 	i.iter.Close()
 	i.txn.Discard()
 	i.released = true
 }
 
 // Released returns the boolean indicating whether the iterator and transaction was successfully released
-func (i *Iterator) Released() bool {
+func (i *Iterate) Released() bool {
 	return i.released
 }
 
 // Next rewinds the iterator to the zero-th position if uninitialized, and then will advance the iterator by one
 // returns bool to ensure access to the item
-func (i *Iterator) Next() bool {
+func (i *Iterate) Next() bool {
 	if !i.init {
 		i.iter.Rewind()
 		i.init = true
@@ -167,13 +167,14 @@ func (i *Iterator) Next() bool {
 	return i.iter.Valid()
 }
 
-// Seek will look for the provided key if present
-func (i *Iterator) Seek(key []byte) {
+// Seek will look for the provided key if present and go to that position. If
+// absent, it would seek to the next smallest key
+func (i *Iterate) Seek(key []byte) {
 	i.iter.Seek(snappy.Encode(nil, key))
 }
 
 // Key returns an item key
-func (i *Iterator) Key() []byte {
+func (i *Iterate) Key() []byte {
 	ret, err := snappy.Decode(nil, i.iter.Item().Key())
 	if err != nil {
 		log.Printf("%+v", errors.Wrap(err, "key retrieval error"))
@@ -182,7 +183,7 @@ func (i *Iterator) Key() []byte {
 }
 
 // Value returns a copy of the value of the item
-func (i *Iterator) Value() []byte {
+func (i *Iterate) Value() []byte {
 	val, err := i.iter.Item().ValueCopy(nil)
 	if err != nil {
 		log.Printf("%+v", errors.Wrap(err, "value retrieval error"))
@@ -247,18 +248,22 @@ func NewTable(db Database, prefix string) Database {
 	return &table{db: db, prefix: prefix}
 }
 
+// Put adds keys with the prefix value given to NewTable
 func (dt *table) Put(key []byte, value []byte) error {
 	return dt.db.Put(append([]byte(dt.prefix), key...), value)
 }
 
+// Has checks keys with the prefix value given to NewTable
 func (dt *table) Has(key []byte) (bool, error) {
 	return dt.db.Has(append([]byte(dt.prefix), key...))
 }
 
+// Get retrieves keys with the prefix value given to NewTable
 func (dt *table) Get(key []byte) ([]byte, error) {
 	return dt.db.Get(append([]byte(dt.prefix), key...))
 }
 
+// Del removes keys with the prefix value given to NewTable
 func (dt *table) Del(key []byte) error {
 	return dt.db.Del(append([]byte(dt.prefix), key...))
 }
@@ -268,26 +273,32 @@ func NewTableBatch(db Database, prefix string) Batch {
 	return &tableBatch{db.NewBatch(), prefix}
 }
 
+// NewBatch returns tableBatch with a Batch type and the given prefix
 func (dt *table) NewBatch() Batch {
 	return &tableBatch{dt.db.NewBatch(), dt.prefix}
 }
 
+// Put encodes key-values with prefix given to NewBatchTable and adds them to a mapping for batch writes, sets the size of item value
 func (tb *tableBatch) Put(key, value []byte) error {
 	return tb.batch.Put(append([]byte(tb.prefix), key...), value)
 }
 
+// Write performs batched writes with the provided prefix
 func (tb *tableBatch) Write() error {
 	return tb.batch.Write()
 }
 
+// ValueSize returns the amount of data in the batch accounting for the given prefix
 func (tb *tableBatch) ValueSize() int {
 	return tb.batch.ValueSize()
 }
 
+// // Reset clears batch key-values and resets the size to zero
 func (tb *tableBatch) Reset() {
 	tb.batch.Reset()
 }
 
+// Delete removes the key from the batch and database
 func (tb *tableBatch) Delete(k []byte) error {
 	err := tb.batch.Delete(k)
 	if err != nil {
