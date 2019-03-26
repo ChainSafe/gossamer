@@ -53,9 +53,7 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 }
 
 // TryPut attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node, prefix, key []byte, value node) (success bool, n node, err error) {
-	var ok bool
-
+func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n node, err error) {
 	if len(key) == 0 {
 		if v, ok := parent.(leaf); ok {
 			return !bytes.Equal(v, value.(leaf)), value, nil
@@ -65,56 +63,64 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (success bool
 
 	switch p := parent.(type) {
 	case *extension:
-		length := lenCommonPrefix(key, p.key)
-
-		// whole parent key matches, so just attach a node to the parent
-		if length == len(p.key) {
-			// add new node to branch
-			ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
-			if !ok || err != nil {
-				return false, n, err
-			}
-
-			return true, &extension{p.key, n}, nil
-		}
-		// otherwise, we need to branch out at the point where the keys diverge
-		br := new(branch)
-
-		_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p.value)
-		if err != nil {
-			return false, nil, err
-		}
-
-		_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
-		if err != nil {
-			return false, nil, err
-		}
-
-		// no matching prefix, replace this extension with a branch
-		if length == 0 {
-			return true, br, nil
-		}
-
-		n = &extension{key[:length], br}
-		success = true
+		ok, n, err = t.insertExtension(p, prefix, key, value)
 	case *branch:
-		// we need to add an extension to the child that's already there
-		ok, n, err = t.insert(p.children[key[0]], append(prefix, key[0]), key[1:], value)
-		if !ok || err != nil {
-			return false, n, err
-		}
-
-		p.children[key[0]] = n
-		success = true
-		n = p
+		ok, n, err = t.insertBranch(p, prefix, key, value)
 	case nil:
 		n = &extension{key, value}
-		success = true
+		ok = true
 	default:
 		err = errors.New("cannot put: invalid parent node")
 	}
 
-	return success, n, err
+	return ok, n, err
+}
+
+func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok bool, n node, err error) {
+	length := lenCommonPrefix(key, p.key)
+
+	// whole parent key matches, so just attach a node to the parent
+	if length == len(p.key) {
+		// add new node to branch
+		ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
+		if !ok || err != nil {
+			return false, n, err
+		}
+
+		return true, &extension{p.key, n}, nil
+	}
+	// otherwise, we need to branch out at the point where the keys diverge
+	br := new(branch)
+
+	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p.value)
+	if err != nil {
+		return false, nil, err
+	}
+
+	_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
+	if err != nil {
+		return false, nil, err
+	}
+
+	// no matching prefix, replace this extension with a branch
+	if length == 0 {
+		return true, br, nil
+	}
+
+	n = &extension{key[:length], br}
+	ok = true
+	return ok, n, err
+}
+
+func (t *Trie) insertBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
+	// we need to add an extension to the child that's already there
+	ok, n, err = t.insert(p.children[key[0]], append(prefix, key[0]), key[1:], value)
+	if !ok || err != nil {
+		return false, n, err
+	}
+
+	p.children[key[0]] = n
+	return true, p, err
 }
 
 // Get returns the value for key stored in the trie.

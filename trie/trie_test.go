@@ -74,9 +74,8 @@ func generateRandTest(size int) []randTest {
 func TestPutAndGet(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandTest(10)
+	rt := generateRandTest(100)
 	for _, test := range rt {
-		t.Logf("%x %x", test.key, test.value)
 		err := trie.Put(test.key, test.value)
 		if err != nil {
 			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
