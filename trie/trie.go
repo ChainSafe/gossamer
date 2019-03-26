@@ -63,9 +63,9 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 
 	switch p := parent.(type) {
 	case *extension:
-		ok, n, err = t.insertExtension(p, prefix, key, value)
+		ok, n, err = t.updateExtension(p, prefix, key, value)
 	case *branch:
-		ok, n, err = t.insertBranch(p, prefix, key, value)
+		ok, n, err = t.updateBranch(p, prefix, key, value)
 	case nil:
 		n = &extension{key, value}
 		ok = true
@@ -76,7 +76,12 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 	return ok, n, err
 }
 
-func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok bool, n node, err error) {
+// updateExtension attempts to update an extension node to have the value node
+// if the keys match, then set the value of the extension to the value node
+// otherwise, we need to branch out where the keys diverge. we make a branch and
+// try to insert the value node at the diverging key index. if there's already a
+// branch there, move any children to the new branch
+func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok bool, n node, err error) {
 	length := lenCommonPrefix(key, p.key)
 
 	// whole parent key matches, so just attach a node to the parent
@@ -89,7 +94,7 @@ func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok
 		}
 		return ok, n, err
 	}
-	
+
 	// otherwise, we need to branch out at the point where the keys diverge
 	br := new(branch)
 
@@ -116,7 +121,10 @@ func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok
 	return ok, n, err
 }
 
-func (t *Trie) insertBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
+// updateBranch attempts to add the value node to a branch
+// inserts the value node as the branch's child at the index that's 
+// the first nibble of the key
+func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
 	// we need to add an extension to the child that's already there
 	ok, n, err = t.insert(p.children[key[0]], append(prefix, key[0]), key[1:], value)
 	if !ok || err != nil {
