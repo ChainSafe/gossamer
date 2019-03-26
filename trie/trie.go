@@ -105,7 +105,8 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (success bool
 		}
 
 		p.children[key[0]] = n
-		return true, p, nil
+		success = true
+		n = p
 	case nil:
 		n = &extension{key, value}
 		success = true
