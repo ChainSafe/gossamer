@@ -1,6 +1,6 @@
 package trie
 
-import "sync"
+//import "sync"
 
 // Database is a high-level wrapper around a db
 // TODO: turn this into an actual database interface
@@ -18,7 +18,7 @@ func NewDatabase(memdb *MemDB) *Database {
 // MemDB is an in-memory key value store
 type MemDB struct {
 	db   map[string][]byte
-	lock sync.RWMutex
+	//lock sync.RWMutex
 }
 
 // NewMemDatabase returns a new in-memory key value store
