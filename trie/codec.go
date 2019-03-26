@@ -1,7 +1,5 @@
 package trie
 
-import "fmt"
-
 // keyEncodeByte swaps the two nibbles of a byte to result in 'LE'
 func keyEncodeByte(b byte) byte {
 	b1 := (uint(b) & 240) >> 4
@@ -20,15 +18,17 @@ func KeyEncode(k []byte) []byte {
 	return result
 }
 
-func keybytesReturnNib(str []byte) []byte {
-	l := len(str)*2 + 1
-	fmt.Println(l, str)
-	var nibbles = make([]byte, l)
-	for i, b := range str {
-		nibbles[i*2] = b / 16
-		nibbles[i*2+1] = b % 16
+// keyToHex turns bytes into nibbles
+func keyToHex(in []byte) []byte {
+	l := len(in)*2 + 1
+	res := make([]byte, l)
+	for i, b := range in {
+		res[2*i] = b / 16
+		res[2*i+1] = b % 16
 	}
-	nibbles[l-1] = 16
-	return nibbles
-}
 
+	// last index of nibble array is set to 16 due to the way branches are indexed
+	// branch at 0...15 points to possible children, branch at 16 is the value at the branch
+	res[l-1] = 16
+	return res
+}
