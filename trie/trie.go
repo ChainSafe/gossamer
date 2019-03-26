@@ -83,12 +83,13 @@ func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok
 	if length == len(p.key) {
 		// add new node to branch
 		ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
-		if !ok || err != nil {
-			return false, n, err
+		if ok && err != nil {
+			ok = true
+			n = &extension{p.key, n}
 		}
-
-		return true, &extension{p.key, n}, nil
+		return ok, n, err
 	}
+	
 	// otherwise, we need to branch out at the point where the keys diverge
 	br := new(branch)
 
@@ -102,13 +103,16 @@ func (t *Trie) insertExtension(p *extension, prefix, key []byte, value node) (ok
 		return false, nil, err
 	}
 
-	// no matching prefix, replace this extension with a branch
 	if length == 0 {
-		return true, br, nil
+		// no matching prefix, replace this extension with a branch
+		ok = true
+		n = br
+	} else {
+		// some prefix matches, replace with extension that starts where the keys diverge
+		ok = true
+		n = &extension{key[:length], br}
 	}
 
-	n = &extension{key[:length], br}
-	ok = true
 	return ok, n, err
 }
 
