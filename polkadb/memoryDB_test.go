@@ -80,7 +80,7 @@ func testDelGet(db *MemDatabase, t *testing.T) {
 	}
 
 	for _, v := range tests {
-		err := db.Delete([]byte(v.input))
+		err := db.Del([]byte(v.input))
 		if err != nil {
 			t.Fatalf("delete %q failed: %v", v.input, err)
 		}

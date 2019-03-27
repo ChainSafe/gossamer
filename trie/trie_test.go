@@ -25,7 +25,7 @@ var commonPrefixTests = []commonPrefixTest{
 }
 
 func newEmpty() *Trie {
-	db, _ := *polkadb.NewMemDatabase()
+	db, _ := polkadb.NewMemDatabase()
 	t := NewEmptyTrie(db)
 	return t
 }
@@ -38,8 +38,8 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	db, _ := *polkadb.NewMemDatabase()
-	trie := NewTrie(db), leaf([]byte{0}), [32]byte{})
+	db, _ := polkadb.NewMemDatabase()
+	trie := NewTrie(db, leaf([]byte{0}), [32]byte{})
 	if trie == nil {
 		t.Error("did not initialize trie")
 	}
