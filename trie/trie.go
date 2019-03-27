@@ -160,6 +160,8 @@ func (t *Trie) retrieve(parent node, key []byte, i int) (value []byte, err error
 		value, err = t.retrieve(p.children[key[i]], key, i+1)
 	case leaf:
 		value = p
+	case nil:
+		return nil, nil
 	default:
 		err = errors.New("get error: invalid node")
 	}
@@ -203,7 +205,7 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 		// if child is also an extension node, we can combine these two extension nodes into one
 		switch child := child.(type) {
 		case *extension:
-			ok = true
+			ok = true 
 			n = &extension{concat(p.key, child.key...), child.value}
 		default:
 			ok = true
@@ -248,7 +250,8 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 			n = &extension{[]byte{byte(pos)}, p.children[pos]}
 		} else {
 			// branch contains more than two children, leave it as a branch
-			return true, p, nil
+			ok = true
+			n = p
 		}
 	case leaf:
 		ok = true
