@@ -23,33 +23,6 @@ go get -v -t -d ./...
 go test -v ./...
 ```
 
-#### Note on memory intensive tests
-Unfortunately, the free tier for CI's have a memory cap and some tests will cause the CI to experience an out of memory error.
-In order to mitigate this we have introduced the concept of **short tests**. If your PR causes an out of memory error please seperate the tests into two groups
-like below and make sure to label it `large`:
-
-```
-var stringTest = []string {
-    "This causes no leaks"
-}
-
-var largeStringTest = []string {
-    "Whoa this test is so big it causes an out of memory issue"
-}
-
-func TestStringTest(t *testing.T) {
-    ...
-}
-
-func TestLargeStringTest(t *testing.T) {
-   	if testing.Short() {
-  		t.Skip("\033[33mSkipping memory intesive test for <TEST NAME> in short mode\033[0m")
-    } else {
-        ...
-    }
-}
-```
-
 ## Contributing
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 - Have questions? Say hi on [Gitter](https://gitter.im/chainsafe/gossamer)!
