@@ -1,15 +1,14 @@
 package polkadb
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 )
 
 type memData struct {
 	input    string
 	expected string
 }
-
 
 func testData() []memData {
 	tests := []memData{
@@ -93,4 +92,3 @@ func testDelGet(db *MemDatabase, t *testing.T) {
 		}
 	}
 }
-
