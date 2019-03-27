@@ -5,8 +5,14 @@ import (
 	"bytes"
 )
 
-func testData() []data {
-	tests := []data{
+type memData struct {
+	input    string
+	expected string
+}
+
+
+func testData() []memData {
+	tests := []memData{
 		{"camel", "camel"},
 		{"walrus", "walrus"},
 		{"296204", "296204"},
