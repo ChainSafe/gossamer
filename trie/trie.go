@@ -3,19 +3,21 @@ package trie
 import (
 	"bytes"
 	"errors"
+
+	"github.com/ChainSafeSystems/gossamer/polkadb"
 )
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
-	db         *Database
+	db         *polkadb.Database
 	root       node
 	merkleRoot [32]byte
 }
 
 // NewEmptyTrie creates a trie with a nil root and merkleRoot
-func NewEmptyTrie(db *Database) *Trie {
+func NewEmptyTrie(db *polkadb.Database) *Trie {
 	return &Trie{
 		db:         db,
 		root:       nil,
@@ -24,7 +26,7 @@ func NewEmptyTrie(db *Database) *Trie {
 }
 
 // NewTrie creates a trie with an existing root node from db
-func NewTrie(db *Database, root node, merkleRoot [32]byte) *Trie {
+func NewTrie(db *polkadb.Database, root node, merkleRoot [32]byte) *Trie {
 	return &Trie{
 		db:         db,
 		root:       root,
