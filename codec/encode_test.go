@@ -76,7 +76,6 @@ var encodeTests = []encodeTest{
 }
 
 // Test strings for various values of n & mode. Also test strings with special characters
-// Commented out testString3 since it causes the CI to fail.
 func setUpStringTests() {
 
 	testString1 := "We love you! We believe in open source as wonderful form of giving."                           // n = 67
