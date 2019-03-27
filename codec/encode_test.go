@@ -117,7 +117,7 @@ func TestEncode(t *testing.T) {
 	setUpStringTests()
 
 	if testing.Short() {
-		t.Skip("\033[33mSkipping memory intesive test for TestEncode in short mode\033[0m")
+		t.Logf("\033[33mSkipping memory intesive test for TestEncode in short mode\033[0m")
 	} else {
 		setUpLargeStringTests()
 	}
