@@ -3,6 +3,7 @@ package polkadb
 import (
 	"sync"
 	"errors"
+	"fmt"
 )
 
 type MemDatabase struct {
@@ -56,7 +57,9 @@ func (db *MemDatabase) Keys() [][]byte {
 func (db *MemDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
-
+	fmt.Println(db.db)
+	fmt.Println("+++++++++++++++++++++++")
 	delete(db.db, string(key))
+	fmt.Println(db.db[string(key)])
 	return nil
 }
