@@ -57,10 +57,21 @@ func testHasGet(db *MemDatabase, t *testing.T) {
 			t.Fatalf("has operation returned wrong result, got %t expected %t", exists, true)
 		}
 	}
+	k := db.Keys()
+	if len(k) != 4 {
+		t.Fatalf("failed to retrieve keys, expected %v, got %v", 4, len(k[0]))
+	}
 }
 
 func testDelGet(db *MemDatabase, t *testing.T) {
 	tests := testData()
+
+	for _, v := range tests {
+		err := db.Put([]byte(v.input), []byte(v.input))
+		if err != nil {
+			t.Fatalf("put failed: %v", err)
+		}
+	}
 
 	for _, v := range tests {
 		err := db.Delete([]byte(v.input))
@@ -70,10 +81,7 @@ func testDelGet(db *MemDatabase, t *testing.T) {
 	}
 
 	for _, v := range tests {
-		d, err := db.Get([]byte(v.input))
-		if err != nil {
-			t.Fatalf("got deleted value %q failed: %v", v.input, err)
-		}
+		d, _ := db.Get([]byte(v.input))
 		if len(d) > 1 {
 			t.Fatalf("failed to delete value %q", v.input)
 		}
