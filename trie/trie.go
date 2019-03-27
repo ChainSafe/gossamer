@@ -122,7 +122,7 @@ func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok
 }
 
 // updateBranch attempts to add the value node to a branch
-// inserts the value node as the branch's child at the index that's 
+// inserts the value node as the branch's child at the index that's
 // the first nibble of the key
 func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
 	// we need to add an extension to the child that's already there

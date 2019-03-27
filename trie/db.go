@@ -17,7 +17,7 @@ func NewDatabase(memdb *MemDB) *Database {
 
 // MemDB is an in-memory key value store
 type MemDB struct {
-	db   map[string][]byte
+	db map[string][]byte
 	//lock sync.RWMutex
 }
 
