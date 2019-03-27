@@ -210,7 +210,46 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 			n = &extension{p.key, child}
 		}
 	case *branch:
-		
+		ok, n, err := t.delete(p.children[key[0]], append(prefix, key[0]), key[1:])
+		if !ok || err != nil {
+			return false, n, err
+		}
+
+		p.children[key[0]] = n
+
+		// check how many children are in this branch
+		// if there are only two children, and we're deleting one, we can turn this branch into an extension
+		// otherwise, leave it as a branch
+		// when the loop exits, pos will be the index of the other child (if only 2 children) or -2 if there 
+		// nultiple children
+		pos := -1
+		for i, child := range &p.children {
+			if child != nil && pos == -1 {
+				pos = i
+			} else if child != nil {
+				pos = -2
+				break
+			}
+		}
+
+		// if there is only one other child, and it's not the branch's value, replace it with an extension
+		// and attach the branch's key nibble onto the front of the extension key
+		if pos >= 0 && pos != 16 {
+			child := p.children[pos]
+			// if child is an extension node, combine the two extensions
+			if child, ok := child.(*extension); ok {
+				k := append([]byte{byte(pos)}, child.key...)
+				return true, &extension{k, child.value}, nil
+			}
+		} else if pos >= 0 {
+			// there is a value at this branch, but no other children
+			// turn it into an extension with a value
+			ok = true
+			n = &extension{[]byte{byte(pos)}, p.children[pos]}
+		} else {
+			// branch contains more than two children, leave it as a branch
+			return true, p, nil
+		}
 	case leaf:
 		ok = true
 	case nil:
