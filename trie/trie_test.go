@@ -64,11 +64,11 @@ func generateRandTest(size int) []randTest {
 	r := *rand.New(rand.NewSource(rand.Int63()))
 	for i := range rt {
 		rt[i] = randTest{}
-		buf := make([]byte, r.Intn(32))
+		buf := make([]byte, r.Intn(128))
 		r.Read(buf)
 		rt[i].key = buf
 
-		buf = make([]byte, r.Intn(32))
+		buf = make([]byte, r.Intn(128))
 		r.Read(buf)
 		rt[i].value = buf
 	}
@@ -97,7 +97,7 @@ func TestPutAndGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandTest(100)
+	rt := generateRandTest(1000)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {

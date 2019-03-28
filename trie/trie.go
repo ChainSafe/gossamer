@@ -211,7 +211,7 @@ func (t *Trie) deleteFromExtension(p *extension, prefix, key []byte) (ok bool, n
 	}
 
 	// the matching key is longer than the parent's key, so the node to delete
-	// is somehwere in the extension's subtrie
+	// is somewhere in the extension's subtrie
 	// try to delete the child from the subtrie
 	var child node
 	ok, child, err = t.delete(p.value, append(prefix, key[:len(p.key)]...), key[len(p.key):])
