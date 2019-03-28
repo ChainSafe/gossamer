@@ -234,7 +234,7 @@ func (t *Trie) deleteFromExtension(p *extension, prefix, key []byte) (ok bool, n
 func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node, err error) {
 	ok, n, err = t.delete(p.children[key[0]], append(prefix, key[0]), key[1:])
 	if !ok || err != nil {
-		return false, n, err
+		return false, p, err
 	}
 
 	p.children[key[0]] = n
@@ -256,23 +256,21 @@ func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node,
 
 	// if there is only one other child, and it's not the branch's value, replace it with an extension
 	// and attach the branch's key nibble onto the front of the extension key
-	if pos >= 0 && pos != 16 {
+	if pos >= 0 {
 		child := p.children[pos]
-		// if child is an extension node, combine the two extensions
-		if child, ok := child.(*extension); ok {
-			k := append([]byte{byte(pos)}, child.key...)
-			return true, &extension{k, child.value}, nil
+		if pos != 16 {
+			if child, ok := child.(*extension); ok {
+				k := append([]byte{byte(pos)}, child.key...)
+				return true, &extension{k, child.value}, nil
+			}			
 		}
-	} else if pos >= 0 {
-		// there is a value at this branch, but no other children
-		// turn it into an extension with a value
 		ok = true
-		n = &extension{[]byte{byte(pos)}, p.children[pos]}
-	} else {
-		// branch contains more than two children, leave it as a branch
-		ok = true
-		n = p
+		n = &extension{[]byte{byte(pos)}, p.children[pos]}	
+		return ok, n, nil
 	}
+
+	ok = true
+	n = p
 
 	return ok, n, nil
 }

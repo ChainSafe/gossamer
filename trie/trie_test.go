@@ -97,23 +97,36 @@ func TestPutAndGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandTest(1000)
+	rt := generateRandTest(100)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
 			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
 		}
+	}
 
-		err = trie.Delete(test.key)
-		if err != nil {
-			t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-		}
+	for _, test := range rt {
+		r := rand.Int() % 2
+		switch(r) {
+		case 0: 
+			err := trie.Delete(test.key)
+			if err != nil {
+				t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+			}
 
-		val, err := trie.Get(test.key)
-		if err != nil {
-			t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
-		} else if val != nil {
-			t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+			} else if val != nil {
+				t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+			}
+		case 1:
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(test.value, val) {
+				t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+			}
 		}
 	}
 }
