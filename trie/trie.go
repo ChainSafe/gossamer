@@ -182,78 +182,9 @@ func (t *Trie) Delete(key []byte) error {
 func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err error) {
 	switch p := parent.(type) {
 	case *extension:
-		length := lenCommonPrefix(key, p.key)
-
-		// matching key is shorter than parent key, don't replace
-		if length < len(p.key) {
-			return false, p, nil
-		}
-
-		// key matches, delete this node
-		if length == len(key) {
-			return true, nil, nil
-		}
-
-		// the matching key is longer than the parent's key, so the node to delete
-		// is somehwere in the extension's subtrie
-		// try to delete the child from the subtrie
-		var child node
-		ok, child, err = t.delete(p.value, append(prefix, key[:len(p.key)]...), key[len(p.key):])
-		if !ok || err != nil {
-			return false, p, err
-		}
-
-		// if child is also an extension node, we can combine these two extension nodes into one
-		switch child := child.(type) {
-		case *extension:
-			ok = true
-			n = &extension{concat(p.key, child.key...), child.value}
-		default:
-			ok = true
-			n = &extension{p.key, child}
-		}
+		ok, n, err = t.deleteFromExtension(p, prefix, key)
 	case *branch:
-		ok, n, err = t.delete(p.children[key[0]], append(prefix, key[0]), key[1:])
-		if !ok || err != nil {
-			return false, n, err
-		}
-
-		p.children[key[0]] = n
-
-		// check how many children are in this branch
-		// if there are only two children, and we're deleting one, we can turn this branch into an extension
-		// otherwise, leave it as a branch
-		// when the loop exits, pos will be the index of the other child (if only 2 children) or -2 if there
-		// nultiple children
-		pos := -1
-		for i, child := range &p.children {
-			if child != nil && pos == -1 {
-				pos = i
-			} else if child != nil {
-				pos = -2
-				break
-			}
-		}
-
-		// if there is only one other child, and it's not the branch's value, replace it with an extension
-		// and attach the branch's key nibble onto the front of the extension key
-		if pos >= 0 && pos != 16 {
-			child := p.children[pos]
-			// if child is an extension node, combine the two extensions
-			if child, ok := child.(*extension); ok {
-				k := append([]byte{byte(pos)}, child.key...)
-				return true, &extension{k, child.value}, nil
-			}
-		} else if pos >= 0 {
-			// there is a value at this branch, but no other children
-			// turn it into an extension with a value
-			ok = true
-			n = &extension{[]byte{byte(pos)}, p.children[pos]}
-		} else {
-			// branch contains more than two children, leave it as a branch
-			ok = true
-			n = p
-		}
+		ok, n, err = t.deleteFromBranch(p, prefix, key)
 	case leaf:
 		ok = true
 	case nil:
@@ -263,6 +194,86 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 	}
 
 	return ok, n, err
+}
+
+func (t *Trie) deleteFromExtension(p *extension, prefix, key []byte) (ok bool, n node, err error) {
+	length := lenCommonPrefix(key, p.key)
+
+	// matching key is shorter than parent key, don't replace
+	if length < len(p.key) {
+		return false, p, nil
+	}
+
+	// key matches, delete this node
+	if length == len(key) {
+		return true, nil, nil
+	}
+
+	// the matching key is longer than the parent's key, so the node to delete
+	// is somehwere in the extension's subtrie
+	// try to delete the child from the subtrie
+	var child node
+	ok, child, err = t.delete(p.value, append(prefix, key[:len(p.key)]...), key[len(p.key):])
+	if !ok || err != nil {
+		return false, p, err
+	}
+
+	// if child is also an extension node, we can combine these two extension nodes into one
+	switch child := child.(type) {
+	case *extension:
+		ok = true
+		n = &extension{concat(p.key, child.key...), child.value}
+	default:
+		ok = true
+		n = &extension{p.key, child}
+	}
+	return ok, n, nil
+}
+
+func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node, err error) {
+	ok, n, err = t.delete(p.children[key[0]], append(prefix, key[0]), key[1:])
+	if !ok || err != nil {
+		return false, n, err
+	}
+
+	p.children[key[0]] = n
+
+	// check how many children are in this branch
+	// if there are only two children, and we're deleting one, we can turn this branch into an extension
+	// otherwise, leave it as a branch
+	// when the loop exits, pos will be the index of the other child (if only 2 children) or -2 if there
+	// nultiple children
+	pos := -1
+	for i, child := range &p.children {
+		if child != nil && pos == -1 {
+			pos = i
+		} else if child != nil {
+			pos = -2
+			break
+		}
+	}
+
+	// if there is only one other child, and it's not the branch's value, replace it with an extension
+	// and attach the branch's key nibble onto the front of the extension key
+	if pos >= 0 && pos != 16 {
+		child := p.children[pos]
+		// if child is an extension node, combine the two extensions
+		if child, ok := child.(*extension); ok {
+			k := append([]byte{byte(pos)}, child.key...)
+			return true, &extension{k, child.value}, nil
+		}
+	} else if pos >= 0 {
+		// there is a value at this branch, but no other children
+		// turn it into an extension with a value
+		ok = true
+		n = &extension{[]byte{byte(pos)}, p.children[pos]}
+	} else {
+		// branch contains more than two children, leave it as a branch
+		ok = true
+		n = p
+	}
+
+	return ok, n, nil
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
