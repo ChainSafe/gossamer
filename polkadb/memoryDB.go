@@ -1,13 +1,13 @@
 package polkadb
 
 import (
-	"sync"
 	"errors"
+	"sync"
 )
 
 // MemDatabase test memory database, data is not persisted
 type MemDatabase struct {
-	db map[string][]byte
+	db   map[string][]byte
 	lock sync.RWMutex
 }
 

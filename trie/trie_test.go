@@ -94,7 +94,6 @@ func TestPutAndGet(t *testing.T) {
 	}
 }
 
-
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
