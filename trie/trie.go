@@ -282,6 +282,7 @@ func lenCommonPrefix(a, b []byte) int {
 	return length
 }
 
+// concat concatenates two byte arrays
 func concat(s1 []byte, s2 ...byte) []byte {
 	r := make([]byte, len(s1)+len(s2))
 	copy(r, s1)
