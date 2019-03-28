@@ -111,7 +111,7 @@ func TestDelete(t *testing.T) {
 
 		val, err := trie.Get(test.key)
 		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
 		} else if val != nil {
 			t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 		}
