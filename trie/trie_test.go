@@ -24,33 +24,10 @@ var commonPrefixTests = []commonPrefixTest{
 	{a: []byte{0x00, 0x01, 0x02, 0x00, 0xff}, b: []byte{0x00, 0x01, 0x02, 0x00, 0xff, 0x00}, output: 5},
 }
 
-type concatTest struct {
-	a, b   []byte
-	output []byte
-}
-
-var concatTests = []concatTest{
-	{a: []byte{}, b: []byte{}, output: []byte{}},
-	{a: []byte{0x00}, b: []byte{}, output: []byte{0x00}},
-	{a: []byte{0x00}, b: []byte{0x00}, output: []byte{0x00, 0x00}},
-	{a: []byte{0x00}, b: []byte{0x00, 0x01}, output: []byte{0x00, 0x00, 0x01}},
-	{a: []byte{0x01}, b: []byte{0x00, 0x01, 0x02}, output: []byte{0x01, 0x00, 0x01, 0x02}},
-	{a: []byte{0x00, 0x01, 0x02, 0x00}, b: []byte{0x00, 0x01, 0x02}, output: []byte{0x000, 0x01, 0x02, 0x00, 0x00, 0x01, 0x02}},
-}
-
 func TestCommonPrefix(t *testing.T) {
 	for _, test := range commonPrefixTests {
 		output := lenCommonPrefix(test.a, test.b)
 		if output != test.output {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
-		}
-	}
-}
-
-func TestConcat(t *testing.T) {
-	for _, test := range concatTests {
-		output := concat(test.a, test.b...)
-		if !bytes.Equal(output, test.output) {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
 		}
 	}

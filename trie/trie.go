@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 
+	"github.com/ChainSafeSystems/gossamer/common"
 	"github.com/ChainSafeSystems/gossamer/polkadb"
 )
 
@@ -222,7 +223,7 @@ func (t *Trie) deleteFromExtension(p *extension, prefix, key []byte) (ok bool, n
 	switch child := child.(type) {
 	case *extension:
 		ok = true
-		n = &extension{concat(p.key, child.key...), child.value}
+		n = &extension{common.Concat(p.key, child.key...), child.value}
 	default:
 		ok = true
 		n = &extension{p.key, child}
@@ -291,12 +292,4 @@ func lenCommonPrefix(a, b []byte) int {
 	}
 
 	return length
-}
-
-// concat concatenates two byte arrays
-func concat(s1 []byte, s2 ...byte) []byte {
-	r := make([]byte, len(s1)+len(s2))
-	copy(r, s1)
-	copy(r[len(s1):], s2)
-	return r
 }
