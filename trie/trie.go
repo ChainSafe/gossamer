@@ -243,7 +243,7 @@ func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node,
 	// if there are only two children, and we're deleting one, we can turn this branch into an extension
 	// otherwise, leave it as a branch
 	// when the loop exits, pos will be the index of the other child (if only 2 children) or -2 if there
-	// nultiple children
+	// multiple children
 	pos := -1
 	for i, child := range &p.children {
 		if child != nil && pos == -1 {
