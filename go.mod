@@ -1,7 +1,5 @@
 module github.com/ChainSafeSystems/gossamer
 
-go 1.12
-
 require (
 	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
 	github.com/golang/snappy v0.0.1
