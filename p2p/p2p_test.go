@@ -15,7 +15,7 @@ import (
 )
 
 type Simulator struct {
-	nodes []*Service
+	nodes    []*Service
 	ipfsNode *ipfs.IpfsNode
 }
 
