@@ -46,12 +46,19 @@ func (t *Trie) Put(key, value []byte) error {
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToHex(key)
-	_, n, err := t.insert(t.root, nil, k, leaf(value))
+	var n node
+
+	if len(value) > 0 {
+		_, n, err = t.insert(t.root, nil, k, leaf(value))
+	} else {
+		_, n, err = t.delete(t.root, nil, k)
+	}
+
 	if err != nil {
 		return err
 	}
-	t.root = n
 
+	t.root = n		
 	return nil
 }
 
@@ -91,7 +98,9 @@ func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok
 	if length == len(p.key) {
 		// add new node to branch
 		ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
-		if ok && err != nil {
+		if !ok || err != nil {
+			ok = false
+		} else {
 			ok = true
 			n = &extension{p.key, n}
 		}
@@ -135,7 +144,7 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 	}
 
 	p.children[key[0]] = n
-	return true, p, err
+	return true, p, nil
 }
 
 // Get returns the value for key stored in the trie.
@@ -153,7 +162,7 @@ func (t *Trie) tryGet(key []byte) (value []byte, err error) {
 func (t *Trie) retrieve(parent node, key []byte, i int) (value []byte, err error) {
 	switch p := parent.(type) {
 	case *extension:
-		if len(key)-i < len(p.key) { //|| !bytes.Equal(p.key, key[i:i+len(p.key)]) {
+		if len(key)-i < len(p.key) || !bytes.Equal(p.key, key[i:i+len(p.key)]) {
 			return nil, nil
 		}
 		value, err = t.retrieve(p.value, key, i+len(p.key))
