@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/ChainSafeSystems/gossamer/common"
-	"github.com/ChainSafeSystems/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/polkadb"
 )
 
 // Trie is a Merkle Patricia Trie.
