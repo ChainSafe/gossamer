@@ -75,6 +75,14 @@ func generateRandTest(size int) []randTest {
 	return rt
 }
 
+func TestPutNilKey(t *testing.T) {
+	trie := newEmpty()
+	err := trie.Put(nil, []byte{17})
+	if err == nil {
+		t.Errorf("did not error when attempting to put nil key")
+	}
+}
+
 func TestExtension(t *testing.T) {
 	trie := newEmpty()
 
