@@ -189,11 +189,6 @@ func TestPing(t *testing.T) {
 
 	sa := sim.nodes[0]
 	sb := sim.nodes[1]
-	_, err = sa.dht.FindPeer(sa.ctx, sb.host.ID())
-	if err != nil {
-		t.Fatalf("could not find peer: %s", err)
-	}
-
 	err = sa.Ping(sb.host.ID())
 	if err != nil {
 		t.Errorf("Ping error: %s", err)

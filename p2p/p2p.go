@@ -137,6 +137,11 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 
 // Ping pings a peer
 func (s *Service) Ping(peer peer.ID) error {
+	_, err := s.dht.FindPeer(s.ctx, peer)
+	if err != nil {
+		return fmt.Errorf("could not find peer: %s", err)
+	}
+
 	return s.dht.Ping(s.ctx, peer)
 }
 
