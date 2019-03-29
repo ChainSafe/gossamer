@@ -5,7 +5,6 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
-	"github.com/pkg/errors"
 )
 
 // BadgerDB struct contains directory path to data and db instance
@@ -46,7 +45,7 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts.ValueDir = file
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(ErrClosedDB, err)
 		return nil, err
 	}
 
@@ -104,7 +103,11 @@ func (db *BadgerDB) Get(key []byte) (data []byte, err error) {
 		if err != nil {
 			return err
 		}
-		data, _ = snappy.Decode(nil, val)
+		data, err = snappy.Decode(nil, val)
+		if err != nil {
+			log.Println(ErrDecoding, err)
+			return err
+		}
 		return nil
 	})
 	return data, nil
@@ -127,7 +130,7 @@ func (db *BadgerDB) Close() {
 	if err == nil {
 		log.Println("Database closed")
 	} else {
-		log.Fatal("Failed to close database", "err", err)
+		log.Fatal(ErrRefusedClose, err)
 	}
 }
 
@@ -177,7 +180,7 @@ func (i *Iterate) Seek(key []byte) {
 func (i *Iterate) Key() []byte {
 	ret, err := snappy.Decode(nil, i.iter.Item().Key())
 	if err != nil {
-		log.Printf("%+v", errors.Wrap(err, "key retrieval error"))
+		log.Println(ErrKeyRetrieval, err)
 	}
 	return ret
 }
@@ -186,11 +189,11 @@ func (i *Iterate) Key() []byte {
 func (i *Iterate) Value() []byte {
 	val, err := i.iter.Item().ValueCopy(nil)
 	if err != nil {
-		log.Printf("%+v", errors.Wrap(err, "value retrieval error"))
+		log.Println(ErrValueRetrieval, err)
 	}
 	ret, err := snappy.Decode(nil, val)
 	if err != nil {
-		log.Printf("%+v", errors.Wrap(err, "value decoding error"))
+		log.Println(ErrDecoding, err)
 	}
 	return ret
 }
@@ -212,11 +215,11 @@ func (b *batchWriter) Write() error {
 	for k, v := range b.b {
 		err := wb.Set([]byte(k), v, 0)
 		if err != nil {
-			log.Printf("%+v", errors.Wrap(err, "error writing batch txs"))
+			log.Println(ErrBatchWrites, err)
 		}
 	}
 	if err := wb.Flush(); err != nil {
-		log.Printf("%+v", errors.Wrap(err, "error stored by writeBatch"))
+		log.Println(ErrBatchFlush, err)
 	}
 	return nil
 }
@@ -230,7 +233,7 @@ func (b *batchWriter) ValueSize() int {
 func (b *batchWriter) Delete(key []byte) error {
 	err := b.db.db.NewWriteBatch().Delete(key)
 	if err != nil {
-		log.Printf("%+v", errors.Wrap(err, "error batch deleting key"))
+		log.Println(ErrBatchDeletion, err)
 	}
 	b.size++
 	return nil
