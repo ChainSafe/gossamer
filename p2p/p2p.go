@@ -115,8 +115,9 @@ func (s *Service) Stop() {
 }
 
 // Broadcast sends a message to all peers
-func (s *Service) Broadcast(msg []byte) {
+func (s *Service) Broadcast(msg []byte) (err error) {
 	// TODO
+	return nil
 }
 
 // Send sends a message to a specific peer
@@ -135,8 +136,13 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 }
 
 // Ping pings a peer
-func (s *Service) Ping(peer peer.ID) {
-	// TODO
+func (s *Service) Ping(peer peer.ID) error {
+	_, err := s.dht.FindPeer(s.ctx, peer)
+	if err != nil {
+		return fmt.Errorf("could not find peer: %s", err)
+	}
+
+	return s.dht.Ping(s.ctx, peer)
 }
 
 // Host returns the service's host
@@ -198,8 +204,9 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
-// TODO: stream handling
+// TODO: message handling
 func handleStream(stream net.Stream) {
+	defer stream.Close()
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')
@@ -211,7 +218,6 @@ func handleStream(stream net.Stream) {
 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
 	_, err = rw.WriteString("hello friend")
 	if err != nil {
-		log.Println("error: ", err)
 		return
 	}
 }
