@@ -58,7 +58,7 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 		return err
 	}
 
-	t.root = n		
+	t.root = n
 	return nil
 }
 
@@ -271,10 +271,10 @@ func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node,
 			if child, ok := child.(*extension); ok {
 				k := append([]byte{byte(pos)}, child.key...)
 				return true, &extension{k, child.value}, nil
-			}			
+			}
 		}
 		ok = true
-		n = &extension{[]byte{byte(pos)}, p.children[pos]}	
+		n = &extension{[]byte{byte(pos)}, p.children[pos]}
 		return ok, n, nil
 	}
 

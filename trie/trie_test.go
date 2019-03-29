@@ -105,7 +105,7 @@ func TestExtension(t *testing.T) {
 		t.Errorf("Fail to get key %x: %s", key2, err.Error())
 	} else if !bytes.Equal(val, value2) {
 		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}	
+	}
 }
 
 func TestBranch(t *testing.T) {
@@ -152,14 +152,14 @@ func TestBranch(t *testing.T) {
 		t.Errorf("Fail to get key %x: %s", key2, err.Error())
 	} else if !bytes.Equal(val, value2) {
 		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}	
+	}
 
 	val, err = trie.Get(key3)
 	if err != nil {
 		t.Errorf("Fail to get key %x: %s", key3, err.Error())
 	} else if !bytes.Equal(val, value3) {
 		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}	
+	}
 }
 
 func TestPutAndGet(t *testing.T) {
@@ -179,7 +179,7 @@ func TestPutAndGet(t *testing.T) {
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
-		}		
+		}
 	}
 }
 
@@ -196,8 +196,8 @@ func TestDelete(t *testing.T) {
 
 	for _, test := range rt {
 		r := rand.Int() % 2
-		switch(r) {
-		case 0: 
+		switch r {
+		case 0:
 			err := trie.Delete(test.key)
 			if err != nil {
 				t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
