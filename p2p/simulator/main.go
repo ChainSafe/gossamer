@@ -180,14 +180,12 @@ func main() {
 	time.Sleep(2 * time.Second)
 
 	for _, node := range sim.nodes {
-		//fmt.Println(node.Host().ID())
 		go func(node *p2p.Service) {
 			for {
 				r := getRandomInt(len(sim.nodes))
 
 				log.Printf("sending msg from %s to %s...", node.Host().ID(), sim.nodes[r].Host().ID())
 
-				//id := host.PeerInfoFromHost(sim.nodes[r].Host())
 				err = sendRandomMessage(node, sim.nodes[r].Host().ID())
 				if err != nil {
 					//log.Println("warn:", err.Error())

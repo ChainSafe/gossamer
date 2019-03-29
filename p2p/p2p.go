@@ -211,7 +211,6 @@ func handleStream(stream net.Stream) {
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')
 	if err != nil {
-		log.Println("error: ", err)
 		return
 	}
 
