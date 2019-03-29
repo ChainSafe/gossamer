@@ -257,8 +257,8 @@ func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node,
 	// if there is only one other child, and it's not the branch's value, replace it with an extension
 	// and attach the branch's key nibble onto the front of the extension key
 	if pos >= 0 {
-		child := p.children[pos]
 		if pos != 16 {
+			child := p.children[pos]
 			if child, ok := child.(*extension); ok {
 				k := append([]byte{byte(pos)}, child.key...)
 				return true, &extension{k, child.value}, nil
@@ -269,10 +269,7 @@ func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node,
 		return ok, n, nil
 	}
 
-	ok = true
-	n = p
-
-	return ok, n, nil
+	return true, p, nil
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
