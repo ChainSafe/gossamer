@@ -32,3 +32,46 @@ func keyToHex(in []byte) []byte {
 	res[l-1] = 16
 	return res
 }
+
+// hexToKey performs the opposite of keyToHex; turns nibbles back into bytes
+// removes last byte if length of input is odd (set to 16 if using keyToHex)
+func hexToKey(in []byte) []byte {
+	l := len(in) / 2 // floor
+	res := make([]byte, l)
+	for i := 0; i < len(in)-1; i = i + 2 {
+		res[i/2] = in[i+1]<<4 | in[i]
+	}
+	return res
+}
+
+// bigKeySize returns the node type's BigKeySize
+// BigKeySize is 125 if node is extension, 126 if node is leaf
+func bigKeySize(n node) int {
+	switch n.(type) {
+	case *extension:
+		return 125
+	case *leaf:
+		return 126
+	default:
+		return -1
+	}
+}
+
+// getPrefix returns the node type's prefix, used for encoding the node
+func getPrefix(n node) (prefix byte) {
+	switch n := n.(type) {
+	case *leaf:
+		return 1
+	case *extension:
+		return 128
+	case *branch:
+		if n.children[16] == nil {
+			// branch without value
+			return 254
+		}
+		// branch with value
+		return 255
+	default:
+		return 0
+	}
+}
