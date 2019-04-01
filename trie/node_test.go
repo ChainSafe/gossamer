@@ -19,19 +19,19 @@ func TestChildrenBitmap(t *testing.T) {
 
 	b.children[4] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
-	if res != 17 {
+	if res != 1<<4 + 1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 17)
 	}
 
 	b.children[16] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
-	if res != 17 {
+	if res != 1<<4 + 1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 17)
 	}
 
 	b.children[15] = &leaf{key: []byte{0x00}, value: []byte{0x00}}
 	res = b.childrenBitmap()
-	if res != 17 {
+	if res != 1<<15 + 1<<4 + 1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 257)
 	}
 }

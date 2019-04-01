@@ -19,8 +19,8 @@ type (
 	}
 )
 
-func (b *branch) childrenBitmap() byte {
-	var bitmap byte = 0
+func (b *branch) childrenBitmap() uint16 {
+	var bitmap uint16 = 0
 	var i uint
 	for i = 0; i < 16; i++ {
 		if b.children[i] != nil {
