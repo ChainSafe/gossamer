@@ -79,10 +79,10 @@ func TestEncodeLenExtensions(t *testing.T) {
 	for _, testKey := range randKeys {
 		n := &extension{key: testKey}
 		var expected []byte
-		if len(testKey) >= 125 {
-			expected = []byte{128, 127, byte(len(testKey) - 125)}
+		if len(testKey) >= bigKeySize(n) {
+			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
 		} else {
-			expected = []byte{128, byte(len(testKey))}
+			expected = []byte{getPrefix(n), byte(len(testKey))}
 		}
 
 		res, err := encodeLen(n)
@@ -99,10 +99,10 @@ func TestEncodeLenLeaves(t *testing.T) {
 	for _, testKey := range randKeys {
 		n := &leaf{key: testKey}
 		var expected []byte
-		if len(testKey) >= 126 {
-			expected = []byte{1, 127, byte(len(testKey) - 126)}
+		if len(testKey) >= bigKeySize(n) {
+			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
 		} else {
-			expected = []byte{1, byte(len(testKey))}
+			expected = []byte{getPrefix(n), byte(len(testKey))}
 		}
 
 		res, err := encodeLen(n)
@@ -114,28 +114,37 @@ func TestEncodeLenLeaves(t *testing.T) {
 	}
 }
 
+
+func TestHashLeaf(t *testing.T) {
+	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
+	h, err := n.Hash()
+	if err != nil {
+		t.Errorf("did not hash leaf node: %s", err)
+	} else if h == nil {
+		t.Errorf("did not hash leaf node: nil")
+	}
+}
+
 func TestEncodeLeaves(t *testing.T) {
 	randKeys := generateRand(100)
-	randVals := generateRand(100)
 
-	for i, testKey := range randKeys {
-		n := &leaf{key: testKey, value: randVals[i]}
+	for _, testKey := range randKeys {
+		n := &leaf{key: testKey}
 		var expected []byte
-		if len(testKey) >= 126 {
-			expected = []byte{1, 127, byte(len(testKey) - 126)}
+		if len(testKey) >= bigKeySize(n) {
+			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
 		} else {
-			expected = []byte{1, byte(len(testKey))}
+			expected = []byte{getPrefix(n), byte(len(testKey))}
 		}
 
-		encHex := keyToHex(n.key)
-		encHex = hexcodec.Encode(encHex[0 : len(encHex)-1])
+		encHex := hexcodec.Encode(n.key)
 		expected = append(expected, encHex...)
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{&buf}
 		_, err := encoder.Encode(n.value)
 		if err != nil {
-			t.Fatalf("Fail when encoding value with scale: %s", err)
+			t.Fatalf("Fail when getting hash of leaf: %s", err)
 		}
 
 		expected = append(expected, buf.Bytes()...)
@@ -149,12 +158,34 @@ func TestEncodeLeaves(t *testing.T) {
 	}
 }
 
-func TestHashLeaf(t *testing.T) {
-	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
-	h, err := n.Hash()
-	if err != nil {
-		t.Errorf("did not hash leaf node: %s", err)
-	} else if h == nil {
-		t.Errorf("did not hash leaf node: nil")
+func TestEncodeExtensions(t *testing.T) {
+	randKeys := generateRand(100)
+	randVals := generateRand(100)
+
+	for i, testKey := range randKeys {
+		n := &extension{key: testKey, value: &leaf{key: nil, value: randVals[i]}}
+		var expected []byte
+		if len(testKey) >= bigKeySize(n) {
+			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
+		} else {
+			expected = []byte{getPrefix(n), byte(len(testKey))}
+		}
+
+		encHex := hexcodec.Encode(n.key)
+		expected = append(expected, encHex...)
+
+		valHash, err := Hash(n.value)
+		if err != nil {
+			t.Fatalf("Fail when getting hash of leaf: %s", err)
+		}
+
+		expected = append(expected, valHash...)
+
+		res, err := n.Encode()
+		if !bytes.Equal(res, expected) {
+			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+		} else if err != nil {
+			t.Errorf("Fail when encoding node length: %s", err)
+		}
 	}
 }

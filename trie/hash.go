@@ -52,8 +52,7 @@ func (l *leaf) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	encHex := keyToHex(l.key)
-	encHex = hexcodec.Encode(encHex[0 : len(encHex)-1])
+	encHex := hexcodec.Encode(l.key)
 
 	buf := bytes.Buffer{}
 	encoder := &scale.Encoder{&buf}
@@ -65,13 +64,32 @@ func (l *leaf) Encode() ([]byte, error) {
 	return append(append(encLen, encHex...), buf.Bytes()...), nil
 }
 
-// Encode encodes a branch node
-func (b *branch) Encode() (h []byte, err error) {
-	return nil, nil
-}
-
 // Encode encodes an extension node
 func (e *extension) Encode() (h []byte, err error) {
+	encLen, err := encodeLen(e)
+	if err != nil {
+		return nil, err
+	}
+
+	encHex := hexcodec.Encode(e.key)
+
+	childHash, err := Hash(e.value)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := bytes.Buffer{}
+	encoder := &scale.Encoder{&buf}
+	_, err = encoder.Encode(childHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(append(encLen, encHex...), buf.Bytes()...), nil
+}
+
+// Encode encodes a branch node
+func (b *branch) Encode() (h []byte, err error) {
 	return nil, nil
 }
 
@@ -97,6 +115,20 @@ func encodeLen(n node) (encLen []byte, err error) {
 	}
 
 	return encLen, err
+}
+
+// Hash is the high-level function around individual node hashing functions
+func Hash(n node) (h []byte, err error) {
+	switch n := n.(type) {
+	case *leaf:
+		return n.Hash()
+	case *extension:
+		return n.Hash()
+	case *branch:
+		return n.Hash()
+	default:
+		return nil, errors.New("cannot encode: invalid node")
+	}
 }
 
 func (l *leaf) Hash() (h []byte, err error) {
