@@ -114,7 +114,6 @@ func TestEncodeLenLeaves(t *testing.T) {
 	}
 }
 
-
 func TestHashLeaf(t *testing.T) {
 	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
 	h, err := n.Hash()

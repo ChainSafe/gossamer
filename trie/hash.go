@@ -96,19 +96,19 @@ func (b *branch) Encode() (h []byte, err error) {
 
 	buf := bytes.Buffer{}
 	encoder := &scale.Encoder{&buf}
-		
+
 	if b.children[16] != nil {
 		_, err = encoder.Encode(b.children[16].(*leaf).value)
 		if err != nil {
 			return nil, err
-		}			
+		}
 	}
 
 	encNode = append(encNode, buf.Bytes()...)
 
 	for i, child := range b.children {
 		if i != 16 && child != nil {
-			childHash, err := Hash(child)	
+			childHash, err := Hash(child)
 			if err != nil {
 				return nil, err
 			}
@@ -116,7 +116,7 @@ func (b *branch) Encode() (h []byte, err error) {
 			_, err = encoder.Encode(childHash)
 			if err != nil {
 				return nil, err
-			}		
+			}
 		}
 		encNode = append(encNode, buf.Bytes()...)
 	}

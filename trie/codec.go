@@ -79,6 +79,6 @@ func getPrefix(n node) (prefix byte) {
 func uint16ToBytes(in uint16) (out []byte) {
 	out = make([]byte, 2)
 	out[0] = byte(in & 0x00ff)
-	out[1] = byte(in>>8 & 0x00ff)
+	out[1] = byte(in >> 8 & 0x00ff)
 	return out
 }

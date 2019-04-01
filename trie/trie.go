@@ -176,7 +176,7 @@ func (t *Trie) retrieve(parent node, key []byte, i int) (value *leaf, err error)
 			return nil, nil
 		}
 
-		// we have reached an extension where the child is a leaf;
+		// if we have reached an extension where the child is a leaf;
 		// return the leaf with the corresponding partial key
 		switch v := p.value.(type) {
 		case *leaf:
