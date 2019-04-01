@@ -90,7 +90,38 @@ func (e *extension) Encode() (h []byte, err error) {
 
 // Encode encodes a branch node
 func (b *branch) Encode() (h []byte, err error) {
-	return nil, nil
+	prefix := getPrefix(b)
+	bitmap := b.childrenBitmap()
+	encNode := append([]byte{prefix}, uint16ToBytes(bitmap)...)
+
+	buf := bytes.Buffer{}
+	encoder := &scale.Encoder{&buf}
+		
+	if b.children[16] != nil {
+		_, err = encoder.Encode(b.children[16].(*leaf).value)
+		if err != nil {
+			return nil, err
+		}			
+	}
+
+	encNode = append(encNode, buf.Bytes()...)
+
+	for i, child := range b.children {
+		if i != 16 && child != nil {
+			childHash, err := Hash(child)	
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = encoder.Encode(childHash)
+			if err != nil {
+				return nil, err
+			}		
+		}
+		encNode = append(encNode, buf.Bytes()...)
+	}
+
+	return encNode, nil
 }
 
 // encodeLen encodes the length of the partial key an extension or leaf node
@@ -156,10 +187,52 @@ func (l *leaf) Hash() (h []byte, err error) {
 	return hasher.hash.Sum(nil), nil
 }
 
-func (b *branch) Hash() (h []byte, err error) {
-	return nil, nil
+func (e *extension) Hash() (h []byte, err error) {
+	hasher, err := newHasher()
+	if err != nil {
+		return nil, err
+	}
+
+	encExt, err := e.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	// if length of encoded leaf is less than 32 bytes, do not hash
+	if len(encExt) < 32 {
+		return encExt, nil
+	}
+
+	// otherwise, hash encoded node
+	_, err = hasher.hash.Write(encExt)
+	if err != nil {
+		return nil, err
+	}
+
+	return hasher.hash.Sum(nil), nil
 }
 
-func (e *extension) Hash() (h []byte, err error) {
-	return nil, nil
+func (b *branch) Hash() (h []byte, err error) {
+	hasher, err := newHasher()
+	if err != nil {
+		return nil, err
+	}
+
+	encBranch, err := b.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	// if length of encoded leaf is less than 32 bytes, do not hash
+	if len(encBranch) < 32 {
+		return encBranch, nil
+	}
+
+	// otherwise, hash encoded node
+	_, err = hasher.hash.Write(encBranch)
+	if err != nil {
+		return nil, err
+	}
+
+	return hasher.hash.Sum(nil), nil
 }

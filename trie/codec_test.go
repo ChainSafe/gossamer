@@ -119,3 +119,23 @@ func TestGetPrefix(t *testing.T) {
 		t.Errorf("did not get correct prefix for nil node")
 	}
 }
+
+func TestUint16ToBytes(t *testing.T) {
+	tests := []struct {
+		input    uint16
+		expected []byte
+	}{
+		{uint16(0), []byte{0x0, 0x0}},
+		{uint16(1), []byte{0x1, 0x0}},
+		{uint16(255), []byte{0xff, 0x0}},
+		// {[]byte{0xa, 0xa, 0xf, 0xf, 0x0, 0x1, 0x10}, []byte{0xaa, 0xff, 0x10}},
+		// {[]byte{0xa, 0xa, 0xf, 0xf, 0x0, 0x1, 0xc, 0x2, 0x10}, []byte{0xaa, 0xff, 0x10, 0x2c}},
+	}
+
+	for _, test := range tests {
+		res := uint16ToBytes(test.input)
+		if !bytes.Equal(res, test.expected) {
+			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
+		}
+	}
+}

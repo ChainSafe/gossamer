@@ -125,6 +125,27 @@ func TestHashLeaf(t *testing.T) {
 	}
 }
 
+func TestHashExtension(t *testing.T) {
+	n := &extension{key: generateRandBytes(380), value: &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}}
+	h, err := n.Hash()
+	if err != nil {
+		t.Errorf("did not hash extension node: %s", err)
+	} else if h == nil {
+		t.Errorf("did not hash extension node: nil")
+	}
+}
+
+func TestHashBranch(t *testing.T) {
+	n := &branch{}
+	n.children[3] = &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}
+	h, err := n.Hash()
+	if err != nil {
+		t.Errorf("did not hash branch node: %s", err)
+	} else if h == nil {
+		t.Errorf("did not hash branch node: nil")
+	}
+}
+
 func TestEncodeLeaves(t *testing.T) {
 	randKeys := generateRand(100)
 	randVals := generateRand(100)
