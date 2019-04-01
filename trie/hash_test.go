@@ -127,9 +127,10 @@ func TestHashLeaf(t *testing.T) {
 
 func TestEncodeLeaves(t *testing.T) {
 	randKeys := generateRand(100)
+	randVals := generateRand(100)
 
-	for _, testKey := range randKeys {
-		n := &leaf{key: testKey}
+	for i, testKey := range randKeys {
+		n := &leaf{key: testKey, value: randVals[i]}
 		var expected []byte
 		if len(testKey) >= bigKeySize(n) {
 			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
@@ -144,7 +145,7 @@ func TestEncodeLeaves(t *testing.T) {
 		encoder := &scale.Encoder{&buf}
 		_, err := encoder.Encode(n.value)
 		if err != nil {
-			t.Fatalf("Fail when getting hash of leaf: %s", err)
+			t.Fatalf("Fail when encoding value with scale: %s", err)
 		}
 
 		expected = append(expected, buf.Bytes()...)
@@ -159,11 +160,12 @@ func TestEncodeLeaves(t *testing.T) {
 }
 
 func TestEncodeExtensions(t *testing.T) {
-	randKeys := generateRand(100)
-	randVals := generateRand(100)
+	randKeys := generateRand(10)
+	randLeafKeys := generateRand(10)
+	randLeafVals := generateRand(100)
 
 	for i, testKey := range randKeys {
-		n := &extension{key: testKey, value: &leaf{key: nil, value: randVals[i]}}
+		n := &extension{key: testKey, value: &leaf{key: randLeafKeys[i], value: randLeafVals[i]}}
 		var expected []byte
 		if len(testKey) >= bigKeySize(n) {
 			expected = []byte{getPrefix(n), 127, byte(len(testKey) - bigKeySize(n))}
@@ -174,12 +176,19 @@ func TestEncodeExtensions(t *testing.T) {
 		encHex := hexcodec.Encode(n.key)
 		expected = append(expected, encHex...)
 
-		valHash, err := Hash(n.value)
+		childHash, err := Hash(n.value)
 		if err != nil {
-			t.Fatalf("Fail when getting hash of leaf: %s", err)
+			t.Fatalf("Fail when getting hash of child: %s", err)
 		}
 
-		expected = append(expected, valHash...)
+		buf := bytes.Buffer{}
+		encoder := &scale.Encoder{&buf}
+		_, err = encoder.Encode(childHash)
+		if err != nil {
+			t.Fatalf("Fail when encoding value with scale: %s", err)
+		}
+
+		expected = append(expected, buf.Bytes()...)
 
 		res, err := n.Encode()
 		if !bytes.Equal(res, expected) {
