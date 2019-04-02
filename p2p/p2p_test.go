@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
@@ -224,8 +223,6 @@ func TestBroadcast(t *testing.T) {
 	if err != nil {
 		t.Errorf("Broadcast error: %s", err)
 	}
-
-	time.Sleep(time.Second)
 }
 
 func TestStop(t *testing.T) {

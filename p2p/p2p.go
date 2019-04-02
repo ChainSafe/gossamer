@@ -199,7 +199,7 @@ func (s *Service) Ctx() context.Context {
 }
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
-	// TODO: get externa1l ip
+	// TODO: get external ip
 	ip := "0.0.0.0"
 
 	priv, err := generateKey(sc.RandSeed)
@@ -216,7 +216,6 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
-		//libp2p.NATPortMap(),
 	}, nil
 }
 
