@@ -165,7 +165,7 @@ func TestSend(t *testing.T) {
 		t.Fatalf("could not find peer: %s", err)
 	}
 
-	msg := []byte("hello there")
+	msg := []byte("hello there\n")
 	err = sa.Send(peer, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
