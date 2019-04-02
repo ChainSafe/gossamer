@@ -220,3 +220,39 @@ func TestBroadcast(t *testing.T) {
 
 	time.Sleep(time.Second)
 }
+
+func TestStop(t *testing.T) {
+	ipfsNode, err := StartIpfsNode()
+	if err != nil {
+		t.Fatalf("Could not start IPFS node: %s", err)
+	}
+
+	defer ipfsNode.Close()
+
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+
+	t.Log("ipfsAddr:", ipfsAddr)
+
+	testServiceConfig := &ServiceConfig{
+		BootstrapNodes: []string{
+			ipfsAddr,
+		},
+		Port: 7001,
+	}
+
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := s.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	err = s.Stop()
+	if err != nil {
+		t.Errorf("Stop error: %s", err)
+	}
+}

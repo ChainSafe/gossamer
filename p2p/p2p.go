@@ -110,8 +110,8 @@ func (s *Service) start(e chan error) {
 }
 
 // Stop stops the p2p service
-func (s *Service) Stop() {
-	// TODO
+func (s *Service) Stop() error {
+	return s.host.Close()
 }
 
 // Broadcast sends a message to all peers
@@ -170,7 +170,7 @@ func (s *Service) Ctx() context.Context {
 }
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
-	// TODO: get external ip
+	// TODO: get externa1l ip
 	ip := "0.0.0.0"
 
 	priv, err := generateKey(sc.RandSeed)
