@@ -180,8 +180,8 @@ func TestEncodeLeaves(t *testing.T) {
 }
 
 func TestEncodeExtensions(t *testing.T) {
-	randKeys := generateRand(10)
-	randLeafKeys := generateRand(10)
+	randKeys := generateRand(100)
+	randLeafKeys := generateRand(100)
 	randLeafVals := generateRand(100)
 
 	for i, testKey := range randKeys {
@@ -215,6 +215,32 @@ func TestEncodeExtensions(t *testing.T) {
 			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
 		} else if err != nil {
 			t.Errorf("Fail when encoding node length: %s", err)
+		}
+	}
+}
+
+func TestEncodeRoot(t *testing.T) {
+	trie := newEmpty()
+
+	for i := 0; i < 20; i++ {
+		rt := generateRandTest(16)
+		for _, test := range rt {
+			err := trie.Put(test.key, test.value)
+			if err != nil {
+				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			}
+
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+
+			_, err = Encode(trie.root)
+			if err != nil {
+				t.Errorf("Fail to encode trie root: %s", err)
+			}
 		}
 	}
 }
