@@ -64,7 +64,7 @@ func generateRandTest(size int) []randTest {
 	r := *rand.New(rand.NewSource(rand.Int63()))
 	for i := range rt {
 		rt[i] = randTest{}
-		buf := make([]byte, r.Intn(128))
+		buf := make([]byte, r.Intn(379)+1)
 		r.Read(buf)
 		rt[i].key = buf
 

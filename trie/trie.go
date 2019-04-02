@@ -37,10 +37,10 @@ func NewTrie(db polkadb.Database, root node, merkleRoot [32]byte) *Trie {
 
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
-	if key == nil {
+	if key == nil || len(key) == 0 {
 		return errors.New("cannot put nil key")
 	}
-	
+
 	if err := t.tryPut(key, value); err != nil {
 		return err
 	}
