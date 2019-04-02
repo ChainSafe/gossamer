@@ -212,6 +212,13 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	sa := sim.nodes[0]
+	for _, peer := range sim.nodes[1:] {
+		_, err := sa.dht.FindPeer(sa.ctx, peer.host.ID())
+		if err != nil {
+			fmt.Errorf("could not find peer: %s", err)
+		}
+	}
+
 	msg := []byte("hello there\n")
 	err = sa.Broadcast(msg)
 	if err != nil {

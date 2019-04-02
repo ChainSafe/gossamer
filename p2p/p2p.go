@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	mrand "math/rand"
+	"sync"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -116,17 +117,41 @@ func (s *Service) Stop() error {
 
 // Broadcast sends a message to all peers
 func (s *Service) Broadcast(msg []byte) (err error) {
-	for _, peerid := range s.host.Peerstore().Peers() {
-		go func() {
+	peers := s.host.Peerstore().Peers()
+	e := make(chan error, len(peers))
+	var wg sync.WaitGroup
+
+	for _, peerid := range peers {
+		wg.Add(1)
+
+		go func(e chan error) {
+			defer wg.Done()
 			peer, err := s.dht.FindPeer(s.ctx, peerid)
 			if err != nil {
 				fmt.Errorf("could not find peer: %s", err)
 			}
 
 			err = s.Send(peer, msg)
-		}()
+			if err != nil {
+				e <- err
+			}
+		}(e)
 	}
-	return err
+
+	wg.Wait()
+
+	close(e)
+	count := 0
+	for err = range e {
+		if err != nil {
+			count++
+		}
+	}
+	if count == len(peers) {
+		return fmt.Errorf("failed to broadcast: %s", err)
+	}
+
+	return nil
 }
 
 // Send sends a message to a specific peer
@@ -187,7 +212,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
-		libp2p.NATPortMap(),
+		//libp2p.NATPortMap(),
 	}, nil
 }
 
