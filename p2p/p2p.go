@@ -116,11 +116,13 @@ func (s *Service) Stop() error {
 }
 
 // Broadcast sends a message to all peers
-func (s *Service) Broadcast(msg []byte) (err error) {
+func (s *Service) Broadcast(msg []byte) (error) {
 	peers := s.host.Peerstore().Peers()
 	e := make(chan error, len(peers))
 	var wg sync.WaitGroup
 
+	// for each peer, find the peer in the DHT and send them a message
+	// done concurrently
 	for _, peerid := range peers {
 		wg.Add(1)
 
@@ -128,7 +130,7 @@ func (s *Service) Broadcast(msg []byte) (err error) {
 			defer wg.Done()
 			peer, err := s.dht.FindPeer(s.ctx, peerid)
 			if err != nil {
-				fmt.Errorf("could not find peer: %s", err)
+				e <- fmt.Errorf("could not find peer: %s", err)
 			}
 
 			err = s.Send(peer, msg)
@@ -140,8 +142,10 @@ func (s *Service) Broadcast(msg []byte) (err error) {
 
 	wg.Wait()
 
+	// once all messages have been sent, empty errs channel and count errs
 	close(e)
 	count := 0
+	var err error
 	for err = range e {
 		if err != nil {
 			count++
