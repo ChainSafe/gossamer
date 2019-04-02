@@ -116,8 +116,17 @@ func (s *Service) Stop() {
 
 // Broadcast sends a message to all peers
 func (s *Service) Broadcast(msg []byte) (err error) {
-	// TODO
-	return nil
+	for _, peerid := range s.host.Peerstore().Peers() {
+		go func() {
+			peer, err := s.dht.FindPeer(s.ctx, peerid)
+			if err != nil {
+				fmt.Errorf("could not find peer: %s", err)
+			}
+
+			err = s.Send(peer, msg)
+		}()
+	}
+	return err
 }
 
 // Send sends a message to a specific peer
@@ -215,7 +224,7 @@ func handleStream(stream net.Stream) {
 	}
 
 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
+	_, err = rw.WriteString("hello friend\n")
 	if err != nil {
 		return
 	}

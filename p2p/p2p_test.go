@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
@@ -165,7 +166,7 @@ func TestSend(t *testing.T) {
 		t.Fatalf("could not find peer: %s", err)
 	}
 
-	msg := []byte("hello there")
+	msg := []byte("hello there\n")
 	err = sa.Send(peer, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
@@ -193,4 +194,29 @@ func TestPing(t *testing.T) {
 	if err != nil {
 		t.Errorf("Ping error: %s", err)
 	}
+}
+
+func TestBroadcast(t *testing.T) {
+	sim, err := NewSimulator(2)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer sim.ipfsNode.Close()
+
+	for _, node := range sim.nodes {
+		e := node.Start()
+		if <-e != nil {
+			log.Println("start err: ", err)
+		}
+	}
+
+	sa := sim.nodes[0]
+	msg := []byte("hello there\n")
+	err = sa.Broadcast(msg)
+	if err != nil {
+		t.Errorf("Broadcast error: %s", err)
+	}
+
+	time.Sleep(time.Second)
 }
