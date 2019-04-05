@@ -21,7 +21,7 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	routing "github.com/libp2p/go-libp2p-routing"
+	//routing "github.com/libp2p/go-libp2p-routing"
 	//config "github.com/libp2p/go-libp2p/config"
 )
 
@@ -43,10 +43,10 @@ type ServiceConfig struct {
 	RandSeed       int64
 }
 
-func routeDHT(h host.Host) (routing.PeerRouting, error) {
-	dstore := dsync.MutexWrap(ds.NewMapDatastore())
-	return kaddht.NewDHT(context.Background(), h, dstore), nil
-}
+// func routeDHT(h host.Host) (routing.PeerRouting, error) {
+// 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
+// 	return kaddht.NewDHT(context.Background(), h, dstore), nil
+// }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *ServiceConfig) (*Service, error) {
@@ -56,7 +56,7 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	opts = append(opts, libp2p.Routing(routeDHT))
+	//opts = append(opts, libp2p.Routing(routeDHT))
 
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
@@ -146,10 +146,12 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 
 // Ping pings a peer
 func (s *Service) Ping(peer peer.ID) error {
-	_, err := s.dht.FindPeer(s.ctx, peer)
+	ps, err := s.dht.FindPeer(s.ctx, peer)
 	if err != nil {
 		return fmt.Errorf("could not find peer: %s", err)
 	}
+
+	err = s.host.Connect(s.ctx, ps)
 
 	return s.dht.Ping(s.ctx, peer)
 }
@@ -185,7 +187,8 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.EnableAutoRelay(),
+		//libp2p.EnableAutoRelay(),
+		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 	}, nil
