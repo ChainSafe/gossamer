@@ -21,8 +21,6 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	//routing "github.com/libp2p/go-libp2p-routing"
-	//config "github.com/libp2p/go-libp2p/config"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
