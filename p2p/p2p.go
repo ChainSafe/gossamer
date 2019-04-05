@@ -21,6 +21,8 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+	//routing "github.com/libp2p/go-libp2p-routing"
+	//config "github.com/libp2p/go-libp2p/config"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -179,26 +181,25 @@ func (s *Service) Ctx() context.Context {
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
-	//ip := "0.0.0.0"
+	ip := "0.0.0.0"
 
-	// priv, err := generateKey(sc.RandSeed)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	priv, err := generateKey(sc.RandSeed)
+	if err != nil {
+		return nil, err
+	}
 
-	// addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
-	// if err != nil {
-	// 	return nil, err
-	// }
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
+	if err != nil {
+		return nil, err
+	}
 
 	return []libp2p.Option{
-		// libp2p.ListenAddrs(addr),
-		// //libp2p.EnableAutoRelay(),
-		// libp2p.DisableRelay(),
-		// libp2p.Identity(priv),
-		// libp2p.NATPortMap(),
-		// libp2p.Ping(true),
-		libp2p.Defaults,
+		libp2p.ListenAddrs(addr),
+		//libp2p.EnableAutoRelay(),
+		libp2p.DisableRelay(),
+		libp2p.Identity(priv),
+		libp2p.NATPortMap(),
+		libp2p.Ping(true),
 	}, nil
 }
 
