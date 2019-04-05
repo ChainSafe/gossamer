@@ -131,6 +131,11 @@ func (s *Service) Broadcast(msg []byte) (err error) {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
+	err := s.host.Connect(s.ctx, peer)
+	if err != nil {
+		return err
+	}
+
 	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
 	if err != nil {
 		return err
@@ -152,6 +157,9 @@ func (s *Service) Ping(peer peer.ID) error {
 	}
 
 	err = s.host.Connect(s.ctx, ps)
+	if err != nil {
+		return err
+	}
 
 	return s.dht.Ping(s.ctx, peer)
 }
@@ -173,24 +181,26 @@ func (s *Service) Ctx() context.Context {
 
 func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
-	ip := "0.0.0.0"
+	//ip := "0.0.0.0"
 
-	priv, err := generateKey(sc.RandSeed)
-	if err != nil {
-		return nil, err
-	}
+	// priv, err := generateKey(sc.RandSeed)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
-	if err != nil {
-		return nil, err
-	}
+	// addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return []libp2p.Option{
-		libp2p.ListenAddrs(addr),
-		//libp2p.EnableAutoRelay(),
-		libp2p.DisableRelay(),
-		libp2p.Identity(priv),
-		libp2p.NATPortMap(),
+		// libp2p.ListenAddrs(addr),
+		// //libp2p.EnableAutoRelay(),
+		// libp2p.DisableRelay(),
+		// libp2p.Identity(priv),
+		// libp2p.NATPortMap(),
+		// libp2p.Ping(true),
+		libp2p.Defaults,
 	}, nil
 }
 
