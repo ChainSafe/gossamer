@@ -176,7 +176,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.EnableRelay(),
+		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 	}, nil
