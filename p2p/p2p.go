@@ -41,11 +41,6 @@ type ServiceConfig struct {
 	RandSeed       int64
 }
 
-// func routeDHT(h host.Host) (routing.PeerRouting, error) {
-// 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
-// 	return kaddht.NewDHT(context.Background(), h, dstore), nil
-// }
-
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *ServiceConfig) (*Service, error) {
 	ctx := context.Background()
@@ -53,8 +48,6 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//opts = append(opts, libp2p.Routing(routeDHT))
 
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
@@ -193,7 +186,6 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		//libp2p.EnableAutoRelay(),
 		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
