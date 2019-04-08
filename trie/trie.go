@@ -33,7 +33,7 @@ func NewTrie(db *Database, root node) *Trie {
 
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
-	if key == nil {
+	if len(key) == 0 {
 		return errors.New("cannot put nil key")
 	}
 

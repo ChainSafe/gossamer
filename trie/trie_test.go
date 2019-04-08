@@ -198,7 +198,7 @@ func TestPutAndGet(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandTest(1000)
+	rt := generateRandTest(100)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {

@@ -8,5 +8,5 @@ import (
 // Database is a wrapper around a polkadb
 type Database struct {
 	db   polkadb.Database
-	lock sync.RWMutex
+	//lock sync.RWMutex
 }
