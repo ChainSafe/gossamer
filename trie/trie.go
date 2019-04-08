@@ -77,8 +77,29 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 	case *branch:
 		ok, n, err = t.updateBranch(p, prefix, key, value)
 	case nil:
-		n = &branch{key: key, value: value}
-		ok = true
+		switch v := value.(type) {
+		case *branch:
+			n = value
+			ok = true		
+		case *leaf:
+			n = &leaf{key, v.value}
+		} 
+	case *leaf:
+		br := new(branch)
+		length := lenCommonPrefix(key, p.key)
+		br.key = key[:length]
+		if length == len(p.key) {
+			br.value = p.value
+			//value.(*leaf).key = value.(*leaf).key[length:]
+			br.children[key[length]] = value
+		} else {
+			br.children[p.key[length]] = p
+			br.children[key[length]] = value
+		}
+
+		return ok, br, nil
+
+		//ok, n, err = t.updateBranch(br, prefix, key, value)		
 	default:
 		err = errors.New("put error: invalid node")
 	}
@@ -172,7 +193,8 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 	// fmt.Printf("KEY AT LENGTH %x: %x\n", length, key[length])
 
 	fmt.Printf("INSERTING AT %x\n", p.key[length])
-	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p.value)
+
+	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p)
 	if err != nil {
 		return false, nil, err
 	}
@@ -233,8 +255,8 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 		// if len(key)-i < len(p.key) || !bytes.Equal(p.key, key[i:i+len(p.key)]) {
 		// 	return nil, nil
 		// }
-		//fmt.Printf("PARENTKEY %x\n", p.key)
-		//fmt.Printf("KEY %x\n", key)
+		fmt.Printf("PARENTKEY %x\n", p.key)
+		fmt.Printf("KEY %x\n", key)
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) {
@@ -246,19 +268,15 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 		length := lenCommonPrefix(p.key, key)
 
-		// key not found in trie
-		// if length < len(p.key) {
-		// 	return nil, nil
-		// }
-
-		//fmt.Printf("KEY AT LEN %x: %x\n", length, key[length])
+		fmt.Printf("KEY AT LEN %x: %x\n", length, key[length])
 
 		// if branch's child at the key is a leaf, return it
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
 			value = &leaf{key: key[length:], value: v.value}
+			fmt.Println("got leaf")
 		default:
-			value, err = t.retrieve(p.children[key[length]], key)
+			value, err = t.retrieve(p.children[key[length]], key[length:])
 		}
 	case *leaf:
 		value = p

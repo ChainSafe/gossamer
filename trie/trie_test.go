@@ -119,14 +119,21 @@ func TestBranch(t *testing.T) {
 		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
 	}
 
-	// val, err := trie.Get([]byte("noot"))
-	// if err != nil {
-	// 	t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	// } else if !bytes.Equal(val, nil) {
-	// 	t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
-	// }
+	val, err := trie.Get([]byte("noot"))
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key1, err.Error())
+	} else if !bytes.Equal(val, nil) {
+		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
+	}
 
-	val, err := trie.Get(key1)
+	val, err = trie.Get([]byte{0})
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key1, err.Error())
+	} else if !bytes.Equal(val, nil) {
+		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
+	}
+
+	val, err = trie.Get(key1)
 	if err != nil {
 		t.Errorf("Fail to get key %x: %s", key1, err.Error())
 	} else if !bytes.Equal(val, value1) {
@@ -155,26 +162,94 @@ func TestBranch(t *testing.T) {
 	}
 }
 
-// func TestPutAndGet(t *testing.T) {
-// 	trie := newEmpty()
+func TestBranchMore(t *testing.T) {
+	trie := newEmpty()
 
-// 	for i := 0; i < 20; i++ {
-// 		rt := generateRandTest(100)
-// 		for _, test := range rt {
-// 			err := trie.Put(test.key, test.value)
-// 			if err != nil {
-// 				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-// 			}
+	key1 := []byte{0x01}
+	value1 := []byte("spaghetti")
+	key2 := []byte{0x02}
+	value2 := []byte("gnocchi")
+	key3 := []byte{0xf7}
+	value3 := []byte("ramen")
+	key4 := []byte{0x43}
+	value4 := []byte("pho")
 
-// 			val, err := trie.Get(test.key)
-// 			if err != nil {
-// 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-// 			} else if !bytes.Equal(val, test.value) {
-// 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-// 			}
-// 		}
-// 	}
-// }
+	err := trie.Put(key1, value1)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	}
+
+	err = trie.Put(key2, value2)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
+	}
+
+	err = trie.Put(key3, value3)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
+	}
+
+	err = trie.Put(key4, value4)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
+	}
+
+	val, err := trie.Get([]byte{0})
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key1, err.Error())
+	} else if !bytes.Equal(val, nil) {
+		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
+	}
+
+	val, err = trie.Get(key1)
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key1, err.Error())
+	} else if !bytes.Equal(val, value1) {
+		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
+	}
+
+	val, err = trie.Get(key2)
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key2, err.Error())
+	} else if !bytes.Equal(val, value2) {
+		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
+	}
+
+	val, err = trie.Get(key3)
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key3, err.Error())
+	} else if !bytes.Equal(val, value3) {
+		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
+	}
+
+	val, err = trie.Get(key4)
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key4, err.Error())
+	} else if !bytes.Equal(val, value4) {
+		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
+	}
+}
+
+func TestPutAndGet(t *testing.T) {
+	trie := newEmpty()
+
+	for i := 0; i < 20; i++ {
+		rt := generateRandTest(100)
+		for _, test := range rt {
+			err := trie.Put(test.key, test.value)
+			if err != nil {
+				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			}
+
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+		}
+	}
+}
 
 // func TestDelete(t *testing.T) {
 // 	trie := newEmpty()
