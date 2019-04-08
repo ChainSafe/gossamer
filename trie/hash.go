@@ -180,11 +180,11 @@ func (l *leaf) Hash() (h []byte, err error) {
 
 	// otherwise, hash encoded node
 	_, err = hasher.hash.Write(encLeaf)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		h = hasher.hash.Sum(nil)
 	}
 
-	return hasher.hash.Sum(nil), nil
+	return h, err
 }
 
 func (e *extension) Hash() (h []byte, err error) {
@@ -205,11 +205,11 @@ func (e *extension) Hash() (h []byte, err error) {
 
 	// otherwise, hash encoded node
 	_, err = hasher.hash.Write(encExt)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		h = hasher.hash.Sum(nil)
 	}
 
-	return hasher.hash.Sum(nil), nil
+	return h, err
 }
 
 func (b *branch) Hash() (h []byte, err error) {
@@ -230,9 +230,9 @@ func (b *branch) Hash() (h []byte, err error) {
 
 	// otherwise, hash encoded node
 	_, err = hasher.hash.Write(encBranch)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		h = hasher.hash.Sum(nil)
 	}
 
-	return hasher.hash.Sum(nil), nil
+	return h, err
 }
