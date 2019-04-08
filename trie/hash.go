@@ -55,7 +55,7 @@ func (l *leaf) Encode() ([]byte, error) {
 	encHex := hexcodec.Encode(l.key)
 
 	buf := bytes.Buffer{}
-	encoder := &scale.Encoder{&buf}
+	encoder := &scale.Encoder{Writer: &buf}
 	_, err = encoder.Encode(l.value)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (e *extension) Encode() (h []byte, err error) {
 	}
 
 	buf := bytes.Buffer{}
-	encoder := &scale.Encoder{&buf}
+	encoder := &scale.Encoder{Writer: &buf}
 	_, err = encoder.Encode(childHash)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (b *branch) Encode() (h []byte, err error) {
 	encNode := append([]byte{prefix}, uint16ToBytes(bitmap)...)
 
 	buf := bytes.Buffer{}
-	encoder := &scale.Encoder{&buf}
+	encoder := &scale.Encoder{Writer: &buf}
 
 	if b.children[16] != nil {
 		_, err = encoder.Encode(b.children[16].(*leaf).value)
@@ -150,86 +150,23 @@ func encodeLen(n node) (encLen []byte, err error) {
 
 // Hash is the high-level function around individual node hashing functions
 func Hash(n node) (h []byte, err error) {
-	switch n := n.(type) {
-	case *leaf:
-		return n.Hash()
-	case *extension:
-		return n.Hash()
-	case *branch:
-		return n.Hash()
-	default:
-		return nil, errors.New("cannot encode: invalid node")
-	}
-}
-
-func (l *leaf) Hash() (h []byte, err error) {
 	hasher, err := newHasher()
 	if err != nil {
 		return nil, err
 	}
 
-	encLeaf, err := l.Encode()
+	encNode, err := n.Encode()
 	if err != nil {
 		return nil, err
 	}
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
-	if len(encLeaf) < 32 {
-		return encLeaf, nil
+	if len(encNode) < 32 {
+		return encNode, nil
 	}
 
 	// otherwise, hash encoded node
-	_, err = hasher.hash.Write(encLeaf)
-	if err == nil {
-		h = hasher.hash.Sum(nil)
-	}
-
-	return h, err
-}
-
-func (e *extension) Hash() (h []byte, err error) {
-	hasher, err := newHasher()
-	if err != nil {
-		return nil, err
-	}
-
-	encExt, err := e.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	// if length of encoded leaf is less than 32 bytes, do not hash
-	if len(encExt) < 32 {
-		return encExt, nil
-	}
-
-	// otherwise, hash encoded node
-	_, err = hasher.hash.Write(encExt)
-	if err == nil {
-		h = hasher.hash.Sum(nil)
-	}
-
-	return h, err
-}
-
-func (b *branch) Hash() (h []byte, err error) {
-	hasher, err := newHasher()
-	if err != nil {
-		return nil, err
-	}
-
-	encBranch, err := b.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	// if length of encoded leaf is less than 32 bytes, do not hash
-	if len(encBranch) < 32 {
-		return encBranch, nil
-	}
-
-	// otherwise, hash encoded node
-	_, err = hasher.hash.Write(encBranch)
+	_, err = hasher.hash.Write(encNode)
 	if err == nil {
 		h = hasher.hash.Sum(nil)
 	}

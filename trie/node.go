@@ -2,7 +2,6 @@ package trie
 
 type node interface {
 	Encode() ([]byte, error)
-	Hash() ([]byte, error)
 }
 
 type (
