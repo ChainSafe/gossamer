@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	//"log"
+	"log"
 	"testing"
 
 	datastore "github.com/ipfs/go-datastore"
@@ -15,10 +15,10 @@ import (
 )
 
 // This is used in the tests that are failing on CI
-// type Simulator struct {
-// 	nodes    []*Service
-// 	ipfsNode *ipfs.IpfsNode
-// }
+type Simulator struct {
+	nodes    []*Service
+	ipfsNode *ipfs.IpfsNode
+}
 
 var testIdentity = config.Identity{
 	PeerID:  "QmNgdzLieYi8tgfo2WfTUzNVH5hQK9oAYGVf6dxN12NrHt",
@@ -26,39 +26,39 @@ var testIdentity = config.Identity{
 }
 
 // This is used in the tests that are failing on CI
-// func NewSimulator(num int) (sim *Simulator, err error) {
-// 	sim = new(Simulator)
-// 	sim.nodes = make([]*Service, num)
+func NewSimulator(num int) (sim *Simulator, err error) {
+	sim = new(Simulator)
+	sim.nodes = make([]*Service, num)
 
-// 	// start local ipfs daemon
-// 	ipfsNode, err := StartIpfsNode()
-// 	if err != nil {
-// 		log.Fatalf("Could not start IPFS node: %s", err)
-// 	}
+	// start local ipfs daemon
+	ipfsNode, err := StartIpfsNode()
+	if err != nil {
+		log.Fatalf("Could not start IPFS node: %s", err)
+	}
 
-// 	sim.ipfsNode = ipfsNode
+	sim.ipfsNode = ipfsNode
 
-// 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-// 	log.Println("ipfsAddr:", ipfsAddr)
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+	log.Println("ipfsAddr:", ipfsAddr)
 
-// 	// create all nodes, increment port by 1 each time
-// 	for i := 0; i < num; i++ {
-// 		// configure p2p service
-// 		conf := &ServiceConfig{
-// 			BootstrapNodes: []string{
-// 				ipfsAddr,
-// 			},
-// 			Port: 5000 + i,
-// 		}
-// 		sim.nodes[i] = new(Service)
-// 		sim.nodes[i], err = NewService(conf)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
+	// create all nodes, increment port by 1 each time
+	for i := 0; i < num; i++ {
+		// configure p2p service
+		conf := &ServiceConfig{
+			BootstrapNodes: []string{
+				ipfsAddr,
+			},
+			Port: 5000 + i,
+		}
+		sim.nodes[i] = new(Service)
+		sim.nodes[i], err = NewService(conf)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-// 	return sim, nil
-// }
+	return sim, nil
+}
 
 func StartIpfsNode() (*ipfs.IpfsNode, error) {
 	id := testIdentity
