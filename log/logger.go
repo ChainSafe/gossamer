@@ -135,17 +135,17 @@ func (o *output) logLevelString() string {
 
 //// InfoF logs a message at Info level using the same syntax and options as fmt.Printf
 //func (l *Logger) InfoF(format string, a ...interface{}) {
-//	l.log_internal(Info, fmt.Sprintf(format, a...), 2)
+//	l.Output(Info, fmt.Sprintf(format, a...), 2)
 //}
 //
 //// Debug logs a message at Debug level
 //func (l *Logger) Debug(message string) {
-//	l.log_internal(Debug, message, 2)
+//	l.Output(Debug, message, 2)
 //}
 //
 //// DebugF logs a message at Debug level using the same syntax and options as fmt.Printf
 //func (l *Logger) DebugF(format string, a ...interface{}) {
-//	l.log_internal(Debug, fmt.Sprintf(format, a...), 2)
+//	l.Output(Debug, fmt.Sprintf(format, a...), 2)
 //}
 
 
@@ -154,26 +154,26 @@ func (o *output) logLevelString() string {
 
 //// CriticalF logs a message at Critical level using the same syntax and options as fmt.Printf
 //func (l *Logger) Criticalf(format string, a ...interface{}) {
-//	l.log_internal(Critical, fmt.Sprintf(format, a...), 2)
+//	l.Output(Critical, fmt.Sprintf(format, a...), 2)
 //}
 //
 //// Error logs a message at Error level
 //func (l *Logger) Error(message string) {
-//	l.log_internal(Err, message, 2)
+//	l.Output(Err, message, 2)
 //}
 //
 //// ErrorF logs a message at Error level using the same syntax and options as fmt.Printf
 //func (l *Logger) ErrorF(format string, a ...interface{}) {
-//	l.log_internal(Err, fmt.Sprintf(format, a...), 2)
+//	l.Output(Err, fmt.Sprintf(format, a...), 2)
 //}
 //
 //// Warning logs a message at Warning level
 //func (l *Logger) Warning(message string) {
-//	l.log_internal(Warn, message, 2)
+//	l.Output(Warn, message, 2)
 //}
 //
 //// WarningF logs a message at Warning level using the same syntax and options as fmt.Printf
 //func (l *Logger) WarningF(format string, a ...interface{}) {
-//	l.log_internal(Warn, fmt.Sprintf(format, a...), 2)
+//	l.Output(Warn, fmt.Sprintf(format, a...), 2)
 //}
 
