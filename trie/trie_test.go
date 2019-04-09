@@ -234,7 +234,7 @@ func TestPutAndGet(t *testing.T) {
 	trie := newEmpty()
 
 	for i := 0; i < 20; i++ {
-		rt := generateRandTest(100)
+		rt := generateRandTest(1000)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {

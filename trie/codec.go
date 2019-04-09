@@ -20,7 +20,7 @@ func KeyEncode(k []byte) []byte {
 
 // keyToHex turns bytes into nibbles
 func keyToHex(in []byte) []byte {
-	l := len(in)*2
+	l := len(in) * 2
 	res := make([]byte, l)
 	for i, b := range in {
 		res[2*i] = b / 16
@@ -33,10 +33,10 @@ func keyToHex(in []byte) []byte {
 // hexToKey performs the opposite of keyToHex; turns nibbles back into bytes
 // removes last byte if length of input is odd (set to 16 if using keyToHex)
 func hexToKey(in []byte) []byte {
-	l := len(in) / 2 
+	l := len(in) / 2
 	res := make([]byte, l)
 	for i := 0; i < len(in)-1; i = i + 2 {
-		res[i/2] = in[i+1]| in[i]<<4 
+		res[i/2] = in[i+1] | in[i]<<4
 	}
 	return res
 }
@@ -45,8 +45,6 @@ func hexToKey(in []byte) []byte {
 // BigKeySize is 125 if node is extension, 126 if node is leaf
 func bigKeySize(n node) int {
 	switch n.(type) {
-	// case *extension:
-	// 	return 125
 	case *leaf:
 		return 126
 	default:
@@ -59,8 +57,6 @@ func getPrefix(n node) (prefix byte) {
 	switch n := n.(type) {
 	case *leaf:
 		return 1
-	// case *extension:
-	// 	return 128
 	case *branch:
 		if n.value == nil {
 			// branch without value

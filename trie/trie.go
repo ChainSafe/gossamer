@@ -78,10 +78,10 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 		switch v := value.(type) {
 		case *branch:
 			n = value
-			ok = true		
+			ok = true
 		case *leaf:
 			n = &leaf{key, v.value}
-		} 
+		}
 	case *leaf:
 		br := new(branch)
 		length := lenCommonPrefix(key, p.key)
@@ -115,10 +115,8 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 			value.(*leaf).key = nil
 			p.value = value
 			return true, p, nil
-		} 
+		}
 
-		//fmt.Printf("NEW VALUE KEY %x\n", key[length+1:])
-		// NOTE: do we need to switch for leaf/branch ?
 		value.(*leaf).key = key[length+1:]
 
 		// otherwise, add value as child of this branch
@@ -168,12 +166,6 @@ func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
 func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	switch p := parent.(type) {
 	case *branch:
-		// if len(key)-i < len(p.key) || !bytes.Equal(p.key, key[i:i+len(p.key)]) {
-		// 	return nil, nil
-		// }
-		//fmt.Printf("PARENTKEY %x\n", p.key)
-		//fmt.Printf("KEY %x\n", key)
-
 		// found the value at this node
 		if bytes.Equal(p.key, key) {
 			if p.value == nil {
@@ -191,8 +183,6 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 		}
 
 		length := lenCommonPrefix(p.key, key)
-
-		//fmt.Printf("KEY AT LEN %x: %x\n", length, key[length])
 
 		// if branch's child at the key is a leaf, return it
 		switch v := p.children[key[length]].(type) {
@@ -223,98 +213,8 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err error) {
-	// switch p := parent.(type) {
-	// // case *extension:
-	// // 	ok, n, err = t.deleteFromExtension(p, prefix, key)
-	// case *branch:
-	// 	ok, n, err = t.deleteFromBranch(p, prefix, key)
-	// case *leaf:
-	// 	ok = true
-	// case nil:
-	// 	// do nothing
-	// default:
-	// 	err = errors.New("delete error: invalid node")
-	// }
-
-	// return ok, n, err
-
 	return true, nil, nil
 }
-
-// func (t *Trie) deleteFromExtension(p *extension, prefix, key []byte) (ok bool, n node, err error) {
-// 	length := lenCommonPrefix(key, p.key)
-
-// 	// matching key is shorter than parent key, don't replace
-// 	if length < len(p.key) {
-// 		return false, p, nil
-// 	}
-
-// 	// key matches, delete this node
-// 	if length == len(key) {
-// 		return true, nil, nil
-// 	}
-
-// 	// the matching key is longer than the parent's key, so the node to delete
-// 	// is somewhere in the extension's subtrie
-// 	// try to delete the child from the subtrie
-// 	var child node
-// 	ok, child, err = t.delete(p.value, append(prefix, key[:len(p.key)]...), key[len(p.key):])
-// 	if !ok || err != nil {
-// 		return false, p, err
-// 	}
-
-// 	// if child is also an extension node, we can combine these two extension nodes into one
-// 	switch child := child.(type) {
-// 	case *extension:
-// 		ok = true
-// 		n = &extension{common.Concat(p.key, child.key...), child.value}
-// 	default:
-// 		ok = true
-// 		n = &extension{p.key, child}
-// 	}
-// 	return ok, n, nil
-// }
-
-// func (t *Trie) deleteFromBranch(p *branch, prefix, key []byte) (ok bool, n node, err error) {
-// 	ok, n, err = t.delete(p.children[key[0]], append(prefix, key[0]), key[1:])
-// 	if !ok || err != nil {
-// 		return false, p, err
-// 	}
-
-// 	p.children[key[0]] = n
-
-// 	// check how many children are in this branch
-// 	// if there are only two children, and we're deleting one, we can turn this branch into an extension
-// 	// otherwise, leave it as a branch
-// 	// when the loop exits, pos will be the index of the other child (if only 2 children) or -2 if there
-// 	// multiple children
-// 	pos := -1
-// 	for i, child := range &p.children {
-// 		if child != nil && pos == -1 {
-// 			pos = i
-// 		} else if child != nil {
-// 			pos = -2
-// 			break
-// 		}
-// 	}
-
-// 	// if there is only one other child, and it's not the branch's value, replace it with an extension
-// 	// and attach the branch's key nibble onto the front of the extension key
-// 	if pos >= 0 {
-// 		if pos != 16 {
-// 			child := p.children[pos]
-// 			if child, ok := child.(*extension); ok {
-// 				k := append([]byte{byte(pos)}, child.key...)
-// 				return true, &extension{k, child.value}, nil
-// 			}
-// 		}
-// 		ok = true
-// 		n = &extension{[]byte{byte(pos)}, p.children[pos]}
-// 		return ok, n, nil
-// 	}
-
-// 	return true, p, nil
-// }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
 func lenCommonPrefix(a, b []byte) int {

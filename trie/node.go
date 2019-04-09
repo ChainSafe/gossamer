@@ -6,9 +6,9 @@ type node interface {
 
 type (
 	branch struct {
-		key 	[]byte // partial key
+		key      []byte // partial key
 		children [16]node
-		value 	node
+		value    node
 	}
 	leaf struct {
 		key   []byte // partial key
