@@ -112,14 +112,14 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 		if bytes.Equal(key, p.key) {
 			value.(*leaf).key = nil
 			p.value = value
-			return true, p, nil
+		} else {
+			value.(*leaf).key = key[length+1:]
+
+			// otherwise, add value as child of this branch
+			p.children[key[length]] = value
 		}
-
-		value.(*leaf).key = key[length+1:]
-
-		// otherwise, add value as child of this branch
-		p.children[key[length]] = value
-		return true, p, nil
+		
+		return true, p, nil		
 	}
 
 	// otherwise, we need to branch out at the point where the keys diverge
