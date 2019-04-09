@@ -288,40 +288,40 @@ func TestPutAndGet(t *testing.T) {
 // 	}
 // }
 
-// func TestGetPartialKey(t *testing.T) {
-// 	trie := newEmpty()
+func TestGetPartialKey(t *testing.T) {
+	trie := newEmpty()
 
-// 	key1 := []byte{0x00, 0x01, 0x03}
-// 	value1 := []byte("pen")
-// 	key2 := []byte{0x00, 0x01, 0x03, 0x05, 0x07}
-// 	value2 := []byte("penguin")
-// 	pk := []byte{0x05, 0x07}
+	key1 := []byte{0x00, 0x01, 0x03}
+	value1 := []byte("pen")
+	key2 := []byte{0x00, 0x01, 0x03, 0x05, 0x07}
+	value2 := []byte("penguin")
+	//pk := []byte{0x05, 0x07}
 
-// 	err := trie.Put(key1, value1)
-// 	if err != nil {
-// 		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
-// 	}
+	err := trie.Put(key1, value1)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	}
 
-// 	err = trie.Put(key2, value2)
-// 	if err != nil {
-// 		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-// 	}
+	err = trie.Put(key2, value2)
+	if err != nil {
+		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
+	}
 
-// 	val, err := trie.Get(key1)
-// 	if err != nil {
-// 		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-// 	} else if !bytes.Equal(val, value1) {
-// 		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-// 	}
+	val, err := trie.Get(key1)
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", key1, err.Error())
+	} else if !bytes.Equal(val, value1) {
+		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
+	}
 
-// 	leaf, err := trie.getLeaf(key2)
-// 	if leaf == nil {
-// 		t.Fatalf("Fail to get key %x: nil leaf", key2)
-// 	} else if err != nil {
-// 		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-// 	} else if !bytes.Equal(leaf.value, value2) {
-// 		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-// 	} else if !bytes.Equal(leaf.key, pk) {
-// 		t.Errorf("Fail to get correct partial key %x: got %x", pk, leaf.key)
-// 	}
-// }
+	// leaf, err := trie.getLeaf(key2)
+	// if leaf == nil {
+	// 	t.Fatalf("Fail to get key %x: nil leaf", key2)
+	// } else if err != nil {
+	// 	t.Errorf("Fail to get key %x: %s", key2, err.Error())
+	// } else if !bytes.Equal(leaf.value, value2) {
+	// 	t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
+	// } else if !bytes.Equal(leaf.key, pk) {
+	// 	t.Errorf("Fail to get correct partial key %x: got %x", pk, leaf.key)
+	// }
+}

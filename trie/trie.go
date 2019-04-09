@@ -3,7 +3,7 @@ package trie
 import (
 	"bytes"
 	"errors"
-	"fmt"
+	//"fmt"
 	//"github.com/ChainSafe/gossamer/common"
 )
 
@@ -64,8 +64,6 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 
 // TryPut attempts to insert a key with value into the trie
 func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n node, err error) {
-	fmt.Printf("NODE %x\n", value)
-
 	if len(key) == 0 {
 		if v, ok := parent.(*leaf); ok {
 			return !bytes.Equal(v.value, value.(*leaf).value), value, nil
@@ -90,7 +88,6 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 		br.key = key[:length]
 		if length == len(p.key) {
 			br.value = p.value
-			//value.(*leaf).key = value.(*leaf).key[length:]
 			br.children[key[length]] = value
 		} else {
 			br.children[p.key[length]] = p
@@ -98,8 +95,6 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 		}
 
 		return ok, br, nil
-
-		//ok, n, err = t.updateBranch(br, prefix, key, value)		
 	default:
 		err = errors.New("put error: invalid node")
 	}
@@ -107,62 +102,11 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 	return ok, n, err
 }
 
-// updateExtension attempts to update an extension node to have the value node
-// if the keys match, then set the value of the extension to the value node
-// otherwise, we need to branch out where the keys diverge. we make a branch and
-// try to insert the value node at the diverging key index. if there's already a
-// branch there, move any children to the new branch
-// func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok bool, n node, err error) {
-// 	length := lenCommonPrefix(key, p.key)
-
-// 	// whole parent key matches, so just attach a node to the parent
-// 	if length == len(p.key) {
-// 		// add new node to extension's child branch
-// 		ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
-// 		if !ok || err != nil {
-// 			ok = false
-// 		} else {
-// 			ok = true
-// 			n = &extension{p.key, n}
-// 		}
-// 		return ok, n, err
-// 	}
-
-// 	// otherwise, we need to branch out at the point where the keys diverge
-// 	br := new(branch)
-
-// 	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p.value)
-// 	if err != nil {
-// 		return false, nil, err
-// 	}
-
-// 	_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
-// 	if err != nil {
-// 		return false, nil, err
-// 	}
-
-// 	if length == 0 {
-// 		// no matching prefix, replace this extension with a branch
-// 		ok = true
-// 		n = br
-// 	} else {
-// 		// some prefix matches, replace with extension that starts where the keys diverge
-// 		ok = true
-// 		n = &extension{key[:length], br}
-// 	}
-
-// 	return ok, n, err
-// }
-
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
 func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
 	length := lenCommonPrefix(key, p.key)
-
-	fmt.Printf("PARENT KEY %x\n", p.key)
-
-	fmt.Printf("KEY %x\n", key)
 
 	// whole parent key matches except last nibble
 	if length == len(p.key) {
@@ -173,57 +117,29 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 			return true, p, nil
 		} 
 
-		fmt.Printf("NEW VALUE KEY %x\n", key[length+1:])
-		// TODO: switch for leaf/branch
+		//fmt.Printf("NEW VALUE KEY %x\n", key[length+1:])
+		// NOTE: do we need to switch for leaf/branch ?
 		value.(*leaf).key = key[length+1:]
-		//p.key = p.key[:len(p.key)-1]
+
 		// otherwise, add value as child of this branch
 		p.children[key[length]] = value
 		return true, p, nil
 	}
 
-	fmt.Printf("LENGTH %x\n", length)
-
 	// otherwise, we need to branch out at the point where the keys diverge
 	br := new(branch)
 	br.key = key[:length]
-
-	fmt.Printf("NEW BRANCH KEY %x\n", br.key)
-
-	// fmt.Printf("KEY AT LENGTH %x: %x\n", length, key[length])
-
-	fmt.Printf("INSERTING AT %x\n", p.key[length])
 
 	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p)
 	if err != nil {
 		return false, nil, err
 	}
 
-	fmt.Printf("INSERTING AT %x\n", key[length])
 	_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
 	if err != nil {
 		return false, nil, err
 	}
 
-	// if length == 0 {
-	// 	// no matching prefix, replace this extension with a branch
-	// 	ok = true
-	// 	n = br
-	// } else {
-	// 	// some prefix matches, replace with extension that starts where the keys diverge
-	// 	ok = true
-	// 	n = &branch{key: key[:length]}
-	// }
-
-	// // we need to add an extension to the child that's already there
-	// ok, n, err = t.insert(p.children[key[0]], append(prefix, key[0]), key[1:], value)
-	// if !ok || err != nil {
-	// 	return false, n, err
-	// }
-
-	fmt.Println("BRANCH COMPLETE")
-
-	// p.children[key[0]] = n
 	return true, br, nil
 }
 
@@ -255,26 +171,26 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 		// if len(key)-i < len(p.key) || !bytes.Equal(p.key, key[i:i+len(p.key)]) {
 		// 	return nil, nil
 		// }
-		fmt.Printf("PARENTKEY %x\n", p.key)
-		fmt.Printf("KEY %x\n", key)
+		//fmt.Printf("PARENTKEY %x\n", p.key)
+		//fmt.Printf("KEY %x\n", key)
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) {
 			if p.value == nil {
 				return nil, nil
 			}
+
 			return p.value.(*leaf), nil
 		}
 
 		length := lenCommonPrefix(p.key, key)
 
-		fmt.Printf("KEY AT LEN %x: %x\n", length, key[length])
+		//fmt.Printf("KEY AT LEN %x: %x\n", length, key[length])
 
 		// if branch's child at the key is a leaf, return it
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
 			value = &leaf{key: key[length:], value: v.value}
-			fmt.Println("got leaf")
 		default:
 			value, err = t.retrieve(p.children[key[length]], key[length:])
 		}
