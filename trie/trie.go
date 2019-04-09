@@ -3,8 +3,6 @@ package trie
 import (
 	"bytes"
 	"errors"
-	//"fmt"
-	//"github.com/ChainSafe/gossamer/common"
 )
 
 // Trie is a Merkle Patricia Trie.
