@@ -180,7 +180,14 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 				return nil, nil
 			}
 
-			return p.value.(*leaf), nil
+			switch v := p.value.(type) {
+			case *leaf:
+				return v, nil
+			case []byte:
+				return &leaf{key: hexToKey(key), value: v}, nil
+			default:
+				return nil, errors.New("get error: invalid branch value")
+			}
 		}
 
 		length := lenCommonPrefix(p.key, key)
@@ -190,7 +197,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 		// if branch's child at the key is a leaf, return it
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
-			value = &leaf{key: key[length:], value: v.value}
+			value = &leaf{key: hexToKey(key[length:]), value: v.value}
 		default:
 			value, err = t.retrieve(p.children[key[length]], key[length:])
 		}

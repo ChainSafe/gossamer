@@ -35,8 +35,8 @@ func keyToHex(in []byte) []byte {
 func hexToKey(in []byte) []byte {
 	l := len(in) / 2 
 	res := make([]byte, l)
-	for i := 0; i < len(in); i = i + 2 {
-		res[i/2] = in[i+1]<<4 | in[i]
+	for i := 0; i < len(in)-1; i = i + 2 {
+		res[i/2] = in[i+1]| in[i]<<4 
 	}
 	return res
 }
