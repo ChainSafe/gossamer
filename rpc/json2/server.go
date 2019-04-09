@@ -3,6 +3,7 @@ package json2
 import (
 	"encoding/json"
 	"github.com/ChainSafe/gossamer/rpc"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -10,21 +11,29 @@ import (
 var JSONVersion = "2.0"
 
 type serverRequest struct {
+	// JSON Version
 	Version string `json:"jsonrpc"`
+	// Method name
 	Method string `json:"method"`
+	// Method params
 	Params *json.RawMessage `json:"params"`
+	// Request id, may be int or string
 	Id *json.RawMessage `json:"id"`
 }
 
 
 type serverResponse struct {
+	// JSON Version
 	Version string `json:"jsonrpc"`
+	// TODO: Comment
 	Result interface{} `json:"result"`
+	// Any generated errors
 	Error *Error `json:"error"`
+	// Request id
 	Id *json.RawMessage `json:"id"`
 }
 
-
+// NewCodec creates a Codec instance
 func NewCodec() *Codec {
 	return &Codec{}
 }
@@ -39,9 +48,17 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	req := new(serverRequest)
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
-		// create error struct
+		// TODO: create error struct
+		err = &Error{
+			ErrorCode: ERR_PARSE,
+			Message: err.Error(),
+		}
 	} else if req.Version != JSONVersion {
-		// create error struct
+		// TODO: create error struct
+		err = &Error{
+			ErrorCode: ERR_PARSE,
+			Message: "must be JSON-RPC version " + JSONVersion,
+		}
 	}
 
 	r.Body.Close()
@@ -51,12 +68,16 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 type CodecRequest struct {
 	request *serverRequest
 	err error
-	encoder rpc.Encoder
 	errorMapper func(error) error
 }
 
-func(c *CodecRequest) Method() string {
-	return strings.Title(strings.Replace(c.request.Method, "_", ".", 1))
+func(c *CodecRequest) Method() (string, error) {
+	log.Printf("got: %s modified: %s", c.request.Method, strings.Title(strings.Replace(c.request.Method, "_", ".", 1)))
+	if c.err == nil {
+		return strings.Title(strings.Replace(c.request.Method, "_", ".", 1)), nil
+
+	}
+	return "", c.err
 }
 
 // ReadRequest parses the handler params
@@ -101,7 +122,7 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error){
 
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	encoder := json.NewEncoder(c.encoder.Encode(w))
+	encoder := json.NewEncoder(w)
 	encoder.Encode(res)
 }
 

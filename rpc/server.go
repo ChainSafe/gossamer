@@ -15,7 +15,7 @@ type Codec interface {
 
 // CodecRequest is the interface for a request generated from a codec.
 type CodecRequest interface {
-	Method() string
+	Method() (string, error)
 	ReadRequest(interface{}) error
 	WriteResponse(http.ResponseWriter, interface{})
 	WriteError(w http.ResponseWriter, status int, err error)
@@ -63,7 +63,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("Got application/json request, proceeding...")
 	codecReq := s.codec.NewRequest(r)
-	method := codecReq.Method()
+	method, errMethod := codecReq.Method()
+	if errMethod != nil {
+		codecReq.WriteError(w, http.StatusBadRequest, errMethod)
+	}
 	serviceSpec, methodSpec, errGet := s.services.get(method)
 	if errGet != nil {
 		codecReq.WriteError(w, http.StatusBadRequest, errGet)
