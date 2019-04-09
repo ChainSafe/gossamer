@@ -126,7 +126,7 @@ func (s *Service) Broadcast(msg []byte) error {
 	for _, peerid := range peers {
 		wg.Add(1)
 
-		go func(e chan error) {
+		go func(e chan error, peerid peer.ID) {
 			defer wg.Done()
 			peer, err := s.dht.FindPeer(s.ctx, peerid)
 			if err != nil {
@@ -137,7 +137,7 @@ func (s *Service) Broadcast(msg []byte) error {
 			if err != nil {
 				e <- err
 			}
-		}(e)
+		}(e, peerid)
 	}
 
 	wg.Wait()
