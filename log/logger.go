@@ -3,18 +3,11 @@ package log
 // Import packages
 import (
 	"fmt"
+	"log"
 	"path"
 	"runtime"
-	"sync/atomic"
+	"strings"
 	"time"
-)
-
-var (
-	// Map for the various codes of colors
-	colors map[LogLevel]string
-
-	// Contains color strings for stdout
-	logNo uint64
 )
 
 // LogLevel type
@@ -22,12 +15,14 @@ type LogLevel int
 
 // Color numbers for stdout
 const (
-	red = iota + 30
-	green
-	yellow
-	magenta
-	cyan
+	magenta = 31
+	green = 32
+	yellow = 33
+	cyan = 34
+	red = 35
 )
+
+const escape = "\033[0m"
 
 // Log Level
 const (
@@ -45,6 +40,8 @@ type output struct {
 	Line     int
 	Filename string
 	Message  string
+	Color 	 int
+	Ctx  []interface{}
 }
 
 type Logger interface {
@@ -55,57 +52,100 @@ type Logger interface {
 	Debug(msg string, extra ...interface{})
 }
 
-type logger struct {
-	write  []interface{}
-}
-
-// init pkg
-func init() {
-	initColors()
-}
-
-func (l *logger) Critical(msg string, a ...interface{}) {
-	l.Output(criticalLvl, msg, 2)
-}
-
 // Info logs a message at Info level
-func (l *logger) Info(msg string, a ...interface{}) {
-	l.Output(infoLvl, msg, 2)
+func InfoV(msg string, extra ...interface{}) {
+	fmt.Println(OutputV(infoLvl, msg, extra, 2, green))
 }
 
-// Returns a proper string to output for colored logging
-func colorString(color int) string {
-	return fmt.Sprintf("\033[%dm", int(color))
+func WarnV(msg string, extra ...interface{}) {
+	fmt.Println(OutputV(warnLvl, msg, extra, 2, yellow))
 }
 
-// Initializes the map of colors
-func initColors() {
-	colors = map[LogLevel]string{
-		criticalLvl: colorString(magenta),
-		errLvl:    colorString(red),
-		warnLvl:  colorString(yellow),
-		debugLvl:    colorString(cyan),
-		infoLvl:     colorString(green),
-	}
+func DebugV(msg string, extra ...interface{}) {
+	fmt.Println(OutputV(debugLvl, msg, extra, 2, cyan))
 }
 
-func (l *logger) Output(lvl LogLevel, message string, pos int) string {
+func CriticalV(msg string, extra ...interface{}) {
+	log.Fatal(OutputV(criticalLvl, msg, extra, 2, red))
+}
+
+func ErrV(msg string, extra ...interface{}) {
+	fmt.Println(OutputV(errLvl, msg, extra, 2, magenta))
+}
+
+func colorString(lvl interface{}, color int) string {
+	coloredText := fmt.Sprintf("\033[%dm", color)
+	return fmt.Sprint(coloredText, lvl, escape)
+}
+
+func OutputV(lvl LogLevel, message string, ctx []interface{}, pos, color int) string {
 	_, filename, line, _ := runtime.Caller(pos)
 	filename = path.Base(filename)
 	o:= &output{
-		Id:       atomic.AddUint64(&logNo, 1),
-		Time:     time.Now().Format("yyyy-mm-dd hh:mm:ss"),
+		Time:     time.Now().UTC().Format("2006-01-02T15:04:05.999Z"),
 		Level:    lvl,
 		Message:  message,
+		Ctx: 	  ctx,
 		Filename: filename,
 		Line:     line,
+		Color:	  color,
 	}
-	msg := fmt.Sprintf(o.Message,
-		o.Id,
-		o.Time,
+	return checkLogV(o)
+}
+
+func checkLogV(o *output) string {
+	if o.Color == 35 {
+		return formatCriticalV(o)
+	}
+	if len(o.Ctx) != 0 {
+		return formatLogV(o)
+	}
+	t := "[" + o.Time + "]"
+	padding := strings.Repeat(" ", 10)
+
+	msg := fmt.Sprintf("%s %s %s %+v [%s%s | %s%d]",
+		colorString(o.logLevelString(), o.Color),
+		t,
+		o.Message,
+		padding,
+		colorString("File: ", o.Color),
 		o.Filename,
+		colorString("LN: ", o.Color),
 		o.Line,
-		o.logLevelString(),
+	)
+	return msg
+}
+
+func formatLogV(o *output) string {
+	t := "[" + o.Time + "]"
+	padding := strings.Repeat(" ", 10)
+
+	msg := fmt.Sprintf("%s %s %s %s %+v [%s%s | %s%d]",
+		colorString(o.logLevelString(), o.Color),
+		t,
+		o.Message,
+		o.Ctx,
+		padding,
+		colorString("File: ", o.Color),
+		o.Filename,
+		colorString("LN: ", o.Color),
+		o.Line,
+	)
+	return msg
+}
+
+func formatCriticalV(o *output) string {
+	padding := strings.Repeat(" ", 10)
+
+	msg := fmt.Sprintf("%s %s %+v %s [%s%s | %s%d]",
+		colorString(o.logLevelString(), o.Color),
+		o.Message,
+		o.Ctx,
+		padding,
+		colorString("File: ", o.Color),
+		o.Filename,
+		colorString("LN: ", o.Color),
+		o.Line,
 	)
 	return msg
 }
@@ -122,58 +162,9 @@ func (o *output) logLevelString() string {
 	logLevels := [...]string{
 		"CRITICAL",
 		"ERROR",
-		"WARNING",
-		"NOTICE",
+		"WARN",
 		"DEBUG",
 		"INFO",
 	}
 	return logLevels[o.Level-1]
 }
-
-
-
-
-//// InfoF logs a message at Info level using the same syntax and options as fmt.Printf
-//func (l *Logger) InfoF(format string, a ...interface{}) {
-//	l.Output(Info, fmt.Sprintf(format, a...), 2)
-//}
-//
-//// Debug logs a message at Debug level
-//func (l *Logger) Debug(message string) {
-//	l.Output(Debug, message, 2)
-//}
-//
-//// DebugF logs a message at Debug level using the same syntax and options as fmt.Printf
-//func (l *Logger) DebugF(format string, a ...interface{}) {
-//	l.Output(Debug, fmt.Sprintf(format, a...), 2)
-//}
-
-
-
-
-
-//// CriticalF logs a message at Critical level using the same syntax and options as fmt.Printf
-//func (l *Logger) Criticalf(format string, a ...interface{}) {
-//	l.Output(Critical, fmt.Sprintf(format, a...), 2)
-//}
-//
-//// Error logs a message at Error level
-//func (l *Logger) Error(message string) {
-//	l.Output(Err, message, 2)
-//}
-//
-//// ErrorF logs a message at Error level using the same syntax and options as fmt.Printf
-//func (l *Logger) ErrorF(format string, a ...interface{}) {
-//	l.Output(Err, fmt.Sprintf(format, a...), 2)
-//}
-//
-//// Warning logs a message at Warning level
-//func (l *Logger) Warning(message string) {
-//	l.Output(Warn, message, 2)
-//}
-//
-//// WarningF logs a message at Warning level using the same syntax and options as fmt.Printf
-//func (l *Logger) WarningF(format string, a ...interface{}) {
-//	l.Output(Warn, fmt.Sprintf(format, a...), 2)
-//}
-
