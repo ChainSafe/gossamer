@@ -16,13 +16,13 @@ type (
 	}
 )
 
-func (b *branch) childrenBitmap() uint16 {
-	var bitmap uint16
-	var i uint
-	for i = 0; i < 16; i++ {
-		if b.children[i] != nil {
-			bitmap = bitmap | 1<<i
-		}
-	}
-	return bitmap
-}
+// func (b *branch) childrenBitmap() uint16 {
+// 	var bitmap uint16
+// 	var i uint
+// 	for i = 0; i < 16; i++ {
+// 		if b.children[i] != nil {
+// 			bitmap = bitmap | 1<<i
+// 		}
+// 	}
+// 	return bitmap
+// }

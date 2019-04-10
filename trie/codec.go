@@ -43,35 +43,35 @@ func hexToKey(in []byte) []byte {
 
 // bigKeySize returns the node type's BigKeySize
 // BigKeySize is 125 if node is extension, 126 if node is leaf
-func bigKeySize(n node) int {
-	switch n.(type) {
-	case *leaf:
-		return 126
-	default:
-		return -1
-	}
-}
+// func bigKeySize(n node) int {
+// 	switch n.(type) {
+// 	case *leaf:
+// 		return 126
+// 	default:
+// 		return -1
+// 	}
+// }
 
-// getPrefix returns the node type's prefix, used for encoding the node
-func getPrefix(n node) (prefix byte) {
-	switch n := n.(type) {
-	case *leaf:
-		return 1
-	case *branch:
-		if n.value == nil {
-			// branch without value
-			return 254
-		}
-		// branch with value
-		return 255
-	default:
-		return 0
-	}
-}
+// // getPrefix returns the node type's prefix, used for encoding the node
+// func getPrefix(n node) (prefix byte) {
+// 	switch n := n.(type) {
+// 	case *leaf:
+// 		return 1
+// 	case *branch:
+// 		if n.value == nil {
+// 			// branch without value
+// 			return 254
+// 		}
+// 		// branch with value
+// 		return 255
+// 	default:
+// 		return 0
+// 	}
+// }
 
-func uint16ToBytes(in uint16) (out []byte) {
-	out = make([]byte, 2)
-	out[0] = byte(in & 0x00ff)
-	out[1] = byte(in >> 8 & 0x00ff)
-	return out
-}
+// func uint16ToBytes(in uint16) (out []byte) {
+// 	out = make([]byte, 2)
+// 	out[0] = byte(in & 0x00ff)
+// 	out[1] = byte(in >> 8 & 0x00ff)
+// 	return out
+// }

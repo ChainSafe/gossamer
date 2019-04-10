@@ -88,46 +88,46 @@ func TestHexToKey(t *testing.T) {
 	}
 }
 
-func TestGetPrefix(t *testing.T) {
-	l := &leaf{key: nil, value: []byte{17}}
-	prefix := getPrefix(l)
-	if prefix != 1 {
-		t.Errorf("did not get correct prefix for leaf")
-	}
+// func TestGetPrefix(t *testing.T) {
+// 	l := &leaf{key: nil, value: []byte{17}}
+// 	prefix := getPrefix(l)
+// 	if prefix != 1 {
+// 		t.Errorf("did not get correct prefix for leaf")
+// 	}
 
-	b := &branch{}
-	prefix = getPrefix(b)
-	if prefix != 254 {
-		t.Errorf("did not get correct prefix for branch without value")
-	}
+// 	b := &branch{}
+// 	prefix = getPrefix(b)
+// 	if prefix != 254 {
+// 		t.Errorf("did not get correct prefix for branch without value")
+// 	}
 
-	b = &branch{}
-	b.value = []byte{17}
-	prefix = getPrefix(b)
-	if prefix != 255 {
-		t.Errorf("did not get correct prefix for branch with value")
-	}
+// 	b = &branch{}
+// 	b.value = []byte{17}
+// 	prefix = getPrefix(b)
+// 	if prefix != 255 {
+// 		t.Errorf("did not get correct prefix for branch with value")
+// 	}
 
-	prefix = getPrefix(nil)
-	if prefix != 0 {
-		t.Errorf("did not get correct prefix for nil node")
-	}
-}
+// 	prefix = getPrefix(nil)
+// 	if prefix != 0 {
+// 		t.Errorf("did not get correct prefix for nil node")
+// 	}
+// }
 
-func TestUint16ToBytes(t *testing.T) {
-	tests := []struct {
-		input    uint16
-		expected []byte
-	}{
-		{uint16(0), []byte{0x0, 0x0}},
-		{uint16(1), []byte{0x1, 0x0}},
-		{uint16(255), []byte{0xff, 0x0}},
-	}
+// func TestUint16ToBytes(t *testing.T) {
+// 	tests := []struct {
+// 		input    uint16
+// 		expected []byte
+// 	}{
+// 		{uint16(0), []byte{0x0, 0x0}},
+// 		{uint16(1), []byte{0x1, 0x0}},
+// 		{uint16(255), []byte{0xff, 0x0}},
+// 	}
 
-	for _, test := range tests {
-		res := uint16ToBytes(test.input)
-		if !bytes.Equal(res, test.expected) {
-			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
-		}
-	}
-}
+// 	for _, test := range tests {
+// 		res := uint16ToBytes(test.input)
+// 		if !bytes.Equal(res, test.expected) {
+// 			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
+// 		}
+// 	}
+// }
