@@ -48,13 +48,11 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	req := new(serverRequest)
 	err := json.NewDecoder(r.Body).Decode(req)
 	if err != nil {
-		// TODO: create error struct
 		err = &Error{
 			ErrorCode: ERR_PARSE,
 			Message: err.Error(),
 		}
 	} else if req.Version != JSONVersion {
-		// TODO: create error struct
 		err = &Error{
 			ErrorCode: ERR_PARSE,
 			Message: "must be JSON-RPC version " + JSONVersion,
