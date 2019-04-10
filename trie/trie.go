@@ -47,9 +47,9 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 	var n node
 
 	if len(value) > 0 {
-		_, n, err = t.insert(t.root, nil, k, &leaf{key: nil, value: value})
+		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value})
 	} else {
-		_, n, err = t.delete(t.root, nil, k)
+		_, n, err = t.delete(t.root, k)
 	}
 
 	if err != nil {
@@ -61,7 +61,7 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 }
 
 // TryPut attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n node, err error) {
+func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err error) {
 	if len(key) == 0 {
 		if v, ok := parent.(*leaf); ok {
 			return !bytes.Equal(v.value, value.(*leaf).value), value, nil
@@ -71,7 +71,7 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 
 	switch p := parent.(type) {
 	case *branch:
-		ok, n, err = t.updateBranch(p, prefix, key, value)
+		ok, n, err = t.updateBranch(p, key, value)
 	case nil:
 		switch v := value.(type) {
 		case *branch:
@@ -103,7 +103,7 @@ func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n n
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
+func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node, err error) {
 	length := lenCommonPrefix(key, p.key)
 
 	// whole parent key matches except last nibble
@@ -126,12 +126,12 @@ func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool,
 	br := new(branch)
 	br.key = key[:length]
 
-	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p)
+	_, br.children[p.key[length]], err = t.insert(nil, p.key[length+1:], p)
 	if err != nil {
 		return false, nil, err
 	}
 
-	_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
+	_, br.children[key[length]], err = t.insert(nil, key[length+1:], value)
 	if err != nil {
 		return false, nil, err
 	}
@@ -202,7 +202,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToHex(key)
-	_, n, err := t.delete(t.root, nil, k)
+	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func (t *Trie) Delete(key []byte) error {
 	return nil
 }
 
-func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err error) {
+func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 	return true, nil, nil
 }
 
