@@ -113,21 +113,3 @@ func TestHexToKey(t *testing.T) {
 // 		t.Errorf("did not get correct prefix for nil node")
 // 	}
 // }
-
-// func TestUint16ToBytes(t *testing.T) {
-// 	tests := []struct {
-// 		input    uint16
-// 		expected []byte
-// 	}{
-// 		{uint16(0), []byte{0x0, 0x0}},
-// 		{uint16(1), []byte{0x1, 0x0}},
-// 		{uint16(255), []byte{0xff, 0x0}},
-// 	}
-
-// 	for _, test := range tests {
-// 		res := uint16ToBytes(test.input)
-// 		if !bytes.Equal(res, test.expected) {
-// 			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
-// 		}
-// 	}
-// }
