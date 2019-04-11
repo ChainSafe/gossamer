@@ -41,7 +41,7 @@ type MockCodec struct {
 }
 
 func (c MockCodec) NewRequest(r *http.Request) CodecRequest {
-	return MockCodecRequest{c.N}
+	return MockCodecRequest(c)
 }
 
 type MockCodecRequest struct {
@@ -60,12 +60,24 @@ func (r MockCodecRequest) ReadRequest(args interface{}) error {
 
 func (r MockCodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 	res := reply.(*ServiceResponse)
-	w.Write([]byte(strconv.Itoa(res.Result)))
+	size, err := w.Write([]byte(strconv.Itoa(res.Result)))
+	if size != len(strconv.Itoa(res.Result)) {
+		log.Printf("expected to write: %d, wrote: %d", len(strconv.Itoa(res.Result)), size)
+	}
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 func (r MockCodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
 	w.WriteHeader(status)
-	w.Write([]byte(err.Error()))
+	size, err := w.Write([]byte(err.Error()))
+	if size != len(err.Error()) {
+		log.Printf("expected to write: %d, wrote: %d", len(err.Error()), size)
+	}
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 type MockResponseWriter struct {

@@ -3,6 +3,7 @@ package json2
 import (
 	"encoding/json"
 	"github.com/ChainSafe/gossamer/rpc"
+	"log"
 	"net/http"
 )
 
@@ -60,7 +61,6 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 type CodecRequest struct {
 	request     *serverRequest
 	err         error
-	errorMapper func(error) error
 }
 
 func (c *CodecRequest) Method() (string, error) {
@@ -119,7 +119,10 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) 
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	encoder := json.NewEncoder(w)
-	encoder.Encode(res)
+	err := encoder.Encode(res)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 type EmptyResponse struct{}
