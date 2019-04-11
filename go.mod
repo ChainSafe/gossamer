@@ -2,6 +2,7 @@ module github.com/ChainSafe/gossamer
 
 require (
 	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
+	github.com/go-stack/stack v1.8.0
 	github.com/golang/snappy v0.0.1
 	github.com/ipfs/go-datastore v0.0.2
 	github.com/ipfs/go-ipfs v0.4.19-rc2.0.20190328185617-7aab3c29f9d4
