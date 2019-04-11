@@ -78,7 +78,12 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		length := lenCommonPrefix(key, p.key)
 		br.key = key[:length]
 
-		value.(*leaf).key = key[length+1:]
+		switch v := value.(type) {
+		case *leaf:
+			v.key = key[length+1:]
+		case *branch:
+			v.key = key[length+1:]
+		}
 
 		if length == len(p.key) {
 			// if leaf's key is covered by this branch, then make the leaf's
@@ -222,8 +227,7 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
-	_ = key
-	return ok, parent, nil
+	return ok, nil, nil
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys

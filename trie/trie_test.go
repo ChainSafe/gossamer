@@ -225,7 +225,7 @@ func TestBranchMore(t *testing.T) {
 func TestPutAndGet(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		trie := newEmpty()
-		rt := generateRandTest(200)
+		rt := generateRandTest(20000)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
