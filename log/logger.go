@@ -41,19 +41,19 @@ type output struct {
 func Info(msg string, extra ...interface{}) {
 	fmt.Println(Output(infoLvl, msg, extra, 2, green))
 }
-// Warn logs a message at Info level
+// Warn logs a message at Warn level
 func Warn(msg string, extra ...interface{}) {
 	fmt.Println(Output(warnLvl, msg, extra, 2, yellow))
 }
-// Debug logs a message at Info level
+// Debug logs a message at Debug level
 func Debug(msg string, extra ...interface{}) {
 	fmt.Println(Output(debugLvl, msg, extra, 2, cyan))
 }
-// Critical logs a message at Info level
+// Critical logs a message at Critical level
 func Critical(msg string, extra ...interface{}) {
 	log.Fatal(Output(criticalLvl, msg, extra, 2, red))
 }
-// Err logs a message at Info level
+// Err logs a message at Err level
 func Err(msg string, extra ...interface{}) {
 	fmt.Println(Output(errLvl, msg, extra, 2, magenta))
 }
