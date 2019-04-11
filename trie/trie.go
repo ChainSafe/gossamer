@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"errors"
-	//"fmt"
 )
 
 // Trie is a Merkle Patricia Trie.
@@ -32,10 +31,6 @@ func NewTrie(db *Database, root node) *Trie {
 
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
-	// if len(key) == 0 {
-	// 	return errors.New("cannot put nil key")
-	// }
-
 	if err := t.tryPut(key, value); err != nil {
 		return err
 	}
@@ -83,27 +78,15 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		length := lenCommonPrefix(key, p.key)
 		br.key = key[:length]
 
-		//fmt.Printf("CONVERTING LEAF TO BRANCH W KEY %x\n", br.key)
-			
 		value.(*leaf).key = key[length+1:]
 
 		if length == len(p.key) {
-			//fmt.Printf("ADDING CHILD VALUE W KEY %x AT %x\n", key[length+1:], key[length])
-			
 			// if leaf's key is covered by this branch, then make the leaf's
 			// value the value at this branch
-
-			// fmt.Printf("ADDING PREV VALUE W KEY %x and VAL %x TO BRANCH \n", p.key, p.value)
-			// fmt.Printf("ADDING CHILD VALUE W KEY %x and VAL %x AT %x\n", value.(*leaf).key, value, key[length])
-
 			br.value = p.value
 			br.children[key[length]] = value
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
-
-			// fmt.Printf("ADDING PREV VALUE W KEY %x and VAL %x AT %x\n", p.key, p.value, prevKey[1])
-			// fmt.Printf("ADDING CHILD VALUE W KEY %x and VAL %x AT %x\n", value.(*leaf).key, value, key[length])
-
 			parentKey := p.key
 			p.key = p.key[length+1:]
 			br.children[parentKey[length]] = p
@@ -128,7 +111,6 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 	if length == len(p.key) {
 		// if node has same key as this branch, then update the value at this branch
 		if bytes.Equal(key, p.key) {
-			//fmt.Printf("UPDATING VALUE AT BRANCH W KEY %x VAL %x\n", key, value)
 			switch v := value.(type) {
 			case *branch:
 				p.value = v.value
@@ -136,19 +118,21 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 				p.value = v.value
 			}
 			return true, p, nil
-		} 
+		}
 
 		switch c := p.children[key[length]].(type) {
 		case *branch:
 			_, n, err = t.insert(c, key[length+1:], value)
+			p.children[key[length]] = n
+			n = p
 		default: // nil or leaf
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
-			n = p 
+			n = p
 		}
 
-		return true, n, err		
+		return true, n, err
 	}
 
 	// we need to branch out at the point where the keys diverge
@@ -156,13 +140,9 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 
 	// update partial keys, new branch has key up to matching length
 	br.key = key[:length]
-	p.key = p.key[length:]
-	key = key[length:]
 
-	prevParent := p.key[0]
-	p.key = p.key[1:]
-
-	_, br.children[prevParent], err = t.insert(nil, p.key, p)
+	parentIndex := p.key[length]
+	_, br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p)
 	if err != nil {
 		return false, nil, err
 	}
@@ -170,13 +150,11 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 	if len(key) == 0 {
 		br.value = value.(*leaf).value
 	} else {
-		prevValue := key[0]
-		key = key[1:]
-
-		_, br.children[prevValue], err = t.insert(nil, key, value)
+		nodeIndex := key[length]
+		_, br.children[nodeIndex], err = t.insert(nil, key[length+1:], value)
 		if err != nil {
 			return false, nil, err
-		}		
+		}
 	}
 
 	return true, br, nil
@@ -210,21 +188,16 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
 
-		// 	fmt.Printf("GETTING BRANCH W KEY %x VAL %x \n", p.key, p.value)
-		// 	fmt.Println("KEY", key[:])
- 
 		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
-			return &leaf{key: nil, value: p.value}, nil
+			return &leaf{key: p.key, value: p.value}, nil
 		}
 
 		// if branch's child at the key is a leaf, return it
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
-			//fmt.Printf("FOUND CHILD AT INDEX %x W VAL %x\n", key[length], v)
 			value = v
 		default:
-			//fmt.Printf("searching child %x...\n", p.children[key[length]])
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}
 	case *leaf:
@@ -249,31 +222,7 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
-	switch p := parent.(type) {
-	case *branch:
-		length := lenCommonPrefix(p.key, key)
-
-		// if the key is not at this branch or a child of it, continue
-		if length != len(p.key) {
-			return t.delete(p, key[length:])
-		}
-
-		// set child at this branch 
-		p.children[key[0]] = nil
-		ok = true
-		n = p
-
-		bitmap := p.childrenBitmap()
-		// if branch has no children, just a value, turn it into a leaf
-		if bitmap == 0 {
-			n = &leaf{key: key, value: p.value}
-		}
-	case *leaf:
-		ok = true
-	case nil: 
-		// do nothing
-	}
-	return ok, n, err
+	return ok, nil, nil
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys

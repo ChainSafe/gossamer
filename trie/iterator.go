@@ -4,11 +4,9 @@ import (
 	"fmt"
 )
 
-type Iterator struct {
-	current node
-}
-
+// Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
+	fmt.Println("printing trie...")
 	t.print(t.root)
 }
 
@@ -17,9 +15,6 @@ func (t *Trie) print(current node) {
 	case *branch:
 		fmt.Printf("branch pk %x children %b value %s\n", c.key, c.childrenBitmap(), c.value)
 		for _, child := range c.children {
-			// if child != nil {
-			// 	fmt.Printf("child at %x\n", i)
-			// }
 			t.print(child)
 		}
 	case *leaf:

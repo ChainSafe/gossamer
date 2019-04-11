@@ -31,15 +31,15 @@ func keyToHex(in []byte) []byte {
 }
 
 // hexToKey performs the opposite of keyToHex; turns nibbles back into bytes
-// removes last byte if length of input is odd (set to 16 if using keyToHex)
-func hexToKey(in []byte) []byte {
-	l := len(in) / 2
-	res := make([]byte, l)
-	for i := 0; i < len(in)-1; i = i + 2 {
-		res[i/2] = in[i+1] | in[i]<<4
-	}
-	return res
-}
+// removes last byte if length of input is odd
+// func hexToKey(in []byte) []byte {
+// 	l := len(in) / 2
+// 	res := make([]byte, l)
+// 	for i := 0; i < len(in)-1; i = i + 2 {
+// 		res[i/2] = in[i+1] | in[i]<<4
+// 	}
+// 	return res
+// }
 
 // bigKeySize returns the node type's BigKeySize
 // BigKeySize is 125 if node is extension, 126 if node is leaf
