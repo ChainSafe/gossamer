@@ -54,7 +54,10 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 		}
 	}
 
-	r.Body.Close()
+	errClose := r.Body.Close()
+	if errClose != nil {
+		log.Fatal(errClose)
+	}
 	return &CodecRequest{request: req, err: err}
 }
 
