@@ -222,7 +222,7 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
-	return ok, nil, nil
+	return ok, parent, nil
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
