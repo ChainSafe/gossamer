@@ -100,6 +100,8 @@ func TestServeHTTP(t *testing.T) {
 	s := NewServer()
 	s.RegisterService(new(Service), "")
 	s.RegisterCodec(MockCodec{10})
+
+	// Valid request
 	r, err := http.NewRequest("POST", "", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +111,62 @@ func TestServeHTTP(t *testing.T) {
 	s.ServeHTTP(w, r)
 	if w.Status != 200 {
 		t.Errorf("unexpected status. got: %d expected: %d", w.Status, 200)
+	}
+	if w.Body != strconv.Itoa(10) {
+		t.Errorf("unexpected body content. got: %s expected %s", w.Body, strconv.Itoa(10))
+	}
+
+	// Valid request, multiple content types
+	r, err = http.NewRequest("POST", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/json; some-other-stuff")
+	w = NewMockResponseWriter()
+	s.ServeHTTP(w, r)
+	if w.Status != 200 {
+		t.Errorf("unexpected status. got: %d expected: %d", w.Status, 200)
+	}
+	if w.Body != strconv.Itoa(10) {
+		t.Errorf("unexpected body content. got: %s expected %s", w.Body, strconv.Itoa(10))
+	}
+
+	// Invalid HTTP method
+	r, err = http.NewRequest("GET", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/json")
+	s.ServeHTTP(w, r)
+	if w.Status != 405 {
+		t.Errorf("unexpected status. got: %d expected: %d", w.Status, 405)
+	}
+
+	// Invalid content-type
+	r, err = http.NewRequest("POST", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "www-url-encoded")
+	w = NewMockResponseWriter()
+	s.ServeHTTP(w, r)
+	if w.Status != 415 {
+		t.Errorf("unexpected status. got: %d expected: %d", w.Status, 415)
+	}
+	if w.Body != strconv.Itoa(10) {
+		t.Errorf("unexpected body content. got: %s expected %s", w.Body, strconv.Itoa(10))
+	}
+
+	// Invalid content-type
+	r, err = http.NewRequest("POST", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "www-url-encoded")
+	w = NewMockResponseWriter()
+	s.ServeHTTP(w, r)
+	if w.Status != 415 {
+		t.Errorf("unexpected status. got: %d expected: %d", w.Status, 415)
 	}
 	if w.Body != strconv.Itoa(10) {
 		t.Errorf("unexpected body content. got: %s expected %s", w.Body, strconv.Itoa(10))
