@@ -34,7 +34,7 @@ func (s *Service) Fail(r *http.Request, req *ServiceRequest, res *ServiceRespons
 
 // -------------------------------------------------------
 
-// --------------- Mock Codec ------------------------------
+// --------------- Mock Codec -----------------------------
 
 type MockCodec struct {
 	N int
