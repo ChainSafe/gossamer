@@ -50,7 +50,7 @@ func (s *Server) RegisterService(receiver interface{}, name string) error {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving HTTP request...")
 	if r.Method != "POST" {
-		WriteError(w, http.StatusMethodNotAllowed, "rpc: Only accepts POST requests, got: " + r.Method)
+		WriteError(w, http.StatusMethodNotAllowed, "rpc: Only accepts POST requests, got: "+r.Method)
 	}
 	contentType := r.Header.Get("Content-Type")
 	idx := strings.Index(contentType, ";")
@@ -58,7 +58,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		contentType = contentType[:idx]
 	}
 	if contentType != "application/json" {
-		WriteError(w, http.StatusUnsupportedMediaType, "rpc: Only application/json content allowed, got: " + r.Header.Get("Content-Type"))
+		WriteError(w, http.StatusUnsupportedMediaType, "rpc: Only application/json content allowed, got: "+r.Header.Get("Content-Type"))
 	}
 	log.Println("Got application/json request, proceeding...")
 	codecReq := s.codec.NewRequest(r)
@@ -107,4 +107,3 @@ func WriteError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	fmt.Fprint(w, msg)
 }
-

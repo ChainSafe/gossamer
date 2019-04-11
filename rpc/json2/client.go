@@ -9,22 +9,22 @@ import (
 
 type clientRequest struct {
 	// JSON-RPC version (must be 2.0)
-	Version string      `json:"jsonrpc"`
+	Version string `json:"jsonrpc"`
 	// Service and method name
-	Method  string      `json:"method"`
+	Method string `json:"method"`
 	// Method params
-	Params  interface{} `json:"params"`
+	Params interface{} `json:"params"`
 	// Random request ID
-	Id      uint64      `json:"id"`
+	Id uint64 `json:"id"`
 }
 
 type clientResponse struct {
 	// JSON-RPC version (must be 2.0)
-	Version string           `json:"jsonrpc"`
+	Version string `json:"jsonrpc"`
 	// Method call resulting value
-	Result  *json.RawMessage `json:"result"`
+	Result *json.RawMessage `json:"result"`
 	// Error thrown during execution
-	Error   *json.RawMessage `json:"error"`
+	Error *json.RawMessage `json:"error"`
 }
 
 // EncodeClientRequest marshals struct values for transmission
@@ -48,9 +48,9 @@ func DecodeClientResponse(r io.Reader, reply interface{}) error {
 	if c.Error != nil {
 		jsonErr := &Error{}
 		if err := json.Unmarshal(*c.Error, jsonErr); err != nil {
-			return &Error{
+			jsonErr = &Error{
 				ErrorCode: ERR_INTERNAL_ERROR,
-				Message: string(*c.Error),
+				Message:   string(*c.Error),
 			}
 		}
 		return jsonErr

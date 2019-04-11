@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-
 // ------------- Example Service -----------------------
 
 type ServiceRequest struct {
@@ -19,7 +18,7 @@ type ServiceResponse struct {
 	Result int
 }
 
-type Service struct {}
+type Service struct{}
 
 var ErrResponse = errors.New("error response")
 
@@ -72,12 +71,12 @@ func (r MockCodecRequest) WriteError(w http.ResponseWriter, status int, err erro
 type MockResponseWriter struct {
 	header http.Header
 	Status int
-	Body string
+	Body   string
 }
 
 func NewMockResponseWriter() *MockResponseWriter {
 	header := make(http.Header)
-	return &MockResponseWriter{header:header}
+	return &MockResponseWriter{header: header}
 }
 
 func (w *MockResponseWriter) Header() http.Header {
@@ -92,7 +91,7 @@ func (w *MockResponseWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *MockResponseWriter) WriteHeader (status int) {
+func (w *MockResponseWriter) WriteHeader(status int) {
 	w.Status = status
 }
 
@@ -172,7 +171,3 @@ func TestServeHTTP(t *testing.T) {
 		t.Errorf("unexpected body content. got: %s expected %s", w.Body, strconv.Itoa(10))
 	}
 }
-
-
-
-

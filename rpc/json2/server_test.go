@@ -2,25 +2,25 @@ package json2
 
 import (
 	"bytes"
+	"errors"
 	"github.com/ChainSafe/gossamer/rpc"
 	"log"
 	"net/http"
 	"strings"
 	"testing"
-	"errors"
 )
 
 type RecordWriter struct {
-	Headers http.Header
-	Body *bytes.Buffer
+	Headers      http.Header
+	Body         *bytes.Buffer
 	ResponseCode int
-	Flushed	bool
+	Flushed      bool
 }
 
 func NewRecordWriter() *RecordWriter {
 	return &RecordWriter{
 		Headers: make(http.Header),
-		Body: new(bytes.Buffer),
+		Body:    new(bytes.Buffer),
 	}
 }
 
@@ -28,7 +28,7 @@ func (rw *RecordWriter) Header() http.Header {
 	return rw.Headers
 }
 
-func (rw *RecordWriter) Write(buf []byte) (int,error) {
+func (rw *RecordWriter) Write(buf []byte) (int, error) {
 	if rw.Body != nil {
 		rw.Body.Write(buf)
 	}
@@ -56,7 +56,7 @@ type ServiceResponse struct {
 	Result int
 }
 
-type Service struct {}
+type Service struct{}
 
 var ErrResponse = errors.New("error response")
 
@@ -73,7 +73,7 @@ func (s *Service) Fail(r *http.Request, req *ServiceRequest, res *ServiceRespons
 // -------------------------------------------------------
 
 func exec(s *rpc.Server, method string, req interface{}, res interface{}) error {
-	buf, _  := EncodeClientRequest(method, req)
+	buf, _ := EncodeClientRequest(method, req)
 	body := bytes.NewBuffer(buf)
 	r, _ := http.NewRequest("POST", "http://localhost:3000", body)
 	r.Header.Set("Content-Type", "application/json")

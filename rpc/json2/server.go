@@ -19,7 +19,6 @@ type serverRequest struct {
 	Id *json.RawMessage `json:"id"`
 }
 
-
 type serverResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
@@ -36,8 +35,7 @@ func NewCodec() *Codec {
 	return &Codec{}
 }
 
-
-type Codec struct {}
+type Codec struct{}
 
 // NewRequest intercepts a request and parses it into a rpc.CodecRequest
 func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
@@ -46,12 +44,12 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	if err != nil {
 		err = &Error{
 			ErrorCode: ERR_PARSE,
-			Message: err.Error(),
+			Message:   err.Error(),
 		}
 	} else if req.Version != JSONVersion {
 		err = &Error{
 			ErrorCode: ERR_PARSE,
-			Message: "must be JSON-RPC version " + JSONVersion,
+			Message:   "must be JSON-RPC version " + JSONVersion,
 		}
 	}
 
@@ -60,13 +58,12 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 }
 
 type CodecRequest struct {
-	request *serverRequest
-	err error
+	request     *serverRequest
+	err         error
 	errorMapper func(error) error
 }
 
-
-func(c *CodecRequest) Method() (string, error) {
+func (c *CodecRequest) Method() (string, error) {
 	if c.err == nil {
 		return c.request.Method, nil
 		// TODO: Modify methods to match Go naming conventions
@@ -83,7 +80,7 @@ func (c *CodecRequest) ReadRequest(args interface{}) error {
 		err := json.Unmarshal(*c.request.Params, args)
 		if err != nil {
 			c.err = &Error{
-				Message: err.Error(),
+				Message:   err.Error(),
 				ErrorCode: ERR_PARSE,
 			}
 		}
@@ -102,12 +99,12 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 }
 
 // WriteError attempts to format err and pass it to the encoder
-func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error){
+func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error) {
 	jsonErr, ok := err.(*Error)
 	if !ok {
 		jsonErr = &Error{
-			ErrorCode:    ERR_INTERNAL_ERROR,
-			Message: err.Error(),
+			ErrorCode: ERR_INTERNAL_ERROR,
+			Message:   err.Error(),
 		}
 	}
 	res := &serverResponse{
@@ -125,5 +122,4 @@ func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverRes
 	encoder.Encode(res)
 }
 
-type EmptyResponse struct {}
-
+type EmptyResponse struct{}
