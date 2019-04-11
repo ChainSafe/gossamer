@@ -152,12 +152,12 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 	} else {
 		nodeIndex := key[length]
 		_, br.children[nodeIndex], err = t.insert(nil, key[length+1:], value)
-		if err != nil {
-			return false, nil, err
+		if err == nil {
+			ok = true
 		}
 	}
 
-	return true, br, nil
+	return ok, br, err
 }
 
 // Get returns the value for key stored in the trie at the corresponding key
