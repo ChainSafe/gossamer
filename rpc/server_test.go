@@ -109,7 +109,10 @@ func (w *MockResponseWriter) WriteHeader(status int) {
 
 func TestServeHTTP(t *testing.T) {
 	s := NewServer()
-	s.RegisterService(new(Service), "")
+	err := s.RegisterService(new(Service), "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	s.RegisterCodec(MockCodec{10})
 
 	// Valid request

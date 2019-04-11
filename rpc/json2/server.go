@@ -59,8 +59,8 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 }
 
 type CodecRequest struct {
-	request     *serverRequest
-	err         error
+	request *serverRequest
+	err     error
 }
 
 func (c *CodecRequest) Method() (string, error) {
