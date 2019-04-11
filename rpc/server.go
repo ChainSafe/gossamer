@@ -46,7 +46,6 @@ func (s *Server) RegisterService(receiver interface{}, name string) error {
 	return s.services.register(receiver, name)
 }
 
-// TODO: Do we need a HasMethod()?
 // ServeHTTP handles http requests to the RPC server.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving HTTP request...")
@@ -102,7 +101,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: Does this terminate the HTTP connection?
 // WriteError writes a status and message as the response to a request
 func WriteError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

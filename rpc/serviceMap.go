@@ -15,7 +15,7 @@ import (
 	"unicode/utf8"
 )
 
-// TODO: Replace with out own implementation
+// TODO: Replace with our own implementation
 
 var (
 	// Precompute the reflect.Type of error and http.Request

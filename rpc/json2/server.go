@@ -3,15 +3,13 @@ package json2
 import (
 	"encoding/json"
 	"github.com/ChainSafe/gossamer/rpc"
-	"log"
 	"net/http"
-	"strings"
 )
 
 var JSONVersion = "2.0"
 
 type serverRequest struct {
-	// JSON Version
+	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
 	// Method name
 	Method string `json:"method"`
@@ -23,9 +21,9 @@ type serverRequest struct {
 
 
 type serverResponse struct {
-	// JSON Version
+	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
-	// TODO: Comment
+	// Resulting values
 	Result interface{} `json:"result"`
 	// Any generated errors
 	Error *Error `json:"error"`
@@ -39,11 +37,9 @@ func NewCodec() *Codec {
 }
 
 
-type Codec struct {
-	// TODO: Is this needed? What is its purpose?
-	//errorMapper func(error) error
-}
+type Codec struct {}
 
+// NewRequest intercepts a request and parses it into a rpc.CodecRequest
 func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	req := new(serverRequest)
 	err := json.NewDecoder(r.Body).Decode(req)
@@ -69,10 +65,12 @@ type CodecRequest struct {
 	errorMapper func(error) error
 }
 
+
 func(c *CodecRequest) Method() (string, error) {
-	log.Printf("got: %s modified: %s", c.request.Method, strings.Title(strings.Replace(c.request.Method, "_", ".", 1)))
 	if c.err == nil {
-		return strings.Title(strings.Replace(c.request.Method, "_", ".", 1)), nil
+		return c.request.Method, nil
+		// TODO: Modify methods to match Go naming conventions
+		//return strings.Title(strings.Replace(c.request.Method, "_", ".", 1)), nil
 
 	}
 	return "", c.err
@@ -93,6 +91,7 @@ func (c *CodecRequest) ReadRequest(args interface{}) error {
 	return c.err
 }
 
+// WriteResponse creates a serverResponse and passes it to the encoder
 func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 	res := &serverResponse{
 		Version: JSONVersion,
@@ -102,6 +101,7 @@ func (c *CodecRequest) WriteResponse(w http.ResponseWriter, reply interface{}) {
 	c.writeServerResponse(w, res)
 }
 
+// WriteError attempts to format err and pass it to the encoder
 func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error){
 	jsonErr, ok := err.(*Error)
 	if !ok {
@@ -118,6 +118,7 @@ func (c *CodecRequest) WriteError(w http.ResponseWriter, status int, err error){
 	c.writeServerResponse(w, res)
 }
 
+// writeServerResponse sets the response header and encodes the response
 func (c *CodecRequest) writeServerResponse(w http.ResponseWriter, res *serverResponse) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	encoder := json.NewEncoder(w)

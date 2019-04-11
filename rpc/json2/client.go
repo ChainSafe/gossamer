@@ -8,18 +8,26 @@ import (
 )
 
 type clientRequest struct {
+	// JSON-RPC version (must be 2.0)
 	Version string      `json:"jsonrpc"`
+	// Service and method name
 	Method  string      `json:"method"`
+	// Method params
 	Params  interface{} `json:"params"`
+	// Random request ID
 	Id      uint64      `json:"id"`
 }
 
 type clientResponse struct {
+	// JSON-RPC version (must be 2.0)
 	Version string           `json:"jsonrpc"`
+	// Method call resulting value
 	Result  *json.RawMessage `json:"result"`
+	// Error thrown during execution
 	Error   *json.RawMessage `json:"error"`
 }
 
+// EncodeClientRequest marshals struct values for transmission
 func EncodeClientRequest(method string, args interface{}) ([]byte, error) {
 	c := &clientRequest{
 		Version: JSONVersion,
@@ -30,6 +38,8 @@ func EncodeClientRequest(method string, args interface{}) ([]byte, error) {
 	return json.Marshal(c)
 }
 
+// TODO: Decide how to encode reponse values
+// DecodeClientResponse unmarshals the response value
 func DecodeClientResponse(r io.Reader, reply interface{}) error {
 	var c clientResponse
 	if err := json.NewDecoder(r).Decode(&c); err != nil {
