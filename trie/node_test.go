@@ -42,7 +42,7 @@ func TestChildrenBitmap(t *testing.T) {
 
 func TestBranchHeader(t *testing.T) {
 	tests := []struct {
-		br        *branch
+		br     *branch
 		header []byte
 	}{
 		{&branch{nil, [16]node{}, nil}, []byte{2}},
@@ -75,7 +75,7 @@ func TestBranchHeader(t *testing.T) {
 
 func TestLeafHeader(t *testing.T) {
 	tests := []struct {
-		br        *leaf
+		br     *leaf
 		header []byte
 	}{
 		{&leaf{nil, nil}, []byte{1}},
@@ -93,6 +93,41 @@ func TestLeafHeader(t *testing.T) {
 		res := test.br.header()
 		if !bytes.Equal(res, test.header) {
 			t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
+		}
+	}
+}
+
+func TestBranchEncode(t *testing.T) {
+	tests := []struct {
+		br       *branch
+		encoding []byte
+	}{
+		{&branch{nil, [16]node{}, nil}, []byte{2}},
+		{&branch{[]byte{0x00}, [16]node{}, nil}, []byte{6}},
+		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, []byte{18}},
+
+		{&branch{nil, [16]node{}, []byte{0x01}}, []byte{3}},
+		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, []byte{7}},
+		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, []byte{11}},
+		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, []byte{15}},
+
+		{&branch{byteArray(62), [16]node{}, nil}, []byte{0xfa}},
+		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, []byte{0xfb}},
+		{&branch{byteArray(63), [16]node{}, nil}, []byte{254, 0}},
+		{&branch{byteArray(64), [16]node{}, nil}, []byte{254, 1}},
+		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, []byte{255, 1}},
+
+		{&branch{byteArray(317), [16]node{}, []byte{0x01}}, []byte{255, 254}},
+		{&branch{byteArray(318), [16]node{}, []byte{0x01}}, []byte{255, 255, 0}},
+		{&branch{byteArray(573), [16]node{}, []byte{0x01}}, []byte{255, 255, 255, 0, byteArray(573), 0, 0}},
+	}
+
+	for _, test := range tests {
+		res, err := test.br.Encode()
+		if err != nil {
+			t.Errorf("Branch header fail: error %s", err)
+		} else if !bytes.Equal(res, test.encoding) {
+			t.Errorf("Branch header fail case %x: got %x expected %x", test.br, res, test.encoding)
 		}
 	}
 }
