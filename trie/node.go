@@ -51,3 +51,15 @@ func (b *branch) header() (byte) {
 
 	return header
 }
+
+func (l *leaf) header() (byte) {
+	var header byte = 1
+
+	if len(l.key) > 62 {
+		header = header | 0xfc
+	} else {
+		header = header | ((byte(len(l.key)) << 2))
+	}
+
+	return header	
+}

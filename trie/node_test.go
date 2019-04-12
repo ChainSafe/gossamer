@@ -65,3 +65,24 @@ func TestBranchHeader(t *testing.T) {
 		}
 	}
 }
+
+func TestLeafHeader(t *testing.T) {
+	tests := []struct {
+		br        *leaf
+		header byte
+	}{
+		{&leaf{nil, nil}, byte(1)},
+		{&leaf{[]byte{0x00}, nil}, byte(5)},
+		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil}, byte(17)},
+		{&leaf{byteArray(62), nil}, 0xf9},
+		{&leaf{byteArray(63), nil}, byte(253)},
+		{&leaf{byteArray(64), []byte{0x01}}, byte(253)},
+	}
+
+	for _, test := range tests {
+		res := test.br.header()
+		if res != test.header {
+			t.Errorf("Branch header fail: got %x expected %x", res, test.header)
+		}
+	}
+}
