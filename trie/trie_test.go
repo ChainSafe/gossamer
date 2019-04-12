@@ -243,7 +243,7 @@ func TestPutAndGet(t *testing.T) {
 	}
 }
 
-func buildSmallTrie() (*Trie){
+func buildSmallTrie() *Trie {
 	trie := newEmpty()
 
 	key1 := []byte{0x01, 0x35}
@@ -256,7 +256,6 @@ func buildSmallTrie() (*Trie){
 	value4 := []byte("noot")
 	key5 := []byte{}
 	value5 := []byte("floof")
-
 
 	err := trie.Put(key1, value1)
 	if err != nil {
@@ -311,7 +310,6 @@ func TestDeleteSmall(t *testing.T) {
 	} else if val != nil {
 		t.Errorf("Fail to delete key %x with value %x: got %x", key5, value5, val)
 	}
-
 
 	trie = buildSmallTrie()
 
@@ -370,6 +368,8 @@ func TestDeleteSmall(t *testing.T) {
 		t.Errorf("Fail to delete key %x: %s", key5, err.Error())
 	}
 
+	trie.Print()
+
 	val, err = trie.Get(key5)
 	if err != nil {
 		t.Errorf("Error when attempting to get deleted key %x: %s", key5, err.Error())
@@ -398,7 +398,6 @@ func TestDeleteSmall(t *testing.T) {
 	if err != nil {
 		t.Errorf("Fail to delete key %x: %s", key2, err.Error())
 	}
-	trie.Print()
 
 	val, err = trie.Get(key2)
 	if err != nil {
@@ -435,45 +434,47 @@ func TestDeleteSmall(t *testing.T) {
 	} else if !bytes.Equal(value2, val) {
 		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
 	}
-	}
+
+	trie.Print()
+
+}
 
 // To be used once trie.Delete is implemented
-//func TestDelete(t *testing.T) {
-//	trie := newEmpty()
-//
-//	rt := generateRandTest(1000)
-//	for _, test := range rt {
-//		err := trie.Put(test.key, test.value)
-//		if err != nil {
-//			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-//		}
-//	}
-//
-//	for _, test := range rt {
-//		r := rand.Int() % 2
-//		switch r {
-//		case 0:
-//			err := trie.Delete(test.key)
-//			if err != nil {
-//				t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-//			}
-//
-//			val, err := trie.Get(test.key)
-//			if err != nil {
-//				t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
-//			} else if val != nil {
-//				t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
-//			}
-//		case 1:
-//			val, err := trie.Get(test.key)
-//			if err != nil {
-//				t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-//			} else if !bytes.Equal(test.value, val) {
-//				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-//			}
-//		}
-//	}
-//}
+func TestDelete(t *testing.T) {
+	trie := newEmpty()
+
+	rt := generateRandTest(1000)
+	for _, test := range rt {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
+	}
+
+	for _, test := range rt {
+		r := rand.Int() % 2
+		switch r {
+		case 0:
+			err := trie.Delete(test.key)
+			if err != nil {
+				t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+			}
+
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+			} else if val != nil {
+				t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+			}
+		case 1:
+			//val, err := trie.Get(test.key)
+			//if err != nil {
+			//	t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+			//} else if !bytes.Equal(test.value, val) {
+			//	t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+		}
+	}
+}
 
 func TestGetPartialKey(t *testing.T) {
 	trie := newEmpty()

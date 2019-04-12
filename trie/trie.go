@@ -231,39 +231,40 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err error) {
-    switch p := parent.(type) {
-    case *branch:
-        length := lenCommonPrefix(p.key, key)
+	switch p := parent.(type) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
 			p.value = nil
-			return true, p, nil
+			n = p
+			//return true, p, nil
+		} else {
+			switch p.children[key[length]].(type) {
+			case *branch:
+				_, n, err = t.delete(p.children[key[length]], key[:length], key[length+1:])
+				p.children[key[length]] = n
+				n = p
+				return true, n, nil
+			case *leaf:
+				p.children[key[length]] = nil
+				ok = true
+				n = p
+				//return true, n, nil
+			default:
+				return false, p, nil
+			}
 		}
 
-		switch p.children[key[length]].(type) {
-		case *branch:
-			_, n, err = t.delete(p.children[key[length]], key[:length], key[length+1:])
-			p.children[key[length]] = n
-			n = p
-			return true, n, nil
-		case *leaf:
-			p.children[key[length]] = nil
-			ok = true
-			n = p
-			//return true, n, nil
-		default:
-			return false, p,nil
-		}
-
-        bitmap := p.childrenBitmap()
-        // if branch has no children, just a value, turn it into a leaf
-        if bitmap == 0 {
-            n = &leaf{key: key[:length], value: p.value}
-        } else if p.numChildren() == 1 && p.value == nil {
-        	// there is only 1 child, combine the child branch with this branch
-        	// find index of child
-        	var i int
+		bitmap := p.childrenBitmap()
+		// if branch has no children, just a value, turn it into a leaf
+		if bitmap == 0 {
+			n = &leaf{key: key[:length], value: p.value}
+		} else if p.numChildren() == 1 && p.value == nil {
+			// there is only 1 child, combine the child branch with this branch
+			// find index of child
+			var i int
 			for i = 0; i < 16; i++ {
 				bitmap = bitmap >> 1
 				if bitmap == 0 {
@@ -274,7 +275,7 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 			child := p.children[i]
 			switch c := child.(type) {
 			case *leaf:
-				n = &leaf{key: append([]byte{byte(i)}, c.key...), value: c.value}
+				n = &leaf{key: append(append(key, []byte{byte(i)}...), c.key...), value: c.value}
 			case *branch:
 				br := new(branch)
 				br.key = append([]byte{byte(i)}, c.key...)
@@ -294,12 +295,12 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 
 			ok = true
 		}
-    case *leaf:
-        ok = true
-    case nil:
-        // do nothing
-    }
-    return ok, n, err
+	case *leaf:
+		ok = true
+	case nil:
+		// do nothing
+	}
+	return ok, n, err
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
