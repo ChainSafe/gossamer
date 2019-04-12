@@ -36,6 +36,7 @@ func NewCodec() *Codec {
 	return &Codec{}
 }
 
+// Codec is used to define the JSON codec methods to adhere to the Codec interface inside the rpc package.
 type Codec struct{}
 
 // NewRequest intercepts a request and parses it into a rpc.CodecRequest
@@ -61,11 +62,13 @@ func (c *Codec) NewRequest(r *http.Request) rpc.CodecRequest {
 	return &CodecRequest{request: req, err: err}
 }
 
+// CodecRequest is used to store a server request and any related errors for the codec to process.
 type CodecRequest struct {
 	request *serverRequest
 	err     error
 }
 
+// Method returns the service and method name from the request.
 func (c *CodecRequest) Method() (string, error) {
 	if c.err == nil {
 		return c.request.Method, nil
