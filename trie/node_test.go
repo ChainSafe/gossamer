@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -42,26 +43,32 @@ func TestChildrenBitmap(t *testing.T) {
 func TestBranchHeader(t *testing.T) {
 	tests := []struct {
 		br        *branch
-		header byte
+		header []byte
 	}{
-		{&branch{nil, [16]node{}, nil}, byte(2)},
-		{&branch{[]byte{0x00}, [16]node{}, nil}, byte(6)},
-		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, byte(18)},
-		{&branch{nil, [16]node{}, []byte{0x01}}, byte(3)},
-		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, byte(7)},
-		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, byte(11)},
-		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, byte(15)},
-		{&branch{byteArray(62), [16]node{}, nil}, 0xfa},
-		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, 0xfb},
-		{&branch{byteArray(63), [16]node{}, nil}, byte(254)},
-		{&branch{byteArray(64), [16]node{}, nil}, byte(254)},
-		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, byte(255)},
+		{&branch{nil, [16]node{}, nil}, []byte{2}},
+		{&branch{[]byte{0x00}, [16]node{}, nil}, []byte{6}},
+		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, []byte{18}},
+
+		{&branch{nil, [16]node{}, []byte{0x01}}, []byte{3}},
+		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, []byte{7}},
+		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, []byte{11}},
+		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, []byte{15}},
+
+		{&branch{byteArray(62), [16]node{}, nil}, []byte{0xfa}},
+		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, []byte{0xfb}},
+		{&branch{byteArray(63), [16]node{}, nil}, []byte{254, 0}},
+		{&branch{byteArray(64), [16]node{}, nil}, []byte{254, 1}},
+		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, []byte{255, 1}},
+
+		{&branch{byteArray(317), [16]node{}, []byte{0x01}}, []byte{255, 254}},
+		{&branch{byteArray(318), [16]node{}, []byte{0x01}}, []byte{255, 255, 0}},
+		{&branch{byteArray(573), [16]node{}, []byte{0x01}}, []byte{255, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
 		res := test.br.header()
-		if res != test.header {
-			t.Errorf("Branch header fail: got %x expected %x", res, test.header)
+		if !bytes.Equal(res, test.header) {
+			t.Errorf("Branch header fail case %x: got %x expected %x", test.br, res, test.header)
 		}
 	}
 }
@@ -69,20 +76,23 @@ func TestBranchHeader(t *testing.T) {
 func TestLeafHeader(t *testing.T) {
 	tests := []struct {
 		br        *leaf
-		header byte
+		header []byte
 	}{
-		{&leaf{nil, nil}, byte(1)},
-		{&leaf{[]byte{0x00}, nil}, byte(5)},
-		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil}, byte(17)},
-		{&leaf{byteArray(62), nil}, 0xf9},
-		{&leaf{byteArray(63), nil}, byte(253)},
-		{&leaf{byteArray(64), []byte{0x01}}, byte(253)},
+		{&leaf{nil, nil}, []byte{1}},
+		{&leaf{[]byte{0x00}, nil}, []byte{5}},
+		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil}, []byte{17}},
+		{&leaf{byteArray(62), nil}, []byte{0xf9}},
+		{&leaf{byteArray(63), nil}, []byte{253, 0}},
+		{&leaf{byteArray(64), []byte{0x01}}, []byte{253, 1}},
+
+		{&leaf{byteArray(318), []byte{0x01}}, []byte{253, 255, 0}},
+		{&leaf{byteArray(573), []byte{0x01}}, []byte{253, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
 		res := test.br.header()
-		if res != test.header {
-			t.Errorf("Branch header fail: got %x expected %x", res, test.header)
+		if !bytes.Equal(res, test.header) {
+			t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
 		}
 	}
 }
