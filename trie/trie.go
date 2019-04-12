@@ -198,10 +198,14 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value}, nil
 		}
 
-		// if branch's child at the key is a leaf, return it
+		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
-			value = v
+			if bytes.Equal(v.key, key[length+1:]) {
+				value = v
+			} else {
+				value = nil
+			}
 		default:
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}

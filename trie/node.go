@@ -34,3 +34,20 @@ func (b *branch) Encode() ([]byte, error) {
 func (l *leaf) Encode() ([]byte, error) {
 	return nil, nil
 }
+
+func (b *branch) header() (byte) {
+	var header byte
+	if b.value == nil {
+		header = 2
+	} else {
+		header = 3
+	}
+
+	if len(b.key) > 62 {
+		header = header | 0xfc
+	} else {
+		header = header | ((byte(len(b.key)) << 2))
+	}
+
+	return header
+}

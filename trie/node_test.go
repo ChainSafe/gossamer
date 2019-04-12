@@ -4,6 +4,15 @@ import (
 	"testing"
 )
 
+// make byte array with length specified; used to test byte array encoding
+func byteArray(length int) []byte {
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		b[i] = 0xff
+	}
+	return b
+}
+
 func TestChildrenBitmap(t *testing.T) {
 	b := &branch{children: [16]node{}}
 	res := b.childrenBitmap()
@@ -27,5 +36,32 @@ func TestChildrenBitmap(t *testing.T) {
 	res = b.childrenBitmap()
 	if res != 1<<15+1<<4+1 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 257)
+	}
+}
+
+func TestBranchHeader(t *testing.T) {
+	tests := []struct {
+		br        *branch
+		header byte
+	}{
+		{&branch{nil, [16]node{}, nil}, byte(2)},
+		{&branch{[]byte{0x00}, [16]node{}, nil}, byte(6)},
+		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, byte(18)},
+		{&branch{nil, [16]node{}, []byte{0x01}}, byte(3)},
+		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, byte(7)},
+		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, byte(11)},
+		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, byte(15)},
+		{&branch{byteArray(62), [16]node{}, nil}, 0xfa},
+		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, 0xfb},
+		{&branch{byteArray(63), [16]node{}, nil}, byte(254)},
+		{&branch{byteArray(64), [16]node{}, nil}, byte(254)},
+		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, byte(255)},
+	}
+
+	for _, test := range tests {
+		res := test.br.header()
+		if res != test.header {
+			t.Errorf("Branch header fail: got %x expected %x", res, test.header)
+		}
 	}
 }
