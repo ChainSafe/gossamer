@@ -2,7 +2,11 @@ package trie
 
 import (
 	"bytes"
+	"math/rand"
 	"testing"
+
+	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // make byte array with length specified; used to test byte array encoding
@@ -12,6 +16,17 @@ func byteArray(length int) []byte {
 		b[i] = 0xff
 	}
 	return b
+}
+
+func generateRand(size int) [][]byte {
+	rt := make([][]byte, size)
+	r := *rand.New(rand.NewSource(rand.Int63()))
+	for i := range rt {
+		buf := make([]byte, r.Intn(379)+1)
+		r.Read(buf)
+		rt[i] = buf
+	}
+	return rt
 }
 
 func TestChildrenBitmap(t *testing.T) {
@@ -98,36 +113,42 @@ func TestLeafHeader(t *testing.T) {
 }
 
 func TestBranchEncode(t *testing.T) {
-	tests := []struct {
-		br       *branch
-		encoding []byte
-	}{
-		{&branch{nil, [16]node{}, nil}, []byte{2}},
-		{&branch{[]byte{0x00}, [16]node{}, nil}, []byte{6}},
-		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, []byte{18}},
+	randKeys := generateRand(100)
+	randVals := generateRand(100)
 
-		{&branch{nil, [16]node{}, []byte{0x01}}, []byte{3}},
-		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, []byte{7}},
-		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, []byte{11}},
-		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, []byte{15}},
+	for i, testKey := range randKeys {
+		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
+		expected := []byte{}
 
-		{&branch{byteArray(62), [16]node{}, nil}, []byte{0xfa}},
-		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, []byte{0xfb}},
-		{&branch{byteArray(63), [16]node{}, nil}, []byte{254, 0}},
-		{&branch{byteArray(64), [16]node{}, nil}, []byte{254, 1}},
-		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, []byte{255, 1}},
+		expected = append(expected, b.header()...)
+		expected = append(expected, b.key...)
 
-		{&branch{byteArray(317), [16]node{}, []byte{0x01}}, []byte{255, 254}},
-		{&branch{byteArray(318), [16]node{}, []byte{0x01}}, []byte{255, 255, 0}},
-		{&branch{byteArray(573), [16]node{}, []byte{0x01}}, []byte{255, 255, 255, 0, byteArray(573), 0, 0}},
-	}
+		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
 
-	for _, test := range tests {
-		res, err := test.br.Encode()
+		for _, child := range b.children {
+			if child != nil {
+				encChild, err := Encode(child)
+				if err != nil {
+					t.Errorf("Fail when encoding branch child: %s", err)
+				}
+				expected = append(expected, encChild...)
+			}
+		}
+
+		buf := bytes.Buffer{}
+		encoder := &scale.Encoder{Writer: &buf}
+		_, err := encoder.Encode(b.value)
 		if err != nil {
-			t.Errorf("Branch header fail: error %s", err)
-		} else if !bytes.Equal(res, test.encoding) {
-			t.Errorf("Branch header fail case %x: got %x expected %x", test.br, res, test.encoding)
+			t.Fatalf("Fail when encoding value with scale: %s", err)
+		}
+
+		expected = append(expected, buf.Bytes()...)
+
+		res, err := b.Encode()
+		if !bytes.Equal(res, expected) {
+			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+		} else if err != nil {
+			t.Errorf("Fail when encoding node length: %s", err)
 		}
 	}
 }
