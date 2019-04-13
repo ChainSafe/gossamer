@@ -1,38 +1,39 @@
 PKGS := $(shell go list ./... | grep -v /vendor)
 
-PROJECTNAME=$(shell basename "$(PWD)")
-GOBASE=$(shell pwd)
-GOBIN=$(GOBASE)/bin
-
-BIN_DIR := $(GOPATH)/bin
-GOLANGCI-LINT := $(BIN_DIR)/golangci
-
-.PHONY: help
-all: help
-help: Makefile
-	@echo
-	@echo " Choose a make command to run in "$(PROJECTNAME)":"
-	@echo
-	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
-	@echo
-
-## test: Runs `go test` on project test files.
 .PHONY: test
-test:
+test: lint
 	go test $(PKGS)
 
-$(GOLANGCI-LINT):
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+GOLANGCI := $(GOPATH)/bin/golangci-lint
 
-## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint run` on project files.
+$(GOLANGCI):
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s latest
+
 .PHONY: lint
-lint: $(GOLANGCI-LINT)
-	golangci-lint run ./... --enable gofmt --enable goimports
+lint: $(GOLANGCI)
+	golangci-lint run -v
 
-## install: Install missing dependencies. Runs `go get` internally.
+run:
+	@echo "  >  \033[32mStarting server...\033[0m "
+	go run *.go
+
+build:
+	@echo "  >  \033[32mBuilding binary...\033[0m "
+	go build -o ./bin/gossamer
+
+start:
+	@echo "  >  \033[32mStarting server...\033[0m "
+	./bin/gossamer
+
 install:
 	@echo "  >  \033[32mInstalling dependencies...\033[0m "
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+	go mod vendor
+
+docker:
+	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
+	docker build -t chainsafe/gossamer -f Dockerfile.dev .
+	@echo "  >  \033[32mRunning Docker Container...\033[0m "
+	docker run chainsafe/gossamer
 
 ## clean: Clean build files. Runs `go clean` internally.
 clean:
