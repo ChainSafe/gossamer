@@ -1,11 +1,7 @@
-sudo: required
 language: go
 
 go:
 - 1.12
-
-services:
-  - docker
 
 env:
 - GO111MODULE=on
@@ -15,17 +11,13 @@ cache:
     - $HOME/.cache/go-build
     - $GOPATH/pkg/mod
 
-before_install:
-  - docker build -t chainsafe/gossamer -f Dockerfile.dev
-
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
 
 script:
-- go test ./... -v -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
-- docker run chainsafe/gossamer ./gossamer
+- make test -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

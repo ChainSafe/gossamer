@@ -3,9 +3,11 @@ module github.com/ChainSafe/gossamer
 go 1.12
 
 require (
-	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
+	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/golang/snappy v0.0.1
 	github.com/ipfs/go-datastore v0.0.4
+	github.com/ipfs/go-ipfs v0.4.20-rc2
+	github.com/ipfs/go-ipfs-config v0.0.1
 	github.com/libp2p/go-libp2p v0.0.13
 	github.com/libp2p/go-libp2p-crypto v0.0.1
 	github.com/libp2p/go-libp2p-host v0.0.2
