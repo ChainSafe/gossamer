@@ -17,7 +17,7 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-- make test -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
+- go test ./... -v -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
