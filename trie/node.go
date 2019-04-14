@@ -2,7 +2,7 @@ package trie
 
 import (
 	"bytes"
-	
+
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 )
