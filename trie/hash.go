@@ -27,7 +27,7 @@ func newHasher() (*hasher, error) {
 	}, nil
 }
 
-// Hash is the high-level function around individual node hashing functions
+// Hash is the encodes the node and then hashes it if its encoded length is > 32 bytes
 func Hash(n node) (h []byte, err error) {
 	hasher, err := newHasher()
 	if err != nil {
