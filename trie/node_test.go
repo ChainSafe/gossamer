@@ -2,7 +2,6 @@ package trie
 
 import (
 	"bytes"
-	"math/rand"
 	"testing"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -16,17 +15,6 @@ func byteArray(length int) []byte {
 		b[i] = 0xf
 	}
 	return b
-}
-
-func generateRand(size int) [][]byte {
-	rt := make([][]byte, size)
-	r := *rand.New(rand.NewSource(rand.Int63()))
-	for i := range rt {
-		buf := make([]byte, r.Intn(379)+1)
-		r.Read(buf)
-		rt[i] = buf
-	}
-	return rt
 }
 
 func TestChildrenBitmap(t *testing.T) {
@@ -178,6 +166,32 @@ func TestLeafEncode(t *testing.T) {
 			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
 		} else if err != nil {
 			t.Errorf("Fail when encoding node length: %s", err)
+		}
+	}
+}
+
+func TestEncodeRoot(t *testing.T) {
+	trie := newEmpty()
+
+	for i := 0; i < 20; i++ {
+		rt := generateRandTest(16)
+		for _, test := range rt {
+			err := trie.Put(test.key, test.value)
+			if err != nil {
+				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			}
+
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+
+			_, err = Encode(trie.root)
+			if err != nil {
+				t.Errorf("Fail to encode trie root: %s", err)
+			}
 		}
 	}
 }
