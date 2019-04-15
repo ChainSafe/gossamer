@@ -39,7 +39,7 @@ func (t *Trie) Put(key, value []byte) error {
 }
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	var n node
 
 	if len(value) > 0 {
@@ -182,7 +182,7 @@ func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
 }
 
 func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 
 	value, err = t.retrieve(t.root, k)
 	return value, err
@@ -221,7 +221,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
