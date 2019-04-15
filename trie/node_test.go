@@ -13,7 +13,7 @@ import (
 func byteArray(length int) []byte {
 	b := make([]byte, length)
 	for i := 0; i < length; i++ {
-		b[i] = 0xff
+		b[i] = 0xf
 	}
 	return b
 }
@@ -121,7 +121,7 @@ func TestBranchEncode(t *testing.T) {
 		expected := []byte{}
 
 		expected = append(expected, b.header()...)
-		expected = append(expected, b.key...)
+		expected = append(expected, nibblesToKey(b.key)...)
 
 		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
 
@@ -162,7 +162,7 @@ func TestLeafEncode(t *testing.T) {
 		expected := []byte{}
 
 		expected = append(expected, l.header()...)
-		expected = append(expected, l.key...)
+		expected = append(expected, nibblesToKey(l.key)...)
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{Writer: &buf}

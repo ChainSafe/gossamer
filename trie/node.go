@@ -62,7 +62,7 @@ func Encode(n node) ([]byte, error) {
 // Children Bitmap | Enc(Child[i_1]) | Enc(Child[i_2]) | ... | Enc(Child[i_n]) | SCALE Branch Node Value
 func (b *branch) Encode() ([]byte, error) {
 	encoding := b.header()
-	encoding = append(encoding, b.key...)
+	encoding = append(encoding, nibblesToKey(b.key)...)
 	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
 
 	for _, child := range b.children {
@@ -97,7 +97,7 @@ func (b *branch) Encode() ([]byte, error) {
 // Value is the leaf's SCALE encoded value
 func (l *leaf) Encode() ([]byte, error) {
 	encoding := l.header()
-	encoding = append(encoding, l.key...)
+	encoding = append(encoding, nibblesToKey(l.key)...)
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
