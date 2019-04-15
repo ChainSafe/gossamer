@@ -1,5 +1,5 @@
-// // Copyright 2019 The gossamer Authors
-// // This file is part of the gossamer library.
+// // Copyright 2019 ChainSafe Systems (ON) Corp.
+// // This file is part of gossamer.
 // //
 // // The gossamer library is free software: you can redistribute it and/or modify
 // // it under the terms of the GNU Lesser General Public License as published by
