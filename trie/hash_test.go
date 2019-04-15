@@ -55,7 +55,7 @@ func TestHashLeaf(t *testing.T) {
 }
 
 func TestHashBranch(t *testing.T) {
-	n := &branch{}
+	n := &branch{key: generateRandBytes(380), value: generateRandBytes(380)}
 	n.children[3] = &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}
 	h, err := Hash(n)
 	if err != nil {
