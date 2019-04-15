@@ -118,12 +118,12 @@ func TestBranch(t *testing.T) {
 		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
 	}
 
-	// val, err = trie.Get([]byte{0})
-	// if err != nil {
-	// 	t.Errorf("Fail to get key %x: %s", []byte{0}, err.Error())
-	// } else if !bytes.Equal(val, nil) {
-	// 	t.Errorf("Fail to get key %x with nil value: got %x", []byte{0}, val)
-	// }
+	val, err = trie.Get([]byte{0})
+	if err != nil {
+		t.Errorf("Fail to get key %x: %s", []byte{0}, err.Error())
+	} else if !bytes.Equal(val, nil) {
+		t.Errorf("Fail to get key %x with nil value: got %x", []byte{0}, val)
+	}
 
 	val, err = trie.Get(key1)
 	if err != nil {

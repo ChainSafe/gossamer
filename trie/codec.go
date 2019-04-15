@@ -24,6 +24,8 @@ func KeyEncode(k []byte) []byte {
 func keyToNibbles(in []byte) []byte {
 	if len(in) == 0 {
 		return []byte{}
+	} else if len(in) == 1 && in[0] == 0 {
+		return []byte{0, 0}
 	}
 
 	l := len(in) * 2
