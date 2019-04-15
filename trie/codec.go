@@ -47,16 +47,16 @@ func keyToNibbles(in []byte) []byte {
 // if the length of the input is odd, the result is [ in[1] in[0] | ... | 0000 in[k-1] ]
 // otherwise, res = [ in[1] in[0] | ... | in[k-1] in[k-2] ]
 func nibblesToKey(in []byte) (res []byte) {
-	if len(in) % 2 == 0 {
+	if len(in)%2 == 0 {
 		res = make([]byte, len(in)/2)
 		for i := 0; i < len(in); i += 2 {
 			res[i/2] = (in[i] & 0xf) | (in[i+1] << 4 & 0xf0)
 		}
 	} else {
-		res = make([]byte, len(in)/2 + 1)
+		res = make([]byte, len(in)/2+1)
 		for i := 0; i < len(in); i += 2 {
-			if i < len(in) - 1 {
-				res[i/2] = (in[i] & 0xf) | (in[i+1] <<4 & 0xf0)
+			if i < len(in)-1 {
+				res[i/2] = (in[i] & 0xf) | (in[i+1] << 4 & 0xf0)
 			} else {
 				res[i/2] = (in[i] & 0xf)
 			}

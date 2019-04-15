@@ -67,7 +67,6 @@ func TestKeyToNibbles(t *testing.T) {
 	}
 }
 
-
 func TestNibblesToKey(t *testing.T) {
 	tests := []struct {
 		input    []byte

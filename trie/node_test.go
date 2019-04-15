@@ -97,7 +97,7 @@ func TestLeafHeader(t *testing.T) {
 		if !bytes.Equal(res, test.header) {
 			t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
 		}
-	} 
+	}
 }
 
 func TestBranchEncode(t *testing.T) {
