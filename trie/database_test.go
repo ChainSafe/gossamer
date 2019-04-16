@@ -8,10 +8,11 @@ import (
 )
 
 func TestWriteToDB(t *testing.T) {
-	db, err := db.NewBadgerDB("./gossamer-data")
+	db, err := db.NewBadgerDB("./gossamer_data")
 	if err != nil {
 		t.Fatalf("Fail: could not create badgerDB")
 	}
+	
 	trie := &Trie{
 		db: &Database{db: db},
 		root: nil,
@@ -34,6 +35,11 @@ func TestWriteToDB(t *testing.T) {
 
 	err = trie.WriteToDB()
 	if err != nil {
-		t.Errorf("Fail: could not write to DB: %s", err)
+		t.Errorf("Fail: could not write to batch writer: %s", err)
 	}
+
+	err = trie.Commit()
+	if err != nil {
+		t.Errorf("Fail: could not commit (batch write) to DB: %s", err)
+	}	
 }
