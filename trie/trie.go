@@ -39,13 +39,13 @@ func (t *Trie) Put(key, value []byte) error {
 }
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	var n node
 
 	if len(value) > 0 {
 		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value})
 	} else {
-		_, n, err = t.delete(t.root, nil, k)
+		_, n, err = t.delete(t.root, k)
 	}
 
 	if err != nil {
@@ -73,6 +73,14 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			ok = true
 		}
 	case *leaf:
+		if len(key) == 0 {
+			br := new(branch)
+			br.key = nil
+			br.value = value.(*leaf).value
+			br.children[p.key[0]] = parent
+			return true, br, nil
+		}
+
 		// need to convert this into a branch
 		br := new(branch)
 		length := lenCommonPrefix(key, p.key)
@@ -182,7 +190,7 @@ func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
 }
 
 func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 
 	value, err = t.retrieve(t.root, k)
 	return value, err
@@ -198,7 +206,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value}, nil
 		}
 
-		// if branch's child at the key is a leaf, return it
+		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
 			if bytes.Equal(v.key, key[length+1:]) {
@@ -221,8 +229,8 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
-	k := keyToHex(key)
-	_, n, err := t.delete(t.root, nil, k)
+	k := keyToNibbles(key)
+	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
 	}
@@ -230,7 +238,7 @@ func (t *Trie) Delete(key []byte) error {
 	return nil
 }
 
-func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err error) {
+func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 	switch p := parent.(type) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
@@ -243,7 +251,7 @@ func (t *Trie) delete(parent node, prefix, key []byte) (ok bool, n node, err err
 		} else {
 			switch p.children[key[length]].(type) {
 			case *branch:
-				_, n, err = t.delete(p.children[key[length]], key[:length], key[length+1:])
+				_, n, err = t.delete(p.children[key[length]], key[length+1:])
 				p.children[key[length]] = n
 				n = p
 				return true, n, nil
