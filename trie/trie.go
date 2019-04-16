@@ -39,7 +39,7 @@ func (t *Trie) Put(key, value []byte) error {
 }
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	var n node
 
 	if len(value) > 0 {
@@ -77,6 +77,14 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		br := new(branch)
 		length := lenCommonPrefix(key, p.key)
 		br.key = key[:length]
+
+		if len(key) <= length {
+			br := new(branch)
+			br.key = nil
+			br.value = value.(*leaf).value
+			br.children[p.key[0]] = parent
+			return true, br, nil
+		}
 
 		switch v := value.(type) {
 		case *leaf:
@@ -175,14 +183,14 @@ func (t *Trie) Get(key []byte) (value []byte, err error) {
 }
 
 // getLeaf returns the leaf node stored in the trie at the corresponding key
-// leaf includes both partial key and value
+// leaf includes both partial key and value, need the partial key for encoding
 func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
 	l, err := t.tryGet(key)
 	return l, err
 }
 
 func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 
 	value, err = t.retrieve(t.root, k)
 	return value, err
@@ -198,10 +206,14 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value}, nil
 		}
 
-		// if branch's child at the key is a leaf, return it
+		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
-			value = v
+			if bytes.Equal(v.key, key[length+1:]) {
+				value = v
+			} else {
+				value = nil
+			}
 		default:
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}
@@ -217,7 +229,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err

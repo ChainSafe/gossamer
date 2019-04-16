@@ -25,3 +25,4 @@
 *.sublime*
 
 go-pre.db
+*gossamer-data*
