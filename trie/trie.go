@@ -79,7 +79,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		br.key = key[:length]
 
 		if len(key) < length {
-			br := new(branch)
 			br.key = nil
 			br.value = value.(*leaf).value
 			br.children[p.key[0]] = parent
