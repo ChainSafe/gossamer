@@ -76,15 +76,15 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		// need to convert this into a branch
 		br := new(branch)
 		length := lenCommonPrefix(key, p.key)
-		br.key = key[:length]
 
-		if len(key) <= length {
-			br := new(branch)
+		if len(key) < length {
 			br.key = nil
 			br.value = value.(*leaf).value
 			br.children[p.key[0]] = parent
 			return true, br, nil
 		}
+
+		br.key = key[:length]
 
 		switch v := value.(type) {
 		case *leaf:

@@ -26,3 +26,5 @@
 
 go-pre.db
 *gossamer*data*
+
+/bin

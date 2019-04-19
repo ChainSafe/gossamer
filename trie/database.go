@@ -7,11 +7,12 @@ import (
 
 // Database is a wrapper around a polkadb
 type Database struct {
-	db polkadb.Database
-	batch polkadb.Batch
-	lock sync.RWMutex
+	db     polkadb.Database
+	batch  polkadb.Batch
+	lock   sync.RWMutex
+	hasher *Hasher
 }
- 
+
 // WriteToDB writes the trie to the underlying database
 // Stores the merkle value of the node as the key and the encoded node as the value
 func (t *Trie) WriteToDB() error {
@@ -46,7 +47,7 @@ func (t *Trie) writeNodeToDB(n node) error {
 		return err
 	}
 
-	hash, err := Hash(n)
+	hash, err := t.db.hasher.Hash(n)
 	if err != nil {
 		return err
 	}

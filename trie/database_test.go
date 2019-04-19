@@ -8,13 +8,20 @@ import (
 )
 
 func TestWriteToDB(t *testing.T) {
+	hasher, err := newHasher()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	db, err := db.NewBadgerDB("./gossamer_data")
 	if err != nil {
 		t.Fatalf("Fail: could not create badgerDB")
 	}
-	
+
 	trie := &Trie{
-		db: &Database{db: db},
+		db: &Database{db: db,
+			hasher: hasher,
+		},
 		root: nil,
 	}
 
@@ -41,5 +48,5 @@ func TestWriteToDB(t *testing.T) {
 	err = trie.Commit()
 	if err != nil {
 		t.Errorf("Fail: could not commit (batch write) to DB: %s", err)
-	}	
+	}
 }
