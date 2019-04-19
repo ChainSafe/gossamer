@@ -38,13 +38,14 @@ func TestWriteToDB(t *testing.T) {
 	}
 
 	rt := generateRandTest(20000)
+	var val []byte
 	for _, test := range rt {
 		err = trie.Put(test.key, test.value)
 		if err != nil {
 			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
 		}
 
-		val, err := trie.Get(test.key)
+		val, err = trie.Get(test.key)
 		if err != nil {
 			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 		} else if !bytes.Equal(val, test.value) {
