@@ -7,11 +7,11 @@ import (
 	"golang.org/x/crypto/blake2s"
 )
 
-type hasher struct {
+type Hasher struct {
 	hash hash.Hash
 }
 
-func newHasher() (*hasher, error) {
+func newHasher() (*Hasher, error) {
 	key, err := hex.DecodeString("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
 	if err != nil {
 		return nil, err
@@ -22,18 +22,13 @@ func newHasher() (*hasher, error) {
 		return nil, err
 	}
 
-	return &hasher{
+	return &Hasher{
 		hash: h,
 	}, nil
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
-func Hash(n node) (h []byte, err error) {
-	hasher, err := newHasher()
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Hasher) Hash(n node) (res []byte, err error) {
 	encNode, err := n.Encode()
 	if err != nil {
 		return nil, err
@@ -45,10 +40,10 @@ func Hash(n node) (h []byte, err error) {
 	}
 
 	// otherwise, hash encoded node
-	_, err = hasher.hash.Write(encNode)
+	_, err = h.hash.Write(encNode)
 	if err == nil {
-		h = hasher.hash.Sum(nil)
+		res = h.hash.Sum(nil)
 	}
 
-	return h, err
+	return res, err
 }

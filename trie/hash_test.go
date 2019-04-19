@@ -45,8 +45,13 @@ func TestNewHasher(t *testing.T) {
 }
 
 func TestHashLeaf(t *testing.T) {
+	hasher, err := newHasher()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
-	h, err := Hash(n)
+	h, err := hasher.Hash(n)
 	if err != nil {
 		t.Errorf("did not hash leaf node: %s", err)
 	} else if h == nil {
@@ -55,9 +60,14 @@ func TestHashLeaf(t *testing.T) {
 }
 
 func TestHashBranch(t *testing.T) {
+	hasher, err := newHasher()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	n := &branch{key: generateRandBytes(380), value: generateRandBytes(380)}
 	n.children[3] = &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}
-	h, err := Hash(n)
+	h, err := hasher.Hash(n)
 	if err != nil {
 		t.Errorf("did not hash branch node: %s", err)
 	} else if h == nil {
