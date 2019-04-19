@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"hash"
 
+	"github.com/ChainSafe/gossamer/common"
 	"golang.org/x/crypto/blake2s"
 )
 
@@ -36,7 +37,7 @@ func (h *Hasher) Hash(n node) (res []byte, err error) {
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if len(encNode) < 32 {
-		return encNode, nil
+		return common.AppendZeroes(encNode, 32), nil
 	}
 
 	// otherwise, hash encoded node
