@@ -14,7 +14,7 @@ type BadgerDB struct {
 	db   *badger.DB
 }
 
-// Iterator struct contains a transaction, iterator and context fields released, initialized
+// Iterate struct contains a transaction, iterator and context fields released, initialized
 type Iterate struct {
 	txn      *badger.Txn
 	iter     *badger.Iterator
@@ -266,6 +266,10 @@ func (dt *table) Get(key []byte) ([]byte, error) {
 // Del removes keys with the prefix value given to NewTable
 func (dt *table) Del(key []byte) error {
 	return dt.db.Del(append([]byte(dt.prefix), key...))
+}
+
+func (dt *table) Close() {
+	dt.db.Close()
 }
 
 // NewTableBatch returns a Batch object which prefixes all keys with a given string.

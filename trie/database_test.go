@@ -7,22 +7,34 @@ import (
 	db "github.com/ChainSafe/gossamer/polkadb"
 )
 
-func TestWriteToDB(t *testing.T) {
+func newTrie() (*Trie, error) {
 	hasher, err := newHasher()
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	db, err := db.NewBadgerDB("./gossamer_data")
 	if err != nil {
-		t.Fatalf("Fail: could not create badgerDB")
+		return nil, err
 	}
 
 	trie := &Trie{
-		db: &Database{db: db,
+		db: &Database{
+			db:     db,
 			hasher: hasher,
 		},
 		root: nil,
+	}
+
+	trie.db.batch = trie.db.db.NewBatch()
+
+	return trie, nil
+}
+
+func TestWriteToDB(t *testing.T) {
+	trie, err := newTrie()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	rt := generateRandTest(20000)
@@ -48,5 +60,30 @@ func TestWriteToDB(t *testing.T) {
 	err = trie.Commit()
 	if err != nil {
 		t.Errorf("Fail: could not commit (batch write) to DB: %s", err)
+	}
+
+	trie.db.db.Close()
+}
+
+func TestWriteDirty(t *testing.T) {
+	trie, err := newTrie()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirtyNode := &leaf{key: generateRandBytes(10), value: generateRandBytes(10), dirty: true}
+	written, err := trie.writeNodeToDB(dirtyNode)
+	if err != nil {
+		t.Errorf("Fail: could not write to db: %s", err)
+	} else if !written {
+		t.Errorf("Fail: did not write dirty node to db")
+	}
+
+	cleanNode := &leaf{key: generateRandBytes(10), value: generateRandBytes(10), dirty: false}
+	written, err = trie.writeNodeToDB(cleanNode)
+	if err != nil {
+		t.Errorf("Fail: could not write to db: %s", err)
+	} else if written {
+		t.Errorf("Fail: wrote clean node to db")
 	}
 }

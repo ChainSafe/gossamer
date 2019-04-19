@@ -43,7 +43,7 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 	var n node
 
 	if len(value) > 0 {
-		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value})
+		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
 	} else {
 		_, n, err = t.delete(t.root, k)
 	}
@@ -74,7 +74,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		}
 	case *leaf:
 		// need to convert this into a branch
-		br := new(branch)
+		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
 		if len(key) < length {
@@ -149,10 +149,8 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 	}
 
 	// we need to branch out at the point where the keys diverge
-	br := new(branch)
-
 	// update partial keys, new branch has key up to matching length
-	br.key = key[:length]
+	br := &branch{key: key[:length], dirty: true}
 
 	parentIndex := p.key[length]
 	_, br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p)
@@ -203,7 +201,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
-			return &leaf{key: p.key, value: p.value}, nil
+			return &leaf{key: p.key, value: p.value, dirty: true}, nil
 		}
 
 		// if branch's child at the key is a leaf, return it if the key matches
