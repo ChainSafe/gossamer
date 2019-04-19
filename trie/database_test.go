@@ -39,7 +39,7 @@ func TestWriteToDB(t *testing.T) {
 
 	rt := generateRandTest(20000)
 	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
+		err = trie.Put(test.key, test.value)
 		if err != nil {
 			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
 		}
