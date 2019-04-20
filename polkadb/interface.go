@@ -35,5 +35,5 @@ type Iterator interface {
 
 // Iteratee wraps the NewIterator methods of BadgerDB
 type Iteratee interface {
-	NewIterator() Iterate
+	NewIterator() Iterable
 }
