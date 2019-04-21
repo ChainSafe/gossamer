@@ -32,7 +32,13 @@ type Service struct {
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	bootstrapNodes []*ps.PeerInfo
+	// These are for Peers, PeerCount (and nothing else).
+	peerOp     chan peerOpFunc
+	peerOpDone chan struct{}
+	quit       chan struct{}
 }
+
+type peerOpFunc func(map[peer.ID]*ps.PeerInfo)
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
@@ -230,4 +236,14 @@ func handleStream(stream net.Stream) {
 	if err != nil {
 		return
 	}
+}
+
+func (s *Service) PeerCount() int {
+	var count int
+	select {
+	case s.peerOp <- func(ps map[peer.ID]*ps.PeerInfo) { count = len(ps) }:
+		<-s.peerOpDone
+	case <-s.quit:
+	}
+	return count
 }
