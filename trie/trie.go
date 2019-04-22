@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
@@ -39,7 +55,7 @@ func (t *Trie) Put(key, value []byte) error {
 }
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	var n node
 
 	if len(value) > 0 {
@@ -77,6 +93,13 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		br := new(branch)
 		length := lenCommonPrefix(key, p.key)
 		br.key = key[:length]
+
+		if len(key) < length {
+			br.key = nil
+			br.value = value.(*leaf).value
+			br.children[p.key[0]] = parent
+			return true, br, nil
+		}
 
 		switch v := value.(type) {
 		case *leaf:
@@ -182,7 +205,7 @@ func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
 }
 
 func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 
 	value, err = t.retrieve(t.root, k)
 	return value, err
@@ -198,10 +221,14 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value}, nil
 		}
 
-		// if branch's child at the key is a leaf, return it
+		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
-			value = v
+			if bytes.Equal(v.key, key[length+1:]) {
+				value = v
+			} else {
+				value = nil
+			}
 		default:
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}
@@ -217,7 +244,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
-	k := keyToHex(key)
+	k := keyToNibbles(key)
 	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
