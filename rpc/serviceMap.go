@@ -69,12 +69,12 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 		}
 		// Second arg must be pointer and exported
 		argsType := methodType.In(2)
-		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || !isBuiltin(argsType) {
+		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(argsType) {
 			continue
 		}
 		// Third arg must be pointer and exported
 		replyType := methodType.In(3)
-		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || !isBuiltin(replyType) {
+		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(replyType) {
 			continue
 		}
 		// Must have 1 return value of type error
@@ -93,7 +93,7 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 			method: method,
 			alias: methodAlias,
 			argsType: argsType.Elem(),
-			replyType: returnType.Elem(),
+			replyType: replyType.Elem(),
 		}
 		m.mutex.Unlock()
 	}
@@ -136,14 +136,12 @@ func isExported(name string) bool {
 	return unicode.IsUpper(firstRune)
 }
 
-
-// TODO: This dont work
 func isBuiltin(t reflect.Type) bool {
 	// Follow indirection
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	// TODO: confirm this works
+
 	// Should be empty if builtin
 	return t.PkgPath() == ""
 }

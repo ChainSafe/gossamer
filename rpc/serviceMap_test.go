@@ -62,19 +62,32 @@ func TestTypeEvaluators(t *testing.T) {
 
 func TestServiceMap(t *testing.T) {
 	s := new(serviceMap)
+	mockServiceA := new(MockServiceA)
 
-	err := s.register(new(MockServiceA), "")
+	err := s.register(mockServiceA, "")
 	if err == nil {
 		t.Errorf("should not allow empty service names")
 	}
 
-	err = s.register(new(MockServiceA), "mocka")
+	err = s.register(new(MockServiceA), "mockA")
 	if err != nil {
 		t.Fatalf("could not register: %s", err)
 	}
 
-	_, _, err = s.get("mocka_method1")
+	srvc, method, err := s.get("mockA_method1")
 	if err != nil {
-		t.Fatalf("could not get method %s: %s", "mocka_method1", err)
+		t.Fatalf("could not get method %s: %s", "mockA_method1", err)
+	}
+
+	if reflect.TypeOf(srvc) != reflect.TypeOf(mockServiceA) {
+		t.Fatalf("expected service type %t, got: %t", reflect.TypeOf(mockServiceA), reflect.TypeOf(srvc))
+	}
+
+	_ = method
+
+	err = s.register(new(MockServiceB), "mockB")
+
+	if err != nil {
+
 	}
 }
