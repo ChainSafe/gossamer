@@ -31,7 +31,7 @@ type Service struct {
 	host           host.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []*ps.PeerInfo
+	BootstrapNodes []*ps.PeerInfo
 	// These are for Peers, PeerCount (and nothing else).
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
@@ -74,13 +74,13 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
+	bootstrapNodes, err := StringsToPeerInfos(conf.BootstrapNodes)
 	return &Service{
 		ctx:            ctx,
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
-		bootstrapNodes: bootstrapNodes,
+		BootstrapNodes: bootstrapNodes,
 	}, err
 }
 
@@ -93,12 +93,12 @@ func (s *Service) Start() <-chan error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 {
+	if len(s.BootstrapNodes) == 0 {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
 	// connect to the bootstrap nodes
-	err := s.bootstrapConnect()
+	err := s.BootstrapConnect()
 	if err != nil {
 		e <- err
 	}
@@ -239,6 +239,9 @@ func handleStream(stream net.Stream) {
 }
 
 func (s *Service) PeerCount() int {
+	fmt.Println("PEERS::: ", s)
+	//count := len(s.BootstrapNodes)
+
 	var count int
 	select {
 	case s.peerOp <- func(ps map[peer.ID]*ps.PeerInfo) { count = len(ps) }:
@@ -246,4 +249,5 @@ func (s *Service) PeerCount() int {
 	case <-s.quit:
 	}
 	return count
+	//return count
 }

@@ -66,7 +66,7 @@ func TestBootstrapConnect(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	err = s.bootstrapConnect()
+	err = s.BootstrapConnect()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}
