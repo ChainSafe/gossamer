@@ -23,6 +23,7 @@ type MockServiceBReply struct {
 	value int
 }
 func (s *MockServiceA) Method1 (req *http.Request, args *MockServiceAArgs, res *MockServiceAReply) error {
+	res.value = "method1"
 	return nil
 }
 
@@ -74,20 +75,22 @@ func TestServiceMap(t *testing.T) {
 		t.Fatalf("could not register: %s", err)
 	}
 
-	srvc, method, err := s.get("mockA_method1")
+	srvc, srvcMethod, err := s.get("mockA_method1")
 	if err != nil {
 		t.Fatalf("could not get method %s: %s", "mockA_method1", err)
 	}
 
-	if reflect.TypeOf(srvc) != reflect.TypeOf(mockServiceA) {
-		t.Fatalf("expected service type %t, got: %t", reflect.TypeOf(mockServiceA), reflect.TypeOf(srvc))
+	if srvcMethod.alias != "method1" {
+		t.Errorf("incorrect alias. expected: %s got: %s", "method1", srvcMethod.alias)
+	}
+	reply := reflect.New(reflect.TypeOf(MockServiceAReply{}))
+	req := reflect.New(reflect.TypeOf(http.Request{}))
+	args := reflect.New(reflect.TypeOf(MockServiceAArgs{}))
+	srvcMethod.method.Func.Call([]reflect.Value{srvc.rcvr, req, args, reply})
+	srvcReply := reply.Interface().(*MockServiceAReply)
+
+	if srvcReply.value != "method1" {
+		t.Errorf("incorrect return value. expected: %s, got: %s", "method1", srvcReply.value)
 	}
 
-	_ = method
-
-	err = s.register(new(MockServiceB), "mockB")
-
-	if err != nil {
-
-	}
 }

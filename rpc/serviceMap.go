@@ -11,18 +11,18 @@ import (
 )
 
 type service struct {
-	name	string
-	rcvr 	reflect.Value
-	rcvrType	reflect.Type
-	methods	map[string] *serviceMethod
+	name     string
+	rcvr     reflect.Value
+	rcvrType reflect.Type
+	methods  map[string]*serviceMethod
 }
 
 type serviceMethod struct {
-	method	reflect.Method
-	alias	string
+	method reflect.Method
+	alias  string
 	// TODO: I think these can be removed if we only use 1 args/reply type
-	argsType	reflect.Type
-	replyType	reflect.Type
+	argsType  reflect.Type
+	replyType reflect.Type
 }
 
 type serviceMap struct {
@@ -31,9 +31,8 @@ type serviceMap struct {
 }
 
 // Precompute these for efficiency
-var typeOfError   = reflect.TypeOf((*error)(nil)).Elem()
+var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
 var typeOfRequest = reflect.TypeOf((*http.Request)(nil)).Elem()
-
 
 func (m *serviceMap) register(rcvr interface{}, name string) error {
 	if name == "" {
@@ -45,10 +44,10 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 	}
 
 	s := &service{
-		name: name,
-		rcvr: reflect.ValueOf(rcvr),
+		name:     name,
+		rcvr:     reflect.ValueOf(rcvr),
 		rcvrType: reflect.TypeOf(rcvr),
-		methods: make(map[string]*serviceMethod),
+		methods:  make(map[string]*serviceMethod),
 	}
 
 	for i := 0; i < s.rcvrType.NumMethod(); i++ {
@@ -82,7 +81,7 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 			continue
 		}
 		returnType := methodType.Out(0)
-		if returnType!= typeOfError {
+		if returnType != typeOfError {
 			continue
 		}
 		// Force first character to lower case
@@ -90,9 +89,9 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 		methodAlias := string(unicode.ToLower(methodRunes[0])) + string(methodRunes[1:])
 		m.mutex.Lock()
 		s.methods[methodAlias] = &serviceMethod{
-			method: method,
-			alias: methodAlias,
-			argsType: argsType.Elem(),
+			method:    method,
+			alias:     methodAlias,
+			argsType:  argsType.Elem(),
 			replyType: replyType.Elem(),
 		}
 		m.mutex.Unlock()
@@ -110,7 +109,7 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 	return nil
 }
 
-func (m *serviceMap) get(id string) (*service, *serviceMethod, error){
+func (m *serviceMap) get(id string) (*service, *serviceMethod, error) {
 	tokens := strings.Split(id, "_")
 	if len(tokens) != 2 {
 		err := fmt.Errorf("invalid method name: %s", id)
