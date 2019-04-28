@@ -3,7 +3,6 @@ package json2
 import (
 	"bytes"
 	"errors"
-	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/rpc"
 	"log"
 	"net/http"
@@ -134,42 +133,23 @@ func TestService(t *testing.T) {
 	}
 }
 
-func TestP2PService(t *testing.T) {
-	s := rpc.NewServer()
-	s.RegisterCodec(NewCodec())
-
-	err := s.RegisterService(new(api.PublicRPC), "")
-	if err != nil {
-		t.Fatalf("could not register service: %s", err)
-	}
-	var res api.PublicRPCResponse
-
-	// Valid request
-	err = exec(s, "PublicRPC.PeerCount", api.PublicRPCRequest{}, &res)
-	if err != nil {
-		t.Fatalf("request execution failed: %s", err)
-	}
-	if res.Count != 3 {
-		t.Fatalf("response value incorrect. expected: %d got: %d", 3, res.Count)
-	}
-
-	// Exepected to return error
-	//res = ServiceResponse{}
-	//err = exec(s, "Service.Fail", &ServiceRequest{1337}, &res)
-	//if err == nil {
-	//	t.Fatalf("expected error to be thrown")
-	//} else if err.Error() != ErrResponse.Error() {
-	//	t.Fatalf("unexpected error. got: %s expected: %s", err, ErrResponse)
-	//}
-
-	// Invalid JSON
-	//res = ServiceResponse{}
-	//err = execInvalidJSON(s, res)
-	//if err == nil {
-	//	t.Fatalf("no error thrown from invalid json")
-	//} else if jsonErr, ok := err.(*Error); !ok {
-	//	t.Fatalf("expected error, got: %s", err)
-	//} else if jsonErr.ErrorCode != ERR_PARSE {
-	//	t.Fatalf("expected ERR_PARSE (%d), got: %s (%d)", ERR_PARSE, jsonErr.Message, jsonErr.ErrorCode)
-	//}
-}
+//func TestP2PService(t *testing.T) {
+//	s := rpc.NewServer()
+//	s.RegisterCodec(NewCodec())
+//
+//	err := s.RegisterService(new(api.PublicRPC), "")
+//	if err != nil {
+//		t.Fatalf("could not register service: %s", err)
+//	}
+//
+//	var resp api.PublicRPCResponse
+//
+//	// Valid request
+//	err = exec(s, "PublicRPC.PeerCount", api.PublicRPCRequest{}, &resp)
+//	if err != nil {
+//		t.Fatalf("request execution failed: %s", err)
+//	}
+//	if resp.Count != 2 {
+//		t.Fatalf("response value incorrect. expected: %d got: %d", 2, resp.Count)
+//	}
+//}

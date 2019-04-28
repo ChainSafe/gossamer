@@ -6,13 +6,9 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	mrand "math/rand"
-
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -21,6 +17,9 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+	"io"
+	"log"
+	mrand "math/rand"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
