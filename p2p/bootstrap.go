@@ -3,7 +3,6 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	ps "github.com/libp2p/go-libp2p-peerstore"
@@ -49,18 +48,18 @@ func (s *Service) BootstrapConnect() error {
 		wg.Add(1)
 		go func(p *ps.PeerInfo) {
 			defer wg.Done()
-			defer log.Println(s.ctx, "bootstrapDial", s.host.ID(), p.ID)
-			log.Printf("%s bootstrapping to %s", s.host.ID(), p.ID)
+			//defer log.Println(s.ctx, "bootstrapDial", s.host.ID(), p.ID)
+			//log.Printf("%s bootstrapping to %s", s.host.ID(), p.ID)
 
 			s.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
 			if err = s.host.Connect(s.ctx, *p); err != nil {
-				log.Println(s.ctx, "bootstrapDialFailed", p.ID)
-				log.Printf("failed to bootstrap with %v: %s", p.ID, err)
+				//log.Println(s.ctx, "bootstrapDialFailed", p.ID)
+				//log.Printf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
 			}
-			log.Println(s.ctx, "bootstrapDialSuccess", p.ID)
-			log.Printf("bootstrapped with %v", p.ID)
+			//log.Println(s.ctx, "bootstrapDialSuccess", p.ID)
+			//log.Printf("bootstrapped with %v", p.ID)
 		}(p)
 	}
 	wg.Wait()
