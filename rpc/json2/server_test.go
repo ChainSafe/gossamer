@@ -149,24 +149,3 @@ func TestService(t *testing.T) {
 		t.Fatalf("expected ERR_PARSE (%d), got: %s (%d)", ERR_PARSE, jsonErr.Message, jsonErr.ErrorCode)
 	}
 }
-
-//func TestP2PService(t *testing.T) {
-//	s := rpc.NewServer()
-//	s.RegisterCodec(NewCodec())
-//
-//	err := s.RegisterService(new(api.PublicRPC), "")
-//	if err != nil {
-//		t.Fatalf("could not register service: %s", err)
-//	}
-//
-//	var resp api.PublicRPCResponse
-//
-//	// Valid request
-//	err = exec(s, "PublicRPC.PeerCount", api.PublicRPCRequest{}, &resp)
-//	if err != nil {
-//		t.Fatalf("request execution failed: %s", err)
-//	}
-//	if resp.Count != 2 {
-//		t.Fatalf("response value incorrect. expected: %d got: %d", 2, resp.Count)
-//	}
-//}

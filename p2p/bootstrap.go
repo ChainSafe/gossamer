@@ -32,7 +32,7 @@ func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
 	return p, err
 }
 
-func StringsToPeerInfos(peers []string) ([]*ps.PeerInfo, error) {
+func stringsToPeerInfos(peers []string) ([]*ps.PeerInfo, error) {
 	pinfos := make([]*ps.PeerInfo, len(peers))
 	for i, peer := range peers {
 		p, err := stringToPeerInfo(peer)
@@ -45,8 +45,8 @@ func StringsToPeerInfos(peers []string) ([]*ps.PeerInfo, error) {
 }
 
 // this code is borrowed from the go-ipfs bootstrap process
-func (s *Service) BootstrapConnect() error {
-	peers := s.BootstrapNodes
+func (s *Service) bootstrapConnect() error {
+	peers := s.bootstrapNodes
 	if len(peers) < 1 {
 		return errors.New("not enough bootstrap peers")
 	}

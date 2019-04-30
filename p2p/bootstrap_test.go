@@ -70,7 +70,7 @@ func TestBootstrapConnect(t *testing.T) {
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
 
 	testServiceConfig := &ServiceConfig{
-		BootstrapNodes: []string{
+		bootstrapNodes: []string{
 			ipfsAddr,
 		},
 		Port: 7001,
@@ -81,7 +81,7 @@ func TestBootstrapConnect(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	err = s.BootstrapConnect()
+	err = s.bootstrapConnect()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}

@@ -22,9 +22,13 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	mrand "math/rand"
+
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-	"github.com/libp2p/go-libp2p"
+	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -33,9 +37,6 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	"io"
-	"log"
-	mrand "math/rand"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -46,7 +47,7 @@ type Service struct {
 	host           host.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	BootstrapNodes []*ps.PeerInfo
+	bootstrapNodes []*ps.PeerInfo
 	// These are for Peers, PeerCount (and nothing else).
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
@@ -57,7 +58,7 @@ type peerOpFunc func(map[peer.ID]*ps.PeerInfo)
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	BootstrapNodes []string
+	bootstrapNodes []string
 	Port           int
 	RandSeed       int64
 }
@@ -88,13 +89,13 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	bootstrapNodes, err := StringsToPeerInfos(conf.BootstrapNodes)
-	s:= &Service{
+	bootstrapNodes, err := stringsToPeerInfos(conf.bootstrapNodes)
+	s := &Service{
 		ctx:            ctx,
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
-		BootstrapNodes: bootstrapNodes,
+		bootstrapNodes: bootstrapNodes,
 	}
 	return s, err
 }
@@ -108,12 +109,12 @@ func (s *Service) Start() <-chan error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.BootstrapNodes) == 0 {
+	if len(s.bootstrapNodes) == 0 {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
 	// connect to the bootstrap nodes
-	err := s.BootstrapConnect()
+	err := s.bootstrapConnect()
 	if err != nil {
 		e <- err
 	}
