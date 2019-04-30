@@ -237,6 +237,7 @@ func handleStream(stream net.Stream) {
 	}
 }
 
+// PeerCount returns the number of connected peers
 func (s *Service) PeerCount() int {
 	peers := s.host.Network().Peers()
 	return len(peers)
