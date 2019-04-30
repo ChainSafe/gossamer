@@ -1,0 +1,8 @@
+# filename: config.toml
+
+[ServiceConfig]
+Port= 7001
+RandSeed= 33
+
+[BadgerDB]
+Datadir="../chaindata/"

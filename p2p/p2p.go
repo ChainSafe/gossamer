@@ -48,17 +48,11 @@ type Service struct {
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	bootstrapNodes []*ps.PeerInfo
-	// These are for Peers, PeerCount (and nothing else).
-	peerOp     chan peerOpFunc
-	peerOpDone chan struct{}
-	quit       chan struct{}
 }
-
-type peerOpFunc func(map[peer.ID]*ps.PeerInfo)
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	bootstrapNodes []string
+	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
 }
@@ -89,7 +83,7 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	bootstrapNodes, err := stringsToPeerInfos(conf.bootstrapNodes)
+	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
 		ctx:            ctx,
 		host:           h,

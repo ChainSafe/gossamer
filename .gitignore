@@ -25,5 +25,5 @@
 *.sublime*
 
 trie/gossamer_data
-
+chaindata/
 /bin

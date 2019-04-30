@@ -1,0 +1,43 @@
+package main
+
+import (
+	api "github.com/ChainSafe/gossamer/internal"
+	"os"
+
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/rpc/json2"
+	log "github.com/inconshreveable/log15"
+	"github.com/naoina/toml"
+)
+
+func main() {
+	f, err := os.Open("../config.toml")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	srvlog := log.New(log.Ctx{"starting": "gossamer"})
+	var config cfg.Config
+	if err := toml.NewDecoder(f).Decode(&config); err != nil {
+		srvlog.Warn("toml error::: %s", err.Error())
+	}
+
+	srv, err := p2p.NewService(config.ServiceConfig)
+	if err != nil {
+		srvlog.Warn("error starting p2p %s", err.Error())
+	}
+	srvlog.Info("🕸️  starting gossamer blockchain...", log.Ctx{"datadir": config.BadgerDB.Datadir, "peerCount": srv.PeerCount()})
+	srv.Start()
+
+	_, err = polkadb.NewBadgerDB(config.BadgerDB.Datadir)
+	rpcSvr := rpc.NewServer()
+	rpcSvr.RegisterCodec(json2.NewCodec())
+	err = rpcSvr.RegisterService(new(api.PublicRPC), "PublicRPC")
+	if err != nil {
+		srvlog.Warn("could not register service: %s", err)
+	}
+}

@@ -37,8 +37,9 @@ func newTestBadgerDB() (*BadgerDB, func()) {
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
+
 	db, err := NewBadgerDB(dir)
-	db.path = dir
+	db.Datadir = dir
 	if err != nil {
 		panic("failed to create test database: " + err.Error())
 	}
