@@ -54,22 +54,29 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 		method := s.rcvrType.Method(i)
 		methodType := method.Type
 
-		if method.PkgPath != "" {}
+		if method.PkgPath != "" {
+		}
 		// Must have receiver and 3 inputs
-		if methodType.NumIn() != 4 {}
+		if methodType.NumIn() != 4 {
+		}
 		// First arg must be http.Request
 		reqType := methodType.In(1)
-		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {}
+		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
+		}
 		// Second arg must be pointer and exported
 		argsType := methodType.In(2)
-		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(argsType) {}
+		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(argsType) {
+		}
 		// Third arg must be pointer and exported
 		replyType := methodType.In(3)
-		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(replyType) {}
+		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(replyType) {
+		}
 		// Must have 1 return value of type error
-		if methodType.NumOut() != 1 {}
+		if methodType.NumOut() != 1 {
+		}
 		returnType := methodType.Out(0)
-		if returnType != typeOfError {}
+		if returnType != typeOfError {
+		}
 		// Force first character to lower case
 		methodRunes := []rune(method.Name)
 		methodAlias := string(unicode.ToLower(methodRunes[0])) + string(methodRunes[1:])
@@ -106,7 +113,7 @@ func (m *serviceMap) get(id string) (*service, *serviceMethod, error) {
 	service := m.services[tokens[0]]
 	m.mutex.Unlock()
 	if service == nil {
-		err := fmt.Errorf("service %s not recognized", tokens[1])
+		err := fmt.Errorf("service %s not recognized", tokens[0])
 		return nil, nil, err
 	}
 	// Force first character to lower case

@@ -19,11 +19,12 @@ package json2
 import (
 	"bytes"
 	"errors"
-	"github.com/ChainSafe/gossamer/rpc"
 	"log"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/rpc"
 )
 
 type RecordWriter struct {

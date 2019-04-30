@@ -8,23 +8,16 @@ import (
 
 // ---------------------- Mock Services -----------------------
 
-type MockServiceA struct {}
+type MockServiceA struct{}
 
-type MockServiceAArgs struct {}
+type MockServiceAArgs struct{}
 
 type MockServiceAReply struct {
 	value string
 }
-type MockServiceB struct {}
+type MockServiceB struct{}
 
-type MockServiceBArgs struct {
-	a int
-	b int
-}
-type MockServiceBReply struct {
-	value int
-}
-func (s *MockServiceA) Method1 (req *http.Request, args *MockServiceAArgs, res *MockServiceAReply) error {
+func (s *MockServiceA) Method1(req *http.Request, args *MockServiceAArgs, res *MockServiceAReply) error {
 	res.value = "method1"
 	return nil
 }
