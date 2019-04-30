@@ -54,39 +54,26 @@ func (m *serviceMap) register(rcvr interface{}, name string) error {
 		method := s.rcvrType.Method(i)
 		methodType := method.Type
 
-		if method.PkgPath != "" {
-			continue
-		}
+		if method.PkgPath != "" {}
 		// Must have receiver and 3 inputs
-		if methodType.NumIn() != 4 {
-			continue
-		}
+		if methodType.NumIn() != 4 {}
 		// First arg must be http.Request
 		reqType := methodType.In(1)
-		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
-			continue
-		}
+		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {}
 		// Second arg must be pointer and exported
 		argsType := methodType.In(2)
-		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(argsType) {
-			continue
-		}
+		if argsType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(argsType) {}
 		// Third arg must be pointer and exported
 		replyType := methodType.In(3)
-		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(replyType) {
-			continue
-		}
+		if replyType.Kind() != reflect.Ptr || !isExported(method.Name) || isBuiltin(replyType) {}
 		// Must have 1 return value of type error
-		if methodType.NumOut() != 1 {
-			continue
-		}
+		if methodType.NumOut() != 1 {}
 		returnType := methodType.Out(0)
-		if returnType != typeOfError {
-			continue
-		}
+		if returnType != typeOfError {}
 		// Force first character to lower case
 		methodRunes := []rune(method.Name)
 		methodAlias := string(unicode.ToLower(methodRunes[0])) + string(methodRunes[1:])
+
 		m.mutex.Lock()
 		s.methods[methodAlias] = &serviceMethod{
 			method:    method,
@@ -119,12 +106,15 @@ func (m *serviceMap) get(id string) (*service, *serviceMethod, error) {
 	service := m.services[tokens[0]]
 	m.mutex.Unlock()
 	if service == nil {
-		err := fmt.Errorf("service %s not recognized", tokens[0])
+		err := fmt.Errorf("service %s not recognized", tokens[1])
 		return nil, nil, err
 	}
-	method := service.methods[tokens[1]]
+	// Force first character to lower case
+	methodRunes := []rune(tokens[1])
+	methodAlias := string(unicode.ToLower(methodRunes[0])) + string(methodRunes[1:])
+	method := service.methods[methodAlias]
 	if method == nil {
-		err := fmt.Errorf("method %s in service %s not recognized", tokens[1], tokens[0])
+		err := fmt.Errorf("method %s in service %s not recognized", tokens[0], tokens[1])
 		return nil, nil, err
 	}
 	return service, method, nil

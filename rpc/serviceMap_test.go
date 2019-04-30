@@ -11,10 +11,12 @@ import (
 type MockServiceA struct {}
 
 type MockServiceAArgs struct {}
+
 type MockServiceAReply struct {
 	value string
 }
 type MockServiceB struct {}
+
 type MockServiceBArgs struct {
 	a int
 	b int
@@ -27,7 +29,6 @@ func (s *MockServiceA) Method1 (req *http.Request, args *MockServiceAArgs, res *
 	return nil
 }
 
-// TODO: What about custom types? (eg. `type Value int`)
 func TestTypeEvaluators(t *testing.T) {
 	ok := isExported("someFunction")
 	if ok {
@@ -75,9 +76,33 @@ func TestServiceMap(t *testing.T) {
 		t.Fatalf("could not register: %s", err)
 	}
 
+	err = s.register(new(MockServiceB), "mockA")
+	if len(err.Error()) <= 1 {
+		t.Fatalf("should return an error as there is already a service registered with mockA")
+	}
+
+	err = s.register(new(MockServiceB), "mockB")
+	if len(err.Error()) <= 1 {
+		t.Fatalf("should return an error as there are no methods for this service")
+	}
+
 	srvc, srvcMethod, err := s.get("mockA_method1")
 	if err != nil {
 		t.Fatalf("could not get method %s: %s", "mockA_method1", err)
+	}
+	_, _, err = s.get("mockA_method1_test")
+	if len(err.Error()) <= 1 {
+		t.Fatalf("should return an error as thats inproper input")
+	}
+
+	_, _, err = s.get("mockA_method2")
+	if len(err.Error()) <= 1 {
+		t.Fatalf("should return an error as there is no method named method2")
+	}
+
+	_, _, err = s.get("mockC_method1")
+	if len(err.Error()) <= 1 {
+		t.Fatalf("should return an error as there is no service named mockC")
 	}
 
 	if srvcMethod.alias != "method1" {
