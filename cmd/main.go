@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	api "github.com/ChainSafe/gossamer/internal"
 	"os"
+	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -20,12 +22,11 @@ func main() {
 	}
 	defer f.Close()
 
-	srvlog := log.New(log.Ctx{"starting": "gossamer"})
+	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	var config cfg.Config
 	if err := toml.NewDecoder(f).Decode(&config); err != nil {
 		srvlog.Warn("toml error::: %s", err.Error())
 	}
-
 	srv, err := p2p.NewService(config.ServiceConfig)
 	if err != nil {
 		srvlog.Warn("error starting p2p %s", err.Error())
@@ -40,4 +41,7 @@ func main() {
 	if err != nil {
 		srvlog.Warn("could not register service: %s", err)
 	}
+
+	time.Sleep(1 * time.Minute)
+	fmt.Println("now")
 }

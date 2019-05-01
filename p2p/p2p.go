@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	mrand "math/rand"
 
 	ds "github.com/ipfs/go-datastore"
@@ -37,6 +36,7 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+	log "github.com/inconshreveable/log15"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -116,12 +116,12 @@ func (s *Service) start(e chan error) {
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
 	addrs := s.host.Addrs()
-	log.Println("I can be reached at:")
+
 	for _, addr := range addrs {
-		log.Println(addr.Encapsulate(s.hostAddr))
+		log.Info("P2P address...", "addr", addr.Encapsulate(s.hostAddr))
 	}
 
-	log.Println("listening for connections...")
+	log.Info("listening for connections...")
 	e <- nil
 }
 

@@ -3,7 +3,7 @@ module github.com/ChainSafe/gossamer
 go 1.12
 
 require (
-	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
+	github.com/dgraph-io/badger v2.0.0-rc.2.0.20190426014204-ff2b7fe72292+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
