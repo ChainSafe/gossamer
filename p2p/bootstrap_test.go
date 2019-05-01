@@ -70,7 +70,7 @@ func TestBootstrapConnect(t *testing.T) {
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
 
 	testServiceConfig := &ServiceConfig{
-		bootstrapNodes: []string{
+		BootstrapNodes: []string{
 			ipfsAddr,
 		},
 		Port: 7001,

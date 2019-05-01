@@ -103,7 +103,7 @@ func StartIpfsNode() (*ipfs.IpfsNode, error) {
 
 func TestBuildOpts(t *testing.T) {
 	testServiceConfig := &ServiceConfig{
-		bootstrapNodes: []string{},
+		BootstrapNodes: []string{},
 		Port:           7001,
 	}
 
@@ -142,7 +142,7 @@ func TestStart(t *testing.T) {
 	t.Log("ipfsAddr:", ipfsAddr)
 
 	testServiceConfig := &ServiceConfig{
-		bootstrapNodes: []string{
+		BootstrapNodes: []string{
 			ipfsAddr,
 		},
 		Port: 7001,
@@ -171,7 +171,7 @@ func TestService_PeerCount(t *testing.T) {
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
 
 	testServiceConfig := &ServiceConfig{
-		bootstrapNodes: []string{
+		BootstrapNodes: []string{
 			ipfsAddr,
 		},
 		Port: 7001,

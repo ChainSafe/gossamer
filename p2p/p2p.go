@@ -52,7 +52,7 @@ type Service struct {
 
 // ServiceConfig is used to initialize a new p2p service
 type ServiceConfig struct {
-	bootstrapNodes []string
+	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
 }
@@ -83,7 +83,7 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	bootstrapNodes, err := stringsToPeerInfos(conf.bootstrapNodes)
+	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
 		ctx:            ctx,
 		host:           h,
