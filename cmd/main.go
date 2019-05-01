@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	api "github.com/ChainSafe/gossamer/internal"
 	"os"
 	"time"
@@ -31,7 +30,7 @@ func main() {
 	if err != nil {
 		srvlog.Warn("error starting p2p %s", err.Error())
 	}
-	srvlog.Info("🕸️  starting gossamer blockchain...", log.Ctx{"datadir": config.BadgerDB.Datadir, "peerCount": srv.PeerCount()})
+	srvlog.Info("🕸️ starting gossamer blockchain...", log.Ctx{"datadir": config.BadgerDB.Datadir})
 	srv.Start()
 
 	_, err = polkadb.NewBadgerDB(config.BadgerDB.Datadir)
@@ -41,7 +40,9 @@ func main() {
 	if err != nil {
 		srvlog.Warn("could not register service: %s", err)
 	}
-
 	time.Sleep(1 * time.Minute)
-	fmt.Println("now")
+	count := srv.PeerCount()
+	log.Info("Peercount....", "count", count)
+	time.Sleep(30 * time.Second)
+	log.Warn("BYE👋👋👋")
 }
