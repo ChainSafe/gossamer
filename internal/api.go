@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/p2p"
@@ -30,6 +29,5 @@ func NewPublicRPC(net *p2p.Service) *PublicRPC {
 // PeerCount returns the number of connected peers
 func (s *PublicRPC) PeerCount(r *http.Request, args *PublicRPCRequest, res *PublicRPCResponse) error {
 	res.Count = Uint(s.Net.PeerCount())
-	log.Printf("PEERCOUNT -- Got N: %d", res.Count)
 	return nil
 }
