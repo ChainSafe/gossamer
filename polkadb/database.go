@@ -27,7 +27,7 @@ import (
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
 	Datadir string
-	db   *badger.DB
+	db      *badger.DB
 }
 
 // Iterable struct contains a transaction, iterator and context fields released, initialized
@@ -68,8 +68,8 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 	}
 
 	return &BadgerDB{
-		Datadir : file,
-		db:   db,
+		Datadir: file,
+		db:      db,
 	}, nil
 }
 
@@ -97,15 +97,15 @@ func (db *BadgerDB) Put(key []byte, value []byte) error {
 // Has checks the given key exists already; returning true or false
 func (db *BadgerDB) Has(key []byte) (exists bool, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(snappy.Encode(nil, key))
+		item, errr := txn.Get(snappy.Encode(nil, key))
 		if item != nil {
 			exists = true
 		}
-		if err == badger.ErrKeyNotFound {
+		if errr == badger.ErrKeyNotFound {
 			exists = false
-			err = nil
+			errr = nil
 		}
-		return err
+		return errr
 	})
 	return exists, err
 }

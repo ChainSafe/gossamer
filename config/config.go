@@ -7,5 +7,5 @@ import (
 
 type Config struct {
 	ServiceConfig *p2p.ServiceConfig
-	BadgerDB polkadb.BadgerDB
+	BadgerDB      polkadb.BadgerDB
 }

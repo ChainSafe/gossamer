@@ -19,7 +19,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	//"log"
 	"testing"
 
 	datastore "github.com/ipfs/go-datastore"

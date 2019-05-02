@@ -1,9 +1,10 @@
 package main
 
 import (
-	api "github.com/ChainSafe/gossamer/internal"
 	"os"
 	"time"
+
+	api "github.com/ChainSafe/gossamer/internal"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -19,11 +20,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer func() {
+		err = f.Close()
+		if err != nil {
+			log.Error("err closing conn", "err", err.Error())
+		}
+	}()
 
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	var config cfg.Config
-	if err := toml.NewDecoder(f).Decode(&config); err != nil {
+	if err = toml.NewDecoder(f).Decode(&config); err != nil {
 		srvlog.Warn("toml error::: %s", err.Error())
 	}
 	srv, err := p2p.NewService(config.ServiceConfig)

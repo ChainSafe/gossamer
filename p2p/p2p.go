@@ -25,6 +25,7 @@ import (
 	"io"
 	mrand "math/rand"
 
+	log "github.com/inconshreveable/log15"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -36,7 +37,6 @@ import (
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	log "github.com/inconshreveable/log15"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -233,7 +233,13 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 
 // TODO: message handling
 func handleStream(stream net.Stream) {
-	defer stream.Close()
+	defer func() {
+		err := stream.Close()
+		if err != nil {
+			log.Error("err closing stream", "error", err)
+		}
+	}()
+
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')

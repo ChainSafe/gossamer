@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/inconshreveable/log15"
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
-	log "github.com/inconshreveable/log15"
 )
 
 func stringToPeerInfo(peer string) (*ps.PeerInfo, error) {
@@ -65,17 +65,17 @@ func (s *Service) bootstrapConnect() error {
 		wg.Add(1)
 		go func(p *ps.PeerInfo) {
 			defer wg.Done()
-			defer log.Info("dialing bootstrap...", "id",s.host.ID().Pretty(), "to", p.ID.Pretty())
+			defer log.Info("dialing bootstrap...", "id", s.host.ID().Pretty(), "to", p.ID.Pretty())
 			log.Info("bootstrapping...", "id", s.host.ID().Pretty(), "to", p.ID.Pretty())
 
 			s.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
 			if err = s.host.Connect(s.ctx, *p); err != nil {
-				log.Warn("bootstrapDialFailed", "id",p.ID)
-				log.Warn("failed to bootstrap ","id", p.ID, "error: ", err)
+				log.Warn("bootstrapDialFailed", "id", p.ID)
+				log.Warn("failed to bootstrap ", "id", p.ID, "error: ", err)
 				errs <- err
 				return
 			}
-			log.Info("successfully bootstrapped...","id", p.ID.Pretty())
+			log.Info("successfully bootstrapped...", "id", p.ID.Pretty())
 			log.Info("bootstrapped node", "id", p.ID.Pretty())
 		}(p)
 	}
