@@ -87,7 +87,7 @@ func TestBranchHeader(t *testing.T) {
 	for _, test := range tests {
 		res := test.br.header()
 		if !bytes.Equal(res, test.header) {
-			t.Errorf("Branch header fail case %x: got %x expected %x", test.br, res, test.header)
+			t.Errorf("Branch header fail case %v: got %x expected %x", test.br, res, test.header)
 		}
 	}
 }
