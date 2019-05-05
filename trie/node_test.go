@@ -64,24 +64,24 @@ func TestBranchHeader(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{nil, [16]node{}, nil}, []byte{0x80}},
-		{&branch{[]byte{0x00}, [16]node{}, nil}, []byte{0x81}},
-		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil}, []byte{0x84}},
+		{&branch{nil, [16]node{}, nil, true}, []byte{0x80}},
+		{&branch{[]byte{0x00}, [16]node{}, nil, true}, []byte{0x81}},
+		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true}, []byte{0x84}},
 
-		{&branch{nil, [16]node{}, []byte{0x01}}, []byte{0xc0}},
-		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}}, []byte{0xc1}},
-		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}}, []byte{0xc2}},
-		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}}, []byte{0xc3}},
+		{&branch{nil, [16]node{}, []byte{0x01}, true}, []byte{0xc0}},
+		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc1}},
+		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc2}},
+		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}, true}, []byte{0xc3}},
 
-		{&branch{byteArray(62), [16]node{}, nil}, []byte{0xbe}},
-		{&branch{byteArray(62), [16]node{}, []byte{0x00}}, []byte{0xfe}},
-		{&branch{byteArray(63), [16]node{}, nil}, []byte{0xbf, 0}},
-		{&branch{byteArray(64), [16]node{}, nil}, []byte{0xbf, 1}},
-		{&branch{byteArray(64), [16]node{}, []byte{0x01}}, []byte{0xff, 1}},
+		{&branch{byteArray(62), [16]node{}, nil, true}, []byte{0xbe}},
+		{&branch{byteArray(62), [16]node{}, []byte{0x00}, true}, []byte{0xfe}},
+		{&branch{byteArray(63), [16]node{}, nil, true}, []byte{0xbf, 0}},
+		{&branch{byteArray(64), [16]node{}, nil, true}, []byte{0xbf, 1}},
+		{&branch{byteArray(64), [16]node{}, []byte{0x01}, true}, []byte{0xff, 1}},
 
-		{&branch{byteArray(317), [16]node{}, []byte{0x01}}, []byte{255, 254}},
-		{&branch{byteArray(318), [16]node{}, []byte{0x01}}, []byte{255, 255, 0}},
-		{&branch{byteArray(573), [16]node{}, []byte{0x01}}, []byte{255, 255, 255, 0}},
+		{&branch{byteArray(317), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
+		{&branch{byteArray(318), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 0}},
+		{&branch{byteArray(573), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
@@ -97,15 +97,15 @@ func TestLeafHeader(t *testing.T) {
 		br     *leaf
 		header []byte
 	}{
-		{&leaf{nil, nil}, []byte{0x40}},
-		{&leaf{[]byte{0x00}, nil}, []byte{0x41}},
-		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil}, []byte{0x44}},
-		{&leaf{byteArray(62), nil}, []byte{0x7e}},
-		{&leaf{byteArray(63), nil}, []byte{0x7f, 0}},
-		{&leaf{byteArray(64), []byte{0x01}}, []byte{0x7f, 1}},
+		{&leaf{nil, nil, true}, []byte{0x40}},
+		{&leaf{[]byte{0x00}, nil, true}, []byte{0x41}},
+		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true}, []byte{0x44}},
+		{&leaf{byteArray(62), nil, true}, []byte{0x7e}},
+		{&leaf{byteArray(63), nil, true}, []byte{0x7f, 0}},
+		{&leaf{byteArray(64), []byte{0x01}, true}, []byte{0x7f, 1}},
 
-		{&leaf{byteArray(318), []byte{0x01}}, []byte{0x7f, 0xff, 0}},
-		{&leaf{byteArray(573), []byte{0x01}}, []byte{0x7f, 0xff, 0xff, 0}},
+		{&leaf{byteArray(318), []byte{0x01}, true}, []byte{0x7f, 0xff, 0}},
+		{&leaf{byteArray(573), []byte{0x01}, true}, []byte{0x7f, 0xff, 0xff, 0}},
 	}
 
 	for _, test := range tests {
