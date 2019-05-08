@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
@@ -9,6 +25,8 @@ import (
 
 type node interface {
 	Encode() ([]byte, error)
+	isDirty() bool
+	setDirty(dirty bool)
 }
 
 type (
@@ -16,10 +34,12 @@ type (
 		key      []byte // partial key
 		children [16]node
 		value    []byte
+		dirty    bool
 	}
 	leaf struct {
 		key   []byte // partial key
 		value []byte
+		dirty bool
 	}
 )
 
@@ -42,6 +62,22 @@ func (b *branch) numChildren() int {
 		}
 	}
 	return count
+}
+
+func (l *leaf) isDirty() bool {
+	return l.dirty
+}
+
+func (b *branch) isDirty() bool {
+	return b.dirty
+}
+
+func (l *leaf) setDirty(dirty bool) {
+	l.dirty = dirty
+}
+
+func (b *branch) setDirty(dirty bool) {
+	b.dirty = dirty
 }
 
 // Encode is the high-level function wrapping the encoding for different node types
@@ -123,17 +159,17 @@ func (l *leaf) Encode() ([]byte, error) {
 func (b *branch) header() []byte {
 	var header byte
 	if b.value == nil {
-		header = 2
+		header = 2 << 6
 	} else {
-		header = 3
+		header = 3 << 6
 	}
 	var encodePkLen []byte
 
-	if len(b.key) > 62 {
-		header = header | 0xfc
+	if len(b.key) >= 63 {
+		header = header | 0x3f
 		encodePkLen = encodeExtraPartialKeyLength(len(b.key))
 	} else {
-		header = header | (byte(len(b.key)) << 2)
+		header = header | byte(len(b.key))
 	}
 
 	fullHeader := append([]byte{header}, encodePkLen...)
@@ -141,14 +177,14 @@ func (b *branch) header() []byte {
 }
 
 func (l *leaf) header() []byte {
-	var header byte = 1
+	var header byte = 1 << 6
 	var encodePkLen []byte
 
-	if len(l.key) > 62 {
-		header = header | 0xfc
+	if len(l.key) >= 63 {
+		header = header | 0x3f
 		encodePkLen = encodeExtraPartialKeyLength(len(l.key))
 	} else {
-		header = header | (byte(len(l.key)) << 2)
+		header = header | byte(len(l.key))
 	}
 
 	fullHeader := append([]byte{header}, encodePkLen...)

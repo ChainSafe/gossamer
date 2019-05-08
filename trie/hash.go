@@ -1,11 +1,29 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
 	"hash"
 
+	"github.com/ChainSafe/gossamer/common"
 	"golang.org/x/crypto/blake2s"
 )
 
+// Hasher is a wrapper around a hash function
 type Hasher struct {
 	hash hash.Hash
 }
@@ -22,12 +40,7 @@ func newHasher() (*Hasher, error) {
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
-func Hash(n node) (h []byte, err error) {
-	hasher, err := newHasher()
-	if err != nil {
-		return nil, err
-	}
-
+func (h *Hasher) Hash(n node) (res []byte, err error) {
 	encNode, err := n.Encode()
 	if err != nil {
 		return nil, err
@@ -35,14 +48,14 @@ func Hash(n node) (h []byte, err error) {
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if len(encNode) < 32 {
-		return encNode, nil
+		return common.AppendZeroes(encNode, 32), nil
 	}
 
 	// otherwise, hash encoded node
-	_, err = hasher.hash.Write(encNode)
+	_, err = h.hash.Write(encNode)
 	if err == nil {
-		h = hasher.hash.Sum(nil)
+		res = h.hash.Sum(nil)
 	}
 
-	return h, err
+	return res, err
 }

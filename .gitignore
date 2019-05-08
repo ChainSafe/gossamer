@@ -24,5 +24,11 @@
 # Sublime
 *.sublime*
 
+<<<<<<< HEAD
 go-pre.db
 *gossamer*data*
+=======
+trie/gossamer_data
+
+/bin
+>>>>>>> 40b864725333847137a880faed10d9b9c4911a8c

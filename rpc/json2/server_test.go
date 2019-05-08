@@ -1,13 +1,30 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package json2
 
 import (
 	"bytes"
 	"errors"
-	"github.com/ChainSafe/gossamer/rpc"
 	"log"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/rpc"
 )
 
 type RecordWriter struct {
@@ -97,14 +114,14 @@ func execInvalidJSON(s *rpc.Server, res interface{}) error {
 func TestService(t *testing.T) {
 	s := rpc.NewServer()
 	s.RegisterCodec(NewCodec())
-	err := s.RegisterService(new(Service), "")
+	err := s.RegisterService(new(Service), "Service")
 	if err != nil {
 		t.Fatalf("could not register service: %s", err)
 	}
 	var res ServiceResponse
 
 	// Valid request
-	err = exec(s, "Service.Echo", &ServiceRequest{1337}, &res)
+	err = exec(s, "Service_Echo", &ServiceRequest{1337}, &res)
 	if err != nil {
 		t.Fatalf("request execution failed: %s", err)
 	}
@@ -114,7 +131,7 @@ func TestService(t *testing.T) {
 
 	// Exepected to return error
 	res = ServiceResponse{}
-	err = exec(s, "Service.Fail", &ServiceRequest{1337}, &res)
+	err = exec(s, "Service_Fail", &ServiceRequest{1337}, &res)
 	if err == nil {
 		t.Fatalf("expected error to be thrown")
 	} else if err.Error() != ErrResponse.Error() {
