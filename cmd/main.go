@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	f, err := os.Open("../config.toml")
+	f, err := os.Open("./config.toml")
 	if err != nil {
 		panic(err)
 	}
