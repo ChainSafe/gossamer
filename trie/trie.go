@@ -89,22 +89,15 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			ok = true
 		}
 	case *leaf:
-		if len(key) == 0 {
-			br := new(branch)
-			br.key = nil
-			br.value = value.(*leaf).value
-			br.children[p.key[0]] = parent
-			return true, br, nil
-		}
-
 		// need to convert this into a branch
-		br := &branch{dirty: true}
+		br := &branch{key: nil, dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
 		if len(key) < length {
-			br.key = nil
 			br.value = value.(*leaf).value
-			br.children[p.key[0]] = parent
+			prevKey := p.key
+			// p.key = p.key[1:]
+			br.children[prevKey[0]] = p
 			return true, br, nil
 		}
 
@@ -158,11 +151,15 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		}
 
 		switch c := p.children[key[length]].(type) {
-		case *branch, *leaf:
+		case *branch:
 			_, n, err = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
 			n = p
-		default: // nil or leaf
+		// case *leaf:
+		// 	_, n, err = t.insert(c, key[length:], value)
+		// 	p.children[key[length]] = n
+		// 	n = p			
+		case nil: // nil or leaf
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
@@ -185,8 +182,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 	if len(key) == 0 {
 		br.value = value.(*leaf).value
 	} else {
-		nodeIndex := key[length]
-		_, br.children[nodeIndex], err = t.insert(nil, key[length+1:], value)
+		_, br.children[key[length]], err = t.insert(nil, key[length+1:], value)
 		if err == nil {
 			ok = true
 		}
