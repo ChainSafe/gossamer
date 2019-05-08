@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/blake2s"
 )
 
-type hasher struct {
+type Hasher struct {
 	hash hash.Hash
 }
 
@@ -16,7 +16,7 @@ func newHasher() (*Hasher, error) {
 		return nil, err
 	}
 
-	return &hasher{
+	return &Hasher{
 		hash: h,
 	}, nil
 }

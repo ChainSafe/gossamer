@@ -134,7 +134,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		}
 
 		switch c := p.children[key[length]].(type) {
-		case *branch:
+		case *branch, *leaf:
 			_, n, err = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
 			n = p
@@ -267,10 +267,10 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 
 		bitmap := p.childrenBitmap()
 		// if branch has no children, just a value, turn it into a leaf
-		if bitmap == 0 {
+		if bitmap == 0 && p.value != nil {
 			n = &leaf{key: key[:length], value: p.value}
 		} else if p.numChildren() == 1 && p.value == nil {
-			// there is only 1 child, combine the child branch with this branch
+			// there is only 1 child and no value, combine the child branch with this branch
 			// find index of child
 			var i int
 			for i = 0; i < 16; i++ {
