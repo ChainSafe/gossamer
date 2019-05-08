@@ -27,15 +27,15 @@ type PublicRPC struct {
 	Net *p2p.Service
 }
 
-type Uint uint
-
+// PublicRPCResponse represents response from RPC call
 type PublicRPCResponse struct {
-	Count Uint
+	Count int
 }
 
+// PublicRPCRequest represents RPC request type
 type PublicRPCRequest struct{}
 
-// NewPublicNetAPI creates a new net API instance.
+// NewPublicRPC creates a new net API instance.
 func NewPublicRPC(net *p2p.Service) *PublicRPC {
 	return &PublicRPC{
 		Net: net,
@@ -44,6 +44,6 @@ func NewPublicRPC(net *p2p.Service) *PublicRPC {
 
 // PeerCount returns the number of connected peers
 func (s *PublicRPC) PeerCount(r *http.Request, args *PublicRPCRequest, res *PublicRPCResponse) error {
-	res.Count = Uint(s.Net.PeerCount())
+	res.Count = s.Net.PeerCount()
 	return nil
 }
