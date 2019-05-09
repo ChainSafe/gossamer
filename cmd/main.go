@@ -1,10 +1,8 @@
 package main
 
 import (
-	"os"
-	"time"
-
 	api "github.com/ChainSafe/gossamer/internal"
+	"os"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -46,9 +44,5 @@ func main() {
 	if err != nil {
 		srvlog.Warn("could not register service: %s", err)
 	}
-	time.Sleep(1 * time.Minute)
-	count := srv.PeerCount()
-	log.Info("Peercount....", "count", count)
-	time.Sleep(30 * time.Second)
-	log.Warn("BYE👋👋👋")
+	srvlog.Info("gossamer blockchain started...")
 }
