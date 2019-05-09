@@ -54,6 +54,16 @@ func (b *branch) childrenBitmap() uint16 {
 	return bitmap
 }
 
+func (b *branch) numChildren() int {
+	var i, count int
+	for i = 0; i < 16; i++ {
+		if b.children[i] != nil {
+			count++
+		}
+	}
+	return count
+}
+
 func (l *leaf) isDirty() bool {
 	return l.dirty
 }

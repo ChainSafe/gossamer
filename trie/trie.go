@@ -93,10 +93,14 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
-		if len(key) < length {
-			br.key = nil
+		if len(key) <= length {
 			br.value = value.(*leaf).value
-			br.children[p.key[0]] = parent
+			parentKey := p.key
+			if len(p.key) > 0 {
+				p.key = p.key[1:]
+			}
+			br.children[parentKey[0]] = p
+
 			return true, br, nil
 		}
 
@@ -150,7 +154,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		}
 
 		switch c := p.children[key[length]].(type) {
-		case *branch:
+		case *branch, *leaf:
 			_, n, err = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
 			n = p
@@ -174,7 +178,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		return false, nil, err
 	}
 
-	if len(key) == 0 {
+	if len(key) <= length {
 		br.value = value.(*leaf).value
 	} else {
 		nodeIndex := key[length]
@@ -220,6 +224,13 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value, dirty: true}, nil
 		}
 
+		// did not find value
+		//if len(key) <= length && len(key) < len(p.key) {
+		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
+		//if len(key) <= length {
+			return nil, nil
+		}
+
 		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
@@ -241,6 +252,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	return value, err
 }
 
+
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
@@ -253,7 +265,76 @@ func (t *Trie) Delete(key []byte) error {
 }
 
 func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
-	return ok, nil, nil
+	switch p := parent.(type) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
+
+		// found the value at this node
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			p.value = nil
+			n = p
+			//return true, p, nil
+		} else {
+			switch p.children[key[length]].(type) {
+			case *branch:
+				_, n, err = t.delete(p.children[key[length]], key[length+1:])
+				p.children[key[length]] = n
+				n = p
+				return true, n, nil
+			case *leaf:
+				p.children[key[length]] = nil
+				ok = true
+				n = p
+				//return true, n, nil
+			default:
+				return false, p, nil
+			}
+		}
+
+		bitmap := p.childrenBitmap()
+		// if branch has no children, just a value, turn it into a leaf
+		if bitmap == 0 && p.value != nil {
+			n = &leaf{key: key[:length], value: p.value}
+		} else if p.numChildren() == 1 && p.value == nil {
+			// there is only 1 child and no value, combine the child branch with this branch
+			// find index of child
+			var i int
+			for i = 0; i < 16; i++ {
+				bitmap = bitmap >> 1
+				if bitmap == 0 {
+					break
+				}
+			}
+
+			child := p.children[i]
+			switch c := child.(type) {
+			case *leaf:
+				n = &leaf{key: append(append(key, []byte{byte(i)}...), c.key...), value: c.value}
+			case *branch:
+				br := new(branch)
+				br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
+
+				// adopt the grandchildren
+				for i, grandchild := range c.children {
+					if grandchild != nil {
+						br.children[i] = grandchild
+					}
+				}
+
+				br.value = c.value
+				n = br
+			default:
+				// do nothing
+			}
+
+			ok = true
+		}
+	case *leaf:
+		ok = true
+	case nil:
+		// do nothing
+	}
+	return ok, n, err
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
