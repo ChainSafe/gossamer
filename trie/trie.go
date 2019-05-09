@@ -97,11 +97,12 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			br.key = key[:length]
 			br.value = value.(*leaf).value
 			parentKey := p.key
-			if len(p.key) > 0 {
-				p.key = p.key[1:]
-			}
-			if len(parentKey) > 0 {
-				br.children[parentKey[0]] = p
+			//if len(p.key) > 0 {
+			//	p.key = p.key[1:]
+			//}
+			if len(parentKey) > length {
+				p.key = p.key[length+1:]
+				br.children[parentKey[length]] = p
 			}
 
 			return true, br, nil
@@ -259,6 +260,11 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
+	val, err := t.Get(key)
+	if val == nil {
+		return errors.New("delete error: node not found")
+	}
+
 	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
@@ -276,7 +282,6 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 		if bytes.Equal(p.key, key) || len(key) == 0 {
 			p.value = nil
 			n = p
-			//return true, p, nil
 		} else {
 			switch p.children[key[length]].(type) {
 			case *branch:
@@ -312,7 +317,7 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			child := p.children[i]
 			switch c := child.(type) {
 			case *leaf:
-				n = &leaf{key: append(append(key, []byte{byte(i)}...), c.key...), value: c.value}
+				n = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 			case *branch:
 				br := new(branch)
 				br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
