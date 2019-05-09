@@ -94,12 +94,15 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		length := lenCommonPrefix(key, p.key)
 
 		if len(key) <= length {
+			br.key = key[:length]
 			br.value = value.(*leaf).value
 			parentKey := p.key
 			if len(p.key) > 0 {
 				p.key = p.key[1:]
 			}
-			br.children[parentKey[0]] = p
+			if len(parentKey) > 0 {
+				br.children[parentKey[0]] = p
+			}
 
 			return true, br, nil
 		}
