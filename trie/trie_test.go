@@ -105,13 +105,27 @@ func generateRandTest(size int) []randTest {
 		rt[i] = randTest{}
 		buf := make([]byte, r.Intn(379)+1)
 		r.Read(buf)
-		rt[i].key = buf
+		if !keyExists(rt, buf) {
+			rt[i].key = buf
 
-		buf = make([]byte, r.Intn(128))
-		r.Read(buf)
-		rt[i].value = buf
+			buf = make([]byte, r.Intn(128))
+			r.Read(buf)
+			rt[i].value = buf
+		}
 	}
 	return rt
+}
+
+func keyExists(rt []randTest, key []byte) bool {
+	for _, test := range rt {
+		if bytes.Equal(test.key, key) {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	return false
 }
 
 func TestBranch(t *testing.T) {
@@ -333,9 +347,9 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 }
 
 func TestPutAndGet(t *testing.T) {
-	//for i := 0; i < 20; i++ {
+	for i := 0; i < 20; i++ {
 		trie := newEmpty()
-		rt := generateRandTest(200)
+		rt := generateRandTest(1000)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -369,7 +383,7 @@ func TestPutAndGet(t *testing.T) {
 				}
 			}
 		}
-	//}
+	}
 }
 
 func TestFailingTests(t *testing.T) {
@@ -386,14 +400,18 @@ func TestFailingTests(t *testing.T) {
 	slicedData := strings.Split(string(data), "\n")
 	tests := []randTest{}
 	for i := 1; i < len(slicedData); i+=2 {
-		t.Logf("%x\n", []byte(slicedData[i]))
+		//t.Logf("%x\n", []byte(slicedData[i]))
 		test := randTest{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
 		tests = append(tests, test)
 	}
 
 	trie := newEmpty()
+
+	hasFailed := false
+	passedFailingTest := false
 	rt := tests
-	for _, test := range rt {
+	for i, test := range rt {
+		//t.Log(i)
 		if len(test.key) != 0 {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -405,6 +423,22 @@ func TestFailingTests(t *testing.T) {
 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+
+			failingKey := hexDecode("26")
+			failingVal := hexDecode("dddd1d7afafbac50b56baf7182e1e0bd3cd99522c239cbf3a475a134af")
+
+			if bytes.Equal(test.key, failingKey) {
+				passedFailingTest = true
+			}
+
+			val, err = trie.Get(failingKey)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", failingKey, err.Error())
+			} else if !bytes.Equal(val, failingVal) && !hasFailed && passedFailingTest {
+				t.Errorf("Fail to get key %x with value %x: got %x", failingKey, failingVal, val)
+				t.Logf("test failed at insertion of key %x index %d", test.key, i)
+				hasFailed = true
 			}
 		}
 	}
@@ -455,7 +489,7 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	trie.Print()
+	//trie.Print()
 	trie = newEmpty()
 
 	// case 2: leaf -> branch w/ prev leaf as value, new leaf as child
@@ -471,7 +505,7 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	trie.Print()
+	//trie.Print()
 	trie = newEmpty()
 
 	// case 3: leaf -> branch w/ new leaf as value, prev leaf as child
@@ -487,7 +521,7 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	trie.Print()
+	//trie.Print()
 	trie = newEmpty()
 
 	// case 4: replace leaf
@@ -504,8 +538,7 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	trie.Print()
-
+	//trie.Print()
 }
 
 func TestPutAndGetBranchKeys(t *testing.T) {
@@ -1062,18 +1095,18 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	} else if !bytes.Equal(val, value5) {
 		t.Errorf("Fail to get key %x with value %x: got %x", key5, value5, val)
 	}
-
-	err = trie.Delete(key1)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key1, err.Error())
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
-	}
+	//
+	//err = trie.Delete(key1)
+	//if err != nil {
+	//	t.Errorf("Fail to delete key %x: %s", key1, err.Error())
+	//}
+	//
+	//val, err = trie.Get(key1)
+	//if err != nil {
+	//	t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
+	//} else if val != nil {
+	//	t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
+	//}
 
 	val, err = trie.Get(key3)
 	if err != nil {
@@ -1268,6 +1301,13 @@ func TestDeleteFromBranch(t *testing.T) {
 		t.Errorf("Fail to delete key %x: %s", key1, err.Error())
 	}
 
+	val, err = trie.Get(key1)
+	if err != nil {
+		t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
+	} else if val != nil {
+		t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
+	}
+
 	val, err = trie.Get(key2)
 	if err != nil {
 		t.Errorf("Fail to get key %x: %s", key2, err.Error())
@@ -1304,13 +1344,6 @@ func TestDeleteFromBranch(t *testing.T) {
 	err = trie.Delete(key4)
 	if err != nil {
 		t.Errorf("Fail to delete key %x: %s", key4, err.Error())
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
 	}
 
 	val, err = trie.Get(key2)

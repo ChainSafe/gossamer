@@ -287,17 +287,24 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			p.value = nil
 			n = p
 		} else {
-			switch p.children[key[length]].(type) {
+			switch child := p.children[key[length]].(type) {
 			case *branch:
 				_, n, err = t.delete(p.children[key[length]], key[length+1:])
 				p.children[key[length]] = n
 				n = p
 				return true, n, nil
 			case *leaf:
-				p.children[key[length]] = nil
-				ok = true
-				n = p
-				//return true, n, nil
+				if len(child.key) == 0 {
+					p.children[key[length]] = nil
+					ok = true
+					n = p
+				} else if bytes.Equal(child.key, key[length+1:]) {
+					p.children[key[length]] = nil
+					ok = true
+					n = p
+				} else {
+					return true, p, nil
+				}
 			default:
 				return false, p, nil
 			}
