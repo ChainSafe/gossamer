@@ -317,7 +317,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 func TestPutAndGet(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		trie := newEmpty()
-		rt := generateRandTest(20000)
+		rt := generateRandTest(100)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -330,6 +330,51 @@ func TestPutAndGet(t *testing.T) {
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
+		}
+
+		for _, test := range rt {
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+				trie.Print()
+				for _, othertest := range rt {
+					if othertest.key[0] == test.key[0] {
+						t.Logf("%x", othertest.key)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestPutAndGetBranchKeys(t *testing.T) {
+	trie := newEmpty()
+
+	rt := []randTest{
+		{[]byte{0x8b, 0xac, 0x2b}, []byte("noot")},
+		{[]byte{0x8b, 0x48, 0x46}, []byte("nootagain")},
+		{[]byte{0x8b, 0xf6, 0xc5, 0x08}, []byte("odd")},
+		{[]byte{0x49, 0x2e, 0x8a}, []byte("stuff")},
+		{[]byte{0x49, 0x22, 0x14}, []byte("stuffagain")},
+		{[]byte{0xc4, 0x71, 0xba, 0x71}, []byte("stuffagain")},
+		{[]byte{0xc4, 0x35, 0xc6}, []byte("stuffagain")},
+	}
+
+	for _, test := range rt {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
+	}
+
+	for _, test := range rt {
+		val, err := trie.Get(test.key)
+		if err != nil {
+			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+		} else if !bytes.Equal(val, test.value) {
+			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 		}
 	}
 }

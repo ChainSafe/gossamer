@@ -23,18 +23,18 @@ import (
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
 	fmt.Println("printing trie...")
-	t.print(t.root)
+	t.print(t.root, nil)
 }
 
-func (t *Trie) print(current node) {
+func (t *Trie) print(current node, prefix []byte) {
 	switch c := current.(type) {
 	case *branch:
-		fmt.Printf("branch pk %x children %b value %s\n", c.key, c.childrenBitmap(), c.value)
-		for _, child := range c.children {
-			t.print(child)
+		fmt.Printf("branch key %x children %b value %s\n", nibblesToKey(append(prefix, c.key...)), c.childrenBitmap(), c.value)
+		for i, child := range c.children {
+			t.print(child, append(append(prefix, byte(i)), c.key...))
 		}
 	case *leaf:
-		fmt.Printf("leaf pk %x val %s\n", c.key, c.value)
+		fmt.Printf("leaf key %x val %x\n", nibblesToKey(append(prefix, c.key...)), c.value)
 	default:
 		// do nothing
 	}
