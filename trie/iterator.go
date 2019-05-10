@@ -29,12 +29,12 @@ func (t *Trie) Print() {
 func (t *Trie) print(current node, prefix []byte) {
 	switch c := current.(type) {
 	case *branch:
-		fmt.Printf("branch key %x children %b value %s\n", nibblesToKey(append(prefix, c.key...)), c.childrenBitmap(), c.value)
+		fmt.Printf("branch key %x children %b value %s\n", nibblesToKeyLE(append(prefix, c.key...)), c.childrenBitmap(), c.value)
 		for i, child := range c.children {
 			t.print(child, append(append(prefix, byte(i)), c.key...))
 		}
 	case *leaf:
-		fmt.Printf("leaf key %x val %x\n", nibblesToKey(append(prefix, c.key...)), c.value)
+		fmt.Printf("leaf key %x val %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
 	default:
 		// do nothing
 	}

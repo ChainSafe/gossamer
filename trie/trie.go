@@ -89,33 +89,38 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			ok = true
 		}
 	case *leaf:
-		// need to convert this into a branch
+
+		// need to convert this leaf into a branch
 		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
-		if len(key) <= length {
-			br.key = key[:length]
+		if bytes.Equal(p.key, key) && len(key) == length {
+			return true, value, nil
+		}
+
+		br.key = key[:length]
+		parentKey := p.key
+
+		// value goes at this branch
+		if len(key) == length {
 			br.value = value.(*leaf).value
-			parentKey := p.key
-			//if len(p.key) > 0 {
-			//	p.key = p.key[1:]
-			//}
-			if len(parentKey) > length {
+
+			// if we are not replacing previous leaf, then add it as a child to the new branch
+			if len(parentKey) > len(key) {
 				p.key = p.key[length+1:]
 				br.children[parentKey[length]] = p
 			}
 
 			return true, br, nil
-		}
+		} 
 
-		br.key = key[:length]
-
-		switch v := value.(type) {
-		case *leaf:
-			v.key = key[length+1:]
-		case *branch:
-			v.key = key[length+1:]
-		}
+		//switch v := value.(type) {
+		//case *leaf:
+		//	v.key = key[length+1:]
+		//case *branch:
+		//	v.key = key[length+1:]
+		//}
+		value.setKey(key[length+1:])
 
 		if length == len(p.key) {
 			// if leaf's key is covered by this branch, then make the leaf's
@@ -124,7 +129,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			br.children[key[length]] = value
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
-			parentKey := p.key
 			p.key = p.key[length+1:]
 			br.children[parentKey[length]] = p
 			br.children[key[length]] = value
