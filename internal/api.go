@@ -22,28 +22,28 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 )
 
-// PublicRPC offers network related RPC methods
-type PublicRPC struct {
+// PublicP2PService offers network related RPC methods
+type PublicP2PService struct {
 	Net *p2p.Service
 }
 
-// PublicRPCResponse represents response from RPC call
-type PublicRPCResponse struct {
+// PublicP2PResponse represents response from RPC call
+type PublicP2PResponse struct {
 	Count int
 }
 
-// PublicRPCRequest represents RPC request type
-type PublicRPCRequest struct{}
+// PublicP2PRequest represents RPC request type
+type PublicP2PRequest struct{}
 
 // NewPublicRPC creates a new net API instance.
-func NewPublicRPC(net *p2p.Service) *PublicRPC {
-	return &PublicRPC{
+func NewPublicP2PService(net *p2p.Service) *PublicP2PService {
+	return &PublicP2PService{
 		Net: net,
 	}
 }
 
 // PeerCount returns the number of connected peers
-func (s *PublicRPC) PeerCount(r *http.Request, args *PublicRPCRequest, res *PublicRPCResponse) error {
+func (s *PublicP2PService) PeerCount(r *http.Request, args *PublicP2PRequest, res *PublicP2PResponse) error {
 	res.Count = s.Net.PeerCount()
 	return nil
 }
