@@ -296,44 +296,7 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			}
 		}
 
-		bitmap := p.childrenBitmap()
-		// if branch has no children, just a value, turn it into a leaf
-		if bitmap == 0 && p.value != nil {
-			n = &leaf{key: key[:length], value: p.value}
-		} else if p.numChildren() == 1 && p.value == nil {
-			// there is only 1 child and no value, combine the child branch with this branch
-			// find index of child
-			var i int
-			for i = 0; i < 16; i++ {
-				bitmap = bitmap >> 1
-				if bitmap == 0 {
-					break
-				}
-			}
-
-			child := p.children[i]
-			switch c := child.(type) {
-			case *leaf:
-				n = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
-			case *branch:
-				br := new(branch)
-				br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
-
-				// adopt the grandchildren
-				for i, grandchild := range c.children {
-					if grandchild != nil {
-						br.children[i] = grandchild
-					}
-				}
-
-				br.value = c.value
-				n = br
-			default:
-				// do nothing
-			}
-
-			ok = true
-		}
+		ok, n, err = handleDeletion(p, n, key)
 	case *leaf:
 		if bytes.Equal(key, p.key) {
 			ok = true
@@ -345,6 +308,55 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 		// do nothing
 	}
 	return ok, n, err
+}
+
+// handleDeletion is called when a value is deleted from a branch
+// if the updated branch only has 1 child, it should be combined with that child
+// if the upated branch only has a value, it should be turned into a leaf
+func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error){
+	nn = n
+	length := lenCommonPrefix(p.key, key)
+	bitmap := p.childrenBitmap()
+
+	// if branch has no children, just a value, turn it into a leaf
+	if bitmap == 0 && p.value != nil {
+		n = &leaf{key: key[:length], value: p.value}
+	} else if p.numChildren() == 1 && p.value == nil {
+		// there is only 1 child and no value, combine the child branch with this branch
+		// find index of child
+		var i int
+		for i = 0; i < 16; i++ {
+			bitmap = bitmap >> 1
+			if bitmap == 0 {
+				break
+			}
+		}
+
+		child := p.children[i]
+		switch c := child.(type) {
+		case *leaf:
+			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
+		case *branch:
+			br := new(branch)
+			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
+
+			// adopt the grandchildren
+			for i, grandchild := range c.children {
+				if grandchild != nil {
+					br.children[i] = grandchild
+				}
+			}
+
+			br.value = c.value
+			nn = br
+		default:
+			// do nothing
+		}
+
+		ok = true
+	}
+
+	return ok, nn, err
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
