@@ -320,7 +320,7 @@ func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error)
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		n = &leaf{key: key[:length], value: p.value}
+		nn = &leaf{key: key[:length], value: p.value}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
