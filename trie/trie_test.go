@@ -55,6 +55,13 @@ func TestCommonPrefix(t *testing.T) {
 	}
 }
 
+var (
+	PUT     = 0
+	GET     = 1
+	DEL     = 2
+	GETLEAF = 3
+)
+
 func newEmpty() *Trie {
 	db := &Database{
 		db: polkadb.NewMemDatabase(),
@@ -83,6 +90,8 @@ func TestNewTrie(t *testing.T) {
 type trieTest struct {
 	key   []byte
 	value []byte
+	pk    []byte
+	op    int
 }
 
 func generateRandTest(size int) []trieTest {
@@ -118,13 +127,18 @@ func hexDecode(in string) []byte {
 	return out
 }
 
-func writeToTestFile(s string) error {
+func writeToTestFile(tests []trieTest) error {
+	testString := ""
+	for _, test := range tests {
+		testString = fmt.Sprintf("%s%s\n%s\n", testString, test.key, test.value)
+	}
+
 	fp, err := filepath.Abs("./test_data")
 	if err != nil {
 		return err
 	}
 	os.Remove(fp)
-	err = ioutil.WriteFile(fp, []byte(s), 0644)
+	err = ioutil.WriteFile(fp, []byte(testString), 0644)
 	if err != nil {
 		return err
 	}
@@ -132,73 +146,98 @@ func writeToTestFile(s string) error {
 	return nil
 }
 
-func TestBranch(t *testing.T) {
+func buildSmallTrie() *Trie {
 	trie := newEmpty()
 
 	tests := []trieTest{
-		{key: []byte{0x01, 0x35}, value: []byte("spaghetti")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi")},
-		{key: []byte{0x07}, value: []byte("ramen")},
-		{key: []byte{0xf2}, value: []byte("pho")},
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{}, value: []byte("floof")},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd")},
 	}
 
 	for _, test := range tests {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			return nil
 		}
 	}
 
-	val, err := trie.Get([]byte("noot"))
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", "noot", err.Error())
-	} else if !bytes.Equal(val, nil) {
-		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
-	}
+	return trie
+}
 
-	val, err = trie.Get([]byte{0})
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", []byte{0}, err.Error())
-	} else if !bytes.Equal(val, nil) {
-		t.Errorf("Fail to get key %x with nil value: got %x", []byte{0}, val)
-	}
-
+func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 	for _, test := range tests {
-		val, err = trie.Get(test.key)
-		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-		} else if !bytes.Equal(val, test.value) {
-			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+		if test.op == PUT {
+			err := trie.Put(test.key, test.value)
+			if err != nil {
+				t.Errorf("Fail to put key %x with value %x: %s", test.key, test.value, err)
+			}
+		} else if test.op == GET {
+			val, err := trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+		} else if test.op == DEL {
+			err := trie.Delete(test.key)
+			if err != nil {
+				t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+			}
+		} else if test.op == GETLEAF {
+			leaf, err := trie.getLeaf(test.key)
+			if leaf == nil {
+				t.Errorf("Fail to get key %x: nil leaf", test.key)
+			} else if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(leaf.value, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
+			} else if !bytes.Equal(leaf.key, test.pk) {
+				t.Errorf("Fail to get correct partial key %x: got %x", test.pk, leaf.key)
+			}
 		}
 	}
+}
+
+func TestPutAndGetBranch(t *testing.T) {
+	trie := newEmpty()
+
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+		{key: []byte("noot"), value: nil, op: GET},
+		{key: []byte{0}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: GET},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: GET},
+		{key: []byte{0x07}, value: []byte("ramen"), op: GET},
+		{key: []byte{0xf2}, value: []byte("pho"), op: GET},
+	}
+
+	runTests(t, trie, tests)
 }
 
 func TestPutAndGetOddKeyLengths(t *testing.T) {
 	trie := newEmpty()
 
 	tests := []trieTest{
-		{key: []byte{0x43, 0xc1}, value: []byte("noot")},
-		{key: []byte{0x49, 0x29}, value: []byte("nootagain")},
-		{key: []byte{0x43, 0x0c}, value: []byte("odd")},
-		{key: []byte{0x4f, 0x4d}, value: []byte("stuff")},
-		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain")},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: PUT},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: PUT},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: PUT},
+		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: PUT},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: GET},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
+		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain"), op: GET},
 	}
 
-	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-	}
-
-	for _, test := range tests {
-		val, err := trie.Get(test.key)
-		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-		} else if !bytes.Equal(val, test.value) {
-			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-		}
-	}
+	runTests(t, trie, tests)
 }
 
 func TestPutAndGet(t *testing.T) {
@@ -225,21 +264,16 @@ func TestPutAndGet(t *testing.T) {
 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-
-				tests := ""
-				for _, othertest := range rt {
-					tests = fmt.Sprintf("%s%s\n%s\n", tests, othertest.key, othertest.value)
-				}
-
-				err := writeToTestFile(tests)
-				if err != nil {
-					t.Error(err)
-				}
+				writeToTestFile(rt)
 			}
 		}
 	}
 }
 
+// this test is used to debug random tests that fail
+// in TestPutAndGet, random tests are generated and if a case fails, it's saved to trie/test_data
+// if the trie/test_data exists, this test runs the case in that file
+// otherwise it's skipped
 func TestFailingTests(t *testing.T) {
 	fp, err := filepath.Abs("./test_data")
 	if err != nil {
@@ -254,7 +288,6 @@ func TestFailingTests(t *testing.T) {
 	slicedData := strings.Split(string(data), "\n")
 	tests := []trieTest{}
 	for i := 0; i < len(slicedData)-2; i += 2 {
-		//t.Logf("key: %x val: %x\n", []byte(slicedData[i]), []byte(slicedData[i+1]))
 		test := trieTest{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
 		tests = append(tests, test)
 	}
@@ -278,8 +311,8 @@ func TestFailingTests(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			failingKey := hexDecode("4a")
-			failingVal := hexDecode("3ec63d0c43de23f118898262217895bbe5f1f9d81861129ae76bdf5a6141f3a404934ce885a28fb9631040c84509b26d11bbbd441750edff1588906fb523785befa17224d1a457a41cffca6c5e")
+			failingKey := hexDecode("")
+			failingVal := hexDecode("")
 
 			if bytes.Equal(test.key, failingKey) {
 				passedFailingTest = true
@@ -308,548 +341,134 @@ func TestFailingTests(t *testing.T) {
 	}
 }
 
-func TestUpdateLeaf(t *testing.T) {
-	// case 1: leaf -> branch w/ two children
-	trie := newEmpty()
-	rt := []trieTest{
-		{[]byte{0xfa}, []byte("odd")},
-		{[]byte{0xfb, 0x0c}, []byte("noot")},
-		{[]byte{0x0f}, []byte("nootagain")},
-	}
-
-	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-	}
-
-	// case 2: leaf -> branch w/ prev leaf as value, new leaf as child
-	trie = newEmpty()
-	rt = []trieTest{
-		{[]byte{0x0f}, []byte("nootagain")},
-		{[]byte{0xfa}, []byte("odd")},
-	}
-
-	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-	}
-
-	// case 3: leaf -> branch w/ new leaf as value, prev leaf as child
-	trie = newEmpty()
-	rt = []trieTest{
-		{[]byte{0xfb}, []byte("noot")},
-		{[]byte{0x0f}, []byte("nootagain")},
-	}
-
-	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-	}
-
-	// case 4: replace leaf
-	trie = newEmpty()
-	rt = []trieTest{
-		{[]byte{0xfa}, []byte("odd")},
-		{[]byte{0xfb}, []byte("noot")},
-		{[]byte{0xfa}, []byte("nootagain")},
-	}
-
-	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-	}
-}
-
 func TestGetPartialKey(t *testing.T) {
 	trie := newEmpty()
 
-	key1 := []byte{0x01, 0x35}
-	value1 := []byte("pen")
-	key2 := []byte{0x01, 0x35, 0x79}
-	value2 := []byte("penguin")
-	key3 := []byte{0xf2}
-	value3 := []byte("feather")
-	key4 := []byte{0x09, 0xd3}
-	value4 := []byte("noot")
-	key5 := []byte{}
-	value5 := []byte("floof")
-	key6 := []byte{0x01, 0x35, 0x07}
-	value6 := []byte("odd")
-
-	pk0 := []byte{0x1, 0x3, 0x5}
-	pk1 := []byte{0x3, 0x5}
-	pk2 := []byte{}
-	pk3 := []byte{0x2}
-	pk4 := []byte{0x0d, 0x03}
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
-	}
-
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	err = trie.Put(key5, value5)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	err = trie.Put(key6, value6)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	var val []byte
-	leaf, err := trie.getLeaf(key2)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key2)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(leaf.value, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	} else if !bytes.Equal(leaf.key, pk2) {
-		t.Errorf("Fail to get correct partial key %x: got %x", pk2, leaf.key)
-	}
-
-	err = trie.Put(key6, value6)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	leaf, err = trie.getLeaf(key1)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key1)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(leaf.value, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	} else if !bytes.Equal(leaf.key, pk0) {
-		t.Errorf("Fail to get correct partial key %x: got %x", pk0, leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key2)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key2)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(leaf.value, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	} else if !bytes.Equal(leaf.key, nil) {
-		t.Errorf("Fail to get correct partial key nil: got %x", leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key6)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key6)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key6, err.Error())
-	} else if !bytes.Equal(leaf.value, value6) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key6, value6, val)
-	} else if !bytes.Equal(leaf.key, nil) {
-		t.Errorf("Fail to get correct partial key nil: got %x", leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key6)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key6)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key6, err.Error())
-	} else if !bytes.Equal(leaf.value, value6) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key6, value6, val)
-	} else if !bytes.Equal(leaf.key, nil) {
-		t.Errorf("Fail to get correct partial key nil: got %x", leaf.key)
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	val, err = trie.Get(key5)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key5, err.Error())
-	} else if !bytes.Equal(val, value5) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key5, value5, val)
-	}
-
-	leaf, err = trie.getLeaf(key1)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key1)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(leaf.value, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	} else if !bytes.Equal(leaf.key, pk1) {
-		t.Errorf("Fail to get correct partial key %x: got %x", pk1, leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key2)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key2)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(leaf.value, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	} else if !bytes.Equal(leaf.key, nil) {
-		t.Errorf("Fail to get correct partial key nil: got %x", leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key3)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key3)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(leaf.value, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	} else if !bytes.Equal(leaf.key, pk3) {
-		t.Errorf("Fail to get correct partial key %x: got %x", pk3, leaf.key)
-	}
-
-	leaf, err = trie.getLeaf(key4)
-	if leaf == nil {
-		t.Errorf("Fail to get key %x: nil leaf", key4)
-	} else if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(leaf.value, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
-	} else if !bytes.Equal(leaf.key, pk4) {
-		t.Errorf("Fail to get correct partial key %x: got %x", pk4, leaf.key)
-	}
-}
-
-func buildSmallTrie() *Trie {
-	trie := newEmpty()
-
 	tests := []trieTest{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0xf2}, value: []byte("feather")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		{key: []byte{}, value: []byte("floof")},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd")},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
+		{key: []byte{}, value: []byte("floof"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: nil, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: []byte{0x9}, op: GETLEAF},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), pk: []byte{0x1, 0x3, 0x5}, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), pk: nil, op: GETLEAF},
+		{key: []byte{0xf2}, value: []byte("pen"), op: PUT},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
+		{key: []byte{}, value: []byte("floof"), op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), pk: []byte{0x3, 0x5}, op: GETLEAF},
+		{key: []byte{0xf2}, value: []byte("pen"), pk: []byte{0x2}, op: GETLEAF},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), pk: []byte{0x0d, 0x03}, op: GETLEAF},
 	}
 
-	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			return nil
-		}
-	}
-
-	return trie
+	runTests(t, trie, tests)
 }
 
 func TestDeleteSmall(t *testing.T) {
 	trie := buildSmallTrie()
 
-	key1 := []byte{0x01, 0x35}
-	value1 := []byte("pen")
-	key2 := []byte{0x01, 0x35, 0x79}
-	value2 := []byte("penguin")
-	key3 := []byte{0xf2}
-	value3 := []byte("feather")
-	key4 := []byte{0x09, 0xd3}
-	value4 := []byte("noot")
-	key5 := []byte{}
-	value5 := []byte("floof")
-	key6 := []byte{0x01, 0x35, 0x07}
-	value6 := []byte("odd")
+	tests := []trieTest{
+		{key: []byte{}, value: []byte("floof"), op: DEL},
+		{key: []byte{}, value: nil, op: GET},
+		{key: []byte{}, value: []byte("floof"), op: PUT},
 
-	// key5 = nil
-	err := trie.Delete(key5)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key5, err.Error())
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: DEL},
+		{key: []byte{0x09, 0xd3}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
+
+		{key: []byte{0xf2}, value: []byte("feather"), op: DEL},
+		{key: []byte{0xf2}, value: nil, op: GET},
+		{key: []byte{0xf2}, value: []byte("feather"), op: PUT},
+
+		{key: []byte{}, value: []byte("floof"), op: DEL},
+		{key: []byte{0xf2}, value: []byte("feather"), op: DEL},
+		{key: []byte{}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
+		{key: []byte{}, value: []byte("floof"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("feather"), op: PUT},
+
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: DEL},
+		{key: []byte{0x01, 0x35, 0x79}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
+
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: DEL},
+		{key: []byte{0x01, 0x35}, value: nil, op: GET},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: PUT},
+
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: GET},
+		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: GET},
 	}
 
-	val, err := trie.Get(key5)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key5, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key5, value5, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key4 = 09d3
-	err = trie.Delete(key4)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key4, err.Error())
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key4, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key4, value4, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(value2, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(value1, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key3 = f2
-	err = trie.Delete(key3)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key3, err.Error())
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key3, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key3, value3, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key5 = nil
-	err = trie.Delete(key5)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key5, err.Error())
-	}
-
-	err = trie.Delete(key3)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key3, err.Error())
-	}
-
-	val, err = trie.Get(key5)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key5, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key5, value5, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(value2, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(value1, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key2 = 013579
-	err = trie.Delete(key2)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key2, err.Error())
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key2, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(value1, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key2 = 0135
-	err = trie.Delete(key1)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key1, err.Error())
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(value2, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	trie = buildSmallTrie()
-
-	// key6 = 0135
-	err = trie.Delete(key6)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key6, err.Error())
-	}
-
-	val, err = trie.Get(key6)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key6, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key6, value6, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(value2, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(value1, val) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
+	runTests(t, trie, tests)
 }
 
-func TestCombineBranch(t *testing.T) {
+func TestDeleteCombineBranch(t *testing.T) {
 	trie := buildSmallTrie()
 
-	key4 := []byte{0x09, 0xd3}
-	value4 := []byte("noot")
-	key6 := []byte{0x01, 0x35, 0x46}
-	value6 := []byte("raccoon")
-	key7 := []byte{0x01, 0x35, 0x46, 0x77}
-	value7 := []byte("rat")
-
-	err := trie.Put(key6, value6)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key6, value6, err.Error())
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x46, 0x77}, value: []byte("rat"), op: PUT},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: DEL},
+		{key: []byte{0x09, 0xd3}, value: nil, op: GET},
 	}
 
-	err = trie.Put(key7, value7)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key7, value7, err.Error())
+	runTests(t, trie, tests)
+}
+
+func TestDeleteFromBranch(t *testing.T) {
+	trie := newEmpty()
+
+	tests := []trieTest{
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: PUT},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: PUT},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: PUT},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: PUT},
+		{key: []byte{0x43, 0x21}, value: []byte("stuffagain"), op: PUT},
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: GET},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: DEL},
+		{key: []byte{0x06, 0x15, 0xfc}, value: nil, op: GET},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: GET},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd"), op: DEL},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: GET},
+		{key: []byte{0x06, 0xa3, 0xff}, value: []byte("stuff"), op: DEL},
+		{key: []byte{0x06, 0x2b, 0xa9}, value: []byte("nootagain"), op: GET},
 	}
 
-	err = trie.Delete(key4)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key4, err.Error())
-		t.Errorf("Fail to delete key %x: %s", key4, err.Error())
-	}
-
-	val, err := trie.Get(key4)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key4, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key4, value4, val)
-	}
-
+	runTests(t, trie, tests)
 }
 
 func TestDeleteOddKeyLengths(t *testing.T) {
 	trie := newEmpty()
 
-	key1 := []byte{0x43, 0xc1}
-	value1 := []byte("noot")
-	key2 := []byte{0x49, 0x29}
-	value2 := []byte("nootagain")
-	key3 := []byte{0x43, 0x0c}
-	value3 := []byte("odd")
-	key4 := []byte{0x4f, 0x4d}
-	value4 := []byte("stuff")
-	key5 := []byte{0xf4, 0xbc}
-	value5 := []byte("spaghetti")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	tests := []trieTest{
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: PUT},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain"), op: GET},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: PUT},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: GET},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: PUT},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd"), op: DEL},
+		{key: []byte{0x43, 0x0c}, value: nil, op: GET},
+		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0xf4, 0xbc}, value: []byte("spaghetti"), op: GET},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff"), op: GET},
+		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: GET},
 	}
 
-	val, err := trie.Get(key1)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(val, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
-	}
-
-	err = trie.Put(key5, value5)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	val, err = trie.Get(key5)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key5, err.Error())
-	} else if !bytes.Equal(val, value5) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key5, value5, val)
-	}
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
+	runTests(t, trie, tests)
 }
 
 func TestDelete(t *testing.T) {
@@ -886,123 +505,5 @@ func TestDelete(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 		}
-	}
-}
-
-func TestDeleteFromBranch(t *testing.T) {
-	trie := newEmpty()
-
-	key1 := []byte{0x06, 0x15, 0xfc}
-	value1 := []byte("noot")
-	key2 := []byte{0x06, 0x2b, 0xa9}
-	value2 := []byte("nootagain")
-	key3 := []byte{0x06, 0xaf, 0xb1}
-	value3 := []byte("odd")
-	key4 := []byte{0x06, 0xa3, 0xff}
-	value4 := []byte("stuff")
-	key5 := []byte{0x43, 0x21}
-	value5 := []byte("stuffagain")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
-	}
-
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	err = trie.Put(key5, value5)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	val, err := trie.Get(key1)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	err = trie.Delete(key1)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key1, err.Error())
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Error when attempting to get deleted key %x: %s", key1, err.Error())
-	} else if val != nil {
-		t.Errorf("Fail to delete key %x with value %x: got %x", key1, value1, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	err = trie.Delete(key3)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key3, err.Error())
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(val, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
-	}
-
-	err = trie.Delete(key4)
-	if err != nil {
-		t.Errorf("Fail to delete key %x: %s", key4, err.Error())
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
 	}
 }
