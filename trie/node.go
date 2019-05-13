@@ -81,7 +81,6 @@ func (b *branch) setDirty(dirty bool) {
 	b.dirty = dirty
 }
 
-
 func (l *leaf) setKey(key []byte) {
 	l.key = key
 }

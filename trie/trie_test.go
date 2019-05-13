@@ -81,16 +81,16 @@ func TestNewTrie(t *testing.T) {
 	}
 }
 
-type randTest struct {
+type trieTest struct {
 	key   []byte
 	value []byte
 }
 
-func generateRandTest(size int) []randTest {
-	rt := make([]randTest, size)
+func generateRandTest(size int) []trieTest {
+	rt := make([]trieTest, size)
 	r := *rand.New(rand.NewSource(rand.Int63()))
 	for i := range rt {
-		rt[i] = randTest{}
+		rt[i] = trieTest{}
 		buf := make([]byte, r.Intn(379)+1)
 		r.Read(buf)
 		if !keyExists(rt[0:i], buf) {
@@ -104,7 +104,7 @@ func generateRandTest(size int) []randTest {
 	return rt
 }
 
-func keyExists(rt []randTest, key []byte) bool {
+func keyExists(rt []trieTest, key []byte) bool {
 	for _, test := range rt {
 		if bytes.Equal(test.key, key) {
 			return true
@@ -136,33 +136,18 @@ func writeToTestFile(s string) error {
 func TestBranch(t *testing.T) {
 	trie := newEmpty()
 
-	key1 := []byte{0x01, 0x35}
-	value1 := []byte("spaghetti")
-	key2 := []byte{0x01, 0x35, 0x79}
-	value2 := []byte("gnocchi")
-	key3 := []byte{0x07}
-	value3 := []byte("ramen")
-	key4 := []byte{0xf2}
-	value4 := []byte("pho")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0xf2}, value: []byte("pho")},
 	}
 
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
 	}
 
 	val, err := trie.Get([]byte("noot"))
@@ -179,175 +164,41 @@ func TestBranch(t *testing.T) {
 		t.Errorf("Fail to get key %x with nil value: got %x", []byte{0}, val)
 	}
 
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(val, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
-	}
-}
-
-func TestBranchMore(t *testing.T) {
-	trie := newEmpty()
-
-	key1 := []byte{0x01}
-	value1 := []byte("spaghetti")
-	key2 := []byte{0x02}
-	value2 := []byte("gnocchi")
-	key3 := []byte{0xf7}
-	value3 := []byte("ramen")
-	key4 := []byte{0x43}
-	value4 := []byte("pho")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
-	}
-
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	val, err := trie.Get([]byte{0})
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, nil) {
-		t.Errorf("Fail to get key %x with nil value: got %x", "noot", val)
-	}
-
-	val, err = trie.Get(key1)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(val, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
+	for _, test := range tests {
+		val, err = trie.Get(test.key)
+		if err != nil {
+			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+		} else if !bytes.Equal(val, test.value) {
+			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+		}
 	}
 }
 
 func TestPutAndGetOddKeyLengths(t *testing.T) {
 	trie := newEmpty()
 
-	key1 := []byte{0x43, 0xc1}
-	value1 := []byte("noot")
-	key2 := []byte{0x49, 0x29}
-	value2 := []byte("nootagain")
-	key3 := []byte{0x43, 0x0c}
-	value3 := []byte("odd")
-	key4 := []byte{0x4f, 0x4d}
-	value4 := []byte("stuff")
-	key5 := []byte{0xf4, 0xbc}
-	value5 := []byte("spaghetti")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	tests := []trieTest{
+		{key: []byte{0x43, 0xc1}, value: []byte("noot")},
+		{key: []byte{0x49, 0x29}, value: []byte("nootagain")},
+		{key: []byte{0x43, 0x0c}, value: []byte("odd")},
+		{key: []byte{0x4f, 0x4d}, value: []byte("stuff")},
+		{key: []byte{0x4f, 0xbc}, value: []byte("stuffagain")},
 	}
 
-	val, err := trie.Get(key1)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key1, err.Error())
-	} else if !bytes.Equal(val, value1) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key1, value1, val)
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
 	}
 
-	err = trie.Put(key2, value2)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	val, err = trie.Get(key2)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key2, err.Error())
-	} else if !bytes.Equal(val, value2) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key2, value2, val)
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	val, err = trie.Get(key3)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key3, err.Error())
-	} else if !bytes.Equal(val, value3) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key3, value3, val)
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	val, err = trie.Get(key4)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key4, err.Error())
-	} else if !bytes.Equal(val, value4) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key4, value4, val)
-	}
-
-	err = trie.Put(key5, value5)
-	if err != nil {
-		t.Errorf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	val, err = trie.Get(key5)
-	if err != nil {
-		t.Errorf("Fail to get key %x: %s", key5, err.Error())
-	} else if !bytes.Equal(val, value5) {
-		t.Errorf("Fail to get key %x with value %x: got %x", key5, value5, val)
+	for _, test := range tests {
+		val, err := trie.Get(test.key)
+		if err != nil {
+			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+		} else if !bytes.Equal(val, test.value) {
+			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+		}
 	}
 }
 
@@ -398,14 +249,14 @@ func TestFailingTests(t *testing.T) {
 
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
-		t.Error(err)
+		t.SkipNow()
 	}
 
 	slicedData := strings.Split(string(data), "\n")
-	tests := []randTest{}
-	for i := 0; i < len(slicedData)-2; i+=2 {
+	tests := []trieTest{}
+	for i := 0; i < len(slicedData)-2; i += 2 {
 		//t.Logf("key: %x val: %x\n", []byte(slicedData[i]), []byte(slicedData[i+1]))
-		test := randTest{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
+		test := trieTest{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
 		tests = append(tests, test)
 	}
 
@@ -415,7 +266,6 @@ func TestFailingTests(t *testing.T) {
 	passedFailingTest := false
 	rt := tests
 	for i, test := range rt {
-		//t.Log(i)
 		if len(test.key) != 0 {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -456,14 +306,13 @@ func TestFailingTests(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 		}
-	}	
+	}
 }
 
 func TestUpdateLeaf(t *testing.T) {
-	trie := newEmpty()
-
 	// case 1: leaf -> branch w/ two children
-	rt := []randTest{
+	trie := newEmpty()
+	rt := []trieTest{
 		{[]byte{0xfa}, []byte("odd")},
 		{[]byte{0xfb, 0x0c}, []byte("noot")},
 		{[]byte{0x0f}, []byte("nootagain")},
@@ -476,11 +325,9 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	//trie.Print()
-	trie = newEmpty()
-
 	// case 2: leaf -> branch w/ prev leaf as value, new leaf as child
-	rt = []randTest{
+	trie = newEmpty()
+	rt = []trieTest{
 		{[]byte{0x0f}, []byte("nootagain")},
 		{[]byte{0xfa}, []byte("odd")},
 	}
@@ -492,11 +339,9 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	//trie.Print()
-	trie = newEmpty()
-
 	// case 3: leaf -> branch w/ new leaf as value, prev leaf as child
-	rt = []randTest{
+	trie = newEmpty()
+	rt = []trieTest{
 		{[]byte{0xfb}, []byte("noot")},
 		{[]byte{0x0f}, []byte("nootagain")},
 	}
@@ -508,11 +353,9 @@ func TestUpdateLeaf(t *testing.T) {
 		}
 	}
 
-	//trie.Print()
-	trie = newEmpty()
-
 	// case 4: replace leaf
-	rt = []randTest{
+	trie = newEmpty()
+	rt = []trieTest{
 		{[]byte{0xfa}, []byte("odd")},
 		{[]byte{0xfb}, []byte("noot")},
 		{[]byte{0xfa}, []byte("nootagain")},
@@ -694,51 +537,25 @@ func TestGetPartialKey(t *testing.T) {
 func buildSmallTrie() *Trie {
 	trie := newEmpty()
 
-	key1 := []byte{0x01, 0x35}
-	value1 := []byte("pen")
-	key2 := []byte{0x01, 0x35, 0x79}
-	value2 := []byte("penguin")
-	key3 := []byte{0xf2}
-	value3 := []byte("feather")
-	key4 := []byte{0x09, 0xd3}
-	value4 := []byte("noot")
-	key5 := []byte{}
-	value5 := []byte("floof")
-	key6 := []byte{0x01, 0x35, 0x07}
-	value6 := []byte("odd")
-
-	err := trie.Put(key1, value1)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key1, value1, err.Error())
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{}, value: []byte("floof")},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd")},
 	}
 
-	err = trie.Put(key2, value2)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key2, value2, err.Error())
-	}
-
-	err = trie.Put(key5, value5)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key5, value5, err.Error())
-	}
-
-	err = trie.Put(key3, value3)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key3, value3, err.Error())
-	}
-
-	err = trie.Put(key4, value4)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key4, value4, err.Error())
-	}
-
-	err = trie.Put(key6, value6)
-	if err != nil {
-		log.Fatalf("Fail to put with key %x and value %x: %s", key6, value6, err.Error())
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
 	}
 
 	return trie
 }
+
 func TestDeleteSmall(t *testing.T) {
 	trie := buildSmallTrie()
 
@@ -930,7 +747,6 @@ func TestCombineBranch(t *testing.T) {
 	key7 := []byte{0x01, 0x35, 0x46, 0x77}
 	value7 := []byte("rat")
 
-
 	err := trie.Put(key6, value6)
 	if err != nil {
 		t.Errorf("Fail to put with key %x and value %x: %s", key6, value6, err.Error())
@@ -954,7 +770,7 @@ func TestCombineBranch(t *testing.T) {
 		t.Errorf("Fail to delete key %x with value %x: got %x", key4, value4, val)
 	}
 
-	}
+}
 
 func TestDeleteOddKeyLengths(t *testing.T) {
 	trie := newEmpty()

@@ -111,7 +111,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			}
 
 			return true, br, nil
-		} 
+		}
 
 		value.setKey(key[length+1:])
 
@@ -158,7 +158,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		case *branch, *leaf:
 			_, n, err = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
-			n = p		
+			n = p
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
@@ -251,7 +251,6 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	}
 	return value, err
 }
-
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
