@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -549,7 +548,7 @@ func buildSmallTrie() *Trie {
 	for _, test := range tests {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			return nil
 		}
 	}
 

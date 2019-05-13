@@ -278,7 +278,7 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 				_, n, err = t.delete(p.children[key[length]], key[length+1:])
 				p.children[key[length]] = n
 				n = p
-				return true, n, nil
+				return true, n, err
 			case *leaf:
 				if len(child.key) == 0 {
 					p.children[key[length]] = nil
