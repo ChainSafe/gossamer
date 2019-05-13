@@ -251,7 +251,9 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}
 	case *leaf:
-		value = p
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			value = p
+		}
 	case nil:
 		return nil, nil
 	default:
@@ -264,10 +266,10 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
-	val, err := t.Get(key)
-	if val == nil {
-		return errors.New("delete error: node not found")
-	}
+	//val, err := t.Get(key)
+	//if val == nil {
+	//	return errors.New("delete error: node not found")
+	//}
 
 	_, n, err := t.delete(t.root, k)
 	if err != nil {
@@ -349,7 +351,12 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			ok = true
 		}
 	case *leaf:
-		ok = true
+		if bytes.Equal(key, p.key) /*|| len(key) == 0 */{
+			ok = true
+		} else {
+			ok = true
+			n = p
+		}
 	case nil:
 		// do nothing
 	}

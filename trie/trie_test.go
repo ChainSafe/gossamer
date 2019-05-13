@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -51,6 +52,7 @@ func writeToTestFile(s string) error {
 	if err != nil {
 		return err
 	}
+	os.Remove(fp)
 	err = ioutil.WriteFile(fp, []byte(s), 0644)
 	if err != nil {
 		return err
@@ -105,7 +107,7 @@ func generateRandTest(size int) []randTest {
 		rt[i] = randTest{}
 		buf := make([]byte, r.Intn(379)+1)
 		r.Read(buf)
-		if !keyExists(rt, buf) {
+		if !keyExists(rt[0:i], buf) {
 			rt[i].key = buf
 
 			buf = make([]byte, r.Intn(128))
@@ -120,8 +122,6 @@ func keyExists(rt []randTest, key []byte) bool {
 	for _, test := range rt {
 		if bytes.Equal(test.key, key) {
 			return true
-		} else {
-			return false
 		}
 	}
 
@@ -347,7 +347,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 }
 
 func TestPutAndGet(t *testing.T) {
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		trie := newEmpty()
 		rt := generateRandTest(1000)
 		for _, test := range rt {
@@ -370,11 +370,10 @@ func TestPutAndGet(t *testing.T) {
 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				//trie.Print()
 
 				tests := ""
 				for _, othertest := range rt {
-					tests = fmt.Sprintf("%s\n%s\n%s", tests, othertest.key, othertest.value)
+					tests = fmt.Sprintf("%s%s\n%s\n", tests, othertest.key, othertest.value)
 				}
 
 				err := writeToTestFile(tests)
@@ -399,8 +398,8 @@ func TestFailingTests(t *testing.T) {
 
 	slicedData := strings.Split(string(data), "\n")
 	tests := []randTest{}
-	for i := 1; i < len(slicedData); i+=2 {
-		//t.Logf("%x\n", []byte(slicedData[i]))
+	for i := 0; i < len(slicedData)-2; i+=2 {
+		//t.Logf("key: %x val: %x\n", []byte(slicedData[i]), []byte(slicedData[i+1]))
 		test := randTest{key: []byte(slicedData[i]), value: []byte(slicedData[i+1])}
 		tests = append(tests, test)
 	}
@@ -425,8 +424,8 @@ func TestFailingTests(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			failingKey := hexDecode("26")
-			failingVal := hexDecode("dddd1d7afafbac50b56baf7182e1e0bd3cd99522c239cbf3a475a134af")
+			failingKey := hexDecode("4a")
+			failingVal := hexDecode("3ec63d0c43de23f118898262217895bbe5f1f9d81861129ae76bdf5a6141f3a404934ce885a28fb9631040c84509b26d11bbbd441750edff1588906fb523785befa17224d1a457a41cffca6c5e")
 
 			if bytes.Equal(test.key, failingKey) {
 				passedFailingTest = true
@@ -450,17 +449,6 @@ func TestFailingTests(t *testing.T) {
 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 			} else if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				//trie.Print()
-
-				// tests := ""
-				// for _, othertest := range rt {
-				// 	tests = fmt.Sprintf("%s\n%s\n%s", tests, othertest.key, othertest.value)
-				// }
-
-				// err := writeToTestFile(tests)
-				// if err != nil {
-				// 	t.Error(err)
-				// }
 			}
 		}
 	}	
