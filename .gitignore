@@ -25,4 +25,5 @@
 *.sublime*
 
 trie/gossamer_data
+trie/test_data
 /bin

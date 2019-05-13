@@ -27,6 +27,7 @@ type node interface {
 	Encode() ([]byte, error)
 	isDirty() bool
 	setDirty(dirty bool)
+	setKey(key []byte)
 }
 
 type (
@@ -78,6 +79,15 @@ func (l *leaf) setDirty(dirty bool) {
 
 func (b *branch) setDirty(dirty bool) {
 	b.dirty = dirty
+}
+
+
+func (l *leaf) setKey(key []byte) {
+	l.key = key
+}
+
+func (b *branch) setKey(key []byte) {
+	b.key = key
 }
 
 // Encode is the high-level function wrapping the encoding for different node types

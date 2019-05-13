@@ -89,26 +89,31 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			ok = true
 		}
 	case *leaf:
-		// need to convert this into a branch
-		br := &branch{key: nil, dirty: true}
+		// need to convert this leaf into a branch
+		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
-		if len(key) < length {
-			br.value = value.(*leaf).value
-			prevKey := p.key
-			// p.key = p.key[1:]
-			br.children[prevKey[0]] = p
-			return true, br, nil
+		if bytes.Equal(p.key, key) && len(key) == length {
+			return true, value, nil
 		}
 
 		br.key = key[:length]
+		parentKey := p.key
 
-		switch v := value.(type) {
-		case *leaf:
-			v.key = key[length+1:]
-		case *branch:
-			v.key = key[length+1:]
-		}
+		// value goes at this branch
+		if len(key) == length {
+			br.value = value.(*leaf).value
+
+			// if we are not replacing previous leaf, then add it as a child to the new branch
+			if len(parentKey) > len(key) {
+				p.key = p.key[length+1:]
+				br.children[parentKey[length]] = p
+			}
+
+			return true, br, nil
+		} 
+
+		value.setKey(key[length+1:])
 
 		if length == len(p.key) {
 			// if leaf's key is covered by this branch, then make the leaf's
@@ -117,7 +122,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			br.children[key[length]] = value
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
-			parentKey := p.key
 			p.key = p.key[length+1:]
 			br.children[parentKey[length]] = p
 			br.children[key[length]] = value
@@ -151,15 +155,11 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		}
 
 		switch c := p.children[key[length]].(type) {
-		case *branch:
+		case *branch, *leaf:
 			_, n, err = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
-			n = p
-		// case *leaf:
-		// 	_, n, err = t.insert(c, key[length:], value)
-		// 	p.children[key[length]] = n
-		// 	n = p			
-		case nil: // nil or leaf
+			n = p		
+		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
@@ -179,7 +179,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node,
 		return false, nil, err
 	}
 
-	if len(key) == 0 {
+	if len(key) <= length {
 		br.value = value.(*leaf).value
 	} else {
 		_, br.children[key[length]], err = t.insert(nil, key[length+1:], value)
@@ -224,6 +224,11 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			return &leaf{key: p.key, value: p.value, dirty: true}, nil
 		}
 
+		// did not find value
+		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
+			return nil, nil
+		}
+
 		// if branch's child at the key is a leaf, return it if the key matches
 		switch v := p.children[key[length]].(type) {
 		case *leaf:
@@ -236,7 +241,9 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 			value, err = t.retrieve(p.children[key[length]], key[length+1:])
 		}
 	case *leaf:
-		value = p
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			value = p
+		}
 	case nil:
 		return nil, nil
 	default:
@@ -244,6 +251,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	}
 	return value, err
 }
+
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
@@ -265,19 +273,25 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 		if bytes.Equal(p.key, key) || len(key) == 0 {
 			p.value = nil
 			n = p
-			//return true, p, nil
 		} else {
-			switch p.children[key[length]].(type) {
+			switch child := p.children[key[length]].(type) {
 			case *branch:
 				_, n, err = t.delete(p.children[key[length]], key[length+1:])
 				p.children[key[length]] = n
 				n = p
 				return true, n, nil
 			case *leaf:
-				p.children[key[length]] = nil
-				ok = true
-				n = p
-				//return true, n, nil
+				if len(child.key) == 0 {
+					p.children[key[length]] = nil
+					ok = true
+					n = p
+				} else if bytes.Equal(child.key, key[length+1:]) {
+					p.children[key[length]] = nil
+					ok = true
+					n = p
+				} else {
+					return true, p, nil
+				}
 			default:
 				return false, p, nil
 			}
@@ -301,10 +315,10 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			child := p.children[i]
 			switch c := child.(type) {
 			case *leaf:
-				n = &leaf{key: append(append(key, []byte{byte(i)}...), c.key...), value: c.value}
+				n = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 			case *branch:
 				br := new(branch)
-				br.key = append([]byte{byte(i)}, c.key...)
+				br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
 
 				// adopt the grandchildren
 				for i, grandchild := range c.children {
@@ -322,7 +336,12 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 			ok = true
 		}
 	case *leaf:
-		ok = true
+		if bytes.Equal(key, p.key) {
+			ok = true
+		} else {
+			ok = true
+			n = p
+		}
 	case nil:
 		// do nothing
 	}
