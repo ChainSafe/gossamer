@@ -202,7 +202,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 }
 
 func TestPutAndGet(t *testing.T) {
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		trie := newEmpty()
 		rt := generateRandTest(1000)
 		for _, test := range rt {
