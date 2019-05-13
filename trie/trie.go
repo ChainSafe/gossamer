@@ -268,37 +268,19 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
 
-		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
+			// found the value at this node
 			p.value = nil
 			n = p
 		} else {
-			switch child := p.children[key[length]].(type) {
-			case *branch:
-				_, n, err = t.delete(p.children[key[length]], key[length+1:])
-				p.children[key[length]] = n
-				n = p
-				return true, n, err
-			case *leaf:
-				if len(child.key) == 0 {
-					p.children[key[length]] = nil
-					ok = true
-					n = p
-				} else if bytes.Equal(child.key, key[length+1:]) {
-					p.children[key[length]] = nil
-					ok = true
-					n = p
-				} else {
-					return true, p, nil
-				}
-			default:
-				return false, p, nil
-			}
+			_, n, err = t.delete(p.children[key[length]], key[length+1:])
+			p.children[key[length]] = n
+			n = p
 		}
 
 		ok, n, err = handleDeletion(p, n, key)
 	case *leaf:
-		if bytes.Equal(key, p.key) {
+		if bytes.Equal(key, p.key) || len(key) == 0 {
 			ok = true
 		} else {
 			ok = true
@@ -313,7 +295,7 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
 // if the upated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error){
+func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error) {
 	nn = n
 	length := lenCommonPrefix(p.key, key)
 	bitmap := p.childrenBitmap()
