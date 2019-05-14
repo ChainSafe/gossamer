@@ -45,4 +45,4 @@ docker:
 	docker run chainsafe/gossamer
 
 gossamer:
-	go run ./cmd/main.go
+	cd cmd/gossamer && go install

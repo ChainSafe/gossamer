@@ -6,4 +6,4 @@ Port= 7001
 RandSeed= 33
 
 [BadgerDB]
-Datadir="../chaindata/"
+Datadir="chaindata"

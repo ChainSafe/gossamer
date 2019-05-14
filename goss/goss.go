@@ -14,15 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package cfg
+package goss
 
 import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-// Config is a collection of configurations throughout the system
-type Config struct {
-	ServiceConfig *p2p.ServiceConfig
-	BadgerDB      polkadb.BadgerDB
+// Goss is a container on which services can be registered.
+type Goss struct {
+	ServerConfig *p2p.ServiceConfig
+	Server       *p2p.Service // Currently running P2P networking layer
+	Polkadb 	 *polkadb.BadgerDB //BadgerDB database
 }
