@@ -26,7 +26,7 @@ import (
 
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
-	path string
+	Datadir string
 	db   *badger.DB
 }
 
@@ -67,14 +67,14 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 	}
 
 	return &BadgerDB{
-		path: file,
+		Datadir: file,
 		db:   db,
 	}, nil
 }
 
 // Path returns the path to the database directory.
 func (db *BadgerDB) Path() string {
-	return db.path
+	return db.Datadir
 }
 
 // NewBatch returns batchWriter with a badgerDB instance and an initialized mapping
