@@ -14,12 +14,28 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package codec
+package trie
 
-func reverseBytes(a []byte) []byte {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+import (
+	"fmt"
+)
+
+// Print prints the trie through pre-order traversal
+func (t *Trie) Print() {
+	fmt.Println("printing trie...")
+	t.print(t.root)
+}
+
+func (t *Trie) print(current node) {
+	switch c := current.(type) {
+	case *branch:
+		fmt.Printf("branch pk %x children %b value %s\n", c.key, c.childrenBitmap(), c.value)
+		for _, child := range c.children {
+			t.print(child)
+		}
+	case *leaf:
+		fmt.Printf("leaf pk %x val %s\n", c.key, c.value)
+	default:
+		// do nothing
 	}
-	return a
 }

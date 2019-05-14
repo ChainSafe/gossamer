@@ -14,33 +14,48 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package hexcodec
+package trie
 
 import (
-	"testing"
+	"hash"
+
+	"github.com/ChainSafe/gossamer/common"
+	"golang.org/x/crypto/blake2s"
 )
 
-func TestHexEncode(t *testing.T) {
-	tests := []struct {
-		input    []byte
-		expected []byte
-	}{
-		// Even
-		{[]byte{0xF, 0x0}, []byte{0x0, 0x0F}},
-		{[]byte{0xA, 0x8, 0xF, 0x0}, []byte{0x0, 0x8A, 0x0F}},
-		{[]byte{0xD, 0xE, 0xA, 0xD, 0xB, 0xE, 0xE, 0xF}, []byte{0x0, 0xED, 0xDA, 0xEB, 0xFE}},
-		// Odd
-		{[]byte{0xF}, []byte{0xF}},
-		{[]byte{0xA, 0xF, 0x0}, []byte{0xA, 0x0F}},
-		{[]byte{0xA, 0xC, 0xA, 0xB, 0x1, 0x2, 0x3}, []byte{0xA, 0xAC, 0x1B, 0x32}},
+// Hasher is a wrapper around a hash function
+type Hasher struct {
+	hash hash.Hash
+}
+
+func newHasher() (*Hasher, error) {
+	h, err := blake2s.New256(nil)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, test := range tests {
-		res := Encode(test.input)
-		for i := 0; i < len(res); i++ {
-			if res[i] != test.expected[i] {
-				t.Fatalf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
-			}
-		}
+	return &Hasher{
+		hash: h,
+	}, nil
+}
+
+// Hash encodes the node and then hashes it if its encoded length is > 32 bytes
+func (h *Hasher) Hash(n node) (res []byte, err error) {
+	encNode, err := n.Encode()
+	if err != nil {
+		return nil, err
 	}
+
+	// if length of encoded leaf is less than 32 bytes, do not hash
+	if len(encNode) < 32 {
+		return common.AppendZeroes(encNode, 32), nil
+	}
+
+	// otherwise, hash encoded node
+	_, err = h.hash.Write(encNode)
+	if err == nil {
+		res = h.hash.Sum(nil)
+	}
+
+	return res, err
 }
