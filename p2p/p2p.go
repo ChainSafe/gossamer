@@ -179,18 +179,13 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 }
 
 // Ping pings a peer
-func (s *Service) Ping(peer peer.ID) error {
-	ps, err := s.dht.FindPeer(s.ctx, peer)
-	if err != nil {
-		return fmt.Errorf("could not find peer: %s", err)
-	}
-
-	err = s.host.Connect(s.ctx, ps)
+func (s *Service) Ping(peer ps.PeerInfo) error {
+	err := s.host.Connect(s.ctx, peer)
 	if err != nil {
 		return err
 	}
 
-	return s.dht.Ping(s.ctx, peer)
+	return s.dht.Ping(s.ctx, peer.ID)
 }
 
 // Host returns the service's host

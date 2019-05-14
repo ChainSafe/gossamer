@@ -192,41 +192,46 @@ func TestPing(t *testing.T) {
 
 	sa := sim.nodes[0]
 	sb := sim.nodes[1]
-	err = sa.Ping(sb.host.ID())
+	peer, err := sa.dht.FindPeer(sa.ctx, sb.host.ID())
+	if err != nil {
+		t.Fatalf("could not find peer: %s", err)
+	}
+
+	err = sa.Ping(peer)
 	if err != nil {
 		t.Errorf("Ping error: %s", err)
 	}
 }
 
-// func TestBroadcast(t *testing.T) {
-// 	sim, err := NewSimulator(2)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+func TestBroadcast(t *testing.T) {
+	sim, err := NewSimulator(2)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// 	defer sim.ipfsNode.Close()
+	defer sim.ipfsNode.Close()
 
-// 	for _, node := range sim.nodes {
-// 		e := node.Start()
-// 		if <-e != nil {
-// 			log.Println("start err: ", err)
-// 		}
-// 	}
+	for _, node := range sim.nodes {
+		e := node.Start()
+		if <-e != nil {
+			log.Println("start err: ", err)
+		}
+	}
 
-// 	sa := sim.nodes[0]
-// 	for _, peer := range sim.nodes[1:] {
-// 		_, err = sa.dht.FindPeer(sa.ctx, peer.host.ID())
-// 		if err != nil {
-// 			t.Errorf("could not find peer: %s", err)
-// 		}
-// 	}
+	sa := sim.nodes[0]
+	for _, peer := range sim.nodes[1:] {
+		_, err = sa.dht.FindPeer(sa.ctx, peer.host.ID())
+		if err != nil {
+			t.Errorf("could not find peer: %s", err)
+		}
+	}
 
-// 	msg := []byte("hello there\n")
-// 	err = sa.Broadcast(msg)
-// 	if err != nil {
-// 		t.Errorf("Broadcast error: %s", err)
-// 	}
-// }
+	msg := []byte("hello there\n")
+	err = sa.Broadcast(msg)
+	if err != nil {
+		t.Errorf("Broadcast error: %s", err)
+	}
+}
 
 func TestStop(t *testing.T) {
 	ipfsNode, err := StartIpfsNode()
