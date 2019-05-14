@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	api "github.com/ChainSafe/gossamer/internal"
 	"os"
 
@@ -11,10 +12,30 @@ import (
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
+	"github.com/urfave/cli"
 )
 
+var app = cli.NewApp()
+
+func init() {
+	app.Action = gossamer
+	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
+	app.Name = "gossamer"
+	app.Usage = "Official gossamer command-line interface"
+	app.Author = "Chainsafe Systems 2019"
+	app.Version = "0.0.1"
+}
+
 func main() {
-	f, err := os.Open("./config.toml")
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func gossamer(ctx *cli.Context) error {
+	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
+	f, err := os.Open("../config.toml")
 	if err != nil {
 		panic(err)
 	}
@@ -25,11 +46,16 @@ func main() {
 		}
 	}()
 
-	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
+
 	var config cfg.Config
 	if err = toml.NewDecoder(f).Decode(&config); err != nil {
 		srvlog.Warn("toml error::: %s", err.Error())
 	}
+
+	if args := ctx.Args(); len(args) > 0 {
+		return fmt.Errorf("invalid command: %q", args[0])
+	}
+
 	srv, err := p2p.NewService(config.ServiceConfig)
 	if err != nil {
 		srvlog.Warn("error starting p2p %s", err.Error())
@@ -45,4 +71,6 @@ func main() {
 		srvlog.Warn("could not register service: %s", err)
 	}
 	srvlog.Info("gossamer blockchain started...")
+
+	return nil
 }
