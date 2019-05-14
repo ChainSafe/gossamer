@@ -17,11 +17,8 @@
 package utils
 
 import (
-	"fmt"
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 var (
@@ -54,34 +51,3 @@ var (
 	}
 )
 
-// SetP2PConfig sets up the configurations required for P2P service
-func SetP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
-	setBootstrapNodes(ctx, cfg)
-	srv := startP2PService(cfg)
-	return srv
-}
-
-// startP2PService starts a p2p network layer from provided config
-func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
-	srv, err := p2p.NewService(cfg)
-	if err != nil {
-		fmt.Printf("error starting p2p %s", err.Error())
-	}
-	return srv
-}
-
-// setBootstrapNodes creates a list of bootstrap nodes from the command line
-// flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
-	var urls []string
-	switch {
-	case ctx.GlobalIsSet(BootnodesFlag.Name):
-		urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
-	case cfg.BootstrapNodes != nil:
-		return // already set, don't apply defaults.
-	}
-
-	for _, url := range urls {
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, url)
-	}
-}

@@ -24,6 +24,6 @@ import (
 // Goss is a container on which services can be registered.
 type Goss struct {
 	ServerConfig *p2p.ServiceConfig
-	Server       *p2p.Service // Currently running P2P networking layer
-	Polkadb 	 *polkadb.BadgerDB //BadgerDB database
+	Server       *p2p.Service      // Currently running P2P networking layer
+	Polkadb      *polkadb.BadgerDB //BadgerDB database
 }

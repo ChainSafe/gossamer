@@ -18,7 +18,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/p2p"
 	"os"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -42,7 +44,7 @@ func makeNode(ctx *cli.Context) (*goss.Goss, error) {
 	if err != nil {
 		log.Error("unable to extract required config", "err", err)
 	}
-	srv := utils.SetP2PConfig(ctx, fig.ServiceConfig)
+	srv := setP2PConfig(ctx, fig.ServiceConfig)
 	datadir := setDatabaseDir(ctx, fig)
 	db, err := polkadb.NewBadgerDB(datadir)
 	if err != nil {
@@ -62,7 +64,7 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
 		config, err := loadConfig(file)
 		if err != nil {
-			fmt.Println("err", err.Error())
+			log.Warn("err loading toml file", "err", err.Error())
 			return fig, err
 		}
 		return config, nil
@@ -91,7 +93,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			fmt.Println("err closing conn", "err", err.Error())
+			log.Warn("err closing conn", "err", err.Error())
 		}
 	}()
 
@@ -100,4 +102,33 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
+}
+
+// setBootstrapNodes creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
+	var urls []string
+	switch {
+	case ctx.GlobalIsSet(utils.BootnodesFlag.Name):
+		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+	case cfg.BootstrapNodes != nil:
+		return // already set, don't apply defaults.
+	}
+	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
+}
+
+// SetP2PConfig sets up the configurations required for P2P service
+func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
+	setBootstrapNodes(ctx, cfg)
+	srv := startP2PService(cfg)
+	return srv
+}
+
+// startP2PService starts a p2p network layer from provided config
+func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
+	srv, err := p2p.NewService(cfg)
+	if err != nil {
+		log.Error("error starting p2p", "err", err.Error())
+	}
+	return srv
 }
