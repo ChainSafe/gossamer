@@ -263,8 +263,8 @@ func TestPutAndGet(t *testing.T) {
 			if err != nil {
 				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 			} else if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				writeToTestFile(rt)
+				t.Fatalf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 		}
 	}
