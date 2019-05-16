@@ -133,7 +133,7 @@ func writeToTestFile(tests []trieTest) error {
 		testString = fmt.Sprintf("%s%s\n%s\n", testString, test.key, test.value)
 	}
 
-	fp, err := filepath.Abs("./test_data")
+	fp, err := filepath.Abs("./failing_test_data")
 	if err != nil {
 		return err
 	}
@@ -275,7 +275,7 @@ func TestPutAndGet(t *testing.T) {
 // if the trie/test_data exists, this test runs the case in that file
 // otherwise it's skipped
 func TestFailingTests(t *testing.T) {
-	fp, err := filepath.Abs("./test_data")
+	fp, err := filepath.Abs("./failing_test_data")
 	if err != nil {
 		t.Error(err)
 	}
