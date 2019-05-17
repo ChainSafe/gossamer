@@ -4,7 +4,7 @@ FROM golang:1.12-alpine3.9 as builder
 RUN apk --no-cache add git linux-headers ca-certificates
 COPY . /go/src/github.com/ChainSafe/gossamer
 COPY config.toml /go/src/github.com/ChainSafe/gossamer
-WORKDIR /go/src/github.com/ChainSafe/gossamer/cmd/gossamer
+WORKDIR /go/src/github.com/ChainSafe/gossamer/cmd
 ENV GO111MODULE=on
 COPY go.mod .
 COPY go.sum .

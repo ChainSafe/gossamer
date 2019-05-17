@@ -5,5 +5,5 @@ BootstrapNodes=["/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8
 Port= 7001
 RandSeed= 33
 
-[BadgerDB]
+[DbConfig]
 Datadir="chaindata"

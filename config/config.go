@@ -20,10 +20,11 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
+
 // Config is a collection of configurations throughout the system
 type Config struct {
 	ServiceConfig *p2p.ServiceConfig
-	BadgerDB      polkadb.BadgerDB
+	DbConfig      polkadb.DbConfig
 }
 
 

@@ -38,9 +38,10 @@ var (
 	}
 )
 
+//init initializes CLI
 func init() {
 	app.Action = gossamer
-	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
+	app.Copyright = "Copyright 2019 Chainsafe Systems Authors"
 	app.Name = "gossamer"
 	app.Usage = "Official gossamer command-line interface"
 	app.Author = "Chainsafe Systems 2019"
@@ -59,6 +60,7 @@ func main() {
 	}
 }
 
+//gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	g, err := makeNode(ctx)

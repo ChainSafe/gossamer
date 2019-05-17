@@ -14,27 +14,31 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package main
+
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/p2p"
 	"os"
+	"path/filepath"
 	"strings"
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/goss"
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/polkadb"
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
+
 var (
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
 	}
 )
+
 // makeNode sets up node; opening badgerDB instance and returning the Goss container
-func makeNode(ctx *cli.Context) (*goss.Goss, error) {
+func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	fig, err := setConfig(ctx)
 	if err != nil {
 		log.Error("unable to extract required config", "err", err)
@@ -45,7 +49,7 @@ func makeNode(ctx *cli.Context) (*goss.Goss, error) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	return &goss.Goss{
+	return &dot.Dot{
 		ServerConfig: fig.ServiceConfig,
 		Server:       srv,
 		Polkadb:      db,
@@ -65,10 +69,11 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 	}
 	return fig, nil
 }
+
 // setDatabaseDir initializes directory for BadgerDB logs
 func setDatabaseDir(ctx *cli.Context, cfg *cfg.Config) string {
-	if cfg.BadgerDB.Datadir != "" {
-		return cfg.BadgerDB.Datadir
+	if cfg.DbConfig.Datadir != "" {
+		return cfg.DbConfig.Datadir
 	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
 		return file
 	} else {
@@ -76,9 +81,11 @@ func setDatabaseDir(ctx *cli.Context, cfg *cfg.Config) string {
 		return ""
 	}
 }
+
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
-	f, err := os.Open(file)
+	fp, err := filepath.Abs(file)
+	f, err := os.Open(fp)
 	if err != nil {
 		panic(err)
 	}
@@ -94,6 +101,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	}
 	return config, err
 }
+
 // setBootstrapNodes creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
@@ -106,6 +114,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
 	}
 	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
 }
+
 // SetP2PConfig sets up the configurations required for P2P service
 func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
 	setBootstrapNodes(ctx, cfg)

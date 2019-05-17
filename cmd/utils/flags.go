@@ -34,7 +34,7 @@ var (
 		Usage: "Enable the HTTP-RPC server",
 	}
 	RPCListenAddrFlag = cli.StringFlag{
-		Name:  "rpscaddr",
+		Name:  "rpcaddr",
 		Usage: "HTTP-RPC server listening interface",
 		Value: cfg.DefaultHTTPHost,
 	}

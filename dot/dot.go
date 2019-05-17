@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package goss
+package dot
 
 import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-// Goss is a container on which services can be registered.
-type Goss struct {
+// Dot is a container on which services can be registered.
+type Dot struct {
 	ServerConfig *p2p.ServiceConfig
 	Server       *p2p.Service      // Currently running P2P networking layer
 	Polkadb      *polkadb.BadgerDB //BadgerDB database
