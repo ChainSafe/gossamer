@@ -17,12 +17,11 @@
 package main
 
 import (
-"fmt"
-"os"
+	"os"
 
-"github.com/ChainSafe/gossamer/cmd/utils"
-log "github.com/inconshreveable/log15"
-"github.com/urfave/cli"
+	"github.com/ChainSafe/gossamer/cmd/utils"
+	log "github.com/inconshreveable/log15"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -55,7 +54,7 @@ func init() {
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		log.Error("error starting app", "output", os.Stderr, "err", err)
 		os.Exit(1)
 	}
 }
@@ -65,7 +64,7 @@ func gossamer(ctx *cli.Context) error {
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	g, err := makeNode(ctx)
 	if err != nil {
-		fmt.Println("err", err)
+		log.Error("error making node", "err", err)
 	}
 	srvlog.Info("🕸️ starting p2p service")
 	g.Server.Start()

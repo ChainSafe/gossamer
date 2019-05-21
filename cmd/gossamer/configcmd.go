@@ -55,6 +55,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 		Polkadb:      db,
 	}, nil
 }
+
 // setConfig checks for config.toml if --config flag is specified
 func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 	var fig *cfg.Config
@@ -91,6 +92,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	}
 	defer func() {
 		err = f.Close()
+		filepath.Clean(fp)
 		if err != nil {
 			log.Warn("err closing conn", "err", err.Error())
 		}
