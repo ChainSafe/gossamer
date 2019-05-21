@@ -36,7 +36,7 @@ func newTrie() (*Trie, error) {
 func (t *Trie) closeDb() {
     t.db.db.Close()
     if err := os.RemoveAll("./gossamer_data"); err != nil {
-        fmt.Println("removal of temp directory badger-test failed")
+        fmt.Println("removal of temp directory gossamer_data failed")
     }
 }
 
