@@ -45,6 +45,10 @@ func NewTrie(db *Database, root node) *Trie {
 	}
 }
 
+func (t *Trie) Encode() ([]byte, error) {
+	return Encode(t.root)
+}
+
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
 	if err := t.tryPut(key, value); err != nil {

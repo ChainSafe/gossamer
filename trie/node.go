@@ -99,7 +99,7 @@ func Encode(n node) ([]byte, error) {
 	case *leaf:
 		return n.Encode()
 	case nil:
-		return nil, nil
+		return []byte{0}, nil
 	}
 
 	return nil, nil
