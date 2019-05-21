@@ -86,13 +86,13 @@ func setDatabaseDir(ctx *cli.Context, cfg *cfg.Config) string {
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
 	fp, err := filepath.Abs(file)
+	filepath.Clean(fp)
 	f, err := os.Open(fp)
 	if err != nil {
 		panic(err)
 	}
 	defer func() {
 		err = f.Close()
-		filepath.Clean(fp)
 		if err != nil {
 			log.Warn("err closing conn", "err", err.Error())
 		}
