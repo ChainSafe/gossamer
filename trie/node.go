@@ -221,8 +221,8 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 	pkLen -= 63
 	fullHeader := []byte{}
 
-	if pkLen > 1<<16 {
-		return nil, errors.New("partial key length > 2^16")
+	if pkLen >= 1<<16 {
+		return nil, errors.New("partial key length exceeds 2^16")
 	}
 
 	for i := 0; i < 1<<16; i++ {

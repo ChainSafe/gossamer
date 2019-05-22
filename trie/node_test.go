@@ -94,6 +94,22 @@ func TestBranchHeader(t *testing.T) {
 	}
 }
 
+func TestFailingPk(t *testing.T) {
+	tests := []struct {
+		br     *branch
+		header []byte
+	}{
+		{&branch{byteArray(2<<16), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
+	}
+
+	for _, test := range tests {
+		_, err := test.br.header()
+		if err == nil {
+			t.Fatalf("should error when encoding node w pk length > 2^16")
+		} 
+	}
+}
+
 func TestLeafHeader(t *testing.T) {
 	tests := []struct {
 		br     *leaf
