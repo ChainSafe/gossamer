@@ -109,8 +109,8 @@ func Encode(n node) ([]byte, error) {
 // Encode encodes a branch with the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
 // where NodeHeader is a byte:
-// bottom two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
-// top six bits of first byte: if len(key) > 62, 0xff, otherwise len(key)
+// most significant two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
+// least significant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
 // where Extra partial key length is included if len(key) > 63:
 // consists of the remaining key length
 // Partial Key is the branch's key
