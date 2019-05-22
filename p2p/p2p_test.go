@@ -161,6 +161,40 @@ func TestStart(t *testing.T) {
 	}
 }
 
+func TestService_PeerCount(t *testing.T) {
+	ipfsNode, err := StartIpfsNode()
+	if err != nil {
+		t.Fatalf("Could not start IPFS node: %s", err)
+	}
+
+	defer ipfsNode.Close()
+
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+
+	testServiceConfig := &ServiceConfig{
+		BootstrapNodes: []string{
+			ipfsAddr,
+		},
+		Port: 7001,
+	}
+
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := s.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	count := s.PeerCount()
+	if count != 1 {
+		t.Fatalf("incorrect peerCount expected %d got %d", 1, count)
+	}
+}
+
 // TODO: TestSend and TestPing fail in CI, need to be fixed.
 func TestSend(t *testing.T) {
 	sim, err := NewSimulator(2)
