@@ -65,23 +65,22 @@ func CheckConfig(ext string) string {
 		panic(err)
 	}
 	var file string
-	err = filepath.Walk(pathS, func(path string, f os.FileInfo, _ error) error {
+	if err = filepath.Walk(pathS, func(path string, f os.FileInfo, _ error) error {
 		if !f.IsDir() && f.Name() == "config.toml" {
-			r, err := regexp.MatchString(ext, f.Name())
-			if err == nil && r {
+			r, e := regexp.MatchString(ext, f.Name())
+			if e == nil && r {
 				file = f.Name()
 				return nil
 			}
 		} else if !f.IsDir() && f.Name() != "Gopkg.toml" {
-			r, err := regexp.MatchString(ext, f.Name())
-			if err == nil && r {
+			r, e := regexp.MatchString(ext, f.Name())
+			if e == nil && r {
 				file = f.Name()
 				return nil
 			}
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		log15.Error("please specify a config file", "err", err)
 	}
 	return file
