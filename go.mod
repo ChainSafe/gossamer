@@ -22,6 +22,6 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
-	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
+	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 )

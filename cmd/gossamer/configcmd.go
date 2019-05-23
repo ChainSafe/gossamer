@@ -16,18 +16,17 @@
 package main
 
 import (
-	"fmt"
-	"github.com/ChainSafe/gossamer/p2p"
-	"os"
-	"path/filepath"
-	"strings"
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 var (
@@ -37,7 +36,7 @@ var (
 	}
 )
 
-// makeNode sets up node; opening badgerDB instance and returning the Goss container
+// makeNode sets up node; opening badgerDB instance and returning the Dot container
 func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	fig, err := setConfig(ctx)
 	if err != nil {
@@ -47,7 +46,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	datadir := setDatabaseDir(ctx, fig)
 	db, err := polkadb.NewBadgerDB(datadir)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("db failed to open", "err", err)
 	}
 	return &dot.Dot{
 		ServerConfig: fig.ServiceConfig,
@@ -67,19 +66,27 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 			return fig, err
 		}
 		return config, nil
+	} else {
+		file := cfg.CheckConfig(".toml")
+		config, err := loadConfig(file)
+		if err != nil {
+			log.Warn("err loading toml file", "err", err.Error())
+			return fig, err
+		}
+		return config, nil
 	}
-	return fig, nil
 }
 
+
+
 // setDatabaseDir initializes directory for BadgerDB logs
-func setDatabaseDir(ctx *cli.Context, cfg *cfg.Config) string {
-	if cfg.DbConfig.Datadir != "" {
-		return cfg.DbConfig.Datadir
+func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
+	if fig.DbConfig.Datadir != "" {
+		return fig.DbConfig.Datadir
 	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
 		return file
 	} else {
-		log.Error("must specify data directory")
-		return ""
+		return cfg.DefaultDataDir()
 	}
 }
 

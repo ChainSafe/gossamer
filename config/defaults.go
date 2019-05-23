@@ -17,9 +17,11 @@
 package cfg
 
 import (
+	"github.com/inconshreveable/log15"
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"runtime"
 )
 
@@ -54,4 +56,33 @@ func homeDir() string {
 		return usr.HomeDir
 	}
 	return ""
+}
+
+// CheckConfig finds file based on ext input
+func CheckConfig(ext string) string {
+	pathS, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	var file string
+	err = filepath.Walk(pathS, func(path string, f os.FileInfo, _ error) error {
+		if !f.IsDir() && f.Name() == "config.toml" {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				file = f.Name()
+				return nil
+			}
+		} else if !f.IsDir() && f.Name() != "Gopkg.toml" {
+			r, err := regexp.MatchString(ext, f.Name())
+			if err == nil && r {
+				file = f.Name()
+				return nil
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log15.Error("please specify a config file", "err", err)
+	}
+	return file
 }
