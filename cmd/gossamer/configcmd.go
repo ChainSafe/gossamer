@@ -163,15 +163,26 @@ func dumpConfig(ctx *cli.Context) error {
 
 	dump := os.Stdout
 	if ctx.NArg() > 0 {
-		dump, err = os.OpenFile(ctx.Args().Get(0), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		dump, err = os.OpenFile(filepath.Clean(ctx.Args().Get(0)), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
-		defer dump.Close()
-	}
-	dump.WriteString(comment)
-	dump.Write(out)
 
+		defer func() {
+			err = dump.Close()
+			if err != nil {
+				log.Warn("err closing conn", "err", err.Error())
+			}
+		}()
+	}
+	_, err = dump.WriteString(comment)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
+	_, err = dump.Write(out)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
 	return nil
 }
 
