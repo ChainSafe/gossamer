@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"bytes"
-	"encoding/binary"
+	//"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	//"unsafe"
@@ -10,14 +10,7 @@ import (
 	exec "github.com/perlin-network/life/exec"
 )
 
-func padTo8Bytes(in []byte) []byte {
-	for {
-		if len(in) >= 8 {
-			return in
-		}
-		in = append(in, 0)
-	}
-}
+var offset int64 = 0
 
 type Resolver struct{}
 
@@ -61,22 +54,15 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				fmt.Printf("executing: %s\n", "ext_malloc")
 				size := vm.GetCurrentFrame().Locals[0]
 				fmt.Printf("[ext_malloc] local[0]: %v\n", size)
-				//res := make([]byte, int(size))
-
-				// buffer := bytes.Buffer{}
-				// se := scale.Encoder{&buffer}
-				// se.Encode(int64(uintptr(unsafe.Pointer(&res))))
-				// vm.ReturnValue = int64(binary.LittleEndian.Uint64(padTo8Bytes(buffer.Bytes())))
-
-				vm.ReturnValue = 1049235
-				//fmt.Printf("[ext_malloc] Returned value unencoded: %x\n", *(*int64)(unsafe.Pointer(&res)))
-				fmt.Printf("[ext_malloc] Returned value: %d\n", vm.ReturnValue)
-				return 1049235
+				offset = offset + size
+				return offset
 			}
 		case "ext_free":
 			return func(vm *exec.VirtualMachine) int64 {
 				fmt.Printf("executing: %s\n", "ext_free")
-				return 0
+				addr := vm.GetCurrentFrame().Locals[0]
+				offset = addr
+				return offset
 			}
 		case "ext_twox_128":
 			return func(vm *exec.VirtualMachine) int64 {
@@ -139,18 +125,26 @@ func (r *Resolver) ResolveGlobal(module, field string) int64 {
 }
 
 type Version struct {
-	//Spec_name         []byte
-	// Impl_name         []byte
-	Authoring_version int8
-	Spec_version      int8
-	Impl_version      int8
+	Spec_name         []byte
+	Impl_name         []byte
+	Authoring_version int32
+	Spec_version      int32
+	Impl_version      int32
 }
 
-func scaleDecode(in int64) (interface{}, error) {
+func padTo8Bytes(in []byte) []byte {
+	for {
+		if len(in) >= 8 {
+			return in
+		}
+		in = append(in, 0)
+	}
+}
+
+func scaleDecode(in []byte) (interface{}, error) {
 	buf := &bytes.Buffer{}
 	sd := scale.Decoder{buf}
-	binary.Write(buf, binary.BigEndian, in)
-	//buf.Write(int64ToBytes(in))
+	buf.Write(in)
 	var v Version
 	output, err := sd.DecodeTuple(&v)
 	return output, err
@@ -165,7 +159,7 @@ func int64ToBytes(in int64) []byte {
 	return out
 }
 
-func Exec(fp string) (interface{}, error) {
+func Exec(fp string) (interface{}, error) {	
 	input, err := ioutil.ReadFile(fp)
 	if err != nil {
 		fmt.Print(err)
@@ -175,7 +169,8 @@ func Exec(fp string) (interface{}, error) {
 		DefaultTableSize:   655360,
 		MaxCallStackDepth:  0,
 	}, &Resolver{}, nil)
-	if err != nil { // if the wasm bytecode is invalid
+	if err != nil { 
+		// if the wasm bytecode is invalid
 		panic(err)
 	}
 
@@ -183,38 +178,33 @@ func Exec(fp string) (interface{}, error) {
 	if !ok {
 		panic("entry function not found")
 	}
-	// memory := make([]byte, 1<<8)
-	// memAddr := int64(uintptr(unsafe.Pointer(&memory)))
+
 	ret, err := vm.Run(entryID, 0, 0)
 	if err != nil {
 		vm.PrintStackTrace()
 		panic(err)
 	}
 
-	fmt.Printf("return value = %v\n", ret)
-	output, err := scaleDecode(ret)
+	fmt.Printf("return value = %x\n", ret)
+	size := int32(ret >> 32)
+	offset := int32(ret)
+	fmt.Printf("size = %d offset = %x\n", size, offset)
+
+	returnData := vm.Memory[offset:offset+size]
+	fmt.Printf("version: %v\n", returnData)
+
+	v, err := scaleDecode(returnData)
+	version := v.(*Version)
 	if err != nil {
 		fmt.Printf("err: %s\n", err)
 	} else {
-		fmt.Printf("return value decoded = %v\n", output)
+		fmt.Printf("return value decoded = %v\n", v)
+		fmt.Printf("Spec_name: %s\n", version.Spec_name)
+		fmt.Printf("Impl_name: %s\n", version.Impl_name)
+		fmt.Printf("Authoring_version: %d\n", version.Authoring_version)
+		fmt.Printf("Spec_version: %d\n", version.Spec_version)
+		fmt.Printf("Impl_version: %d\n", version.Impl_version)
 	}
 
-	return output, err
-	// entryID, ok = vm.GetFunctionExport("Metadata_metadata")
-	// if !ok {
-	// 	panic("entry function not found")
-	// }
-
-	// ret, err = vm.Run(entryID, 0, 0)
-	// if err != nil {
-	// 	vm.PrintStackTrace()
-	// 	panic(err)
-	// }
-	// fmt.Printf("return value = %v\n", ret)
-	// output, err = scaleDecode(ret)
-	// if err != nil {
-	// 	fmt.Printf("err: %s\n", err)
-	// } else {
-	// 	fmt.Printf("return value decoded = %v\n", output)
-	// }
+	return version, err
 }
