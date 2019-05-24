@@ -157,6 +157,36 @@ var decodeTupleTests = []decodeTupleTest{
 		Bo   bool
 		Noot int64
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
+
+	{val: []byte{0x04, 0x01, 0x04, 0x00}, t: &struct {
+		Foo  []byte
+		Bar  int8
+		Bo   bool
+	}{}, output: &struct {
+		Foo  []byte
+		Bar  int8
+		Bo   bool
+	}{[]byte{0x01}, 1, false}},
+
+	{val: []byte{0x04, 0x01, 0x05, 0x04, 0x00}, t: &struct {
+		Foo  []byte
+		Bar  int16
+		Bo   bool
+	}{}, output: &struct {
+		Foo  []byte
+		Bar  int16
+		Bo   bool
+	}{[]byte{0x01}, 257, false}},
+
+	{val: []byte{0x04, 0x01, 0x02, 0xff, 0xff, 0xff, 0x00}, t: &struct {
+		Foo  []byte
+		Bar  int32
+		Bo   bool
+	}{}, output: &struct {
+		Foo  []byte
+		Bar  int32
+		Bo   bool
+	}{[]byte{0x01}, 1073741760, false}},
 }
 
 var decodeArrayTests = []decodeArrayTest{
