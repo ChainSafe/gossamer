@@ -67,17 +67,9 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 		}
 		return config, nil
 	} else {
-		file := cfg.CheckConfig(".toml")
-		config, err := loadConfig(file)
-		if err != nil {
-			log.Warn("err loading toml file", "err", err.Error())
-			return fig, err
-		}
-		return config, nil
+		return cfg.DefaultConfig, nil
 	}
 }
-
-
 
 // setDatabaseDir initializes directory for BadgerDB logs
 func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
@@ -93,8 +85,8 @@ func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
 	fp, err := filepath.Abs(file)
-	filepath.Clean(fp)
-	f, err := os.Open(fp)
+	filep := filepath.Clean(fp)
+	f, err := os.Open(filep)
 	if err != nil {
 		panic(err)
 	}
