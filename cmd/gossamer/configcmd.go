@@ -89,6 +89,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Warn("error finding working directory", "err", err)
 	}
 	filep := filepath.Join(filepath.Clean(fp))
+	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
 		panic(err)
