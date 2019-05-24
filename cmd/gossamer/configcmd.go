@@ -163,6 +163,7 @@ func dumpConfig(ctx *cli.Context) error {
 
 	dump := os.Stdout
 	if ctx.NArg() > 0 {
+		/* #nosec */
 		dump, err = os.OpenFile(filepath.Clean(ctx.Args().Get(0)), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
