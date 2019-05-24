@@ -7,7 +7,6 @@ import (
 
 func TestExec(t *testing.T) {
 	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
-	//fp, err := filepath.Abs("./basic.wasm")
 	if err != nil {
 		t.Fatal("could not create filepath")
 	}

@@ -221,7 +221,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 		// get the field value at i
 		fieldValue := val.Field(i)
 
-		switch val.Field(i).Interface().(type) {
+		switch v.Field(i).Interface().(type) {
 		case []byte:
 			o, err = sd.DecodeByteArray()
 			if err != nil {
@@ -231,7 +231,34 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			// get the pointer to the value and set the value
 			ptr := fieldValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
-		case int8, int16, int32, int64:
+		case int8:
+			o, err = sd.DecodeInteger()
+			if err != nil {
+				break
+			}
+
+			ptr := fieldValue.Addr().Interface().(*int8)
+			o64 := o.(int64)
+			*ptr = int8(o64)
+		case int16:
+			o, err = sd.DecodeInteger()
+			if err != nil {
+				break
+			}
+
+			ptr := fieldValue.Addr().Interface().(*int16)
+			o64 := o.(int64)
+			*ptr = int16(o64)
+		case int32:
+			o, err = sd.DecodeInteger()
+			if err != nil {
+				break
+			}
+
+			ptr := fieldValue.Addr().Interface().(*int32)
+			o64 := o.(int64)
+			*ptr = int32(o64)
+		case int64:
 			o, err = sd.DecodeInteger()
 			if err != nil {
 				break
