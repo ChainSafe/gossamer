@@ -8,6 +8,11 @@ import (
 	exec "github.com/perlin-network/life/exec"
 )
 
+type Runtime struct {
+	vm *exec.VirtualMachine
+	offset int64
+}
+
 type Version struct {
 	Spec_name         []byte
 	Impl_name         []byte
@@ -16,16 +21,7 @@ type Version struct {
 	Impl_version      int32
 }
 
-func padTo8Bytes(in []byte) []byte {
-	for {
-		if len(in) >= 8 {
-			return in
-		}
-		in = append(in, 0)
-	}
-}
-
-func scaleDecode(in []byte) (interface{}, error) {
+func decodeVersion(in []byte) (interface{}, error) {
 	buf := &bytes.Buffer{}
 	sd := scale.Decoder{buf}
 	buf.Write(in)
@@ -34,19 +30,10 @@ func scaleDecode(in []byte) (interface{}, error) {
 	return output, err
 }
 
-func int64ToBytes(in int64) []byte {
-	out := make([]byte, 8)
-	for i := 0; i < 8; i++ {
-		out[i] = byte(in & 0xff)
-		in = in >> 8
-	}
-	return out
-}
-
-func Exec(fp string) (interface{}, error) {	
+func NewRuntime(fp string) (*Runtime, error) {
 	input, err := ioutil.ReadFile(fp)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	vm, err := exec.NewVirtualMachine(input, exec.VMConfig{
@@ -54,20 +41,23 @@ func Exec(fp string) (interface{}, error) {
 		DefaultTableSize:   655360,
 		MaxCallStackDepth:  0,
 	}, &Resolver{}, nil)
-	if err != nil { 
-		// if the wasm bytecode is invalid
-		panic(err)
-	}
 
-	entryID, ok := vm.GetFunctionExport("Core_version")
+	return &Runtime{
+		vm: vm,
+		offset: 0,
+	}, err
+}
+
+func (r *Runtime) Exec() (interface{}, error) {	
+	entryID, ok := r.vm.GetFunctionExport("Core_version")
 	if !ok {
 		panic("entry function not found")
 	}
 
-	ret, err := vm.Run(entryID, 0, 0)
+	ret, err := r.vm.Run(entryID, 0, 0)
 	if err != nil {
-		vm.PrintStackTrace()
-		panic(err)
+		r.vm.PrintStackTrace()
+		return nil, err
 	}
 
 	fmt.Printf("return value = %x\n", ret)
@@ -75,13 +65,13 @@ func Exec(fp string) (interface{}, error) {
 	offset := int32(ret)
 	fmt.Printf("size = %d offset = %x\n", size, offset)
 
-	returnData := vm.Memory[offset:offset+size]
+	returnData := r.vm.Memory[offset:offset+size]
 	fmt.Printf("version: %v\n", returnData)
 
-	v, err := scaleDecode(returnData)
+	v, err := decodeVersion(returnData)
 	version := v.(*Version)
 	if err != nil {
-		fmt.Printf("err: %s\n", err)
+		return nil, err
 	} else {
 		fmt.Printf("return value decoded = %v\n", v)
 		fmt.Printf("Spec_name: %s\n", version.Spec_name)
@@ -91,5 +81,5 @@ func Exec(fp string) (interface{}, error) {
 		fmt.Printf("Impl_version: %d\n", version.Impl_version)
 	}
 
-	return version, err
+	return version, nil
 }
