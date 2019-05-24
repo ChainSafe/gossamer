@@ -85,7 +85,10 @@ func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
 	fp, err := filepath.Abs(file)
-	filep := filepath.Clean(fp)
+	if err != nil {
+		log.Warn("error finding working directory", "err", err)
+	}
+	filep := filepath.Join(filepath.Clean(fp))
 	f, err := os.Open(filep)
 	if err != nil {
 		panic(err)
