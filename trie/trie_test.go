@@ -114,9 +114,8 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 	for {
 		buf := make([]byte, r.Intn(379)+1)
 		r.Read(buf)
-		key := string(buf)	
 
-		if kv[key] == nil {
+		if kv[string(buf)] == nil {
 			test.key = buf
 
 			buf = make([]byte, r.Intn(128))
