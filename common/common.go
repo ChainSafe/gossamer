@@ -14,12 +14,32 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package codec
+package common
 
-func reverseBytes(a []byte) []byte {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
+// Concat concatenates two byte arrays
+// used instead of append to prevent modifying the original byte array
+func Concat(s1 []byte, s2 ...byte) []byte {
+	r := make([]byte, len(s1)+len(s2))
+	copy(r, s1)
+	copy(r[len(s1):], s2)
+	return r
+}
+
+// Uint16ToBytes converts a uint16 into a 2-byte slice
+func Uint16ToBytes(in uint16) (out []byte) {
+	out = make([]byte, 2)
+	out[0] = byte(in & 0x00ff)
+	out[1] = byte(in >> 8 & 0x00ff)
+	return out
+}
+
+// AppendZeroes appends zeroes to the input byte array up until it has length size
+func AppendZeroes(input []byte, size int) []byte {
+	for {
+		if len(input) < 32 {
+			input = append(input, 0)
+		} else {
+			return input
+		}
 	}
-	return a
 }

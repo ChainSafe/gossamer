@@ -14,12 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package codec
+package dot
 
-func reverseBytes(a []byte) []byte {
-	for i := len(a)/2 - 1; i >= 0; i-- {
-		opp := len(a) - 1 - i
-		a[i], a[opp] = a[opp], a[i]
-	}
-	return a
+import (
+	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/polkadb"
+)
+
+// Dot is a container on which services can be registered.
+type Dot struct {
+	ServerConfig *p2p.ServiceConfig
+	Server       *p2p.Service      // Currently running P2P networking layer
+	Polkadb      *polkadb.BadgerDB //BadgerDB database
 }

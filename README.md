@@ -18,6 +18,35 @@
 go get -u github.com/ChainSafeSystems/gossamer
 ```
 
+## Usage 
+
+```
+make gossamer
+gossamer --config config.toml
+```
+
+### Docker
+
+To start Gossamer in a docker contaienr, run:
+
+```
+make docker
+```
+
+#### Running Manually
+
+To build the image, run this command:
+
+```
+docker build -t chainsafe/gossamer -f Docerfile.dev
+```
+
+Start an instance with:
+
+```
+docker run chainsafe/gossamer
+```
+
 ## Test
 ```
 go test -v ./...
@@ -29,4 +58,3 @@ go test -v ./...
 
 ## License
 _GNU General Public License v3.0_
-

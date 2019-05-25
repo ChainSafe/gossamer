@@ -14,33 +14,40 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package hexcodec
+package utils
 
 import (
-	"testing"
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/urfave/cli"
 )
 
-func TestHexEncode(t *testing.T) {
-	tests := []struct {
-		input    []byte
-		expected []byte
-	}{
-		// Even
-		{[]byte{0xF, 0x0}, []byte{0x0, 0x0F}},
-		{[]byte{0xA, 0x8, 0xF, 0x0}, []byte{0x0, 0x8A, 0x0F}},
-		{[]byte{0xD, 0xE, 0xA, 0xD, 0xB, 0xE, 0xE, 0xF}, []byte{0x0, 0xED, 0xDA, 0xEB, 0xFE}},
-		// Odd
-		{[]byte{0xF}, []byte{0xF}},
-		{[]byte{0xA, 0xF, 0x0}, []byte{0xA, 0x0F}},
-		{[]byte{0xA, 0xC, 0xA, 0xB, 0x1, 0x2, 0x3}, []byte{0xA, 0xAC, 0x1B, 0x32}},
+var (
+	// BadgerDB directory
+	DataDirFlag = cli.StringFlag{
+		Name:  "datadir",
+		Usage: "Data directory for the database",
+		Value: cfg.DefaultDataDir(),
 	}
+	// RPC settings
+	RPCEnabledFlag = cli.BoolFlag{
+		Name:  "rpc",
+		Usage: "Enable the HTTP-RPC server",
+	}
+	RPCListenAddrFlag = cli.StringFlag{
+		Name:  "rpcaddr",
+		Usage: "HTTP-RPC server listening interface",
+		Value: cfg.DefaultHTTPHost,
+	}
+	RPCPortFlag = cli.IntFlag{
+		Name:  "rpcport",
+		Usage: "HTTP-RPC server listening port",
+		Value: cfg.DefaultHTTPPort,
+	}
+	// P2P service settings
+	BootnodesFlag = cli.StringFlag{
+		Name:  "bootnodes",
+		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
+		Value: "",
+	}
+)
 
-	for _, test := range tests {
-		res := Encode(test.input)
-		for i := 0; i < len(res); i++ {
-			if res[i] != test.expected[i] {
-				t.Fatalf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
-			}
-		}
-	}
-}

@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package polkadb
 
 import (
@@ -12,10 +28,10 @@ type MemDatabase struct {
 }
 
 // NewMemDatabase returns an initialized mapping used for test database
-func NewMemDatabase() (*MemDatabase, error) {
+func NewMemDatabase() *MemDatabase {
 	return &MemDatabase{
 		db: make(map[string][]byte),
-	}, nil
+	}
 }
 
 // Put puts the given key / value into the mapping
@@ -59,13 +75,18 @@ func (db *MemDatabase) Keys() [][]byte {
 	return keys
 }
 
-// Delete removes the key from the mapping
+// Del removes the key from the mapping
 func (db *MemDatabase) Del(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
 	delete(db.db, string(key))
 	return nil
+}
+
+// Close ...
+func (db *MemDatabase) Close() {
+	// do nothing
 }
 
 // NewBatch ...

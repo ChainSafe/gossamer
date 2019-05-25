@@ -1,37 +1,52 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
 	"bytes"
 	"errors"
-
-	"github.com/ChainSafe/gossamer/polkadb"
 )
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
-	db         polkadb.Database
-	root       node
-	merkleRoot [32]byte
+	db   *Database
+	root node
 }
 
 // NewEmptyTrie creates a trie with a nil root and merkleRoot
-func NewEmptyTrie(db polkadb.Database) *Trie {
+func NewEmptyTrie(db *Database) *Trie {
 	return &Trie{
-		db:         db,
-		root:       nil,
-		merkleRoot: [32]byte{},
+		db:   db,
+		root: nil,
 	}
 }
 
 // NewTrie creates a trie with an existing root node from db
-func NewTrie(db polkadb.Database, root node, merkleRoot [32]byte) *Trie {
+func NewTrie(db *Database, root node) *Trie {
 	return &Trie{
-		db:         db,
-		root:       root,
-		merkleRoot: merkleRoot,
+		db:   db,
+		root: root,
 	}
+}
+
+func (t *Trie) Encode() ([]byte, error) {
+	return Encode(t.root)
 }
 
 // Put inserts a key with value into the trie
@@ -44,80 +59,81 @@ func (t *Trie) Put(key, value []byte) error {
 }
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
-	k := keyToHex(key)
-	_, n, err := t.insert(t.root, nil, k, leaf(value))
+	k := keyToNibbles(key)
+	var n node
+
+	if len(value) > 0 {
+		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
+	} else {
+		_, n, err = t.delete(t.root, k)
+	}
+
 	if err != nil {
 		return err
 	}
-	t.root = n
 
+	t.root = n
 	return nil
 }
 
 // TryPut attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node, prefix, key []byte, value node) (ok bool, n node, err error) {
-	if len(key) == 0 {
-		if v, ok := parent.(leaf); ok {
-			return !bytes.Equal(v, value.(leaf)), value, nil
-		}
-		return true, value, nil
-	}
-
+func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err error) {
 	switch p := parent.(type) {
-	case *extension:
-		ok, n, err = t.updateExtension(p, prefix, key, value)
 	case *branch:
-		ok, n, err = t.updateBranch(p, prefix, key, value)
+		ok, n, err = t.updateBranch(p, key, value)
 	case nil:
-		n = &extension{key, value}
-		ok = true
-	default:
-		err = errors.New("cannot put: invalid parent node")
-	}
-
-	return ok, n, err
-}
-
-// updateExtension attempts to update an extension node to have the value node
-// if the keys match, then set the value of the extension to the value node
-// otherwise, we need to branch out where the keys diverge. we make a branch and
-// try to insert the value node at the diverging key index. if there's already a
-// branch there, move any children to the new branch
-func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok bool, n node, err error) {
-	length := lenCommonPrefix(key, p.key)
-
-	// whole parent key matches, so just attach a node to the parent
-	if length == len(p.key) {
-		// add new node to branch
-		ok, n, err = t.insert(p.value, append(prefix, key[:length]...), key[length:], value)
-		if ok && err != nil {
+		switch v := value.(type) {
+		case *branch:
+			v.key = key
+			n = v
 			ok = true
-			n = &extension{p.key, n}
+		case *leaf:
+			v.key = key
+			n = v
+			ok = true
 		}
-		return ok, n, err
-	}
+	case *leaf:
+		// need to convert this leaf into a branch
+		br := &branch{dirty: true}
+		length := lenCommonPrefix(key, p.key)
 
-	// otherwise, we need to branch out at the point where the keys diverge
-	br := new(branch)
+		if bytes.Equal(p.key, key) && len(key) == length {
+			return true, value, nil
+		}
 
-	_, br.children[p.key[length]], err = t.insert(nil, append(prefix, p.key[:length+1]...), p.key[length+1:], p.value)
-	if err != nil {
-		return false, nil, err
-	}
+		br.key = key[:length]
+		parentKey := p.key
 
-	_, br.children[key[length]], err = t.insert(nil, append(prefix, key[:length+1]...), key[length+1:], value)
-	if err != nil {
-		return false, nil, err
-	}
+		// value goes at this branch
+		if len(key) == length {
+			br.value = value.(*leaf).value
 
-	if length == 0 {
-		// no matching prefix, replace this extension with a branch
-		ok = true
-		n = br
-	} else {
-		// some prefix matches, replace with extension that starts where the keys diverge
-		ok = true
-		n = &extension{key[:length], br}
+			// if we are not replacing previous leaf, then add it as a child to the new branch
+			if len(parentKey) > len(key) {
+				p.key = p.key[length+1:]
+				br.children[parentKey[length]] = p
+			}
+
+			return true, br, nil
+		}
+
+		value.setKey(key[length+1:])
+
+		if length == len(p.key) {
+			// if leaf's key is covered by this branch, then make the leaf's
+			// value the value at this branch
+			br.value = p.value
+			br.children[key[length]] = value
+		} else {
+			// otherwise, make the leaf a child of the branch and update its partial key
+			p.key = p.key[length+1:]
+			br.children[parentKey[length]] = p
+			br.children[key[length]] = value
+		}
+
+		return ok, br, nil
+	default:
+		err = errors.New("put error: invalid node")
 	}
 
 	return ok, n, err
@@ -126,40 +142,104 @@ func (t *Trie) updateExtension(p *extension, prefix, key []byte, value node) (ok
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-func (t *Trie) updateBranch(p *branch, prefix, key []byte, value node) (ok bool, n node, err error) {
-	// we need to add an extension to the child that's already there
-	ok, n, err = t.insert(p.children[key[0]], append(prefix, key[0]), key[1:], value)
-	if !ok || err != nil {
-		return false, n, err
+func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node, err error) {
+	length := lenCommonPrefix(key, p.key)
+
+	// whole parent key matches
+	if length == len(p.key) {
+		// if node has same key as this branch, then update the value at this branch
+		if bytes.Equal(key, p.key) {
+			switch v := value.(type) {
+			case *branch:
+				p.value = v.value
+			case *leaf:
+				p.value = v.value
+			}
+			return true, p, nil
+		}
+
+		switch c := p.children[key[length]].(type) {
+		case *branch, *leaf:
+			_, n, err = t.insert(c, key[length+1:], value)
+			p.children[key[length]] = n
+			n = p
+		case nil:
+			// otherwise, add node as child of this branch
+			value.(*leaf).key = key[length+1:]
+			p.children[key[length]] = value
+			n = p
+		}
+
+		return true, n, err
 	}
 
-	p.children[key[0]] = n
-	return true, p, err
+	// we need to branch out at the point where the keys diverge
+	// update partial keys, new branch has key up to matching length
+	br := &branch{key: key[:length], dirty: true}
+
+	parentIndex := p.key[length]
+	_, br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if len(key) <= length {
+		br.value = value.(*leaf).value
+	} else {
+		_, br.children[key[length]], err = t.insert(nil, key[length+1:], value)
+		if err == nil {
+			ok = true
+		}
+	}
+
+	return ok, br, err
 }
 
-// Get returns the value for key stored in the trie.
+// Get returns the value for key stored in the trie at the corresponding key
 func (t *Trie) Get(key []byte) (value []byte, err error) {
-	value, err = t.tryGet(key)
+	l, err := t.tryGet(key)
+	if l != nil {
+		return l.value, err
+	}
+	return nil, err
+}
+
+// getLeaf returns the leaf node stored in the trie at the corresponding key
+// leaf includes both partial key and value, need the partial key for encoding
+func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
+	l, err := t.tryGet(key)
+	return l, err
+}
+
+func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
+	k := keyToNibbles(key)
+
+	value, err = t.retrieve(t.root, k)
 	return value, err
 }
 
-func (t *Trie) tryGet(key []byte) (value []byte, err error) {
-	k := keyToHex(key)
-	value, err = t.retrieve(t.root, k, 0)
-	return value, err
-}
-
-func (t *Trie) retrieve(parent node, key []byte, i int) (value []byte, err error) {
+func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	switch p := parent.(type) {
-	case *extension:
-		if len(key)-i < len(p.key) { //|| !bytes.Equal(p.key, key[i:i+len(p.key)]) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
+
+		// found the value at this node
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			return &leaf{key: p.key, value: p.value, dirty: true}, nil
+		}
+
+		// did not find value
+		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
 			return nil, nil
 		}
-		value, err = t.retrieve(p.value, key, i+len(p.key))
-	case *branch:
-		value, err = t.retrieve(p.children[key[i]], key, i+1)
-	case leaf:
-		value = p
+
+		value, err = t.retrieve(p.children[key[length]], key[length+1:])
+	case *leaf:
+		if bytes.Equal(p.key, key) {
+			value = p
+		}
+	case nil:
+		return nil, nil
 	default:
 		err = errors.New("get error: invalid node")
 	}
@@ -167,8 +247,95 @@ func (t *Trie) retrieve(parent node, key []byte, i int) (value []byte, err error
 }
 
 // Delete removes any existing value for key from the trie.
-func (t *Trie) Delete(key []byte) {
-	// TODO
+func (t *Trie) Delete(key []byte) error {
+	k := keyToNibbles(key)
+	_, n, err := t.delete(t.root, k)
+	if err != nil {
+		return err
+	}
+	t.root = n
+	return nil
+}
+
+func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
+	switch p := parent.(type) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
+
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			// found the value at this node
+			p.value = nil
+			n = p
+		} else {
+			_, n, err = t.delete(p.children[key[length]], key[length+1:])
+			if err != nil {
+				return false, p, err
+			}
+			p.children[key[length]] = n
+			n = p
+		}
+
+		ok, n, err = handleDeletion(p, n, key)
+	case *leaf:
+		if bytes.Equal(key, p.key) || len(key) == 0 {
+			ok = true
+		} else {
+			ok = true
+			n = p
+		}
+	case nil:
+		// do nothing
+	}
+	return ok, n, err
+}
+
+// handleDeletion is called when a value is deleted from a branch
+// if the updated branch only has 1 child, it should be combined with that child
+// if the upated branch only has a value, it should be turned into a leaf
+func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error) {
+	nn = n
+	length := lenCommonPrefix(p.key, key)
+	bitmap := p.childrenBitmap()
+
+	// if branch has no children, just a value, turn it into a leaf
+	if bitmap == 0 && p.value != nil {
+		nn = &leaf{key: key[:length], value: p.value}
+	} else if p.numChildren() == 1 && p.value == nil {
+		// there is only 1 child and no value, combine the child branch with this branch
+		// find index of child
+		var i int
+		for i = 0; i < 16; i++ {
+			bitmap = bitmap >> 1
+			if bitmap == 0 {
+				break
+			}
+		}
+
+		child := p.children[i]
+		switch c := child.(type) {
+		case *leaf:
+			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
+		case *branch:
+			br := new(branch)
+			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
+
+			// adopt the grandchildren
+			for i, grandchild := range c.children {
+				if grandchild != nil {
+					br.children[i] = grandchild
+				}
+			}
+
+			br.value = c.value
+			nn = br
+		default:
+			// do nothing
+		}
+
+		ok = true
+	}
+
+	return ok, nn, err
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys

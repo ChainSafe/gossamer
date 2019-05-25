@@ -1,9 +1,24 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
 	"context"
 	"fmt"
-	//"log"
 	"testing"
 
 	datastore "github.com/ipfs/go-datastore"
@@ -142,6 +157,40 @@ func TestStart(t *testing.T) {
 	err = <-e
 	if err != nil {
 		t.Errorf("Start error: %s", err)
+	}
+}
+
+func TestService_PeerCount(t *testing.T) {
+	ipfsNode, err := StartIpfsNode()
+	if err != nil {
+		t.Fatalf("Could not start IPFS node: %s", err)
+	}
+
+	defer ipfsNode.Close()
+
+	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+
+	testServiceConfig := &ServiceConfig{
+		BootstrapNodes: []string{
+			ipfsAddr,
+		},
+		Port: 7001,
+	}
+
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := s.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	count := s.PeerCount()
+	if count != 1 {
+		t.Fatalf("incorrect peerCount expected %d got %d", 1, count)
 	}
 }
 
