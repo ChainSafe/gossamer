@@ -3,7 +3,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
@@ -11,7 +11,7 @@ import (
 
 type Runtime struct {
 	vm *exec.VirtualMachine
-	offset int64
+	// TODO: memory management on top of wasm memory buffer
 }
 
 type Version struct {
@@ -20,6 +20,7 @@ type Version struct {
 	Authoring_version int32
 	Spec_version      int32
 	Impl_version      int32
+	Apis			[]int
 }
 
 func NewRuntime(fp string) (*Runtime, error) {
@@ -36,7 +37,6 @@ func NewRuntime(fp string) (*Runtime, error) {
 
 	return &Runtime{
 		vm: vm,
-		offset: 0,
 	}, err
 }
 
@@ -57,7 +57,6 @@ func (r *Runtime) Exec(function string) (interface{}, error) {
 		// the offset in the wasm memory buffer
 		size := int32(ret >> 32)
 		offset := int32(ret)
-		fmt.Println(offset)
 		returnData := r.vm.Memory[offset:offset+size]
 		return decodeVersion(returnData)
 	case "Core_authorities":

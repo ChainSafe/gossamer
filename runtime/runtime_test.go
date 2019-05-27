@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -44,4 +45,13 @@ func TestExecVersion(t *testing.T) {
 	t.Logf("Authoring_version: %d\n", version.Authoring_version)
 	t.Logf("Spec_version: %d\n", version.Spec_version)
 	t.Logf("Impl_version: %d\n", version.Impl_version)
+	t.Logf("Apis: %d\n", version.Apis)
+
+	if strings.Compare(string(version.Spec_name), "polkadot") != 0 {
+		t.Errorf("Fail when getting Core_version.spec_name: got %s expected %s", version.Spec_name, "polkadot")
+	} else if strings.Compare(string(version.Impl_name), "parity-polkadot") != 0 {
+		t.Errorf("Fail when getting Core_version.impl_name: got %s expected %s", version.Spec_name, "parity-polkadot")
+	} else if version.Authoring_version != 1 {
+		t.Errorf("Fail when getting Core_version.authoring_version: got %d expected %d", version.Authoring_version, 1)
+	}
 }
