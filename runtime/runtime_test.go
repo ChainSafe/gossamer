@@ -1,12 +1,29 @@
 package runtime
 
 import (
+	"io"
+	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 )
 
+func getRuntimeBlob() (n int64, err error) {
+	out, err := os.Create("polkadot_runtime.compact.wasm")
+	defer out.Close()
+	resp, err := http.Get("https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true")
+	defer resp.Body.Close()
+	n, err = io.Copy(out, resp.Body)
+	return n, err
+}
+
 func TestNewVM(t *testing.T) {
+	_, err := getRuntimeBlob()
+	if err != nil {
+		t.Fatalf("Fail: could not get polkadot runtime")
+	}
+
 	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
 	if err != nil {
 		t.Fatal("could not create filepath")
@@ -20,8 +37,12 @@ func TestNewVM(t *testing.T) {
 	}
 }
 
-
 func TestExecVersion(t *testing.T) {
+	_, err := getRuntimeBlob()
+	if err != nil {
+		t.Fatalf("Fail: could not get polkadot runtime")
+	}
+
 	expected := &Version{
 		Spec_name: []byte("polkadot"),
 		Impl_name: []byte("parity-polkadot"),

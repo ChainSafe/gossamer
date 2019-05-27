@@ -9,6 +9,12 @@ import (
 	exec "github.com/perlin-network/life/exec"
 )
 
+var (
+	DEFAULT_MEMORY_PAGES = 4096
+	DEFAULT_TABLE_SIZE = 655360
+	DEFAULT_MAX_CALL_STACK_DEPTH = 0
+)
+
 type Runtime struct {
 	vm *exec.VirtualMachine
 	// TODO: memory management on top of wasm memory buffer
@@ -29,9 +35,9 @@ func NewRuntime(fp string) (*Runtime, error) {
 	}
 
 	vm, err := exec.NewVirtualMachine(input, exec.VMConfig{
-		DefaultMemoryPages: 4096,
-		DefaultTableSize:   655360,
-		MaxCallStackDepth:  0,
+		DefaultMemoryPages: DEFAULT_MEMORY_PAGES,
+		DefaultTableSize:   DEFAULT_TABLE_SIZE,
+		MaxCallStackDepth:  DEFAULT_MAX_CALL_STACK_DEPTH,
 	}, &Resolver{}, nil)
 
 	return &Runtime{
