@@ -24,7 +24,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
-	log2 "log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,15 +91,18 @@ func loadConfig(file string) (*cfg.Config, error) {
 	filep := filepath.Join(filepath.Clean(fp))
 	info, err := os.Lstat(filep)
 	if err != nil {
-		log2.Fatal("config file err ",err)
+		log.Crit("config file err ","err", err)
+		os.Exit(1)
 	}
 	if info.IsDir() {
-		log2.Fatal("cannot pass in a directory as config.toml ")
+		log.Crit("cannot pass in a directory as config.toml ")
+		os.Exit(1)
 	}
 	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
-		log2.Fatal("opening config file err ",err)
+		log.Crit("opening config file err ", "err",err)
+		os.Exit(1)
 	}
 	defer func() {
 		err = f.Close()
