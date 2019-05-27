@@ -95,7 +95,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log2.Fatal("config file err ",err)
 	}
 	if info.IsDir() {
-		log2.Fatal("cannot pass in a directory as config.toml ",err)
+		log2.Fatal("cannot pass in a directory as config.toml ")
 	}
 	/* #nosec */
 	f, err := os.Open(filep)
