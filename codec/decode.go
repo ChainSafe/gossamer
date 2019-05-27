@@ -34,7 +34,9 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
 		out, err = sd.DecodeBigInt()
-	case int8, int16, int32, int64:
+	case int8, int16, int32:
+		out, err = sd.DecodeFixedWidthInt()
+	case int64:
 		out, err = sd.DecodeInteger()
 	case []byte:
 		out, err = sd.DecodeByteArray()
@@ -52,6 +54,17 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		return nil, errors.New("decode error: unsupported type")
 	}
 	return out, err
+}
+
+// DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
+func (sd *Decoder) DecodeFixedWidthInt() (o int32, err error) {
+	buf := make([]byte, 4)
+	_, err = sd.Reader.Read(buf)
+	if err == nil {
+		o = int32(binary.LittleEndian.Uint32(buf))
+	}
+
+ 	return o, err
 }
 
 // ReadByte reads the one byte from the buffer
@@ -232,32 +245,31 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			ptr := fieldValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
 		case int8:
-			o, err = sd.DecodeInteger()
+			o, err = sd.DecodeFixedWidthInt()
 			if err != nil {
 				break
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int8)
-			o64 := o.(int64)
-			*ptr = int8(o64)
+			o32 := o.(int32)
+			*ptr = int8(o32)
 		case int16:
-			o, err = sd.DecodeInteger()
+			o, err = sd.DecodeFixedWidthInt()
 			if err != nil {
 				break
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int16)
-			o64 := o.(int64)
-			*ptr = int16(o64)
+			o32 := o.(int32)
+			*ptr = int16(o32)
 		case int32:
-			o, err = sd.DecodeInteger()
+			o, err = sd.DecodeFixedWidthInt()
 			if err != nil {
 				break
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int32)
-			o64 := o.(int64)
-			*ptr = int32(o64)
+			*ptr = o.(int32)
 		case int64:
 			o, err = sd.DecodeInteger()
 			if err != nil {
