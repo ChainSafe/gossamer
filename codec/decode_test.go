@@ -183,7 +183,7 @@ var decodeTupleTests = []decodeTupleTest{
 		Foo  []byte
 		Bar  int8
 		Bo   bool
-	}{[]byte{0x01}, 1, false}},
+	}{[]byte{0x01}, 4, false}},
 
 	{val: []byte{0x04, 0x01, 0x05, 0x04, 0x00}, t: &struct {
 		Foo  []byte
@@ -193,9 +193,9 @@ var decodeTupleTests = []decodeTupleTest{
 		Foo  []byte
 		Bar  int16
 		Bo   bool
-	}{[]byte{0x01}, 257, false}},
+	}{[]byte{0x01}, 1029, false}},
 
-	{val: []byte{0x04, 0x01, 0x02, 0xff, 0xff, 0xff, 0x00}, t: &struct {
+	{val: []byte{0x04, 0x01, 0x02, 0xff, 0xff, 0x01, 0x00}, t: &struct {
 		Foo  []byte
 		Bar  int32
 		Bo   bool
@@ -203,7 +203,7 @@ var decodeTupleTests = []decodeTupleTest{
 		Foo  []byte
 		Bar  int32
 		Bo   bool
-	}{[]byte{0x01}, 1073741760, false}},
+	}{[]byte{0x01}, 33554178, false}},
 }
 
 var decodeArrayTests = []decodeArrayTest{
@@ -254,7 +254,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := sd.Decode(i)
 		if err != nil {
 			t.Error(err)
-		} else if output != test.output {
+		} else if output.(int) != int(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
