@@ -41,7 +41,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_print_num":
 			return func(vm *exec.VirtualMachine) int64 {
 				fmt.Printf("executing: %s\n", "ext_print_num")
-				fmt.Printf("[ext_print_num] local[0]: %v\n", vm.GetCurrentFrame().Locals[0])
+				fmt.Printf("[ext_print_num] local[0]: %d\n", vm.GetCurrentFrame().Locals[0])
 				return 0
 			}
 		case "ext_malloc":
@@ -50,6 +50,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				size := vm.GetCurrentFrame().Locals[0]
 				fmt.Printf("[ext_malloc] local[0]: %v\n", size)
 				offset = offset + size
+				fmt.Printf("offset: %d\n", offset)
 				return offset
 			}
 		case "ext_free":
