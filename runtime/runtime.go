@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"errors"
 	//"fmt"
-	"io/ioutil"
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
+	"io/ioutil"
 )
 
 var (
-	DEFAULT_MEMORY_PAGES = 4096
-	DEFAULT_TABLE_SIZE = 655360
+	DEFAULT_MEMORY_PAGES         = 4096
+	DEFAULT_TABLE_SIZE           = 655360
 	DEFAULT_MAX_CALL_STACK_DEPTH = 0
 )
 
@@ -45,7 +45,7 @@ func NewRuntime(fp string) (*Runtime, error) {
 	}, err
 }
 
-func (r *Runtime) Exec(function string) (interface{}, error) {	
+func (r *Runtime) Exec(function string) (interface{}, error) {
 	entryID, ok := r.vm.GetFunctionExport(function)
 	if !ok {
 		return nil, errors.New("entry function not found")
@@ -57,12 +57,12 @@ func (r *Runtime) Exec(function string) (interface{}, error) {
 	}
 
 	switch function {
-	case "Core_version":	
-		// ret is int64; top 4 bytes are the size of the returned data and bottom 4 bytes are 
+	case "Core_version":
+		// ret is int64; top 4 bytes are the size of the returned data and bottom 4 bytes are
 		// the offset in the wasm memory buffer
 		size := int32(ret >> 32)
 		offset := int32(ret)
-		returnData := r.vm.Memory[offset:offset+size]
+		returnData := r.vm.Memory[offset : offset+size]
 		return decodeVersion(returnData)
 	case "Core_authorities":
 		return nil, nil
@@ -77,8 +77,12 @@ func (r *Runtime) Exec(function string) (interface{}, error) {
 
 func decodeVersion(in []byte) (interface{}, error) {
 	buf := &bytes.Buffer{}
-	sd := scale.Decoder{buf}
-	buf.Write(in)
+	sd := scale.Decoder{Reader: buf}
+	_, err := buf.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
 	var v Version
 	output, err := sd.DecodeTuple(&v)
 	return output, err

@@ -11,9 +11,17 @@ import (
 
 func getRuntimeBlob() (n int64, err error) {
 	out, err := os.Create("polkadot_runtime.compact.wasm")
+	if err != nil {
+		return 0, err
+	}
 	defer out.Close()
+
 	resp, err := http.Get("https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true")
+	if err != nil {
+		return 0, err
+	}
 	defer resp.Body.Close()
+
 	n, err = io.Copy(out, resp.Body)
 	return n, err
 }
@@ -44,11 +52,11 @@ func TestExecVersion(t *testing.T) {
 	}
 
 	expected := &Version{
-		Spec_name: []byte("polkadot"),
-		Impl_name: []byte("parity-polkadot"),
+		Spec_name:         []byte("polkadot"),
+		Impl_name:         []byte("parity-polkadot"),
 		Authoring_version: 1,
-		Spec_version: 109,
-		Impl_version: 0,
+		Spec_version:      109,
+		Impl_version:      0,
 	}
 
 	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
