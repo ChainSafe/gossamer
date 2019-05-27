@@ -5,8 +5,6 @@ import (
 	exec "github.com/perlin-network/life/exec"
 )
 
-var offset int64 = 0
-
 type Resolver struct{}
 
 func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
@@ -49,16 +47,13 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				fmt.Printf("executing: %s\n", "ext_malloc")
 				size := vm.GetCurrentFrame().Locals[0]
 				fmt.Printf("[ext_malloc] local[0]: %v\n", size)
-				offset = offset + size
-				fmt.Printf("offset: %d\n", offset)
+				var offset int64 = 1
 				return offset
 			}
 		case "ext_free":
 			return func(vm *exec.VirtualMachine) int64 {
 				fmt.Printf("executing: %s\n", "ext_free")
-				addr := vm.GetCurrentFrame().Locals[0]
-				offset = addr
-				return offset
+				return 1
 			}
 		case "ext_twox_128":
 			return func(vm *exec.VirtualMachine) int64 {
