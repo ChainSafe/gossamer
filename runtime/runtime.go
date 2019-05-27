@@ -20,7 +20,6 @@ type Version struct {
 	Authoring_version int32
 	Spec_version      int32
 	Impl_version      int32
-	Apis			[]int
 }
 
 func NewRuntime(fp string) (*Runtime, error) {

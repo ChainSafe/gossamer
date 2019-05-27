@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"path/filepath"
-	"strings"
+	"reflect"
 	"testing"
 )
 
@@ -22,6 +22,14 @@ func TestNewVM(t *testing.T) {
 
 
 func TestExecVersion(t *testing.T) {
+	expected := &Version{
+		Spec_name: []byte("polkadot"),
+		Impl_name: []byte("parity-polkadot"),
+		Authoring_version: 1,
+		Spec_version: 109,
+		Impl_version: 0,
+	}
+
 	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
 	if err != nil {
 		t.Fatal("could not create filepath")
@@ -45,13 +53,8 @@ func TestExecVersion(t *testing.T) {
 	t.Logf("Authoring_version: %d\n", version.Authoring_version)
 	t.Logf("Spec_version: %d\n", version.Spec_version)
 	t.Logf("Impl_version: %d\n", version.Impl_version)
-	t.Logf("Apis: %d\n", version.Apis)
 
-	if strings.Compare(string(version.Spec_name), "polkadot") != 0 {
-		t.Errorf("Fail when getting Core_version.spec_name: got %s expected %s", version.Spec_name, "polkadot")
-	} else if strings.Compare(string(version.Impl_name), "parity-polkadot") != 0 {
-		t.Errorf("Fail when getting Core_version.impl_name: got %s expected %s", version.Spec_name, "parity-polkadot")
-	} else if version.Authoring_version != 1 {
-		t.Errorf("Fail when getting Core_version.authoring_version: got %d expected %d", version.Authoring_version, 1)
+	if !reflect.DeepEqual(version, expected) {
+		t.Errorf("Fail: got %v expected %v\n", version, expected)
 	}
 }
