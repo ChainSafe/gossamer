@@ -99,6 +99,17 @@ func (sd *Decoder) decodeSmallInt(firstByte byte) (o int64, err error) {
 	return o, err
 }
 
+// DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
+func (sd *Decoder) DecodeFixedWidthInt() (o int32, err error) {
+	buf := make([]byte, 4)
+	_, err = sd.Reader.Read(buf)
+	if err == nil {
+		o = int32(binary.LittleEndian.Uint32(buf))
+	}
+
+	return o, err
+}
+
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
 // number of input bytes decoded, and err is nil
