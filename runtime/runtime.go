@@ -68,7 +68,8 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 	case "Core_version":
 		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
-		return nil, nil
+		t := []SessionKey{}
+		return decodeToInterface(returnData, &t)
 	case "Core_execute_block":
 		return nil, nil
 	case "Core_initialise_block":
