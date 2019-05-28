@@ -95,13 +95,13 @@ func loadConfig(file string) (*cfg.Config, error) {
 		os.Exit(1)
 	}
 	if info.IsDir() {
-		log.Crit("cannot pass in a directory as config.toml ")
+		log.Crit("cannot pass in a directory, expecting file ")
 		os.Exit(1)
 	}
 	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
-		log.Crit("opening config file err ", "err",err)
+		log.Crit("opening file err ", "err",err)
 		os.Exit(1)
 	}
 	defer func() {
