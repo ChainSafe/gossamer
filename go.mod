@@ -21,6 +21,7 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.8.1
+	github.com/rendon/testcli v0.0.0-20161027181003-6283090d169f
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
