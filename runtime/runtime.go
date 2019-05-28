@@ -56,13 +56,14 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 		return nil, err
 	}
 
+	// ret is int64; top 4 bytes are the size of the returned data and bottom 4 bytes are
+	// the offset in the wasm memory buffer
+	size := int32(ret >> 32)
+	offset := int32(ret)
+	returnData := r.vm.Memory[offset : offset+size]
+		
 	switch function {
 	case "Core_version":
-		// ret is int64; top 4 bytes are the size of the returned data and bottom 4 bytes are
-		// the offset in the wasm memory buffer
-		size := int32(ret >> 32)
-		offset := int32(ret)
-		returnData := r.vm.Memory[offset : offset+size]
 		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
 		return nil, nil
@@ -83,6 +84,6 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	output, err := sd.DecodeTuple(t)
+	output, err := sd.Decode(t)
 	return output, err
 }
