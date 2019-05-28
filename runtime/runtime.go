@@ -3,7 +3,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
-	//"fmt"
+
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
 	"io/ioutil"
@@ -45,13 +45,13 @@ func NewRuntime(fp string) (*Runtime, error) {
 	}, err
 }
 
-func (r *Runtime) Exec(function string) (interface{}, error) {
+func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, error) {
 	entryID, ok := r.vm.GetFunctionExport(function)
 	if !ok {
 		return nil, errors.New("entry function not found")
 	}
 
-	ret, err := r.vm.Run(entryID, 0, 0)
+	ret, err := r.vm.Run(entryID, param1, param2)
 	if err != nil {
 		return nil, err
 	}
@@ -63,19 +63,19 @@ func (r *Runtime) Exec(function string) (interface{}, error) {
 		size := int32(ret >> 32)
 		offset := int32(ret)
 		returnData := r.vm.Memory[offset : offset+size]
-		return decodeVersion(returnData)
+		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
 		return nil, nil
 	case "Core_execute_block":
 		return nil, nil
-	case "Core_initialise_block":
+	case "Core_ignitialise_block":
 		return nil, nil
 	default:
 		return nil, nil
 	}
 }
 
-func decodeVersion(in []byte) (interface{}, error) {
+func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 	buf := &bytes.Buffer{}
 	sd := scale.Decoder{Reader: buf}
 	_, err := buf.Write(in)
@@ -83,7 +83,6 @@ func decodeVersion(in []byte) (interface{}, error) {
 		return nil, err
 	}
 
-	var v Version
-	output, err := sd.DecodeTuple(&v)
+	output, err := sd.DecodeTuple(t)
 	return output, err
 }

@@ -9,8 +9,15 @@ import (
 	"testing"
 )
 
+const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
+
+// getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
 func getRuntimeBlob() (n int64, err error) {
-	out, err := os.Create("polkadot_runtime.compact.wasm")
+	if Exists(POLKADOT_RUNTIME_FP) {
+		return 0, nil
+	}
+
+	out, err := os.Create(POLKADOT_RUNTIME_FP)
 	if err != nil {
 		return 0, err
 	}
@@ -24,6 +31,16 @@ func getRuntimeBlob() (n int64, err error) {
 
 	n, err = io.Copy(out, resp.Body)
 	return n, err
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+    if _, err := os.Stat(name); err != nil {
+        if os.IsNotExist(err) {
+            return false
+        }
+    }
+    return true
 }
 
 func TestNewVM(t *testing.T) {
@@ -71,7 +88,7 @@ func TestExecVersion(t *testing.T) {
 		t.Fatal("did not create new VM")
 	}
 
-	res, err := r.Exec("Core_version")
+	res, err := r.Exec("Core_version", 0, 0)
 	if err != nil {
 		t.Fatalf("could not exec wasm runtime: %s", err)
 	}
