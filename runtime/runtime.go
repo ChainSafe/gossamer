@@ -69,7 +69,7 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 		return nil, nil
 	case "Core_execute_block":
 		return nil, nil
-	case "Core_ignitialise_block":
+	case "Core_initialise_block":
 		return nil, nil
 	default:
 		return nil, nil
