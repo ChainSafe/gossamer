@@ -3,10 +3,11 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
-	"io/ioutil"
+	trie "github.com/ChainSafe/gossamer/trie"
 )
 
 var (
@@ -19,6 +20,7 @@ type SessionKey [32]byte
 
 type Runtime struct {
 	vm *exec.VirtualMachine
+	t *trie.Trie
 	// TODO: memory management on top of wasm memory buffer
 }
 
@@ -30,7 +32,7 @@ type Version struct {
 	Impl_version      int32
 }
 
-func NewRuntime(fp string) (*Runtime, error) {
+func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	input, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, err
@@ -40,10 +42,11 @@ func NewRuntime(fp string) (*Runtime, error) {
 		DefaultMemoryPages: DEFAULT_MEMORY_PAGES,
 		DefaultTableSize:   DEFAULT_TABLE_SIZE,
 		MaxCallStackDepth:  DEFAULT_MAX_CALL_STACK_DEPTH,
-	}, &Resolver{}, nil)
+	}, &Resolver{t: t}, nil)
 
 	return &Runtime{
 		vm: vm,
+		t: t,
 	}, err
 }
 

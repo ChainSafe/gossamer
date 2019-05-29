@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	trie "github.com/ChainSafe/gossamer/trie"
+	//"github.com/ChainSafe/gossamer/polkadb"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
@@ -43,7 +46,15 @@ func Exists(name string) bool {
     return true
 }
 
-func TestNewVM(t *testing.T) {
+func newEmpty() *trie.Trie {
+	db := &trie.Database {
+		//db: polkadb.NewMemDatabase(),
+	}
+	t := trie.NewEmptyTrie(db)
+	return t
+}
+
+func newRuntime(t *testing.T) (*Runtime, error) {
 	_, err := getRuntimeBlob()
 	if err != nil {
 		t.Fatalf("Fail: could not get polkadot runtime")
@@ -54,20 +65,26 @@ func TestNewVM(t *testing.T) {
 		t.Fatal("could not create filepath")
 	}
 
-	r, err := NewRuntime(fp)
+	tt := newEmpty()
+
+	r, err := NewRuntime(fp, tt)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
 		t.Fatal("did not create new VM")
 	}
+
+	return r, err
+}
+
+func TestNewVM(t *testing.T) {
+	_, err := newRuntime(t)
+	if err != nil {
+		t.Errorf("Fail: could not create new runtime: %s", err)
+	}
 }
 
 func TestExecVersion(t *testing.T) {
-	_, err := getRuntimeBlob()
-	if err != nil {
-		t.Fatalf("Fail: could not get polkadot runtime")
-	}
-
 	expected := &Version{
 		Spec_name:         []byte("polkadot"),
 		Impl_name:         []byte("parity-polkadot"),
@@ -76,12 +93,7 @@ func TestExecVersion(t *testing.T) {
 		Impl_version:      0,
 	}
 
-	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
-	if err != nil {
-		t.Fatal("could not create filepath")
-	}
-
-	r, err := NewRuntime(fp)
+	r, err := newRuntime(t)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -106,11 +118,6 @@ func TestExecVersion(t *testing.T) {
 }
 
 func TestExecAuthorities(t *testing.T) {
-	_, err := getRuntimeBlob()
-	if err != nil {
-		t.Fatalf("Fail: could not get polkadot runtime")
-	}
-
 	// expected := &Version{
 	// 	Spec_name:         []byte("polkadot"),
 	// 	Impl_name:         []byte("parity-polkadot"),
@@ -119,12 +126,7 @@ func TestExecAuthorities(t *testing.T) {
 	// 	Impl_version:      0,
 	// }
 
-	fp, err := filepath.Abs("./polkadot_runtime.compact.wasm")
-	if err != nil {
-		t.Fatal("could not create filepath")
-	}
-
-	r, err := NewRuntime(fp)
+	r, err := newRuntime(t)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
