@@ -16,6 +16,15 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_get_storage_into":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_get_storage_into")
+				keyData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				valueData := int(uint32(vm.GetCurrentFrame().Locals[2]))
+				valueLen := int(uint32(vm.GetCurrentFrame().Locals[3]))
+				valueOffset := int(uint32(vm.GetCurrentFrame().Locals[4]))
+				log.Debug("[ext_get_storage_into]", "local[0]", keyData, "local[1]", keyLen, "local[2]", valueData, "local[3]", valueLen, "local[4]", valueOffset)
+				key := vm.Memory[keyData:keyData+keyLen]
+				log.Debug("[ext_get_storage_into]", "key", string(key))
+				copy(vm.Memory[valueData+valueOffset:valueData+valueOffset+valueLen], []byte{0x04, 0x01, 0x0, 0x0})
 				return 0
 			}
 		case "ext_blake2_256":
@@ -25,12 +34,12 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			}
 		case "ext_blake2_256_enumerated_trie_root":
 			return func(vm *exec.VirtualMachine) int64 {
-				log.Debug("executing: %s\n", "ext_blake2_256_enumerated_trie_root")
+				log.Debug("executing ext_blake2_256_enumerated_trie_root")
 				return 0
 			}
 		case "ext_print_utf8":
 			return func(vm *exec.VirtualMachine) int64 {
-				log.Debug("executing: %s\n", "ext_print_utf8")
+				log.Debug("executing: ext_print_utf8")
 				log.Debug("[ext_print_utf8]", "local[0]", vm.GetCurrentFrame().Locals[0], "local[1]", vm.GetCurrentFrame().Locals[1])
 				ptr := int(uint32(vm.GetCurrentFrame().Locals[0]))
 				msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
