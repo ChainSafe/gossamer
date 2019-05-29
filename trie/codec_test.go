@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -35,10 +36,12 @@ func TestKeyToNibbles(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res := keyToNibbles(test.input)
-		if !bytes.Equal(test.expected, res) {
-			t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
-		}
+		t.Run(fmt.Sprintf("input %x expected %x", test.input, test.expected), func(t *testing.T) {
+			res := keyToNibbles(test.input)
+			if !bytes.Equal(test.expected, res) {
+				t.Errorf("Output doesn't match expected. got=%v expected=%v\n", res, test.expected)
+			}
+		})
 	}
 }
 
@@ -55,10 +58,12 @@ func TestNibblesToKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res := nibblesToKey(test.input)
-		if !bytes.Equal(test.expected, res) {
-			t.Errorf("Output doesn't match expected. got=%x expected=%x\n", res, test.expected)
-		}
+		t.Run(fmt.Sprintf("input %x expected %x", test.input, test.expected), func(t *testing.T) {
+			res := nibblesToKey(test.input)
+			if !bytes.Equal(test.expected, res) {
+				t.Errorf("Output doesn't match expected. got=%x expected=%x\n", res, test.expected)
+			}
+		})
 	}
 }
 
@@ -75,9 +80,11 @@ func TestNibblesToKeyLE(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res := nibblesToKeyLE(test.input)
-		if !bytes.Equal(test.expected, res) {
-			t.Errorf("Output doesn't match expected. got=%x expected=%x\n", res, test.expected)
-		}
+		t.Run(fmt.Sprintf("input %x expected %x", test.input, test.expected), func(t *testing.T) {
+			res := nibblesToKeyLE(test.input)
+			if !bytes.Equal(test.expected, res) {
+				t.Errorf("Output doesn't match expected. got=%x expected=%x\n", res, test.expected)
+			}
+		})
 	}
 }

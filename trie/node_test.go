@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -85,12 +86,14 @@ func TestBranchHeader(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := test.br.header()
-		if err != nil {
-			t.Fatalf("Error when encoding header: %s", err)
-		} else if !bytes.Equal(res, test.header) {
-			t.Errorf("Branch header fail case %v: got %x expected %x", test.br, res, test.header)
-		}
+		t.Run(fmt.Sprintf("input %v expected %x", test.br, test.header), func(t *testing.T) {
+			res, err := test.br.header()
+			if err != nil {
+				t.Fatalf("Error when encoding header: %s", err)
+			} else if !bytes.Equal(res, test.header) {
+				t.Errorf("Branch header fail case %v: got %x expected %x", test.br, res, test.header)
+			}
+		})
 	}
 }
 
@@ -103,16 +106,18 @@ func TestFailingPk(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := test.br.header()
-		if err == nil {
-			t.Fatalf("should error when encoding node w pk length > 2^16")
-		} 
+		t.Run(fmt.Sprintf("input %v expected %x", test.br, test.header), func(t *testing.T) {
+			_, err := test.br.header()
+			if err == nil {
+				t.Fatalf("should error when encoding node w pk length > 2^16")
+			} 
+		})
 	}
 }
 
 func TestLeafHeader(t *testing.T) {
 	tests := []struct {
-		br     *leaf
+		lf     *leaf
 		header []byte
 	}{
 		{&leaf{nil, nil, true}, []byte{0x40}},
@@ -127,91 +132,95 @@ func TestLeafHeader(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := test.br.header()
-		if err != nil {
-			t.Fatalf("Error when encoding header: %s", err)
-		} else if !bytes.Equal(res, test.header) {
-			t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
-		}
+		t.Run(fmt.Sprintf("input %v expected %x", test.lf, test.header), func(t *testing.T) {
+			res, err := test.lf.header()
+			if err != nil {
+				t.Fatalf("Error when encoding header: %s", err)
+			} else if !bytes.Equal(res, test.header) {
+				t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
+			}
+		})
 	}
 }
 
 func TestBranchEncode(t *testing.T) {
-	randKeys := generateRand(100)
-	randVals := generateRand(100)
+	tests := generateRandomTests(100)
 
-	for i, testKey := range randKeys {
-		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
-		expected := []byte{}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("key %x val %x", test.key, test.value), func(t *testing.T) {
+			b := &branch{key: test.key, children: [16]node{}, value: test.value}
+			expected := []byte{}
 
-		header, err := b.header()
-		if err != nil {
-			t.Fatalf("Error when encoding header: %s", err)
-		}
-
-		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(b.key)...)
-
-		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
-
-		for _, child := range b.children {
-			if child != nil {
-				encChild, err := Encode(child)
-				if err != nil {
-					t.Errorf("Fail when encoding branch child: %s", err)
-				}
-				expected = append(expected, encChild...)
+			header, err := b.header()
+			if err != nil {
+				t.Fatalf("Error when encoding header: %s", err)
 			}
-		}
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(b.value)
-		if err != nil {
-			t.Fatalf("Fail when encoding value with scale: %s", err)
-		}
+			expected = append(expected, header...)
+			expected = append(expected, nibblesToKey(b.key)...)
 
-		expected = append(expected, buf.Bytes()...)
+			expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
 
-		res, err := b.Encode()
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
-		}
+			for _, child := range b.children {
+				if child != nil {
+					encChild, err := Encode(child)
+					if err != nil {
+						t.Errorf("Fail when encoding branch child: %s", err)
+					}
+					expected = append(expected, encChild...)
+				}
+			}
+
+			buf := bytes.Buffer{}
+			encoder := &scale.Encoder{Writer: &buf}
+			_, err = encoder.Encode(b.value)
+			if err != nil {
+				t.Fatalf("Fail when encoding value with scale: %s", err)
+			}
+
+			expected = append(expected, buf.Bytes()...)
+
+			res, err := b.Encode()
+			if !bytes.Equal(res, expected) {
+				t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			} else if err != nil {
+				t.Errorf("Fail when encoding node length: %s", err)
+			}
+		})
 	}
 }
 
 func TestLeafEncode(t *testing.T) {
-	randKeys := generateRand(100)
-	randVals := generateRand(100)
+	tests := generateRandomTests(100)
 
-	for i, testKey := range randKeys {
-		l := &leaf{key: testKey, value: randVals[i]}
-		expected := []byte{}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("key %x val %x", test.key, test.value), func(t *testing.T) {
+			l := &leaf{key: test.key, value: test.value}
+			expected := []byte{}
 
-		header, err := l.header()
-		if err != nil {
-			t.Fatalf("Error when encoding header: %s", err)
-		}
-		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(l.key)...)
+			header, err := l.header()
+			if err != nil {
+				t.Fatalf("Error when encoding header: %s", err)
+			}
+			expected = append(expected, header...)
+			expected = append(expected, nibblesToKey(l.key)...)
 
-		buf := bytes.Buffer{}
-		encoder := &scale.Encoder{Writer: &buf}
-		_, err = encoder.Encode(l.value)
-		if err != nil {
-			t.Fatalf("Fail when encoding value with scale: %s", err)
-		}
+			buf := bytes.Buffer{}
+			encoder := &scale.Encoder{Writer: &buf}
+			_, err = encoder.Encode(l.value)
+			if err != nil {
+				t.Fatalf("Fail when encoding value with scale: %s", err)
+			}
 
-		expected = append(expected, buf.Bytes()...)
+			expected = append(expected, buf.Bytes()...)
 
-		res, err := l.Encode()
-		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
-		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
-		}
+			res, err := l.Encode()
+			if !bytes.Equal(res, expected) {
+				t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			} else if err != nil {
+				t.Errorf("Fail when encoding node length: %s", err)
+			}
+		})
 	}
 }
 
@@ -221,22 +230,24 @@ func TestEncodeRoot(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		rt := generateRandomTests(16)
 		for _, test := range rt {
-			err := trie.Put(test.key, test.value)
-			if err != nil {
-				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-			}
+			t.Run(fmt.Sprintf("key %x val %x", test.key, test.value), func(t *testing.T) {
+				err := trie.Put(test.key, test.value)
+				if err != nil {
+					t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+				}
 
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
-				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-			}
+				val, err := trie.Get(test.key)
+				if err != nil {
+					t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+				} else if !bytes.Equal(val, test.value) {
+					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+				}
 
-			_, err = Encode(trie.root)
-			if err != nil {
-				t.Errorf("Fail to encode trie root: %s", err)
-			}
+				_, err = Encode(trie.root)
+				if err != nil {
+					t.Errorf("Fail to encode trie root: %s", err)
+				}
+			})
 		}
 	}
 }

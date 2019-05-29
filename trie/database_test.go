@@ -49,17 +49,19 @@ func TestWriteToDB(t *testing.T) {
 	rt := generateRandomTests(20000)
 	var val []byte
 	for _, test := range rt {
-		err = trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
+		t.Run(fmt.Sprintf("key %x val %x", test.key, test.value), func(t *testing.T) {
+			err = trie.Put(test.key, test.value)
+			if err != nil {
+				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+			}
 
-		val, err = trie.Get(test.key)
-		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-		} else if !bytes.Equal(val, test.value) {
-			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-		}
+			val, err = trie.Get(test.key)
+			if err != nil {
+				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+			} else if !bytes.Equal(val, test.value) {
+				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			}
+		})
 	}
 
 	err = trie.WriteToDB()
