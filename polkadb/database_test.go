@@ -68,8 +68,6 @@ func TestBadgerDB_PutGetDel(t *testing.T) {
 	testUpdateGetter(db, t)
 	testDelGetter(db, t)
 	testGetPath(db, t)
-
-
 }
 
 func testPutGetter(db Database, t *testing.T) {
