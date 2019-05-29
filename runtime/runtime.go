@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"path/filepath"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
@@ -29,7 +30,7 @@ type Version struct {
 }
 
 func NewRuntime(fp string) (*Runtime, error) {
-	input, err := ioutil.ReadFile(fp)
+	input, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
