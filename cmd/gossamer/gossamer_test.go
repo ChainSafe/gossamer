@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/inconshreveable/log15"
 	"github.com/rendon/testcli"
 	"os"
 	"os/exec"
@@ -11,47 +12,53 @@ import (
 	"testing"
 )
 
-var binaryname = "gossamer"
+var binaryname = "gossamer-test"
 
 const timeFormat     = "2006-01-02T15:04:05-0700"
 
 func TestMain(m *testing.M) {
-	err := os.Chdir("..")
+	r := exec.Command("go", "build", "-o", "./bin/gossamer-test")
+	err := r.Run()
 	if err != nil {
-		fmt.Printf("could not change dir: %v", err)
+		log15.Crit("could not make binary", "executable",binaryname, "err",err)
 		os.Exit(1)
 	}
-	makke := exec.Command("gossamer")
-	err = makke.Run()
+	err = os.Chdir("./bin")
 	if err != nil {
-		fmt.Printf("could not make binary for %s: %v", binaryname, err)
+		log15.Crit("could not change dir", "err",err)
 		os.Exit(1)
 	}
-
+	run := exec.Command(`./gossamer-test`)
+	err = run.Run()
+	if err != nil {
+		log15.Crit("could not make binary", "executable",binaryname, "err",err)
+		os.Exit(1)
+	}
 	os.Exit(m.Run())
 }
 
-func TestGreetings(t *testing.T) {
-	// Using package functions
-	testcli.Run("gossamer")
+func TestInitialOutput(t *testing.T) {
+	testcli.Run("./gossamer-test")
 	if !testcli.Success() {
 		t.Fatalf("Expected to succeed, but failed: %s", testcli.Error())
 	}
-	output := fmt.Sprintf("%s%v%s", "t=", time.Now().Format(timeFormat), " lvl=info msg=\"🕸️ starting p2p service\" blockchain=gossamer")
-	//if !testcli.StdoutContains(output) {
-	//	//	t.Fatalf("Expected %q to contain %q", testcli.Stdout(), output)
-	//	//}
-	b := []byte(output)
-	a := []byte(testcli.Stdout())
-	c := len([]byte(output))
-	d := len([]byte(testcli.Stdout()))
-	fmt.Println("exp", b)
-	fmt.Println("act", a)
-	fmt.Println("exp", c)
-	fmt.Println("act", d)
-	if !reflect.DeepEqual(a, b) {
+	output := fmt.Sprintf("%s%v%s", "t=", time.Now().Format(timeFormat), " lvl=info msg=\"🕸️ starting p2p service\" blockchain=gossamer\x0A")
+	if !testcli.StdoutContains(output) {
+		t.Fatalf("Expected %q to contain %q", testcli.Stdout(), output)
+	}
+	if !reflect.DeepEqual(testcli.Stdout(), output) {
 		t.Fatalf("actual = %s, expected = %s", testcli.Stdout(), output)
 	}
+	defer func() {
+		err := os.Chdir("..")
+		if err != nil {
+			log15.Error("could not change dir", "err", err)
+			os.Exit(1)
+		}
+		if err := os.RemoveAll("./bin"); err != nil {
+			log15.Warn("removal of temp directory bin failed", "err",err)
+		}
+	}()
 }
 
 //func TestGreetingsWithName(t *testing.T) {
