@@ -73,6 +73,7 @@ func TestBadgerDB_PutGetDel(t *testing.T) {
 func testPutGetter(db Database, t *testing.T) {
 	tests := testSetup()
 	for _, v := range tests {
+		v := v
 		t.Run("PutGetter", func(t *testing.T) {
 			err := db.Put([]byte(v.input), []byte(v.input))
 			if err != nil {
@@ -107,6 +108,7 @@ func testUpdateGetter(db Database, t *testing.T) {
 	tests := testSetup()
 
 	for _, v := range tests {
+		v := v
 		t.Run("UpdateGetter", func(t *testing.T) {
 			err := db.Put([]byte(v.input), []byte("?"))
 			if err != nil {
@@ -119,15 +121,17 @@ func testUpdateGetter(db Database, t *testing.T) {
 			if !bytes.Equal(data, []byte("?")) {
 				t.Fatalf("get returned wrong result, got %q expected ?", string(data))
 			}
-	})
-}
+		})
+	}
 }
 
 func testDelGetter(db Database, t *testing.T) {
 	tests := testSetup()
 
 	for _, v := range tests {
+		v := v
 		t.Run("DelGetter", func(t *testing.T) {
+			v := v
 			err := db.Del([]byte(v.input))
 			if err != nil {
 				t.Fatalf("delete %q failed: %v", v.input, err)
@@ -287,6 +291,7 @@ func testSeekKeyValueIterator(db *BadgerDB, t *testing.T) {
 	}()
 
 	for _, k := range kv {
+		k := k
 		t.Run("SeekKeyValueIterator", func(t *testing.T) {
 			it.Seek([]byte(k.input))
 			if !bytes.Equal(it.Key(), []byte(k.input)) {
@@ -314,6 +319,7 @@ func testPutTablesWithPrefix(db Database, t *testing.T) {
 	ops := NewTable(db, "99")
 
 	for _, v := range data {
+		v := v
 		t.Run("PutTablesWithPrefix", func(t *testing.T) {
 			err := ops.Put([]byte(v.input), []byte(v.expected))
 			if err != nil {
@@ -350,6 +356,7 @@ func testDelTablesWithPrefix(db Database, t *testing.T) {
 	ops := NewTable(db, "99")
 
 	for _, v := range data {
+		v := v
 		t.Run("PutTablesWithPrefix", func(t *testing.T) {
 			err := ops.Del([]byte(v.input))
 			if err != nil {
