@@ -25,12 +25,12 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			}
 		case "ext_blake2_256_enumerated_trie_root":
 			return func(vm *exec.VirtualMachine) int64 {
-				log.Debug("executing: %s\n", "ext_blake2_256_enumerated_trie_root")
+				log.Debug("executing: ext_blake2_256_enumerated_trie_root")
 				return 0
 			}
 		case "ext_print_utf8":
 			return func(vm *exec.VirtualMachine) int64 {
-				log.Debug("executing: %s\n", "ext_print_utf8")
+				log.Debug("executing ext_print_utf8")
 				log.Debug("[ext_print_utf8]", "local[0]", vm.GetCurrentFrame().Locals[0], "local[1]", vm.GetCurrentFrame().Locals[1])
 				ptr := int(uint32(vm.GetCurrentFrame().Locals[0]))
 				msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
