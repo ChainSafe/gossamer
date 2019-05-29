@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
+	github.com/docker/docker v1.13.1
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
