@@ -38,16 +38,17 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				key := vm.Memory[keyData:keyData+keyLen]
 				log.Debug("[ext_get_storage_into]", "key", string(key))
 
-				value, err := r.t.Get(key)
-				if err != nil {
-					return 0
-				}
+				// value, err := r.t.Get(key)
+				// if err != nil {
+				// 	return 0
+				// }
 
-				value = value[valueOffset:]
-				paddedVal := padToLen(value, valueLen)
-				log.Debug("[ext_get_storage_into]", "value", paddedVal)
-				copy(vm.Memory[valueData:valueData+valueLen], value)
-				//copy(vm.Memory[valueData:valueData+valueLen], []byte{0xa0, 0, 0, 0})
+				// value = value[valueOffset:]
+				// paddedVal := padToLen(value, valueLen)
+				// log.Debug("[ext_get_storage_into]", "value", paddedVal)
+				//copy(vm.Memory[valueData:valueData+valueLen], value)
+				copy(vm.Memory[valueData:valueData+valueLen], []byte{1, 0, 0, 0})
+				log.Debug("[ext_get_storage_into", "value", vm.Memory[valueData:valueData+valueLen])
 				return 0
 			}
 		case "ext_blake2_256":

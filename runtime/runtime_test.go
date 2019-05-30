@@ -127,8 +127,8 @@ func TestExecAuthorities(t *testing.T) {
 
 	var offset int64 = 1
 	var length int64 = 1
-	copy(r.vm.Memory[offset:offset+length], []byte{4})
-
+	//copy(r.vm.Memory[offset:offset+length], []byte{4})
+	r.vm.Memory[offset] = byte(1)
 	res, err := r.Exec("Core_authorities", offset, length)
 	if err != nil {
 		t.Fatalf("could not exec wasm runtime: %s", err)
