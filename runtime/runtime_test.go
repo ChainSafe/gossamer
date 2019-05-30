@@ -1,13 +1,17 @@
 package runtime
 
 import (
+	"bytes"
 	"io"
+	"crypto/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"golang.org/x/crypto/ed25519"
+	scale "github.com/ChainSafe/gossamer/codec"
 	trie "github.com/ChainSafe/gossamer/trie"
 	//"github.com/ChainSafe/gossamer/polkadb"
 )
@@ -77,6 +81,14 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 	return r, err
 }
 
+func encode(in interface{}) ([]byte, error) {
+	buffer := bytes.Buffer{}
+	se := scale.Encoder{&buffer}
+	_, err := se.Encode(in)
+	output := buffer.Bytes()
+	return output, err
+}
+
 func TestNewVM(t *testing.T) {
 	_, err := newRuntime(t)
 	if err != nil {
@@ -124,6 +136,22 @@ func TestExecAuthorities(t *testing.T) {
 	} else if r == nil {
 		t.Fatal("did not create new VM")
 	}
+
+	pubkey, _, err := ed25519.GenerateKey(rand.Reader)
+	pubkey1, _, err := ed25519.GenerateKey(rand.Reader)
+	pubkey2, _, err := ed25519.GenerateKey(rand.Reader)
+	pubkey3, _, err := ed25519.GenerateKey(rand.Reader)
+
+	authLen, err := encode(int64(1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	r.t.Put([]byte(":auth:len"), authLen)
+	r.t.Put(append([]byte(":auth:"), []byte{0, 0, 0, 0}...), []byte(pubkey))
+	r.t.Put(append([]byte(":auth:"), []byte{1, 0, 0, 0}...), []byte(pubkey1))
+	r.t.Put(append([]byte(":auth:"), []byte{2, 0, 0, 0}...), []byte(pubkey2))
+	r.t.Put(append([]byte(":auth:"), []byte{3, 0, 0, 0}...), []byte(pubkey3))
 
 	var offset int64 = 1
 	var length int64 = 1

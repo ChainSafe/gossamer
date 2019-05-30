@@ -1,7 +1,9 @@
 package runtime
 
 import (
+	"encoding/binary"
 	"fmt"
+
 	exec "github.com/perlin-network/life/exec"
 	log "github.com/inconshreveable/log15"
 	trie "github.com/ChainSafe/gossamer/trie"
@@ -9,7 +11,7 @@ import (
 
 func padToLen(in []byte, l int) []byte {
 	for {
-		if len(in) == l {
+		if len(in) >= l {
 			return in
 		}
 		in = append(in, 0)
@@ -36,21 +38,29 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				log.Debug("[ext_get_storage_into]", "local[0]", keyData, "local[1]", keyLen, "local[2]", valueData, "local[3]", valueLen, "local[4]", valueOffset)
 				
 				key := vm.Memory[keyData:keyData+keyLen]
-				log.Debug("[ext_get_storage_into]", "key", string(key))
+				log.Debug("[ext_get_storage_into]", "key", string(key), "byteskey", key)
 
-				// value, err := r.t.Get(key)
-				// if err != nil {
-				// 	return 0
-				// }
+				value, err := r.t.Get(key)
+				if err != nil {
+					log.Debug("[ext_get_storage_into]", "error", err)
+					return 0
+				}
 
-				// value = value[valueOffset:]
-				// paddedVal := padToLen(value, valueLen)
-				// log.Debug("[ext_get_storage_into]", "value", paddedVal)
-				//copy(vm.Memory[valueData:valueData+valueLen], value)
-				copy(vm.Memory[valueData:valueData+valueLen], []byte{1, 0, 0, 0})
-				log.Debug("[ext_get_storage_into", "value", vm.Memory[valueData:valueData+valueLen])
-				return 0
-			}
+				if valueLen == 0 {
+					return 0
+				}
+
+				value = value[valueOffset:]
+				//paddedVal := padToLen(value, valueLen)
+				//log.Debug("[ext_get_storage_into]", "value", paddedVal)
+				copy(vm.Memory[valueData:valueData+valueLen], value)
+
+				log.Debug("[ext_get_storage_into]", "value", vm.Memory[valueData:valueData+valueLen])
+				ret := int64(binary.LittleEndian.Uint64(padToLen(vm.Memory[valueData:valueData+valueLen], 8)))
+				log.Debug("[ext_get_storage_into]", "returnvalue", ret)
+				return ret
+				//return 4
+			} 
 		case "ext_blake2_256":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_blake2_256")

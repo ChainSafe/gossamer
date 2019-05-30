@@ -3,8 +3,10 @@ package runtime
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io/ioutil"
 
+	log "github.com/inconshreveable/log15"
 	scale "github.com/ChainSafe/gossamer/codec"
 	exec "github.com/perlin-network/life/exec"
 	trie "github.com/ChainSafe/gossamer/trie"
@@ -66,12 +68,14 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 	size := int32(ret >> 32)
 	offset := int32(ret)
 	returnData := r.vm.Memory[offset : offset+size]
+	log.Debug(fmt.Sprintf("call to %s", function), "returndata", returnData)
 		
 	switch function {
 	case "Core_version":
 		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
-		t := []SessionKey{}
+		//t := []SessionKey{}
+		t := [][]byte{{},{}}
 		return decodeToInterface(returnData, &t)
 	case "Core_execute_block":
 		return nil, nil

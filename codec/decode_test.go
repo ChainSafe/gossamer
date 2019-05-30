@@ -176,33 +176,33 @@ var decodeTupleTests = []decodeTupleTest{
 	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
 
 	{val: []byte{0x04, 0x01, 0x04, 0x00}, t: &struct {
-		Foo  []byte
-		Bar  int8
-		Bo   bool
+		Foo []byte
+		Bar int8
+		Bo  bool
 	}{}, output: &struct {
-		Foo  []byte
-		Bar  int8
-		Bo   bool
+		Foo []byte
+		Bar int8
+		Bo  bool
 	}{[]byte{0x01}, 4, false}},
 
 	{val: []byte{0x04, 0x01, 0x05, 0x04, 0x00}, t: &struct {
-		Foo  []byte
-		Bar  int16
-		Bo   bool
+		Foo []byte
+		Bar int16
+		Bo  bool
 	}{}, output: &struct {
-		Foo  []byte
-		Bar  int16
-		Bo   bool
+		Foo []byte
+		Bar int16
+		Bo  bool
 	}{[]byte{0x01}, 1029, false}},
 
 	{val: []byte{0x04, 0x01, 0x02, 0xff, 0xff, 0x01, 0x00}, t: &struct {
-		Foo  []byte
-		Bar  int32
-		Bo   bool
+		Foo []byte
+		Bar int32
+		Bo  bool
 	}{}, output: &struct {
-		Foo  []byte
-		Bar  int32
-		Bo   bool
+		Foo []byte
+		Bar int32
+		Bo  bool
 	}{[]byte{0x01}, 33554178, false}},
 }
 
