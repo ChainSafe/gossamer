@@ -22,6 +22,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	log "github.com/inconshreveable/log15"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -225,15 +226,31 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 	return false, errors.New("cannot decode invalid boolean")
 }
 
+func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
+	switch reflect.ValueOf(t).Elem().Kind() {
+	case reflect.Slice, reflect.Array:
+		return sd.DecodeArray(t)
+	default:
+		return sd.DecodeTuple(t)
+	}
+}
+
 func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	v := reflect.ValueOf(t).Elem()
-	val := reflect.Indirect(reflect.ValueOf(t))
+	//val := reflect.Indirect(reflect.ValueOf(t))
 
 	var err error
 	var o interface{}
 
-	for i := 0; i < v.Len(); i++ {
-		fieldValue := val.Index(i)
+	length, err := sd.DecodeInteger()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("DecodeArray", "length", length)
+
+	for i := 0; i < int(length); i++ {
+		arrayValue := v.Index(i)
 
 		switch v.Index(i).Interface().(type) {
 		case []byte:
@@ -243,15 +260,26 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			}
 
 			// get the pointer to the value and set the value
-			ptr := fieldValue.Addr().Interface().(*[]byte)
+			ptr := arrayValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
+		case [32]byte:
+			log.Debug("DecodeArray", "case [32]byte", length)
+			buf := make([]byte, 32)
+
+			ptr := arrayValue.Addr().Interface().(*[32]byte)
+			_, err = sd.Reader.Read(buf)
+			log.Debug("DecodeArray", "decoded [32]byte", buf)
+
+			var arr = [32]byte{}
+			copy(arr[:], buf)
+			*ptr = arr
 		case int8:
 			o, err = sd.DecodeFixedWidthInt(int8(0))
 			if err != nil {
 				break
 			}
 
-			ptr := fieldValue.Addr().Interface().(*int8)
+			ptr := arrayValue.Addr().Interface().(*int8)
 			oint := o.(int)
 			*ptr = int8(oint)
 		case int16:
@@ -260,7 +288,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				break
 			}
 
-			ptr := fieldValue.Addr().Interface().(*int16)
+			ptr := arrayValue.Addr().Interface().(*int16)
 			oint := o.(int)
 			*ptr = int16(oint)
 		case int32:
@@ -269,7 +297,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				break
 			}
 
-			ptr := fieldValue.Addr().Interface().(*int32)
+			ptr := arrayValue.Addr().Interface().(*int32)
 			oint := o.(int)
 			*ptr = int32(oint)
 		case int64:
@@ -278,7 +306,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				break
 			}
 
-			ptr := fieldValue.Addr().Interface().(*int64)
+			ptr := arrayValue.Addr().Interface().(*int64)
 			*ptr = o.(int64)
 		case bool:
 			o, err = sd.DecodeBool()
@@ -286,7 +314,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				break
 			}
 
-			ptr := fieldValue.Addr().Interface().(*bool)
+			ptr := arrayValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
 		default:
 			_, err = sd.Decode(v.Field(i).Interface())
@@ -301,15 +329,6 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	}
 
 	return t, err
-}
-
-func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
-	switch reflect.ValueOf(t).Elem().Kind() {
-	case reflect.Slice, reflect.Array:
-		return sd.DecodeArray(t)
-	default:
-		return sd.DecodeTuple(t)
-	}
 }
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer

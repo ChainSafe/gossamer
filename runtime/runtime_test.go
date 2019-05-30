@@ -2,17 +2,17 @@ package runtime
 
 import (
 	"bytes"
-	"io"
 	"crypto/rand"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
-	"golang.org/x/crypto/ed25519"
 	scale "github.com/ChainSafe/gossamer/codec"
 	trie "github.com/ChainSafe/gossamer/trie"
+	"golang.org/x/crypto/ed25519"
 	//"github.com/ChainSafe/gossamer/polkadb"
 )
 
@@ -42,16 +42,16 @@ func getRuntimeBlob() (n int64, err error) {
 
 // Exists reports whether the named file or directory exists.
 func Exists(name string) bool {
-    if _, err := os.Stat(name); err != nil {
-        if os.IsNotExist(err) {
-            return false
-        }
-    }
-    return true
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 func newEmpty() *trie.Trie {
-	db := &trie.Database {
+	db := &trie.Database{
 		//db: polkadb.NewMemDatabase(),
 	}
 	t := trie.NewEmptyTrie(db)
@@ -146,7 +146,7 @@ func TestExecAuthorities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	r.t.Put([]byte(":auth:len"), authLen)
 	r.t.Put(append([]byte(":auth:"), []byte{0, 0, 0, 0}...), []byte(pubkey))
 	r.t.Put(append([]byte(":auth:"), []byte{1, 0, 0, 0}...), []byte(pubkey1))

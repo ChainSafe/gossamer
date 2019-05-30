@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	log "github.com/inconshreveable/log15"
 	scale "github.com/ChainSafe/gossamer/codec"
-	exec "github.com/perlin-network/life/exec"
 	trie "github.com/ChainSafe/gossamer/trie"
+	log "github.com/inconshreveable/log15"
+	exec "github.com/perlin-network/life/exec"
 )
 
 var (
@@ -22,7 +22,7 @@ type SessionKey [32]byte
 
 type Runtime struct {
 	vm *exec.VirtualMachine
-	t *trie.Trie
+	t  *trie.Trie
 	// TODO: memory management on top of wasm memory buffer
 }
 
@@ -48,7 +48,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 	return &Runtime{
 		vm: vm,
-		t: t,
+		t:  t,
 	}, err
 }
 
@@ -68,14 +68,14 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 	size := int32(ret >> 32)
 	offset := int32(ret)
 	returnData := r.vm.Memory[offset : offset+size]
-	log.Debug(fmt.Sprintf("call to %s", function), "returndata", returnData)
-		
+	log.Debug(fmt.Sprintf("call to %s", function), "returndata", returnData, "returndatalen", len(returnData))
+
 	switch function {
 	case "Core_version":
 		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
 		//t := []SessionKey{}
-		t := [][]byte{{},{}}
+		t := make([][32]byte, 4)
 		return decodeToInterface(returnData, &t)
 	case "Core_execute_block":
 		return nil, nil

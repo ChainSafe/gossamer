@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	exec "github.com/perlin-network/life/exec"
-	log "github.com/inconshreveable/log15"
 	trie "github.com/ChainSafe/gossamer/trie"
+	log "github.com/inconshreveable/log15"
+	exec "github.com/perlin-network/life/exec"
 )
 
 func padToLen(in []byte, l int) []byte {
@@ -18,7 +18,7 @@ func padToLen(in []byte, l int) []byte {
 	}
 }
 
-type Resolver struct{
+type Resolver struct {
 	t *trie.Trie
 }
 
@@ -36,8 +36,8 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				valueLen := int(uint32(vm.GetCurrentFrame().Locals[3]))
 				valueOffset := int(uint32(vm.GetCurrentFrame().Locals[4]))
 				log.Debug("[ext_get_storage_into]", "local[0]", keyData, "local[1]", keyLen, "local[2]", valueData, "local[3]", valueLen, "local[4]", valueOffset)
-				
-				key := vm.Memory[keyData:keyData+keyLen]
+
+				key := vm.Memory[keyData : keyData+keyLen]
 				log.Debug("[ext_get_storage_into]", "key", string(key), "byteskey", key)
 
 				value, err := r.t.Get(key)
@@ -60,7 +60,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				log.Debug("[ext_get_storage_into]", "returnvalue", ret)
 				return ret
 				//return 4
-			} 
+			}
 		case "ext_blake2_256":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_blake2_256")
