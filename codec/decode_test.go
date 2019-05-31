@@ -23,6 +23,9 @@ import (
 	"testing"
 )
 
+var byteArray32 = [32]byte{}
+var byteArray64 = [64]byte{}
+
 type reverseByteTest struct {
 	val    []byte
 	output []byte
@@ -216,6 +219,8 @@ var decodeArrayTests = []decodeArrayTest{
 	{val: []byte{0x00}, t: []bool{}, output: []bool{}},
 	{val: []byte{0x0c, 0x01, 0x00, 0x01}, t: []bool{}, output: []bool{true, false, true}},
 	{val: []byte{0x08, 0x00, 0x04}, t: []*big.Int{}, output: []*big.Int{big.NewInt(0), big.NewInt(1)}},
+	{val: append([]byte{0x8}, byteArray64[:]...), t: [][32]byte{{},{}}, output: [][32]byte{byteArray32, byteArray32}},
+	{val: []byte{0x4, 0x04, 0x01}, t: [][]byte{{}}, output: [][]byte{{0x01}} },
 }
 
 var reverseByteTests = []reverseByteTest{

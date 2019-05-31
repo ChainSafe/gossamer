@@ -23,7 +23,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	log "github.com/inconshreveable/log15"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -56,8 +55,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.DecodeByteArray()
 	case bool:
 		out, err = sd.DecodeBool()
-	case []interface{}:
-		out, err = sd.DecodeByteArrayArray()
+	// case []interface{}:
+	// 	out, err = sd.DecodeByteArrayArray()
 	case []int:
 		out, err = sd.DecodeIntArray()
 	case []bool:
@@ -240,7 +239,7 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 }
 
 func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
-	switch reflect.ValueOf(t).Elem().Kind() {
+	switch reflect.ValueOf(t).Kind() {
 	case reflect.Slice, reflect.Array:
 		return sd.DecodeArray(t)
 	default:
@@ -249,8 +248,7 @@ func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 }
 
 func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
-	v := reflect.ValueOf(t).Elem()
-	//val := reflect.Indirect(reflect.ValueOf(t))
+	v := reflect.ValueOf(t)
 
 	var err error
 	var o interface{}
@@ -259,8 +257,6 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug("DecodeArray", "length", length)
 
 	for i := 0; i < int(length); i++ {
 		arrayValue := v.Index(i)
@@ -276,64 +272,15 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			ptr := arrayValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
 		case [32]byte:
-			log.Debug("DecodeArray", "case [32]byte", length)
 			buf := make([]byte, 32)
-
 			ptr := arrayValue.Addr().Interface().(*[32]byte)
 			_, err = sd.Reader.Read(buf)
-			log.Debug("DecodeArray", "decoded [32]byte", buf)
 
 			var arr = [32]byte{}
 			copy(arr[:], buf)
 			*ptr = arr
-		case int8:
-			o, err = sd.DecodeFixedWidthInt(int8(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int8)
-			oint := o.(int)
-			*ptr = int8(oint)
-		case int16:
-			o, err = sd.DecodeFixedWidthInt(int16(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int16)
-			oint := o.(int)
-			*ptr = int16(oint)
-		case int32:
-			o, err = sd.DecodeFixedWidthInt(int32(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int32)
-			oint := o.(int)
-			*ptr = int32(oint)
-		case int64:
-			o, err = sd.DecodeInteger()
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int64)
-			*ptr = o.(int64)
-		case bool:
-			o, err = sd.DecodeBool()
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*bool)
-			*ptr = o.(bool)
 		default:
-			_, err = sd.Decode(v.Field(i).Interface())
-			if err != nil {
-				break
-			}
+			err = errors.New("could not decode invalid slice or array")
 		}
 
 		if err != nil {
