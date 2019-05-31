@@ -16,6 +16,17 @@
 
 package common
 
+import (
+	"encoding/hex"
+)
+
+// HexToBytes turns a 0x prefixed hex string into a byte array
+func HexToBytes(in string) ([]byte, error) {
+	in = in[2:]
+	out, err := hex.DecodeString(in)
+	return out, err
+}
+
 // Concat concatenates two byte arrays
 // used instead of append to prevent modifying the original byte array
 func Concat(s1 []byte, s2 ...byte) []byte {

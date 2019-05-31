@@ -21,6 +21,25 @@ import (
 	"testing"
 )
 
+func TestHexToBytes(t *testing.T) {
+	tests := []struct {
+		in string
+		out []byte
+	}{
+		{"0x0fc1", []byte{0x0f, 0xc1}},
+		{"0x00", []byte{0x0}},
+	}
+
+	for _, test := range tests {
+		res, err := HexToBytes(test.in)
+		if err != nil {
+			t.Errorf("Fail: error %s", err)
+		} else if !bytes.Equal(res, test.out) {
+			t.Errorf("Fail: got %x expected %x", res, test.out)
+		}
+	}
+}
+
 type concatTest struct {
 	a, b   []byte
 	output []byte
@@ -101,5 +120,4 @@ func TestSwapNibbles(t *testing.T) {
 			t.Fatalf("Re-encoding failed. got: %x expected: %x", res, test.key)
 		}
 	}
-
 }

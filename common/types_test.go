@@ -18,5 +18,6 @@ func TestHashBlockHeader(t *testing.T) {
 	if err != nil {
 		t.Errorf("Fail: could not hash block header: %s", err)
 	}
+	
 	t.Log(hash)
 }
