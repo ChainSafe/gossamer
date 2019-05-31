@@ -17,6 +17,7 @@
 package codec
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -28,6 +29,18 @@ import (
 // Decoder is a wrapping around io.Reader
 type Decoder struct {
 	Reader io.Reader
+}
+
+func Decode(in []byte, t interface{}) (interface{}, error) {
+	buf := &bytes.Buffer{}
+	sd := Decoder{Reader: buf}
+	_, err := buf.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := sd.Decode(t)
+	return output, err
 }
 
 // Decode is the high level function wrapping the specific type decoding functions
