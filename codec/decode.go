@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	//log "github.com/inconshreveable/log15"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -237,7 +238,14 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 }
 
 func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
-	switch reflect.ValueOf(t).Elem().Kind() {
+	switch reflect.ValueOf(t).Kind() {
+	case reflect.Ptr:
+		switch reflect.ValueOf(t).Elem().Kind() {
+			case reflect.Slice, reflect.Array:
+				return sd.DecodeArray(t)
+			default:
+				return sd.DecodeTuple(t)
+		}
 	case reflect.Slice, reflect.Array:
 		return sd.DecodeArray(t)
 	default:
@@ -245,8 +253,15 @@ func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 	}
 }
 
+
 func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
-	v := reflect.ValueOf(t).Elem()
+	var v reflect.Value
+	switch reflect.ValueOf(t).Kind() {
+	case reflect.Ptr:
+		v = reflect.ValueOf(t).Elem()
+	case reflect.Slice, reflect.Array:
+		v = reflect.ValueOf(t)
+	}
 
 	var err error
 	var o interface{}
@@ -277,49 +292,6 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
 			*ptr = arr
-		case int8:
-			o, err = sd.DecodeFixedWidthInt(int8(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int8)
-			oint := o.(int)
-			*ptr = int8(oint)
-		case int16:
-			o, err = sd.DecodeFixedWidthInt(int16(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int16)
-			oint := o.(int)
-			*ptr = int16(oint)
-		case int32:
-			o, err = sd.DecodeFixedWidthInt(int32(0))
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int32)
-			oint := o.(int)
-			*ptr = int32(oint)
-		case int64:
-			o, err = sd.DecodeInteger()
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*int64)
-			*ptr = o.(int64)
-		case bool:
-			o, err = sd.DecodeBool()
-			if err != nil {
-				break
-			}
-
-			ptr := arrayValue.Addr().Interface().(*bool)
-			*ptr = o.(bool)
 		default:
 			err = errors.New("could not decode invalid slice or array")
 		}
@@ -331,6 +303,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 
 	return t, err
 }
+
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
 // to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the

@@ -34,10 +34,10 @@ func newTrie() (*Trie, error) {
 }
 
 func (t *Trie) closeDb() {
-    t.db.db.Close()
-    if err := os.RemoveAll("./gossamer_data"); err != nil {
-        fmt.Println("removal of temp directory gossamer_data failed")
-    }
+	t.db.db.Close()
+	if err := os.RemoveAll("./gossamer_data"); err != nil {
+		fmt.Println("removal of temp directory gossamer_data failed")
+	}
 }
 
 func TestWriteToDB(t *testing.T) {

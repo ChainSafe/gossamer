@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/inconshreveable/log15"
 	exec "github.com/perlin-network/life/exec"
@@ -45,7 +46,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				copy(vm.Memory[valueData:valueData+valueLen], value)
 
 				log.Debug("[ext_get_storage_into]", "value", vm.Memory[valueData:valueData+valueLen])
-				ret := int64(binary.LittleEndian.Uint64(padToLen(vm.Memory[valueData:valueData+valueLen], 8)))
+				ret := int64(binary.LittleEndian.Uint64(common.AppendZeroes(vm.Memory[valueData:valueData+valueLen], 8)))
 				log.Debug("[ext_get_storage_into]", "returnvalue", ret)
 				return ret
 			}
