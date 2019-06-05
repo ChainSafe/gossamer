@@ -4,7 +4,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-func Hash(in []byte) ([32]byte, error) {
+func Blake2bHash(in []byte) ([32]byte, error) {
 	h, err := blake2b.New256(nil)
 	if err != nil {
 		return [32]byte{}, err

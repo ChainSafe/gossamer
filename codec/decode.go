@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"reflect"
 	//log "github.com/inconshreveable/log15"
+	//"github.com/ChainSafe/gossamer/common"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -250,7 +251,6 @@ func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 
 func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	v := reflect.ValueOf(t).Elem()
-	//val := reflect.Indirect(reflect.ValueOf(t))
 
 	var err error
 	var o interface{}
