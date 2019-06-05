@@ -321,10 +321,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			ptr := arrayValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
 		default:
-			_, err = sd.Decode(v.Field(i).Interface())
-			if err != nil {
-				break
-			}
+			err = errors.New("could not decode invalid slice or array")
 		}
 
 		if err != nil {

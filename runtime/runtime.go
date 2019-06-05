@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"bytes"
+	//"encoding/binary"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -17,8 +18,6 @@ var (
 	DEFAULT_TABLE_SIZE           = 655360
 	DEFAULT_MAX_CALL_STACK_DEPTH = 0
 )
-
-type SessionKey [32]byte
 
 type Runtime struct {
 	vm *exec.VirtualMachine
@@ -74,8 +73,11 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 	case "Core_version":
 		return decodeToInterface(returnData, &Version{})
 	case "Core_authorities":
-		//t := []SessionKey{}
-		t := make([][32]byte, 4)
+		authLen, err := scale.Decode(returnData, int64(0))
+		if err != nil {
+			return nil, err
+		}
+		t := make([][32]byte, authLen.(int64))
 		return decodeToInterface(returnData, &t)
 	case "Core_execute_block":
 		return nil, nil

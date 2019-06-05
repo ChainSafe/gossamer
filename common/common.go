@@ -53,14 +53,13 @@ func Uint16ToBytes(in uint16) (out []byte) {
 	return out
 }
 
-// AppendZeroes appends zeroes to the input byte array up until it has length size
-func AppendZeroes(input []byte, size int) []byte {
+// AppendZeroes appends zeroes to the input byte array up until it has length l
+func AppendZeroes(in []byte, l int) []byte {
 	for {
-		if len(input) < 32 {
-			input = append(input, 0)
-		} else {
-			return input
+		if len(in) >= l {
+			return in
 		}
+		in = append(in, 0)
 	}
 }
 

@@ -9,15 +9,6 @@ import (
 	exec "github.com/perlin-network/life/exec"
 )
 
-func padToLen(in []byte, l int) []byte {
-	for {
-		if len(in) >= l {
-			return in
-		}
-		in = append(in, 0)
-	}
-}
-
 type Resolver struct {
 	t *trie.Trie
 }
@@ -51,8 +42,6 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				}
 
 				value = value[valueOffset:]
-				//paddedVal := padToLen(value, valueLen)
-				//log.Debug("[ext_get_storage_into]", "value", paddedVal)
 				copy(vm.Memory[valueData:valueData+valueLen], value)
 
 				log.Debug("[ext_get_storage_into]", "value", vm.Memory[valueData:valueData+valueLen])

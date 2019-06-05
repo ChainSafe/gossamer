@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	//"bytes"
 	"crypto/rand"
 	"io"
 	"net/http"
@@ -10,11 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	scale "github.com/ChainSafe/gossamer/codec"
 	trie "github.com/ChainSafe/gossamer/trie"
 	"golang.org/x/crypto/ed25519"
-	//"github.com/ChainSafe/gossamer/polkadb"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
@@ -52,9 +49,7 @@ func Exists(name string) bool {
 }
 
 func newEmpty() *trie.Trie {
-	db := &trie.Database{
-		//db: polkadb.NewMemDatabase(),
-	}
+	db := &trie.Database{}
 	t := trie.NewEmptyTrie(db)
 	return t
 }
@@ -139,66 +134,7 @@ func TestExecAuthorities(t *testing.T) {
 	r.t.Put(append([]byte(":auth:"), []byte{2, 0, 0, 0}...), []byte(pubkey2))
 	r.t.Put(append([]byte(":auth:"), []byte{3, 0, 0, 0}...), []byte(pubkey3))
 
-	var offset int64 = 1
-	var length int64 = 1
-	copy(r.vm.Memory[offset:offset+length], []byte{1})
-	res, err := r.Exec("Core_authorities", offset, length)
-	if err != nil {
-		t.Fatalf("could not exec wasm runtime: %s", err)
-	}
-
-	t.Logf("%v\n", res)
-}
-
-func TestExecInitializeBlock(t *testing.T) {
-	// ph, err := common.HexToHash("0x8550326cee1e1b768a254095b412e0db58523c2b5df9b7d2540b4513d475ce7f")
-	// if err != nil {
-	// 	t.Fatalf("Fail when decoding parent hash: %s", err)
-	// }
-	// sr, err := common.HexToHash("0x1d9d01423a90032ac600d1e2ff0a54634760d0ae0941cfab855c69bef38689d2")
-	// if err != nil {
-	// 	t.Fatalf("Fail when decoding state root: %s", err)
-	// }	
-	// er, err := common.HexToHash("0x118a02e06882254b1d24417d4df4dca6a7b8754e42f5b24419f7170a0de6d027")
-	// if err != nil {
-	// 	t.Fatalf("Fail when decoding extrinsics root: %s", err)
-	// }
-
-	// header := &common.BlockHeader{
-	// 	ParentHash: ph,
-	// 	Number: big.NewInt(1570578),
-	// 	StateRoot: sr,
-	// 	ExtrinsicsRoot: er,
-	// 	Digest: []byte{},
-	// }
-
-	// encHeader, err := scale.Encode(*header)
-	// if err != nil {
-	// 	t.Fatalf("Fail: could not encode header: %s", err)
-	// }
-
-	encHeader, err := common.HexToBytes("0x9aa25e4c67a8a7e1d77572e4c3b97ca8110df952cfc3d345cec5e88cb1e3a96f01dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0489d0e979afb54e4ba041e942c252fefd83b94b4c8e71821bdf663347fe169eaaf6ae75ee1f0895eebee8bc19f5b68fea145ffee1102d00c83950e5a70f907490040330295a0f000000007ea5fce566f9fd4ec6eb49208b420d654a219e4fc3d56caff6ba8c3a7df6fbba950c4b867a8177adac98dc4e37c8c631ceb63fdbe4a8e51fbc1968413277b00c0108200100000320f71c5c10010b0000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r, err := newRuntime(t)
-	if err != nil {
-		t.Fatal(err)
-	} else if r == nil {
-		t.Fatal("did not create new VM")
-	}
-
-
-	var offset int64 = 1049000
-	var length int64 = int64(len(encHeader))
-	copy(r.vm.Memory[offset:offset+length], encHeader)
-
-	//fr := r.vm.GetCurrentFrame()
-	//copy(fr.Locals, []int64{offset, length})
-	//r.vm.Ignite(344, offset, length)
-
-	res, err := r.Exec("Core_initialise_block", offset, length)
+	res, err := r.Exec("Core_authorities", 0, 0)
 	if err != nil {
 		t.Fatalf("could not exec wasm runtime: %s", err)
 	}
