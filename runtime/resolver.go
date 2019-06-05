@@ -59,7 +59,6 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				ret := int64(binary.LittleEndian.Uint64(padToLen(vm.Memory[valueData:valueData+valueLen], 8)))
 				log.Debug("[ext_get_storage_into]", "returnvalue", ret)
 				return ret
-				//return 4
 			}
 		case "ext_blake2_256":
 			return func(vm *exec.VirtualMachine) int64 {
@@ -68,7 +67,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			}
 		case "ext_blake2_256_enumerated_trie_root":
 			return func(vm *exec.VirtualMachine) int64 {
-				log.Debug("executing ext_blake2_256_enumerated_trie_root")
+				log.Debug("executing: ext_blake2_256_enumerated_trie_root")
 				return 0
 			}
 		case "ext_print_utf8":

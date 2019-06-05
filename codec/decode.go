@@ -242,6 +242,9 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 
 func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 	switch reflect.ValueOf(t).Elem().Kind() {
+// =======
+// 	switch reflect.ValueOf(t).Kind() {
+// >>>>>>> 38c536d1904852bb061f3cb3291a1fbe42153b70
 	case reflect.Slice, reflect.Array:
 		return sd.DecodeArray(t)
 	default:

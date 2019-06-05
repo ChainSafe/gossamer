@@ -1,10 +1,9 @@
 package runtime
 
 import (
-	"bytes"
+	//"bytes"
 	"crypto/rand"
 	"io"
-	//"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -83,21 +82,6 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 	return r, err
 }
 
-func encode(in interface{}) ([]byte, error) {
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{&buffer}
-	_, err := se.Encode(in)
-	output := buffer.Bytes()
-	return output, err
-}
-
-func TestNewVM(t *testing.T) {
-	_, err := newRuntime(t)
-	if err != nil {
-		t.Errorf("Fail: could not create new runtime: %s", err)
-	}
-}
-
 func TestExecVersion(t *testing.T) {
 	expected := &Version{
 		Spec_name:         []byte("polkadot"),
@@ -144,7 +128,7 @@ func TestExecAuthorities(t *testing.T) {
 	pubkey2, _, err := ed25519.GenerateKey(rand.Reader)
 	pubkey3, _, err := ed25519.GenerateKey(rand.Reader)
 
-	authLen, err := encode(int64(1))
+	authLen, err := scale.Encode(int64(1))
 	if err != nil {
 		t.Fatal(err)
 	}
