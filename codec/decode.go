@@ -23,7 +23,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	//log "github.com/inconshreveable/log15"
 )
 
 // Decoder is a wrapping around io.Reader
