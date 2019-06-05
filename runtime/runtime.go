@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	trie "github.com/ChainSafe/gossamer/trie"
