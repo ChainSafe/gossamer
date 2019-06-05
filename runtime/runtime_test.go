@@ -119,9 +119,21 @@ func TestExecAuthorities(t *testing.T) {
 	}
 
 	pubkey, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 	pubkey1, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 	pubkey2, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 	pubkey3, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	authLen, err := scale.Encode(int64(1))
 	if err != nil {
