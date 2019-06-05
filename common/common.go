@@ -20,11 +20,20 @@ import (
 	"encoding/hex"
 )
 
-// HexToBytes turns a 0x prefixed hex string into a byte array
+// HexToBytes turns a 0x prefixed hex string into a byte slice
 func HexToBytes(in string) ([]byte, error) {
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	return out, err
+}
+
+// HexToBytes turns a 0x prefixed hex string into a byte array
+func HexToHash(in string) ([32]byte, error) {
+	in = in[2:]
+	out, err := hex.DecodeString(in)
+	var buf = [32]byte{}
+	copy(buf[:], out)
+	return buf, err
 }
 
 // Concat concatenates two byte arrays

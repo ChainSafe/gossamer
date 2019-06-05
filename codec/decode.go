@@ -23,7 +23,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	log "github.com/inconshreveable/log15"
+	//log "github.com/inconshreveable/log15"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -260,7 +260,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	log.Debug("DecodeArray", "length", length)
+	//log.Debug("DecodeArray", "length", length)
 
 	for i := 0; i < int(length); i++ {
 		arrayValue := v.Index(i)
@@ -276,12 +276,12 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			ptr := arrayValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
 		case [32]byte:
-			log.Debug("DecodeArray", "case [32]byte", length)
+			//log.Debug("DecodeArray", "case [32]byte", length)
 			buf := make([]byte, 32)
 
 			ptr := arrayValue.Addr().Interface().(*[32]byte)
 			_, err = sd.Reader.Read(buf)
-			log.Debug("DecodeArray", "decoded [32]byte", buf)
+			//log.Debug("DecodeArray", "decoded [32]byte", buf)
 
 			var arr = [32]byte{}
 			copy(arr[:], buf)

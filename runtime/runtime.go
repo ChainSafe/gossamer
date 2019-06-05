@@ -80,7 +80,7 @@ func (r *Runtime) Exec(function string, param1, param2 int64) (interface{}, erro
 	case "Core_execute_block":
 		return nil, nil
 	case "Core_initialise_block":
-		return nil, nil
+		return returnData, nil
 	default:
 		return nil, nil
 	}
