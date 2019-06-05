@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"bytes"
-	//"encoding/binary"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -22,7 +21,6 @@ var (
 type Runtime struct {
 	vm *exec.VirtualMachine
 	t  *trie.Trie
-	// TODO: memory management on top of wasm memory buffer
 }
 
 type Version struct {
