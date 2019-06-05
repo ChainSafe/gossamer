@@ -27,8 +27,8 @@ func HexToBytes(in string) ([]byte, error) {
 	return out, err
 }
 
-// HexToBytes turns a 0x prefixed hex string into a byte array
-func HexToHash(in string) ([32]byte, error) {
+// HexToBytes turns a 0x prefixed hex string into type Hash
+func HexToHash(in string) (Hash, error) {
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	var buf = [32]byte{}

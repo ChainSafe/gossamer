@@ -23,8 +23,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	//log "github.com/inconshreveable/log15"
-	//"github.com/ChainSafe/gossamer/common"
 )
 
 // Decoder is a wrapping around io.Reader
@@ -240,9 +238,6 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 
 func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 	switch reflect.ValueOf(t).Elem().Kind() {
-// =======
-// 	switch reflect.ValueOf(t).Kind() {
-// >>>>>>> 38c536d1904852bb061f3cb3291a1fbe42153b70
 	case reflect.Slice, reflect.Array:
 		return sd.DecodeArray(t)
 	default:
@@ -261,8 +256,6 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	//log.Debug("DecodeArray", "length", length)
-
 	for i := 0; i < int(length); i++ {
 		arrayValue := v.Index(i)
 
@@ -277,12 +270,9 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			ptr := arrayValue.Addr().Interface().(*[]byte)
 			*ptr = o.([]byte)
 		case [32]byte:
-			//log.Debug("DecodeArray", "case [32]byte", length)
 			buf := make([]byte, 32)
-
 			ptr := arrayValue.Addr().Interface().(*[32]byte)
 			_, err = sd.Reader.Read(buf)
-			//log.Debug("DecodeArray", "decoded [32]byte", buf)
 
 			var arr = [32]byte{}
 			copy(arr[:], buf)
