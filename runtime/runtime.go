@@ -32,7 +32,7 @@ type Version struct {
 }
 
 func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
-	input, err := ioutil.ReadFile(fp)
+	input, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
