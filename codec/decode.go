@@ -57,8 +57,6 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.DecodeByteArray()
 	case bool:
 		out, err = sd.DecodeBool()
-	case []interface{}:
-		out, err = sd.DecodeByteArrayArray()
 	case []int:
 		out, err = sd.DecodeIntArray()
 	case []bool:
@@ -431,27 +429,6 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	}
 
 	return t, err
-}
-
-func (sd *Decoder) DecodeByteArrayArray() ([][32]byte, error) {
-	length, err := sd.DecodeInteger()
-	if err != nil {
-		return nil, err
-	}
-
-	o := make([][32]byte, length)
-	for i := range o {
-		var t []byte
-		t, err := sd.DecodeByteArray()
-		var tt [32]byte
-		copy(tt[:], t)
-		o[i] = tt
-		if err != nil {
-			break
-		}
-	}
-
-	return o, nil
 }
 
 // DecodeIntArray decodes a byte array to an array of ints
