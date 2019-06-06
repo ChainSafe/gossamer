@@ -79,4 +79,6 @@ go test -v ./...
 ## License
 _GNU General Public License v3.0_
 
-<img align="center" src=".github/gopher.png">
+<p align="center">
+	<img src=".github/gopher.png">
+</p>
