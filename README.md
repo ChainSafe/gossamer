@@ -1,4 +1,4 @@
-  ![gossamer logo](/.github/Gossamer_logo.png)
+  ![gossamer logo](/.github/gossamer_logo.png)
 
  ## Golang Polkadot Runtime Environment Implementation  
 
