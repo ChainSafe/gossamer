@@ -71,14 +71,12 @@ docker run chainsafe/gossamer
 ```
 go test -v ./...
 ```
-<img style="float:left;" src=".github/gopher.png">
 
-<div style="float:right;">
-	
 ## Contributing
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 - Have questions? Say hi on [Gitter](https://gitter.im/chainsafe/gossamer)!
 
 ## License
 _GNU General Public License v3.0_
-</div>
+
+<img align="center" src=".github/gopher.png">
