@@ -1,5 +1,7 @@
  # gossamer
  
+ ![gossamer logo](/.github/Gossamer_logo.png)
+
  ## Golang Polkadot Runtime Environment Implementation  
 
 [![GoDoc](https://godoc.org/github.com/ChainSafe/gossamer?status.svg)](https://godoc.org/github.com/ChainSafe/gossamer)
@@ -11,6 +13,24 @@
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
 [![](https://img.shields.io/twitter/follow/espadrine.svg?label=Follow&style=social)](https://twitter.com/chainsafeth)
 
+gossamer is an implementation of the [Polkadot Runtime Environment](https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf) written in Go. The Polkadot Runtime Environment is a modular, customizable framework for building blockchains. It has a swappable WASM runtime (ie. state transition function) that can be replaced even after the blockchain has launched without hard forks. It also has a generic extrinsic and block format which are specified in the runtime. The runtime can be written in any language that compiles to WASM. 
+
+Our packages:
+
+* cmd: command-line interface for gossamer
+* codec: SCALE codec; used for encoding and decoding 
+* common: commonly used types and functions
+* config: client configuration
+* dot: wraps other packages to allow a complete client 
+* internal: internal RPC functions
+* p2p: peer-to-peer service using libp2p
+* polkadb: database implemenation using badgerDB
+* rpc: RPC server
+* runtime: WASM runtime integration using the life interpreter
+* trie: implementation of a modified Merkle-Patricia trie
+
+## Dependencies
+go 1.12
 
 ## Install
 
@@ -51,6 +71,7 @@ docker run chainsafe/gossamer
 ```
 go test -v ./...
 ```
+<img style="float:left;" src=".github/gopher.png">
 
 ## Contributing
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
@@ -58,4 +79,3 @@ go test -v ./...
 
 ## License
 _GNU General Public License v3.0_
-
