@@ -1,6 +1,4 @@
- # gossamer
- 
- ![gossamer logo](/.github/Gossamer_logo.png)
+  ![gossamer logo](/.github/Gossamer_logo.png)
 
  ## Golang Polkadot Runtime Environment Implementation  
 
@@ -17,17 +15,19 @@ gossamer is an implementation of the [Polkadot Runtime Environment](https://gith
 
 Our packages:
 
-* cmd: command-line interface for gossamer
-* codec: SCALE codec; used for encoding and decoding 
-* common: commonly used types and functions
-* config: client configuration
-* dot: wraps other packages to allow a complete client 
-* internal: internal RPC functions
-* p2p: peer-to-peer service using libp2p
-* polkadb: database implemenation using badgerDB
-* rpc: RPC server
-* runtime: WASM runtime integration using the life interpreter
-* trie: implementation of a modified Merkle-Patricia trie
+| package | description |
+|-|-|
+| `cmd` | command-line interface for gossamer |
+| `codec` | SCALE codec; used for encoding and decoding |
+| `common` | commonly used types and functions |
+| `config` | client configuration |
+| `dot` | wraps other packages to allow a complete client |
+| `internal` | internal RPC functions |
+| `p2p` | peer-to-peer service using libp2p |
+| `polkadb` | database implemenation using badgerDB |
+| `rpc` | RPC server |
+| `runtime` | WASM runtime integration using the life interpreter |
+| `trie` | implementation of a modified Merkle-Patricia trie |
 
 ## Dependencies
 go 1.12
@@ -73,9 +73,11 @@ go test -v ./...
 ```
 <img style="float:left;" src=".github/gopher.png">
 
+<div style="float:right;">
 ## Contributing
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 - Have questions? Say hi on [Gitter](https://gitter.im/chainsafe/gossamer)!
 
 ## License
 _GNU General Public License v3.0_
+</div>
