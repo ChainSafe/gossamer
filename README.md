@@ -74,6 +74,7 @@ go test -v ./...
 <img style="float:left;" src=".github/gopher.png">
 
 <div style="float:right;">
+	
 ## Contributing
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 - Have questions? Say hi on [Gitter](https://gitter.im/chainsafe/gossamer)!
