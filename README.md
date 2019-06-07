@@ -76,6 +76,10 @@ go test -v ./...
 - Check out our contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)  
 - Have questions? Say hi on [Gitter](https://gitter.im/chainsafe/gossamer)!
 
+## Donations
+Our work on gossamer is funded by grants. If you'd like to donate, you can send us ETH at the following address:
+`0x764001D60E69f0C3D0b41B0588866cFaE796972c`
+
 ## License
 _GNU General Public License v3.0_
 
