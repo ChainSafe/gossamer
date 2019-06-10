@@ -1,6 +1,23 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package codec
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -13,6 +30,14 @@ type Encoder struct {
 	Writer io.Writer
 }
 
+func Encode(in interface{}) ([]byte, error) {
+	buffer := bytes.Buffer{}
+	se := Encoder{&buffer}
+	_, err := se.Encode(in)
+	output := buffer.Bytes()
+	return output, err
+}
+
 // Encode is the top-level function which performs SCALE encoding of b which may be of type []byte, int16, int32, int64,
 // or bool
 func (se *Encoder) Encode(b interface{}) (n int, err error) {
@@ -22,9 +47,9 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case *big.Int:
 		n, err = se.encodeBigInteger(v)
 	case int16:
-		n, err = se.encodeInteger(int(v))
+		n, err = se.encodeFixedWidthInteger(int(v))
 	case int32:
-		n, err = se.encodeInteger(int(v))
+		n, err = se.encodeFixedWidthInteger(int(v))
 	case int64:
 		n, err = se.encodeInteger(int(v))
 	case string:
@@ -62,6 +87,25 @@ func (se *Encoder) encodeByteArray(b []byte) (bytesEncoded int, err error) {
 	bytesEncoded = bytesEncoded + n
 	n, err = se.Writer.Write(b)
 	return bytesEncoded + n, err
+}
+
+// encodeFixedWidthInteger encodes an int with size < 2**32 by putting it into little endian byte format
+func (se *Encoder) encodeFixedWidthInteger(i int) (bytesEncoded int, err error) {
+	if i >= 1<<32 {
+		return 0, errors.New("error encoding fixed width int: int greater than 32 bits")
+	}
+
+	if i < 1<<8 {
+		err = binary.Write(se.Writer, binary.LittleEndian, byte(i))
+		bytesEncoded = 1
+	} else if i < 1<<16 {
+		err = binary.Write(se.Writer, binary.LittleEndian, uint16(i))
+		bytesEncoded = 2
+	} else if i < 1<<32 {
+		err = binary.Write(se.Writer, binary.LittleEndian, uint32(i))
+		bytesEncoded = 4
+	}
+	return bytesEncoded, err
 }
 
 // encodeInteger performs the following on integer i:

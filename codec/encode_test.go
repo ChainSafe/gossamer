@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package codec
 
 import (
@@ -14,6 +30,16 @@ type encodeTest struct {
 }
 
 var encodeTests = []encodeTest{
+	// fixed width
+	{val: int32(0), output: []byte{0x00}, bytesEncoded: 1},
+	{val: int32(1), output: []byte{0x01}, bytesEncoded: 1},
+	{val: int32(42), output: []byte{0x2a}, bytesEncoded: 1},
+	{val: int32(69), output: []byte{0x45}, bytesEncoded: 1},
+	{val: int32(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
+	{val: int32(16384), output: []byte{0x00, 0x40}, bytesEncoded: 2},
+	{val: int32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
+	{val: int32(1073741824), output: []byte{0x00, 0x00, 0x00, 0x40}, bytesEncoded: 4},
+
 	// compact integers
 	{val: int64(0), output: []byte{0x00}, bytesEncoded: 1},
 	{val: int64(1), output: []byte{0x04}, bytesEncoded: 1},
@@ -113,7 +139,6 @@ func setUpLargeStringTests() {
 }
 
 func TestEncode(t *testing.T) {
-
 	setUpStringTests()
 
 	if testing.Short() {

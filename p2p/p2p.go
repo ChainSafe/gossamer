@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
@@ -53,7 +69,6 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	h.SetStreamHandler(protocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
@@ -69,13 +84,14 @@ func NewService(conf *ServiceConfig) (*Service, error) {
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
-	return &Service{
+	s := &Service{
 		ctx:            ctx,
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
-	}, err
+	}
+	return s, err
 }
 
 // Start begins the p2p Service, including discovery
@@ -122,6 +138,11 @@ func (s *Service) Broadcast(msg []byte) (err error) {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
+	err := s.host.Connect(s.ctx, peer)
+	if err != nil {
+		return err
+	}
+
 	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
 	if err != nil {
 		return err
@@ -137,9 +158,14 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 
 // Ping pings a peer
 func (s *Service) Ping(peer peer.ID) error {
-	_, err := s.dht.FindPeer(s.ctx, peer)
+	ps, err := s.dht.FindPeer(s.ctx, peer)
 	if err != nil {
 		return fmt.Errorf("could not find peer: %s", err)
+	}
+
+	err = s.host.Connect(s.ctx, ps)
+	if err != nil {
+		return err
 	}
 
 	return s.dht.Ping(s.ctx, peer)
@@ -179,6 +205,7 @@ func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
 		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
+		libp2p.Ping(true),
 	}, nil
 }
 
@@ -219,4 +246,10 @@ func handleStream(stream net.Stream) {
 	if err != nil {
 		return
 	}
+}
+
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	peers := s.host.Network().Peers()
+	return len(peers)
 }

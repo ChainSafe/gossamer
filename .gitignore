@@ -24,4 +24,7 @@
 # Sublime
 *.sublime*
 
-go-pre.db
+trie/test_data
+/bin
+chaindata/
+runtime/polkadot_runtime*
