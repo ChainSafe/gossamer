@@ -150,7 +150,7 @@ func main() {
 	}
 
 	defer func() {
-		err := sim.ipfsNode.Close()
+		err = sim.ipfsNode.Close()
 		if err != nil {
 			log.Println("warn:", err.Error())
 		}
