@@ -14,8 +14,6 @@ import (
 
 	p2p "github.com/ChainSafe/gossamer/p2p"
 	peer "github.com/libp2p/go-libp2p-peer"
-	ps "github.com/libp2p/go-libp2p-peerstore"
-	ma "github.com/multiformats/go-multiaddr"
 
 	datastore "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
@@ -42,24 +40,6 @@ var messages = []string{
 	"noot\n",
 	"i am a penguin stuck in a computer\n",
 	"pls feed me code\n",
-}
-
-func stringToPeerInfo(peer string) (ps.PeerInfo, error) {
-	maddr := ma.StringCast(peer)
-	p, err := ps.InfoFromP2pAddr(maddr)
-	return *p, err
-}
-
-func stringsToPeerInfos(peers []string) ([]ps.PeerInfo, error) {
-	pinfos := make([]ps.PeerInfo, len(peers))
-	for i, peer := range peers {
-		p, err := stringToPeerInfo(peer)
-		if err != nil {
-			return nil, err
-		}
-		pinfos[i] = p
-	}
-	return pinfos, nil
 }
 
 func StartIpfsNode() (*ipfs.IpfsNode, error) {
@@ -169,7 +149,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer sim.ipfsNode.Close()
+	defer func() {
+		err := sim.ipfsNode.Close()
+		if err != nil {
+			log.Println("warn:", err.Error())
+		}
+	}()
 
 	for _, node := range sim.nodes {
 		e := node.Start()
@@ -189,7 +174,7 @@ func main() {
 
 				err = sendRandomMessage(node, sim.nodes[r].Host().ID())
 				if err != nil {
-					//log.Println("warn:", err.Error())
+					// log.Println("warn:", err.Error())
 				}
 
 				time.Sleep(3 * time.Second)
