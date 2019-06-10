@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	//golog "github.com/ipfs/go-log"
-	//gologging "github.com/whyrusleeping/go-logging"
-	p2p "github.com/ChainSafeSystems/gossamer/p2p"
+	golog "github.com/ipfs/go-log"
+	gologging "github.com/whyrusleeping/go-logging"
+
+	p2p "github.com/ChainSafe/gossamer/p2p"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ps "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
@@ -151,7 +152,7 @@ func getRandomInt(m int) int {
 }
 
 func main() {
-	//golog.SetAllLoggers(gologging.INFO) // Change to DEBUG for extra info
+	golog.SetAllLoggers(gologging.INFO) // Change to DEBUG for extra info
 
 	if len(os.Args) < 2 {
 		fmt.Println("please specify number of nodes to start in simulation: ./p2p/simulator/main.go [num]")
