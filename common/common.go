@@ -18,10 +18,15 @@ package common
 
 import (
 	"encoding/hex"
+	"errors"
+	"strings"
 )
 
 // HexToBytes turns a 0x prefixed hex string into a byte slice
 func HexToBytes(in string) ([]byte, error) {
+	if strings.Compare(in[:2], "0x") != 0 {
+		return nil, errors.New("could not byteify non 0x prefixed string")
+	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	return out, err
@@ -29,6 +34,9 @@ func HexToBytes(in string) ([]byte, error) {
 
 // HexToBytes turns a 0x prefixed hex string into type Hash
 func HexToHash(in string) (Hash, error) {
+	if strings.Compare(in[:2], "0x") != 0 {
+		return [32]byte{}, errors.New("could not byteify non 0x prefixed string")
+	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)
 	var buf = [32]byte{}

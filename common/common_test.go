@@ -40,6 +40,13 @@ func TestHexToBytes(t *testing.T) {
 	}
 }
 
+func TestHexToBytesFailing(t *testing.T) {
+	_, err := HexToBytes("1234")
+	if err == nil {
+		t.Error("Fail: should error")
+	}
+}
+
 func TestHexToHash(t *testing.T) {
 	tests := []struct {
 		in  string

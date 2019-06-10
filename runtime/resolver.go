@@ -27,14 +27,14 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				valueData := int(uint32(vm.GetCurrentFrame().Locals[2]))
 				valueLen := int(uint32(vm.GetCurrentFrame().Locals[3]))
 				valueOffset := int(uint32(vm.GetCurrentFrame().Locals[4]))
-				log.Debug("[ext_get_storage_into]", "local[0]", keyData, "local[1]", keyLen, "local[2]", valueData, "local[3]", valueLen, "local[4]", valueOffset)
+				log.Debug("[ext_get_storage_into]", "keyData", keyData, "keyLen", keyLen, "valueData", valueData, "valueLen", valueLen, "valueOffset", valueOffset)
 
 				key := vm.Memory[keyData : keyData+keyLen]
 				log.Debug("[ext_get_storage_into]", "key", string(key), "byteskey", key)
 
 				value, err := r.t.Get(key)
 				if err != nil {
-					log.Debug("[ext_get_storage_into]", "error", err)
+					log.Error("[ext_get_storage_into]", "error", err)
 					return 0
 				}
 
