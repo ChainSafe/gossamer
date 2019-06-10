@@ -47,7 +47,7 @@ gossamer --config config.toml
 
 ### Docker
 
-To start Gossamer in a docker contaienr, run:
+To start Gossamer in a docker container, run:
 
 ```
 make docker
