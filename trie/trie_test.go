@@ -64,7 +64,7 @@ var (
 
 func newEmpty() *Trie {
 	db := &Database{
-		db: polkadb.NewMemDatabase(),
+		Db: polkadb.NewMemDatabase(),
 	}
 	t := NewEmptyTrie(db)
 	return t
@@ -79,7 +79,7 @@ func TestNewEmptyTrie(t *testing.T) {
 
 func TestNewTrie(t *testing.T) {
 	db := &Database{
-		db: polkadb.NewMemDatabase(),
+		Db: polkadb.NewMemDatabase(),
 	}
 	trie := NewTrie(db, &leaf{key: []byte{0}, value: []byte{17}})
 	if trie == nil {
@@ -112,7 +112,8 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 	test := trieTest{}
 
 	for {
-		buf := make([]byte, r.Intn(379)+2)
+		size := r.Intn(379) + 2
+		buf := make([]byte, size)
 		r.Read(buf)
 
 		if kv[string(buf)] == nil {
@@ -479,7 +480,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandomTests(50000)
+	rt := generateRandomTests(5000)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
