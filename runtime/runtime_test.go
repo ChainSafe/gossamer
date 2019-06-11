@@ -118,21 +118,16 @@ func TestExecAuthorities(t *testing.T) {
 		t.Fatal("did not create new VM")
 	}
 
-	pubkey, _, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkey1, _, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkey2, _, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pubkey3, _, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		t.Fatal(err)
+	pubkeys := make([][]byte, 4)
+
+	for i, pubkey := range pubkeys {
+		edkey, _, err := ed25519.GenerateKey(rand.Reader)
+		pubkey = []byte(edkey)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		r.t.Put(append([]byte(":auth:"), []byte{byte(i), 0, 0, 0}...), []byte(pubkey))
 	}
 
 	authLen, err := scale.Encode(int64(1))
@@ -141,10 +136,6 @@ func TestExecAuthorities(t *testing.T) {
 	}
 
 	r.t.Put([]byte(":auth:len"), authLen)
-	r.t.Put(append([]byte(":auth:"), []byte{0, 0, 0, 0}...), []byte(pubkey))
-	r.t.Put(append([]byte(":auth:"), []byte{1, 0, 0, 0}...), []byte(pubkey1))
-	r.t.Put(append([]byte(":auth:"), []byte{2, 0, 0, 0}...), []byte(pubkey2))
-	r.t.Put(append([]byte(":auth:"), []byte{3, 0, 0, 0}...), []byte(pubkey3))
 
 	res, err := r.Exec("Core_authorities", 0, 0)
 	if err != nil {
