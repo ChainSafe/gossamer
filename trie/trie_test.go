@@ -483,7 +483,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandomTests(5000)
+	rt := generateRandomTests(50000)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
