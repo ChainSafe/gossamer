@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -116,7 +117,9 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 		buf := make([]byte, size)
 		r.Read(buf)
 
-		if kv[string(buf)] == nil {
+		key := binary.LittleEndian.Uint16(buf[:2])
+
+		if kv[string(buf)] == nil || key < 255 {
 			test.key = buf
 
 			buf = make([]byte, r.Intn(128))
