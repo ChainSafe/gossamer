@@ -4,13 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
 
 	golog "github.com/ipfs/go-log"
 	gologging "github.com/whyrusleeping/go-logging"
+	log "github.com/inconshreveable/log15"
 
 	p2p "github.com/ChainSafe/gossamer/p2p"
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -76,13 +76,13 @@ func NewSimulator(num int) (sim *Simulator, err error) {
 	// start local ipfs daemon
 	ipfsNode, err := StartIpfsNode()
 	if err != nil {
-		log.Fatalf("Could not start IPFS node: %s", err)
+		log.Crit("NewSimulator", "Could not start IPFS node", err)
 	}
 
 	sim.ipfsNode = ipfsNode
 
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-	log.Println("ipfsAddr:", ipfsAddr)
+	log.Info("NewSimulator", "ipfsAddr", ipfsAddr)
 
 	// create all nodes, increment port by 1 each time
 	for i := 0; i < num; i++ {
@@ -135,31 +135,31 @@ func main() {
 	golog.SetAllLoggers(gologging.INFO) // Change to DEBUG for extra info
 
 	if len(os.Args) < 2 {
-		fmt.Println("please specify number of nodes to start in simulation: ./p2p/simulator/main.go [num]")
+		log.Crit("please specify number of nodes to start in simulation: ./p2p/simulator/main.go [num]")
 		os.Exit(0)
 	}
 
  	num, err := strconv.Atoi(os.Args[1])
  	if err != nil {
- 		log.Fatal(err)
+ 		log.Crit("main", "error", err)
  	}
 
 	sim, err := NewSimulator(num)
 	if err != nil {
-		log.Fatal(err)
+		log.Crit("NewSimulator", "error", err)
 	}
 
 	defer func() {
 		err = sim.ipfsNode.Close()
 		if err != nil {
-			log.Println("warn:", err.Error())
+			log.Warn("main", "warn", err.Error())
 		}
 	}()
 
 	for _, node := range sim.nodes {
 		e := node.Start()
 		if <-e != nil {
-			log.Println("start err: ", err)
+			log.Warn("main", "start err", err)
 		}
 	}
 
@@ -170,11 +170,11 @@ func main() {
 			for {
 				r := getRandomInt(len(sim.nodes))
 
-				log.Printf("sending msg from %s to %s...", node.Host().ID(), sim.nodes[r].Host().ID())
+				log.Info("sending message", "from", node.Host().ID(), "to", sim.nodes[r].Host().ID())
 
 				err = sendRandomMessage(node, sim.nodes[r].Host().ID())
 				if err != nil {
-					// log.Println("warn:", err.Error())
+					log.Warn("sending message", "warn", err.Error())
 				}
 
 				time.Sleep(3 * time.Second)
