@@ -118,11 +118,8 @@ func TestExecAuthorities(t *testing.T) {
 		t.Fatal("did not create new VM")
 	}
 
-	pubkeys := make([][]byte, 4)
-
-	for i, pubkey := range pubkeys {
-		edkey, _, err := ed25519.GenerateKey(rand.Reader)
-		pubkey = []byte(edkey)
+	for i := 0; i < 4; i++ {
+		pubkey, _, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
 		}
