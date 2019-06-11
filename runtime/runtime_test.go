@@ -119,7 +119,8 @@ func TestExecAuthorities(t *testing.T) {
 	}
 
 	for i := 0; i < 4; i++ {
-		pubkey, _, err := ed25519.GenerateKey(rand.Reader)
+		var pubkey ed25519.PublicKey
+		pubkey, _, err = ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
 		}
