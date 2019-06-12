@@ -18,11 +18,13 @@ package rpc
 
 import (
 	"fmt"
-	"log"
+	api "github.com/ChainSafe/gossamer/internal"
+	log "github.com/inconshreveable/log15"
 	"net/http"
 	"reflect"
 	"strings"
 )
+
 
 // Codec defines the interface for creating a CodecRequest.
 type Codec interface {
@@ -39,15 +41,44 @@ type CodecRequest interface {
 
 // Server is an RPC server.
 type Server struct {
-	codec Codec
-	// TODO: need to store content type as well (eg. application/json)
-	services *serviceMap
+	codec Codec // Codec for requests/responses (default JSON)
+	services *serviceMap // Maps requests to actual procedure calls
+	api *api.Service // API interface for system internals
 }
 
 // NewServer creates a new Server.
-func NewServer() *Server {
-	return &Server{
+func NewServer(modules []string, api *api.Service) *Server {
+	s := &Server{
 		services: new(serviceMap),
+		api: api,
+	}
+
+	s.RegisterModules(modules)
+
+	return s
+}
+
+func (s *Server) RegisterModules(modules []string) {
+	for _, mod := range modules {
+		if !api.ValidModule(mod) {
+			log.Warn("[rpc] Unrecognized module", "module", mod)
+			continue
+		} else {
+			log.Debug("[rpc] Enabling rpc module", "module", mod)
+			var srvc interface{}
+			switch mod {
+			case "core":
+				srvc = NewCoreService(s.api)
+			default:
+				continue
+			}
+
+			err := s.RegisterService(srvc, mod)
+
+			if err != nil {
+				log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
+			}
+		}
 	}
 }
 
@@ -64,7 +95,7 @@ func (s *Server) RegisterService(receiver interface{}, name string) error {
 
 // ServeHTTP handles http requests to the RPC server.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Println("Serving HTTP request...")
+	log.Debug("Serving HTTP request...")
 	if r.Method != "POST" {
 		WriteError(w, http.StatusMethodNotAllowed, "rpc: Only accepts POST requests, got: "+r.Method)
 	}
@@ -76,7 +107,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if contentType != "application/json" {
 		WriteError(w, http.StatusUnsupportedMediaType, "rpc: Only application/json content allowed, got: "+r.Header.Get("Content-Type"))
 	}
-	log.Println("Got application/json request, proceeding...")
+	log.Debug("Got application/json request, proceeding...")
 	codecReq := s.codec.NewRequest(r)
 	method, errMethod := codecReq.Method()
 	if errMethod != nil {
