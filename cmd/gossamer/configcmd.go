@@ -19,8 +19,10 @@ import (
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
+	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -38,25 +40,33 @@ var (
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
 func makeNode(ctx *cli.Context) (*dot.Dot, error) {
-	fig, err := setConfig(ctx)
+	fig, err := getConfig(ctx)
 	if err != nil {
-		log.Error("unable to extract required config", "err", err)
+		log.Crit("unable to extract required config", "err", err)
+		return nil, err
 	}
-	srv := setP2PConfig(ctx, fig.ServiceConfig)
-	datadir := setDatabaseDir(ctx, fig)
-	db, err := polkadb.NewBadgerDB(datadir)
+
+	// P2P
+	p2pSrvc := setupP2PService(ctx, fig.P2PConfig)
+
+	// DB
+	datadir := getDatabaseDir(ctx, fig)
+	dbSrvc, err := polkadb.NewBadgerDB(datadir)
 	if err != nil {
-		log.Error("db failed to open", "err", err)
+
+		return nil, err
 	}
-	return &dot.Dot{
-		ServerConfig: fig.ServiceConfig,
-		Server:       srv,
-		Polkadb:      db,
-	}, nil
+
+	// API
+	apiSrvc := api.NewApiService(p2pSrvc)
+
+	// RPC
+	rpc := rpc.NewHttpServer(apiSrvc, module, cfg)
+	return dot.NewDot(p2pSrvc, dbSrvc, apiSrvc, rpc), nil
 }
 
 // setConfig checks for config.toml if --config flag is specified
-func setConfig(ctx *cli.Context) (*cfg.Config, error) {
+func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	var fig *cfg.Config
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
@@ -72,7 +82,7 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 }
 
 // setDatabaseDir initializes directory for BadgerDB logs
-func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
+func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 	if fig.DbConfig.Datadir != "" {
 		return fig.DbConfig.Datadir
 	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
@@ -107,9 +117,19 @@ func loadConfig(file string) (*cfg.Config, error) {
 	return config, err
 }
 
+// setupP2PService starts a p2p network layer from provided config
+func setupP2PService(ctx *cli.Context,cfg *p2p.Config) *p2p.Service {
+	setBootstrapNodes(ctx, cfg)
+	srvc, err := p2p.NewService(cfg)
+	if err != nil {
+		log.Error("error starting p2p", "err", err.Error())
+	}
+	return srvc
+}
+
 // setBootstrapNodes creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
+func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	var urls []string
 	switch {
 	case ctx.GlobalIsSet(utils.BootnodesFlag.Name):
@@ -120,17 +140,4 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
 	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
 }
 
-// SetP2PConfig sets up the configurations required for P2P service
-func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
-	setBootstrapNodes(ctx, cfg)
-	srv := startP2PService(cfg)
-	return srv
-}
-// startP2PService starts a p2p network layer from provided config
-func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
-	srv, err := p2p.NewService(cfg)
-	if err != nil {
-		log.Error("error starting p2p", "err", err.Error())
-	}
-	return srv
-}
+func setupRPC(cfg)

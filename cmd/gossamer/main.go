@@ -37,7 +37,7 @@ var (
 	}
 )
 
-//init initializes CLI
+// init initializes CLI
 func init() {
 	app.Action = gossamer
 	app.Copyright = "Copyright 2019 Chainsafe Systems Authors"
@@ -59,15 +59,16 @@ func main() {
 	}
 }
 
-//gossamer is the main entrypoint into the gossamer system
+// gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
-	g, err := makeNode(ctx)
+	node, err := makeNode(ctx)
 	if err != nil {
+		// TODO: Need to adjust error propagation and exit here
 		log.Error("error making node", "err", err)
 	}
-	srvlog.Info("🕸️ starting p2p service")
-	g.Server.Start()
+	srvlog.Info("🕸️Starting node...")
+	node.Start()
 
 	return nil
 }

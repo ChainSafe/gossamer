@@ -17,33 +17,25 @@
 package api
 
 import (
-	"net/http"
-
 	"github.com/ChainSafe/gossamer/p2p"
 )
 
-// PublicP2PService offers network related RPC methods
-type PublicP2PService struct {
-	Net *p2p.Service
+// Service couples all components required for the API.
+type Service struct {
+	Core *coreModule
 }
 
-// PublicP2PResponse represents response from RPC call
-type PublicP2PResponse struct {
-	Count int
-}
 
-// PublicP2PRequest represents RPC request type
-type PublicP2PRequest struct{}
-
-// NewPublicRPC creates a new net API instance.
-func NewPublicP2PService(net *p2p.Service) *PublicP2PService {
-	return &PublicP2PService{
-		Net: net,
+// NewApiService creates a new API instance.
+func NewApiService(p2p *p2p.Service) *Service {
+	return &Service{
+		Core: &coreModule{
+			p2p,
+		},
 	}
 }
 
-// PeerCount returns the number of connected peers
-func (s *PublicP2PService) PeerCount(r *http.Request, args *PublicP2PRequest, res *PublicP2PResponse) error {
-	res.Count = s.Net.PeerCount()
-	return nil
+// TODO: Implement or remove
+func ValidModule(mod string) bool {
+	return true
 }

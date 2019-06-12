@@ -19,33 +19,51 @@ package cfg
 import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/rpc"
 )
 
 var (
+	// P2P
 	defaultP2PPort = 7001
+	defaultP2PBoostrap = []string{"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ", "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",}
 	defaultP2PRandSeed = int64(33)
+	DefaultP2PConfig = &p2p.Config{
+		Port: defaultP2PPort,
+		RandSeed: defaultP2PRandSeed,
+	}
+
+	// DB
+	DefaultDBConfig = &polkadb.Config{
+		Datadir: DefaultDataDir(),
+	}
+
+	// RPC
+	defaultRPCPort = uint32(8545)
+	defaultRPCModules = []string{"core"}
+	DefaultRPCConfig = &rpc.Config{
+		Port: defaultRPCPort,
+		// TODO: Need to add modules here or for API
+	}
 )
+
+
 // Config is a collection of configurations throughout the system
 type Config struct {
-	ServiceConfig *p2p.ServiceConfig
-	DbConfig       polkadb.DbConfig
+	P2PConfig 	*p2p.Config
+	DbConfig    *polkadb.Config
+	RPCConfig	*rpc.Config
 }
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 var DefaultConfig = &Config{
-	ServiceConfig: &p2p.ServiceConfig{
-		BootstrapNodes: []string{"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ", "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM"},
-		Port: defaultP2PPort,
-		RandSeed: defaultP2PRandSeed,
-	},
-	DbConfig: polkadb.DbConfig{
-		Datadir: "chaindata",
-	},
+	P2PConfig: DefaultP2PConfig,
+	DbConfig: DefaultDBConfig,
+	RPCConfig: DefaultRPCConfig,
 }
 
 
 
-//[ServiceConfig]
+//[Config]
 //BootstrapNodes=["/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ", "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",]
 //Port= 7001
 //RandSeed= 33

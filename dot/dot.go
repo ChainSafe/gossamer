@@ -17,13 +17,38 @@
 package dot
 
 import (
+	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/rpc"
 )
 
 // Dot is a container on which services can be registered.
 type Dot struct {
-	ServerConfig *p2p.ServiceConfig
-	Server       *p2p.Service      // Currently running P2P networking layer
-	Polkadb      *polkadb.BadgerDB //BadgerDB database
+	P2P *p2p.Service      // Currently running P2P networking layer
+	Db  *polkadb.BadgerDB //BadgerDB database
+	// TODO: Pending runtime PR
+	//runtime *runtime.Service // WASM execution runtime
+	Api *api.Service // Internal API service (utilized by RPC, etc.)
+	Rpc *rpc.HTTPServer // HTTP interface for RPC server
+}
+
+func NewDot(p2p *p2p.Service, db * polkadb.BadgerDB, api *api.Service, rpc *rpc.HTTPServer) *Dot {
+	return &Dot{
+		p2p,
+		db,
+		api,
+		rpc,
+	}
+}
+
+func (d *Dot) Setup() {
+
+}
+
+// Start starts all services. API service is started last.
+func (d *Dot) Start() {
+	d.P2P.Start()
+	d.Db.Start()
+	d.Api.Start()
 }
