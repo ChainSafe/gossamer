@@ -23,6 +23,7 @@ import (
 // Service couples all components required for the API.
 type Service struct {
 	Core *coreModule
+	err	<-chan error
 }
 
 // Module represents a collection of API endpoints.
@@ -36,4 +37,13 @@ func NewApiService(p2p *p2p.Service) *Service {
 			p2p,
 		},
 	}
+}
+
+func (s *Service) Start() <-chan error {
+	s.err = make(<-chan error)
+	return s.err
+}
+
+func (s *Service) Stop() {
+	// TODO: Implement
 }

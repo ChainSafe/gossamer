@@ -17,47 +17,56 @@
 package dot
 
 import (
-	api "github.com/ChainSafe/gossamer/internal"
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
 )
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	P2P *p2p.Service      // P2P networking layer
-	Db  *polkadb.BadgerDB // BadgerDB database
-	// TODO: Pending runtime PR
-	//runtime *runtime.Service // WASM execution runtime
-	Api *api.Service    // Internal API service (utilized by RPC, etc.)
+	Services *common.ServiceRegistry
+	//P2P *p2p.Service      // P2P networking layer
+	//Db  *polkadb.BadgerDB // BadgerDB database
+	//Api *api.Service    // Internal API service (utilized by RPC, etc.)
 	Rpc *rpc.HttpServer // HTTP interface for RPC server
 
 	stop chan struct{} // Used to signal node shutdown
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(p2p *p2p.Service, db * polkadb.BadgerDB, api *api.Service, rpc *rpc.HttpServer) *Dot {
-	return &Dot{
-		P2P: p2p,
-		Db: db,
-		Api: api,
+func NewDot(services []common.Service, rpc *rpc.HttpServer) *Dot {
+	d := &Dot{
+		Services: common.NewServiceRegistry(),
 		Rpc: rpc,
 		stop: make(chan struct{}),
 	}
+
+	for _, srvc := range services {
+		d.Services.RegisterService(srvc)
+	}
+
+	return d
 }
 
 // Start starts all services. API service is started last.
 func (d *Dot) Start() {
 	log.Debug("Starting core services.")
-	d.P2P.Start()
+	// TODO: Should handle the channel returned by Start()
+	d.Services.StartAll()
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
-	d.Wait()
+	//d.Wait()
+
+	//d.Stop()
 }
 
 // Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
 func (d *Dot) Wait() {
 	<- d.stop
+}
+
+func (d *Dot) Stop() {
+	// TODO: Shutdown services
+
 }

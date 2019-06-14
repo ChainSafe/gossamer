@@ -17,6 +17,7 @@ package main
 
 import (
 	"github.com/ChainSafe/gossamer/cmd/utils"
+	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
 	api "github.com/ChainSafe/gossamer/internal"
@@ -47,23 +48,28 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 		return nil, err
 	}
 
+	var services []common.Service
+
 	// P2P
-	p2pSrvc := setupP2PService(ctx, fig.P2PConfig)
+	p2pSrvc := createP2PService(ctx, fig.P2PConfig)
+	services = append(services, p2pSrvc)
 
 	// DB
-	datadir := getDatabaseDir(ctx, fig)
-	dbSrvc, err := polkadb.NewBadgerDB(datadir)
+	dataDir := getDatabaseDir(ctx, fig)
+	dbSrvc, err := polkadb.NewBadgerService(dataDir)
 	if err != nil {
 		return nil, err
 	}
+	services = append(services, dbSrvc)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc)
+	services = append(services, apiSrvc)
 
 	// RPC
-	rpcSrvc := rpc.NewHttpServer(apiSrvc, &json2.Codec{}, fig.RPCConfig)
+	rpcSrvr := rpc.NewHttpServer(apiSrvc, &json2.Codec{}, fig.RPCConfig)
 
-	return dot.NewDot(p2pSrvc, dbSrvc, apiSrvc, rpcSrvc), nil
+	return dot.NewDot(services, rpcSrvr), nil
 }
 
 // setConfig checks for config.toml if --config flag is specified
@@ -82,10 +88,10 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	}
 }
 
-// setDatabaseDir initializes directory for BadgerDB logs
+// setDatabaseDir initializes directory for BadgerService logs
 func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
-	if fig.DbConfig.Datadir != "" {
-		return fig.DbConfig.Datadir
+	if fig.DbConfig.DataDir != "" {
+		return fig.DbConfig.DataDir
 	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
 		return file
 	} else {
@@ -118,8 +124,8 @@ func loadConfig(file string) (*cfg.Config, error) {
 	return config, err
 }
 
-// setupP2PService starts a p2p network layer from provided config
-func setupP2PService(ctx *cli.Context,cfg *p2p.Config) *p2p.Service {
+// createP2PService starts a p2p network layer from provided config
+func createP2PService(ctx *cli.Context,cfg *p2p.Config) *p2p.Service {
 	setBootstrapNodes(ctx, cfg)
 	srvc, err := p2p.NewService(cfg)
 	if err != nil {
