@@ -79,9 +79,9 @@ func (t *Trie) writeNodeToDB(n node) (bool, error) {
 		return false, err
 	}
 
-	t.db.lock.Lock()
-	err = t.db.batch.Put(hash[:], encRoot)
-	t.db.lock.Unlock()
+	t.db.Lock.Lock()
+	err = t.db.Batch.Put(hash[:], encRoot)
+	t.db.Lock.Unlock()
 
 	n.setDirty(false)
 	return true, err

@@ -516,3 +516,18 @@ func TestDelete(t *testing.T) {
 		}
 	}
 }
+
+func TestHash(t *testing.T) {
+	trie := newEmpty()
+	err := trie.Put([]byte{1}, []byte{1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	t.Logf("%x", h)
+}
