@@ -26,12 +26,12 @@ import (
 
 // BadgerDB struct contains directory path to data and db instance
 type BadgerDB struct {
-	config DbConfig
+	config Config
 	db      *badger.DB
 }
 
 //DbConfig struct defines configurations for BadgerDB instance
-type DbConfig struct {
+type Config struct {
 	Datadir string
 }
 
@@ -72,7 +72,7 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 	}
 
 	return &BadgerDB{
-		config: DbConfig{
+		config: Config{
 			Datadir: file,
 		},
 		db:      db,

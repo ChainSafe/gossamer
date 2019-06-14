@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
+	log "github.com/ChainSafe/log15"
 )
 
 // Dot is a container on which services can be registered.
@@ -48,7 +49,9 @@ func (d *Dot) Setup() {
 
 // Start starts all services. API service is started last.
 func (d *Dot) Start() {
+	log.Debug("Starting core services.")
 	d.P2P.Start()
-	d.Db.Start()
-	d.Api.Start()
+	if d.Rpc != nil {
+		d.Rpc.Start()
+	}
 }

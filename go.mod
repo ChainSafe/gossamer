@@ -3,6 +3,8 @@ module github.com/ChainSafe/gossamer
 go 1.12
 
 require (
+	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
+	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1
@@ -21,7 +23,9 @@ require (
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.8.1
+	github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0 // indirect
 )

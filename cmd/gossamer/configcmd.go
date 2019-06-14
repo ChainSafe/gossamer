@@ -61,7 +61,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	apiSrvc := api.NewApiService(p2pSrvc)
 
 	// RPC
-	rpc := rpc.NewHttpServer(apiSrvc, module, cfg)
+	rpc := rpc.NewHttpServer(apiSrvc, fig.RPCConfig)
 	return dot.NewDot(p2pSrvc, dbSrvc, apiSrvc, rpc), nil
 }
 
@@ -139,5 +139,3 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	}
 	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
 }
-
-func setupRPC(cfg)

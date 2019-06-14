@@ -25,6 +25,8 @@ type Service struct {
 	Core *coreModule
 }
 
+type Module string
+
 
 // NewApiService creates a new API instance.
 func NewApiService(p2p *p2p.Service) *Service {
@@ -36,6 +38,6 @@ func NewApiService(p2p *p2p.Service) *Service {
 }
 
 // TODO: Implement or remove
-func ValidModule(mod string) bool {
+func ValidModule(mod Module) bool {
 	return true
 }

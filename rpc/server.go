@@ -47,7 +47,7 @@ type Server struct {
 }
 
 // NewServer creates a new Server.
-func NewServer(modules []string, api *api.Service) *Server {
+func NewServer(modules []api.Module, api *api.Service) *Server {
 	s := &Server{
 		services: new(serviceMap),
 		api: api,
@@ -58,7 +58,7 @@ func NewServer(modules []string, api *api.Service) *Server {
 	return s
 }
 
-func (s *Server) RegisterModules(modules []string) {
+func (s *Server) RegisterModules(modules []api.Module) {
 	for _, mod := range modules {
 		if !api.ValidModule(mod) {
 			log.Warn("[rpc] Unrecognized module", "module", mod)
@@ -68,7 +68,7 @@ func (s *Server) RegisterModules(modules []string) {
 			var srvc interface{}
 			switch mod {
 			case "core":
-				srvc = NewCoreService(s.api)
+				srvc = NewCoreModule(s.api)
 			default:
 				continue
 			}
@@ -89,8 +89,8 @@ func (s *Server) RegisterCodec(codec Codec) {
 }
 
 // RegisterService adds a service to the servers service map.
-func (s *Server) RegisterService(receiver interface{}, name string) error {
-	return s.services.register(receiver, name)
+func (s *Server) RegisterService(receiver interface{}, name api.Module) error {
+	return s.services.register(receiver, string(name))
 }
 
 // ServeHTTP handles http requests to the RPC server.

@@ -24,7 +24,8 @@ import (
 )
 
 type Config struct {
-	Port uint32
+	Port uint32 // Listening port
+	Modules []api.Module // Enabled modules
 }
 
 type HTTPServer struct {
@@ -33,10 +34,10 @@ type HTTPServer struct {
 	modules		[]string
 }
 
-func NewHttpServer(api *api.Service, modules []string, cfg *Config) *HTTPServer {
+func NewHttpServer(api *api.Service, cfg *Config) *HTTPServer {
 	server := &HTTPServer{
 		cfg: cfg,
-		rpcServer: NewServer(modules, api),
+		rpcServer: NewServer(cfg.Modules, api),
 	}
 
 	return server

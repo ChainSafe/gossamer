@@ -17,6 +17,7 @@
 package cfg
 
 import (
+	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
@@ -39,10 +40,10 @@ var (
 
 	// RPC
 	defaultRPCPort = uint32(8545)
-	defaultRPCModules = []string{"core"}
+	defaultRPCModules = []api.Module{"core"}
 	DefaultRPCConfig = &rpc.Config{
 		Port: defaultRPCPort,
-		// TODO: Need to add modules here or for API
+		Modules: defaultRPCModules,
 	}
 )
 
