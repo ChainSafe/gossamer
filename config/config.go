@@ -17,36 +17,10 @@
 package cfg
 
 import (
-	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 )
-
-var (
-	// P2P
-	defaultP2PPort = 7001
-	defaultP2PBoostrap = []string{"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ", "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",}
-	defaultP2PRandSeed = int64(33)
-	DefaultP2PConfig = &p2p.Config{
-		Port: defaultP2PPort,
-		RandSeed: defaultP2PRandSeed,
-	}
-
-	// DB
-	DefaultDBConfig = &polkadb.Config{
-		Datadir: DefaultDataDir(),
-	}
-
-	// RPC
-	defaultRPCPort = uint32(8545)
-	defaultRPCModules = []api.Module{"core"}
-	DefaultRPCConfig = &rpc.Config{
-		Port: defaultRPCPort,
-		Modules: defaultRPCModules,
-	}
-)
-
 
 // Config is a collection of configurations throughout the system
 type Config struct {
@@ -55,23 +29,32 @@ type Config struct {
 	RPCConfig	*rpc.Config
 }
 
-// DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
-var DefaultConfig = &Config{
-	P2PConfig: DefaultP2PConfig,
-	DbConfig: DefaultDBConfig,
-	RPCConfig: DefaultRPCConfig,
-}
 
-
-
-//[Config]
-//BootstrapNodes=["/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ", "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",]
-//Port= 7001
-//RandSeed= 33
-//
-//[DbConfig]
-//Datadir="chaindata"
-
-
-
-
+// CheckConfig finds file based on ext input
+// TODO: Remove?
+//func CheckConfig(ext string) string {
+//	pathS, err := os.Getwd()
+//	if err != nil {
+//		panic(err)
+//	}
+//	var file string
+//	if err = filepath.Walk(pathS, func(path string, f os.FileInfo, _ error) error {
+//		if !f.IsDir() && f.Name() == "config.toml" {
+//			r, e := regexp.MatchString(ext, f.Name())
+//			if e == nil && r {
+//				file = f.Name()
+//				return nil
+//			}
+//		} else if !f.IsDir() && f.Name() != "Gopkg.toml" {
+//			r, e := regexp.MatchString(ext, f.Name())
+//			if e == nil && r {
+//				file = f.Name()
+//				return nil
+//			}
+//		}
+//		return nil
+//	}); err != nil {
+//		log.Error("please specify a config file", "err", err)
+//	}
+//	return file
+//}
