@@ -59,7 +59,7 @@ var testIdentity = config.Identity{
 // 	// create all nodes, increment port by 1 each time
 // 	for i := 0; i < num; i++ {
 // 		// configure p2p service
-// 		conf := &ServiceConfig{
+// 		conf := &Config{
 // 			BootstrapNodes: []string{
 // 				ipfsAddr,
 // 			},
@@ -102,7 +102,7 @@ func StartIpfsNode() (*ipfs.IpfsNode, error) {
 }
 
 func TestBuildOpts(t *testing.T) {
-	testServiceConfig := &ServiceConfig{
+	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
 		Port:           7001,
 	}
@@ -141,7 +141,7 @@ func TestStart(t *testing.T) {
 
 	t.Log("ipfsAddr:", ipfsAddr)
 
-	testServiceConfig := &ServiceConfig{
+	testServiceConfig := &Config{
 		BootstrapNodes: []string{
 			ipfsAddr,
 		},
@@ -170,7 +170,7 @@ func TestService_PeerCount(t *testing.T) {
 
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
 
-	testServiceConfig := &ServiceConfig{
+	testServiceConfig := &Config{
 		BootstrapNodes: []string{
 			ipfsAddr,
 		},

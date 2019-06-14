@@ -24,39 +24,31 @@ import (
 )
 
 type Config struct {
-	Port uint32 // Listening port
+	Port    uint32       // Listening port
 	Modules []api.Module // Enabled modules
 }
 
-type HTTPServer struct {
-	cfg			*Config
-	rpcServer	*Server
-	modules		[]string
+type HttpServer struct {
+	cfg       *Config      // Associated config
+	rpcServer *Server      // Actual RPC call handler
 }
 
-func NewHttpServer(api *api.Service, cfg *Config) *HTTPServer {
-	server := &HTTPServer{
-		cfg: cfg,
+func NewHttpServer(api *api.Service, codec Codec, cfg *Config) *HttpServer {
+	server := &HttpServer{
+		cfg:       cfg,
 		rpcServer: NewServer(cfg.Modules, api),
 	}
+
+	server.rpcServer.RegisterCodec(codec)
 
 	return server
 }
 
-func (h *HTTPServer) Setup() {
-	// TODO: Maybe move logic from NewHttpServer here
-	// TODO: Select which modules to enable and verify they are valid
-	err := h.rpcServer.RegisterService(NewCoreModule(h.rpcServer.api), "core")
-	if err != nil {
-		log.Error("Error on HTTP server setup.", "err", err)
-	}
-}
-
-// Start registers the rpc handler function and start the server listening on h.port
-func (h *HTTPServer) Start () {
+// Start registers the rpc handler function and starts the server listening on `h.port`
+func (h *HttpServer) Start() {
 	log.Debug("[rpc] Starting HTTP Server...", "port", h.cfg.Port)
 	go func() {
-		http.HandleFunc("/", h.rpcServer.ServeHTTP)
+		http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.cfg.Port), nil)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)

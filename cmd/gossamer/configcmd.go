@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/rpc/json2"
 	log "github.com/inconshreveable/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -53,7 +54,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	datadir := getDatabaseDir(ctx, fig)
 	dbSrvc, err := polkadb.NewBadgerDB(datadir)
 	if err != nil {
-
 		return nil, err
 	}
 
@@ -61,8 +61,9 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	apiSrvc := api.NewApiService(p2pSrvc)
 
 	// RPC
-	rpc := rpc.NewHttpServer(apiSrvc, fig.RPCConfig)
-	return dot.NewDot(p2pSrvc, dbSrvc, apiSrvc, rpc), nil
+	rpcSrvc := rpc.NewHttpServer(apiSrvc, &json2.Codec{}, fig.RPCConfig)
+
+	return dot.NewDot(p2pSrvc, dbSrvc, apiSrvc, rpcSrvc), nil
 }
 
 // setConfig checks for config.toml if --config flag is specified

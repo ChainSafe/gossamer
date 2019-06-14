@@ -24,27 +24,27 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// Dot is a container on which services can be registered.
+// Dot is a container for all the components of a node.
 type Dot struct {
-	P2P *p2p.Service      // Currently running P2P networking layer
-	Db  *polkadb.BadgerDB //BadgerDB database
+	P2P *p2p.Service      // P2P networking layer
+	Db  *polkadb.BadgerDB // BadgerDB database
 	// TODO: Pending runtime PR
 	//runtime *runtime.Service // WASM execution runtime
-	Api *api.Service // Internal API service (utilized by RPC, etc.)
-	Rpc *rpc.HTTPServer // HTTP interface for RPC server
+	Api *api.Service    // Internal API service (utilized by RPC, etc.)
+	Rpc *rpc.HttpServer // HTTP interface for RPC server
+
+	stop chan struct{} // Used to signal node shutdown
 }
 
-func NewDot(p2p *p2p.Service, db * polkadb.BadgerDB, api *api.Service, rpc *rpc.HTTPServer) *Dot {
+// NewDot initializes a Dot with provided components.
+func NewDot(p2p *p2p.Service, db * polkadb.BadgerDB, api *api.Service, rpc *rpc.HttpServer) *Dot {
 	return &Dot{
-		p2p,
-		db,
-		api,
-		rpc,
+		P2P: p2p,
+		Db: db,
+		Api: api,
+		Rpc: rpc,
+		stop: make(chan struct{}),
 	}
-}
-
-func (d *Dot) Setup() {
-
 }
 
 // Start starts all services. API service is started last.
@@ -54,4 +54,10 @@ func (d *Dot) Start() {
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
+	d.Wait()
+}
+
+// Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
+func (d *Dot) Wait() {
+	<- d.stop
 }

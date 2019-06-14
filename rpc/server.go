@@ -58,26 +58,23 @@ func NewServer(modules []api.Module, api *api.Service) *Server {
 	return s
 }
 
+// RegisterModules registers the RPC services associated with the given API modules
 func (s *Server) RegisterModules(modules []api.Module) {
 	for _, mod := range modules {
-		if !api.ValidModule(mod) {
+		log.Debug("[rpc] Enabling rpc module", "module", mod)
+		var srvc interface{}
+		switch mod {
+		case "core":
+			srvc = NewCoreModule(s.api)
+		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
-		} else {
-			log.Debug("[rpc] Enabling rpc module", "module", mod)
-			var srvc interface{}
-			switch mod {
-			case "core":
-				srvc = NewCoreModule(s.api)
-			default:
-				continue
-			}
+		}
 
-			err := s.RegisterService(srvc, mod)
+		err := s.RegisterService(srvc, mod)
 
-			if err != nil {
-				log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
-			}
+		if err != nil {
+			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
 		}
 	}
 }

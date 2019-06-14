@@ -9,6 +9,6 @@ type coreModule struct {
 }
 
 func (m *coreModule) Version() string{
-	// TODO: return runtime.CoreVersion()
+	// TODO: Stubbed. Return runtime.CoreVersion()
 	return "1.2.3"
 }

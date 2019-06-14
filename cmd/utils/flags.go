@@ -36,12 +36,12 @@ var (
 	RPCListenAddrFlag = cli.StringFlag{
 		Name:  "rpcaddr",
 		Usage: "HTTP-RPC server listening interface",
-		Value: cfg.DefaultHTTPHost,
+		Value: cfg.DefaultHttpHost,
 	}
 	RPCPortFlag = cli.IntFlag{
 		Name:  "rpcport",
 		Usage: "HTTP-RPC server listening port",
-		Value: cfg.DefaultHTTPPort,
+		Value: cfg.DefaultHttpPort,
 	}
 	// P2P service settings
 	BootnodesFlag = cli.StringFlag{

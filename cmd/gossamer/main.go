@@ -40,10 +40,10 @@ var (
 // init initializes CLI
 func init() {
 	app.Action = gossamer
-	app.Copyright = "Copyright 2019 Chainsafe Systems Authors"
+	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
 	app.Name = "gossamer"
 	app.Usage = "Official gossamer command-line interface"
-	app.Author = "Chainsafe Systems 2019"
+	app.Author = "ChainSafe Systems 2019"
 	app.Version = "0.0.1"
 	app.Commands = []cli.Command{
 		//place for commands such as dumpConfig,

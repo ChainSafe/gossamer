@@ -3,6 +3,7 @@ module github.com/ChainSafe/gossamer
 go 1.12
 
 require (
+	github.com/ChainSafe/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc // indirect
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible

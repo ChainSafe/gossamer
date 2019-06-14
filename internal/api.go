@@ -25,6 +25,7 @@ type Service struct {
 	Core *coreModule
 }
 
+// Module represents a collection of API endpoints.
 type Module string
 
 
@@ -35,9 +36,4 @@ func NewApiService(p2p *p2p.Service) *Service {
 			p2p,
 		},
 	}
-}
-
-// TODO: Implement or remove
-func ValidModule(mod Module) bool {
-	return true
 }

@@ -26,10 +26,10 @@ type CoreModule struct {
 	api *api.Service
 }
 
-// PublicP2PRequest represents RPC request type
+// EmptyRequest represents an RPC request with no fields
 type EmptyRequest struct{}
 
-// CoreVersionResponse represents response from RPC call
+// CoreVersionResponse represents response from `core_version` RPC call
 type CoreVersionResponse struct {
 	Version string
 }
