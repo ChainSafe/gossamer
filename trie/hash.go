@@ -40,21 +40,23 @@ func newHasher() (*Hasher, error) {
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
-func (h *Hasher) Hash(n node) (res []byte, err error) {
+func (h *Hasher) Hash(n node) (res [32]byte, err error) {
 	encNode, err := n.Encode()
 	if err != nil {
-		return nil, err
+		return [32]byte{}, err
 	}
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if len(encNode) < 32 {
-		return common.AppendZeroes(encNode, 32), nil
+		copy(res[:], common.AppendZeroes(encNode, 32))
+		return res, nil
 	}
 
 	// otherwise, hash encoded node
 	_, err = h.hash.Write(encNode)
 	if err == nil {
-		res = h.hash.Sum(nil)
+		resSlice := h.hash.Sum(nil)
+		copy(res[:], resSlice)
 	}
 
 	return res, err
