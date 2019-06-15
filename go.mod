@@ -26,4 +26,5 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc
 	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
+	google.golang.org/appengine v1.6.0 // indirect
 )
