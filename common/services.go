@@ -29,6 +29,7 @@ type Service interface {
 
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to service instances
+	errs     map[reflect.Type]<-chan error // map of types to error channels
 	serviceTypes []reflect.Type           // all known service types, used to iterate through `ServiceRegistry.services`
 }
 
@@ -56,11 +57,30 @@ func (s *ServiceRegistry) StartAll() {
 	for _, kind := range s.serviceTypes {
 		log.Debug(fmt.Sprintf("Starting service %v", kind))
 		// TODO: Handle channel that is returned
-		s.services[kind].Start()
+		err := s.services[kind].Start()
+		s.errs[kind] = err
 	}
 }
 
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
 	// TODO: Implement
+}
+
+// Get retrieves a service and stores a reference to it in the passed in `srvc`
+func (s *ServiceRegistry) Get(srvc interface{}) Service {
+	if reflect.TypeOf(srvc).Kind() != reflect.Ptr {
+		log.Warn("expected a pointer", "type", fmt.Sprintf("%T", srvc))
+		return nil
+	}
+	element := reflect.ValueOf(srvc).Elem()
+	if s, ok := s.services[element.Type()]; ok {
+		return s
+	}
+	log.Warn("uknown service type", "type", fmt.Sprintf("%T", element))
+	return nil
+}
+
+func (s *ServiceRegistry) Err() <-chan error {
+
 }
