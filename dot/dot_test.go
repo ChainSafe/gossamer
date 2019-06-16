@@ -6,21 +6,13 @@ import (
 	api "github.com/ChainSafe/gossamer/internal"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/ChainSafe/gossamer/rpc"
-	"github.com/ChainSafe/gossamer/rpc/json2"
-	"reflect"
 	"testing"
 )
 
-var availableServices = [...]reflect.Type{
-	reflect.TypeOf(p2p.Service{}),
-	reflect.TypeOf(api.Service{}),
-	reflect.TypeOf(polkadb.BadgerService{}),
-}
-
-// Creates a Dot with default configurations. Includes RPC server.
+// Creates a Dot with default configurations. Does not include RPC server.
 func createTestDot(t *testing.T) *Dot {
 	var services []common.Service
+	// P2P
 	p2pSrvc, err := p2p.NewService(cfg.DefaultP2PConfig)
 	services = append(services, p2pSrvc)
 	if err != nil {
@@ -38,13 +30,18 @@ func createTestDot(t *testing.T) *Dot {
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc)
 	services = append(services, apiSrvc)
-	// RPC
-	rpcSrvc := rpc.NewHttpServer(apiSrvc, &json2.Codec{}, cfg.DefaultRpcConfig)
 
-	return NewDot(services, rpcSrvc)
+
+	return NewDot(services, nil)
 }
 
 func TestDot_Start(t *testing.T) {
+	var availableServices = [...]common.Service{
+		&p2p.Service{},
+		&api.Service{},
+		&polkadb.BadgerService{},
+	}
+
 	dot := createTestDot(t)
 
 	dot.Start()
@@ -53,6 +50,11 @@ func TestDot_Start(t *testing.T) {
 		s := dot.Services.Get(srvc)
 		if s == nil {
 			t.Fatalf("error getting service: %T", srvc)
+		}
+
+		e := dot.Services.Err(srvc)
+		if e == nil {
+			t.Fatalf("error getting error channel for service: %T", srvc)
 		}
 	}
 }

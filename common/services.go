@@ -37,6 +37,7 @@ type ServiceRegistry struct {
 func NewServiceRegistry() *ServiceRegistry {
 	return &ServiceRegistry{
 		services: make(map[reflect.Type] Service),
+		errs: make(map[reflect.Type] <-chan error),
 	}
 }
 
@@ -53,13 +54,13 @@ func (s *ServiceRegistry) RegisterService(service Service) {
 
 // StartAll calls `Service.Start()` for all registered services
 func (s *ServiceRegistry) StartAll() {
-	log.Info("Starting services: %v", s.serviceTypes)
-	for _, kind := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Starting service %v", kind))
-		// TODO: Handle channel that is returned
-		err := s.services[kind].Start()
-		s.errs[kind] = err
+	log.Info(fmt.Sprintf("Starting services: %v", s.serviceTypes))
+	for _, typ := range s.serviceTypes {
+		log.Debug(fmt.Sprintf("Starting service %v", typ))
+		err := s.services[typ].Start()
+		s.errs[typ] = err
 	}
+	log.Debug("All services started.")
 }
 
 // StopAll calls `Service.Stop()` for all registered services
@@ -73,14 +74,27 @@ func (s *ServiceRegistry) Get(srvc interface{}) Service {
 		log.Warn("expected a pointer", "type", fmt.Sprintf("%T", srvc))
 		return nil
 	}
-	element := reflect.ValueOf(srvc).Elem()
-	if s, ok := s.services[element.Type()]; ok {
+	e := reflect.ValueOf(srvc)
+
+
+	if s, ok := s.services[e.Type()]; ok {
 		return s
 	}
-	log.Warn("uknown service type", "type", fmt.Sprintf("%T", element))
+	log.Warn("unknown service type", "type", fmt.Sprintf("%T", srvc))
 	return nil
 }
 
-func (s *ServiceRegistry) Err() <-chan error {
+// Err returns the error channel for a given service
+func (s *ServiceRegistry) Err(srvc interface{}) <-chan error {
+	if reflect.TypeOf(srvc).Kind() != reflect.Ptr {
+		log.Warn("expected a pointer", "type", fmt.Sprintf("%T", srvc))
+		return nil
+	}
+	e := reflect.ValueOf(srvc)
 
+	if e, ok := s.errs[e.Type()]; ok {
+		return e
+	}
+	log.Warn("unknown service type", "type", fmt.Sprintf("%T", srvc))
+	return nil
 }
