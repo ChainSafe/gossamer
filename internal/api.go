@@ -16,29 +16,34 @@
 
 package api
 
-import (
-	"github.com/ChainSafe/gossamer/p2p"
-)
-
 // Service couples all components required for the API.
 type Service struct {
 	Core *coreModule
 	err	<-chan error
 }
 
+type p2pApi interface {
+	PeerCount() int
+}
+
+type runtimeApi interface {
+	Version() string
+}
+
 // Module represents a collection of API endpoints.
 type Module string
 
-
 // NewApiService creates a new API instance.
-func NewApiService(p2p *p2p.Service) *Service {
+func NewApiService(p2p p2pApi, rt runtimeApi) *Service {
 	return &Service{
 		Core: &coreModule{
 			p2p,
+			rt,
 		},
 	}
 }
 
+// Start creates, stores and returns an error channel
 func (s *Service) Start() <-chan error {
 	s.err = make(<-chan error)
 	return s.err
