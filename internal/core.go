@@ -1,14 +1,23 @@
 package api
 
 import (
-	"github.com/ChainSafe/gossamer/p2p"
+	log "github.com/ChainSafe/log15"
 )
 
 type coreModule struct {
-	p2p *p2p.Service
+	p2p p2pApi
+	runtime runtimeApi
 }
 
-func (m *coreModule) Version() string{
-	// TODO: Stubbed. Return runtime.CoreVersion()
-	return "1.2.3"
+func (m *coreModule) Version() string {
+	log.Debug("[rpc] Executing Core.Version", "params", nil)
+	// TODO: Stubbed. Return m.runtime.CoreVersion() (pending PR)
+	return m.runtime.Version()
+}
+
+// TODO: Move to 'p2p' module
+// TODO: Why are these all returning strings?
+func (m *coreModule) PeerCount() int {
+	log.Debug("[rpc] Executing Core.PeerCount", "params", nil)
+	return m.p2p.PeerCount()
 }
