@@ -68,5 +68,4 @@ func (d *Dot) Wait() {
 
 func (d *Dot) Stop() {
 	// TODO: Shutdown services
-
 }

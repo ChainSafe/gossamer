@@ -92,7 +92,7 @@ func (s *Server) RegisterService(receiver interface{}, name api.Module) error {
 
 // ServeHTTP handles http requests to the RPC server.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("Serving HTTP request...")
+	log.Debug("[rpc] Serving HTTP request...")
 	if r.Method != "POST" {
 		WriteError(w, http.StatusMethodNotAllowed, "rpc: Only accepts POST requests, got: "+r.Method)
 	}
@@ -104,7 +104,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if contentType != "application/json" {
 		WriteError(w, http.StatusUnsupportedMediaType, "rpc: Only application/json content allowed, got: "+r.Header.Get("Content-Type"))
 	}
-	log.Debug("Got application/json request, proceeding...")
+	log.Debug("[rpc] Got application/json request, proceeding...")
 	codecReq := s.codec.NewRequest(r)
 	method, errMethod := codecReq.Method()
 	if errMethod != nil {

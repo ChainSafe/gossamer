@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+
 // Creates a Dot with default configurations. Does not include RPC server.
 func createTestDot(t *testing.T) *Dot {
 	var services []common.Service

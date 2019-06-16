@@ -51,7 +51,7 @@ var (
 
 	// DB
 	DefaultDBConfig = &polkadb.Config{
-		Datadir: DefaultDataDir(),
+		DataDir: DefaultDataDir(),
 	}
 
 	// RPC
