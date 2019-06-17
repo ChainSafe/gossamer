@@ -54,7 +54,7 @@ func NewServer() *Server {
 	}
 }
 
-// NewServer creates a new Server.
+// NewApiServer creates a new Server.
 func NewApiServer(mods []api.Module, api *api.Api) *Server {
 	s := &Server{
 		services: new(serviceMap),
