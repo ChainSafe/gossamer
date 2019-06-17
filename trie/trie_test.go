@@ -527,7 +527,7 @@ func TestHash(t *testing.T) {
 	}
 
 	trie.Print()
-	
+
 	h, err := trie.Hash()
 	if err != nil {
 		t.Fatal(err)
@@ -575,4 +575,5 @@ func TestPolkadotRandomStateTrie(t *testing.T) {
 	}
 	
 	t.Logf("%x", h)
+	trie.Print()
 }

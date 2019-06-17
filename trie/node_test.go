@@ -140,6 +140,11 @@ func TestBranchEncode(t *testing.T) {
 	randKeys := generateRand(100)
 	randVals := generateRand(100)
 
+	hasher, err := NewHasher()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for i, testKey := range randKeys {
 		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
 		expected := []byte{}
@@ -156,11 +161,11 @@ func TestBranchEncode(t *testing.T) {
 
 		for _, child := range b.children {
 			if child != nil {
-				encChild, err := Encode(child)
+				encChild, err := hasher.Hash(child)
 				if err != nil {
 					t.Errorf("Fail when encoding branch child: %s", err)
 				}
-				expected = append(expected, encChild...)
+				expected = append(expected, encChild[:]...)
 			}
 		}
 

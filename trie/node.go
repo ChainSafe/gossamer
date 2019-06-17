@@ -125,23 +125,30 @@ func (b *branch) Encode() ([]byte, error) {
 	encoding = append(encoding, nibblesToKey(b.key)...)
 	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
 
+	hasher, err := NewHasher()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, child := range b.children {
 		if child != nil {
-			encChild, err := Encode(child)
+			encChild, err := hasher.Hash(child)
 			if err != nil {
 				return encoding, err
 			}
-			encoding = append(encoding, encChild...)
+			encoding = append(encoding, encChild[:]...)
 		}
 	}
 
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err = se.Encode(b.value)
-	if err != nil {
-		return encoding, err
+	if b.value != nil {
+		buffer := bytes.Buffer{}
+		se := scale.Encoder{Writer: &buffer}
+		_, err = se.Encode(b.value)
+		if err != nil {
+			return encoding, err
+		}
+		encoding = append(encoding, buffer.Bytes()...)
 	}
-	encoding = append(encoding, buffer.Bytes()...)
 
 	return encoding, nil
 }
