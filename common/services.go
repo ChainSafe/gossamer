@@ -28,16 +28,16 @@ type Service interface {
 }
 
 type ServiceRegistry struct {
-	services     map[reflect.Type]Service // map of types to service instances
-	errs     map[reflect.Type]<-chan error // map of types to error channels
-	serviceTypes []reflect.Type           // all known service types, used to iterate through `ServiceRegistry.services`
+	services     map[reflect.Type]Service      // map of types to service instances
+	errs         map[reflect.Type]<-chan error // map of types to error channels
+	serviceTypes []reflect.Type                // all known service types, used to iterate through `ServiceRegistry.services`
 }
 
 // NewServiceRegistry creates an empty registry
 func NewServiceRegistry() *ServiceRegistry {
 	return &ServiceRegistry{
-		services: make(map[reflect.Type] Service),
-		errs: make(map[reflect.Type] <-chan error),
+		services: make(map[reflect.Type]Service),
+		errs:     make(map[reflect.Type]<-chan error),
 	}
 }
 
@@ -75,7 +75,6 @@ func (s *ServiceRegistry) Get(srvc interface{}) Service {
 		return nil
 	}
 	e := reflect.ValueOf(srvc)
-
 
 	if s, ok := s.services[e.Type()]; ok {
 		return s

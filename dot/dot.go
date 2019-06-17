@@ -24,11 +24,8 @@ import (
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Services *common.ServiceRegistry
-	//P2P *p2p.Service      // P2P networking layer
-	//Db  *polkadb.BadgerDB // BadgerDB database
-	//Api *api.Service    // Internal API service (utilized by RPC, etc.)
-	Rpc *rpc.HttpServer // HTTP interface for RPC server
+	Services *common.ServiceRegistry // Registry of all core services
+	Rpc      *rpc.HttpServer         // HTTP instance for RPC server
 
 	stop chan struct{} // Used to signal node shutdown
 }
@@ -37,8 +34,8 @@ type Dot struct {
 func NewDot(services []common.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
 		Services: common.NewServiceRegistry(),
-		Rpc: rpc,
-		stop: make(chan struct{}),
+		Rpc:      rpc,
+		stop:     make(chan struct{}),
 	}
 
 	for _, srvc := range services {
@@ -56,6 +53,7 @@ func (d *Dot) Start() {
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
+	
 	//d.Wait()
 
 	//d.Stop()
@@ -63,7 +61,7 @@ func (d *Dot) Start() {
 
 // Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
 func (d *Dot) Wait() {
-	<- d.stop
+	<-d.stop
 }
 
 func (d *Dot) Stop() {

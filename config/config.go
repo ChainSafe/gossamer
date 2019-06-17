@@ -28,33 +28,3 @@ type Config struct {
 	DbConfig    *polkadb.Config
 	RPCConfig	*rpc.Config
 }
-
-
-// CheckConfig finds file based on ext input
-// TODO: Remove?
-//func CheckConfig(ext string) string {
-//	pathS, err := os.Getwd()
-//	if err != nil {
-//		panic(err)
-//	}
-//	var file string
-//	if err = filepath.Walk(pathS, func(path string, f os.FileInfo, _ error) error {
-//		if !f.IsDir() && f.Name() == "config.toml" {
-//			r, e := regexp.MatchString(ext, f.Name())
-//			if e == nil && r {
-//				file = f.Name()
-//				return nil
-//			}
-//		} else if !f.IsDir() && f.Name() != "Gopkg.toml" {
-//			r, e := regexp.MatchString(ext, f.Name())
-//			if e == nil && r {
-//				file = f.Name()
-//				return nil
-//			}
-//		}
-//		return nil
-//	}); err != nil {
-//		log.Error("please specify a config file", "err", err)
-//	}
-//	return file
-//}

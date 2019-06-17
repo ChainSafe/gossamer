@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
-	log "github.com/inconshreveable/log15"
+	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 	"os"
@@ -76,11 +76,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	services = append(services, dbSrvc)
 
 	// API
-	apiSrvc := api.NewApiService(p2pSrvc)
+	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
 	// RPC
-	rpcSrvr := rpc.NewHttpServer(apiSrvc, &json2.Codec{}, fig.RPCConfig)
+	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RPCConfig)
 
 	return dot.NewDot(services, rpcSrvr), nil
 }
@@ -101,7 +101,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	}
 }
 
-// setDatabaseDir initializes directory for BadgerService logs
+// getDatabaseDir initializes directory for BadgerService logs
 func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 	if fig.DbConfig.DataDir != "" {
 		return fig.DbConfig.DataDir

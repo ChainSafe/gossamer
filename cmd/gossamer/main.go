@@ -64,7 +64,7 @@ func gossamer(ctx *cli.Context) error {
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	node, err := makeNode(ctx)
 	if err != nil {
-		// TODO: Need to adjust error propagation and exit here
+		// TODO: Need to manage error propagation and exit smoothly
 		log.Error("error making node", "err", err)
 	}
 	srvlog.Info("🕸️Starting node...")
