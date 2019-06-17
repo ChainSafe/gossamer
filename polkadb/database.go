@@ -85,7 +85,7 @@ func NewBadgerService(file string) (*BadgerService, error) {
 		config: Config{
 			DataDir: file,
 		},
-		db:      db,
+		db: db,
 	}, nil
 }
 
@@ -113,15 +113,15 @@ func (db *BadgerService) Put(key []byte, value []byte) error {
 // Has checks the given key exists already; returning true or false
 func (db *BadgerService) Has(key []byte) (exists bool, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(snappy.Encode(nil, key))
+		item, errr := txn.Get(snappy.Encode(nil, key))
 		if item != nil {
 			exists = true
 		}
-		if err == badger.ErrKeyNotFound {
+		if errr == badger.ErrKeyNotFound {
 			exists = false
-			err = nil
+			errr = nil
 		}
-		return err
+		return errr
 	})
 	return exists, err
 }

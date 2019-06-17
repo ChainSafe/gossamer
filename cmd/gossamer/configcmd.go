@@ -16,6 +16,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -30,10 +31,22 @@ import (
 	"github.com/urfave/cli"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"unicode"
 )
 
 var (
+	dumpConfigCommand = cli.Command{
+		Action:      dumpConfig,
+		Name:        "dumpconfig",
+		Usage:       "Show configuration values",
+		ArgsUsage:   "",
+		Flags:       append(append(nodeFlags, rpcFlags...)),
+		Category:    "CONFIGURATION DEBUGGING",
+		Description: `The dumpconfig command shows configuration values.`,
+	}
+
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
@@ -106,10 +119,20 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Warn("error finding working directory", "err", err)
 	}
 	filep := filepath.Join(filepath.Clean(fp))
+	info, err := os.Lstat(filep)
+	if err != nil {
+		log.Crit("config file err ","err", err)
+		os.Exit(1)
+	}
+	if info.IsDir() {
+		log.Crit("cannot pass in a directory, expecting file ")
+		os.Exit(1)
+	}
 	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
-		panic(err)
+		log.Crit("opening file err ", "err",err)
+		os.Exit(1)
 	}
 	defer func() {
 		err = f.Close()
@@ -118,7 +141,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 		}
 	}()
 	var config *cfg.Config
-	if err = toml.NewDecoder(f).Decode(&config); err != nil {
+	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
@@ -145,4 +168,75 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
+}
+
+// SetP2PConfig sets up the configurations required for P2P service
+func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
+	setBootstrapNodes(ctx, cfg)
+	srv := startP2PService(cfg)
+	return srv
+}
+// startP2PService starts a p2p network layer from provided config
+func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
+	srv, err := p2p.NewService(cfg)
+	if err != nil {
+		log.Error("error starting p2p", "err", err.Error())
+	}
+	return srv
+}
+
+// dumpConfig is the dumpconfig command.
+func dumpConfig(ctx *cli.Context) error {
+	fig, err := setConfig(ctx)
+	if err != nil {
+		return err
+	}
+	comment := ""
+
+	out, err := tomlSettings.Marshal(&fig)
+	if err != nil {
+		return err
+	}
+
+	dump := os.Stdout
+	if ctx.NArg() > 0 {
+		/* #nosec */
+		dump, err = os.OpenFile(filepath.Clean(ctx.Args().Get(0)), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			err = dump.Close()
+			if err != nil {
+				log.Warn("err closing conn", "err", err.Error())
+			}
+		}()
+	}
+	_, err = dump.WriteString(comment)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
+	_, err = dump.Write(out)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
+	return nil
+}
+
+// These settings ensure that TOML keys use the same names as Go struct fields.
+var tomlSettings = toml.Config{
+	NormFieldName: func(rt reflect.Type, key string) string {
+		return key
+	},
+	FieldToKey: func(rt reflect.Type, field string) string {
+		return field
+	},
+	MissingField: func(rt reflect.Type, field string) error {
+		link := ""
+		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
+			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
+		}
+		return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
+	},
 }
