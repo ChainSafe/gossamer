@@ -121,7 +121,7 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 
 		key := binary.LittleEndian.Uint16(buf[:2])
 
-		if kv[string(buf)] == nil || key < 255 {
+		if kv[string(buf)] == nil || key < 256 {
 			test.key = buf
 
 			buf = make([]byte, r.Intn(128))
@@ -561,8 +561,9 @@ func TestPolkadotRandomStateTrie(t *testing.T) {
 
 	trie := newEmpty()
 
-	t.Log(tests)
 	for i, key := range tests.Keys {
+		t.Logf("%x\n", key)
+
 		err := trie.Put([]byte(key), []byte(tests.Values[i]))
 		if err != nil {
 			return
@@ -575,5 +576,5 @@ func TestPolkadotRandomStateTrie(t *testing.T) {
 	}
 	
 	t.Logf("%x", h)
-	trie.Print()
+	//trie.Print()
 }
