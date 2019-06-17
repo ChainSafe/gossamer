@@ -170,24 +170,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
 }
 
-// SetP2PConfig sets up the configurations required for P2P service
-func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
-	setBootstrapNodes(ctx, cfg)
-	srv := startP2PService(cfg)
-	return srv
-}
-// startP2PService starts a p2p network layer from provided config
-func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
-	srv, err := p2p.NewService(cfg)
-	if err != nil {
-		log.Error("error starting p2p", "err", err.Error())
-	}
-	return srv
-}
-
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	fig, err := setConfig(ctx)
+	fig, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
