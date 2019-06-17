@@ -29,7 +29,7 @@ func createTestDot(t *testing.T) *Dot {
 	}
 
 	// API
-	apiSrvc := api.NewApiService(p2pSrvc)
+	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
 

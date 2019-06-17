@@ -53,7 +53,7 @@ func (d *Dot) Start() {
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
-	
+
 	//d.Wait()
 
 	//d.Stop()
