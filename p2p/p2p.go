@@ -57,11 +57,6 @@ type Config struct {
 	RandSeed       int64
 }
 
-// TODO: Complete
-//var DefaultConfig = &Config{
-//
-//}
-
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *Config) (*Service, error) {
 	ctx := context.Background()
