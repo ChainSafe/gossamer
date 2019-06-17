@@ -41,7 +41,7 @@ import (
 
 const protocolPrefix = "/polkadot/0.0.0"
 
-// Service defines a p2p service, including host and dht
+// Service describes a p2p service, including host and dht
 type Service struct {
 	ctx            context.Context
 	host           host.Host
@@ -50,7 +50,7 @@ type Service struct {
 	bootstrapNodes []*ps.PeerInfo
 }
 
-// Config is used to initialize a new p2p service
+// Config is used to configure a p2p service
 type Config struct {
 	BootstrapNodes []string
 	Port           int

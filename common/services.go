@@ -22,17 +22,18 @@ import (
 	"reflect"
 )
 
+// Service must be implemented by all services
 type Service interface {
 	Start() <-chan error
 	Stop()
 }
 
+// ServiceRegistry is a structure to manage core system services
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service      // map of types to service instances
 	errs         map[reflect.Type]<-chan error // map of types to error channels
-	serviceTypes []reflect.Type                // all known service types, used to iterate through `ServiceRegistry.services`
+	serviceTypes []reflect.Type                // all known service types, used to iterate through services
 }
-
 // NewServiceRegistry creates an empty registry
 func NewServiceRegistry() *ServiceRegistry {
 	return &ServiceRegistry{

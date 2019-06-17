@@ -22,14 +22,17 @@ type Service struct {
 	err <-chan error
 }
 
+// Api contains all the available modules
 type Api struct {
 	Core *coreModule
 }
 
+// P2pApi is the interface expected to implemented by `p2p` package
 type P2pApi interface {
 	PeerCount() int
 }
 
+// RuntimeApi is the interface expected to implemented by `runtime` package
 type RuntimeApi interface {
 	Version() string
 }

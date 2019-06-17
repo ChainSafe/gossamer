@@ -2,12 +2,12 @@ package api
 
 import "testing"
 
+// -------------- Mock Apis ------------------
 const (
 	TestPeerCount = 1337
 	TestVersion = "1.2.3"
 )
 
-// -------------- Mock Apis ------------------
 type MockP2pApi struct {}
 
 func (a *MockP2pApi) PeerCount() int {
@@ -21,12 +21,8 @@ func (a *MockRuntimeApi) Version() string {
 }
 // -------------------------------------------
 
-func newApiService() *Service {
-	return NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
-}
-
 func TestCoreModule(t *testing.T) {
-	srvc := newApiService()
+	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
 	// Core.PeerCount
 	c := srvc.Api.Core.PeerCount()
