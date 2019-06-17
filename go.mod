@@ -5,6 +5,7 @@ replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wago
 require (
 	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/golang/snappy v0.0.1
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/ipfs/go-datastore v0.0.2

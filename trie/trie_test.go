@@ -28,7 +28,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/go-yaml/yaml"
 )
 
 type commonPrefixTest struct {
@@ -522,6 +524,49 @@ func TestHash(t *testing.T) {
 	err := trie.Put([]byte{1}, []byte{1})
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	trie.Print()
+	
+	h, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	t.Logf("%x", h)
+
+	hbytes := [32]byte(h)
+	hh, err := common.Blake2bHash(hbytes[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%x", hh)
+}
+
+//describing the (key, value) data format in the yaml file
+type KeyValueData struct {
+	Keys   []string `yaml:"keys"`
+	Values []string `yaml:"values"`
+}
+
+func TestPolkadotRandomStateTrie(t *testing.T) {
+	file, err := ioutil.ReadFile("./random_state_trie_80.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := &KeyValueData{}
+	err = yaml.Unmarshal(file, tests)
+
+	trie := newEmpty()
+
+	t.Log(tests)
+	for i, key := range tests.Keys {
+		err := trie.Put([]byte(key), []byte(tests.Values[i]))
+		if err != nil {
+			return
+		}
 	}
 
 	h, err := trie.Hash()
