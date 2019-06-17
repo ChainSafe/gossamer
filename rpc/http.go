@@ -33,10 +33,10 @@ type HttpServer struct {
 	rpcServer *Server      // Actual RPC call handler
 }
 
-func NewHttpServer(api *api.Service, codec Codec, cfg *Config) *HttpServer {
+func NewHttpServer(api *api.Api, codec Codec, cfg *Config) *HttpServer {
 	server := &HttpServer{
 		cfg:       cfg,
-		rpcServer: NewServer(cfg.Modules, api),
+		rpcServer: NewApiServer(cfg.Modules, api),
 	}
 
 	server.rpcServer.RegisterCodec(codec)
@@ -47,8 +47,9 @@ func NewHttpServer(api *api.Service, codec Codec, cfg *Config) *HttpServer {
 // Start registers the rpc handler function and starts the server listening on `h.port`
 func (h *HttpServer) Start() {
 	log.Debug("[rpc] Starting HTTP Server...", "port", h.cfg.Port)
+	http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
+
 	go func() {
-		http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.cfg.Port), nil)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)

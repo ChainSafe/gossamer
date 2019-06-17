@@ -19,6 +19,7 @@ package rpc
 import (
 	"fmt"
 	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/rpc/modules"
 	log "github.com/inconshreveable/log15"
 	"net/http"
 	"reflect"
@@ -43,29 +44,36 @@ type CodecRequest interface {
 type Server struct {
 	codec Codec // Codec for requests/responses (default JSON)
 	services *serviceMap // Maps requests to actual procedure calls
-	api *api.Service // API interface for system internals
+	api *api.Api // API interface for system internals
 }
 
 // NewServer creates a new Server.
-func NewServer(modules []api.Module, api *api.Service) *Server {
+func NewServer() *Server {
+	return &Server{
+		services: new(serviceMap),
+	}
+}
+
+// NewServer creates a new Server.
+func NewApiServer(mods []api.Module, api *api.Api) *Server {
 	s := &Server{
 		services: new(serviceMap),
 		api: api,
 	}
 
-	s.RegisterModules(modules)
+	s.RegisterModules(mods)
 
 	return s
 }
 
 // RegisterModules registers the RPC services associated with the given API modules
-func (s *Server) RegisterModules(modules []api.Module) {
-	for _, mod := range modules {
+func (s *Server) RegisterModules(mods []api.Module) {
+	for _, mod := range mods {
 		log.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
 		case "core":
-			srvc = NewCoreModule(s.api)
+			srvc = modules.NewCoreModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
