@@ -18,15 +18,19 @@ package api
 
 // Service couples all components required for the API.
 type Service struct {
-	Core *coreModule
-	err	<-chan error
+	Api *Api
+	err <-chan error
 }
 
-type p2pApi interface {
+type Api struct {
+	Core *coreModule
+}
+
+type P2pApi interface {
 	PeerCount() int
 }
 
-type runtimeApi interface {
+type RuntimeApi interface {
 	Version() string
 }
 
@@ -34,12 +38,14 @@ type runtimeApi interface {
 type Module string
 
 // NewApiService creates a new API instance.
-func NewApiService(p2p p2pApi, rt runtimeApi) *Service {
+func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
 	return &Service{
-		Core: &coreModule{
-			p2p,
-			rt,
-		},
+		&Api{
+			Core: &coreModule{
+				p2p,
+				rt,
+			},
+		}, nil,
 	}
 }
 

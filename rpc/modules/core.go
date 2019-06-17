@@ -23,7 +23,7 @@ import (
 
 // CoreModule is an RPC module providing access to core API points.
 type CoreModule struct {
-	api *api.Service
+	api *api.Api
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -35,7 +35,7 @@ type CoreVersionResponse struct {
 }
 
 // NewPublicRPC creates a new net API instance.
-func NewCoreModule(api *api.Service) *CoreModule {
+func NewCoreModule(api *api.Api) *CoreModule {
 	return &CoreModule{
 		api: api,
 	}

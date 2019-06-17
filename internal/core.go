@@ -5,8 +5,15 @@ import (
 )
 
 type coreModule struct {
-	p2p p2pApi
-	runtime runtimeApi
+	p2p     P2pApi
+	runtime RuntimeApi
+}
+
+func NewCoreModule(p2p P2pApi, rt RuntimeApi) *coreModule {
+	return &coreModule{
+		p2p,
+		rt,
+	}
 }
 
 func (m *coreModule) Version() string {

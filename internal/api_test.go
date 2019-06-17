@@ -29,13 +29,13 @@ func TestCoreModule(t *testing.T) {
 	srvc := newApiService()
 
 	// Core.PeerCount
-	c := srvc.Core.PeerCount()
+	c := srvc.Api.Core.PeerCount()
 	if c != TestPeerCount {
 		t.Fatalf("Core.PeerCount - expected: %d got: %d\n", TestPeerCount, c)
 	}
 
 	// Core.Version
-	v := srvc.Core.Version()
+	v := srvc.Api.Core.Version()
 	if v != TestVersion {
 		t.Fatalf("Core.Version - expected: %s got: %s\n", TestVersion, v)
 	}
