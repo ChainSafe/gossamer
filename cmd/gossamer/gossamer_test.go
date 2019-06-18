@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/build"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -17,13 +16,12 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/inconshreveable/log15"
+	log "github.com/Chainsafe/log15"
 	"github.com/rendon/testcli"
 )
 
 var binaryname = "gossamer-test"
 
-const configTest = "config-test.toml"
 const timeFormat = "2006-01-02T15:04:05-0700"
 
 func setup() *os.File {
@@ -34,19 +32,20 @@ func setup() *os.File {
 	r := exec.Command("go", "build", "-o", gopath+"/bin/gossamer-test")
 	err := r.Run()
 	if err != nil {
-		log15.Crit("could not execute binary", "executable", binaryname, "err", err)
+		log.Crit("could not execute binary", "executable", binaryname, "err", err)
 		os.Exit(1)
 	}
 	run := exec.Command(`gossamer-test`)
 	err = run.Run()
 	if err != nil {
-		log15.Crit("could not execute binary", "executable", binaryname, "err", err)
+		log.Crit("could not execute binary", "executable", binaryname, "err", err)
 		os.Exit(1)
 	}
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
-		log.Fatal("Cannot create temporary file", err)
+		log.Crit("Cannot create temporary file", err)
+		os.Exit(1)
 	}
 
 	testConfig := fmt.Sprintf("%s%s%s%v%s%s%v%s%s%s",
@@ -56,7 +55,7 @@ func setup() *os.File {
 
 	_, err = tmpFile.Write([]byte(testConfig))
 	if err != nil {
-		log15.Crit("could not write to test config", "config", "config-test.toml", "err", err)
+		log.Crit("could not write to test config", "config", "config-test.toml", "err", err)
 		os.Exit(1)
 	}
 	return tmpFile
@@ -65,14 +64,14 @@ func setup() *os.File {
 func teardown(tempFile *os.File) {
 	err := os.Chdir("../gossamer")
 	if err != nil {
-		log15.Error("could not change dir", "err", err)
+		log.Crit("could not change dir", "err", err)
 		os.Exit(1)
 	}
 	if err := os.RemoveAll("./chaindata"); err != nil {
-		log15.Warn("removal of temp directory bin failed", "err", err)
+		log.Warn("removal of temp directory bin failed", "err", err)
 	}
 	if err := os.Remove(tempFile.Name()); err != nil {
-		log.Fatal("cannot create temp file", err)
+		log.Warn("cannot create temp file", err)
 	}
 }
 
@@ -141,7 +140,7 @@ func expectedResponses() []string {
 
 	b, err := json.Marshal(testConfig)
 	if err != nil {
-		log15.Error("could not marshal testConfig for expected response", "err", err)
+		log.Error("could not marshal testConfig for expected response", "err", err)
 	}
 	dumpCfgExp := fmt.Sprintf("%v", string(b))
 	startingChainMsg := fmt.Sprintf("%s%v%s", "t=", time.Now().Format(timeFormat),

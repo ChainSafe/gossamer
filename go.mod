@@ -3,6 +3,7 @@ module github.com/ChainSafe/gossamer
 replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wagon v0.3.1-0.20180825141017-f8cb99b55a39
 
 require (
+	github.com/Chainsafe/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
