@@ -21,28 +21,28 @@ import (
 	"net/http"
 )
 
-// CoreModule is an RPC module providing access to core API points.
-type CoreModule struct {
+// SystemModule is an RPC module providing access to core API points.
+type SystemModule struct {
 	api *api.Api
 }
 
 // EmptyRequest represents an RPC request with no fields
 type EmptyRequest struct{}
 
-// CoreVersionResponse represents response from `core_version` RPC call
-type CoreVersionResponse struct {
+// SystemVersionResponse represents response from `system_version` RPC call
+type SystemVersionResponse struct {
 	Version string
 }
 
-// NewPublicRPC creates a new net API instance.
-func NewCoreModule(api *api.Api) *CoreModule {
-	return &CoreModule{
+// NewSystemModule creates a new net API instance.
+func NewSystemModule(api *api.Api) *SystemModule {
+	return &SystemModule{
 		api: api,
 	}
 }
 
-// PeerCount returns the number of connected peers
-func (s *CoreModule) Version(r *http.Request, args *EmptyRequest, res *CoreVersionResponse) error {
-	res.Version = s.api.Core.Version()
+// Version returns the current system version
+func (s *SystemModule) Version(r *http.Request, args *EmptyRequest, res *SystemVersionResponse) error {
+	res.Version = s.api.System.Version()
 	return nil
 }

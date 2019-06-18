@@ -56,7 +56,7 @@ var (
 
 	// RPC
 	defaultRpcPort    = uint32(8545)
-	defaultRpcModules = []api.Module{"core"}
+	defaultRpcModules = []api.Module{"system"}
 	DefaultRpcConfig  = &rpc.Config{
 		Port:    defaultRpcPort,
 		Modules: defaultRpcModules,

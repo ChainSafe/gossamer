@@ -21,18 +21,18 @@ func (a *MockRuntimeApi) Version() string {
 }
 // -------------------------------------------
 
-func TestCoreModule(t *testing.T) {
+func TestSystemModule(t *testing.T) {
 	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
-	// Core.PeerCount
-	c := srvc.Api.Core.PeerCount()
+	// System.PeerCount
+	c := srvc.Api.System.PeerCount()
 	if c != TestPeerCount {
-		t.Fatalf("Core.PeerCount - expected: %d got: %d\n", TestPeerCount, c)
+		t.Fatalf("System.PeerCount - expected: %d got: %d\n", TestPeerCount, c)
 	}
 
-	// Core.Version
-	v := srvc.Api.Core.Version()
+	// System.Version
+	v := srvc.Api.System.Version()
 	if v != TestVersion {
-		t.Fatalf("Core.Version - expected: %s got: %s\n", TestVersion, v)
+		t.Fatalf("System.Version - expected: %s got: %s\n", TestVersion, v)
 	}
 }

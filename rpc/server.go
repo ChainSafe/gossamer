@@ -72,8 +72,8 @@ func (s *Server) RegisterModules(mods []api.Module) {
 		log.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
-		case "core":
-			srvc = modules.NewCoreModule(s.api)
+		case "system":
+			srvc = modules.NewSystemModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

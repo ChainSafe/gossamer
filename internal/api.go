@@ -24,7 +24,7 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	Core *coreModule
+	System *systemModule
 }
 
 // P2pApi is the interface expected to implemented by `p2p` package
@@ -44,7 +44,7 @@ type Module string
 func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
 	return &Service{
 		&Api{
-			Core: &coreModule{
+			System: &systemModule{
 				p2p,
 				rt,
 			},

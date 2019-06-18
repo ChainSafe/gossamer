@@ -19,19 +19,19 @@ func newMockApi() *api.Api {
 	runtimeApi := &mockruntimeApi{}
 
 	return &api.Api{
-		Core: api.NewCoreModule(nil, runtimeApi),
+		System: api.NewSystemModule(nil, runtimeApi),
 	}
 }
 
-func TestCoreModule_Version(t *testing.T) {
-	core := NewCoreModule(newMockApi())
+func TestSystemModule_Version(t *testing.T) {
+	sys := NewSystemModule(newMockApi())
 
-	vres := &CoreVersionResponse{}
-	err := core.Version(nil, nil, vres)
+	vres := &SystemVersionResponse{}
+	err := sys.Version(nil, nil, vres)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if vres.Version != testRuntimeVersion {
-		t.Fatalf("Core.Version: expected: %s got: %s\n", vres.Version, testRuntimeVersion)
+		t.Fatalf("System.Version: expected: %s got: %s\n", vres.Version, testRuntimeVersion)
 	}
 }
