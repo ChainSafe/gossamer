@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/build"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -24,7 +26,7 @@ var binaryname = "gossamer-test"
 const configTest = "config-test.toml"
 const timeFormat = "2006-01-02T15:04:05-0700"
 
-func setup() {
+func setup() *os.File {
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
 		gopath = build.Default.GOPATH
@@ -41,10 +43,10 @@ func setup() {
 		log15.Crit("could not execute binary", "executable", binaryname, "err", err)
 		os.Exit(1)
 	}
-	fp, err := os.Create(configTest)
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
-		log15.Crit("could not create test config", "config", configTest, "err", err)
-		os.Exit(1)
+		log.Fatal("Cannot create temporary file", err)
 	}
 
 	testConfig := fmt.Sprintf("%s%s%s%v%s%s%v%s%s%s",
@@ -52,14 +54,15 @@ func setup() {
 		7005, "\n", "RandSeed = ", 0, "\n\n", "[DbConfig]\n",
 		"Datadir = \"\"\x0A")
 
-	_, err = fp.WriteString(testConfig)
+	_, err = tmpFile.Write([]byte(testConfig))
 	if err != nil {
 		log15.Crit("could not write to test config", "config", "config-test.toml", "err", err)
 		os.Exit(1)
 	}
+	return tmpFile
 }
 
-func teardown() {
+func teardown(tempFile *os.File) {
 	err := os.Chdir("../gossamer")
 	if err != nil {
 		log15.Error("could not change dir", "err", err)
@@ -68,41 +71,39 @@ func teardown() {
 	if err := os.RemoveAll("./chaindata"); err != nil {
 		log15.Warn("removal of temp directory bin failed", "err", err)
 	}
-	if err := os.RemoveAll("./config-test.toml"); err != nil {
-		log15.Warn("removal of temp config.toml failed", "err", err)
+	if err := os.Remove(tempFile.Name()); err != nil {
+		log.Fatal("cannot create temp file", err)
 	}
 }
 
 func TestInitialOutput(t *testing.T) {
-	setup()
+	tempFile := setup()
+	defer teardown(tempFile)
+
 	testcli.Run("gossamer-test")
 	if !testcli.Success() {
-		teardown()
 		t.Fatalf("Expected to succeed, but failed: %s", testcli.Error())
 	}
 	output := fmt.Sprintf("%s%v%s", "t=", time.Now().Format(timeFormat), " lvl=info msg=\"🕸️ starting p2p service\" blockchain=gossamer\x0A")
 	if !testcli.StdoutContains(output) {
-		teardown()
 		t.Fatalf("Expected %q to contain %q", testcli.Stdout(), output)
 	}
 	if !reflect.DeepEqual(testcli.Stdout(), output) {
-		teardown()
 		t.Fatalf("actual = %s, expected = %s", testcli.Stdout(), output)
 	}
-	defer teardown()
 }
 
 func TestCliArgs(t *testing.T) {
-	setup()
+	tempFile := setup()
 	res := expectedResponses()
-	defer teardown()
+	defer teardown(tempFile)
 	tests := []struct {
 		name     string
 		args     []string
 		expected string
 	}{
-		{"dumpconfig with config set", []string{"--config", "config-test.toml", res[0]}, res[0]},
-		{"config specified", []string{"--config", "config-test.toml"}, res[1]},
+		{"dumpconfig with config set", []string{"--config", tempFile.Name(), res[0]}, res[0]},
+		{"config specified", []string{"--config", tempFile.Name()}, res[1]},
 		{"default config", []string{}, res[1]},
 	}
 
@@ -117,11 +118,9 @@ func TestCliArgs(t *testing.T) {
 			cmd := exec.Command(path.Join(dir, binaryname), tt.args...)
 			actual, err := cmd.CombinedOutput()
 			if err != nil {
-				teardown()
 				t.Fatal(err)
 			}
 			if !strings.ContainsAny(string(actual), tt.expected) {
-				teardown()
 				t.Fatalf("actual = %s, expected = %s", string(actual), tt.expected)
 			}
 		})

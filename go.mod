@@ -4,7 +4,7 @@ replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wago
 
 require (
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
-	github.com/docker/docker v1.13.1
+	github.com/docker/docker v1.13.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
@@ -25,5 +25,6 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/rendon/testcli v0.0.0-20161027181003-6283090d169f
 	github.com/urfave/cli v1.20.0
-	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
+	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+	google.golang.org/appengine v1.6.1 // indirect
 )
