@@ -6,7 +6,6 @@ require (
 	github.com/Chainsafe/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/docker/docker v1.13.1 // indirect
-	github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1
 	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
@@ -29,6 +28,4 @@ require (
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 	google.golang.org/appengine v1.6.1 // indirect
-	golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25
-	google.golang.org/appengine v1.6.0 // indirect
 )
