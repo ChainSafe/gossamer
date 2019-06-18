@@ -24,14 +24,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BadgerService struct contains directory path to data and db instance
+// BadgerService contains directory path to data and db instance
 type BadgerService struct {
 	config Config
 	db      *badger.DB
 	err 	<-chan error
 }
 
-//DbConfig struct defines configurations for BadgerService instance
+//Config defines configurations for BadgerService instance
 type Config struct {
 	DataDir string
 }

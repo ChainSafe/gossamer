@@ -66,9 +66,9 @@ var (
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 var DefaultConfig = &Config{
-	P2PConfig: DefaultP2PConfig,
-	DbConfig:  DefaultDBConfig,
-	RPCConfig: DefaultRpcConfig,
+	P2pCfg: DefaultP2PConfig,
+	DbCfg:  DefaultDBConfig,
+	RpcCfg: DefaultRpcConfig,
 }
 
 // DefaultDataDir is the default data directory to use for the databases and other
