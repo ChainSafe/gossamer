@@ -28,7 +28,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
+	//"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/go-yaml/yaml"
 )
@@ -535,13 +535,13 @@ func TestHash(t *testing.T) {
 	
 	t.Logf("%x", h)
 
-	hbytes := [32]byte(h)
-	hh, err := common.Blake2bHash(hbytes[:])
-	if err != nil {
-		t.Fatal(err)
-	}
+	// hbytes := [32]byte(h)
+	// hh, err := common.Blake2bHash(hbytes[:])
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
-	t.Logf("%x", hh)
+	// t.Logf("%x", hh)
 }
 
 //describing the (key, value) data format in the yaml file
@@ -562,7 +562,7 @@ func TestPolkadotRandomStateTrie(t *testing.T) {
 	trie := newEmpty()
 
 	for i, key := range tests.Keys {
-		t.Logf("%x\n", key)
+		//t.Logf("%x\n", key)
 
 		err := trie.Put([]byte(key), []byte(tests.Values[i]))
 		if err != nil {
