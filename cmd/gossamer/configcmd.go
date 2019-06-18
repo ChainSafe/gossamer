@@ -18,10 +18,10 @@ package main
 import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/cmd/utils"
-	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
-	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
@@ -61,7 +61,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 		return nil, err
 	}
 
-	var services []common.Service
+	var services []services.Service
 
 	// P2P
 	p2pSrvc := createP2PService(ctx, fig.P2PConfig)

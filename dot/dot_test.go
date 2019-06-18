@@ -1,9 +1,9 @@
 package dot
 
 import (
-	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
-	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"testing"
@@ -12,7 +12,7 @@ import (
 
 // Creates a Dot with default configurations. Does not include RPC server.
 func createTestDot(t *testing.T) *Dot {
-	var services []common.Service
+	var services []services.Service
 	// P2P
 	p2pSrvc, err := p2p.NewService(cfg.DefaultP2PConfig)
 	services = append(services, p2pSrvc)
@@ -37,7 +37,7 @@ func createTestDot(t *testing.T) *Dot {
 }
 
 func TestDot_Start(t *testing.T) {
-	var availableServices = [...]common.Service{
+	var availableServices = [...]services.Service{
 		&p2p.Service{},
 		&api.Service{},
 		&polkadb.BadgerService{},

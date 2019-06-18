@@ -17,28 +17,28 @@
 package dot
 
 import (
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
 )
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Services *common.ServiceRegistry // Registry of all core services
+	Services *services.ServiceRegistry // Registry of all core services
 	Rpc      *rpc.HttpServer         // HTTP instance for RPC server
 
 	stop chan struct{} // Used to signal node shutdown
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(services []common.Service, rpc *rpc.HttpServer) *Dot {
+func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
-		Services: common.NewServiceRegistry(),
+		Services: services.NewServiceRegistry(),
 		Rpc:      rpc,
 		stop:     make(chan struct{}),
 	}
 
-	for _, srvc := range services {
+	for _, srvc := range srvcs {
 		d.Services.RegisterService(srvc)
 	}
 

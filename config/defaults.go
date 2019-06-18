@@ -17,7 +17,7 @@
 package cfg
 
 import (
-	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"

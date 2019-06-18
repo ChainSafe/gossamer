@@ -18,7 +18,7 @@ package rpc
 
 import (
 	"fmt"
-	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/inconshreveable/log15"
 	"net/http"
 )

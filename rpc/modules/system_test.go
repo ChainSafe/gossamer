@@ -1,7 +1,7 @@
 package modules
 
 import (
-	api "github.com/ChainSafe/gossamer/internal"
+	"github.com/ChainSafe/gossamer/internal/api"
 	"testing"
 )
 
