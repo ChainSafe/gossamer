@@ -35,7 +35,7 @@ func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
 		Services: services.NewServiceRegistry(),
 		Rpc:      rpc,
-		stop:     make(chan struct{}),
+		stop:     nil,
 	}
 
 	for _, srvc := range srvcs {
@@ -48,15 +48,14 @@ func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 // Start starts all services. API service is started last.
 func (d *Dot) Start() {
 	log.Debug("Starting core services.")
-	// TODO: Should handle the channel returned by Start()
 	d.Services.StartAll()
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
 
-	//d.Wait()
+	d.stop = make(chan struct{})
 
-	//d.Stop()
+	d.Wait()
 }
 
 // Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
@@ -65,5 +64,6 @@ func (d *Dot) Wait() {
 }
 
 func (d *Dot) Stop() {
-	// TODO: Shutdown services
+	// TODO: Shutdown services and exit
+	d.stop <- struct{}{}
 }

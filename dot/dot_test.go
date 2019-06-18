@@ -45,7 +45,10 @@ func TestDot_Start(t *testing.T) {
 
 	dot := createTestDot(t)
 
-	dot.Start()
+	go dot.Start()
+
+	// Wait until dot.Start() is finished
+	for dot.stop == nil {}
 
 	for _, srvc := range availableServices {
 		s := dot.Services.Get(srvc)
@@ -58,4 +61,6 @@ func TestDot_Start(t *testing.T) {
 			t.Fatalf("error getting error channel for service: %T", srvc)
 		}
 	}
+
+	dot.Stop()
 }
