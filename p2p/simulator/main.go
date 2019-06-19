@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"time"
 
-	golog "github.com/ipfs/go-log"
-	gologging "github.com/whyrusleeping/go-logging"
-	log "github.com/inconshreveable/log15"
 	p2p "github.com/ChainSafe/gossamer/p2p"
+	log "github.com/inconshreveable/log15"
+	golog "github.com/ipfs/go-log"
 	peer "github.com/libp2p/go-libp2p-peer"
+	gologging "github.com/whyrusleeping/go-logging"
 )
 
 var messages = []string{
@@ -23,7 +23,7 @@ var messages = []string{
 	"i am a penguin stuck in a computer\n",
 	"pls feed me code\n",
 }
- 
+
 func sendRandomMessage(s *p2p.Service, peerid peer.ID) error {
 	// open new stream with each peer
 	ps, err := s.DHT().FindPeer(s.Ctx(), peerid)
@@ -44,7 +44,7 @@ func sendRandomMessage(s *p2p.Service, peerid peer.ID) error {
 
 func getRandomInt(m int) int {
 	b := make([]byte, 1)
-	_, err := rand.Read(b)	
+	_, err := rand.Read(b)
 	if err != nil {
 		return 0
 	}
@@ -60,10 +60,10 @@ func main() {
 		os.Exit(0)
 	}
 
- 	num, err := strconv.Atoi(os.Args[1])
- 	if err != nil {
- 		log.Crit("main", "error", err)
- 	}
+	num, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		log.Crit("main", "error", err)
+	}
 
 	sim, err := p2p.NewSimulator(num)
 	if err != nil {
@@ -103,5 +103,5 @@ func main() {
 		}(node)
 	}
 
-	select{}
+	select {}
 }
