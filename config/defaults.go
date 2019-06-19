@@ -17,14 +17,15 @@
 package cfg
 
 import (
-	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/ChainSafe/gossamer/rpc"
 	"os"
 	"os/user"
 	"path/filepath"
 	"runtime"
+
+	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/rpc"
 )
 
 const (
