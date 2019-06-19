@@ -25,6 +25,8 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+
+	"github.com/inconshreveable/log15"
 )
 
 const (

@@ -17,6 +17,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"unicode"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
@@ -29,11 +35,6 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"unicode"
 )
 
 var (
