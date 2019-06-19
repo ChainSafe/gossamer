@@ -18,8 +18,9 @@ package services
 
 import (
 	"fmt"
-	log "github.com/ChainSafe/log15"
 	"reflect"
+
+	log "github.com/ChainSafe/log15"
 )
 
 // Service must be implemented by all services
@@ -34,6 +35,7 @@ type ServiceRegistry struct {
 	errs         map[reflect.Type]<-chan error // map of types to error channels
 	serviceTypes []reflect.Type                // all known service types, used to iterate through services
 }
+
 // NewServiceRegistry creates an empty registry
 func NewServiceRegistry() *ServiceRegistry {
 	return &ServiceRegistry{

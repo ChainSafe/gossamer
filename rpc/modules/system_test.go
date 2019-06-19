@@ -1,15 +1,16 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/internal/api"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/internal/api"
 )
 
 var (
 	testRuntimeVersion = "1.2.3"
 )
-type mockruntimeApi struct {}
 
+type mockruntimeApi struct{}
 
 func (a *mockruntimeApi) Version() string {
 	return testRuntimeVersion

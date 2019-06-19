@@ -17,8 +17,9 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/internal/api"
 	"net/http"
+
+	"github.com/ChainSafe/gossamer/internal/api"
 )
 
 // SystemModule is an RPC module providing access to core API points.

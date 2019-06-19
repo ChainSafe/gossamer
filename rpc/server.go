@@ -18,14 +18,14 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/rpc/modules"
-	log "github.com/inconshreveable/log15"
 	"net/http"
 	"reflect"
 	"strings"
-)
 
+	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/rpc/modules"
+	log "github.com/inconshreveable/log15"
+)
 
 // Codec defines the interface for creating a CodecRequest.
 type Codec interface {
@@ -42,9 +42,9 @@ type CodecRequest interface {
 
 // Server is an RPC server.
 type Server struct {
-	codec Codec // Codec for requests/responses (default JSON)
+	codec    Codec       // Codec for requests/responses (default JSON)
 	services *serviceMap // Maps requests to actual procedure calls
-	api *api.Api // API interface for system internals
+	api      *api.Api    // API interface for system internals
 }
 
 // NewServer creates a new Server.
@@ -58,7 +58,7 @@ func NewServer() *Server {
 func NewApiServer(mods []api.Module, api *api.Api) *Server {
 	s := &Server{
 		services: new(serviceMap),
-		api: api,
+		api:      api,
 	}
 
 	s.RegisterModules(mods)

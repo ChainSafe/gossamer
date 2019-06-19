@@ -187,7 +187,7 @@ func setRpcModules(ctx *cli.Context, cfg *rpc.Config) {
 
 // setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
 func setRpcHost(ctx *cli.Context, cfg *rpc.Config) {
-	switch  {
+	switch {
 	case cfg.Host != "":
 		return
 	case ctx.GlobalIsSet(utils.RpcHostFlag.Name):

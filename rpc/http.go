@@ -18,9 +18,10 @@ package rpc
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/inconshreveable/log15"
-	"net/http"
 )
 
 // Config contains eneral RPC configuration options

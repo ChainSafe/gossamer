@@ -6,28 +6,31 @@ import "testing"
 type MockSrvcA struct {
 	running bool
 }
-func(s *MockSrvcA) Start() <-chan error{
+
+func (s *MockSrvcA) Start() <-chan error {
 	s.running = true
 	return make(chan error)
 }
-func(s *MockSrvcA) Stop() {
+func (s *MockSrvcA) Stop() {
 	s.running = false
 }
 
 type MockSrvcB struct {
 	running bool
 }
-func(s *MockSrvcB) Start() <-chan error{
+
+func (s *MockSrvcB) Start() <-chan error {
 	s.running = true
 	return make(chan error)
 }
-func(s *MockSrvcB) Stop() {
+func (s *MockSrvcB) Stop() {
 	s.running = false
 }
 
-type FakeService struct {}
+type FakeService struct{}
+
 func (s *FakeService) Start() <-chan error { return *new(<-chan error) }
-func (s *FakeService) Stop() {}
+func (s *FakeService) Stop()               {}
 
 // --------------------------------------------------------
 
@@ -72,7 +75,7 @@ func TestServiceRegistry_Get_Err(t *testing.T) {
 
 	r.StartAll()
 
-	if r.Get(a) == nil || r.Err(a) == nil{
+	if r.Get(a) == nil || r.Err(a) == nil {
 		t.Fatalf("Failed to fetch service: %T", a)
 	}
 	if r.Get(b) == nil || r.Err(a) == nil {

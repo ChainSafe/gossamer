@@ -44,12 +44,12 @@ var (
 		Value: cfg.DefaultHttpPort,
 	}
 	RpcHostFlag = cli.StringFlag{
-		Name: "rpchost",
+		Name:  "rpchost",
 		Usage: "HTTP-RPC server listening hostname",
 		Value: "",
 	}
 	RpcModuleFlag = cli.StringFlag{
-		Name: "rpcmods",
+		Name:  "rpcmods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
 		Value: "",
 	}

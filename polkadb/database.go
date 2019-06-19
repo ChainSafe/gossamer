@@ -27,8 +27,8 @@ import (
 // BadgerService contains directory path to data and db instance
 type BadgerService struct {
 	config Config
-	db      *badger.DB
-	err 	<-chan error
+	db     *badger.DB
+	err    <-chan error
 }
 
 //Config defines configurations for BadgerService instance

@@ -5,20 +5,21 @@ import "testing"
 // -------------- Mock Apis ------------------
 const (
 	TestPeerCount = 1337
-	TestVersion = "1.2.3"
+	TestVersion   = "1.2.3"
 )
 
-type MockP2pApi struct {}
+type MockP2pApi struct{}
 
 func (a *MockP2pApi) PeerCount() int {
 	return TestPeerCount
 }
 
-type MockRuntimeApi struct {}
+type MockRuntimeApi struct{}
 
 func (a *MockRuntimeApi) Version() string {
 	return TestVersion
 }
+
 // -------------------------------------------
 
 func TestSystemModule(t *testing.T) {

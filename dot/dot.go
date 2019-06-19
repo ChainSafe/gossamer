@@ -25,7 +25,7 @@ import (
 // Dot is a container for all the components of a node.
 type Dot struct {
 	Services *services.ServiceRegistry // Registry of all core services
-	Rpc      *rpc.HttpServer         // HTTP instance for RPC server
+	Rpc      *rpc.HttpServer           // HTTP instance for RPC server
 
 	stop chan struct{} // Used to signal node shutdown
 }
