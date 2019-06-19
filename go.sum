@@ -4,6 +4,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7 h1:PqzgE6kAMi
 github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7/go.mod h1:bOvUY6CB00SOBii9/FifXqc0awNKxLFCL/+pkDPuyl8=
 github.com/ChainSafe/log15 v0.0.0-20180818164646-67afb5ed74ec h1:7U2dkf4jqCppEHdd23z199je2UO04wU+qhzJO6o5JXI=
 github.com/ChainSafe/log15 v0.0.0-20180818164646-67afb5ed74ec/go.mod h1:iYzm67H5lNlP2v1N6pSXmr4eaiAJVe5FqW1RrYRR3OU=
+github.com/Chainsafe/log15 v0.0.0-20180818164646-67afb5ed74ec h1:gTFDvFMWYKaW7FcTSDD+MzKG/GLUNZWo5R01REW/J3s=
+github.com/Chainsafe/log15 v0.0.0-20180818164646-67afb5ed74ec/go.mod h1:KcR3qhnJZnH6CHd8DeRHTj4u6koktNBN7Yrd1ffSiHo=
 github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMGXfDk=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd/go.mod h1:bqoB8kInrTeEtYAwaIXoSRqdwnjQmFhsfusnzyui6yY=
@@ -422,6 +424,8 @@ github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910/go.mod h1:
 github.com/prometheus/common v0.0.0-20181126121408-4724e9255275 h1:PnBWHBf+6L0jOqq0gIVUe6Yk0/QMZ640k6NvkxcBf+8=
 github.com/prometheus/common v0.0.0-20181126121408-4724e9255275/go.mod h1:daVV7qP5qjZbuso7PdcryaAu0sAZbrN9i7WWcTMWvro=
 github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
+github.com/rendon/testcli v0.0.0-20161027181003-6283090d169f h1:onGP+qmYmjKs7pkmi9j0mwyr97/D5wki80e74aKIOxg=
+github.com/rendon/testcli v0.0.0-20161027181003-6283090d169f/go.mod h1:cq57a4l475CeMvE7RRpSui1MEqCmhirIt1E7kl8BC2Q=
 github.com/rs/cors v1.6.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
 github.com/sirupsen/logrus v1.0.5 h1:8c8b5uO0zS4X6RPl/sd1ENwSkIc0/H2PaHxE3udaE8I=
 github.com/sirupsen/logrus v1.0.5/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=

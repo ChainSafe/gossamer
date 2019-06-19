@@ -16,7 +16,7 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/Chainsafe/log15"
+	log "github.com/ChainSafe/log15"
 	"github.com/rendon/testcli"
 )
 

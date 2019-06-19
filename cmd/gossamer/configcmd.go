@@ -88,7 +88,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	return dot.NewDot(srvcs, rpcSrvr), nil
 }
 
-// setConfig checks for config.toml if --config flag is specified
+// getConfig checks for config.toml if --config flag is specified
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	var fig *cfg.Config
 	// Load config file.
