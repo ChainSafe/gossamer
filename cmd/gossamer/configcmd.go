@@ -82,6 +82,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 
 	// RPC
 	setRpcModules(ctx, fig.RpcCfg)
+	setRpcHost(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
 	return dot.NewDot(srvcs, rpcSrvr), nil

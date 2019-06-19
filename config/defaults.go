@@ -25,8 +25,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
-
-	"github.com/inconshreveable/log15"
 )
 
 const (
@@ -34,7 +32,7 @@ const (
 	DefaultHttpPort = 8545
 
 	// P2P
-	DefaultP2PPort = 7001
+	DefaultP2PPort     = 7001
 	DefaultP2PRandSeed = int64(33)
 )
 
@@ -46,8 +44,8 @@ var DefaultP2PBootstrap = []string{
 var (
 	// P2P
 	DefaultP2PConfig = &p2p.Config{
-		Port: DefaultP2PPort,
-		RandSeed: DefaultP2PRandSeed,
+		Port:           DefaultP2PPort,
+		RandSeed:       DefaultP2PRandSeed,
 		BootstrapNodes: DefaultP2PBootstrap,
 	}
 
@@ -64,7 +62,6 @@ var (
 		Modules: defaultRpcModules,
 	}
 )
-
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 var DefaultConfig = &Config{
