@@ -34,7 +34,7 @@ var (
 		utils.RpcEnabledFlag,
 		utils.RpcListenAddrFlag,
 		utils.RpcPortFlag,
-		utils.RpcHostFlag
+		utils.RpcHostFlag,
 		utils.RpcModuleFlag,
 	}
 )

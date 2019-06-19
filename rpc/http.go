@@ -23,17 +23,20 @@ import (
 	"net/http"
 )
 
+// Config contains eneral RPC configuration options
 type Config struct {
 	Port    uint32       // Listening port
 	Host    string       // Listening hostname
 	Modules []api.Module // Enabled modules
 }
 
+// HttpServer acts as gateway to an RPC server
 type HttpServer struct {
 	cfg       *Config // Associated config
 	rpcServer *Server // Actual RPC call handler
 }
 
+// NewHttpServer creates a new http server and registers an associated rpc server
 func NewHttpServer(api *api.Api, codec Codec, cfg *Config) *HttpServer {
 	server := &HttpServer{
 		cfg:       cfg,
