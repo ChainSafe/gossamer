@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	
+
 	log "github.com/inconshreveable/log15"
 
 	datastore "github.com/ipfs/go-datastore"
@@ -14,7 +14,7 @@ import (
 )
 
 type Simulator struct {
-	Nodes []*Service
+	Nodes    []*Service
 	IpfsNode *ipfs.IpfsNode
 }
 
