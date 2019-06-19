@@ -31,9 +31,11 @@ var (
 		configFileFlag,
 	}
 	rpcFlags = []cli.Flag{
-		utils.RPCEnabledFlag,
-		utils.RPCListenAddrFlag,
-		utils.RPCPortFlag,
+		utils.RpcEnabledFlag,
+		utils.RpcListenAddrFlag,
+		utils.RpcPortFlag,
+		utils.RpcHostFlag
+		utils.RpcModuleFlag,
 	}
 )
 

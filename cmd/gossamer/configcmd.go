@@ -61,11 +61,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 		return nil, err
 	}
 
-	var services []services.Service
+	var srvcs []services.Service
 
 	// P2P
-	p2pSrvc := createP2PService(ctx, fig.P2PConfig)
-	services = append(services, p2pSrvc)
+	p2pSrvc := createP2PService(ctx, fig.P2pCfg)
+	srvcs = append(srvcs, p2pSrvc)
 
 	// DB
 	dataDir := getDatabaseDir(ctx, fig)
@@ -73,16 +73,17 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	if err != nil {
 		return nil, err
 	}
-	services = append(services, dbSrvc)
+	srvcs = append(srvcs, dbSrvc)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
-	services = append(services, apiSrvc)
+	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RPCConfig)
+	setRpcModules(ctx, fig.RpcCfg)
+	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
-	return dot.NewDot(services, rpcSrvr), nil
+	return dot.NewDot(srvcs, rpcSrvr), nil
 }
 
 // setConfig checks for config.toml if --config flag is specified
@@ -103,8 +104,8 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 
 // getDatabaseDir initializes directory for BadgerService logs
 func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
-	if fig.DbConfig.DataDir != "" {
-		return fig.DbConfig.DataDir
+	if fig.DbCfg.DataDir != "" {
+		return fig.DbCfg.DataDir
 	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
 		return file
 	} else {
@@ -121,7 +122,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	filep := filepath.Join(filepath.Clean(fp))
 	info, err := os.Lstat(filep)
 	if err != nil {
-		log.Crit("config file err ","err", err)
+		log.Crit("config file err ", "err", err)
 		os.Exit(1)
 	}
 	if info.IsDir() {
@@ -131,7 +132,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
-		log.Crit("opening file err ", "err",err)
+		log.Crit("opening file err ", "err", err)
 		os.Exit(1)
 	}
 	defer func() {
@@ -148,9 +149,9 @@ func loadConfig(file string) (*cfg.Config, error) {
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(ctx *cli.Context,cfg *p2p.Config) *p2p.Service {
-	setBootstrapNodes(ctx, cfg)
-	srvc, err := p2p.NewService(cfg)
+func createP2PService(ctx *cli.Context, fig *p2p.Config) *p2p.Service {
+	setBootstrapNodes(ctx, fig)
+	srvc, err := p2p.NewService(fig)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
@@ -159,15 +160,46 @@ func createP2PService(ctx *cli.Context,cfg *p2p.Config) *p2p.Service {
 
 // setBootstrapNodes creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
+func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
 	var urls []string
 	switch {
 	case ctx.GlobalIsSet(utils.BootnodesFlag.Name):
 		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
-	case cfg.BootstrapNodes != nil:
+	case fig.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
-	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
+	fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
+}
+
+// setRpcModules checks the context for rpc modes and applies them to `cfg`, unless some are already set
+func setRpcModules(ctx *cli.Context, cfg *rpc.Config) {
+	var strs []string
+	switch {
+	case cfg.Modules != nil:
+		return
+	case ctx.GlobalIsSet(utils.RpcModuleFlag.Name):
+		strs = strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ",")
+		cfg.Modules = append(cfg.Modules, strToMods(strs)...)
+	}
+}
+
+// setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
+func setRpcHost(ctx *cli.Context, cfg *rpc.Config) {
+	switch  {
+	case cfg.Host != "":
+		return
+	case ctx.GlobalIsSet(utils.RpcHostFlag.Name):
+		cfg.Host = ctx.GlobalString(utils.RpcHostFlag.Name)
+	}
+}
+
+// strToMods casts a []strings to []api.Module
+func strToMods(strs []string) []api.Module {
+	var res []api.Module
+	for _, str := range strs {
+		res = append(res, api.Module(str))
+	}
+	return res
 }
 
 // dumpConfig is the dumpconfig command.

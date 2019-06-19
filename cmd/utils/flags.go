@@ -29,19 +29,29 @@ var (
 		Value: cfg.DefaultDataDir(),
 	}
 	// RPC settings
-	RPCEnabledFlag = cli.BoolFlag{
+	RpcEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
 	}
-	RPCListenAddrFlag = cli.StringFlag{
+	RpcListenAddrFlag = cli.StringFlag{
 		Name:  "rpcaddr",
 		Usage: "HTTP-RPC server listening interface",
 		Value: cfg.DefaultHttpHost,
 	}
-	RPCPortFlag = cli.IntFlag{
+	RpcPortFlag = cli.IntFlag{
 		Name:  "rpcport",
 		Usage: "HTTP-RPC server listening port",
 		Value: cfg.DefaultHttpPort,
+	}
+	RpcHostFlag = cli.StringFlag{
+		Name: "rpchost",
+		Usage: "HTTP-RPC server listening hostname",
+		Value: "",
+	}
+	RpcModuleFlag = cli.StringFlag{
+		Name: "rpcmods",
+		Usage: "API modules to enable via HTTP-RPC, comma separated list",
+		Value: "",
 	}
 	// P2P service settings
 	BootnodesFlag = cli.StringFlag{

@@ -25,12 +25,13 @@ import (
 
 type Config struct {
 	Port    uint32       // Listening port
+	Host    string       // Listening hostname
 	Modules []api.Module // Enabled modules
 }
 
 type HttpServer struct {
-	cfg       *Config      // Associated config
-	rpcServer *Server      // Actual RPC call handler
+	cfg       *Config // Associated config
+	rpcServer *Server // Actual RPC call handler
 }
 
 func NewHttpServer(api *api.Api, codec Codec, cfg *Config) *HttpServer {
@@ -50,7 +51,7 @@ func (h *HttpServer) Start() {
 	http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.cfg.Port), nil)
+		err := http.ListenAndServe(fmt.Sprintf("%s:%d", h.cfg.Host, h.cfg.Port), nil)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)
 		}
