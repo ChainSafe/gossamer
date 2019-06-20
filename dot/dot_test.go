@@ -47,8 +47,7 @@ func TestDot_Start(t *testing.T) {
 	go dot.Start()
 
 	// Wait until dot.Start() is finished
-	for dot.stop == nil {
-	}
+	<-dot.IsStarted
 
 	for _, srvc := range availableServices {
 		s := dot.Services.Get(srvc)

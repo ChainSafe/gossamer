@@ -26,7 +26,7 @@ import (
 type Dot struct {
 	Services *services.ServiceRegistry // Registry of all core services
 	Rpc      *rpc.HttpServer           // HTTP instance for RPC server
-
+	IsStarted chan struct{} // Signals node startup complete
 	stop chan struct{} // Used to signal node shutdown
 }
 
@@ -35,6 +35,7 @@ func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
 		Services: services.NewServiceRegistry(),
 		Rpc:      rpc,
+		IsStarted: make(chan struct{}),
 		stop:     nil,
 	}
 
@@ -54,7 +55,7 @@ func (d *Dot) Start() {
 	}
 
 	d.stop = make(chan struct{})
-
+	d.IsStarted <- struct{}{}
 	d.Wait()
 }
 
