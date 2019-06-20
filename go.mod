@@ -4,6 +4,7 @@ replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wago
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
+	github.com/Chainsafe/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/btcsuite/btcd v0.0.0-20190614013741-962a206e94e9 // indirect
 	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
@@ -32,6 +33,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
 	github.com/perlin-network/life v0.0.0-20190402092845-c30697b41680
 	github.com/pkg/errors v0.8.1
+	github.com/rendon/testcli v0.0.0-20161027181003-6283090d169f
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/yamux v1.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
