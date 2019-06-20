@@ -9,9 +9,7 @@ import (
 
 	p2p "github.com/ChainSafe/gossamer/p2p"
 	log "github.com/inconshreveable/log15"
-	golog "github.com/ipfs/go-log"
 	peer "github.com/libp2p/go-libp2p-peer"
-	gologging "github.com/whyrusleeping/go-logging"
 )
 
 var messages = []string{
@@ -53,8 +51,6 @@ func getRandomInt(m int) int {
 }
 
 func main() {
-	golog.SetAllLoggers(gologging.INFO) // Change to DEBUG for extra info
-
 	if len(os.Args) < 2 {
 		log.Crit("please specify number of nodes to start in simulation: ./p2p/simulator/main.go [num]")
 		os.Exit(0)
