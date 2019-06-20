@@ -29,12 +29,12 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
+	core "github.com/libp2p/go-libp2p-core"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	host "github.com/libp2p/go-libp2p-core/host"
+	net "github.com/libp2p/go-libp2p-core/network"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	net "github.com/libp2p/go-libp2p-net"
-	peer "github.com/libp2p/go-libp2p-peer"
-	ps "github.com/libp2p/go-libp2p-peerstore"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -47,7 +47,7 @@ type Service struct {
 	host           host.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []*ps.PeerInfo
+	bootstrapNodes []*core.PeerAddrInfo
 }
 
 // ServiceConfig is used to initialize a new p2p service
@@ -136,13 +136,13 @@ func (s *Service) Broadcast(msg []byte) (err error) {
 }
 
 // Send sends a message to a specific peer
-func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
-	err := s.host.Connect(s.ctx, peer)
+func (s *Service) Send(p core.PeerAddrInfo, msg []byte) error {
+	err := s.host.Connect(s.ctx, p)
 	if err != nil {
 		return err
 	}
 
-	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
+	stream, err := s.host.NewStream(s.ctx, p.ID, protocolPrefix)
 	if err != nil {
 		return err
 	}
@@ -156,8 +156,8 @@ func (s *Service) Send(peer ps.PeerInfo, msg []byte) error {
 }
 
 // Ping pings a peer
-func (s *Service) Ping(peer peer.ID) error {
-	ps, err := s.dht.FindPeer(s.ctx, peer)
+func (s *Service) Ping(p peer.ID) error {
+	ps, err := s.dht.FindPeer(s.ctx, p)
 	if err != nil {
 		return fmt.Errorf("could not find peer: %s", err)
 	}
@@ -167,7 +167,7 @@ func (s *Service) Ping(peer peer.ID) error {
 		return err
 	}
 
-	return s.dht.Ping(s.ctx, peer)
+	return s.dht.Ping(s.ctx, p)
 }
 
 // Host returns the service's host
