@@ -2,22 +2,23 @@ package runtime
 
 // #include <stdlib.h>
 //
-// extern int64_t ext_malloc(void *context, int32_t x);
-// extern int64_t ext_print_utf8(void *context, int32_t offset, int32_t size);
+// extern int32_t ext_malloc(void *context, int32_t x);
+// extern int32_t ext_print_utf8(void *context, int32_t offset, int32_t size);
+import "C"
+
 import (
-	"C"
 	"fmt"
 	"unsafe"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 //export ext_malloc
-func ext_malloc(context unsafe.Pointer, x int32) int64 {
+func ext_malloc(context unsafe.Pointer, x int32) int32 {
 	return 100
 }
 
 //export ext_print_utf8
-func ext_print_utf8(context unsafe.Pointer, offset int32, size int32) int64 {
+func ext_print_utf8(context unsafe.Pointer, offset int32, size int32) int32 {
 	mem := (*[]byte)(context)
 	fmt.Println(mem)
 	return 1
@@ -28,6 +29,7 @@ func Exec() ([]byte, error) {
 	bytes, _ := wasm.ReadBytes("polkadot_runtime.compact.wasm")
 	
 	imports, _ := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
+	imports, _ = imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
 
 	// Instantiates the WebAssembly module.
 	instance, _ := wasm.NewInstanceWithImports(bytes, imports)
