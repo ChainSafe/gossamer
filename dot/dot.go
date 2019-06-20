@@ -24,19 +24,19 @@ import (
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Services *services.ServiceRegistry // Registry of all core services
-	Rpc      *rpc.HttpServer           // HTTP instance for RPC server
-	IsStarted chan struct{} // Signals node startup complete
-	stop chan struct{} // Used to signal node shutdown
+	Services  *services.ServiceRegistry // Registry of all core services
+	Rpc       *rpc.HttpServer           // HTTP instance for RPC server
+	IsStarted chan struct{}             // Signals node startup complete
+	stop      chan struct{}             // Used to signal node shutdown
 }
 
 // NewDot initializes a Dot with provided components.
 func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
-		Services: services.NewServiceRegistry(),
-		Rpc:      rpc,
+		Services:  services.NewServiceRegistry(),
+		Rpc:       rpc,
 		IsStarted: make(chan struct{}),
-		stop:     nil,
+		stop:      nil,
 	}
 
 	for _, srvc := range srvcs {
