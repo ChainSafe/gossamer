@@ -6,7 +6,7 @@ package runtime
 // extern void ext_free(void *context, int32_t addr);
 // extern void ext_print_utf8(void *context, int32_t offset, int32_t size);
 // extern void ext_print_hex(void *context, int32_t data, int32_t len);
-// extern void ext_print_num(void *context, int32_t data);
+// extern void ext_print_num(void *context, int64_t data);
 // extern int32_t ext_get_storage_into(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
 // extern void ext_set_storage(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
 // extern void ext_blake2_256(void *context, int32_t data, int32_t len, int32_t out);
@@ -68,7 +68,7 @@ func ext_print_hex(context unsafe.Pointer, data, len int32) {
 }
 
 //export ext_print_num
-func ext_print_num(context unsafe.Pointer, data int32) {
+func ext_print_num(context unsafe.Pointer, data int64) {
 	return
 }
 
