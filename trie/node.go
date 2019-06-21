@@ -172,7 +172,7 @@ func (l *leaf) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	encoding = append(encoding, nibblesToKeyLE(l.key)...)
+	encoding = append(encoding, nibblesToKey(l.key)...)
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
