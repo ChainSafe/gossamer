@@ -130,6 +130,16 @@ func (b *branch) Encode() ([]byte, error) {
 		return nil, err
 	}
 
+	if b.value != nil {
+		buffer := bytes.Buffer{}
+		se := scale.Encoder{Writer: &buffer}
+		_, err = se.Encode(b.value)
+		if err != nil {
+			return encoding, err
+		}
+		encoding = append(encoding, buffer.Bytes()...)
+	}
+	
 	for _, child := range b.children {
 		if child != nil {
 			encChild, err := hasher.Hash(child)
@@ -142,16 +152,6 @@ func (b *branch) Encode() ([]byte, error) {
 			}
 			encoding = append(encoding, scEncChild[:]...)
 		}
-	}
-
-	if b.value != nil {
-		buffer := bytes.Buffer{}
-		se := scale.Encoder{Writer: &buffer}
-		_, err = se.Encode(b.value)
-		if err != nil {
-			return encoding, err
-		}
-		encoding = append(encoding, buffer.Bytes()...)
 	}
 
 	return encoding, nil
@@ -201,12 +201,13 @@ func (b *branch) header() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		header = append([]byte{header}, encodePkLen...)
 	} else {
 		header = header | byte(len(b.key))
 	}
 
-	fullHeader := append([]byte{header}, encodePkLen...)
-	return fullHeader, nil
+	//fullHeader := append([]byte{header}, encodePkLen...)
+	return header, nil
 }
 
 func (l *leaf) header() ([]byte, error) {
@@ -220,12 +221,13 @@ func (l *leaf) header() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+		header = append([]byte{header}, encodePkLen...)
 	} else {
 		header = header | byte(len(l.key))
 	}
 
-	fullHeader := append([]byte{header}, encodePkLen...)
-	return fullHeader, nil
+	//fullHeader := append([]byte{header}, encodePkLen...)
+	return header, nil
 }
 
 func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
