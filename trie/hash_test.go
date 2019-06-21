@@ -20,8 +20,6 @@ import (
 	"bytes"
 	"math/rand"
 	"testing"
-
-	"github.com/ChainSafe/gossamer/common"
 )
 
 func generateRandBytes(size int) []byte {
@@ -73,7 +71,7 @@ func TestHashLeaf(t *testing.T) {
 	h, err := hasher.Hash(n)
 	if err != nil {
 		t.Errorf("did not hash leaf node: %s", err)
-	} else if h == [32]byte{} {
+	} else if h == nil {
 		t.Errorf("did not hash leaf node: nil")
 	}
 }
@@ -89,7 +87,7 @@ func TestHashBranch(t *testing.T) {
 	h, err := hasher.Hash(n)
 	if err != nil {
 		t.Errorf("did not hash branch node: %s", err)
-	} else if h == [32]byte{} {
+	} else if h == nil {
 		t.Errorf("did not hash branch node: nil")
 	}
 }
@@ -106,12 +104,10 @@ func TestHashShort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected = common.AppendZeroes(expected, 32)
-
 	h, err := hasher.Hash(n)
 	if err != nil {
 		t.Errorf("did not hash leaf node: %s", err)
-	} else if h == [32]byte{} {
+	} else if h == nil {
 		t.Errorf("did not hash leaf node: nil")
 	} else if !bytes.Equal(h[:], expected) {
 		t.Errorf("did not return encoded node padded to 32 bytes: got %s", h)

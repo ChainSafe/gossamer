@@ -136,7 +136,11 @@ func (b *branch) Encode() ([]byte, error) {
 			if err != nil {
 				return encoding, err
 			}
-			encoding = append(encoding, encChild[:]...)
+			scEncChild, err := scale.Encode(encChild)
+			if err != nil {
+				return encoding, err
+			}
+			encoding = append(encoding, scEncChild[:]...)
 		}
 	}
 
