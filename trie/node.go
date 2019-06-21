@@ -122,7 +122,7 @@ func (b *branch) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	encoding = append(encoding, nibblesToKey(b.key)...)
+	encoding = append(encoding, nibblesToKeyLE(b.key)...)
 	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
 
 	hasher, err := NewHasher()
@@ -172,7 +172,7 @@ func (l *leaf) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	encoding = append(encoding, nibblesToKey(l.key)...)
+	encoding = append(encoding, nibblesToKeyLE(l.key)...)
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
