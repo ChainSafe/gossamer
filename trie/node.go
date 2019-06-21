@@ -225,7 +225,7 @@ func (l *leaf) header() ([]byte, error) {
 	}
 
 	fullHeader := append([]byte{header}, encodePkLen...)
-	return full, nil
+	return fullHeader, nil
 }
 
 func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
