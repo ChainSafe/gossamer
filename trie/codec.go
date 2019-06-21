@@ -77,8 +77,8 @@ func nibblesToKeyLE(in []byte) (res []byte) {
 	} else {
 		res = make([]byte, len(in)/2+1)
 		res[0] = in[0]
-		for i := 1; i < len(in); i += 2 {
-			res[i/2] = (in[i] << 4 & 0xf0) | (in[i+1] & 0xf)
+		for i := 2; i < len(in); i += 2 {
+			res[i/2] = (in[i-1] << 4 & 0xf0) | (in[i] & 0xf)
 		}
 	}
 
