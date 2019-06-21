@@ -172,7 +172,7 @@ func (l *leaf) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	encoding = append(encoding, nibblesToKey(l.key)...)
+	encoding = append(encoding, nibblesToKeyLE(l.key)...)
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
@@ -225,7 +225,7 @@ func (l *leaf) header() ([]byte, error) {
 	}
 
 	fullHeader := append([]byte{header}, encodePkLen...)
-	return fullHeader, nil
+	return full, nil
 }
 
 func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
