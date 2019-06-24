@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	DefaultHttpHost = "localhost" // Default host interface for the HTTP RPC server
-	DefaultHttpPort = 8545
+	DefaultRpcHttpHost = "localhost" // Default host interface for the HTTP RPC server
+	DefaultRpcHttpPort = 8545		// Default port for
 
 	// P2P
 	DefaultP2PPort     = 7001
@@ -41,6 +41,8 @@ var DefaultP2PBootstrap = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 	"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
 }
+
+var DefaultRpcModules = []api.Module{"system"}
 
 var (
 	// P2P
@@ -56,11 +58,10 @@ var (
 	}
 
 	// RPC
-	defaultRpcPort    = uint32(8545)
-	defaultRpcModules = []api.Module{"system"}
 	DefaultRpcConfig  = &rpc.Config{
-		Port:    defaultRpcPort,
-		Modules: defaultRpcModules,
+		Host:    DefaultRpcHttpHost,
+		Port:    DefaultRpcHttpPort,
+		Modules: DefaultRpcModules,
 	}
 )
 
