@@ -17,24 +17,40 @@
 package trie
 
 import (
-	log "github.com/inconshreveable/log15"
+	"fmt"
+	//log "github.com/inconshreveable/log15"
 )
 
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
-	log.Info("printing trie...")
-	t.print(t.root, nil)
+	fmt.Println("printing trie...")
+	t.print(t.root, nil, false)
 }
 
-func (t *Trie) print(current node, prefix []byte) {
+func (t *Trie) PrintEncoding() {
+	t.print(t.root, nil, true)
+}
+
+func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
+	var encoding []byte
+	var err error
+	if withEncoding {
+		encoding, err = current.Encode()
+		if err != nil {
+			fmt.Printf("encoding err %s\n", err)
+		}
+	}
+
 	switch c := current.(type) {
 	case *branch:
-		log.Info("branch", "key", nibblesToKeyLE(append(prefix, c.key...)), "children", c.childrenBitmap(), "value", c.value)
+		fmt.Printf("branch key %x children %b value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.childrenBitmap(), c.value)
+		fmt.Printf("branch encoding %x\n", encoding)
 		for i, child := range c.children {
-			t.print(child, append(append(prefix, byte(i)), c.key...))
+			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
 	case *leaf:
-		log.Info("leaf", "key", nibblesToKeyLE(append(prefix, c.key...)), "value", c.value)
+		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
+		fmt.Printf("leaf encoding %x\n", encoding)
 	default:
 		// do nothing
 	}
