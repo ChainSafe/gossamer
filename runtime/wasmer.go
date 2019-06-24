@@ -129,85 +129,22 @@ func Exec(t *trie.Trie) ([]byte, error) {
 		return nil, err
 	}
 
-	imports, err = imports.Append("ext_free", ext_free, C.ext_free)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_blake2_256", ext_blake2_256, C.ext_blake2_256)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root, C.ext_blake2_256_enumerated_trie_root)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_clear_storage", ext_clear_storage, C.ext_clear_storage)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_clear_prefix", ext_clear_prefix, C.ext_clear_prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_twox_128", ext_twox_128, C.ext_twox_128)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_storage_root", ext_storage_root, C.ext_storage_root)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_storage_changes_root", ext_storage_changes_root, C.ext_storage_changes_root)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_sr25519_verify", ext_sr25519_verify, C.ext_sr25519_verify)
-	if err != nil {
-		return nil, err
-	}
-
-	imports, err = imports.Append("ext_ed25519_verify", ext_ed25519_verify, C.ext_ed25519_verify)
-	if err != nil {
-		return nil, err
-	}
+	imports.Append("ext_free", ext_free, C.ext_free)
+	imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
+	imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
+	imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
+	imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
+	imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
+	imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
+	imports.Append("ext_blake2_256", ext_blake2_256, C.ext_blake2_256)
+	imports.Append("ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root, C.ext_blake2_256_enumerated_trie_root)
+	imports.Append("ext_clear_storage", ext_clear_storage, C.ext_clear_storage)
+	imports.Append("ext_clear_prefix", ext_clear_prefix, C.ext_clear_prefix)
+	imports.Append("ext_twox_128", ext_twox_128, C.ext_twox_128)
+	imports.Append("ext_storage_root", ext_storage_root, C.ext_storage_root)
+	imports.Append("ext_storage_changes_root", ext_storage_changes_root, C.ext_storage_changes_root)
+	imports.Append("ext_sr25519_verify", ext_sr25519_verify, C.ext_sr25519_verify)
+	imports.Append("ext_ed25519_verify", ext_ed25519_verify, C.ext_ed25519_verify)
 
 	// Instantiates the WebAssembly module.
 	instance, err := wasm.NewInstanceWithImports(bytes, imports)
