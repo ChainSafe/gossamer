@@ -578,3 +578,32 @@ func TestPolkadotRandomStateTrie(t *testing.T) {
 	t.Logf("%x", h)
 	//trie.Print()
 }
+
+func TestPolkadotTrie(t *testing.T) {
+	file, err := ioutil.ReadFile("./test_trie.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := &KeyValueData{}
+	err = yaml.Unmarshal(file, tests)
+
+	trie := newEmpty()
+
+	for i, key := range tests.Keys {
+		//t.Logf("%x\n", key)
+
+		err := trie.Put([]byte(key), []byte(tests.Values[i]))
+		if err != nil {
+			return
+		}
+	}
+
+	h, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	
+	t.Logf("%x", h)
+	trie.PrintEncoding()
+}

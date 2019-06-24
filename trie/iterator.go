@@ -58,10 +58,10 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 		}
 	case *leaf:
 		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
-		fmt.Printf("leaf encoding ")
-		printHexBytes(encoding)
-		fmt.Printf("branch hash ")
-		printHexBytes(hash)
+		fmt.Println("leaf encoding", encoding)
+		//printHexBytes(encoding)
+		fmt.Println("leaf hash", hash)
+		//printHexBytes(hash)
 	default:
 		// do nothing
 	}
