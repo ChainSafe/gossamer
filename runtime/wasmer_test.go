@@ -2,14 +2,14 @@ package runtime
 
 import (
 	"testing"
-	//trie "github.com/ChainSafe/gossamer/trie"
+	trie "github.com/ChainSafe/gossamer/trie"
 )
 
-// func newEmpty() *trie.Trie {
-// 	db := &trie.Database{}
-// 	t := trie.NewEmptyTrie(db)
-// 	return t
-// }
+func newEmpty() *trie.Trie {
+	db := &trie.Database{}
+	t := trie.NewEmptyTrie(db)
+	return t
+}
 
 func TestExecWasmer(t *testing.T) {
 	tt := newEmpty()

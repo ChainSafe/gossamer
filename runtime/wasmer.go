@@ -6,7 +6,6 @@ package runtime
 // extern void ext_free(void *context, int32_t addr);
 // extern void ext_print_utf8(void *context, int32_t offset, int32_t size);
 // extern void ext_print_hex(void *context, int32_t data, int32_t len);
-// extern void ext_print_num(void *context, int64_t data);
 // extern int32_t ext_get_storage_into(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
 // extern void ext_set_storage(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
 // extern void ext_blake2_256(void *context, int32_t data, int32_t len, int32_t out);
@@ -19,6 +18,7 @@ package runtime
 // extern int32_t ext_sr25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
+// extern void ext_print_num(void *context, int64_t data);
 import "C"
 
 import (
@@ -67,11 +67,6 @@ func ext_print_hex(context unsafe.Pointer, data, len int32) {
 	return
 }
 
-//export ext_print_num
-func ext_print_num(context unsafe.Pointer, data int64) {
-	return
-}
-
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	return 0
@@ -114,6 +109,11 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 
 //export ext_twox_128
 func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
+	return
+}
+
+//export ext_print_num
+func ext_print_num(context unsafe.Pointer, data int64) {
 	return
 }
 
