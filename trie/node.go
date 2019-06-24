@@ -151,8 +151,6 @@ func (b *branch) Encode() ([]byte, error) {
 				return encoding, err
 			}
 			encoding = append(encoding, scEncChild[:]...)
-			printHexBytes(encChild)
-			printHexBytes(scEncChild)
 		}
 	}
 

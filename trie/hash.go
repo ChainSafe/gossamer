@@ -17,7 +17,6 @@
 package trie
 
 import (
-	"fmt"
 	"hash"
 
 	"golang.org/x/crypto/blake2b"
@@ -45,8 +44,6 @@ func (h *Hasher) Hash(n node) (res []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(encNode)
 
 	// if length of encoded leaf is less than 32 bytes, do not hash
 	if len(encNode) < 32 {
