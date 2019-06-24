@@ -32,13 +32,18 @@ func (t *Trie) PrintEncoding() {
 }
 
 func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
+	h, err := NewHasher()
+	if err != nil {
+		fmt.Printf("new hasher err %s\n", err)
+	}
 	var encoding []byte
-	var err error
+	var hash []byte
 	if withEncoding && current != nil {
 		encoding, err = current.Encode()
 		if err != nil {
 			fmt.Printf("encoding err %s\n", err)
 		}
+		hash, err = h.Hash(current)
 	}
 
 	switch c := current.(type) {
@@ -46,6 +51,8 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 		fmt.Printf("branch key %x children %b value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.childrenBitmap(), c.value)
 		fmt.Printf("branch encoding ")
 		printHexBytes(encoding)
+		fmt.Printf("branch hash ")
+		printHexBytes(hash)
 		for i, child := range c.children {
 			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
@@ -53,6 +60,8 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
 		fmt.Printf("leaf encoding ")
 		printHexBytes(encoding)
+		fmt.Printf("branch hash ")
+		printHexBytes(hash)
 	default:
 		// do nothing
 	}
