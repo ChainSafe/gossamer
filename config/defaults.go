@@ -30,7 +30,7 @@ import (
 
 const (
 	DefaultRpcHttpHost = "localhost" // Default host interface for the HTTP RPC server
-	DefaultRpcHttpPort = 8545		// Default port for
+	DefaultRpcHttpPort = 8545        // Default port for
 
 	// P2P
 	DefaultP2PPort     = 7001
@@ -58,7 +58,7 @@ var (
 	}
 
 	// RPC
-	DefaultRpcConfig  = &rpc.Config{
+	DefaultRpcConfig = &rpc.Config{
 		Host:    DefaultRpcHttpHost,
 		Port:    DefaultRpcHttpPort,
 		Modules: DefaultRpcModules,
