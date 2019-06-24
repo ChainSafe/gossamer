@@ -34,7 +34,7 @@ func (t *Trie) PrintEncoding() {
 func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 	var encoding []byte
 	var err error
-	if withEncoding && node != nil {
+	if withEncoding && current != nil {
 		encoding, err = current.Encode()
 		if err != nil {
 			fmt.Printf("encoding err %s\n", err)
