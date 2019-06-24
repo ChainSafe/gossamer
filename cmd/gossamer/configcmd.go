@@ -65,7 +65,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, error) {
 	var srvcs []services.Service
 
 	// P2P
-	p2pSrvc := createP2PService(ctx, fig.P2pCfg)
+	setBootstrapNodes(ctx, fig.P2pCfg)
+	p2pSrvc := createP2PService(fig.P2pCfg)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// DB
@@ -104,17 +105,6 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	}
 }
 
-// getDatabaseDir initializes directory for BadgerService logs
-func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
-	if fig.DbCfg.DataDir != "" {
-		return fig.DbCfg.DataDir
-	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
-		return file
-	} else {
-		return cfg.DefaultDataDir()
-	}
-}
-
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
 	fp, err := filepath.Abs(file)
@@ -150,9 +140,19 @@ func loadConfig(file string) (*cfg.Config, error) {
 	return config, err
 }
 
+// getDatabaseDir initializes directory for BadgerService logs
+func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
+	if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
+		return file
+	} else if fig.DbCfg.DataDir != "" {
+		return fig.DbCfg.DataDir
+	} else {
+		return cfg.DefaultDataDir()
+	}
+}
+
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(ctx *cli.Context, fig *p2p.Config) *p2p.Service {
-	setBootstrapNodes(ctx, fig)
+func createP2PService(fig *p2p.Config) *p2p.Service {
 	srvc, err := p2p.NewService(fig)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
@@ -164,34 +164,39 @@ func createP2PService(ctx *cli.Context, fig *p2p.Config) *p2p.Service {
 // flags, reverting to pre-configured ones if none have been specified.
 func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
 	var urls []string
-	switch {
-	case ctx.GlobalIsSet(utils.BootnodesFlag.Name):
+
+	if ctx.GlobalIsSet(utils.BootnodesFlag.Name) {
 		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
-	case fig.BootstrapNodes != nil:
-		return // already set, don't apply defaults.
+		fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
+	} else if fig.BootstrapNodes != nil {
+		return // set in config, dont use defaults
+	} else {
+		fig.BootstrapNodes = cfg.DefaultP2PBootstrap
 	}
-	fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
 }
 
 // setRpcModules checks the context for rpc modes and applies them to `cfg`, unless some are already set
-func setRpcModules(ctx *cli.Context, cfg *rpc.Config) {
+func setRpcModules(ctx *cli.Context, fig *rpc.Config) {
 	var strs []string
-	switch {
-	case cfg.Modules != nil:
-		return
-	case ctx.GlobalIsSet(utils.RpcModuleFlag.Name):
+
+	if ctx.GlobalIsSet(utils.RpcModuleFlag.Name) {
 		strs = strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ",")
-		cfg.Modules = append(cfg.Modules, strToMods(strs)...)
+		fig.Modules = append(fig.Modules, strToMods(strs)...)
+	} else if fig.Modules != nil {
+		return // set in config, dont use defaults
+	} else {
+		fig.Modules = cfg.DefaultRpcModules
 	}
 }
 
 // setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
-func setRpcHost(ctx *cli.Context, cfg *rpc.Config) {
-	switch {
-	case cfg.Host != "":
+func setRpcHost(ctx *cli.Context, fig *rpc.Config) {
+	if ctx.GlobalIsSet(utils.RpcHostFlag.Name) {
+		fig.Host = ctx.GlobalString(utils.RpcHostFlag.Name)
+	} else if fig.Host != "" {
 		return
-	case ctx.GlobalIsSet(utils.RpcHostFlag.Name):
-		cfg.Host = ctx.GlobalString(utils.RpcHostFlag.Name)
+	} else {
+		fig.Host = cfg.DefaultRpcHttpHost
 	}
 }
 

@@ -36,12 +36,12 @@ var (
 	RpcListenAddrFlag = cli.StringFlag{
 		Name:  "rpcaddr",
 		Usage: "HTTP-RPC server listening interface",
-		Value: cfg.DefaultHttpHost,
+		Value: cfg.DefaultRpcHttpHost,
 	}
 	RpcPortFlag = cli.IntFlag{
 		Name:  "rpcport",
 		Usage: "HTTP-RPC server listening port",
-		Value: cfg.DefaultHttpPort,
+		Value: cfg.DefaultRpcHttpPort,
 	}
 	RpcHostFlag = cli.StringFlag{
 		Name:  "rpchost",
