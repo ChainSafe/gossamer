@@ -2,18 +2,20 @@ package main
 
 import (
 	"bytes"
-	"flag"
-	"fmt"
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/p2p"
+	"reflect"
+
+	"flag"
+	"fmt"
+	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/ChainSafe/log15"
-	"github.com/urfave/cli"
 	"io/ioutil"
 	"os"
 	"testing"
+	"github.com/urfave/cli"
+	log "github.com/ChainSafe/log15"
 )
 
 func teardown(tempFile *os.File) {
@@ -153,8 +155,11 @@ func TestGetDatabaseDir(t *testing.T) {
 func TestLoadConfig(t *testing.T) {
 }
 
-func TestCreateP2PService(t *testing.T) {
-}
+//func TestCreateP2PService(t *testing.T) {
+//	_, cfgClone := createTempConfigFile()
+//	srv := createP2PService(cfgClone.P2pCfg)
+//
+//}
 
 func TestSetBootstrapNodes(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
@@ -237,6 +242,14 @@ func TestSetRpcHost(t *testing.T) {
 	}
 }
 
+func TestStrToMods(t *testing.T) {
+	strs := []string{"test1", "test2"}
+	mods := strToMods(strs)
+	rv := reflect.ValueOf(mods)
+	if rv.Kind() == reflect.Ptr {
+		t.Fatalf("test failed: got %v expected %v", mods, &[]api.Module{})
+	}
+}
 
 func TestMakeNode(t *testing.T) {
 }
