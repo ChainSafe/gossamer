@@ -4,7 +4,7 @@ go:
 - 1.12
 
 env:
-- GO111MODULE=on GOPROXY='https://proxy.golang.org'
+- GO111MODULE=on
 
 cache:
   directories:
@@ -17,7 +17,7 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-- go test ./... -v -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
+- go clean -modcache && go test ./... -v -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
