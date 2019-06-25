@@ -140,11 +140,6 @@ func TestBranchEncode(t *testing.T) {
 	randKeys := generateRand(100)
 	randVals := generateRand(100)
 
-	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	for i, testKey := range randKeys {
 		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
 		expected := []byte{}
@@ -155,19 +150,8 @@ func TestBranchEncode(t *testing.T) {
 		}
 
 		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(b.key)...)
-
+		expected = append(expected, nibblesToKeyLE(b.key)...)
 		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
-
-		for _, child := range b.children {
-			if child != nil {
-				encChild, err := hasher.Hash(child)
-				if err != nil {
-					t.Errorf("Fail when encoding branch child: %s", err)
-				}
-				expected = append(expected, encChild[:]...)
-			}
-		}
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{Writer: &buf}
@@ -178,11 +162,25 @@ func TestBranchEncode(t *testing.T) {
 
 		expected = append(expected, buf.Bytes()...)
 
+		for _, child := range b.children {
+			if child != nil {
+				hasher, err := NewHasher()
+				if err != nil {
+					t.Fatal(err)
+				}
+				encChild, err := hasher.Hash(child)
+				if err != nil {
+					t.Errorf("Fail when encoding branch child: %s", err)
+				}
+				expected = append(expected, encChild[:]...)
+			}
+		}
+
 		res, err := b.Encode()
 		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
+			t.Errorf("Fail when encoding node: %s", err)
 		}
 	}
 }
@@ -200,7 +198,7 @@ func TestLeafEncode(t *testing.T) {
 			t.Fatalf("Error when encoding header: %s", err)
 		}
 		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(l.key)...)
+		expected = append(expected, nibblesToKeyLE(l.key)...)
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{Writer: &buf}
@@ -213,9 +211,9 @@ func TestLeafEncode(t *testing.T) {
 
 		res, err := l.Encode()
 		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
+			t.Errorf("Fail when encoding node: %s", err)
 		}
 	}
 }
