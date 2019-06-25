@@ -101,14 +101,14 @@ func TestFailingPk(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{byteArray(2<<16), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
+		{&branch{byteArray(2 << 16), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
 	}
 
 	for _, test := range tests {
 		_, err := test.br.header()
 		if err == nil {
 			t.Fatalf("should error when encoding node w pk length > 2^16")
-		} 
+		}
 	}
 }
 
@@ -161,8 +161,8 @@ func TestBranchEncode(t *testing.T) {
 
 		for _, child := range b.children {
 			if child != nil {
-				encChild, err := Encode(child)
-				if err != nil {
+				encChild, e := Encode(child)
+				if e != nil {
 					t.Errorf("Fail when encoding branch child: %s", err)
 				}
 				expected = append(expected, encChild...)

@@ -16,20 +16,38 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"unicode"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/inconshreveable/log15"
+	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/rpc/json2"
+	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 var (
+	dumpConfigCommand = cli.Command{
+		Action:      dumpConfig,
+		Name:        "dumpconfig",
+		Usage:       "Show configuration values",
+		ArgsUsage:   "",
+		Flags:       append(append(nodeFlags, rpcFlags...)),
+		Category:    "CONFIGURATION DEBUGGING",
+		Description: `The dumpconfig command shows configuration values.`,
+	}
+
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
@@ -37,26 +55,42 @@ var (
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
-func makeNode(ctx *cli.Context) (*dot.Dot, error) {
-	fig, err := setConfig(ctx)
+func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
+	fig, err := getConfig(ctx)
 	if err != nil {
-		log.Error("unable to extract required config", "err", err)
+		log.Crit("unable to extract required config", "err", err)
+		return nil, nil, err
 	}
-	srv := setP2PConfig(ctx, fig.ServiceConfig)
-	datadir := setDatabaseDir(ctx, fig)
-	db, err := polkadb.NewBadgerDB(datadir)
+
+	var srvcs []services.Service
+
+	// P2P
+	setBootstrapNodes(ctx, fig.P2pCfg)
+	p2pSrvc := createP2PService(fig.P2pCfg)
+	srvcs = append(srvcs, p2pSrvc)
+
+	// DB
+	dataDir := getDatabaseDir(ctx, fig)
+	dbSrvc, err := polkadb.NewBadgerService(dataDir)
 	if err != nil {
-		log.Error("db failed to open", "err", err)
+		return nil, nil, err
 	}
-	return &dot.Dot{
-		ServerConfig: fig.ServiceConfig,
-		Server:       srv,
-		Polkadb:      db,
-	}, nil
+	srvcs = append(srvcs, dbSrvc)
+
+	// API
+	apiSrvc := api.NewApiService(p2pSrvc, nil)
+	srvcs = append(srvcs, apiSrvc)
+
+	// RPC
+	setRpcModules(ctx, fig.RpcCfg)
+	setRpcHost(ctx, fig.RpcCfg)
+	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
+
+	return dot.NewDot(srvcs, rpcSrvr), fig, nil
 }
 
-// setConfig checks for config.toml if --config flag is specified
-func setConfig(ctx *cli.Context) (*cfg.Config, error) {
+// getConfig checks for config.toml if --config flag is specified
+func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	var fig *cfg.Config
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
@@ -71,17 +105,6 @@ func setConfig(ctx *cli.Context) (*cfg.Config, error) {
 	}
 }
 
-// setDatabaseDir initializes directory for BadgerDB logs
-func setDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
-	if fig.DbConfig.Datadir != "" {
-		return fig.DbConfig.Datadir
-	} else if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
-		return file
-	} else {
-		return cfg.DefaultDataDir()
-	}
-}
-
 // loadConfig loads the contents from config.toml and inits Config object
 func loadConfig(file string) (*cfg.Config, error) {
 	fp, err := filepath.Abs(file)
@@ -91,7 +114,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	filep := filepath.Join(filepath.Clean(fp))
 	info, err := os.Lstat(filep)
 	if err != nil {
-		log.Crit("config file err ","err", err)
+		log.Crit("config file err ", "err", err)
 		os.Exit(1)
 	}
 	if info.IsDir() {
@@ -101,7 +124,7 @@ func loadConfig(file string) (*cfg.Config, error) {
 	/* #nosec */
 	f, err := os.Open(filep)
 	if err != nil {
-		log.Crit("opening file err ", "err",err)
+		log.Crit("opening file err ", "err", err)
 		os.Exit(1)
 	}
 	defer func() {
@@ -111,36 +134,134 @@ func loadConfig(file string) (*cfg.Config, error) {
 		}
 	}()
 	var config *cfg.Config
-	if err = toml.NewDecoder(f).Decode(&config); err != nil {
+	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
 }
 
-// setBootstrapNodes creates a list of bootstrap nodes from the command line
-// flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, cfg *p2p.ServiceConfig) {
-	var urls []string
-	switch {
-	case ctx.GlobalIsSet(utils.BootnodesFlag.Name):
-		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
-	case cfg.BootstrapNodes != nil:
-		return // already set, don't apply defaults.
+// getDatabaseDir initializes directory for BadgerService logs
+func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
+	if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
+		fig.DbCfg.DataDir = file
+		return file
+	} else if fig.DbCfg.DataDir != "" {
+		return fig.DbCfg.DataDir
+	} else {
+		return cfg.DefaultDataDir()
 	}
-	cfg.BootstrapNodes = append(cfg.BootstrapNodes, urls...)
 }
 
-// SetP2PConfig sets up the configurations required for P2P service
-func setP2PConfig(ctx *cli.Context, cfg *p2p.ServiceConfig) *p2p.Service {
-	setBootstrapNodes(ctx, cfg)
-	srv := startP2PService(cfg)
-	return srv
-}
-// startP2PService starts a p2p network layer from provided config
-func startP2PService(cfg *p2p.ServiceConfig) *p2p.Service {
-	srv, err := p2p.NewService(cfg)
+// createP2PService starts a p2p network layer from provided config
+func createP2PService(fig *p2p.Config) *p2p.Service {
+	srvc, err := p2p.NewService(fig)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srv
+	return srvc
+}
+
+// setBootstrapNodes creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
+	var urls []string
+
+	if ctx.GlobalIsSet(utils.BootnodesFlag.Name) {
+		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+		fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
+	} else if fig.BootstrapNodes != nil {
+		return // set in config, dont use defaults
+	} else {
+		fig.BootstrapNodes = cfg.DefaultP2PBootstrap
+	}
+}
+
+// setRpcModules checks the context for rpc modes and applies them to `cfg`, unless some are already set
+func setRpcModules(ctx *cli.Context, fig *rpc.Config) {
+	var strs []string
+
+	if ctx.GlobalIsSet(utils.RpcModuleFlag.Name) {
+		strs = strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ",")
+		fig.Modules = append(fig.Modules, strToMods(strs)...)
+	} else if fig.Modules != nil {
+		return // set in config, dont use defaults
+	} else {
+		fig.Modules = cfg.DefaultRpcModules
+	}
+}
+
+// setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
+func setRpcHost(ctx *cli.Context, fig *rpc.Config) {
+	if ctx.GlobalIsSet(utils.RpcHostFlag.Name) {
+		fig.Host = ctx.GlobalString(utils.RpcHostFlag.Name)
+	} else if fig.Host != "" {
+		return
+	} else {
+		fig.Host = cfg.DefaultRpcHttpHost
+	}
+}
+
+// strToMods casts a []strings to []api.Module
+func strToMods(strs []string) []api.Module {
+	var res []api.Module
+	for _, str := range strs {
+		res = append(res, api.Module(str))
+	}
+	return res
+}
+
+// dumpConfig is the dumpconfig command.
+func dumpConfig(ctx *cli.Context) error {
+	_, fig, err := makeNode(ctx)
+	if err != nil {
+		return err
+	}
+	comment := ""
+
+	out, err := tomlSettings.Marshal(&fig)
+	if err != nil {
+		return err
+	}
+
+	dump := os.Stdout
+	if ctx.NArg() > 0 {
+		/* #nosec */
+		dump, err = os.OpenFile(filepath.Clean(ctx.Args().Get(0)), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			err = dump.Close()
+			if err != nil {
+				log.Warn("err closing conn", "err", err.Error())
+			}
+		}()
+	}
+	_, err = dump.WriteString(comment)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
+	_, err = dump.Write(out)
+	if err != nil {
+		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
+	}
+	return nil
+}
+
+// These settings ensure that TOML keys use the same names as Go struct fields.
+var tomlSettings = toml.Config{
+	NormFieldName: func(rt reflect.Type, key string) string {
+		return key
+	},
+	FieldToKey: func(rt reflect.Type, field string) string {
+		return field
+	},
+	MissingField: func(rt reflect.Type, field string) error {
+		link := ""
+		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
+			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
+		}
+		return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
+	},
 }
