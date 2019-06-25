@@ -44,6 +44,9 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 			fmt.Printf("encoding err %s\n", err)
 		}
 		hash, err = h.Hash(current)
+		if err != nil {
+			fmt.Printf("hashing err %s\n", err)
+		}
 	}
 
 	switch c := current.(type) {
@@ -73,12 +76,12 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 
 func printHexBytes(in []byte) {
 	fmt.Print("[")
-    for i, b := range in {
-        if i < len(in)-1 {
-                fmt.Printf("%x, ", b)
-        } else {
-                fmt.Printf("%x", b)
-        }
+	for i, b := range in {
+		if i < len(in)-1 {
+			fmt.Printf("%x, ", b)
+		} else {
+			fmt.Printf("%x", b)
+		}
 	}
 	fmt.Println("]")
 

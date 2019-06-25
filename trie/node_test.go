@@ -164,13 +164,13 @@ func TestBranchEncode(t *testing.T) {
 
 		for _, child := range b.children {
 			if child != nil {
-				hasher, err := NewHasher()
-				if err != nil {
-					t.Fatal(err)
+				hasher, e := NewHasher()
+				if e != nil {
+					t.Fatal(e)
 				}
-				encChild, err := hasher.Hash(child)
-				if err != nil {
-					t.Errorf("Fail when encoding branch child: %s", err)
+				encChild, er := hasher.Hash(child)
+				if er != nil {
+					t.Errorf("Fail when encoding branch child: %s", er)
 				}
 				expected = append(expected, encChild[:]...)
 			}
