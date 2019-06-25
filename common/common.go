@@ -17,9 +17,14 @@
 package common
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	cfg "github.com/ChainSafe/gossamer/config"
+	"os"
 	"strings"
+	tml "github.com/BurntSushi/toml"
 )
 
 // HexToBytes turns a 0x prefixed hex string into a byte slice
@@ -86,4 +91,31 @@ func SwapNibbles(k []byte) []byte {
 		result[i] = SwapByteNibbles(b)
 	}
 	return result
+}
+
+// ToTOML encodes a state type into a TOML file.
+// It uses the BurntSuchi TOML parser.
+func ToTOML(file string, s *cfg.Config) *os.File {
+	var buff bytes.Buffer
+	var (
+		newFile *os.File
+		err     error
+	)
+
+	if err := tml.NewEncoder(&buff).Encode(s); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	newFile, err = os.Create(file)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	_, err = newFile.Write([]byte(buff.Bytes()))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	newFile.Close()
+	return newFile
 }
