@@ -23,9 +23,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	mrand "math/rand"
 
+	log "github.com/inconshreveable/log15"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -41,7 +41,7 @@ import (
 
 const protocolPrefix = "/polkadot/0.0.0"
 
-// Service defines a p2p service, including host and dht
+// Service describes a p2p service, including host and dht
 type Service struct {
 	ctx            context.Context
 	host           host.Host
@@ -50,15 +50,15 @@ type Service struct {
 	bootstrapNodes []*ps.PeerInfo
 }
 
-// ServiceConfig is used to initialize a new p2p service
-type ServiceConfig struct {
+// Config is used to configure a p2p service
+type Config struct {
 	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *ServiceConfig) (*Service, error) {
+func NewService(conf *Config) (*Service, error) {
 	ctx := context.Background()
 	opts, err := conf.buildOpts()
 	if err != nil {
@@ -116,12 +116,11 @@ func (s *Service) start(e chan error) {
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
 	addrs := s.host.Addrs()
-	log.Println("I can be reached at:")
 	for _, addr := range addrs {
-		log.Println(addr.Encapsulate(s.hostAddr))
+		log.Info("address can be reached", "hostAddr", addr.Encapsulate(s.hostAddr))
 	}
 
-	log.Println("listening for connections...")
+	log.Info("listening for connections...")
 	e <- nil
 }
 
@@ -186,7 +185,7 @@ func (s *Service) Ctx() context.Context {
 	return s.ctx
 }
 
-func (sc *ServiceConfig) buildOpts() ([]libp2p.Option, error) {
+func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
 	ip := "0.0.0.0"
 
@@ -233,7 +232,11 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 
 // TODO: message handling
 func handleStream(stream net.Stream) {
-	defer stream.Close()
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error("error closing stream", "err", err)
+		}
+	}()
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	str, err := rw.ReadString('\n')
