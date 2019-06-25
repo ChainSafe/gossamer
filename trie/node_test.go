@@ -86,6 +86,7 @@ func TestBranchHeader(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		res, err := test.br.header()
 		if err != nil {
 			t.Fatalf("Error when encoding header: %s", err)
@@ -128,6 +129,7 @@ func TestLeafHeader(t *testing.T) {
 	}
 
 	for i, test := range tests {
+		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			res, err := test.br.header()
 			if err != nil {
