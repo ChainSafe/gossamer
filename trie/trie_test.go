@@ -178,6 +178,7 @@ func buildSmallTrie() *Trie {
 
 func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 	for i, test := range tests {
+		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			if test.op == PUT {
 				err := trie.Put(test.key, test.value)
@@ -486,6 +487,7 @@ func TestDelete(t *testing.T) {
 
 	rt := generateRandomTests(50000)
 	for i, test := range rt {
+		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -495,6 +497,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	for i, test := range rt {
+		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			r := rand.Int() % 2
 			switch r {
