@@ -36,6 +36,7 @@ func TestKeyToNibbles(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(fmt.Sprintf("%v", test.input), func(t *testing.T) {
 			res := keyToNibbles(test.input)
 			if !bytes.Equal(test.expected, res) {
@@ -58,6 +59,7 @@ func TestNibblesToKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(fmt.Sprintf("%v", test.input), func(t *testing.T) {
 			res := nibblesToKey(test.input)
 			if !bytes.Equal(test.expected, res) {
@@ -80,6 +82,7 @@ func TestNibblesToKeyLE(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		t.Run(fmt.Sprintf("%v", test.input), func(t *testing.T) {
 			res := nibblesToKeyLE(test.input)
 			if !bytes.Equal(test.expected, res) {
