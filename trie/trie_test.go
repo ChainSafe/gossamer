@@ -28,9 +28,7 @@ import (
 	"strings"
 	"testing"
 
-	//"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/go-yaml/yaml"
 )
 
 type commonPrefixTest struct {
