@@ -3,24 +3,30 @@ package main
 import (
 	"bytes"
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/rpc"
 	"reflect"
 
 	"flag"
 	"fmt"
 	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/polkadb"
+	log "github.com/ChainSafe/log15"
+	"github.com/urfave/cli"
 	"io/ioutil"
 	"os"
 	"testing"
-	"github.com/urfave/cli"
-	log "github.com/ChainSafe/log15"
 )
 
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
 		log.Warn("cannot create temp file", err)
+	}
+	if err := os.RemoveAll("./chaingang"); err != nil {
+		log.Warn("removal of temp directory bin failed", "err", err)
 	}
 }
 
@@ -98,33 +104,6 @@ func TestGetConfig(t *testing.T) {
 	defer teardown(tempFile)
 }
 
-
-func TestCommands(t *testing.T) {
-	cases := []struct {
-		name string
-		testArgs               []string
-		expectedErr            error
-		expextedRes			   string
-	}{
-		{"dumpConfig",[]string{"dumpConfig"}, nil, cfg.DefaultDataDir()},
-	}
-
-	for _, c := range cases {
-		app := cli.NewApp()
-		app.Writer = ioutil.Discard
-		set := flag.NewFlagSet("test", 0)
-		set.Parse(c.testArgs)
-
-		context := cli.NewContext(app, set, nil)
-		command := dumpConfigCommand
-
-		err := command.Run(context)
-		if err != nil {
-			t.Fatalf("should have ran dumpConfig command")
-		}
-	}
-}
-
 func TestGetDatabaseDir(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 
@@ -136,8 +115,8 @@ func TestGetDatabaseDir(t *testing.T) {
 		usage string
 		expected string
 	}{
-		{"datadir", "test1", "sets database directory","test1"},
 		{"config", tempFile.Name(), "TOML configuration file","chaingang"},
+		{"datadir", "test1", "sets database directory","test1"},
 	}
 
 	for _, c := range tc {
@@ -155,11 +134,14 @@ func TestGetDatabaseDir(t *testing.T) {
 func TestLoadConfig(t *testing.T) {
 }
 
-//func TestCreateP2PService(t *testing.T) {
-//	_, cfgClone := createTempConfigFile()
-//	srv := createP2PService(cfgClone.P2pCfg)
-//
-//}
+func TestCreateP2PService(t *testing.T) {
+	_, cfgClone := createTempConfigFile()
+	srv := createP2PService(cfgClone.P2pCfg)
+
+	if srv == nil {
+		t.Fatalf("failed to create p2p service")
+	}
+}
 
 func TestSetBootstrapNodes(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
@@ -252,4 +234,63 @@ func TestStrToMods(t *testing.T) {
 }
 
 func TestMakeNode(t *testing.T) {
+	tempFile, cfgClone := createTempConfigFile()
+
+	app := cli.NewApp()
+	app.Writer = ioutil.Discard
+	tc := []struct {
+		name string
+		value string
+		usage string
+		expected *cfg.Config
+	}{
+		{"config", tempFile.Name(), "TOML configuration file",cfgClone},
+	}
+
+	for _, c := range tc {
+		set := flag.NewFlagSet(c.name, 0)
+		set.String(c.name, c.value, c.usage)
+		context := cli.NewContext(nil, set, nil)
+		d, fig, _ := makeNode(context)
+		if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
+			t.Fatalf("did not return type dot")
+		}
+		if reflect.TypeOf(d.Services) != reflect.TypeOf(&services.ServiceRegistry{}) {
+			t.Fatalf("did not return type dot")
+		}
+		if reflect.TypeOf(d.Rpc) != reflect.TypeOf(&rpc.HttpServer{}) {
+			t.Fatalf("did not return type cfg.Config")
+		}
+		if reflect.TypeOf(fig) != reflect.TypeOf(&cfg.Config{}) {
+			t.Fatalf("did not return type cfg.Config")
+		}
+	}
+	defer teardown(tempFile)
 }
+
+func TestCommands(t *testing.T) {
+	cases := []struct {
+		name string
+		testArgs               []string
+		expectedErr            error
+		expextedRes			   string
+	}{
+		{"dumpConfig",[]string{"dumpConfig"}, nil, cfg.DefaultDataDir()},
+	}
+
+	for _, c := range cases {
+		app := cli.NewApp()
+		app.Writer = ioutil.Discard
+		set := flag.NewFlagSet("test", 0)
+		set.Parse(c.testArgs)
+
+		context := cli.NewContext(app, set, nil)
+		command := dumpConfigCommand
+
+		err := command.Run(context)
+		if err != nil {
+			t.Fatalf("should have ran dumpConfig command")
+		}
+	}
+}
+
