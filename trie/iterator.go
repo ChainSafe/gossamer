@@ -49,19 +49,23 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 	switch c := current.(type) {
 	case *branch:
 		fmt.Printf("branch key %x children %b value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.childrenBitmap(), c.value)
-		fmt.Printf("branch encoding ")
-		printHexBytes(encoding)
-		fmt.Printf("branch hash ")
-		printHexBytes(hash)
+		if withEncoding {
+			fmt.Printf("branch encoding ")
+			printHexBytes(encoding)
+			fmt.Printf("branch hash ")
+			printHexBytes(hash)
+		}
 		for i, child := range c.children {
 			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
 	case *leaf:
 		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
-		fmt.Printf("leaf encoding ")
-		printHexBytes(encoding)
-		fmt.Printf("leaf hash ")
-		printHexBytes(hash)
+		if withEncoding {
+			fmt.Printf("leaf encoding ")
+			printHexBytes(encoding)
+			fmt.Printf("leaf hash ")
+			printHexBytes(hash)
+		}
 	default:
 		// do nothing
 	}
