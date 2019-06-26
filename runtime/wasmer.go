@@ -18,7 +18,7 @@ package runtime
 // extern int32_t ext_sr25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
-// // extern void ext_print_num(void *context, int64_t data);
+// extern void ext_print_num(void *context, int64_t data);
 import "C"
 
 import (
@@ -132,7 +132,7 @@ func Exec(t *trie.Trie) ([]byte, error) {
 	imports.Append("ext_free", ext_free, C.ext_free)
 	imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
 	imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
-	//imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
+	imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
 	imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
 	imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
 	imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
