@@ -95,7 +95,6 @@ func SwapNibbles(k []byte) []byte {
 }
 
 // ToTOML encodes a state type into a TOML file.
-// It uses the BurntSuchi TOML parser.
 func ToTOML(file string, s *cfg.Config) *os.File {
 	var buff bytes.Buffer
 	var (
