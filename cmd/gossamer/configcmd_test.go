@@ -82,23 +82,23 @@ func TestGetConfig(t *testing.T) {
 			t.Fatalf("failed to set fig %v", err)
 		}
 
-		rpc := fmt.Sprintf("%+v", fig.RpcCfg)
+		r := fmt.Sprintf("%+v", fig.RpcCfg)
 		rpcExp := fmt.Sprintf("%+v", c.expected.RpcCfg)
 
 		db := fmt.Sprintf("%+v", fig.DbCfg)
 		dbExp := fmt.Sprintf("%+v", c.expected.DbCfg)
 
-		p2p := fmt.Sprintf("%+v", fig.P2pCfg)
+		peer := fmt.Sprintf("%+v", fig.P2pCfg)
 		p2pExp := fmt.Sprintf("%+v", c.expected.P2pCfg)
 
-		if !bytes.Equal([]byte(rpc), []byte(rpcExp)) {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, rpc, rpcExp)
+		if !bytes.Equal([]byte(r), []byte(rpcExp)) {
+			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, r, rpcExp)
 		}
 		if !bytes.Equal([]byte(db), []byte(dbExp)) {
 			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, db, dbExp)
 		}
-		if !bytes.Equal([]byte(p2p), []byte(p2pExp)) {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, p2p, p2pExp)
+		if !bytes.Equal([]byte(peer), []byte(p2pExp)) {
+			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, peer, p2pExp)
 		}
 	}
 	defer teardown(tempFile)
@@ -115,23 +115,26 @@ func TestGetDatabaseDir(t *testing.T) {
 		usage string
 		expected string
 	}{
+		{"", "", "",cfg.DefaultDBConfig.DataDir},
 		{"config", tempFile.Name(), "TOML configuration file","chaingang"},
 		{"datadir", "test1", "sets database directory","test1"},
 	}
 
-	for _, c := range tc {
+	for i, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(app, set, nil)
+		if i == 0 {
+			cfgClone.DbCfg.DataDir = ""
+		} else {
+			cfgClone.DbCfg.DataDir = "chaingang"
+		}
 		dir := getDatabaseDir(context, cfgClone)
 
 		if dir != c.expected {
 			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, dir, c.expected)
 		}
 	}
-}
-
-func TestLoadConfig(t *testing.T) {
 }
 
 func TestCreateP2PService(t *testing.T) {
@@ -162,6 +165,7 @@ func TestSetBootstrapNodes(t *testing.T) {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(nil, set, nil)
+		
 		setBootstrapNodes(context, cfgClone.P2pCfg)
 
 		if cfgClone.P2pCfg.BootstrapNodes[i] != c.expected[0] {
@@ -182,13 +186,14 @@ func TestSetRpcModules(t *testing.T) {
 		expected []api.Module
 	}{
 		{"config", tempFile.Name(), "TOML configuration file",[]api.Module{"system"}},
-		{"rpcmods", "test1", "API modules to enable via HTTP-RPC, comma separated list",[]api.Module{"test1"}},
+		{"rpcmods", "author", "API modules to enable via HTTP-RPC, comma separated list",[]api.Module{"author"}},
 	}
 
 	for i, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(nil, set, nil)
+
 		setRpcModules(context, cfgClone.RpcCfg)
 
 		if cfgClone.RpcCfg.Modules[i] != c.expected[0] {
@@ -208,14 +213,20 @@ func TestSetRpcHost(t *testing.T) {
 		usage string
 		expected string
 	}{
+		{"", "", "",cfg.DefaultRpcHttpHost},
 		{"config", tempFile.Name(), "TOML configuration file","localhost"},
 		{"rpchost", "test1", "HTTP-RPC server listening hostname","test1"},
 	}
 
-	for _, c := range tc {
+	for i, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(nil, set, nil)
+		if i == 0 {
+			cfgClone.RpcCfg.Host = ""
+		} else {
+			cfgClone.RpcCfg.Host = "localhost"
+		}
 		setRpcHost(context, cfgClone.RpcCfg)
 
 		if cfgClone.RpcCfg.Host != c.expected {
@@ -253,36 +264,37 @@ func TestMakeNode(t *testing.T) {
 		context := cli.NewContext(nil, set, nil)
 		d, fig, _ := makeNode(context)
 		if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
-			t.Fatalf("did not return type dot")
+			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
 		}
 		if reflect.TypeOf(d.Services) != reflect.TypeOf(&services.ServiceRegistry{}) {
-			t.Fatalf("did not return type dot")
+			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d.Services), reflect.TypeOf(&services.ServiceRegistry{}))
 		}
 		if reflect.TypeOf(d.Rpc) != reflect.TypeOf(&rpc.HttpServer{}) {
-			t.Fatalf("did not return type cfg.Config")
+			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d.Rpc), reflect.TypeOf(&rpc.HttpServer{}))
 		}
 		if reflect.TypeOf(fig) != reflect.TypeOf(&cfg.Config{}) {
-			t.Fatalf("did not return type cfg.Config")
+			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(fig), reflect.TypeOf(&cfg.Config{}))
 		}
 	}
 	defer teardown(tempFile)
 }
 
 func TestCommands(t *testing.T) {
-	cases := []struct {
+	tempFile, _ := createTempConfigFile()
+
+	tc := []struct {
 		name string
-		testArgs               []string
-		expectedErr            error
-		expextedRes			   string
+		value string
+		usage string
 	}{
-		{"dumpConfig",[]string{"dumpConfig"}, nil, cfg.DefaultDataDir()},
+		{"config", tempFile.Name(), "TOML configuration file"},
 	}
 
-	for _, c := range cases {
+	for _, c := range tc {
 		app := cli.NewApp()
 		app.Writer = ioutil.Discard
-		set := flag.NewFlagSet("test", 0)
-		set.Parse(c.testArgs)
+		set := flag.NewFlagSet(c.name, 0)
+		set.String(c.name, c.value, c.usage)
 
 		context := cli.NewContext(app, set, nil)
 		command := dumpConfigCommand
@@ -292,5 +304,6 @@ func TestCommands(t *testing.T) {
 			t.Fatalf("should have ran dumpConfig command")
 		}
 	}
+	defer teardown(tempFile)
 }
 
