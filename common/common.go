@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
-	cfg "github.com/ChainSafe/gossamer/config"
 	"os"
 	"strings"
+
 	tml "github.com/BurntSushi/toml"
+	cfg "github.com/ChainSafe/gossamer/config"
+	log "github.com/ChainSafe/log15"
 )
 
 // HexToBytes turns a 0x prefixed hex string into a byte slice
@@ -102,20 +103,22 @@ func ToTOML(file string, s *cfg.Config) *os.File {
 		err     error
 	)
 
-	if err := tml.NewEncoder(&buff).Encode(s); err != nil {
-		fmt.Println(err.Error())
+	if err = tml.NewEncoder(&buff).Encode(s); err != nil {
+		log.Warn("error closing file", "err", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(file)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warn("error closing file", "err", err)
 	}
 	_, err = newFile.Write([]byte(buff.Bytes()))
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Warn("error closing file", "err", err)
 	}
 
-	newFile.Close()
+	if err := newFile.Close(); err != nil {
+		log.Warn("error closing file", "err", err)
+	}
 	return newFile
 }

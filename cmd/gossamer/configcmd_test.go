@@ -2,23 +2,25 @@ package main
 
 import (
 	"bytes"
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/common"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
-	"reflect"
 
 	"flag"
 	"fmt"
-	"github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/ChainSafe/log15"
-	"github.com/urfave/cli"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/polkadb"
+	log "github.com/ChainSafe/log15"
+	"github.com/urfave/cli"
 )
 
 func teardown(tempFile *os.File) {
@@ -35,8 +37,8 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 		DataDir: "chaingang",
 	}
 	TestP2PConfig := &p2p.Config{
-		Port:           cfg.DefaultP2PPort,
-		RandSeed:       cfg.DefaultP2PRandSeed,
+		Port:     cfg.DefaultP2PPort,
+		RandSeed: cfg.DefaultP2PRandSeed,
 		BootstrapNodes: []string{
 			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"},
 	}
@@ -62,13 +64,13 @@ func TestGetConfig(t *testing.T) {
 	app.Writer = ioutil.Discard
 
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected *cfg.Config
 	}{
-		{"", "", "",cfg.DefaultConfig},
-		{"config", tempFile.Name(), "TOML configuration file",cfgClone},
+		{"", "", "", cfg.DefaultConfig},
+		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
 	}
 
 	for _, c := range tc {
@@ -110,14 +112,14 @@ func TestGetDatabaseDir(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected string
 	}{
-		{"", "", "",cfg.DefaultDBConfig.DataDir},
-		{"config", tempFile.Name(), "TOML configuration file","chaingang"},
-		{"datadir", "test1", "sets database directory","test1"},
+		{"", "", "", cfg.DefaultDBConfig.DataDir},
+		{"config", tempFile.Name(), "TOML configuration file", "chaingang"},
+		{"datadir", "test1", "sets database directory", "test1"},
 	}
 
 	for i, c := range tc {
@@ -152,20 +154,20 @@ func TestSetBootstrapNodes(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected []string
 	}{
-		{"config", tempFile.Name(), "TOML configuration file",cfgClone.P2pCfg.BootstrapNodes},
-		{"bootnodes", "test1", "Comma separated enode URLs for P2P discovery bootstrap",[]string{"test1"}},
+		{"config", tempFile.Name(), "TOML configuration file", cfgClone.P2pCfg.BootstrapNodes},
+		{"bootnodes", "test1", "Comma separated enode URLs for P2P discovery bootstrap", []string{"test1"}},
 	}
 
 	for i, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(nil, set, nil)
-		
+
 		setBootstrapNodes(context, cfgClone.P2pCfg)
 
 		if cfgClone.P2pCfg.BootstrapNodes[i] != c.expected[0] {
@@ -180,13 +182,13 @@ func TestSetRpcModules(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected []api.Module
 	}{
-		{"config", tempFile.Name(), "TOML configuration file",[]api.Module{"system"}},
-		{"rpcmods", "author", "API modules to enable via HTTP-RPC, comma separated list",[]api.Module{"author"}},
+		{"config", tempFile.Name(), "TOML configuration file", []api.Module{"system"}},
+		{"rpcmods", "author", "API modules to enable via HTTP-RPC, comma separated list", []api.Module{"author"}},
 	}
 
 	for i, c := range tc {
@@ -208,14 +210,14 @@ func TestSetRpcHost(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected string
 	}{
-		{"", "", "",cfg.DefaultRpcHttpHost},
-		{"config", tempFile.Name(), "TOML configuration file","localhost"},
-		{"rpchost", "test1", "HTTP-RPC server listening hostname","test1"},
+		{"", "", "", cfg.DefaultRpcHttpHost},
+		{"config", tempFile.Name(), "TOML configuration file", "localhost"},
+		{"rpchost", "test1", "HTTP-RPC server listening hostname", "test1"},
 	}
 
 	for i, c := range tc {
@@ -250,12 +252,12 @@ func TestMakeNode(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name string
-		value string
-		usage string
+		name     string
+		value    string
+		usage    string
 		expected *cfg.Config
 	}{
-		{"config", tempFile.Name(), "TOML configuration file",cfgClone},
+		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
 	}
 
 	for _, c := range tc {
@@ -283,7 +285,7 @@ func TestCommands(t *testing.T) {
 	tempFile, _ := createTempConfigFile()
 
 	tc := []struct {
-		name string
+		name  string
 		value string
 		usage string
 	}{
@@ -306,4 +308,3 @@ func TestCommands(t *testing.T) {
 	}
 	defer teardown(tempFile)
 }
-
