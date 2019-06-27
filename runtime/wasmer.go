@@ -25,37 +25,32 @@ import (
 	"errors"
 	"fmt"
 	"unsafe"
+	log "github.com/inconshreveable/log15"
 	trie "github.com/ChainSafe/gossamer/trie"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-//export ext_sr25519_verify
-func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32{
-	return 0
-}
-
-//export ext_ed25519_verify
-func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32{
-	return 0
-}
-
-//export ext_blake2_256_enumerated_trie_root
-func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
+//export ext_print_num
+func ext_print_num(context unsafe.Pointer, data int64) {
+	log.Debug("[ext_print_num] executing...")
 	return
 }
 
 //export ext_malloc
 func ext_malloc(context unsafe.Pointer, x int32) int32 {
-	return 100
+	log.Debug("[ext_malloc] executing...")
+	return 1
 }
 
 //export ext_free
 func ext_free(context unsafe.Pointer, addr int32) {
+	log.Debug("[ext_free] executing...")
 	return
 }
 
 //export ext_print_utf8
 func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
+	log.Debug("[ext_print_utf8] executing...")
 	instanceContext := wasm.IntoInstanceContext(context) 
 	memory := instanceContext.Memory().Data() 
 	fmt.Println(memory[offset:offset+size])
@@ -64,11 +59,14 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 
 //export ext_print_hex
 func ext_print_hex(context unsafe.Pointer, data, len int32) {
+	log.Debug("[ext_print_hex] executing...")
 	return
 }
 
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
+	log.Debug("[ext_get_storage_into] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context) 
 	memory := instanceContext.Memory().Data() 
 	t := (*trie.Trie)(instanceContext.Data()) 
@@ -85,46 +83,67 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
+	log.Debug("[ext_set_storage] executing...")
 	return
 }
 
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
+	log.Debug("[ext_storage_root] executing...")
 	return
 }
 
 //export ext_storage_changes_root
 func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
+	log.Debug("[ext_storage_changes_root] executing...")
 	return 0
 }
 
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
+	log.Debug("[ext_get_allocated_storage] executing...")
 	return 0
-}
-
-//export ext_blake2_256
-func ext_blake2_256(context unsafe.Pointer, data, len, out int32) {
-	return
 }
 
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
+	log.Debug("[ext_sr25519_verify] executing...")
 	return
 }
 
 //export ext_clear_prefix
 func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
+	log.Debug("[ext_clear_prefix] executing...")
+	return
+}
+
+//export ext_blake2_256
+func ext_blake2_256(context unsafe.Pointer, data, len, out int32) {
+	log.Debug("[ext_blake2_256] executing...")
 	return
 }
 
 //export ext_twox_128
 func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
+	log.Debug("[ext_twox_128] executing...")
 	return
 }
 
-//export ext_print_num
-func ext_print_num(context unsafe.Pointer, data int64) {
+//export ext_sr25519_verify
+func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
+	log.Debug("[ext_sr25519_verify] executing...")
+	return 0
+}
+
+//export ext_ed25519_verify
+func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32{
+	log.Debug("[ext_ed25519_verify] executing...")
+	return 0
+}
+
+//export ext_blake2_256_enumerated_trie_root
+func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
+	log.Debug("[ext_blake2_256_enumerated_trie_root] executing...")
 	return
 }
 
