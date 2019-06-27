@@ -116,13 +116,13 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 	test := trieTest{}
 
 	for {
-		size := r.Intn(379) + 2
+		size := r.Intn(510) + 2
 		buf := make([]byte, size)
 		r.Read(buf)
 
 		key := binary.LittleEndian.Uint16(buf[:2])
 
-		if kv[string(buf)] == nil || key < 255 {
+		if kv[string(buf)] == nil || key < 256 {
 			test.key = buf
 
 			buf = make([]byte, r.Intn(128))
@@ -489,42 +489,39 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandomTests(50000)
-	for i, test := range rt {
-		test := test
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			err := trie.Put(test.key, test.value)
-			if err != nil {
-				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-			}
-		})
+	rt := generateRandomTests(10000)
+	for _, test := range rt {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
 	}
 
 	for i, test := range rt {
-		test := test
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			r := rand.Int() % 2
-			switch r {
-			case 0:
-				err := trie.Delete(test.key)
-				if err != nil {
-					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-				}
+    test := test
+    t.Run(strconv.Itoa(i), func(t *testing.T) {
+      r := rand.Int() % 2
+      switch r {
+      case 0:
+        err := trie.Delete(test.key)
+        if err != nil {
+          t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+        }
 
-				val, err := trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
-				} else if val != nil {
-					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
-				}
-			case 1:
-				val, err := trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-				} else if !bytes.Equal(test.value, val) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				}
-			}
-		})
-	}
+        val, err := trie.Get(test.key)
+        if err != nil {
+          t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+        } else if val != nil {
+          t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+        }
+      case 1:
+        val, err := trie.Get(test.key)
+        if err != nil {
+          t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+        } else if !bytes.Equal(test.value, val) {
+          t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+        }
+      }
+    }
+  })
 }
