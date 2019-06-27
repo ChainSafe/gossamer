@@ -18,7 +18,7 @@ package runtime
 // extern int32_t ext_sr25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
-// extern void ext_print_num(void *context, int64_t data);
+// // extern void ext_print_num(void *context, int64_t data);
 import "C"
 
 import (
@@ -31,11 +31,11 @@ import (
 )
 
 //export ext_print_num
-func ext_print_num(context unsafe.Pointer, data int64) {
-	log.Debug("[ext_print_num] executing...")
-	log.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", data))
-	return
-}
+// func ext_print_num(context unsafe.Pointer, data int64) {
+// 	log.Debug("[ext_print_num] executing...")
+// 	log.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", data))
+// 	return
+// }
 
 //export ext_malloc
 func ext_malloc(context unsafe.Pointer, x int32) int32 {
@@ -59,7 +59,7 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 }
 
 //export ext_print_hex
-func ext_print_hex(context unsafe.Pointer, data, len int32) {
+func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_hex] executing...")
 	instanceContext := wasm.IntoInstanceContext(context) 
 	memory := instanceContext.Memory().Data() 
@@ -76,18 +76,29 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	t := (*trie.Trie)(instanceContext.Data()) 
 
 	key := memory[keyData:keyData+keyLen]
-	val, err := trie.Get(key)
+	val, err := t.Get(key)
 	if err != nil {
 		return 0
 	}
 
-	memory[valueData:valueData+valueLen] = val[valueOffset]
+	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
 	return 1
 }
 
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
 	log.Debug("[ext_set_storage] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := (*trie.Trie)(instanceContext.Data()) 
+
+	key := memory[keyData:keyData+keyLen]
+	val := memory[valueData:valueData+valueLen]
+	err := t.Put(key, val)
+	if err != nil {
+		log.Error("[ext_set_storage]", "error", err)
+	}
+
 	return
 }
 
@@ -166,7 +177,7 @@ func Exec(t *trie.Trie) ([]byte, error) {
 	imports.Append("ext_free", ext_free, C.ext_free)
 	imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
 	imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
-	imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
+	//imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
 	imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
 	imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
 	imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
