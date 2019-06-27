@@ -16,6 +16,8 @@
 
 package api
 
+import log "github.com/ChainSafe/log15"
+
 // Service couples all components required for the API.
 type Service struct {
 	Api *Api
@@ -59,5 +61,7 @@ func (s *Service) Start() <-chan error {
 }
 
 func (s *Service) Stop() {
+	log.Debug("Stopping API service")
 	// TODO: Implement
+
 }

@@ -53,7 +53,7 @@ func NewHttpServer(api *api.Api, codec Codec, cfg *Config) *HttpServer {
 func (h *HttpServer) Start() {
 	log.Debug("[rpc] Starting HTTP Server...", "port", h.cfg.Port)
 	http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
-
+	// defer server.close()
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf("%s:%d", h.cfg.Host, h.cfg.Port), nil)
 		if err != nil {

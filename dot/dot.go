@@ -17,6 +17,10 @@
 package dot
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
@@ -54,6 +58,20 @@ func (d *Dot) Start() {
 		d.Rpc.Start()
 	}
 
+	finCancelledfn := make(chan int, 1)
+	go func() {
+		log.Debug("Entered fn")
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
+		defer signal.Stop(sigc)
+		<-sigc
+		log.Info("Got interrupt, shutting down...")
+		finCancelledfn <- 1
+	}()
+
+	//Move on when routine catches SIGINT or SIGTERM calls
+	<-finCancelledfn
+	d.Services.StopAll()
 	d.stop = make(chan struct{})
 	d.IsStarted <- struct{}{}
 	d.Wait()

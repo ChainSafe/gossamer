@@ -44,6 +44,7 @@ func TestDot_Start(t *testing.T) {
 
 	dot := createTestDot(t)
 
+	// dot.Start()
 	go dot.Start()
 
 	// Wait until dot.Start() is finished
@@ -62,4 +63,5 @@ func TestDot_Start(t *testing.T) {
 	}
 
 	dot.Stop()
+	// dot.Wait()
 }

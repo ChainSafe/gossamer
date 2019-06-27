@@ -68,7 +68,12 @@ func (s *ServiceRegistry) StartAll() {
 
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
-	// TODO: Implement
+	log.Info(fmt.Sprintf("Stopping services: %v", s.serviceTypes))
+	for _, typ := range s.serviceTypes {
+		log.Debug(fmt.Sprintf("Stopping service %v", typ))
+		s.services[typ].Stop()
+	}
+	log.Debug("All services stopped.")
 }
 
 // Get retrieves a service and stores a reference to it in the passed in `srvc`
