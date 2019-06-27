@@ -68,6 +68,8 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	return
 }
 
+// gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
+// location `valueData`. the value can have up to value `valueLen` and the returned value starts at value[valueOffset:]
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	log.Debug("[ext_get_storage_into] executing...")
@@ -78,14 +80,20 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 
 	key := memory[keyData:keyData+keyLen]
 	val, err := t.Get(key)
-	if err != nil {
-		return 0
+	if err != nil || val == nil {
+		return 2^32 -1
+	}
+
+	if len(val) > int(valueLen) {
+		log.Error("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
-	return 1
+	return int32(len(val[valueOffset:]))
 }
 
+// puts the key at memory location `keyData` with length `keyLen` and value at memory location `valueData`
+// with length `valueLen` into the storage trie
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
 	log.Debug("[ext_set_storage] executing...")
@@ -103,6 +111,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	return
 }
 
+// returns the trie root in the memory location `resultPtr`
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	log.Debug("[ext_storage_root] executing...")
@@ -125,6 +134,8 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 	return 0
 }
 
+// gets value stored at key at memory location `keyData` with length `keyLen` and returns the location
+// in memory where it's stored and stores its length in `writtenOut` 
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
 	log.Debug("[ext_get_allocated_storage] executing...")
