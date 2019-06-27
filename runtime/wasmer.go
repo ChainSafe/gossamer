@@ -69,7 +69,18 @@ func ext_print_hex(context unsafe.Pointer, data, len int32) {
 
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := (*trie.Trie)(instanceContext.Data()) 
+
+	key := memory[keyData:keyData+keyLen]
+	val, err := trie.Get(key)
+	if err != nil {
+		return 0
+	}
+
+	memory[valueData:valueData+valueLen] = val[valueOffset]
+	return 1
 }
 
 //export ext_set_storage
