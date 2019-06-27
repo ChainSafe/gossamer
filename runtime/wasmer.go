@@ -22,6 +22,7 @@ package runtime
 import "C"
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -105,6 +106,16 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	log.Debug("[ext_storage_root] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := (*trie.Trie)(instanceContext.Data()) 
+
+	root, err := t.Hash()
+	if err != nil {
+		log.Error("[ext_storage_root]", "error", err)
+	}
+
+	copy(memory[resultPtr:resultPtr+32], root[:])
 	return
 }
 
@@ -117,18 +128,76 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
 	log.Debug("[ext_get_allocated_storage] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := (*trie.Trie)(instanceContext.Data()) 
+
+	key := memory[keyData:keyData+keyLen]
+	val, err := t.Get(key)
+	if err == nil && len(val) >= (1 << 32) {
+		err = errors.New("retrieved value length exceeds 2^32")
+	}
+	if err != nil {
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		return 0
+	}		
+
+	ptr := 1
+	copy(memory[ptr:ptr+len(val)], val)
+	return int32(len(val))
 }
 
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	log.Debug("[ext_sr25519_verify] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := (*trie.Trie)(instanceContext.Data()) 
+
+	key := memory[keyData:keyData+keyLen]
+	err := t.Delete(key)
+	if err != nil {
+		log.Error("[ext_storage_root]", "error", err)
+	}
+
 	return
 }
 
 //export ext_clear_prefix
 func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
+	return
+}
+
+// accepts an array of keys and values, puts them into a trie, and returns the root
+//export ext_blake2_256_enumerated_trie_root
+func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
+	log.Debug("[ext_blake2_256_enumerated_trie_root] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	t := &trie.Trie{}
+
+	var i int32
+	var pos int32 = 0
+	for i = 0; i < lensLen; i++ {
+		valueLenBytes := memory[lensData + i*32 : lensData + (i+1)*32]
+		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
+		value := memory[valuesData + pos : valuesData + pos + valueLen]
+		pos += valueLen
+
+		// todo: do we get key/value pairs or just values??
+		err := t.Put(value, nil)
+		if err != nil {
+			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+		}
+	}
+
+	root, err := t.Hash()
+	if err != nil {
+		log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+	}
+
+	copy(memory[result:result+32], root[:])
 	return
 }
 
@@ -154,12 +223,6 @@ func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32{
 	log.Debug("[ext_ed25519_verify] executing...")
 	return 0
-}
-
-//export ext_blake2_256_enumerated_trie_root
-func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
-	log.Debug("[ext_blake2_256_enumerated_trie_root] executing...")
-	return
 }
 
 func Exec(t *trie.Trie) ([]byte, error) {
