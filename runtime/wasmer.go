@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"unsafe"
 	log "github.com/inconshreveable/log15"
+	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -50,6 +51,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	return
 }
 
+// prints string located in memory at location `offset` with length `size`
 //export ext_print_utf8
 func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_utf8] executing...")
@@ -59,6 +61,7 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 	return
 }
 
+// prints hex formatted bytes located in memory at location `offset` with length `size`
 //export ext_print_hex
 func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_hex] executing...")
@@ -158,6 +161,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	return int32(len(val))
 }
 
+// deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	log.Debug("[ext_sr25519_verify] executing...")
@@ -212,9 +216,19 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	return
 }
 
+// performs blake2b 256-bit hash of the byte array at memory location `data` with length `length` and saves the
+// hash at memory location `out`
 //export ext_blake2_256
-func ext_blake2_256(context unsafe.Pointer, data, len, out int32) {
+func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_blake2_256] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	hash, err := common.Blake2bHash(memory[data:data+length])
+	if err != nil {
+		log.Error("[ext_blake2_256]", "error", err)
+	}
+
+	copy(memory[out:out+32], hash[:])
 	return
 }
 
