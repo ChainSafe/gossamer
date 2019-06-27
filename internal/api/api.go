@@ -62,6 +62,4 @@ func (s *Service) Start() <-chan error {
 
 func (s *Service) Stop() {
 	log.Debug("Stopping API service")
-	// TODO: Implement
-
 }
