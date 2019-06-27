@@ -33,6 +33,7 @@ import (
 //export ext_print_num
 func ext_print_num(context unsafe.Pointer, data int64) {
 	log.Debug("[ext_print_num] executing...")
+	log.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", data))
 	return
 }
 
@@ -53,13 +54,16 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_utf8] executing...")
 	instanceContext := wasm.IntoInstanceContext(context) 
 	memory := instanceContext.Memory().Data() 
-	fmt.Println(memory[offset:offset+size])
+	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[offset:offset+size]))
 	return
 }
 
 //export ext_print_hex
 func ext_print_hex(context unsafe.Pointer, data, len int32) {
 	log.Debug("[ext_print_hex] executing...")
+	instanceContext := wasm.IntoInstanceContext(context) 
+	memory := instanceContext.Memory().Data() 
+	log.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
 	return
 }
 
