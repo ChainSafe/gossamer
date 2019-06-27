@@ -498,30 +498,30 @@ func TestDelete(t *testing.T) {
 	}
 
 	for i, test := range rt {
-    test := test
-    t.Run(strconv.Itoa(i), func(t *testing.T) {
-      r := rand.Int() % 2
-      switch r {
-      case 0:
-        err := trie.Delete(test.key)
-        if err != nil {
-          t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-        }
+		test := test
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			r := rand.Int() % 2
+		    	switch r {
+		      	case 0:
+				err := trie.Delete(test.key)
+				if err != nil {
+			  	t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+				}
 
-        val, err := trie.Get(test.key)
-        if err != nil {
-          t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
-        } else if val != nil {
-          t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
-        }
-      case 1:
-        val, err := trie.Get(test.key)
-        if err != nil {
-          t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-        } else if !bytes.Equal(test.value, val) {
-          t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-        }
-      }
-    }
-  })
+				val, err := trie.Get(test.key)
+				if err != nil {
+			  		t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+				} else if val != nil {
+			  		t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+				}
+		      	case 1:
+				val, err := trie.Get(test.key)
+				if err != nil {
+			  		t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+				} else if !bytes.Equal(test.value, val) {
+			  		t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+				}
+		      }
+		}
+	})
 }
