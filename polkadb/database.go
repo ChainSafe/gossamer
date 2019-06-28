@@ -21,7 +21,6 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
-	log15 "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 )
 
@@ -68,7 +67,6 @@ func (b *BadgerService) Start() <-chan error {
 }
 
 func (b *BadgerService) Stop() {
-	log15.Debug("Stopping DB service")
 	// Closing Badger Database
 	b.Close()
 }
