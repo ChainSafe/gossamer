@@ -522,6 +522,6 @@ func TestDelete(t *testing.T) {
 			  		t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
 		      }
-		}
-	})
+		})
+	}
 }
