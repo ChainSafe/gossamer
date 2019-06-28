@@ -58,20 +58,18 @@ func (d *Dot) Start() {
 		d.Rpc.Start()
 	}
 
-	sigCancel := make(chan struct{})
+	d.stop = make(chan struct{})
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		sigCancel <- struct{}{}
+		d.stop <- struct{}{}
 	}()
 
 	//Move on when routine catches SIGINT or SIGTERM calls
-	<-sigCancel
-	d.Services.StopAll()
-	d.stop = make(chan struct{})
+	<-d.stop
 	d.IsStarted <- struct{}{}
 	d.Wait()
 }
@@ -82,6 +80,6 @@ func (d *Dot) Wait() {
 }
 
 func (d *Dot) Stop() {
-	// TODO: Shutdown services and exit
 	d.stop <- struct{}{}
+	d.Services.StopAll()
 }
