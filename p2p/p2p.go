@@ -127,6 +127,7 @@ func (s *Service) start(e chan error) {
 // Stop stops the p2p service
 func (s *Service) Stop() <-chan error {
 	e := make(chan error)
+
 	//Stop the host & IpfsDHT
 	err := s.host.Close()
 	if err != nil {

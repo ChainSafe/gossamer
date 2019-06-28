@@ -58,19 +58,18 @@ func (d *Dot) Start() {
 		d.Rpc.Start()
 	}
 
-	finCancelledfn := make(chan int, 1)
+	sigCancel := make(chan struct{})
 	go func() {
-		log.Debug("Entered fn")
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		finCancelledfn <- 1
+		sigCancel <- struct{}{}
 	}()
 
 	//Move on when routine catches SIGINT or SIGTERM calls
-	<-finCancelledfn
+	<-sigCancel
 	d.Services.StopAll()
 	d.stop = make(chan struct{})
 	d.IsStarted <- struct{}{}
