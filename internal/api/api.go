@@ -58,5 +58,6 @@ func (s *Service) Start() <-chan error {
 	return s.err
 }
 
-func (s *Service) Stop() {
+func (s *Service) Stop() <-chan error {
+	return nil
 }
