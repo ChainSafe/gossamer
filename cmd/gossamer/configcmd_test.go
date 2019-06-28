@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
@@ -53,7 +52,7 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 		os.Exit(1)
 	}
 
-	f := common.ToTOML(tmpFile.Name(), TestConfig)
+	f := cfg.ToTOML(tmpFile.Name(), TestConfig)
 	return f, TestConfig
 }
 

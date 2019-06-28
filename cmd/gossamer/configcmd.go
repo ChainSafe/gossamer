@@ -186,7 +186,6 @@ func setRpcModules(ctx *cli.Context, fig *rpc.Config) {
 		fig.Modules = append(fig.Modules, strToMods(strs)...)
 		return
 	} else if fig.Modules != nil {
-		fmt.Println("ok")
 		return // set in config, dont use defaults
 	} else {
 		fig.Modules = cfg.DefaultRpcModules
