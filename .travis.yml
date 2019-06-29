@@ -1,23 +1,27 @@
 language: go
 
 go:
-- 1.12
+  - 1.12.x
 
 env:
-- GO111MODULE=on
+  global:
+    - GO111MODULE=on
+    - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
 
 cache:
   directories:
     - $HOME/.cache/go-build
     - $GOPATH/pkg/mod
 
+before_cache:
+  - rm -f ./trie/failing_test_data
+
 before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
 
-script:
-- go test ./... -v -short -coverprofile c.out ./... && ./cc-test-reporter after-build --exit-code $?
+script: ./scripts/ci.sh
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
