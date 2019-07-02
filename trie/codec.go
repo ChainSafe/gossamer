@@ -33,10 +33,10 @@ func keyToNibbles(in []byte) []byte {
 		res[2*i+1] = b % 16
 	}
 
-	if res[l-2] == 0 {
-		res[l-2] = res[l-1]
-		res = res[:l-1]
-	}
+	// if res[l-2] == 0 {
+	// 	res[l-2] = res[l-1]
+	// 	res = res[:l-1]
+	// }
 
 	return res
 }
