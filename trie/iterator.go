@@ -51,7 +51,7 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 
 	switch c := current.(type) {
 	case *branch:
-		fmt.Printf("branch key %x children %b value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.childrenBitmap(), c.value)
+		fmt.Printf("branch prefix %x key %x children %b value %s\n", nibblesToKey(prefix), nibblesToKey(c.key)), c.childrenBitmap(), c.value)
 		if withEncoding {
 			fmt.Printf("branch encoding ")
 			printHexBytes(encoding)
