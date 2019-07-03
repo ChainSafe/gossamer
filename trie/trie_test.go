@@ -184,35 +184,36 @@ func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 	for i, test := range tests {
 		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			if test.op == PUT {
-				err := trie.Put(test.key, test.value)
-				if err != nil {
-					t.Errorf("Fail to put key %x with value %x: %s", test.key, test.value, err)
-				}
-			} else if test.op == GET {
-				val, err := trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-				} else if !bytes.Equal(val, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
-				}
-			} else if test.op == DEL {
-				err := trie.Delete(test.key)
-				if err != nil {
-					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-				}
-			} else if test.op == GETLEAF {
-				leaf, err := trie.getLeaf(test.key)
-				if leaf == nil {
-					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if err != nil {
-					t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-				} else if !bytes.Equal(leaf.value, test.value) {
-					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
-				} else if !bytes.Equal(leaf.key, test.pk) {
-					t.Errorf("Fail to get correct partial key %x: got %x", test.pk, leaf.key)
-				}
-			}
+		  if test.op == PUT {
+			  err := trie.Put(test.key, test.value)
+			  if err != nil {
+				  t.Errorf("Fail to put key %x with value %x: %s", test.key, test.value, err)
+			  }
+		  } else if test.op == GET {
+        val, err := trie.Get(test.key)
+        if err != nil {
+          t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+        } else if !bytes.Equal(val, test.value) {
+          t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+        }
+      } else if test.op == DEL {
+        err := trie.Delete(test.key)
+        if err != nil {
+          t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+        }
+      } else if test.op == GETLEAF {
+        leaf, err := trie.getLeaf(test.key)
+        if leaf == nil {
+          t.Errorf("Fail to get key %x: nil leaf", test.key)
+        } else if err != nil {
+          t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+        } else if !bytes.Equal(leaf.value, test.value) {
+          t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
+        } else if !bytes.Equal(leaf.key, test.pk) {
+            t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.key)
+          }
+        }
+      }
 		})
 	}
 }
@@ -364,12 +365,12 @@ func TestGetPartialKey(t *testing.T) {
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
 		{key: []byte{}, value: []byte("floof"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: nil, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: []byte{9}, op: GETLEAF},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: DEL},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin"), pk: []byte{0x9}, op: GETLEAF},
 		{key: []byte{0x01, 0x35}, value: []byte("pen"), pk: []byte{0x1, 0x3, 0x5}, op: GETLEAF},
 		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), op: PUT},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), pk: nil, op: GETLEAF},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("odd"), pk: []byte{7}, op: GETLEAF},
 		{key: []byte{0xf2}, value: []byte("pen"), op: PUT},
 		{key: []byte{0x09, 0xd3}, value: []byte("noot"), op: PUT},
 		{key: []byte{}, value: []byte("floof"), op: GET},
