@@ -79,7 +79,7 @@ func sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr []byte) error {
  */
 func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	if len(public_ptr) != SR25519_PUBLIC_SIZE {
-		return errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
+		return errors.New("public_ptr length not equal to SR25519_PUBLIC_SIZE")
 	}
 
 	if len(cc_ptr) != SR25519_CHAINCODE_SIZE {
@@ -87,5 +87,33 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	}
 
 	C.sr25519_derive_public_soft((*C.uchar)(unsafe.Pointer(&pubkey_out[0])), (*C.uchar)(unsafe.Pointer(&public_ptr[0])), (*C.uchar)(unsafe.Pointer(&cc_ptr[0]))) 
+	return nil
+}
+
+/**
+ * Sign a message
+ * The combination of both public and private key must be provided.
+ * This is effectively equivalent to a keypair.
+ *  signature_out: output buffer of SR25519_SIGNATURE_SIZE bytes
+ *  public_ptr: public key - input buffer of SR25519_PUBLIC_SIZE bytes
+ *  secret_ptr: private key (secret) - input buffer of SR25519_SECRET_SIZE bytes
+ *  message_ptr: Arbitrary message; input buffer of size message_length
+ *  message_length: Length of a message
+ */
+ func sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, message_length uint32) error {
+	if len(public_ptr) != SR25519_PUBLIC_SIZE {
+		return errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
+	}
+
+	if len(secret_ptr) != SR25519_SECRET_SIZE {
+		return errors.New("secret_ptr length not equal to SR25519_SECRET_SIZE")
+	}
+
+	c_signature_out := (*C.uchar)(unsafe.Pointer(&signature_out[0]))
+	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
+	c_secret_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
+	c_message_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
+	c_message_length := (*C.uintptr_t)(unsafe.Pointer(&message_length))
+	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, *c_message_length) 
 	return nil
 }
