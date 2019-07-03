@@ -113,8 +113,8 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
 	c_secret_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
 	c_message_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
-	c_message_length := (*C.uintptr_t)(unsafe.Pointer(&message_length))
-	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, *c_message_length) 
+	c_message_length := (C.uintptr_t)(message_length)
+	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, c_message_length) 
 	return nil
 }
 
@@ -138,7 +138,7 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	c_signature_ptr := (*C.uchar)(unsafe.Pointer(&signature_ptr[0]))
 	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
 	c_message_ptr := (*C.uchar)(unsafe.Pointer(&message_ptr[0]))
-	c_message_length := (*C.uintptr_t)(unsafe.Pointer(&message_length))
-	ver := C.sr25519_verify(c_signature_ptr, c_message_ptr, *c_message_length, c_public_ptr) 
+	c_message_length := (C.uintptr_t)(message_length)
+	ver := C.sr25519_verify(c_signature_ptr, c_message_ptr, c_message_length, c_public_ptr) 
 	return (bool)(ver), nil
 }
