@@ -125,7 +125,7 @@ func TestExecAuthorities(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		r.t.Put(append([]byte(":auth:"), []byte{byte(i), 0, 0, 0}...), []byte(pubkey))
+		r.trie.Put(append([]byte(":auth:"), []byte{byte(i), 0, 0, 0}...), []byte(pubkey))
 	}
 
 	authLen, err := scale.Encode(int64(1))
@@ -133,7 +133,7 @@ func TestExecAuthorities(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r.t.Put([]byte(":auth:len"), authLen)
+	r.trie.Put([]byte(":auth:len"), authLen)
 
 	res, err := r.Exec("Core_authorities", 0, 0)
 	if err != nil {

@@ -21,7 +21,7 @@ var (
 
 type Runtime struct {
 	vm *exec.VirtualMachine
-	t  *trie.Trie
+	trie  *trie.Trie
 }
 
 type Version struct {
@@ -42,11 +42,11 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 		DefaultMemoryPages: DEFAULT_MEMORY_PAGES,
 		DefaultTableSize:   DEFAULT_TABLE_SIZE,
 		MaxCallStackDepth:  DEFAULT_MAX_CALL_STACK_DEPTH,
-	}, &Resolver{t: t}, nil)
+	}, &Resolver{trie: t}, nil)
 
 	return &Runtime{
 		vm: vm,
-		t:  t,
+		trie:  t,
 	}, err
 }
 

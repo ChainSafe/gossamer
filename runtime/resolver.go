@@ -11,7 +11,7 @@ import (
 )
 
 type Resolver struct {
-	t *trie.Trie
+	trie *trie.Trie
 }
 
 // ResolveFunc resolves the imported functions in the runtime
@@ -32,7 +32,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				key := vm.Memory[keyData : keyData+keyLen]
 				log.Debug("[ext_get_storage_into]", "key", string(key), "byteskey", key)
 
-				value, err := r.t.Get(key)
+				value, err := r.trie.Get(key)
 				if err != nil {
 					log.Error("[ext_get_storage_into]", "error", err)
 					return 0
@@ -53,12 +53,50 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_blake2_256":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_blake2_256")
-				return 0
+				data := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				length := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				out := int(uint32(vm.GetCurrentFrame().Locals[2]))
+				hash, err := common.Blake2bHash(vm.Memory[data:data+length])
+				if err != nil {
+					log.Error("[ext_blake2_256]", "error", err)
+					return 0
+				}
+				copy(vm.Memory[out:out+32], hash[:])
+				return 1
 			}
 		case "ext_blake2_256_enumerated_trie_root":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_blake2_256_enumerated_trie_root")
-				return 0
+				t := &trie.Trie{}
+
+				valuesData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				lensData := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				lensLen := int(uint32(vm.GetCurrentFrame().Locals[2]))
+				result := int(uint32(vm.GetCurrentFrame().Locals[3]))
+
+				var pos int32 = 0
+				for i := 0; i < lensLen; i++ {
+					valueLenBytes := vm.Memory[lensData + i*32 : lensData + (i+1)*32]
+					valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
+					value := vm.Memory[valuesData + int(pos) : valuesData + int(pos) + int(valueLen)]
+					pos += valueLen
+
+					// todo: do we get key/value pairs or just values??
+					err := t.Put(value, nil)
+					if err != nil {
+						log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+						return 0
+					}
+				}
+
+				root, err := t.Hash()
+				if err != nil {
+					log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+					return 0
+				}
+
+				copy(vm.Memory[result:result+32], root[:])
+				return 1
 			}
 		case "ext_print_utf8":
 			return func(vm *exec.VirtualMachine) int64 {
@@ -97,7 +135,17 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_clear_storage":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_clear_storage")
-				return 0
+				keyData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
+
+				key := vm.Memory[keyData:keyData+keyLen]
+				err := r.trie.Delete(key)
+				if err != nil {
+					log.Error("[ext_storage_root]", "error", err)
+					return 0
+				}
+
+				return 1
 			}
 		case "ext_set_storage":
 			return func(vm *exec.VirtualMachine) int64 {
