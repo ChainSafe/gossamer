@@ -150,7 +150,21 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_set_storage":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_set_storage")
-				return 0
+
+				keyData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				valueData := int(uint32(vm.GetCurrentFrame().Locals[2]))
+				valueLen := int(uint32(vm.GetCurrentFrame().Locals[3]))
+
+				key := vm.Memory[keyData:keyData+keyLen]
+				val := vm.Memory[valueData:valueData+valueLen]
+				err := r.trie.Put(key, val)
+				if err != nil {
+					log.Error("[ext_set_storage]", "error", err)
+					return 0
+				}
+
+				return 1
 			}
 		case "ext_exists_storage":
 			return func(vm *exec.VirtualMachine) int64 {
@@ -170,6 +184,14 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_storage_root":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_storage_root")
+				resultPtr := int(uint32(vm.GetCurrentFrame().Locals[0]))
+
+				root, err := r.trie.Hash()
+				if err != nil {
+					log.Error("[ext_storage_root]", "error", err)
+				}
+
+				copy(vm.Memory[resultPtr:resultPtr+32], root[:])
 				return 0
 			}
 		case "ext_storage_changes_root":
@@ -180,6 +202,9 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_print_hex":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_print_hex")
+				offset := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				size := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				log.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", vm.Memory[offset:offset+size]))
 				return 0
 			}
 		default:
