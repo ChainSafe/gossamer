@@ -11,7 +11,6 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/golang/snappy v0.0.1
-	github.com/inconshreveable/log15 v0.0.0-20180818164646-67afb5ed74ec
 	github.com/ipfs/go-cid v0.0.2 // indirect
 	github.com/ipfs/go-datastore v0.0.2
 	github.com/ipfs/go-ipfs v0.4.19-rc2.0.20190328185617-7aab3c29f9d4
@@ -37,10 +36,8 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/lint v0.0.0-20190409202823-959b441ac422 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
-	golang.org/x/tools v0.0.0-20190702152245-7e72c71c505f // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
