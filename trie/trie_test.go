@@ -209,8 +209,9 @@ func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 					t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 				} else if !bytes.Equal(leaf.value, test.value) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
-			} else if !bytes.Equal(leaf.key, test.pk) {
-				t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.key)
+				} else if !bytes.Equal(leaf.key, test.pk) {
+					t.Errorf("Fail to get correct partial key %x with key %x: got %x", test.pk, test.key, leaf.key)
+				}
 			}
 		})
 	}
