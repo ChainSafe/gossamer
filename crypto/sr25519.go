@@ -25,8 +25,11 @@ const (
  *  keypair_out: keypair [32b key | 32b nonce | 32b public], pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
  *  seed: generation seed - input buffer of SR25519_SEED_SIZE bytes
  */
-func sr25519_keypair_from_seed(keypair_out, seed_ptr *[]byte) error {
-	C.sr25519_keypair_from_seed((*C.uchar)(unsafe.Pointer(keypair_out)), (*C.uchar)(unsafe.Pointer(seed_ptr))) 
+func sr25519_keypair_from_seed(keypair_out, seed_ptr []byte) error {
+	if len(seed_ptr) != SR25519_SEED_SIZE {
+		return errors.New("seed_ptr length not equal to SR25519_SEED_SIZE")
+	}
+ 	C.sr25519_keypair_from_seed((*C.uchar)(unsafe.Pointer(&keypair_out[0])), (*C.uchar)(unsafe.Pointer(&seed_ptr[0]))) 
 	return nil
 }
 
@@ -36,15 +39,15 @@ func sr25519_keypair_from_seed(keypair_out, seed_ptr *[]byte) error {
  *  pair_ptr: existing keypair - input buffer of SR25519_KEYPAIR_SIZE bytes
  *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
  */
-func sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr *[]byte) error {
-	if len(*pair_ptr) != SR25519_KEYPAIR_SIZE {
+func sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr []byte) error {
+	if len(pair_ptr) != SR25519_KEYPAIR_SIZE {
 		return errors.New("pair_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
 
-	if len(*cc_ptr) != SR25519_CHAINCODE_SIZE {
+	if len(cc_ptr) != SR25519_CHAINCODE_SIZE {
 		return errors.New("cc_ptr length not equal to SR25519_CHAINCODE_SIZE")
 	}
 
-	C.sr25519_derive_keypair_hard((*C.uchar)(unsafe.Pointer(keypair_out)), (*C.uchar)(unsafe.Pointer(pair_ptr)), (*C.uchar)(unsafe.Pointer(cc_ptr))) 
+	C.sr25519_derive_keypair_hard((*C.uchar)(unsafe.Pointer(&keypair_out[0])), (*C.uchar)(unsafe.Pointer(&pair_ptr[0])), (*C.uchar)(unsafe.Pointer(&cc_ptr[0]))) 
 	return nil
 }

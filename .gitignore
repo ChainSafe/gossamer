@@ -28,3 +28,4 @@ trie/test_data
 /bin
 chaindata/
 runtime/polkadot_runtime*
+crypto/libsr25519
