@@ -51,3 +51,41 @@ func sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr []byte) error {
 	C.sr25519_derive_keypair_hard((*C.uchar)(unsafe.Pointer(&keypair_out[0])), (*C.uchar)(unsafe.Pointer(&pair_ptr[0])), (*C.uchar)(unsafe.Pointer(&cc_ptr[0]))) 
 	return nil
 }
+
+/**
+ * Perform a derivation on a secret
+ *  keypair_out: pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
+ *  pair_ptr: existing keypair - input buffer of SR25519_KEYPAIR_SIZE bytes
+ *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
+ */
+func sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr []byte) error {
+	if len(pair_ptr) != SR25519_KEYPAIR_SIZE {
+		return errors.New("pair_ptr length not equal to SR25519_KEYPAIR_SIZE")
+	}
+
+	if len(cc_ptr) != SR25519_CHAINCODE_SIZE {
+		return errors.New("cc_ptr length not equal to SR25519_CHAINCODE_SIZE")
+	}
+
+	C.sr25519_derive_keypair_soft((*C.uchar)(unsafe.Pointer(&keypair_out[0])), (*C.uchar)(unsafe.Pointer(&pair_ptr[0])), (*C.uchar)(unsafe.Pointer(&cc_ptr[0]))) 
+	return nil
+}
+
+/**
+ * Perform a derivation on a publicKey
+ *  pubkey_out: pre-allocated output buffer of SR25519_PUBLIC_SIZE bytes
+ *  public_ptr: public key - input buffer of SR25519_PUBLIC_SIZE bytes
+ *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
+ */
+func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
+	if len(public_ptr) != SR25519_PUBLIC_SIZE {
+		return errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
+	}
+
+	if len(cc_ptr) != SR25519_CHAINCODE_SIZE {
+		return errors.New("cc_ptr length not equal to SR25519_CHAINCODE_SIZE")
+	}
+
+	C.sr25519_derive_public_soft((*C.uchar)(unsafe.Pointer(&pubkey_out[0])), (*C.uchar)(unsafe.Pointer(&public_ptr[0])), (*C.uchar)(unsafe.Pointer(&cc_ptr[0]))) 
+	return nil
+}
