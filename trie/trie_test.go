@@ -51,6 +51,7 @@ var commonPrefixTests = []commonPrefixTest{
 func TestCommonPrefix(t *testing.T) {
 	for i, test := range commonPrefixTests {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			test := test
 			output := lenCommonPrefix(test.a, test.b)
 			if output != test.output {
 				t.Errorf("Fail: got %d expected %d", output, test.output)
