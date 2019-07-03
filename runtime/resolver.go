@@ -170,7 +170,23 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_exists_storage":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_exists_storage")
-				return 0
+				keyData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				result := int(uint32(vm.GetCurrentFrame().Locals[2]))
+
+				val, err := r.trie.Get(vm.Memory[keyData:keyData+keyLen])
+				if err != nil {
+					log.Error("[ext_exists_storage]", "error", err)
+					return 0
+				}
+
+				if val != nil {
+					copy(vm.Memory[result:result+32], []byte{1})
+				} else {
+					copy(vm.Memory[result:result+32], []byte{0})
+				}
+
+				return 1
 			}
 		case "ext_sr25519_verify":
 			return func(vm *exec.VirtualMachine) int64 {
