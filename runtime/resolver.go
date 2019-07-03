@@ -57,7 +57,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				data := int(uint32(vm.GetCurrentFrame().Locals[0]))
 				length := int(uint32(vm.GetCurrentFrame().Locals[1]))
 				out := int(uint32(vm.GetCurrentFrame().Locals[2]))
-				hash, err := common.Blake2bHash(vm.Memory[data:data+length])
+				hash, err := common.Blake2bHash(vm.Memory[data : data+length])
 				if err != nil {
 					log.Error("[ext_blake2_256]", "error", err)
 					return 0
@@ -77,9 +77,9 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 
 				var pos int32 = 0
 				for i := 0; i < lensLen; i++ {
-					valueLenBytes := vm.Memory[lensData + i*32 : lensData + (i+1)*32]
+					valueLenBytes := vm.Memory[lensData+i*32 : lensData+(i+1)*32]
 					valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
-					value := vm.Memory[valuesData + int(pos) : valuesData + int(pos) + int(valueLen)]
+					value := vm.Memory[valuesData+int(pos) : valuesData+int(pos)+int(valueLen)]
 					pos += valueLen
 
 					// todo: do we get key/value pairs or just values??
@@ -139,7 +139,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				keyData := int(uint32(vm.GetCurrentFrame().Locals[0]))
 				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
 
-				key := vm.Memory[keyData:keyData+keyLen]
+				key := vm.Memory[keyData : keyData+keyLen]
 				err := r.trie.Delete(key)
 				if err != nil {
 					log.Error("[ext_storage_root]", "error", err)
@@ -157,8 +157,8 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				valueData := int(uint32(vm.GetCurrentFrame().Locals[2]))
 				valueLen := int(uint32(vm.GetCurrentFrame().Locals[3]))
 
-				key := vm.Memory[keyData:keyData+keyLen]
-				val := vm.Memory[valueData:valueData+valueLen]
+				key := vm.Memory[keyData : keyData+keyLen]
+				val := vm.Memory[valueData : valueData+valueLen]
 				err := r.trie.Put(key, val)
 				if err != nil {
 					log.Error("[ext_set_storage]", "error", err)
@@ -174,7 +174,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				keyLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
 				result := int(uint32(vm.GetCurrentFrame().Locals[2]))
 
-				val, err := r.trie.Get(vm.Memory[keyData:keyData+keyLen])
+				val, err := r.trie.Get(vm.Memory[keyData : keyData+keyLen])
 				if err != nil {
 					log.Error("[ext_exists_storage]", "error", err)
 					return 0
@@ -202,9 +202,9 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 				sigData := int(uint32(vm.GetCurrentFrame().Locals[2]))
 				pubkeyData := int(uint32(vm.GetCurrentFrame().Locals[3]))
 
-				msg := vm.Memory[msgData:msgData+msgLen]
-				sig := vm.Memory[sigData:sigData+64]
-				pubkey := ed25519.PublicKey(vm.Memory[pubkeyData:pubkeyData+32])
+				msg := vm.Memory[msgData : msgData+msgLen]
+				sig := vm.Memory[sigData : sigData+64]
+				pubkey := ed25519.PublicKey(vm.Memory[pubkeyData : pubkeyData+32])
 
 				if ed25519.Verify(pubkey, msg, sig) {
 					return 1

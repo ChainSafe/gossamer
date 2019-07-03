@@ -20,8 +20,8 @@ var (
 )
 
 type Runtime struct {
-	vm *exec.VirtualMachine
-	trie  *trie.Trie
+	vm   *exec.VirtualMachine
+	trie *trie.Trie
 }
 
 type Version struct {
@@ -45,8 +45,8 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	}, &Resolver{trie: t}, nil)
 
 	return &Runtime{
-		vm: vm,
-		trie:  t,
+		vm:   vm,
+		trie: t,
 	}, err
 }
 
