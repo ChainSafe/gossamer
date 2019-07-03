@@ -140,3 +140,39 @@ func TestSign(t *testing.T) {
 
 	t.Log(signature_out)
 } 
+
+func TestVerify(t *testing.T) {
+	keypair_out := make([]byte, 96)
+	seed_ptr := []byte{}
+
+	buf := make([]byte, 32)
+	rand.Read(buf)
+	seed_ptr = buf
+
+	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	public_ptr := keypair_out[64:]
+	secret_ptr := keypair_out[:64]
+
+	signature_out := make([]byte, 64)
+	message_ptr := []byte{1, 3, 3, 7}
+	var message_length uint32 = 4
+
+	err = sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(signature_out)
+	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, uint16(message_length))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ver {
+		t.Fatal("did not verify signature")
+	}
+} 

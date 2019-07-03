@@ -117,3 +117,28 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, *c_message_length) 
 	return nil
 }
+
+/**
+ * Verify a message and its corresponding against a public key;
+ *  signature_ptr: verify this signature
+ *  message_ptr: Arbitrary message; input buffer of message_length bytes
+ *  message_length: Message size
+ *  public_ptr: verify with this public key; input buffer of SR25519_PUBLIC_SIZE bytes
+ *  returned true if signature is valid, false otherwise
+ */
+ func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_length uint32) (bool, error) {
+	if len(public_ptr) != SR25519_PUBLIC_SIZE {
+		return false, errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
+	}
+
+	if len(signature_ptr) != SR25519_SIGNATURE_SIZE {
+		return false, errors.New("signature_ptr length not equal to SR25519_SIGNATURE_SIZE")
+	}
+
+	c_signature_ptr := (*C.uchar)(unsafe.Pointer(&signature_ptr[0]))
+	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
+	c_message_ptr := (*C.uchar)(unsafe.Pointer(&message_ptr[0]))
+	c_message_length := (*C.uintptr_t)(unsafe.Pointer(&message_length))
+	ver := C.sr25519_verify(c_signature_ptr, c_message_ptr, *c_message_length, c_public_ptr) 
+	return (bool)(ver), nil
+}
