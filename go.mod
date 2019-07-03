@@ -31,6 +31,7 @@ require (
 	github.com/perlin-network/life v0.0.0-20190402092845-c30697b41680
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
+	github.com/wasmerio/go-ext-wasm v0.0.0-20190624092232-86d5253dde57
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980 // indirect
 	google.golang.org/appengine v1.6.1 // indirect

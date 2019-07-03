@@ -8,6 +8,7 @@ import (
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/inconshreveable/log15"
 	exec "github.com/perlin-network/life/exec"
+	ed25519 "golang.org/x/crypto/ed25519"
 )
 
 type Resolver struct {
@@ -179,6 +180,20 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_ed25519_verify":
 			return func(vm *exec.VirtualMachine) int64 {
 				log.Debug("executing: ext_ed25519_verify")
+
+				msgData := int(uint32(vm.GetCurrentFrame().Locals[0]))
+				msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
+				sigData := int(uint32(vm.GetCurrentFrame().Locals[2]))
+				pubkeyData := int(uint32(vm.GetCurrentFrame().Locals[3]))
+
+				msg := vm.Memory[msgData:msgData+msgLen]
+				sig := vm.Memory[sigData:sigData+64]
+				pubkey := ed25519.PublicKey(vm.Memory[pubkeyData:pubkeyData+32])
+
+				if ed25519.Verify(pubkey, msg, sig) {
+					return 1
+				}
+
 				return 0
 			}
 		case "ext_storage_root":
