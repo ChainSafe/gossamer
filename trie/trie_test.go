@@ -189,8 +189,8 @@ func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 				if err != nil {
 					t.Errorf("Fail to put key %x with value %x: %s", test.key, test.value, err)
 				}
-		 	} else if test.op == GET {
-        		 	val, err := trie.Get(test.key)
+			} else if test.op == GET {
+				val, err := trie.Get(test.key)
 				if err != nil {
 					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
 				} else if !bytes.Equal(val, test.value) {
@@ -199,7 +199,7 @@ func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 			} else if test.op == DEL {
 				err := trie.Delete(test.key)
 				if err != nil {
-  					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
 				}
 			} else if test.op == GETLEAF {
 				leaf, err := trie.getLeaf(test.key)
@@ -501,27 +501,27 @@ func TestDelete(t *testing.T) {
 		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			r := rand.Int() % 2
-		    	switch r {
-		      	case 0:
+			switch r {
+			case 0:
 				err := trie.Delete(test.key)
 				if err != nil {
-			  	t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
+					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
 				}
 
 				val, err := trie.Get(test.key)
 				if err != nil {
-			  		t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
+					t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
 				} else if val != nil {
-			  		t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
+					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 				}
-		      	case 1:
+			case 1:
 				val, err := trie.Get(test.key)
 				if err != nil {
-			  		t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
+					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
 				} else if !bytes.Equal(test.value, val) {
-			  		t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
-		      }
+			}
 		})
 	}
 }
