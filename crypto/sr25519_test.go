@@ -167,7 +167,7 @@ func TestVerify(t *testing.T) {
 	}
 
 	t.Log(signature_out)
-	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, uint16(message_length))
+	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
