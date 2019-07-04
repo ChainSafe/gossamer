@@ -8,10 +8,10 @@ env:
     - GO111MODULE=on
     - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
 
-#cache:
-#  directories:
-#    - $HOME/.cache/go-build
-#    - $GOPATH/pkg/mod
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $GOPATH/pkg/mod
 
 before_cache:
   - rm -f ./trie/failing_test_data
