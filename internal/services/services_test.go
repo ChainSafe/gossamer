@@ -50,7 +50,7 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 	}
 }
 
-func TestServiceRegistry_StartAll(t *testing.T) {
+func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r := NewServiceRegistry()
 
 	a := &MockSrvcA{}
@@ -64,6 +64,13 @@ func TestServiceRegistry_StartAll(t *testing.T) {
 	if a.running != true || b.running != true {
 		t.Fatal("failed to start service")
 	}
+
+	r.StopAll()
+
+	if a.running != false || b.running != false {
+		t.Fatal("failed to stop service")
+	}
+
 }
 
 func TestServiceRegistry_Get_Err(t *testing.T) {
