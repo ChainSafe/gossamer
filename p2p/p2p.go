@@ -30,9 +30,9 @@ import (
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
-	crypto "github.com/libp2p/go-libp2p-crypto"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
@@ -43,7 +43,7 @@ const protocolPrefix = "/polkadot/0.0.0"
 // Service describes a p2p service, including host and dht
 type Service struct {
 	ctx            context.Context
-	host           host.Host
+	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	bootstrapNodes []*core.PeerAddrInfo
