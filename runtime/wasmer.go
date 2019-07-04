@@ -26,13 +26,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"unsafe"
-	log "github.com/ChainSafe/log15"
+	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
-	scale "github.com/ChainSafe/gossamer/codec"
+	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
+	"unsafe"
 )
 
 //export ext_print_num
@@ -60,8 +60,8 @@ func ext_free(context unsafe.Pointer, addr C.int32_t) {
 //export ext_print_utf8
 func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_utf8] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
 	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[offset:offset+size]))
 	return
 }
@@ -70,8 +70,8 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 //export ext_print_hex
 func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	log.Debug("[ext_print_hex] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
 	log.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
 	return
 }
@@ -82,14 +82,14 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	log.Debug("[ext_get_storage_into] executing...")
 
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	t := (*trie.Trie)(instanceContext.Data()) 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())
 
-	key := memory[keyData:keyData+keyLen]
+	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
 	if err != nil || val == nil {
-		return 2^32 -1
+		return 2 ^ 32 - 1
 	}
 
 	if len(val) > int(valueLen) {
@@ -105,12 +105,12 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
 	log.Debug("[ext_set_storage] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	t := (*trie.Trie)(instanceContext.Data()) 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())
 
-	key := memory[keyData:keyData+keyLen]
-	val := memory[valueData:valueData+valueLen]
+	key := memory[keyData : keyData+keyLen]
+	val := memory[valueData : valueData+valueLen]
 	err := t.Put(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
@@ -123,9 +123,9 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	log.Debug("[ext_storage_root] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	t := (*trie.Trie)(instanceContext.Data()) 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())
 
 	root, err := t.Hash()
 	if err != nil {
@@ -143,23 +143,23 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 }
 
 // gets value stored at key at memory location `keyData` with length `keyLen` and returns the location
-// in memory where it's stored and stores its length in `writtenOut` 
+// in memory where it's stored and stores its length in `writtenOut`
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
 	log.Debug("[ext_get_allocated_storage] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	t := (*trie.Trie)(instanceContext.Data()) 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())
 
-	key := memory[keyData:keyData+keyLen]
+	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
-	if err == nil && len(val) >= (1 << 32) {
+	if err == nil && len(val) >= (1<<32) {
 		err = errors.New("retrieved value length exceeds 2^32")
 	}
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		return 0
-	}		
+	}
 
 	ptr := 1
 	copy(memory[ptr:ptr+len(val)], val)
@@ -170,11 +170,11 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	log.Debug("[ext_sr25519_verify] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	t := (*trie.Trie)(instanceContext.Data()) 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())
 
-	key := memory[keyData:keyData+keyLen]
+	key := memory[keyData : keyData+keyLen]
 	err := t.Delete(key)
 	if err != nil {
 		log.Error("[ext_storage_root]", "error", err)
@@ -193,16 +193,16 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 //export ext_blake2_256_enumerated_trie_root
 func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
 	log.Debug("[ext_blake2_256_enumerated_trie_root] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
 	t := &trie.Trie{}
 
 	var i int32
 	var pos int32 = 0
 	for i = 0; i < lensLen; i++ {
-		valueLenBytes := memory[lensData + i*32 : lensData + (i+1)*32]
+		valueLenBytes := memory[lensData+i*32 : lensData+(i+1)*32]
 		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
-		value := memory[valuesData + pos : valuesData + pos + valueLen]
+		value := memory[valuesData+pos : valuesData+pos+valueLen]
 		pos += valueLen
 
 		// todo: do we get key/value pairs or just values??
@@ -226,9 +226,9 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 //export ext_blake2_256
 func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_blake2_256] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	hash, err := common.Blake2bHash(memory[data:data+length])
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	hash, err := common.Blake2bHash(memory[data : data+length])
 	if err != nil {
 		log.Error("[ext_blake2_256]", "error", err)
 	}
@@ -250,14 +250,14 @@ func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 }
 
 //export ext_ed25519_verify
-func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32{
+func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_ed25519_verify] executing...")
-	instanceContext := wasm.IntoInstanceContext(context) 
-	memory := instanceContext.Memory().Data() 
-	
-	msg := memory[msgData:msgData+msgLen]
-	sig := memory[sigData:sigData+64]
-	pubkey := ed25519.PublicKey(memory[pubkeyData:pubkeyData+32])
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	msg := memory[msgData : msgData+msgLen]
+	sig := memory[sigData : sigData+64]
+	pubkey := ed25519.PublicKey(memory[pubkeyData : pubkeyData+32])
 
 	if ed25519.Verify(pubkey, msg, sig) {
 		return 1
@@ -285,7 +285,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err
@@ -318,10 +318,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	instance.SetContextData(data)
 
 	return &Runtime{
-		vm: instance,
+		vm:   instance,
 		trie: t,
 	}, nil
-} 
+}
 
 func (r *Runtime) Stop() {
 	r.vm.Close()

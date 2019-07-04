@@ -1,13 +1,13 @@
 package runtime
 
 import (
+	trie "github.com/ChainSafe/gossamer/trie"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
-	trie "github.com/ChainSafe/gossamer/trie"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
@@ -72,7 +72,7 @@ func TestExecVersion(t *testing.T) {
 		Spec_name:         []byte("polkadot"),
 		Impl_name:         []byte("parity-polkadot"),
 		Authoring_version: 1,
-		Spec_version:      109,
+		Spec_version:      1000,
 		Impl_version:      0,
 	}
 
