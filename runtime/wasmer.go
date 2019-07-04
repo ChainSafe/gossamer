@@ -264,9 +264,14 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 	return 0
 }
 
-func Exec(t *trie.Trie) ([]byte, error) {
+type Runtime struct {
+	vm   wasm.Instance
+	trie *trie.Trie
+}
+
+func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := wasm.ReadBytes("polkadot_runtime.compact.wasm")
+	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
@@ -298,24 +303,38 @@ func Exec(t *trie.Trie) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer instance.Close()
 
 	data := unsafe.Pointer(t)
 	instance.SetContextData(data)
 
-	version, ok := instance.Exports["Core_version"]
+	return &Runtime{
+		vm: instance,
+		trie: t,
+	}, nil
+} 
+
+func (r *Runtime) Stop() {
+	r.vm.Close()
+}
+
+func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
+	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
 		return nil, errors.New("could not find exported function")
 	}
 
-	res, err := version(1,1)
+	res, err := runtimeFunc(data, len)
 	if err != nil {
 		return nil, err
 	}
 	resi := res.ToI64()
 
-	offset := int32(resi >> 32)
-	length :=  int32(resi)
-	fmt.Printf("offset %d length %d", offset, length)
-	return instance.Memory.Data()[offset:offset+length], err
+	length := int32(resi >> 32)
+	offset := int32(resi)
+	fmt.Printf("offset %d length %d\n", offset, length)
+	mem := r.vm.Memory.Data()
+	rawdata := make([]byte, length)
+	copy(rawdata, mem[offset:offset+length])
+
+	return rawdata, err
 }

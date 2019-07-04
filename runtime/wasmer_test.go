@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	trie "github.com/ChainSafe/gossamer/trie"
 )
@@ -42,28 +43,28 @@ func Exists(name string) bool {
 	return true
 }
 
-// func newRuntime(t *testing.T) (*Runtime, error) {
-// 	_, err := getRuntimeBlob()
-// 	if err != nil {
-// 		t.Fatalf("Fail: could not get polkadot runtime")
-// 	}
+func newRuntime(t *testing.T) (*Runtime, error) {
+	_, err := getRuntimeBlob()
+	if err != nil {
+		t.Fatalf("Fail: could not get polkadot runtime")
+	}
 
-// 	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
-// 	if err != nil {
-// 		t.Fatal("could not create filepath")
-// 	}
+	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
+	if err != nil {
+		t.Fatal("could not create filepath")
+	}
 
-// 	tt := newEmpty()
+	tt := newEmpty()
 
-// 	r, err := NewRuntime(fp, tt)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	} else if r == nil {
-// 		t.Fatal("did not create new VM")
-// 	}
+	r, err := NewRuntime(fp, tt)
+	if err != nil {
+		t.Fatal(err)
+	} else if r == nil {
+		t.Fatal("did not create new VM")
+	}
 
-// 	return r, err
-// }
+	return r, err
+}
 
 func newEmpty() *trie.Trie {
 	//db := &trie.Database{}
@@ -79,12 +80,22 @@ func TestExecWasmer(t *testing.T) {
 		t.Fatalf("Fail: could not get polkadot runtime")
 	}
 
+	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
+	if err != nil {
+		t.Fatal("could not create filepath")
+	}
+
+	r, err := NewRuntime(fp, tt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
 	// if err != nil {
 	// 	t.Fatal("could not create filepath")
 	// }
 
-	ret, err := Exec(tt)
+	ret, err := r.Exec("Core_version", 1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
