@@ -22,13 +22,15 @@ package runtime
 import "C"
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"unsafe"
-	log "github.com/inconshreveable/log15"
+	log "github.com/ChainSafe/log15"
 	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
+	scale "github.com/ChainSafe/gossamer/codec"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
 )
@@ -269,6 +271,14 @@ type Runtime struct {
 	trie *trie.Trie
 }
 
+type Version struct {
+	Spec_name         []byte
+	Impl_name         []byte
+	Authoring_version int32
+	Spec_version      int32
+	Impl_version      int32
+}
+
 func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
@@ -337,4 +347,16 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	copy(rawdata, mem[offset:offset+length])
 
 	return rawdata, err
+}
+
+func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
+	buf := &bytes.Buffer{}
+	sd := scale.Decoder{Reader: buf}
+	_, err := buf.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := sd.Decode(t)
+	return output, err
 }

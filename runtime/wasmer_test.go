@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	trie "github.com/ChainSafe/gossamer/trie"
 )
@@ -54,7 +55,7 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := newEmpty()
+	tt := &trie.Trie{}
 
 	r, err := NewRuntime(fp, tt)
 	if err != nil {
@@ -66,34 +67,19 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 	return r, err
 }
 
-func newEmpty() *trie.Trie {
-	//db := &trie.Database{}
-	//t := trie.NewEmptyTrie(db)
-	return &trie.Trie{}
-}
-
-func TestExecWasmer(t *testing.T) {
-	tt := newEmpty()
-
-	_, err := getRuntimeBlob()
-	if err != nil {
-		t.Fatalf("Fail: could not get polkadot runtime")
+func TestExecVersion(t *testing.T) {
+	expected := &Version{
+		Spec_name:         []byte("polkadot"),
+		Impl_name:         []byte("parity-polkadot"),
+		Authoring_version: 1,
+		Spec_version:      109,
+		Impl_version:      0,
 	}
 
-	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
-	if err != nil {
-		t.Fatal("could not create filepath")
-	}
-
-	r, err := NewRuntime(fp, tt)
+	r, err := newRuntime(t)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
-	// if err != nil {
-	// 	t.Fatal("could not create filepath")
-	// }
 
 	ret, err := r.Exec("Core_version", 1, 1)
 	if err != nil {
@@ -101,4 +87,20 @@ func TestExecWasmer(t *testing.T) {
 	}
 
 	t.Log(ret)
+
+	res, err := decodeToInterface(ret, &Version{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	version := res.(*Version)
+	t.Logf("Spec_name: %s\n", version.Spec_name)
+	t.Logf("Impl_name: %s\n", version.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.Spec_version)
+	t.Logf("Impl_version: %d\n", version.Impl_version)
+
+	if !reflect.DeepEqual(version, expected) {
+		t.Errorf("Fail: got %v expected %v\n", version, expected)
+	}
 }
