@@ -66,9 +66,9 @@ func Exists(name string) bool {
 // }
 
 func newEmpty() *trie.Trie {
-	db := &trie.Database{}
-	t := trie.NewEmptyTrie(db)
-	return t
+	//db := &trie.Database{}
+	//t := trie.NewEmptyTrie(db)
+	return &trie.Trie{}
 }
 
 func TestExecWasmer(t *testing.T) {

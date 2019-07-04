@@ -41,14 +41,16 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 }
 
 //export ext_malloc
-func ext_malloc(context unsafe.Pointer, x int32) int32 {
+func ext_malloc(context unsafe.Pointer, x C.int32_t) C.int32_t {
 	log.Debug("[ext_malloc] executing...")
+	log.Debug("[ext_malloc]", "size", x)
 	return 1
 }
 
 //export ext_free
-func ext_free(context unsafe.Pointer, addr int32) {
+func ext_free(context unsafe.Pointer, addr C.int32_t) {
 	log.Debug("[ext_free] executing...")
+	log.Debug("[ext_free]", "addr", addr)
 	return
 }
 
@@ -306,8 +308,7 @@ func Exec(t *trie.Trie) ([]byte, error) {
 		return nil, errors.New("could not find exported function")
 	}
 
-	fmt.Printf("%T", version)
-	res, err := version()
+	res, err := version(1,1)
 	if err != nil {
 		return nil, err
 	}
