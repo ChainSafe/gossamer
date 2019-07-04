@@ -39,7 +39,6 @@ import (
 func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 	log.Debug("[ext_print_num] executing...")
 	log.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", data))
-	return
 }
 
 //export ext_malloc
@@ -53,7 +52,6 @@ func ext_malloc(context unsafe.Pointer, x C.int32_t) C.int32_t {
 func ext_free(context unsafe.Pointer, addr C.int32_t) {
 	log.Debug("[ext_free] executing...")
 	log.Debug("[ext_free]", "addr", addr)
-	return
 }
 
 // prints string located in memory at location `offset` with length `size`
@@ -63,7 +61,6 @@ func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[offset:offset+size]))
-	return
 }
 
 // prints hex formatted bytes located in memory at location `offset` with length `size`
@@ -73,7 +70,6 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	log.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
-	return
 }
 
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
@@ -115,8 +111,6 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
 	}
-
-	return
 }
 
 // returns the trie root in the memory location `resultPtr`
@@ -133,7 +127,6 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	}
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
-	return
 }
 
 //export ext_storage_changes_root
@@ -179,14 +172,11 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	if err != nil {
 		log.Error("[ext_storage_root]", "error", err)
 	}
-
-	return
 }
 
 //export ext_clear_prefix
 func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
-	return
 }
 
 // accepts an array of keys and values, puts them into a trie, and returns the root
@@ -218,7 +208,6 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	}
 
 	copy(memory[result:result+32], root[:])
-	return
 }
 
 // performs blake2b 256-bit hash of the byte array at memory location `data` with length `length` and saves the
@@ -234,13 +223,11 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	}
 
 	copy(memory[out:out+32], hash[:])
-	return
 }
 
 //export ext_twox_128
 func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_128] executing...")
-	return
 }
 
 //export ext_sr25519_verify
@@ -290,23 +277,70 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	imports.Append("ext_free", ext_free, C.ext_free)
-	imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
-	imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
-	imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
-	imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
-	imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
-	imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
-	imports.Append("ext_blake2_256", ext_blake2_256, C.ext_blake2_256)
-	imports.Append("ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root, C.ext_blake2_256_enumerated_trie_root)
-	imports.Append("ext_clear_storage", ext_clear_storage, C.ext_clear_storage)
-	imports.Append("ext_clear_prefix", ext_clear_prefix, C.ext_clear_prefix)
-	imports.Append("ext_twox_128", ext_twox_128, C.ext_twox_128)
-	imports.Append("ext_storage_root", ext_storage_root, C.ext_storage_root)
-	imports.Append("ext_storage_changes_root", ext_storage_changes_root, C.ext_storage_changes_root)
-	imports.Append("ext_sr25519_verify", ext_sr25519_verify, C.ext_sr25519_verify)
-	imports.Append("ext_ed25519_verify", ext_ed25519_verify, C.ext_ed25519_verify)
+	_, err = imports.Append("ext_free", ext_free, C.ext_free)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_256", ext_blake2_256, C.ext_blake2_256)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root, C.ext_blake2_256_enumerated_trie_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_storage", ext_clear_storage, C.ext_clear_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_prefix", ext_clear_prefix, C.ext_clear_prefix)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_twox_128", ext_twox_128, C.ext_twox_128)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_storage_root", ext_storage_root, C.ext_storage_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_storage_changes_root", ext_storage_changes_root, C.ext_storage_changes_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_verify", ext_sr25519_verify, C.ext_sr25519_verify)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_verify", ext_ed25519_verify, C.ext_ed25519_verify)
+	if err != nil {
+		return nil, err
+	}
 
 	// Instantiates the WebAssembly module.
 	instance, err := wasm.NewInstanceWithImports(bytes, imports)
