@@ -78,9 +78,8 @@ func (db *BadgerService) Stop() <-chan error {
 
 // NewBadgerService opens and returns a new DB object
 func NewBadgerService(file string) (*BadgerService, error) {
-	opts := badger.DefaultOptions
-	opts.Dir = file
-	opts.ValueDir = file
+	opts := badger.DefaultOptions(file)
+
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -249,7 +248,7 @@ func (b *batchWriter) Write() error {
 	defer wb.Cancel()
 
 	for k, v := range b.b {
-		err := wb.Set([]byte(k), v, 0)
+		err := wb.Set([]byte(k), v)
 		if err != nil {
 			log.Printf("%+v", errors.Wrap(err, "error writing batch txs"))
 		}
