@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"fmt"
 	"testing"
 )
 
