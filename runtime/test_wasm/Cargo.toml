@@ -1,0 +1,11 @@
+[package]
+name = "test_wasm"
+version = "0.1.0"
+authors = ["noot <elizabethjbinks@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rstd = { package = "sr-std", path = "/home/elizabeth/substrate/core/sr-std", default-features = false }

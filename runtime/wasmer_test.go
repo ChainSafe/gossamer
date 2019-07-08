@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"os"
@@ -103,5 +104,72 @@ func TestExecVersion(t *testing.T) {
 
 	if !reflect.DeepEqual(version, expected) {
 		t.Errorf("Fail: got %v expected %v\n", version, expected)
+	}
+}
+
+const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
+
+func newTestRuntime() (*Runtime, error) {
+	t := &trie.Trie{}
+	fp, err := filepath.Abs(TESTS_FP)
+	if err != nil {
+		return nil, err
+	}
+  	return NewRuntime(fp, t)
+}
+
+func TestExt_print_utf8(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testFunc, ok := runtime.vm.Exports["test_ext_print_utf8"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExt_get_storage_into(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	key := []byte(":noot")
+	value := []byte{1,3,3,7}
+	err = runtime.trie.Put(key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyData := 170
+	valueData := 200
+	valueOffset := 0
+	copy(mem[keyData:keyData+len(key)], key)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_get_storage_into"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	ret, err := testFunc(keyData, len(key), valueData, len(value), valueOffset)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ret.ToI32() != int32(len(value)) {
+		t.Error("return value does not match length of value in trie")
+	}
+
+	if !bytes.Equal(mem[valueData:valueData+len(value)], value[valueOffset:]) {
+		t.Error("did not store correct value in memory")
 	}
 }
