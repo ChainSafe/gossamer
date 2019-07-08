@@ -69,8 +69,8 @@ func (d *Dot) Start() {
 	}()
 
 	//Move on when routine catches SIGINT or SIGTERM calls
-	<-d.stop
 	d.IsStarted <- struct{}{}
+	<-d.stop
 	d.Wait()
 }
 
