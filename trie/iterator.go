@@ -18,8 +18,31 @@ package trie
 
 import (
 	"fmt"
-	//log "github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
 )
+
+// Entries returns all the key-value pairs in the trie as a map of keys to values
+func (t *Trie) Entries() map[string][]byte {
+	return t.entries(t.root, nil, make(map[string][]byte))
+}
+
+func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[string][]byte {
+	switch c := current.(type) {
+	case *branch:
+		if c.value != nil {
+			kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+		}
+		for i, child := range c.children {
+			//t.entries(child, append(append(prefix, byte(i)), c.key...), kv)
+			t.entries(child, append(prefix, append(c.key, byte(i))...), kv)
+		}
+	case *leaf:
+		kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+		return kv
+	}
+
+	return kv
+}
 
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
@@ -34,26 +57,26 @@ func (t *Trie) PrintEncoding() {
 func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 	h, err := NewHasher()
 	if err != nil {
-		fmt.Printf("new hasher err %s\n", err)
+		log.Error("newHasher", "error", err)
 	}
 	var encoding []byte
 	var hash []byte
 	if withEncoding && current != nil {
 		encoding, err = current.Encode()
 		if err != nil {
-			fmt.Printf("encoding err %s\n", err)
+			log.Error("encoding", "error", err)
 		}
 		hash, err = h.Hash(current)
 		if err != nil {
-			fmt.Printf("hashing err %s\n", err)
+			log.Error("hash", "error", err)
 		}
 	}
 
 	switch c := current.(type) {
 	case *branch:
-		fmt.Printf("branch prefix %x key %x children %b value %s\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
+		log.Info("branch", "key", fmt.Sprintf("%x", nibblesToKeyLE(append(prefix, c.key...))), "children", fmt.Sprintf("%b", c.childrenBitmap()), "value", fmt.Sprintf("%x", c.value))
 		if withEncoding {
-			fmt.Printf("branch encoding ")
+			log.Info("branch encoding ")
 			printHexBytes(encoding)
 			fmt.Printf("branch hash ")
 			printHexBytes(hash)
@@ -62,7 +85,7 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
 	case *leaf:
-		fmt.Printf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
+		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(append(prefix, c.key...)), c.value)
 		if withEncoding {
 			fmt.Printf("leaf encoding ")
 			printHexBytes(encoding)
@@ -84,5 +107,4 @@ func printHexBytes(in []byte) {
 		}
 	}
 	fmt.Println("]")
-
 }
