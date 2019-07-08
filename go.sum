@@ -6,6 +6,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ChainSafe/log15 v0.0.0-20180818164646-67afb5ed74ec h1:7U2dkf4jqCppEHdd23z199je2UO04wU+qhzJO6o5JXI=
 github.com/ChainSafe/log15 v0.0.0-20180818164646-67afb5ed74ec/go.mod h1:iYzm67H5lNlP2v1N6pSXmr4eaiAJVe5FqW1RrYRR3OU=
+github.com/ChainSafe/log15 v1.0.0 h1:vRDVtWtVwIH5uSCBvgTTZh6FA58UBJ6+QiiypaZfBf8=
+github.com/ChainSafe/log15 v1.0.0/go.mod h1:5v1+ALHtdW0NfAeeoYyKmzCAMcAeqkdhIg4uxXWIgOg=
 github.com/Kubuxu/go-os-helper v0.0.1 h1:EJiD2VUQyh5A9hWJLmc6iWg6yIcJ7jpBcwC8GMGXfDk=
 github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETFUpAzWW2ep1Y=
 github.com/Kubuxu/gocovmerge v0.0.0-20161216165753-7ecaa51963cd/go.mod h1:bqoB8kInrTeEtYAwaIXoSRqdwnjQmFhsfusnzyui6yY=
