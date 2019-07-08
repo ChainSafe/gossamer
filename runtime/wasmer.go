@@ -188,7 +188,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 
 	prefix := memory[prefixData : prefixData+prefixLen]
 	entries := t.Entries()
-	for k, _ := range entries {
+	for k := range entries {
 		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
 			err := t.Delete([]byte(k))
 			if err != nil {

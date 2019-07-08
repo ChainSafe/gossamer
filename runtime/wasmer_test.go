@@ -334,9 +334,9 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := runtime.trie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
+		e := runtime.trie.Put(test.key, test.value)
+		if e != nil {
+			t.Fatal(e)
 		}
 	}
 
@@ -351,9 +351,9 @@ func TestExt_clear_prefix(t *testing.T) {
 	expectedTrie := &trie.Trie{}
 
 	for _, test := range expected {
-		err := expectedTrie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
+		e := expectedTrie.Put(test.key, test.value)
+		if e != nil {
+			t.Fatal(e)
 		}
 	}
 

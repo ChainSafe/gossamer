@@ -5,45 +5,6 @@ import (
 	"testing"
 )
 
-func printNode(current node, withEncoding bool) {
-	h, err := NewHasher()
-	if err != nil {
-		fmt.Printf("new hasher err %s\n", err)
-	}
-
-	var encoding []byte
-	var hash []byte
-	if withEncoding && current != nil {
-		encoding, err = current.Encode()
-		if err != nil {
-			fmt.Printf("encoding err %s\n", err)
-		}
-		hash, err = h.Hash(current)
-		if err != nil {
-			fmt.Printf("hashing err %s\n", err)
-		}
-	}
-
-	switch c := current.(type) {
-	case *branch:
-		fmt.Printf("branch key %x children %b value %x\n", nibblesToKeyLE(c.key), c.childrenBitmap(), c.value)
-		if withEncoding {
-			fmt.Printf("branch encoding ")
-			printHexBytes(encoding)
-			fmt.Printf("branch hash ")
-			printHexBytes(hash)
-		}
-	case *leaf:
-		fmt.Printf("leaf key %x value %x\n", nibblesToKeyLE(c.key), c.value)
-		if withEncoding {
-			fmt.Printf("leaf encoding ")
-			printHexBytes(encoding)
-			fmt.Printf("leaf hash ")
-			printHexBytes(hash)
-		}
-	}
-}
-
 func TestEntries(t *testing.T) {
 	trie := newEmpty()
 
