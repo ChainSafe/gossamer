@@ -25,12 +25,9 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.0.1
 	github.com/minio/sha256-simd v0.1.0 // indirect
 	github.com/multiformats/go-multiaddr v0.0.4
-	github.com/multiformats/go-multihash v0.0.5 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/onsi/ginkgo v1.8.0 // indirect
-	github.com/onsi/gomega v1.5.0 // indirect
-	github.com/perlin-network/life v0.0.0-20190402092845-c30697b41680
+	github.com/perlin-network/life v0.0.0-20190625155037-103174020946
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
