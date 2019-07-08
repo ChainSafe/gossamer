@@ -184,7 +184,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())	
+	t := (*trie.Trie)(instanceContext.Data())
 
 	prefix := memory[prefixData : prefixData+prefixLen]
 	entries := t.Entries()

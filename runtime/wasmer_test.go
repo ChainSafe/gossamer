@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
 	"net/http"
 	"os"
@@ -9,7 +10,9 @@ import (
 	"reflect"
 	"testing"
 
+	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
+	ed25519 "golang.org/x/crypto/ed25519"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
@@ -108,6 +111,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
+const TESTS_FP_2 string = "./test_wasm/test_wasm.wasm"
 
 func newTestRuntime() (*Runtime, error) {
 	t := &trie.Trie{}
@@ -115,7 +119,16 @@ func newTestRuntime() (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewRuntime(fp, t)
+	r, err := NewRuntime(fp, t)
+	if err != nil {
+		fp, err = filepath.Abs(TESTS_FP_2)
+		if err != nil {
+			return nil, err
+		}
+		return NewRuntime(fp, t)
+	}
+
+	return r, nil
 }
 
 func TestExt_print_utf8(t *testing.T) {
@@ -302,7 +315,6 @@ func TestExt_clear_storage(t *testing.T) {
 	}
 }
 
-
 func TestExt_clear_prefix(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -311,8 +323,8 @@ func TestExt_clear_prefix(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
-	tests := []struct{
-		key []byte
+	tests := []struct {
+		key   []byte
 		value []byte
 	}{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
@@ -328,9 +340,8 @@ func TestExt_clear_prefix(t *testing.T) {
 		}
 	}
 
-
-	expected := []struct{
-		key []byte
+	expected := []struct {
+		key   []byte
 		value []byte
 	}{
 		{key: []byte{0xf2}, value: []byte("feather")},
@@ -370,5 +381,80 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 	if !bytes.Equal(runtimeTrieHash[:], expectedHash[:]) {
 		t.Error("did not get expected trie")
+	}
+}
+
+func TestExt_blake2_256(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	data := []byte("helloworld")
+	pos := 170
+	out := 180
+	copy(mem[pos:pos+len(data)], data)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_blake2_256"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hash, err := common.Blake2bHash(data)
+	if err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(hash[:], mem[out:out+32]) {
+		t.Error("hash saved in memory does not equal calculated hash")
+	}
+}
+
+func TestExt_ed25519_verify(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	msg := []byte("helloworld")
+	msgData := 170
+	copy(mem[msgData:msgData+len(msg)], msg)
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkeyData := 180
+	copy(mem[pubkeyData:pubkeyData+len(pub)], pub)
+
+	sig := ed25519.Sign(priv, msg)
+	sigData := 222
+	copy(mem[sigData:sigData+len(sig)], sig)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_verify"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	verified, err := testFunc(msgData, len(msg), sigData, pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	} else if verified.ToI32() != 1 {
+		t.Error("did not verify ed25519 signature")
+	}
+
+	sigData = 1
+	verified, err = testFunc(msgData, len(msg), sigData, pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	} else if verified.ToI32() != 0 {
+		t.Error("verified incorrect ed25519 signature")
 	}
 }
