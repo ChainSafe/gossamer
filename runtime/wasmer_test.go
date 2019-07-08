@@ -115,7 +115,7 @@ func newTestRuntime() (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-  	return NewRuntime(fp, t)
+	return NewRuntime(fp, t)
 }
 
 func TestExt_print_utf8(t *testing.T) {
@@ -144,7 +144,7 @@ func TestExt_get_storage_into(t *testing.T) {
 	mem := runtime.vm.Memory.Data()
 
 	key := []byte(":noot")
-	value := []byte{1,3,3,7}
+	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
 	if err != nil {
 		t.Fatal(err)
@@ -179,7 +179,7 @@ func TestExt_set_storage(t *testing.T) {
 	mem := runtime.vm.Memory.Data()
 
 	key := []byte(":noot")
-	value := []byte{1,3,3,7}
+	value := []byte{1, 3, 3, 7}
 
 	keyData := 170
 	valueData := 200
@@ -240,7 +240,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 	key := []byte(":noot")
-	value := []byte{1,3,3,7}
+	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
 	if err != nil {
 		t.Fatal(err)
@@ -258,7 +258,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	ret, err := testFunc(keyData, len(key), writtenOut)
 	if err != nil {
 		t.Fatal(err)
-	} 
+	}
 
 	retInt := ret.ToI32()
 	length := int32(mem[writtenOut])
@@ -266,7 +266,6 @@ func TestExt_get_allocated_storage(t *testing.T) {
 		t.Error("did not save value to memory")
 	}
 }
-
 
 func TestExt_clear_storage(t *testing.T) {
 	runtime, err := newTestRuntime()
@@ -276,7 +275,7 @@ func TestExt_clear_storage(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 	key := []byte(":noot")
-	value := []byte{1,3,3,7}
+	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
 	if err != nil {
 		t.Fatal(err)
@@ -293,12 +292,83 @@ func TestExt_clear_storage(t *testing.T) {
 	_, err = testFunc(keyData, len(key))
 	if err != nil {
 		t.Fatal(err)
-	} 
+	}
 
 	ret, err := runtime.trie.Get(key)
 	if err != nil {
 		t.Fatal(err)
 	} else if ret != nil {
 		t.Error("did not delete key from storage trie")
+	}
+}
+
+
+func TestExt_clear_prefix(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	tests := []struct{
+		key []byte
+		value []byte
+	}{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+	}
+
+	for _, test := range tests {
+		err := runtime.trie.Put(test.key, test.value)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+
+	expected := []struct{
+		key []byte
+		value []byte
+	}{
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+	}
+
+	expectedTrie := &trie.Trie{}
+
+	for _, test := range expected {
+		err := expectedTrie.Put(test.key, test.value)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	prefix := []byte{0x01, 0x35}
+	prefixData := 170
+	copy(mem[prefixData:prefixData+len(prefix)], prefix)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_clear_prefix"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(prefixData, len(prefix))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	runtimeTrieHash, err := runtime.trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedHash, err := expectedTrie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(runtimeTrieHash[:], expectedHash[:]) {
+		t.Error("did not get expected trie")
 	}
 }

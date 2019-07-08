@@ -178,9 +178,24 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	}
 }
 
+// deletes all entries in the trie that have a key beginning with the prefix stored at `prefixData`
 //export ext_clear_prefix
 func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	t := (*trie.Trie)(instanceContext.Data())	
+
+	prefix := memory[prefixData : prefixData+prefixLen]
+	entries := t.Entries()
+	for k, _ := range entries {
+		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
+			err := t.Delete([]byte(k))
+			if err != nil {
+				log.Error("[ext_clear_prefix]", "err", err)
+			}
+		}
+	}
 }
 
 // accepts an array of keys and values, puts them into a trie, and returns the root

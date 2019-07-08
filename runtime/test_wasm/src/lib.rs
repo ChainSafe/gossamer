@@ -7,6 +7,7 @@ extern {
     fn ext_storage_root(result_ptr: i32);
     fn ext_get_allocated_storage(key_data: i32, key_len: i32, written_out: i32) -> i32;
     fn ext_clear_storage(key_data: i32, key_len: i32);
+    fn ext_clear_prefix(prefix_data: i32, prefix_len: i32);
 }
 
 #[no_mangle]
@@ -49,5 +50,12 @@ pub extern fn test_ext_get_allocated_storage(key_data: i32, key_len: i32, writte
 pub extern fn test_ext_clear_storage(key_data: i32, key_len: i32) {
    	unsafe {
    		ext_clear_storage(key_data, key_len)
+   	}
+}
+
+#[no_mangle]
+pub extern fn test_ext_clear_prefix(prefix_data: i32, prefix_len: i32) {
+   	unsafe {
+   		ext_clear_prefix(prefix_data, prefix_len)
    	}
 }
