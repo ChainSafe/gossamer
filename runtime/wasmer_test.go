@@ -163,13 +163,142 @@ func TestExt_get_storage_into(t *testing.T) {
 	ret, err := testFunc(keyData, len(key), valueData, len(value), valueOffset)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	if ret.ToI32() != int32(len(value)) {
+	} else if ret.ToI32() != int32(len(value)) {
 		t.Error("return value does not match length of value in trie")
+	} else if !bytes.Equal(mem[valueData:valueData+len(value)], value[valueOffset:]) {
+		t.Error("did not store correct value in memory")
+	}
+}
+
+func TestExt_set_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if !bytes.Equal(mem[valueData:valueData+len(value)], value[valueOffset:]) {
-		t.Error("did not store correct value in memory")
+	mem := runtime.vm.Memory.Data()
+
+	key := []byte(":noot")
+	value := []byte{1,3,3,7}
+
+	keyData := 170
+	valueData := 200
+	copy(mem[keyData:keyData+len(key)], key)
+	copy(mem[valueData:valueData+len(value)], value)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_set_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(keyData, len(key), valueData, len(value))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	trieValue, err := runtime.trie.Get(key)
+	if err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(value, trieValue) {
+		t.Error("did not store correct value in storage trie")
+	}
+
+	t.Log(trieValue)
+}
+
+func TestExt_storage_root(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	resultPtr := 170
+	hash, err := runtime.trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testFunc, ok := runtime.vm.Exports["test_ext_storage_root"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(resultPtr)
+	if err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(mem[resultPtr:resultPtr+32], hash[:]) {
+		t.Error("did not save trie hash to memory")
+	}
+}
+
+func TestExt_get_allocated_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	key := []byte(":noot")
+	value := []byte{1,3,3,7}
+	err = runtime.trie.Put(key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyData := 170
+	copy(mem[keyData:keyData+len(key)], key)
+	var writtenOut int32 = 169
+
+	testFunc, ok := runtime.vm.Exports["test_ext_get_allocated_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	ret, err := testFunc(keyData, len(key), writtenOut)
+	if err != nil {
+		t.Fatal(err)
+	} 
+
+	retInt := ret.ToI32()
+	length := int32(mem[writtenOut])
+	if !bytes.Equal(mem[retInt:retInt+length], value) {
+		t.Error("did not save value to memory")
+	}
+}
+
+
+func TestExt_clear_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	key := []byte(":noot")
+	value := []byte{1,3,3,7}
+	err = runtime.trie.Put(key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyData := 170
+	copy(mem[keyData:keyData+len(key)], key)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_clear_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(keyData, len(key))
+	if err != nil {
+		t.Fatal(err)
+	} 
+
+	ret, err := runtime.trie.Get(key)
+	if err != nil {
+		t.Fatal(err)
+	} else if ret != nil {
+		t.Error("did not delete key from storage trie")
 	}
 }

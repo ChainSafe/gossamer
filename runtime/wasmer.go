@@ -108,6 +108,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
+	log.Debug("[ext_set_storage]", "key", key, "val", val)
 	err := t.Put(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
@@ -150,14 +151,16 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	if err == nil && len(val) >= (1<<32) {
 		err = errors.New("retrieved value length exceeds 2^32")
 	}
+
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		return 0
 	}
 
-	ptr := 1
-	copy(memory[ptr:ptr+len(val)], val)
-	return int32(len(val))
+	var ptr int32 = 1
+	copy(memory[ptr:ptr+int32(len(val))], val)
+	memory[writtenOut] = byte(len(val))
+	return ptr
 }
 
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
