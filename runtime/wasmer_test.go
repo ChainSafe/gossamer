@@ -141,7 +141,7 @@ func getTestBlob() (n int64, err error) {
 }
 
 func newTestRuntime() (*Runtime, error) {
-	_, err := getTestBlob() 
+	_, err := getTestBlob()
 	if err != nil {
 		return nil, err
 	}
@@ -509,9 +509,9 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	}
 
 	valuesData := 1
-	lensData := valuesData+len(valuesArray)
+	lensData := valuesData + len(valuesArray)
 	lensLen := len(tests)
-	result := lensLen+1
+	result := lensLen + 1
 	copy(mem[valuesData:valuesData+len(valuesArray)], valuesArray)
 	copy(mem[lensData:lensData+len(lensArray)], lensArray)
 
