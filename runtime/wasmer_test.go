@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"io"
 	"net/http"
 	"os"
@@ -113,7 +114,38 @@ func TestExecVersion(t *testing.T) {
 const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 const TESTS_FP_2 string = "./test_wasm/test_wasm.wasm"
 
+// getTestBlob checks if the test wasm file exists and if not, it fetches it from github
+func getTestBlob() (n int64, err error) {
+	if Exists(TESTS_FP) {
+		return 0, nil
+	}
+
+	if Exists(TESTS_FP_2) {
+		return 0, nil
+	}
+
+	out, err := os.Create(TESTS_FP_2)
+	if err != nil {
+		return 0, err
+	}
+	defer out.Close()
+
+	resp, err := http.Get("https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm")
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	n, err = io.Copy(out, resp.Body)
+	return n, err
+}
+
 func newTestRuntime() (*Runtime, error) {
+	_, err := getTestBlob() 
+	if err != nil {
+		return nil, err
+	}
+
 	t := &trie.Trie{}
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
@@ -129,23 +161,6 @@ func newTestRuntime() (*Runtime, error) {
 	}
 
 	return r, nil
-}
-
-func TestExt_print_utf8(t *testing.T) {
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testFunc, ok := runtime.vm.Exports["test_ext_print_utf8"]
-	if !ok {
-		t.Fatal("could not find exported function")
-	}
-
-	_, err = testFunc()
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestExt_get_storage_into(t *testing.T) {
@@ -456,5 +471,66 @@ func TestExt_ed25519_verify(t *testing.T) {
 		t.Fatal(err)
 	} else if verified.ToI32() != 0 {
 		t.Error("verified incorrect ed25519 signature")
+	}
+}
+
+func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	tests := []struct {
+		key   []byte
+		value []byte
+	}{
+		{key: []byte{0}, value: []byte("pen")},
+		{key: []byte{1}, value: []byte("penguin")},
+		{key: []byte{2}, value: []byte("feather")},
+		{key: []byte{3}, value: []byte("noot")},
+	}
+
+	expectedTrie := &trie.Trie{}
+	valuesArray := []byte{}
+	lensArray := []byte{}
+
+	for _, test := range tests {
+		e := expectedTrie.Put(test.key, test.value)
+		if e != nil {
+			t.Fatal(e)
+		}
+
+		valuesArray = append(valuesArray, test.value...)
+		lensVal := make([]byte, 4)
+		binary.LittleEndian.PutUint32(lensVal, uint32(len(test.value)))
+		lensArray = append(lensArray, lensVal...)
+	}
+
+	valuesData := 1
+	lensData := valuesData+len(valuesArray)
+	lensLen := len(tests)
+	result := lensLen+1
+	copy(mem[valuesData:valuesData+len(valuesArray)], valuesArray)
+	copy(mem[lensData:lensData+len(lensArray)], lensArray)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_blake2_256_enumerated_trie_root"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(valuesData, lensData, lensLen, result)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedHash, err := expectedTrie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(mem[result:result+32], expectedHash[:]) {
+		t.Error("did not get expected trie")
 	}
 }

@@ -198,7 +198,8 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	}
 }
 
-// accepts an array of keys and values, puts them into a trie, and returns the root
+// accepts an array of values, puts them into a trie, and returns the root
+// the keys to the values are their position in the array
 //export ext_blake2_256_enumerated_trie_root
 func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
 	log.Debug("[ext_blake2_256_enumerated_trie_root] executing...")
@@ -209,13 +210,13 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	var i int32
 	var pos int32 = 0
 	for i = 0; i < lensLen; i++ {
-		valueLenBytes := memory[lensData+i*32 : lensData+(i+1)*32]
+		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
 		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
 		value := memory[valuesData+pos : valuesData+pos+valueLen]
+		log.Debug("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%x", value), "valueLen", valueLen)
 		pos += valueLen
 
-		// todo: do we get key/value pairs or just values??
-		err := t.Put(value, nil)
+		err := t.Put([]byte{byte(i)}, value)
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 		}
