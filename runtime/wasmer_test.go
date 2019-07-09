@@ -112,15 +112,11 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
-const TESTS_FP_2 string = "./test_wasm/test_wasm.wasm"
+const TESTS_FP_2 string = "./test_wasm.wasm"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
-	if Exists(TESTS_FP) {
-		return 0, nil
-	}
-
-	if Exists(TESTS_FP_2) {
+	if Exists(TESTS_FP) || Exists(TESTS_FP_2) {
 		return 0, nil
 	}
 
@@ -147,13 +143,13 @@ func newTestRuntime() (*Runtime, error) {
 	}
 
 	t := &trie.Trie{}
-	fp, err := filepath.Abs(TESTS_FP)
+	fp, err := filepath.Abs(TESTS_FP_2)
 	if err != nil {
 		return nil, err
 	}
 	r, err := NewRuntime(fp, t)
 	if err != nil {
-		fp, err = filepath.Abs(TESTS_FP_2)
+		fp, err := filepath.Abs(TESTS_FP)
 		if err != nil {
 			return nil, err
 		}

@@ -28,4 +28,4 @@ trie/test_data
 /bin
 chaindata/
 runtime/polkadot_runtime*
-runtime/test_wasm/
+runtime/test_wasm*
