@@ -112,17 +112,16 @@ func TestExecVersion(t *testing.T) {
 	}
 }
 
-const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
-const TESTS_FP_2 string = "./test_wasm.wasm"
+const TESTS_FP string = "./test_wasm.wasm"
 const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
-	if Exists(TESTS_FP) || Exists(TESTS_FP_2) {
+	if Exists(TESTS_FP) {
 		return 0, nil
 	}
 
-	out, err := os.Create(TESTS_FP_2)
+	out, err := os.Create(TESTS_FP)
 	if err != nil {
 		return 0, err
 	}
@@ -145,23 +144,20 @@ func newTestRuntime() (*Runtime, error) {
 	}
 
 	t := &trie.Trie{}
-	fp, err := filepath.Abs(TESTS_FP_2)
+	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
 	}
 	r, err := NewRuntime(fp, t)
 	if err != nil {
-		fp, err := filepath.Abs(TESTS_FP)
-		if err != nil {
-			return nil, err
-		}
-		return NewRuntime(fp, t)
+		return nil, err
 	}
 
 	return r, nil
 }
 
-//
+// tests that the function ext_get_storage_into can retrieve a value from the trie
+// and store it in the wasm memory
 func TestExt_get_storage_into(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -170,6 +166,7 @@ func TestExt_get_storage_into(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
+	// store kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
@@ -177,8 +174,11 @@ func TestExt_get_storage_into(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// copy key to position `keyData` in memory
 	keyData := 170
+	// return value will be saved at position `valueData`
 	valueData := 200
+	// `valueOffset` is the position in the value following which its bytes should be stored
 	valueOffset := 0
 	copy(mem[keyData:keyData+len(key)], key)
 
@@ -197,6 +197,7 @@ func TestExt_get_storage_into(t *testing.T) {
 	}
 }
 
+// tests that ext_set_storage can storage a value in the trie
 func TestExt_set_storage(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -205,9 +206,11 @@ func TestExt_set_storage(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
+	// key,value we wish to store in the trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
 
+	// copy key and value into wasm memory
 	keyData := 170
 	valueData := 200
 	copy(mem[keyData:keyData+len(key)], key)
@@ -223,6 +226,7 @@ func TestExt_set_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// make sure we can get the value from the trie
 	trieValue, err := runtime.trie.Get(key)
 	if err != nil {
 		t.Fatal(err)
@@ -233,6 +237,7 @@ func TestExt_set_storage(t *testing.T) {
 	t.Log(trieValue)
 }
 
+// tests that we can retrieve the trie root hash and store it in wasm memory
 func TestExt_storage_root(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -240,6 +245,7 @@ func TestExt_storage_root(t *testing.T) {
 	}
 
 	mem := runtime.vm.Memory.Data()
+	// save result at `resultPtr` in memory
 	resultPtr := 170
 	hash, err := runtime.trie.Hash()
 	if err != nil {
@@ -259,6 +265,8 @@ func TestExt_storage_root(t *testing.T) {
 	}
 }
 
+// test that ext_get_allocated_storage can get a value from the trie and store it
+// in wasm memory
 func TestExt_get_allocated_storage(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -266,6 +274,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	}
 
 	mem := runtime.vm.Memory.Data()
+	// put kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
@@ -273,8 +282,10 @@ func TestExt_get_allocated_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// copy key to `keyData` in memory
 	keyData := 170
 	copy(mem[keyData:keyData+len(key)], key)
+	// memory location where length of return value is stored
 	var writtenOut int32 = 169
 
 	testFunc, ok := runtime.vm.Exports["test_ext_get_allocated_storage"]
@@ -287,6 +298,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// returns memory location where value is stored
 	retInt := ret.ToI32()
 	length := int32(mem[writtenOut])
 	if !bytes.Equal(mem[retInt:retInt+length], value) {
@@ -294,6 +306,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	}
 }
 
+// test that ext_clear_storage can delete a value from the trie
 func TestExt_clear_storage(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -301,6 +314,7 @@ func TestExt_clear_storage(t *testing.T) {
 	}
 
 	mem := runtime.vm.Memory.Data()
+	// save kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
 	err = runtime.trie.Put(key, value)
@@ -308,6 +322,7 @@ func TestExt_clear_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// copy key to wasm memory
 	keyData := 170
 	copy(mem[keyData:keyData+len(key)], key)
 
@@ -321,6 +336,7 @@ func TestExt_clear_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// make sure value is deleted
 	ret, err := runtime.trie.Get(key)
 	if err != nil {
 		t.Fatal(err)
@@ -329,6 +345,7 @@ func TestExt_clear_storage(t *testing.T) {
 	}
 }
 
+// test that ext_clear_prefix can delete all trie values with a certain prefix
 func TestExt_clear_prefix(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
