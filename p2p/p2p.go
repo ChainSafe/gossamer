@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"time"
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
@@ -36,6 +37,7 @@ import (
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -47,6 +49,7 @@ type Service struct {
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	bootstrapNodes []*core.PeerAddrInfo
+	mdns           discovery.Service
 }
 
 // Config is used to configure a p2p service
@@ -81,6 +84,13 @@ func NewService(conf *Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	mdns, err := discovery.NewMdnsService(ctx, h, time.Second, "polkadot")
+	if err != nil {
+		return nil, err
+	}
+
+	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
