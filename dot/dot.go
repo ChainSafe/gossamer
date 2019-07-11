@@ -19,6 +19,7 @@ package dot
 import (
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/internal/services"
@@ -51,9 +52,9 @@ func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 }
 
 // Start starts all services. API service is started last.
-func (d *Dot) Start() {
+func (d *Dot) Start(wg *sync.WaitGroup) {
 	log.Debug("Starting core services.")
-	d.Services.StartAll()
+	d.Services.StartAll(wg)
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}

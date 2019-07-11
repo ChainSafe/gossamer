@@ -18,6 +18,7 @@ package polkadb
 
 import (
 	"log"
+	"sync"
 
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
@@ -61,7 +62,8 @@ type tableBatch struct {
 	prefix string
 }
 
-func (b *BadgerService) Start() <-chan error {
+func (b *BadgerService) Start(wg *sync.WaitGroup) <-chan error {
+	defer wg.Done()
 	b.err = make(<-chan error)
 	return b.err
 }

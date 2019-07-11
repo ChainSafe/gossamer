@@ -1,7 +1,7 @@
 package dot
 
 import (
-	"fmt"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -46,7 +46,9 @@ func TestDot_Start(t *testing.T) {
 
 	dot := createTestDot(t)
 
-	go dot.Start()
+	var wg sync.WaitGroup
+	go dot.Start(&wg)
+	wg.Add(3)
 
 	// Wait until dot.Start() is finished
 	<-dot.IsStarted
@@ -75,7 +77,11 @@ func TestDot_StartIRQStop(t *testing.T) {
 
 	dot := createTestDot(t)
 
-	go dot.Start()
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	go dot.Start(&wg)
+	wg.Wait()
 
 	// Wait until dot.Start() is finished
 	<-dot.IsStarted
@@ -90,10 +96,8 @@ func TestDot_StartIRQStop(t *testing.T) {
 		if e == nil {
 			t.Fatalf("error getting error channel for service: %T", srvc)
 		}
-		<-e
 	}
 
-	fmt.Println("STOPPING")
 	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 
 	//Wait for stop IRQ signal & finish test

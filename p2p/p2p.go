@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"sync"
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
@@ -94,7 +95,8 @@ func NewService(conf *Config) (*Service, error) {
 }
 
 // Start begins the p2p Service, including discovery
-func (s *Service) Start() <-chan error {
+func (s *Service) Start(wg *sync.WaitGroup) <-chan error {
+	defer wg.Done()
 	e := make(chan error)
 	go s.start(e)
 	return e
