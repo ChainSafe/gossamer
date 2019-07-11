@@ -354,6 +354,7 @@ func TestExt_clear_prefix(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
+	// store some values in the trie
 	tests := []struct {
 		key   []byte
 		value []byte
@@ -371,6 +372,7 @@ func TestExt_clear_prefix(t *testing.T) {
 		}
 	}
 
+	// we are going to delete prefix 0x0135
 	expected := []struct {
 		key   []byte
 		value []byte
@@ -388,6 +390,7 @@ func TestExt_clear_prefix(t *testing.T) {
 		}
 	}
 
+	// copy prefix we want to delee to wasm memory
 	prefix := []byte{0x01, 0x35}
 	prefixData := 170
 	copy(mem[prefixData:prefixData+len(prefix)], prefix)
@@ -402,6 +405,7 @@ func TestExt_clear_prefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// make sure entries with that prefix were deleted
 	runtimeTrieHash, err := runtime.trie.Hash()
 	if err != nil {
 		t.Fatal(err)
@@ -415,6 +419,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 }
 
+// test that ext_blake2_256 performs a blake2b hash of the data
 func TestExt_blake2_256(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -422,6 +427,7 @@ func TestExt_blake2_256(t *testing.T) {
 	}
 
 	mem := runtime.vm.Memory.Data()
+	// save data in memory
 	data := []byte("helloworld")
 	pos := 170
 	out := 180
@@ -437,6 +443,7 @@ func TestExt_blake2_256(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// make sure hashes match
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
 		t.Fatal(err)
@@ -445,6 +452,7 @@ func TestExt_blake2_256(t *testing.T) {
 	}
 }
 
+// test that ext_ed25519_verify verifies a valid signature
 func TestExt_ed25519_verify(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -453,18 +461,22 @@ func TestExt_ed25519_verify(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
+	// copy message into memory
 	msg := []byte("helloworld")
 	msgData := 170
 	copy(mem[msgData:msgData+len(msg)], msg)
 
+	// create key
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// copy public key into memory
 	pubkeyData := 180
 	copy(mem[pubkeyData:pubkeyData+len(pub)], pub)
 
+	// sign message, copy signature into memory
 	sig := ed25519.Sign(priv, msg)
 	sigData := 222
 	copy(mem[sigData:sigData+len(sig)], sig)
@@ -481,6 +493,7 @@ func TestExt_ed25519_verify(t *testing.T) {
 		t.Error("did not verify ed25519 signature")
 	}
 
+	// confirm that the signature was verified
 	sigData = 1
 	verified, err = testFunc(msgData, len(msg), sigData, pubkeyData)
 	if err != nil {
@@ -490,6 +503,8 @@ func TestExt_ed25519_verify(t *testing.T) {
 	}
 }
 
+// test that ext_blake2_256_enumerated_trie_root places values in an array into a trie
+// with the key being the index of the value and returns the hash
 func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -498,6 +513,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
+	// construct expected trie
 	tests := []struct {
 		key   []byte
 		value []byte
@@ -518,15 +534,21 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 			t.Fatal(e)
 		}
 
+		// construct array of values
 		valuesArray = append(valuesArray, test.value...)
 		lensVal := make([]byte, 4)
 		binary.LittleEndian.PutUint32(lensVal, uint32(len(test.value)))
+		// construct array of lengths of the values, where each length is int32
 		lensArray = append(lensArray, lensVal...)
 	}
 
+	// save value array into memory at `valuesData`
 	valuesData := 1
+	// save lengths array into memory at `lensData`
 	lensData := valuesData + len(valuesArray)
+	// save length of lengths array in memory at `lensLen`
 	lensLen := len(tests)
+	// return value will be saved at `result` in memory
 	result := lensLen + 1
 	copy(mem[valuesData:valuesData+len(valuesArray)], valuesArray)
 	copy(mem[lensData:lensData+len(lensArray)], lensArray)
@@ -546,6 +568,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// confirm that returned hash matches expected hash
 	if !bytes.Equal(mem[result:result+32], expectedHash[:]) {
 		t.Error("did not get expected trie")
 	}
