@@ -1,6 +1,8 @@
 package dot
 
 import (
+	"fmt"
+	"syscall"
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -88,7 +90,11 @@ func TestDot_StartIRQStop(t *testing.T) {
 		if e == nil {
 			t.Fatalf("error getting error channel for service: %T", srvc)
 		}
+		<-e
 	}
+
+	fmt.Println("STOPPING")
+	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 
 	//Wait for stop IRQ signal & finish test
 	<-dot.stop

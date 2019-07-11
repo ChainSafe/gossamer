@@ -70,7 +70,7 @@ func (d *Dot) Start() {
 
 	//Move on when routine catches SIGINT or SIGTERM calls
 	d.IsStarted <- struct{}{}
-	<-d.stop
+	// <-d.stop
 	d.Wait()
 }
 
