@@ -17,6 +17,7 @@ import (
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
+const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
 func getRuntimeBlob() (n int64, err error) {
@@ -30,7 +31,7 @@ func getRuntimeBlob() (n int64, err error) {
 	}
 	defer out.Close()
 
-	resp, err := http.Get("https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true")
+	resp, err := http.Get(POLKADOT_RUNTIME_URL)
 	if err != nil {
 		return 0, err
 	}
@@ -113,6 +114,7 @@ func TestExecVersion(t *testing.T) {
 
 const TESTS_FP string = "./test_wasm/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 const TESTS_FP_2 string = "./test_wasm.wasm"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -126,7 +128,7 @@ func getTestBlob() (n int64, err error) {
 	}
 	defer out.Close()
 
-	resp, err := http.Get("https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm")
+	resp, err := http.Get(TEST_WASM_URL)
 	if err != nil {
 		return 0, err
 	}
@@ -159,6 +161,7 @@ func newTestRuntime() (*Runtime, error) {
 	return r, nil
 }
 
+//
 func TestExt_get_storage_into(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
