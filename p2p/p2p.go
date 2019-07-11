@@ -96,7 +96,9 @@ func NewService(conf *Config) (*Service, error) {
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start(wg *sync.WaitGroup) <-chan error {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 	e := make(chan error)
 	go s.start(e)
 	return e

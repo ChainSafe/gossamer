@@ -70,7 +70,7 @@ func gossamer(ctx *cli.Context) error {
 		log.Error("error making node", "err", err)
 	}
 	srvlog.Info("🕸️Starting node...")
-	node.Start()
+	node.Start(nil)
 
 	return nil
 }

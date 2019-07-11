@@ -56,7 +56,9 @@ func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
 
 // Start creates, stores and returns an error channel
 func (s *Service) Start(wg *sync.WaitGroup) <-chan error {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 	s.err = make(chan error)
 	return s.err
 }

@@ -76,7 +76,7 @@ func TestStart(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	e := s.Start()
+	e := s.Start(nil)
 	err = <-e
 	if err != nil {
 		t.Errorf("Start error: %s", err)
@@ -105,7 +105,7 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	e := s.Start()
+	e := s.Start(nil)
 	err = <-e
 	if err != nil {
 		t.Errorf("Start error: %s", err)
@@ -127,7 +127,7 @@ func TestSend(t *testing.T) {
 	defer sim.IpfsNode.Close()
 
 	for _, node := range sim.Nodes {
-		e := node.Start()
+		e := node.Start(nil)
 		if <-e != nil {
 			log.Println("start err: ", err)
 		}

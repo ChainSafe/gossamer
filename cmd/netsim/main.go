@@ -74,7 +74,7 @@ func main() {
 	}()
 
 	for _, node := range sim.Nodes {
-		e := node.Start()
+		e := node.Start(nil)
 		if <-e != nil {
 			log.Warn("main", "start err", err)
 		}

@@ -63,7 +63,9 @@ type tableBatch struct {
 }
 
 func (b *BadgerService) Start(wg *sync.WaitGroup) <-chan error {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 	b.err = make(<-chan error)
 	return b.err
 }
