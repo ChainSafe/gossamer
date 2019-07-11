@@ -71,7 +71,6 @@ func (d *Dot) Start(wg *sync.WaitGroup) {
 
 	//Move on when routine catches SIGINT or SIGTERM calls
 	d.IsStarted <- struct{}{}
-	// <-d.stop
 	d.Wait()
 }
 

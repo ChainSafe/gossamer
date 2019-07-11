@@ -46,9 +46,7 @@ func TestDot_Start(t *testing.T) {
 
 	dot := createTestDot(t)
 
-	var wg sync.WaitGroup
-	go dot.Start(&wg)
-	wg.Add(3)
+	go dot.Start(nil)
 
 	// Wait until dot.Start() is finished
 	<-dot.IsStarted
@@ -77,6 +75,7 @@ func TestDot_StartIRQStop(t *testing.T) {
 
 	dot := createTestDot(t)
 
+	//WaitGroup to wait for all services to start before stopping them
 	var wg sync.WaitGroup
 	wg.Add(3)
 
@@ -98,6 +97,7 @@ func TestDot_StartIRQStop(t *testing.T) {
 		}
 	}
 
+	//Send a interrupt signal to kill all services
 	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 
 	//Wait for stop IRQ signal & finish test
