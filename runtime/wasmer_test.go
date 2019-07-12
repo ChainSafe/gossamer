@@ -198,7 +198,7 @@ func TestExt_get_storage_into(t *testing.T) {
 
 	key = []byte("doesntexist")
 	copy(mem[keyData:keyData+len(key)], key)
-	expected := 1 << 32 - 1
+	expected := 1<<32 - 1
 	ret, err = testFunc(keyData, len(key), valueData, len(value), valueOffset)
 	if err != nil {
 		t.Fatal(err)
