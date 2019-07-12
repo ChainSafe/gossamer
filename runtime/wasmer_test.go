@@ -195,6 +195,16 @@ func TestExt_get_storage_into(t *testing.T) {
 	} else if !bytes.Equal(mem[valueData:valueData+len(value)], value[valueOffset:]) {
 		t.Error("did not store correct value in memory")
 	}
+
+	key = []byte("doesntexist")
+	copy(mem[keyData:keyData+len(key)], key)
+	expected := 1 << 32 - 1
+	ret, err = testFunc(keyData, len(key), valueData, len(value), valueOffset)
+	if err != nil {
+		t.Fatal(err)
+	} else if ret.ToI32() != int32(expected) {
+		t.Errorf("return value should be 2^32 - 1 since value doesn't exist, got %d", ret.ToI32())
+	}
 }
 
 // tests that ext_set_storage can storage a value in the trie
@@ -304,6 +314,15 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	if !bytes.Equal(mem[retInt:retInt+length], value) {
 		t.Error("did not save value to memory")
 	}
+
+	key = []byte("doesntexist")
+	copy(mem[keyData:keyData+len(key)], key)
+	ret, err = testFunc(keyData, len(key), writtenOut)
+	if err != nil {
+		t.Fatal(err)
+	} else if ret.ToI32() != int32(0) {
+		t.Errorf("return value should be 0 since value doesn't exist, got %d", ret.ToI32())
+	}
 }
 
 // test that ext_clear_storage can delete a value from the trie
@@ -390,7 +409,7 @@ func TestExt_clear_prefix(t *testing.T) {
 		}
 	}
 
-	// copy prefix we want to delee to wasm memory
+	// copy prefix we want to delete to wasm memory
 	prefix := []byte{0x01, 0x35}
 	prefixData := 170
 	copy(mem[prefixData:prefixData+len(prefix)], prefix)

@@ -2,9 +2,9 @@ package runtime
 
 // #include <stdlib.h>
 //
-// extern int32_t ext_malloc(void *context, int32_t x);
+// extern int32_t ext_malloc(void *context, int32_t size);
 // extern void ext_free(void *context, int32_t addr);
-// extern void ext_print_utf8(void *context, int32_t offset, int32_t size);
+// extern void ext_print_utf8(void *context, int32_t utf8_data, int32_t utf8_len);
 // extern void ext_print_hex(void *context, int32_t data, int32_t len);
 // extern int32_t ext_get_storage_into(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
 // extern void ext_set_storage(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
@@ -43,9 +43,9 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 }
 
 //export ext_malloc
-func ext_malloc(context unsafe.Pointer, x C.int32_t) C.int32_t {
+func ext_malloc(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	log.Debug("[ext_malloc] executing...")
-	log.Debug("[ext_malloc]", "size", x)
+	log.Debug("[ext_malloc]", "size", size)
 	return 1
 }
 
@@ -57,11 +57,11 @@ func ext_free(context unsafe.Pointer, addr C.int32_t) {
 
 // prints string located in memory at location `offset` with length `size`
 //export ext_print_utf8
-func ext_print_utf8(context unsafe.Pointer, offset, size int32) {
+func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len int32) {
 	log.Debug("[ext_print_utf8] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[offset:offset+size]))
+	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[utf8_data:utf8_data+utf8_len]))
 }
 
 // prints hex formatted bytes located in memory at location `offset` with length `size`
@@ -86,11 +86,13 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
 	if err != nil || val == nil {
-		return 2 ^ 32 - 1
+		ret := 1<<32 - 1
+		return int32(ret)
 	}
 
 	if len(val) > int(valueLen) {
 		log.Error("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
+		return 0
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
@@ -154,6 +156,11 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
+		return 0
+	}
+
+	if val == nil {
+		memory[writtenOut] = 0
 		return 0
 	}
 
