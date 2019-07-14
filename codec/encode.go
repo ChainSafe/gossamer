@@ -48,11 +48,21 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		n, err = se.encodeByteArray(v[:])
 	case *big.Int:
 		n, err = se.encodeBigInteger(v)
+	case int8:
+		n, err = se.encodeFixedWidthInteger(int(v))
 	case int16:
 		n, err = se.encodeFixedWidthInteger(int(v))
 	case int32:
 		n, err = se.encodeFixedWidthInteger(int(v))
 	case int64:
+		n, err = se.encodeInteger(int(v))
+	case uint8:
+		n, err = se.encodeFixedWidthInteger(int(v))
+	case uint16:
+		n, err = se.encodeFixedWidthInteger(int(v))
+	case uint32:
+		n, err = se.encodeFixedWidthInteger(int(v))
+	case uint64:
 		n, err = se.encodeInteger(int(v))
 	case string:
 		n, err = se.encodeByteArray([]byte(v))
