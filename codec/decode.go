@@ -133,39 +133,10 @@ func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o int, err error) {
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
 // number of input bytes decoded, and err is nil
 // otherwise, it returns 0, 0, and error
-func (sd *Decoder) DecodeInteger() (o int64, err error) {
-	b, err := sd.ReadByte()
-	if err != nil {
-		return 0, err
-	}
+func (sd *Decoder) DecodeInteger() (_ int64, err error) {
+	o, err := sd.DecodeUnsignedInteger()
 
-	// check mode of encoding, stored at 2 least significant bits
-	mode := b & 3
-	if mode <= 2 {
-		return sd.decodeSmallInt(b, mode)
-	}
-
-	// >4 byte mode
-	topSixBits := b >> 2
-	byteLen := int(topSixBits) + 4
-
-	buf := make([]byte, byteLen)
-	_, err = sd.Reader.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-
-	if byteLen == 4 {
-		o = int64(binary.LittleEndian.Uint32(buf))
-	} else if byteLen > 4 && byteLen < 8 {
-		tmp := make([]byte, 8)
-		copy(tmp, buf)
-		o = int64(binary.LittleEndian.Uint64(tmp))
-	} else {
-		err = errors.New("could not decode invalid integer")
-	}
-
-	return o, err
+	return int64(o), err
 }
 
 func (sd *Decoder) DecodeUnsignedInteger() (o uint64, err error) {
