@@ -177,8 +177,8 @@ func (sd *Decoder) DecodeUnsignedInteger() (o uint64, err error) {
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b & 3
 	if mode <= 2 {
-		val, err := sd.decodeSmallInt(b, mode)
-		return uint64(val), err
+		val, e := sd.decodeSmallInt(b, mode)
+		return uint64(val), e
 	}
 
 	// >4 byte mode

@@ -36,10 +36,10 @@ var encodeTests = []encodeTest{
 	{val: uint8(1), output: []byte{0x01}, bytesEncoded: 1},
 
 	{val: int16(1), output: []byte{0x01}, bytesEncoded: 1},
-	{val: int16(16383), output: []byte{0xff,0x3f}, bytesEncoded: 2},
+	{val: int16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
 
 	{val: uint16(1), output: []byte{0x01}, bytesEncoded: 1},
-	{val: uint16(16383), output: []byte{0xff,0x3f}, bytesEncoded: 2},
+	{val: uint16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
 
 	{val: int32(1), output: []byte{0x01}, bytesEncoded: 1},
 	{val: int32(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},

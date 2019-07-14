@@ -58,7 +58,7 @@ type decodeArrayTest struct {
 	output interface{}
 }
 
-var decodeFixedWidthIntTestsInt8 = [] struct {
+var decodeFixedWidthIntTestsInt8 = []struct {
 	val    []byte
 	output int8
 }{
@@ -69,7 +69,7 @@ var decodeFixedWidthIntTestsInt8 = [] struct {
 	{val: []byte{0x45}, output: int8(69)},
 }
 
-var decodeFixedWidthIntTestsUint8 = [] struct {
+var decodeFixedWidthIntTestsUint8 = []struct {
 	val    []byte
 	output uint8
 }{
@@ -80,7 +80,7 @@ var decodeFixedWidthIntTestsUint8 = [] struct {
 	{val: []byte{0x45}, output: uint8(69)},
 }
 
-var decodeFixedWidthIntTestsInt16 = [] struct {
+var decodeFixedWidthIntTestsInt16 = []struct {
 	val    []byte
 	output int16
 }{
@@ -93,7 +93,7 @@ var decodeFixedWidthIntTestsInt16 = [] struct {
 	{val: []byte{0x00, 0x40}, output: int16(16384)},
 }
 
-var decodeFixedWidthIntTestsUint16 = [] struct {
+var decodeFixedWidthIntTestsUint16 = []struct {
 	val    []byte
 	output uint16
 }{
@@ -106,7 +106,7 @@ var decodeFixedWidthIntTestsUint16 = [] struct {
 	{val: []byte{0x00, 0x40}, output: uint16(16384)},
 }
 
-var decodeFixedWidthIntTestsInt32 = [] struct {
+var decodeFixedWidthIntTestsInt32 = []struct {
 	val    []byte
 	output int32
 }{
@@ -121,7 +121,7 @@ var decodeFixedWidthIntTestsInt32 = [] struct {
 	{val: []byte{0x00, 0x00, 0x00, 0x40}, output: int32(1073741824)},
 }
 
-var decodeFixedWidthIntTestsUint32 = [] struct {
+var decodeFixedWidthIntTestsUint32 = []struct {
 	val    []byte
 	output uint32
 }{
