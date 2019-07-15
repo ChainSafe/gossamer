@@ -25,7 +25,7 @@ const (
  *  keypair_out: keypair [32b key | 32b nonce | 32b public], pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
  *  seed: generation seed - input buffer of SR25519_SEED_SIZE bytes
  */
-func sr25519_keypair_from_seed(keypair_out, seed_ptr []byte) error {
+func sr25519_keypair_from_seed(keypair_out, seed_ptr [] byte) error {
 	if len(seed_ptr) != SR25519_SEED_SIZE {
 		return errors.New("seed_ptr length not equal to SR25519_SEED_SIZE")
 	}

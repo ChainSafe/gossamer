@@ -1,9 +1,10 @@
 package crypto
 
 import (
-	"fmt"
+	"bytes"
 	"math/rand"
 	"testing"
+	"github.com/ChainSafe/gossamer/common"
 )
 
 func TestKeypairFromSeed(t *testing.T) {
@@ -20,71 +21,62 @@ func TestKeypairFromSeed(t *testing.T) {
 	}
 
 	t.Log(keypair_out)
-	for _, b := range keypair_out {
-		fmt.Printf("%d, ", b)
-	}
 } 
 
 func TestDeriveKeypairHard(t *testing.T) {
-	keypair_out := make([]byte, 96)
-	seed_ptr := []byte{}
-
-	buf := make([]byte, 32)
-	rand.Read(buf)
-	seed_ptr = buf
-
-	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pair_ptr := keypair_out
+	cc_ptr, err := common.HexToBytes("0x14416c6963650000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	keypair_out = make([]byte, 96)
-	cc_ptr := []byte{}
-
-
-	// todo: what is cc_ptr (chaincode) actually? hash of chaincode?
-	buf = make([]byte, 32)
-	rand.Read(buf)
-	cc_ptr = buf
+	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
 	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(keypair_out)
-} 
-
-func TestDeriveKeypairSoft(t *testing.T) {
-	keypair_out := make([]byte, 96)
-	seed_ptr := []byte{}
-
-	buf := make([]byte, 32)
-	rand.Read(buf)
-	seed_ptr = buf
-
-	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	expected, err := common.HexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	pair_ptr := keypair_out
+	if !bytes.Equal(expected, keypair_out[64:]) {
+		t.Errorf("actual pubkey does not match expected: got %x expected %x", keypair_out[64:], expected)
+	}
+} 
 
-	keypair_out = make([]byte, 96)
-	cc_ptr := []byte{}
+func TestDeriveKeypairSoft(t *testing.T) {
+	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	buf = make([]byte, 32)
-	rand.Read(buf)
-	cc_ptr = buf
+	cc_ptr, err := common.HexToBytes("0x0c666f6f00000000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
 	err = sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(keypair_out)
+	expected, err := common.HexToBytes("0x40b9675df90efa6069ff623b0fdfcf706cd47ca7452a5056c7ad58194d23440a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(expected, keypair_out[64:]) {
+		t.Errorf("actual pubkey does not match expected: got %x expected %x", keypair_out[64:], expected)
+	}
 } 
 
 
