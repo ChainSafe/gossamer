@@ -77,7 +77,7 @@ func TestDot_StartIRQStop(t *testing.T) {
 
 	//WaitGroup to wait for all services to start before stopping them
 	var wg sync.WaitGroup
-	wg.Add(3)
+	wg.Add(len(availableServices))
 
 	go dot.Start(&wg)
 	wg.Wait()
