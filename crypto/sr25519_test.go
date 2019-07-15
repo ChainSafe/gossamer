@@ -20,7 +20,10 @@ func TestKeypairFromSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(keypair_out)
+	empty := make([]byte, 96)
+	if bytes.Equal(keypair_out, empty) {
+		t.Errorf("did not derive keypair from seed")
+	}
 } 
 
 func TestDeriveKeypairHard(t *testing.T) {
@@ -106,18 +109,23 @@ func TestDerivePublicSoft(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(pubkey_out)
+	t.Logf("%x", pubkey_out)
 } 
 
-func TestSign(t *testing.T) {
-	keypair_out := make([]byte, 96)
-	seed_ptr := []byte{}
+func TestSignAndVerify(t *testing.T) {
+	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	buf := make([]byte, 32)
-	rand.Read(buf)
-	seed_ptr = buf
+	cc_ptr, err := common.HexToBytes("0x14416c6963650000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
+
+	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,33 +134,15 @@ func TestSign(t *testing.T) {
 	secret_ptr := keypair_out[:64]
 
 	signature_out := make([]byte, 64)
-	message_ptr := []byte{1, 3, 3, 7}
-	var message_length uint32 = 4
+	message_ptr := []byte("helloworld")
+	message_length := uint32(len(message_ptr))
 
 	err = sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log(signature_out)
-} 
-
-func TestVerify(t *testing.T) {
-	keypair_out := []byte{32, 98, 172, 132, 135, 27, 9, 175, 37, 140, 169, 31, 194, 116, 3, 162, 229, 206, 162, 25, 219, 161, 166, 73, 17, 102, 151, 239, 173, 17, 210, 83, 44, 89, 178, 12, 160, 12, 0, 61, 255, 38, 69, 206, 82, 97, 35, 154, 248, 76, 65, 99, 129, 39, 111, 26, 212, 92, 195, 254, 86, 47, 3, 209, 82, 150, 63, 34, 105, 159, 106, 25, 213, 196, 231, 192, 152, 218, 17, 155, 157, 86, 27, 54, 98, 74, 248, 111, 123, 220, 212, 192, 86, 212, 178, 109}
-
-	public_ptr := keypair_out[64:]
-	secret_ptr := keypair_out[:64]
-
-	signature_out := make([]byte, 64)
-	message_ptr := []byte{1, 3, 3, 7}
-	var message_length uint32 = 4
-
-	err := sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log(signature_out)
+	t.Logf("%x", signature_out)
 
 	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
 	if err != nil {
