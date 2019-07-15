@@ -274,10 +274,10 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 	pubkey := ed25519.PublicKey(memory[pubkeyData : pubkeyData+32])
 
 	if ed25519.Verify(pubkey, msg, sig) {
-		return 1
+		return 0
 	}
 
-	return 0
+	return 1
 }
 
 type Runtime struct {

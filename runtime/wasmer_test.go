@@ -508,16 +508,16 @@ func TestExt_ed25519_verify(t *testing.T) {
 	verified, err := testFunc(msgData, len(msg), sigData, pubkeyData)
 	if err != nil {
 		t.Fatal(err)
-	} else if verified.ToI32() != 1 {
+	} else if verified.ToI32() != 0 {
 		t.Error("did not verify ed25519 signature")
 	}
 
-	// confirm that the signature was verified
+	// verification should fail on wrong signature
 	sigData = 1
 	verified, err = testFunc(msgData, len(msg), sigData, pubkeyData)
 	if err != nil {
 		t.Fatal(err)
-	} else if verified.ToI32() != 0 {
+	} else if verified.ToI32() != 1 {
 		t.Error("verified incorrect ed25519 signature")
 	}
 }
