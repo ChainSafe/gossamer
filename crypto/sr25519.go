@@ -159,7 +159,7 @@ func sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit
 	}
 
 	if len(keypair_ptr) != SR25519_KEYPAIR_SIZE {
-		return C.VrfSignResult{}, errors.New("keypair_ptrllength not equal to SR25519_KEYPAIR_SIZE")
+		return C.VrfSignResult{}, errors.New("keypair_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
 
 	if len(limit_ptr) != 32 {
