@@ -148,7 +148,7 @@ func TestSignAndVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !ver {
+	if ver != true {
 		t.Error("did not verify signature")
 	}
 }

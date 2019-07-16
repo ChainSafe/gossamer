@@ -22,22 +22,6 @@ const (
 	SR25519_VRF_PROOF_SIZE  = 64
 )
 
-const (
-	Ok = iota + 1
-	EquationFalse
-	PointDecompressionError
-	ScalarFormatError
-	BytesLengthError
-	NotMarkedSchnorrkel
-	MuSigAbsent
-	MuSigInconsistent
-)
-
-type VrfSignResult struct {
-	result  uint
-	is_less bool
-}
-
 /**
  * Generate a key pair.
  *  keypair_out: keypair [32b key | 32b nonce | 32b public], pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
@@ -144,7 +128,7 @@ func sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, mes
  *  public_ptr: verify with this public key; input buffer of SR25519_PUBLIC_SIZE bytes
  *  returned true if signature is valid, false otherwise
  */
-func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_length uint32) (bool, error) {
+func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_length uint32) (C.bool, error) {
 	if len(public_ptr) != SR25519_PUBLIC_SIZE {
 		return false, errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
@@ -158,7 +142,7 @@ func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_lengt
 	c_message_ptr := (*C.uchar)(unsafe.Pointer(&message_ptr[0]))
 	c_message_length := (C.ulong)(message_length)
 	ver := C.sr25519_verify(c_signature_ptr, c_message_ptr, c_message_length, c_public_ptr)
-	return (bool)(ver), nil
+	return ver, nil
 }
 
 /**
