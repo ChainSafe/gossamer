@@ -160,13 +160,15 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	}
 
 	if val == nil {
-		memory[writtenOut] = 0
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
 
 	var ptr int32 = 1
 	copy(memory[ptr:ptr+int32(len(val))], val)
-	memory[writtenOut] = byte(len(val))
+	byteLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(byteLen, uint32(len(val)))
+	copy(memory[writtenOut:writtenOut+4], byteLen)
 	return ptr
 }
 
