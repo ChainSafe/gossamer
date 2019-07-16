@@ -18,7 +18,25 @@ const (
 	SR25519_SECRET_SIZE = 64
 	SR25519_SEED_SIZE = 32
 	SR25519_SIGNATURE_SIZE = 64
+	SR25519_VRF_OUTPUT_SIZE = 32
+	SR25519_VRF_PROOF_SIZE = 64
 )
+
+const (
+  Ok = iota + 1
+  EquationFalse
+  PointDecompressionError
+  ScalarFormatError
+  BytesLengthError
+  NotMarkedSchnorrkel
+  MuSigAbsent
+  MuSigInconsistent
+)
+
+type VrfSignResult struct {
+  result uint
+  is_less bool
+} 
 
 /**
  * Generate a key pair.
@@ -111,9 +129,9 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 
 	c_signature_out := (*C.uchar)(unsafe.Pointer(&signature_out[0]))
 	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
-	c_secret_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
+	c_secret_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0])) 
 	c_message_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
-	c_message_length := (C.size_t)(message_length)
+	c_message_length := (C.ulong)(message_length)
 	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, c_message_length) 
 	return nil
 }
@@ -138,7 +156,30 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	c_signature_ptr := (*C.uchar)(unsafe.Pointer(&signature_ptr[0]))
 	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
 	c_message_ptr := (*C.uchar)(unsafe.Pointer(&message_ptr[0]))
-	c_message_length := (C.size_t)(message_length)
+	c_message_length := (C.ulong)(message_length)
 	ver := C.sr25519_verify(c_signature_ptr, c_message_ptr, c_message_length, c_public_ptr) 
 	return (bool)(ver), nil
 }
+
+/**
+ * Sign the provided message using a Verifiable Random Function and
+ * if the result is less than \param limit provide the proof
+ * @param out_and_proof_ptr pointer to output array, where the VRF out and proof will be written
+ * @param keypair_ptr byte representation of the keypair that will be used during signing
+ * @param message_ptr byte array to be signed
+ * @param limit_ptr byte array, must be 32 bytes long
+ */
+func sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr []byte, message_length uint32) (VrfSignResult, error) {
+	return VrfSignResult{}, nil
+}
+
+/**
+ * Verify a signature produced by a VRF with its original input and the corresponding proof
+ * @param public_key_ptr byte representation of the public key that was used to sign the message
+ * @param message_ptr the orignal signed message
+ * @param output_ptr the signature
+ * @param proof_ptr the proof of the signature
+ */
+ func sr25519_vrf_verify(public_key_ptr, message_ptr, output_ptr, proof_ptr []byte, message_length uint32) (uint, error) {
+ 	return 0, nil
+ }

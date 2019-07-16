@@ -22,6 +22,26 @@
 
 #define SR25519_SIGNATURE_SIZE 64
 
+#define SR25519_VRF_OUTPUT_SIZE 32
+
+#define SR25519_VRF_PROOF_SIZE 64
+
+typedef enum Sr25519SignatureResult {
+  Ok,
+  EquationFalse,
+  PointDecompressionError,
+  ScalarFormatError,
+  BytesLengthError,
+  NotMarkedSchnorrkel,
+  MuSigAbsent,
+  MuSigInconsistent,
+} Sr25519SignatureResult;
+
+typedef struct VrfSignResult {
+  Sr25519SignatureResult result;
+  bool is_less;
+} VrfSignResult;
+
 /**
  * Perform a derivation on a secret
  *  keypair_out: pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
@@ -74,7 +94,7 @@ void sr25519_sign(uint8_t *signature_out,
                   const uint8_t *public_ptr,
                   const uint8_t *secret_ptr,
                   const uint8_t *message_ptr,
-                  uintptr_t message_length);
+                  unsigned long message_length);
 
 /**
  * Verify a message and its corresponding against a public key;
@@ -86,7 +106,34 @@ void sr25519_sign(uint8_t *signature_out,
  */
 bool sr25519_verify(const uint8_t *signature_ptr,
                     const uint8_t *message_ptr,
-                    uintptr_t message_length,
+                    unsigned long message_length,
                     const uint8_t *public_ptr);
+
+/**
+ * Sign the provided message using a Verifiable Random Function and
+ * if the result is less than \param limit provide the proof
+ * @param out_and_proof_ptr pointer to output array, where the VRF out and proof will be written
+ * @param keypair_ptr byte representation of the keypair that will be used during signing
+ * @param message_ptr byte array to be signed
+ * @param limit_ptr byte array, must be 32 bytes long
+ */
+VrfSignResult sr25519_vrf_sign_if_less(uint8_t *out_and_proof_ptr,
+                                       const uint8_t *keypair_ptr,
+                                       const uint8_t *message_ptr,
+                                       unsigned long message_length,
+                                       const uint8_t *limit_ptr);
+
+/**
+ * Verify a signature produced by a VRF with its original input and the corresponding proof
+ * @param public_key_ptr byte representation of the public key that was used to sign the message
+ * @param message_ptr the orignal signed message
+ * @param output_ptr the signature
+ * @param proof_ptr the proof of the signature
+ */
+Sr25519SignatureResult sr25519_vrf_verify(const uint8_t *public_key_ptr,
+                                          const uint8_t *message_ptr,
+                                          unsigned long message_length,
+                                          const uint8_t *output_ptr,
+                                          const uint8_t *proof_ptr);
 
 #endif /* __SR25519_INCLUDE_GUARD_H__ */
