@@ -2,9 +2,9 @@ package crypto
 
 import (
 	"bytes"
+	"github.com/ChainSafe/gossamer/common"
 	"math/rand"
 	"testing"
-	"github.com/ChainSafe/gossamer/common"
 )
 
 func TestKeypairFromSeed(t *testing.T) {
@@ -24,7 +24,7 @@ func TestKeypairFromSeed(t *testing.T) {
 	if bytes.Equal(keypair_out, empty) {
 		t.Errorf("did not derive keypair from seed")
 	}
-} 
+}
 
 func TestDeriveKeypairHard(t *testing.T) {
 	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
@@ -52,7 +52,7 @@ func TestDeriveKeypairHard(t *testing.T) {
 	if !bytes.Equal(expected, keypair_out[64:]) {
 		t.Errorf("actual pubkey does not match expected: got %x expected %x", keypair_out[64:], expected)
 	}
-} 
+}
 
 func TestDeriveKeypairSoft(t *testing.T) {
 	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
@@ -80,8 +80,7 @@ func TestDeriveKeypairSoft(t *testing.T) {
 	if !bytes.Equal(expected, keypair_out[64:]) {
 		t.Errorf("actual pubkey does not match expected: got %x expected %x", keypair_out[64:], expected)
 	}
-} 
-
+}
 
 func TestDerivePublicSoft(t *testing.T) {
 	keypair_out := make([]byte, 96)
@@ -110,7 +109,7 @@ func TestDerivePublicSoft(t *testing.T) {
 	}
 
 	t.Logf("%x", pubkey_out)
-} 
+}
 
 func TestSignAndVerify(t *testing.T) {
 	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
@@ -152,4 +151,4 @@ func TestSignAndVerify(t *testing.T) {
 	if !ver {
 		t.Error("did not verify signature")
 	}
-} 
+}
