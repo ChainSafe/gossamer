@@ -152,3 +152,52 @@ func TestSignAndVerify(t *testing.T) {
 		t.Error("did not verify signature")
 	}
 }
+
+func TestVrfSignAndVerify(t *testing.T) {
+	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cc_ptr, err := common.HexToBytes("0x14416c6963650000000000000000000000000000000000000000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
+
+	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keypair_ptr := keypair_out
+	out_and_proof_ptr := make([]byte, SR25519_VRF_OUTPUT_SIZE+SR25519_VRF_PROOF_SIZE)
+	message_ptr := []byte("helloworld")
+	message_length := uint32(len(message_ptr))
+	limit_ptr := make([]byte, 32)
+	for i, _ := range limit_ptr {
+		limit_ptr[i] = 0xff
+	}
+
+	ret, err := sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr, message_length)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ret.result != 0 {
+		t.Error("result not equal to Sr25519SignatureResult::Ok")
+	}
+	if !ret.is_less {
+		t.Error("is_less not true")
+	}
+
+	public_ptr := keypair_out[64:]
+	output_ptr := out_and_proof_ptr[:32]
+	proof_ptr := out_and_proof_ptr[32:]
+
+	ret2, err := sr25519_vrf_verify(public_ptr, message_ptr, output_ptr, proof_ptr, message_length)
+	if ret2 != 0 {
+		t.Errorf("return value not equal to Sr25519SignatureResult::Ok")
+	}
+}

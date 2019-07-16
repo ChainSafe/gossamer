@@ -200,15 +200,15 @@ func sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit
  */
 func sr25519_vrf_verify(public_key_ptr, message_ptr, output_ptr, proof_ptr []byte, message_length uint32) (C.Sr25519SignatureResult, error) {
 	if len(public_key_ptr) != SR25519_PUBLIC_SIZE {
-		return 0, errors.New("public_key_ptr length not equal to SR25519_KEYPAIR_SIZE")
+		return 1<<32 - 1, errors.New("public_key_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
 
 	if len(output_ptr) != SR25519_VRF_OUTPUT_SIZE {
-		return 0, errors.New("output_ptr length not equal to SR25519_VRF_OUTPUT_SIZE")
+		return 1<<32 - 1, errors.New("output_ptr length not equal to SR25519_VRF_OUTPUT_SIZE")
 	}
 
 	if len(proof_ptr) != SR25519_VRF_PROOF_SIZE {
-		return 0, errors.New("proof_ptr length not equal to SR25519_VRF_PROOF_SIZE")
+		return 1<<32 - 1, errors.New("proof_ptr length not equal to SR25519_VRF_PROOF_SIZE")
 	}
 
 	c_public_key_ptr := (*C.uchar)(unsafe.Pointer(&public_key_ptr[0]))
