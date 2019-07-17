@@ -629,10 +629,11 @@ func TestExt_twox_128(t *testing.T) {
 
 	both := []byte{}
 	both = append(hash0, hash1...)
-	
+
 	t.Log("both", both)
-	t.Log("mem: ", mem[out:out+64])
-	if !bytes.Equal(hash0[:], mem[out:out+64]) {
+	// ed TODO: figure out how to get 16 byte byte array from the concatanating two xxHash64 calls
+	t.Log("mem: ", mem[out:out+16])
+	if !bytes.Equal(both[:], mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
 }
