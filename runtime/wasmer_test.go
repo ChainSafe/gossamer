@@ -309,9 +309,12 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	}
 
 	// returns memory location where value is stored
-	retInt := ret.ToI32()
-	length := int32(mem[writtenOut])
-	if !bytes.Equal(mem[retInt:retInt+length], value) {
+	retInt := uint32(ret.ToI32())
+	loc := uint32(mem[writtenOut])
+	length := binary.LittleEndian.Uint32(mem[loc : loc+4])
+	if length != uint32(len(value)) {
+		t.Error("did not save correct value length to memory")
+	} else if !bytes.Equal(mem[retInt:retInt+length], value) {
 		t.Error("did not save value to memory")
 	}
 
