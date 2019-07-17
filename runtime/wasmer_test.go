@@ -595,3 +595,37 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 		t.Error("did not get expected trie")
 	}
 }
+
+// test that ext_twox_128 performs a xxHash64 twice on give byte array of the data
+func TestExt_twox_128(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	// save data in memory
+	data := []byte("helloworld")
+	pos := 170
+	out := 180
+	copy(mem[pos:pos+len(data)], data)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_twox_128"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure hashes match
+	// TODO find xxH64 result to test with
+	//hash, err := common.Blake2bHash(data)
+	//if err != nil {
+	//	t.Fatal(err)
+	//} else if !bytes.Equal(hash[:], mem[out:out+32]) {
+	//	t.Error("hash saved in memory does not equal calculated hash")
+	//}
+}
