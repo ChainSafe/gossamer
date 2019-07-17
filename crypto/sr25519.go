@@ -1,6 +1,7 @@
 package crypto
 
 /*
+#cgo LDFLAGS: -Wl,-rpath,$/usr/local/include/include/sr25519 -L$/usr/local/include/include/sr25519 -lsr25519crust
 #include "sr25519.h"
 */
 import "C"
@@ -26,7 +27,7 @@ const (
  *  keypair_out: keypair [32b key | 32b nonce | 32b public], pre-allocated output buffer of SR25519_KEYPAIR_SIZE bytes
  *  seed: generation seed - input buffer of SR25519_SEED_SIZE bytes
  */
-func sr25519_keypair_from_seed(keypair_out, seed_ptr []byte) error {
+func Sr25519_keypair_from_seed(keypair_out, seed_ptr []byte) error {
 	if len(seed_ptr) != SR25519_SEED_SIZE {
 		return errors.New("seed_ptr length not equal to SR25519_SEED_SIZE")
 	}
@@ -40,7 +41,7 @@ func sr25519_keypair_from_seed(keypair_out, seed_ptr []byte) error {
  *  pair_ptr: existing keypair - input buffer of SR25519_KEYPAIR_SIZE bytes
  *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
  */
-func sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr []byte) error {
+func Sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr []byte) error {
 	if len(pair_ptr) != SR25519_KEYPAIR_SIZE {
 		return errors.New("pair_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
@@ -59,7 +60,7 @@ func sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr []byte) error {
  *  pair_ptr: existing keypair - input buffer of SR25519_KEYPAIR_SIZE bytes
  *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
  */
-func sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr []byte) error {
+func Sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr []byte) error {
 	if len(pair_ptr) != SR25519_KEYPAIR_SIZE {
 		return errors.New("pair_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
@@ -78,7 +79,7 @@ func sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr []byte) error {
  *  public_ptr: public key - input buffer of SR25519_PUBLIC_SIZE bytes
  *  cc_ptr: chaincode - input buffer of SR25519_CHAINCODE_SIZE bytes
  */
-func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
+func Sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
 	if len(public_ptr) != SR25519_PUBLIC_SIZE {
 		return errors.New("public_ptr length not equal to SR25519_PUBLIC_SIZE")
 	}
@@ -101,7 +102,7 @@ func sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr []byte) error {
  *  message_ptr: Arbitrary message; input buffer of size message_length
  *  message_length: Length of a message
  */
-func sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, message_length uint32) error {
+func Sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, message_length uint32) error {
 	if len(public_ptr) != SR25519_PUBLIC_SIZE {
 		return errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
@@ -127,7 +128,7 @@ func sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, mes
  *  public_ptr: verify with this public key; input buffer of SR25519_PUBLIC_SIZE bytes
  *  returned true if signature is valid, false otherwise
  */
-func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_length uint32) (C.bool, error) {
+func Sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_length uint32) (C.bool, error) {
 	if len(public_ptr) != SR25519_PUBLIC_SIZE {
 		return false, errors.New("public_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}
@@ -152,7 +153,7 @@ func sr25519_verify(signature_ptr, message_ptr, public_ptr []byte, message_lengt
  * @param message_ptr byte array to be signed
  * @param limit_ptr byte array, must be 32 bytes long
  */
-func sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr []byte, message_length uint32) (C.VrfSignResult, error) {
+func Sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr []byte, message_length uint32) (C.VrfSignResult, error) {
 	if len(out_and_proof_ptr) != SR25519_VRF_OUTPUT_SIZE+SR25519_VRF_PROOF_SIZE {
 		return C.VrfSignResult{}, errors.New("out_and_proof_ptr length not equal to SR25519_VRF_OUTPUT_SIZE + SR25519_VRF_PROOF_SIZE")
 	}
@@ -181,7 +182,7 @@ func sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit
  * @param output_ptr the signature
  * @param proof_ptr the proof of the signature
  */
-func sr25519_vrf_verify(public_key_ptr, message_ptr, output_ptr, proof_ptr []byte, message_length uint32) (C.Sr25519SignatureResult, error) {
+func Sr25519_vrf_verify(public_key_ptr, message_ptr, output_ptr, proof_ptr []byte, message_length uint32) (C.Sr25519SignatureResult, error) {
 	if len(public_key_ptr) != SR25519_PUBLIC_SIZE {
 		return 1<<32 - 1, errors.New("public_key_ptr length not equal to SR25519_KEYPAIR_SIZE")
 	}

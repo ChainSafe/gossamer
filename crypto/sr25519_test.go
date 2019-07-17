@@ -15,7 +15,7 @@ func TestKeypairFromSeed(t *testing.T) {
 	rand.Read(buf)
 	seed_ptr = buf
 
-	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	err := Sr25519_keypair_from_seed(keypair_out, seed_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestKeypairFromSeed(t *testing.T) {
 	}
 }
 
-func TestDeriveKeypairHard(t *testing.T) {
+func deriveKeypair() ([]byte, error) {
 	pair_ptr, err := common.HexToBytes("0x28b0ae221c6bb06856b287f60d7ea0d98552ea5a16db16956849aa371db3eb51fd190cce74df356432b410bd64682309d6dedb27c76845daf388557cbac3ca3446ebddef8cd9bb167dc30878d7113b7e168e6f0646beffd77d69d39bad76b47a")
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +39,16 @@ func TestDeriveKeypairHard(t *testing.T) {
 
 	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
-	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
+	err = Sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
+	if err != nil {
+		return nil, err
+	}
+
+	return keypair_out, nil
+}
+
+func TestDeriveKeypairHard(t *testing.T) {
+	keypair_out, err := deriveKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +76,7 @@ func TestDeriveKeypairSoft(t *testing.T) {
 
 	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
-	err = sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr)
+	err = Sr25519_derive_keypair_soft(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +99,7 @@ func TestDerivePublicSoft(t *testing.T) {
 	rand.Read(buf)
 	seed_ptr = buf
 
-	err := sr25519_keypair_from_seed(keypair_out, seed_ptr)
+	err := Sr25519_keypair_from_seed(keypair_out, seed_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +112,7 @@ func TestDerivePublicSoft(t *testing.T) {
 	rand.Read(buf)
 	cc_ptr = buf
 
-	err = sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr)
+	err = Sr25519_derive_public_soft(pubkey_out, public_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +136,7 @@ func TestSignAndVerify(t *testing.T) {
 
 	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
-	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
+	err = Sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,12 +148,12 @@ func TestSignAndVerify(t *testing.T) {
 	message_ptr := []byte("this is a message")
 	message_length := uint32(len(message_ptr))
 
-	err = sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
+	err = Sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
+	ver, err := Sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +177,7 @@ func TestVerify(t *testing.T) {
 	message_ptr := []byte("this is a message")
 	message_length := uint32(len(message_ptr))
 
-	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
+	ver, err := Sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +200,7 @@ func TestVrfSignAndVerify(t *testing.T) {
 
 	keypair_out := make([]byte, SR25519_KEYPAIR_SIZE)
 
-	err = sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
+	err = Sr25519_derive_keypair_hard(keypair_out, pair_ptr, cc_ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +214,7 @@ func TestVrfSignAndVerify(t *testing.T) {
 		limit_ptr[i] = 0xff
 	}
 
-	ret, err := sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr, message_length)
+	ret, err := Sr25519_vrf_sign_if_less(out_and_proof_ptr, keypair_ptr, message_ptr, limit_ptr, message_length)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +230,7 @@ func TestVrfSignAndVerify(t *testing.T) {
 	output_ptr := out_and_proof_ptr[:32]
 	proof_ptr := out_and_proof_ptr[32:]
 
-	ret2, err := sr25519_vrf_verify(public_ptr, message_ptr, output_ptr, proof_ptr, message_length)
+	ret2, err := Sr25519_vrf_verify(public_ptr, message_ptr, output_ptr, proof_ptr, message_length)
 	if ret2 != 0 {
 		t.Errorf("return value not equal to Sr25519SignatureResult::Ok")
 	}
