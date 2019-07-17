@@ -114,7 +114,7 @@ func sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr []byte, mes
 	c_signature_out := (*C.uchar)(unsafe.Pointer(&signature_out[0]))
 	c_public_ptr := (*C.uchar)(unsafe.Pointer(&public_ptr[0]))
 	c_secret_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
-	c_message_ptr := (*C.uchar)(unsafe.Pointer(&secret_ptr[0]))
+	c_message_ptr := (*C.uchar)(unsafe.Pointer(&message_ptr[0]))
 	c_message_length := (C.ulong)(message_length)
 	C.sr25519_sign(c_signature_out, c_public_ptr, c_secret_ptr, c_message_ptr, c_message_length)
 	return nil

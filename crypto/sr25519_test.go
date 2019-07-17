@@ -20,7 +20,7 @@ func TestKeypairFromSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	empty := make([]byte, 96)
+	empty := make([]byte, SR25519_KEYPAIR_SIZE)
 	if bytes.Equal(keypair_out, empty) {
 		t.Errorf("did not derive keypair from seed")
 	}
@@ -108,7 +108,10 @@ func TestDerivePublicSoft(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("%x", pubkey_out)
+	empty := make([]byte, SR25519_PUBLIC_SIZE)
+	if bytes.Equal(pubkey_out, empty) {
+		t.Errorf("did not derive keypair from seed")
+	}
 }
 
 func TestSignAndVerify(t *testing.T) {
@@ -133,7 +136,7 @@ func TestSignAndVerify(t *testing.T) {
 	secret_ptr := keypair_out[:64]
 
 	signature_out := make([]byte, 64)
-	message_ptr := []byte("helloworld")
+	message_ptr := []byte("this is a message")
 	message_length := uint32(len(message_ptr))
 
 	err = sr25519_sign(signature_out, public_ptr, secret_ptr, message_ptr, message_length)
@@ -141,7 +144,29 @@ func TestSignAndVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("%x", signature_out)
+	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ver != true {
+		t.Error("did not verify signature")
+	}
+}
+
+func TestVerify(t *testing.T) {
+	signature_out, err := common.HexToBytes("0xdecef12cf20443e7c7a9d406c237e90bcfcf145860722622f92ebfd5eb4b5b3990b6443934b5cba8f925a0ae75b3a77d35b8490cbb358dd850806e58eaf72904")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	public_ptr, err := common.HexToBytes("0x741c08a06f41c596608f6774259bd9043304adfa5d3eea62760bd9be97634d63")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	message_ptr := []byte("this is a message")
+	message_length := uint32(len(message_ptr))
 
 	ver, err := sr25519_verify(signature_out, message_ptr, public_ptr, message_length)
 	if err != nil {
