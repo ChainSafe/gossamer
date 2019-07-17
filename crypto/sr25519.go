@@ -1,8 +1,7 @@
 package crypto
 
 /*
-#cgo LDFLAGS:  -Wl,-rpath,${SRCDIR}/libsr25519 -L${SRCDIR}/libsr25519 -lsr25519crust
-#include "./sr25519.h"
+#include "sr25519.h"
 */
 import "C"
 
