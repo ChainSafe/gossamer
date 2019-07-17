@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"strconv"
 	"testing"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -85,6 +86,7 @@ func TestBranchHeader(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		test := test
 		res, err := test.br.header()
 		if err != nil {
 			t.Fatalf("Error when encoding header: %s", err)
@@ -126,13 +128,16 @@ func TestLeafHeader(t *testing.T) {
 		{&leaf{byteArray(573), []byte{0x01}, true}, []byte{0x7f, 0xff, 0xff, 0}},
 	}
 
-	for _, test := range tests {
-		res, err := test.br.header()
-		if err != nil {
-			t.Fatalf("Error when encoding header: %s", err)
-		} else if !bytes.Equal(res, test.header) {
-			t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
-		}
+	for i, test := range tests {
+		test := test
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			res, err := test.br.header()
+			if err != nil {
+				t.Fatalf("Error when encoding header: %s", err)
+			} else if !bytes.Equal(res, test.header) {
+				t.Errorf("Leaf header fail: got %x expected %x", res, test.header)
+			}
+		})
 	}
 }
 
@@ -150,19 +155,8 @@ func TestBranchEncode(t *testing.T) {
 		}
 
 		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(b.key)...)
-
+		expected = append(expected, nibblesToKeyLE(b.key)...)
 		expected = append(expected, common.Uint16ToBytes(b.childrenBitmap())...)
-
-		for _, child := range b.children {
-			if child != nil {
-				encChild, e := Encode(child)
-				if e != nil {
-					t.Errorf("Fail when encoding branch child: %s", err)
-				}
-				expected = append(expected, encChild...)
-			}
-		}
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{Writer: &buf}
@@ -173,11 +167,25 @@ func TestBranchEncode(t *testing.T) {
 
 		expected = append(expected, buf.Bytes()...)
 
+		for _, child := range b.children {
+			if child != nil {
+				hasher, e := NewHasher()
+				if e != nil {
+					t.Fatal(e)
+				}
+				encChild, er := hasher.Hash(child)
+				if er != nil {
+					t.Errorf("Fail when encoding branch child: %s", er)
+				}
+				expected = append(expected, encChild[:]...)
+			}
+		}
+
 		res, err := b.Encode()
 		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
+			t.Errorf("Fail when encoding node: %s", err)
 		}
 	}
 }
@@ -195,7 +203,7 @@ func TestLeafEncode(t *testing.T) {
 			t.Fatalf("Error when encoding header: %s", err)
 		}
 		expected = append(expected, header...)
-		expected = append(expected, nibblesToKey(l.key)...)
+		expected = append(expected, nibblesToKeyLE(l.key)...)
 
 		buf := bytes.Buffer{}
 		encoder := &scale.Encoder{Writer: &buf}
@@ -208,9 +216,9 @@ func TestLeafEncode(t *testing.T) {
 
 		res, err := l.Encode()
 		if !bytes.Equal(res, expected) {
-			t.Errorf("Fail when encoding node length: got %x expected %x", res, expected)
+			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
-			t.Errorf("Fail when encoding node length: %s", err)
+			t.Errorf("Fail when encoding node: %s", err)
 		}
 	}
 }

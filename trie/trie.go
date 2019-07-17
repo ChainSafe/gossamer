@@ -19,6 +19,7 @@ package trie
 import (
 	"bytes"
 	"errors"
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // Trie is a Merkle Patricia Trie.
@@ -45,16 +46,51 @@ func NewTrie(db *Database, root node) *Trie {
 	}
 }
 
+// Root returns the root of the trie
 func (t *Trie) Root() node {
 	return t.root
 }
 
+// Db returns the trie's underlying database
 func (t *Trie) Db() *Database {
 	return t.db
 }
 
+// Encode returns the encoded root of the trie
 func (t *Trie) Encode() ([]byte, error) {
 	return Encode(t.root)
+}
+
+// Hash returns the hashed root of the trie
+func (t *Trie) Hash() (common.Hash, error) {
+	encRoot, err := t.Encode()
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	return common.Blake2bHash(encRoot)
+}
+
+// Entries returns all the key-value pairs in the trie as a map of keys to values
+func (t *Trie) Entries() map[string][]byte {
+	return t.entries(t.root, nil, make(map[string][]byte))
+}
+
+func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[string][]byte {
+	switch c := current.(type) {
+	case *branch:
+		if c.value != nil {
+			kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+		}
+		for i, child := range c.children {
+			t.entries(child, append(prefix, append(c.key, byte(i))...), kv)
+		}
+	case *leaf:
+		kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+		return kv
+	}
+
+	return kv
 }
 
 // Put inserts a key with value into the trie
