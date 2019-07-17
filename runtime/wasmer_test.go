@@ -13,6 +13,7 @@ import (
 
 	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
+	xxhash "github.com/OneOfOne/xxhash"
 	ed25519 "golang.org/x/crypto/ed25519"
 )
 
@@ -621,11 +622,17 @@ func TestExt_twox_128(t *testing.T) {
 	}
 
 	// make sure hashes match
-	// TODO find xxH64 result to test with
-	//hash, err := common.Blake2bHash(data)
-	//if err != nil {
-	//	t.Fatal(err)
-	//} else if !bytes.Equal(hash[:], mem[out:out+32]) {
-	//	t.Error("hash saved in memory does not equal calculated hash")
-	//}
+	h0 := xxhash.NewS64(0)
+	hash0 := h0.Sum(data)
+	h1 := xxhash.NewS64(1)
+	hash1 := h1.Sum(data)
+
+	both := []byte{}
+	both = append(hash0, hash1...)
+	
+	t.Log("both", both)
+	t.Log("mem: ", mem[out:out+64])
+	if !bytes.Equal(hash0[:], mem[out:out+64]) {
+		t.Error("hash saved in memory does not equal calculated hash")
+	}
 }

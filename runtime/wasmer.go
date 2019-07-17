@@ -34,6 +34,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
+	xxhash "github.com/OneOfOne/xxhash"
 )
 
 //export ext_print_num
@@ -265,6 +266,20 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 //export ext_twox_128
 func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_128] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
+	h0 := xxhash.NewS64(0)
+	hash0 := h0.Sum(memory[data : data+len])
+	h1 := xxhash.NewS64(1)
+	hash1 := h1.Sum(memory[data : data+len])
+
+	//concatenaded result
+	both := []byte{}
+	both = append(hash0, hash1...)
+
+	copy(memory[out:out+64], both)
 }
 
 //export ext_sr25519_verify
