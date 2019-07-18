@@ -34,7 +34,6 @@ import (
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
-	xxhash "github.com/OneOfOne/xxhash"
 )
 
 //export ext_print_num
