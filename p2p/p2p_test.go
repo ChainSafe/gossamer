@@ -117,7 +117,6 @@ func TestService_PeerCount(t *testing.T) {
 	}
 }
 
-// TODO: TestSend and TestPing fail in CI, need to be fixed.
 func TestSend(t *testing.T) {
 	sim, err := NewSimulator(2)
 	if err != nil {
@@ -144,6 +143,46 @@ func TestSend(t *testing.T) {
 	err = sa.Send(peer, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
+	}
+}
+
+func TestSendDirect(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7001,
+	}
+
+	sa, err := NewService(testServiceConfigA)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := sa.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+
+	t.Log(sa.Host().Addrs())
+
+	testServiceConfigB := &Config{
+		BootstrapNodes: []string{
+			fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[1].String(), sa.Host().ID()),
+		},
+		Port: 7002,
+	}
+
+	sb, err := NewService(testServiceConfigB)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	t.Log(sb.Host().Addrs())
+
+	e = sb.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
 	}
 }
 

@@ -33,7 +33,9 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
+	routing "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -47,6 +49,8 @@ type Service struct {
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	bootstrapNodes []*core.PeerAddrInfo
+	mdns           discovery.Service
+	noBootstrap    bool
 }
 
 // Config is used to configure a p2p service
@@ -54,6 +58,7 @@ type Config struct {
 	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
+	NoBootstrap    bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -89,6 +94,7 @@ func NewService(conf *Config) (*Service, error) {
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
+		noBootstrap:    conf.NoBootstrap,
 	}
 	return s, err
 }
@@ -102,14 +108,16 @@ func (s *Service) Start() <-chan error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 {
+	if len(s.bootstrapNodes) == 0 && !s.noBootstrap {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
-	// connect to the bootstrap nodes
-	err := s.bootstrapConnect()
-	if err != nil {
-		e <- err
+	if !s.noBootstrap {
+		// connect to the bootstrap nodes
+		err := s.bootstrapConnect()
+		if err != nil {
+			e <- err
+		}
 	}
 
 	// Now we can build a full multiaddress to reach this host
@@ -200,11 +208,16 @@ func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.DisableRelay(),
+		libp2p.EnableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 		libp2p.Ping(true),
+		libp2p.Routing(dhtRouter),
 	}, nil
+}
+
+func dhtRouter(h host.Host) (routing.PeerRouting, error) {
+	return nil, nil
 }
 
 // generateKey generates a libp2p private key which is used for secure messaging
