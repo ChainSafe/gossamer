@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 
-	log "github.com/inconshreveable/log15"
+	log "github.com/ChainSafe/log15"
 	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
