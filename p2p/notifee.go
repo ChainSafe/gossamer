@@ -4,9 +4,9 @@ import (
 	"context"
 
 	log "github.com/inconshreveable/log15"
+	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	host "github.com/libp2p/go-libp2p-host"
-	ps "github.com/libp2p/go-libp2p-peerstore"
+	ps "github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 type Notifee struct {

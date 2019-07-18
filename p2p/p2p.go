@@ -35,9 +35,9 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -99,6 +99,7 @@ func NewService(conf *Config) (*Service, error) {
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
+		mdns:           mdns,
 	}
 	return s, err
 }
