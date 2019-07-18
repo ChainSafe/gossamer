@@ -68,6 +68,7 @@ func TestBootstrapConnect(t *testing.T) {
 	defer ipfsNode.Close()
 
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
+	fmt.Println("ipfsAddr: ", ipfsAddr)
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{
@@ -81,6 +82,42 @@ func TestBootstrapConnect(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
+	err = s.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+}
+
+func TestBootstrapP2PConnect(t *testing.T) {
+	context
+	p2pNodeConfig := &Config{
+		Port: 7001,
+	}
+	bootstrapNode, err := NewService(p2pNodeConfig)
+
+	if err != nil {
+		t.Fatalf("Could not start IPFS node: %s", err)
+	}
+
+	// bootstrapNode.Start()
+	defer bootstrapNode.Stop()
+
+	fmt.Println("bootstrap hostadrr:", bootstrapNode.hostAddr)
+	p2pAddr := fmt.Sprintf(bootstrapNode.hostAddr.String())
+
+	testServiceConfig := &Config{
+		BootstrapNodes: []string{
+			p2pAddr,
+		},
+		Port: 7001,
+	}
+
+	s, err := NewService(testServiceConfig)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	fmt.Println("BOOTSTRAPPING")
 	err = s.bootstrapConnect()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
