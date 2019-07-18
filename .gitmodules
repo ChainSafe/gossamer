@@ -1,0 +1,3 @@
+[submodule "crypto/sr25519-crust"]
+	path = crypto/sr25519-crust
+	url = https://github.com/Warchant/sr25519-crust
