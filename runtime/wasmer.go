@@ -270,10 +270,23 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	memory := instanceContext.Memory().Data()
 
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
-	h0 := xxhash.NewS64(0)
-	hash0 := h0.Sum(memory[data : data+len])
-	h1 := xxhash.NewS64(1)
-	hash1 := h1.Sum(memory[data : data+len])
+	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
+	_, err := h0.Write(memory[data : data+len])
+	if err != nil {
+		log.Error("[ext_twox_128]", "error", err)
+	}
+	res0 := h0.Sum64()
+	hash0 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash0, uint64(res0))
+
+	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
+	_, err = h1.Write(memory[data : data+len])
+	if err != nil {
+		log.Error("[ext_twox_128]", "error", err)
+	}
+	res1 := h1.Sum64()
+	hash1 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
 	//concatenaded result
 	both := []byte{}

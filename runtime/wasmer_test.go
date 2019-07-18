@@ -606,7 +606,7 @@ func TestExt_twox_128(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 	// save data in memory
-	data := []byte("helloworld")
+	data := []byte("helloworldthis is to see if this makes the check sum longer as I add more and more data")
 	pos := 170
 	out := 180
 	copy(mem[pos:pos+len(data)], data)
@@ -621,17 +621,29 @@ func TestExt_twox_128(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// make sure hashes match
-	h0 := xxhash.NewS64(0)
-	hash0 := h0.Sum(data)
-	h1 := xxhash.NewS64(1)
-	hash1 := h1.Sum(data)
+	// make hashes
+	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
+	_, err = h0.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res0 := h0.Sum64()
+	hash0 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash0, uint64(res0))
+	t.Log("b: ", hash0)
+
+	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
+	_, err = h1.Write(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res1 := h1.Sum64()
+	hash1 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
 	both := []byte{}
 	both = append(hash0, hash1...)
-
 	t.Log("both", both)
-	// ed TODO: figure out how to get 16 byte byte array from the concatanating two xxHash64 calls
 	t.Log("mem: ", mem[out:out+16])
 	if !bytes.Equal(both[:], mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
