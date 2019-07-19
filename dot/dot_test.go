@@ -1,8 +1,6 @@
 package dot
 
 import (
-	"sync"
-	"syscall"
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -46,7 +44,7 @@ func TestDot_Start(t *testing.T) {
 
 	dot := createTestDot(t)
 
-	go dot.Start(nil)
+	go dot.Start()
 
 	// Wait until dot.Start() is finished
 	<-dot.IsStarted
@@ -63,44 +61,5 @@ func TestDot_Start(t *testing.T) {
 		}
 	}
 
-	dot.Stop()
-}
-
-func TestDot_StartIRQStop(t *testing.T) {
-	var availableServices = [...]services.Service{
-		&p2p.Service{},
-		&api.Service{},
-		&polkadb.BadgerService{},
-	}
-
-	dot := createTestDot(t)
-
-	//WaitGroup to wait for all services to start before stopping them
-	var wg sync.WaitGroup
-	wg.Add(len(availableServices))
-
-	go dot.Start(&wg)
-	wg.Wait()
-
-	// Wait until dot.Start() is finished
-	<-dot.IsStarted
-
-	for _, srvc := range availableServices {
-		s := dot.Services.Get(srvc)
-		if s == nil {
-			t.Fatalf("error getting service: %T", srvc)
-		}
-
-		e := dot.Services.Err(srvc)
-		if e == nil {
-			t.Fatalf("error getting error channel for service: %T", srvc)
-		}
-	}
-
-	//Send a interrupt signal to kill all services
-	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-
-	//Wait for stop IRQ signal & finish test
-	<-dot.stop
 	dot.Stop()
 }

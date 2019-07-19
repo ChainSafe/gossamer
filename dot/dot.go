@@ -19,7 +19,6 @@ package dot
 import (
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/internal/services"
@@ -52,9 +51,9 @@ func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 }
 
 // Start starts all services. API service is started last.
-func (d *Dot) Start(wg *sync.WaitGroup) {
+func (d *Dot) Start() {
 	log.Debug("Starting core services.")
-	d.Services.StartAll(wg)
+	d.Services.StartAll()
 	if d.Rpc != nil {
 		d.Rpc.Start()
 	}
@@ -66,7 +65,8 @@ func (d *Dot) Start(wg *sync.WaitGroup) {
 		defer signal.Stop(sigc)
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		d.stop <- struct{}{}
+		d.Stop()
+		os.Exit(130)
 	}()
 
 	//Move on when routine catches SIGINT or SIGTERM calls
@@ -79,7 +79,8 @@ func (d *Dot) Wait() {
 	<-d.stop
 }
 
+//Stop all services first, then send stop signal for test
 func (d *Dot) Stop() {
-	d.stop <- struct{}{}
 	d.Services.StopAll()
+	d.stop <- struct{}{}
 }

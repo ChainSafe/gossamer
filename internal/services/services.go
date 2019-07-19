@@ -19,14 +19,13 @@ package services
 import (
 	"fmt"
 	"reflect"
-	"sync"
 
 	log "github.com/ChainSafe/log15"
 )
 
 // Service must be implemented by all services
 type Service interface {
-	Start(*sync.WaitGroup) <-chan error
+	Start() <-chan error
 	Stop() <-chan error
 }
 
@@ -57,11 +56,11 @@ func (s *ServiceRegistry) RegisterService(service Service) {
 }
 
 // StartAll calls `Service.Start()` for all registered services
-func (s *ServiceRegistry) StartAll(wg *sync.WaitGroup) {
+func (s *ServiceRegistry) StartAll() {
 	log.Info(fmt.Sprintf("Starting services: %v", s.serviceTypes))
 	for _, typ := range s.serviceTypes {
 		log.Debug(fmt.Sprintf("Starting service %v", typ))
-		err := s.services[typ].Start(wg)
+		err := s.services[typ].Start()
 		s.errs[typ] = err
 	}
 	log.Debug("All services started.")

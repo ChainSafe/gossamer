@@ -16,8 +16,6 @@
 
 package api
 
-import "sync"
-
 // Service couples all components required for the API.
 type Service struct {
 	Api *Api
@@ -55,10 +53,7 @@ func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
 }
 
 // Start creates, stores and returns an error channel
-func (s *Service) Start(wg *sync.WaitGroup) <-chan error {
-	if wg != nil {
-		defer wg.Done()
-	}
+func (s *Service) Start() <-chan error {
 	s.err = make(chan error)
 	return s.err
 }
