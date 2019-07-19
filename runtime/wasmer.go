@@ -28,14 +28,13 @@ import (
 	"fmt"
 	"unsafe"
 
-	xxhash "github.com/OneOfOne/xxhash"
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
+	xxhash "github.com/OneOfOne/xxhash"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
-
 )
 
 //export ext_print_num
