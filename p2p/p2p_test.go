@@ -21,6 +21,7 @@ import (
 	"log"
 	"testing"
 
+	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
@@ -167,7 +168,8 @@ func TestSendDirect(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		BootstrapNodes: []string{
-			fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[1].String(), sa.Host().ID()),
+			fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()),
+			//"/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
 		},
 		Port: 7002,
 	}
@@ -178,6 +180,8 @@ func TestSendDirect(t *testing.T) {
 	}
 
 	t.Log(sb.Host().Addrs())
+
+	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
 
 	e = sb.Start()
 	err = <-e

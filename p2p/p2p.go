@@ -112,6 +112,11 @@ func (s *Service) start(e chan error) {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
+	err := s.dht.Bootstrap(s.ctx)
+	if err != nil {
+		e <- err
+	}
+
 	if !s.noBootstrap {
 		// connect to the bootstrap nodes
 		err := s.bootstrapConnect()

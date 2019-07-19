@@ -20,16 +20,16 @@ import (
 	"errors"
 	"fmt"
 	core "github.com/libp2p/go-libp2p-core"
-	pr "github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	"log"
 	"sync"
 )
 
-func stringToPeerInfo(peer string) (*core.PeerAddrInfo, error) {
-	maddr := ma.StringCast(peer)
-	p, err := pr.AddrInfoFromP2pAddr(maddr)
+func stringToPeerInfo(peerString string) (*peer.AddrInfo, error) {
+	maddr := ma.StringCast(peerString)
+	p, err := peer.AddrInfoFromP2pAddr(maddr)
 	return p, err
 }
 
@@ -71,7 +71,6 @@ func (s *Service) bootstrapConnect() error {
 
 			s.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
 			if err = s.host.Connect(s.ctx, *p); err != nil {
-				log.Println(s.ctx, "bootstrapDialFailed", p.ID)
 				log.Printf("failed to bootstrap with %v: %s", p.ID, err)
 				errs <- err
 				return
