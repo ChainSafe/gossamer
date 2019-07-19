@@ -9,6 +9,10 @@ import (
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 )
 
+// Notifee must satisfy interface:
+// type Notifee interface {
+//     HandlePeerFound(peer.AddrInfo)
+// }
 type Notifee struct {
 	ctx  context.Context
 	host host.Host
