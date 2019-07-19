@@ -33,7 +33,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
-	routing "github.com/libp2p/go-libp2p-core/routing"
+	//routing "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
@@ -217,13 +217,13 @@ func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 		libp2p.Ping(true),
-		libp2p.Routing(dhtRouter),
+		//libp2p.Routing(dhtRouter),
 	}, nil
 }
 
-func dhtRouter(h host.Host) (routing.PeerRouting, error) {
-	return nil, nil
-}
+// func dhtRouter(h host.Host) (routing.PeerRouting, error) {
+// 	return nil, nil
+// }
 
 // generateKey generates a libp2p private key which is used for secure messaging
 func generateKey(seed int64) (crypto.PrivKey, error) {

@@ -22,7 +22,9 @@ import (
 	"testing"
 
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 func TestBuildOpts(t *testing.T) {
@@ -167,10 +169,11 @@ func TestSendDirect(t *testing.T) {
 	t.Log(sa.Host().Addrs())
 
 	testServiceConfigB := &Config{
-		BootstrapNodes: []string{
-			fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()),
-			//"/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
-		},
+		NoBootstrap: true,
+		// BootstrapNodes: []string{
+		// 	fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()),
+		// 	//"/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
+		// },
 		Port: 7002,
 	}
 
@@ -182,11 +185,40 @@ func TestSendDirect(t *testing.T) {
 	t.Log(sb.Host().Addrs())
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = sb.Host().Connect(sb.ctx, *addrInfo)
 
 	e = sb.Start()
 	err = <-e
 	if err != nil {
 		t.Errorf("Start error: %s", err)
+	}
+
+	// err = sa.dht.Bootstrap(sa.ctx)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// err = sb.dht.Bootstrap(sb.ctx)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// peer, err := sb.dht.FindPeer(sb.ctx, sa.host.ID())
+	// if err != nil {
+	// 	t.Fatalf("could not find peer: %s", err)
+	// }
+
+	msg := []byte("hello there\n")
+	err = sb.Send(*addrInfo, msg)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
 	}
 }
 
