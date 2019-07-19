@@ -641,8 +641,8 @@ func TestExt_twox_128(t *testing.T) {
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
-	both := []byte{}
-	both = append(hash0, hash1...)
+	both := append(hash0, hash1...)
+
 	t.Log("both", both)
 	t.Log("mem: ", mem[out:out+16])
 	if !bytes.Equal(both[:], mem[out:out+16]) {

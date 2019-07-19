@@ -34,6 +34,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
+	xxhash "github.com/OneOfOne/xxhash"
 )
 
 //export ext_print_num
@@ -288,10 +289,9 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
 	//concatenaded result
-	both := []byte{}
-	both = append(hash0, hash1...)
+	both := append(hash0, hash1...)
 
-	copy(memory[out:out+64], both)
+	copy(memory[out:out+16], both)
 }
 
 //export ext_sr25519_verify
