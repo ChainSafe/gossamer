@@ -38,6 +38,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -48,7 +49,7 @@ type Service struct {
 	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []*core.PeerAddrInfo
+	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
 	noBootstrap    bool
 }
@@ -82,7 +83,7 @@ func NewService(conf *Config) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
 	if err != nil {
 		return nil, err
 	}
@@ -213,9 +214,9 @@ func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		libp2p.EnableRelay(),
+		//libp2p.DisableRelay(),
 		libp2p.Identity(priv),
-		libp2p.NATPortMap(),
+		//libp2p.NATPortMap(),
 		libp2p.Ping(true),
 		//libp2p.Routing(dhtRouter),
 	}, nil
