@@ -606,7 +606,7 @@ func TestExt_twox_128(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 	// save data in memory
-	data := []byte("helloworldthis is to see if this makes the check sum longer as I add more and more data")
+	data := []byte("helloworld")
 	pos := 170
 	out := 180
 	copy(mem[pos:pos+len(data)], data)
@@ -628,6 +628,14 @@ func TestExt_twox_128(t *testing.T) {
 		t.Fatal(err)
 	}
 	res0 := h0.Sum64()
+	t.Log("res0: ", res0)
+
+	// xxH64 with seed 0 of "helloworld" is: 9228181307863624271
+	if res0 != 9228181307863624271 {
+		t.Error("hash value does not equal expected test value")
+	}
+
+	// make res0 into []byte
 	hash0 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash0, uint64(res0))
 	t.Log("b: ", hash0)
@@ -638,6 +646,13 @@ func TestExt_twox_128(t *testing.T) {
 		t.Fatal(err)
 	}
 	res1 := h1.Sum64()
+	t.Log("res1:", res1)
+
+	// xxH64 with seed 1 of "helloworld" is: 3121208924734365784
+	if res1 != 3121208924734365784 {
+		t.Error("hash value does not equal expected test value")
+	}
+
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
