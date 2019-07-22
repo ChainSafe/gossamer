@@ -23,6 +23,4 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/wasmerio/go-ext-wasm v0.0.0-20190612094245-722faa9f1b90
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
-	golang.org/x/tools v0.0.0-20190719005602-e377ae9d6386 // indirect
-	golang.org/x/vgo v0.0.0-20180912184537-9d567625acf4 // indirect
 )
