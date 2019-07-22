@@ -268,7 +268,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("[ext_twox_128]", "value", memory[data : data+len])
+	log.Debug("[ext_twox_128]", "value", memory[data:data+len])
 
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
