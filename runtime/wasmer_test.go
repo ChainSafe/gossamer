@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"os"
@@ -11,10 +12,9 @@ import (
 	"reflect"
 	"testing"
 
-	common "github.com/ChainSafe/gossamer/common"
-	trie "github.com/ChainSafe/gossamer/trie"
-	xxhash "github.com/OneOfOne/xxhash"
-	ed25519 "golang.org/x/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/trie"
+	"golang.org/x/crypto/ed25519"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
@@ -606,11 +606,13 @@ func TestExt_twox_128(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 	// save data in memory
-	data := []byte("helloworld")
+	// test for empty []byte
+	data := []byte(nil)
 	pos := 170
-	out := 180
+	out := pos + len(data)
 	copy(mem[pos:pos+len(data)], data)
 
+	// call wasm function
 	testFunc, ok := runtime.vm.Exports["test_ext_twox_128"]
 	if !ok {
 		t.Fatal("could not find exported function")
@@ -621,46 +623,31 @@ func TestExt_twox_128(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// make hashes
-	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err = h0.Write(data)
+	//check result against expected value
+	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
+	if "99e9d85137db46ef4bbea33613baafd5" != hex.EncodeToString(mem[out:out+16]) {
+		t.Error("hash saved in memory does not equal calculated hash")
+	}
+
+	// test for data value "Hello world!"
+	data = []byte("Hello world!")
+	out = pos + len(data)
+	copy(mem[pos:pos+len(data)], data)
+
+	// call wasm function
+	testFunc, ok = runtime.vm.Exports["test_ext_twox_128"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	res0 := h0.Sum64()
-	t.Log("res0: ", res0)
 
-	// xxH64 with seed 0 of "helloworld" is: 9228181307863624271
-	if res0 != 9228181307863624271 {
-		t.Error("hash value does not equal expected test value")
-	}
-
-	// make res0 into []byte
-	hash0 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash0, uint64(res0))
-	t.Log("b: ", hash0)
-
-	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
-	_, err = h1.Write(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	res1 := h1.Sum64()
-	t.Log("res1:", res1)
-
-	// xxH64 with seed 1 of "helloworld" is: 3121208924734365784
-	if res1 != 3121208924734365784 {
-		t.Error("hash value does not equal expected test value")
-	}
-
-	hash1 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash1, uint64(res1))
-
-	both := append(hash0, hash1...)
-
-	t.Log("both", both)
-	t.Log("mem: ", mem[out:out+16])
-	if !bytes.Equal(both[:], mem[out:out+16]) {
+	//check result against expected value
+	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
+	if "b27dfd7f223f177f2a13647b533599af" != hex.EncodeToString(mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
 }
