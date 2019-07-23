@@ -21,10 +21,7 @@ import (
 	"log"
 	"testing"
 
-	//ps "github.com/libp2p/go-libp2p-core/peerstore"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 func TestBuildOpts(t *testing.T) {
@@ -146,6 +143,24 @@ func TestSend(t *testing.T) {
 	err = sa.Send(peer, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
+	}
+}
+
+func TestNoBootstrap(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7001,
+	}
+
+	sa, err := NewService(testServiceConfigA)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := sa.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
 	}
 }
 

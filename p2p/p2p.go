@@ -34,7 +34,6 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
-	//routing "github.com/libp2p/go-libp2p-core/routing"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
@@ -160,6 +159,7 @@ func (s *Service) Stop() <-chan error {
 	if err != nil {
 		e <- err
 	}
+
 	return e
 }
 
