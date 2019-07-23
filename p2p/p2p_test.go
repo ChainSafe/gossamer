@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	//ps "github.com/libp2p/go-libp2p-core/peerstore"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -147,89 +147,6 @@ func TestSend(t *testing.T) {
 	if err != nil {
 		t.Errorf("Send error: %s", err)
 	}
-}
-
-func TestSendDirect(t *testing.T) {
-	// testServiceConfigA := &Config{
-	// 	NoBootstrap: true,
-	// 	Port:        7001,
-	// }
-
-	// sa, err := NewService(testServiceConfigA)
-	// if err != nil {
-	// 	t.Fatalf("NewService error: %s", err)
-	// }
-
-	// e := sa.Start()
-	// err = <-e
-	// if err != nil {
-	// 	t.Errorf("Start error: %s", err)
-	// }
-
-	// t.Log(sa.Host().Addrs())
-
-	testServiceConfigB := &Config{
-		NoBootstrap: true,
-		//BootstrapNodes: []string{
-			//fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()),
-			// "/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
-		 //    "/ip4/104.211.48.51/tcp/30363/p2p/QmYWrEtg4iQYwV9PG37PhfLHLATQJUTYiZRyoUvSYny9ba",
-		 //    "/ip4/104.211.48.247/tcp/30363/p2p/QmYT3p4qGj1jwb7hDx1A6cDzAPtaHp3VR34vmw5BsXXB8D",
-		 //    "/ip4/40.117.153.33/tcp/30363/p2p/QmPiGU1jwL9UDw2FMyMQFr9FdpF9hURKxkfy6PWw6aLsur",
-		//},
-		Port: 30303,
-	}
-
-	sb, err := NewService(testServiceConfigB)
-	if err != nil {
-		t.Fatalf("NewService error: %s", err)
-	}
-
-	t.Log(sb.Host().Addrs())
-	t.Log(sb.Host().Mux().Protocols())
-
-	//sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	//addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
-	addr, err := ma.NewMultiaddr("/ip4/40.117.153.33/tcp/30363/p2p/QmPiGU1jwL9UDw2FMyMQFr9FdpF9hURKxkfy6PWw6aLsur")
-	if err != nil {
-		t.Fatal(err)
-	}
-	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = sb.Host().Connect(sb.ctx, *addrInfo)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	e := sb.Start()
-	err = <-e
-	if err != nil {
-		t.Errorf("Start error: %s", err)
-	}
-
-	select{}
-
-	// err = sa.dht.Bootstrap(sa.ctx)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// err = sb.dht.Bootstrap(sb.ctx)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// peer, err := sb.dht.FindPeer(sb.ctx, sa.host.ID())
-	// if err != nil {
-	// 	t.Fatalf("could not find peer: %s", err)
-	// }
-
-	// msg := []byte("hello there\n")
-	// err = sb.Send(*addrInfo, msg)
-	// if err != nil {
-	// 	t.Errorf("Send error: %s", err)
-	// }
 }
 
 // PING is not implemented in the kad-dht.

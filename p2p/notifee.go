@@ -9,6 +9,7 @@ import (
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 )
 
+// See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
 type Notifee struct {
 	ctx  context.Context
 	host host.Host

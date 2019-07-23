@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"time"
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
@@ -34,11 +35,11 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	//routing "github.com/libp2p/go-libp2p-core/routing"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
@@ -88,6 +89,13 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
+	mdns, err := discovery.NewMdnsService(ctx, h, time.Second, "polkadot")
+	if err != nil {
+		return nil, err
+	}
+
+	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
+
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
 		ctx:            ctx,
@@ -96,6 +104,7 @@ func NewService(conf *Config) (*Service, error) {
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
 		noBootstrap:    conf.NoBootstrap,
+		mdns:           mdns,
 	}
 	return s, err
 }
@@ -138,8 +147,20 @@ func (s *Service) start(e chan error) {
 }
 
 // Stop stops the p2p service
-func (s *Service) Stop() {
-	// TODO
+func (s *Service) Stop() <-chan error {
+	e := make(chan error)
+
+	//Stop the host & IpfsDHT
+	err := s.host.Close()
+	if err != nil {
+		e <- err
+	}
+
+	err = s.dht.Close()
+	if err != nil {
+		e <- err
+	}
+	return e
 }
 
 // Broadcast sends a message to all peers
@@ -214,17 +235,12 @@ func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
-		//libp2p.DisableRelay(),
+		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
-		//libp2p.NATPortMap(),
+		libp2p.NATPortMap(),
 		libp2p.Ping(true),
-		//libp2p.Routing(dhtRouter),
 	}, nil
 }
-
-// func dhtRouter(h host.Host) (routing.PeerRouting, error) {
-// 	return nil, nil
-// }
 
 // generateKey generates a libp2p private key which is used for secure messaging
 func generateKey(seed int64) (crypto.PrivKey, error) {
