@@ -19,12 +19,13 @@ package p2p
 import (
 	"errors"
 	"fmt"
+	"log"
+	"sync"
+
 	core "github.com/libp2p/go-libp2p-core"
 	pr "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
-	"log"
-	"sync"
 )
 
 func stringToPeerInfo(peer string) (*core.PeerAddrInfo, error) {

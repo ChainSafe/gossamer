@@ -89,9 +89,8 @@ func TestBootstrapConnect(t *testing.T) {
 }
 
 func TestBootstrapP2PConnect(t *testing.T) {
-	context
 	p2pNodeConfig := &Config{
-		Port: 7001,
+		Port: 7000,
 	}
 	bootstrapNode, err := NewService(p2pNodeConfig)
 
@@ -99,7 +98,6 @@ func TestBootstrapP2PConnect(t *testing.T) {
 		t.Fatalf("Could not start IPFS node: %s", err)
 	}
 
-	// bootstrapNode.Start()
 	defer bootstrapNode.Stop()
 
 	fmt.Println("bootstrap hostadrr:", bootstrapNode.hostAddr)
@@ -113,13 +111,21 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	}
 
 	s, err := NewService(testServiceConfig)
+
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	fmt.Println("BOOTSTRAPPING")
 	err = s.bootstrapConnect()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
+	}
+
+	addrInfo, err := s.dht.FindPeer(bootstrapNode.ctx, bootstrapNode.dht.PeerID())
+
+	if err == nil {
+		fmt.Println("Addr found in DHT's peer: ", addrInfo)
+	} else {
+		t.Errorf("Bootstrapping error :%s", err)
 	}
 }
