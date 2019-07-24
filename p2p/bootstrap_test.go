@@ -128,4 +128,12 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	} else {
 		t.Errorf("Bootstrapping error :%s", err)
 	}
+
+	addrInfo2, err2 := bootstrapNode.dht.FindPeer(s.ctx, s.dht.PeerID())
+
+	if err2 == nil {
+		fmt.Println("Addr found in DHT's peer: ", addrInfo2)
+	} else {
+		t.Errorf("Bootstrapping error :%s", err)
+	}
 }
