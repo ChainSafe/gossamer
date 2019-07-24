@@ -101,7 +101,7 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	defer bootstrapNode.Stop()
 
 	fmt.Println("bootstrap hostadrr:", bootstrapNode.hostAddr)
-	p2pAddr := fmt.Sprintf(bootstrapNode.hostAddr.String())
+	p2pAddr := bootstrapNode.hostAddr.String()
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{
