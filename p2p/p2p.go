@@ -34,13 +34,14 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix = "/polkadot/0.0.0"
+const protocolPrefix = "/"//"/polkadot/0.0.0"
 
 // Service describes a p2p service, including host and dht
 type Service struct {
@@ -48,8 +49,10 @@ type Service struct {
 	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []*core.PeerAddrInfo
+	dhtConfig 	kaddht.BootstrapConfig
+	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
+	noBootstrap    bool
 }
 
 // Config is used to configure a p2p service
@@ -57,6 +60,7 @@ type Config struct {
 	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
+	NoBootstrap    bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -71,6 +75,7 @@ func NewService(conf *Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	h.SetStreamHandler(protocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
@@ -80,17 +85,23 @@ func NewService(conf *Config) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", h.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
 	if err != nil {
 		return nil, err
 	}
 
-	mdns, err := discovery.NewMdnsService(ctx, h, time.Second, "polkadot")
+	mdns, err := discovery.NewMdnsService(ctx, h, 5*time.Second, "polkadot")
 	if err != nil {
 		return nil, err
 	}
 
 	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
+
+	dhtConfig := kaddht.BootstrapConfig{
+		Queries:    10,
+		Period: 	time.Second,
+		//Timeout:    time.Second * 100,
+	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
@@ -98,7 +109,9 @@ func NewService(conf *Config) (*Service, error) {
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
+		dhtConfig:		dhtConfig,
 		bootstrapNodes: bootstrapNodes,
+		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
 	}
 	return s, err
@@ -113,12 +126,19 @@ func (s *Service) Start() <-chan error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 {
+	if len(s.bootstrapNodes) == 0 && !s.noBootstrap {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
-	// connect to the bootstrap nodes
-	err := s.bootstrapConnect()
+	if !s.noBootstrap {
+		// connect to the bootstrap nodes
+		err := s.bootstrapConnect()
+		if err != nil {
+			e <- err
+		}
+	}
+
+	err := s.dht.Bootstrap(s.ctx)
 	if err != nil {
 		e <- err
 	}
@@ -148,6 +168,7 @@ func (s *Service) Stop() <-chan error {
 	if err != nil {
 		e <- err
 	}
+
 	return e
 }
 

@@ -20,8 +20,11 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	//ma "github.com/multiformats/go-multiaddr"
+	//peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 func TestBuildOpts(t *testing.T) {
@@ -117,7 +120,6 @@ func TestService_PeerCount(t *testing.T) {
 	}
 }
 
-// TODO: TestSend and TestPing fail in CI, need to be fixed.
 func TestSend(t *testing.T) {
 	sim, err := NewSimulator(2)
 	if err != nil {
@@ -145,6 +147,84 @@ func TestSend(t *testing.T) {
 	if err != nil {
 		t.Errorf("Send error: %s", err)
 	}
+}
+
+func TestNoBootstrap(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7001,
+	}
+
+	sa, err := NewService(testServiceConfigA)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	e := sa.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+}
+
+
+func TestSendDirect(t *testing.T) {
+    testServiceConfigB := &Config{
+        //NoBootstrap: true,
+        BootstrapNodes: []string{
+            "/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
+            "/ip4/104.211.48.51/tcp/30363/p2p/16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec",
+            "/ip4/104.211.48.247/tcp/30363/p2p/16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi",
+            "/ip4/40.117.153.33/tcp/30363/p2p/QmPiGU1jwL9UDw2FMyMQFr9FdpF9hURKxkfy6PWw6aLsur",
+        },
+        Port: 30304, 
+    }
+
+    sb, err := NewService(testServiceConfigB)
+    if err != nil {
+        t.Fatalf("NewService error: %s", err)
+    }
+
+    // peerid, err := peer.IDB58Decode("16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi")
+    // if err != nil {
+    // 	t.Fatal(err)
+    // }
+    // protocols, err := sb.Host().Peerstore().GetProtocols(peerid)
+    // if err != nil {
+    // 	t.Fatal(err)
+    // }
+    // t.Log(protocols)
+
+   	go func(s *Service) {
+    	for {
+    		t.Logf("PeerCount %d", sb.PeerCount())
+    		time.Sleep(time.Second * 5)
+    	}
+    }(sb)
+
+    e := sb.Start()
+    err = <-e
+    if err != nil {
+        t.Errorf("Start error: %s", err)
+    }
+
+    t.Log(sb.Host().Addrs())
+    t.Log(sb.Host().Mux().Protocols())
+    	//for {
+    		t.Logf("PeerCount %d", sb.PeerCount())
+    	// 	time.Sleep(time.Second * 5)
+    	// }
+
+    // peerid, err = peer.IDB58Decode("16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec")
+    // if err != nil {
+    // 	t.Fatal(err)
+    // }
+    // addr, err := sb.DHT().FindPeer(sb.Ctx(), peerid)
+    // if err != nil {
+    // 	t.Fatal(err)
+    // }
+    // t.Log(addr)
+   	select{}
 }
 
 // PING is not implemented in the kad-dht.
