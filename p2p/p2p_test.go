@@ -167,7 +167,6 @@ func TestNoBootstrap(t *testing.T) {
 	}
 }
 
-
 func TestSendDirect(t *testing.T) {
     testServiceConfigB := &Config{
         //NoBootstrap: true,

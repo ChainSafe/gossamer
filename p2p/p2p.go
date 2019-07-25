@@ -99,7 +99,7 @@ func NewService(conf *Config) (*Service, error) {
 
 	dhtConfig := kaddht.BootstrapConfig{
 		Queries:    10,
-		Period: 	5*time.Second,
+		Period: 	time.Second,
 		//Timeout:    time.Second * 100,
 	}
 
