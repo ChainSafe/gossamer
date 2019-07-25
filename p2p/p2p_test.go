@@ -200,6 +200,7 @@ func TestSendDirect(t *testing.T) {
     	t.Log("ctx has no deadline")
     }
     t.Log(deadline)
+
    	go func(s *Service) {
     	for {
     		t.Logf("PeerCount %d", sb.PeerCount())
@@ -213,13 +214,8 @@ func TestSendDirect(t *testing.T) {
         t.Errorf("Start error: %s", err)
     }
 
-
     t.Log(sb.Host().Addrs())
     t.Log(sb.Host().Mux().Protocols())
-    	//for {
-    		t.Logf("PeerCount %d", sb.PeerCount())
-    	// 	time.Sleep(time.Second * 5)
-    	// }
 
    	select{}
 }
