@@ -68,7 +68,6 @@ func TestBootstrapConnect(t *testing.T) {
 	defer ipfsNode.Close()
 
 	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-	fmt.Println("ipfsAddr: ", ipfsAddr)
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{
@@ -95,12 +94,11 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	bootstrapNode, err := NewService(p2pNodeConfig)
 
 	if err != nil {
-		t.Fatalf("Could not start IPFS node: %s", err)
+		t.Fatalf("Could not start p2p service: %s", err)
 	}
 
 	defer bootstrapNode.Stop()
 
-	fmt.Println("bootstrap hostadrr:", bootstrapNode.hostAddr)
 	p2pAddr := bootstrapNode.hostAddr.String()
 
 	testServiceConfig := &Config{
@@ -124,7 +122,7 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	addrInfo, err := s.dht.FindPeer(bootstrapNode.ctx, bootstrapNode.dht.PeerID())
 
 	if err == nil {
-		fmt.Println("Addr found in DHT's peer: ", addrInfo)
+		t.Log("Addr found in DHT's peer: ", addrInfo)
 	} else {
 		t.Errorf("Bootstrapping error :%s", err)
 	}
@@ -132,7 +130,7 @@ func TestBootstrapP2PConnect(t *testing.T) {
 	addrInfo2, err2 := bootstrapNode.dht.FindPeer(s.ctx, s.dht.PeerID())
 
 	if err2 == nil {
-		fmt.Println("Addr found in DHT's peer: ", addrInfo2)
+		t.Log("Addr found in DHT's peer: ", addrInfo2)
 	} else {
 		t.Errorf("Bootstrapping error :%s", err)
 	}

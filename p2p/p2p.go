@@ -78,7 +78,6 @@ func NewService(conf *Config) (*Service, error) {
 
 	// build host multiaddress
 	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/ipfs/%s", conf.Port, h.ID().Pretty()))
-	fmt.Println("libp2p node address: ", hostAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +186,7 @@ func (s *Service) Ctx() context.Context {
 
 func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 	// TODO: get external ip
-	// ip := "0.0.0.0"
-	ip := "127.0.0.1"
+	ip := "0.0.0.0"
 
 	priv, err := generateKey(sc.RandSeed)
 	if err != nil {
