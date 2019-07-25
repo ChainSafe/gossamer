@@ -41,7 +41,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix = "/"//"/polkadot/0.0.0"
+const protocolPrefix = "/substrate/dot/3"
 
 // Service describes a p2p service, including host and dht
 type Service struct {
@@ -49,7 +49,7 @@ type Service struct {
 	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	dhtConfig 	kaddht.BootstrapConfig
+	dhtConfig 		kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
 	noBootstrap    bool
@@ -90,7 +90,7 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	mdns, err := discovery.NewMdnsService(ctx, h, 5*time.Second, "polkadot")
+	mdns, err := discovery.NewMdnsService(ctx, h, 60*time.Second, "polkadot")
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func NewService(conf *Config) (*Service, error) {
 
 	dhtConfig := kaddht.BootstrapConfig{
 		Queries:    10,
-		Period: 	time.Second,
+		Period: 	5*time.Second,
 		//Timeout:    time.Second * 100,
 	}
 

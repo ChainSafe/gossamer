@@ -172,10 +172,10 @@ func TestSendDirect(t *testing.T) {
     testServiceConfigB := &Config{
         //NoBootstrap: true,
         BootstrapNodes: []string{
-            "/ip4/104.211.54.233/tcp/30363/p2p/QmUghPWmHR8pQbZyBMeYzvPcH7VRcTiBibcyBG7wMKHaSZ",
+            "/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj",
             "/ip4/104.211.48.51/tcp/30363/p2p/16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec",
             "/ip4/104.211.48.247/tcp/30363/p2p/16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi",
-            "/ip4/40.117.153.33/tcp/30363/p2p/QmPiGU1jwL9UDw2FMyMQFr9FdpF9hURKxkfy6PWw6aLsur",
+            "/ip4/40.117.153.33/tcp/30363/p2p/16Uiu2HAmKXzRnzgyVtSyyp6ozAk5aT9H7PEi2ozkHSzzg7vmX7LV",
         },
         Port: 30304, 
     }
@@ -195,6 +195,11 @@ func TestSendDirect(t *testing.T) {
     // }
     // t.Log(protocols)
 
+    deadline, ok := sb.Ctx().Deadline()
+    if !ok {
+    	t.Log("ctx has no deadline")
+    }
+    t.Log(deadline)
    	go func(s *Service) {
     	for {
     		t.Logf("PeerCount %d", sb.PeerCount())
@@ -208,6 +213,7 @@ func TestSendDirect(t *testing.T) {
         t.Errorf("Start error: %s", err)
     }
 
+
     t.Log(sb.Host().Addrs())
     t.Log(sb.Host().Mux().Protocols())
     	//for {
@@ -215,15 +221,6 @@ func TestSendDirect(t *testing.T) {
     	// 	time.Sleep(time.Second * 5)
     	// }
 
-    // peerid, err = peer.IDB58Decode("16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec")
-    // if err != nil {
-    // 	t.Fatal(err)
-    // }
-    // addr, err := sb.DHT().FindPeer(sb.Ctx(), peerid)
-    // if err != nil {
-    // 	t.Fatal(err)
-    // }
-    // t.Log(addr)
    	select{}
 }
 

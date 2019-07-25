@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/dgraph-io/badger v1.6.0-rc1
+	github.com/florianlenz/go-libp2p-bootstrap v0.0.0-20180604154145-a6c8a6c5649a
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-ipfs v0.4.22-0.20190703233353-70e499afbc16
@@ -13,6 +14,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-core v0.0.6
+	github.com/libp2p/go-libp2p-daemon v0.2.0
 	github.com/libp2p/go-libp2p-kad-dht v0.1.1
 	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/multiformats/go-multiaddr v0.0.4
