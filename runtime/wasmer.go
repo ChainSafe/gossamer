@@ -39,46 +39,46 @@ import (
 
 //export ext_print_num
 func ext_print_num(context unsafe.Pointer, data C.int64_t) {
-	log.Debug("[ext_print_num] executing...")
-	log.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", data))
+	log.Debug("Begin: WASM imported fn [ext_print_num]", "data", fmt.Sprintf("%d",data))
+	log.Debug("End: WASM imported fn [ext_print_num]")
 }
 
 //export ext_malloc
 func ext_malloc(context unsafe.Pointer, size C.int32_t) C.int32_t {
-	log.Debug("[ext_malloc] executing...")
-	log.Debug("[ext_malloc]", "size", size)
+	log.Debug("Begin: WASM imported fn [ext_malloc]", "size", size)
+	log.Debug("End: WASM imported fn [ext_malloc]")
 	return 1
 }
 
 //export ext_free
 func ext_free(context unsafe.Pointer, addr C.int32_t) {
-	log.Debug("[ext_free] executing...")
-	log.Debug("[ext_free]", "addr", addr)
+	log.Debug("Begin: WASM imported fn [ext_free]", "addr", addr)
+	log.Debug("End: WASM imported fn [ext_free]")
 }
 
 // prints string located in memory at location `offset` with length `size`
 //export ext_print_utf8
 func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len int32) {
-	log.Debug("[ext_print_utf8] executing...")
+	log.Debug("Begin: WASM imported fn [ext_print_utf8]", "data", utf8_data, "len", utf8_len)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("[ext_print_utf8]", "message", fmt.Sprintf("%s", memory[utf8_data:utf8_data+utf8_len]))
+	log.Debug("End: WASM imported fn [ext_print_utf8]", "message", fmt.Sprintf("%s", memory[utf8_data:utf8_data+utf8_len]))
 }
 
 // prints hex formatted bytes located in memory at location `offset` with length `size`
 //export ext_print_hex
 func ext_print_hex(context unsafe.Pointer, offset, size int32) {
-	log.Debug("[ext_print_hex] executing...")
+	log.Debug("Begin: WASM imported fn [ext_print_hex]", "offset", offset, "size", size)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
+	log.Debug("End: WASM imported fn [ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
 }
 
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
 // location `valueData`. the value can have up to value `valueLen` and the returned value starts at value[valueOffset:]
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
-	log.Debug("[ext_get_storage_into] executing...")
+	log.Debug("Begin: WASM imported fn [ext_get_storage_into]", "keyData", keyData, "keyLen", keyLen, "valueData", valueData, "valueLen", valueLen, "valueOffset", valueOffset)
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -92,11 +92,12 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	}
 
 	if len(val) > int(valueLen) {
-		log.Error("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
+		log.Error("WASM imported fn [ext_get_storage_into]", "error", "value exceeds allocated buffer length")
 		return 0
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
+	log.Debug("End: WASM imported fn [ext_get_storage_into]")
 	return int32(len(val[valueOffset:]))
 }
 
@@ -104,39 +105,42 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 // with length `valueLen` into the storage trie
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
-	log.Debug("[ext_set_storage] executing...")
+	log.Debug("Begin: WASM imported fn [ext_set_storage]", "keyData", keyData, "keyLen", keyLen, "valueData", valueData, "valueLen", valueLen)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
-	log.Debug("[ext_set_storage]", "key", key, "val", val)
+	log.Debug("WASM imported fn [ext_set_storage]", "key", key, "val", val)
 	err := t.Put(key, val)
 	if err != nil {
-		log.Error("[ext_set_storage]", "error", err)
+		log.Error("WASM imported fn [ext_set_storage]", "error", err)
 	}
+	log.Debug("End: WASM imported fn [ext_set_storage]")
 }
 
 // returns the trie root in the memory location `resultPtr`
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
-	log.Debug("[ext_storage_root] executing...")
+	log.Debug("Begin: WASM imported fn [ext_storage_root]", "resultPtr", resultPtr)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
 
 	root, err := t.Hash()
 	if err != nil {
-		log.Error("[ext_storage_root]", "error", err)
+		log.Error("WASM imported fn [ext_storage_root]", "error", err)
 	}
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
+	log.Debug("End: WASM imported fn [ext_storage_root]", "root", memory[resultPtr:resultPtr+32])
 }
 
 //export ext_storage_changes_root
 func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
-	log.Debug("[ext_storage_changes_root] executing...")
+	log.Debug("Begin: WASM imported fn [ext_storage_changes_root]")
+	log.Debug("End: WASM imported fn [ext_storage_changes_root]")
 	return 0
 }
 
@@ -144,7 +148,7 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 // in memory where it's stored and stores its length in `writtenOut`
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
-	log.Debug("[ext_get_allocated_storage] executing...")
+	log.Debug("Begin: WASM imported fn [ext_get_allocated_storage]", "keyData", keyData, "keyLen", keyLen, "writtenOut", writtenOut)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
@@ -156,7 +160,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	}
 
 	if err != nil {
-		log.Error("[ext_get_allocated_storage]", "error", err)
+		log.Error("WASM imported fn [ext_get_allocated_storage]", "error", err)
 		return 0
 	}
 
@@ -178,13 +182,14 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	copy(memory[lenPtr:lenPtr+4], byteLen)
 
 	// return ptr to value
+	log.Debug("End: WASM imported fn [ext_get_allocated_storage]", "ptr", ptr)
 	return ptr
 }
 
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
-	log.Debug("[ext_sr25519_verify] executing...")
+	log.Debug("Begin: WASM imported fn [ext_sr25519_verify]", "keyData", keyData, "keyLen", keyLen)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
@@ -192,14 +197,14 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	key := memory[keyData : keyData+keyLen]
 	err := t.Delete(key)
 	if err != nil {
-		log.Error("[ext_storage_root]", "error", err)
+		log.Error("WASM imported fn [ext_storage_root]", "error", err)
 	}
 }
 
 // deletes all entries in the trie that have a key beginning with the prefix stored at `prefixData`
 //export ext_clear_prefix
 func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
-	log.Debug("[ext_clear_prefix] executing...")
+	log.Debug("Begin: WASM imported fn [ext_clear_prefix]", "prefixData", prefixData, "prefixLen", prefixLen)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
@@ -210,10 +215,11 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
 			err := t.Delete([]byte(k))
 			if err != nil {
-				log.Error("[ext_clear_prefix]", "err", err)
+				log.Error("WASM imported fn [ext_clear_prefix]", "err", err)
 			}
 		}
 	}
+	log.Debug("End: WASM imported fn [ext_clear_prefix]")
 }
 
 // accepts an array of values, puts them into a trie, and returns the root
