@@ -41,7 +41,9 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix = "/substrate/dot/3"
+const protocolPrefix = "/substrate/dot/2"
+const protocolPrefix2 = "/substrate/dot/2"
+const protocolPrefix3 = "/substrate/dot/3"
 
 // Service describes a p2p service, including host and dht
 type Service struct {
@@ -49,7 +51,7 @@ type Service struct {
 	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	dhtConfig 		kaddht.BootstrapConfig
+	dhtConfig      kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
 	noBootstrap    bool
@@ -76,7 +78,8 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	h.SetStreamHandler(protocolPrefix, handleStream)
+	h.SetStreamHandler(protocolPrefix2, handleStream)
+	h.SetStreamHandler(protocolPrefix3, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -90,7 +93,7 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	mdns, err := discovery.NewMdnsService(ctx, h, 60*time.Second, "polkadot")
+	mdns, err := discovery.NewMdnsService(ctx, h, 60*time.Second, "/substrate/dot/2")
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +101,8 @@ func NewService(conf *Config) (*Service, error) {
 	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
 
 	dhtConfig := kaddht.BootstrapConfig{
-		Queries:    10,
-		Period: 	time.Second,
+		Queries: 1,
+		Period:  time.Second,
 		//Timeout:    time.Second * 100,
 	}
 
@@ -109,7 +112,7 @@ func NewService(conf *Config) (*Service, error) {
 		host:           h,
 		hostAddr:       hostAddr,
 		dht:            dht,
-		dhtConfig:		dhtConfig,
+		dhtConfig:      dhtConfig,
 		bootstrapNodes: bootstrapNodes,
 		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
@@ -130,18 +133,24 @@ func (s *Service) start(e chan error) {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
-	if !s.noBootstrap {
-		// connect to the bootstrap nodes
-		err := s.bootstrapConnect()
-		if err != nil {
-			e <- err
-		}
-	}
+	go func() {
+		for {
+			if !s.noBootstrap {
+				// connect to the bootstrap nodes
+				err := s.bootstrapConnect()
+				if err != nil {
+					e <- err
+				}
+			}
 
-	err := s.dht.Bootstrap(s.ctx)
-	if err != nil {
-		e <- err
-	}
+			err := s.dht.Bootstrap(s.ctx)
+			if err != nil {
+				e <- err
+			}
+			time.Sleep(time.Second * 60)
+		}
+	}()
+
 
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
@@ -150,8 +159,29 @@ func (s *Service) start(e chan error) {
 		log.Info("address can be reached", "hostAddr", addr.Encapsulate(s.hostAddr))
 	}
 
+	// peerChan, err := s.dhtGetClosestPeers("abc")
+	// if err != nil {
+	// 	e <- err
+	// }
+
+	// go func(peerChan <-chan peer.ID, e chan error) {
+	// 	peer := <-peerChan
+	// 	addr, err := s.dht.FindPeer(s.ctx, peer)
+	// 	if err != nil {
+	// 		e <- err
+	// 	}
+	// 	err = s.host.Connect(s.ctx, addr)
+	// 	if err != nil {
+	// 		e <- err
+	// 	}
+	// }(peerChan, e)
+
 	log.Info("listening for connections...")
 	e <- nil
+}
+
+func (s *Service) dhtGetClosestPeers(key string) (<-chan peer.ID, error) {
+	return s.dht.GetClosestPeers(s.ctx, key)
 }
 
 // Stop stops the p2p service
@@ -280,18 +310,44 @@ func handleStream(stream net.Stream) {
 			log.Error("error closing stream", "err", err)
 		}
 	}()
+
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	str, err := rw.ReadString('\n')
+	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
+		log.Error("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
 		return
 	}
 
-	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
-	if err != nil {
-		return
+	length := LEB128ToUint64([]byte{lengthByte})
+	log.Info("stream handler", "got mesage with length", length)
+	msg := make([]byte, length)
+	for i := 0; i < int(length); i++ {
+		next, err := rw.Reader.ReadByte()
+		if err != nil {
+			log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
+			return
+		}
+		msg[i] = next
 	}
+
+	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
+
+	rawMsg := RawMessage(msg)
+	res, msgType, err := rawMsg.Decode()
+	if err != nil {
+		log.Error("stream handler", "decode message err", err)	
+	}
+
+	switch(msgType) {
+	case 0:
+		statusMsg := res.(*StatusMessage)
+		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(), "ProtocolVersion", statusMsg.ProtocolVersion)	
+	}
+	// _, err = rw.WriteString("hello friend")
+	// if err != nil {
+	// 	return
+	// }
 }
 
 // PeerCount returns the number of connected peers
