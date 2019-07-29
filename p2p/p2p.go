@@ -103,7 +103,6 @@ func NewService(conf *Config) (*Service, error) {
 	dhtConfig := kaddht.BootstrapConfig{
 		Queries: 1,
 		Period:  time.Second,
-		//Timeout:    time.Second * 100,
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
@@ -151,30 +150,12 @@ func (s *Service) start(e chan error) {
 		}
 	}()
 
-
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
 	addrs := s.host.Addrs()
 	for _, addr := range addrs {
 		log.Info("address can be reached", "hostAddr", addr.Encapsulate(s.hostAddr))
 	}
-
-	// peerChan, err := s.dhtGetClosestPeers("abc")
-	// if err != nil {
-	// 	e <- err
-	// }
-
-	// go func(peerChan <-chan peer.ID, e chan error) {
-	// 	peer := <-peerChan
-	// 	addr, err := s.dht.FindPeer(s.ctx, peer)
-	// 	if err != nil {
-	// 		e <- err
-	// 	}
-	// 	err = s.host.Connect(s.ctx, addr)
-	// 	if err != nil {
-	// 		e <- err
-	// 	}
-	// }(peerChan, e)
 
 	log.Info("listening for connections...")
 	e <- nil
@@ -200,12 +181,6 @@ func (s *Service) Stop() <-chan error {
 	}
 
 	return e
-}
-
-// Broadcast sends a message to all peers
-func (s *Service) Broadcast(msg []byte) (err error) {
-	// TODO
-	return nil
 }
 
 // Send sends a message to a specific peer
@@ -259,7 +234,6 @@ func (s *Service) Ctx() context.Context {
 }
 
 func (sc *Config) buildOpts() ([]libp2p.Option, error) {
-	// TODO: get external ip
 	ip := "0.0.0.0"
 
 	priv, err := generateKey(sc.RandSeed)
@@ -333,10 +307,10 @@ func handleStream(stream net.Stream) {
 	if err != nil {
 		log.Info("stream handler", "err", err)
 	}
-	
+
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
 
-	switch(msgType) {
+	switch msgType {
 	case 0:
 		statusMsg := new(StatusMessage)
 		err = statusMsg.Decode(rw, length)
@@ -344,14 +318,14 @@ func handleStream(stream net.Stream) {
 			log.Info("stream handler", "err", err)
 		}
 
-		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(), 
-			"ProtocolVersion", statusMsg.ProtocolVersion, 
+		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
+			"ProtocolVersion", statusMsg.ProtocolVersion,
 			"MinSupportedVersion", statusMsg.MinSupportedVersion,
 			"Roles", statusMsg.Roles,
 			"BestBlockNumber", statusMsg.BestBlockNumber,
 			"BestBlockHash", fmt.Sprintf("%x", statusMsg.BestBlockHash),
 			"GenesisHash", fmt.Sprintf("%x", statusMsg.GenesisHash),
-			"ChainStatus", statusMsg.ChainStatus)	
+			"ChainStatus", statusMsg.ChainStatus)
 	default:
 		log.Info("stream handler", "unimplemented message type", msgType)
 	}

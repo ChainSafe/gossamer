@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/ChainSafe/log15"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
-	log "github.com/ChainSafe/log15"
 )
 
 func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {

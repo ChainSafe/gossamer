@@ -16,12 +16,15 @@ type BlockHeader struct {
 	Digest         []byte   // any addition block info eg. logs, seal
 }
 
+// NewHash casts a byte array to a Hash
+// if the input is longer than 32 bytes, it takes the first 32 bytes
 func NewHash(in []byte) (res Hash) {
 	res = [32]byte{}
 	copy(res[:], in)
 	return res
 }
 
+// ToBytes turns a hash to a byte array
 func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]

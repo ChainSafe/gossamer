@@ -20,11 +20,8 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	//ma "github.com/multiformats/go-multiaddr"
-	//peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 func TestBuildOpts(t *testing.T) {
@@ -166,62 +163,3 @@ func TestNoBootstrap(t *testing.T) {
 		t.Errorf("Start error: %s", err)
 	}
 }
-
-func TestSendDirect(t *testing.T) {
-	testServiceConfigB := &Config{
-		//NoBootstrap: true,
-		BootstrapNodes: []string{
-			"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj",
-			"/ip4/104.211.48.51/tcp/30363/p2p/16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec",
-			"/ip4/104.211.48.247/tcp/30363/p2p/16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi",
-			"/ip4/40.117.153.33/tcp/30363/p2p/16Uiu2HAmKXzRnzgyVtSyyp6ozAk5aT9H7PEi2ozkHSzzg7vmX7LV",
-		},
-		Port: 30304,
-	}
-
-	sb, err := NewService(testServiceConfigB)
-	if err != nil {
-		t.Fatalf("NewService error: %s", err)
-	}
-
-	go func(s *Service) {
-		for {
-			fmt.Printf("PeerStore size %d\n",len(s.Host().Peerstore().Peers()))
-			fmt.Printf("PeerCount %d\n", s.PeerCount())
-			time.Sleep(time.Second * 5)
-		}
-	}(sb)
-
-	e := sb.Start()
-	err = <-e
-	if err != nil {
-		t.Errorf("Start error: %s", err)
-	}
-
-	select {}
-}
-
-// PING is not implemented in the kad-dht.
-// see https://github.com/libp2p/specs/pull/108
-// func TestPing(t *testing.T) {
-// 	sim, err := NewSimulator(2)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	defer sim.IpfsNode.Close()
-
-// 	for _, node := range sim.Nodes {
-// 		e := node.Start()
-// 		if <-e != nil {
-// 			log.Println("start err: ", err)
-// 		}
-// 	}
-
-// 	sa := sim.Nodes[0]
-// 	sb := sim.Nodes[1]
-// 	err = sa.Ping(sb.host.ID())
-// 	if err != nil {
-// 		t.Errorf("Ping error: %s", err)
-// 	}
-// }
