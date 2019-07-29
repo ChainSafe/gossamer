@@ -18,7 +18,6 @@ package p2p
 
 import (
 	"fmt"
-	//"log"
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -102,7 +101,7 @@ func TestService_PeerCount(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
-	
+
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
 		Port:        7007,
