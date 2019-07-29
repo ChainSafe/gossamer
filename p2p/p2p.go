@@ -161,10 +161,6 @@ func (s *Service) start(e chan error) {
 	e <- nil
 }
 
-func (s *Service) dhtGetClosestPeers(key string) (<-chan peer.ID, error) {
-	return s.dht.GetClosestPeers(s.ctx, key)
-}
-
 // Stop stops the p2p service
 func (s *Service) Stop() <-chan error {
 	e := make(chan error)
