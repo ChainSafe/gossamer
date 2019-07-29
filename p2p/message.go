@@ -33,6 +33,8 @@ type StatusMessage struct {
 	ChainStatus         []byte
 }
 
+// Decodes the buffer underlying the reader into a StatusMessage
+// it reads up to specified length
 func (sm *StatusMessage) Decode(r io.Reader, length uint64) (err error) {
 	sm.ProtocolVersion, err = readUint32(r)
 	if err != nil {
