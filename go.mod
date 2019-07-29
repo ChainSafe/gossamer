@@ -8,7 +8,6 @@ require (
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
-	github.com/florianlenz/go-libp2p-bootstrap v0.0.0-20180604154145-a6c8a6c5649a
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-ipfs v0.4.22-0.20190703233353-70e499afbc16
@@ -16,7 +15,6 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-core v0.0.6
-	github.com/libp2p/go-libp2p-daemon v0.2.0
 	github.com/libp2p/go-libp2p-kad-dht v0.1.1
 	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/multiformats/go-multiaddr v0.0.4
