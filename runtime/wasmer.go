@@ -272,14 +272,14 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("WASM | [ext_twox_128]", "data", data, "len", len, "out", out)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("WASM [ext_twox_128]", "value", memory[data:data+len])
+	log.Debug("WASM | [ext_twox_128]", "value", memory[data:data+len])
 
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
 	_, err := h0.Write(memory[data : data+len])
 	if err != nil {
 		log.Error("WASM | [ext_twox_128]", "error", err)
-	}
+	}gi
 	res0 := h0.Sum64()
 	log.Debug("WASM | [ext_twox_128]", "xxH64(0) of value", res0)
 	hash0 := make([]byte, 8)
