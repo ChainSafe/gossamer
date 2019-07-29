@@ -97,6 +97,12 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
+	e := sa.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+	
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
 		Port:        7007,
