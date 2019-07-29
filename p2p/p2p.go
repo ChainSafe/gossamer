@@ -41,9 +41,9 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix = "/substrate/dot/2"
 const protocolPrefix2 = "/substrate/dot/2"
 const protocolPrefix3 = "/substrate/dot/3"
+const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
 type Service struct {
@@ -63,6 +63,7 @@ type Config struct {
 	Port           int
 	RandSeed       int64
 	NoBootstrap    bool
+	NoMdns			bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -93,12 +94,15 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	mdns, err := discovery.NewMdnsService(ctx, h, 60*time.Second, "/substrate/dot/2")
-	if err != nil {
-		return nil, err
-	}
+	var mdns discovery.Service
+	if !conf.NoMdns {
+		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, protocolPrefix3)
+		if err != nil {
+			return nil, err
+		}
 
-	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
+		mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
+	}
 
 	dhtConfig := kaddht.BootstrapConfig{
 		Queries: 1,
@@ -186,7 +190,7 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) error {
 		return err
 	}
 
-	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
+	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix3)
 	if err != nil {
 		return err
 	}
