@@ -303,7 +303,8 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
-// TODO: message handling
+// handles stream; reads message length, message type, and decodes message based on type
+// TODO: implement all message types; send message back to peer when we get a message; gossip for certain message types
 func handleStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
@@ -311,43 +312,49 @@ func handleStream(stream net.Stream) {
 		}
 	}()
 
-	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
 		log.Error("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
-		return
 	}
 
+	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
-	log.Info("stream handler", "got mesage with length", length)
-	msg := make([]byte, length)
-	for i := 0; i < int(length); i++ {
-		next, err := rw.Reader.ReadByte()
-		if err != nil {
-			log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
-			return
-		}
-		msg[i] = next
-	}
+	log.Info("stream handler", "got message with length", length)
 
-	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
-
-	rawMsg := RawMessage(msg)
-	res, msgType, err := rawMsg.Decode()
+	// read message type byte
+	msgType, err := rw.Reader.ReadByte()
 	if err != nil {
-		log.Error("stream handler", "decode message err", err)	
+		log.Error("stream handler", "msg type err", err)
 	}
+
+	// read entire message
+	msg, err := rw.Reader.Peek(int(length))
+	if err != nil {
+		log.Info("stream handler", "err", err)
+	}
+	
+	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
 
 	switch(msgType) {
 	case 0:
-		statusMsg := res.(*StatusMessage)
-		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(), "ProtocolVersion", statusMsg.ProtocolVersion)	
+		statusMsg := new(StatusMessage)
+		err = statusMsg.Decode(rw, length)
+		if err != nil {
+			log.Info("stream handler", "err", err)
+		}
+
+		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(), 
+			"ProtocolVersion", statusMsg.ProtocolVersion, 
+			"MinSupportedVersion", statusMsg.MinSupportedVersion,
+			"Roles", statusMsg.Roles,
+			"BestBlockNumber", statusMsg.BestBlockNumber,
+			"BestBlockHash", fmt.Sprintf("%x", statusMsg.BestBlockHash),
+			"GenesisHash", fmt.Sprintf("%x", statusMsg.GenesisHash),
+			"ChainStatus", statusMsg.ChainStatus)	
+	default:
+		log.Info("stream handler", "unimplemented message type", msgType)
 	}
-	// _, err = rw.WriteString("hello friend")
-	// if err != nil {
-	// 	return
-	// }
 }
 
 // PeerCount returns the number of connected peers

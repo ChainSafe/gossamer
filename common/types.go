@@ -15,3 +15,14 @@ type BlockHeader struct {
 	ExtrinsicsRoot Hash     // the root of the extrinsics trie
 	Digest         []byte   // any addition block info eg. logs, seal
 }
+
+func NewHash(in []byte) (res Hash) {
+	res = [32]byte{}
+	copy(res[:], in)
+	return res
+}
+
+func (h Hash) ToBytes() []byte {
+	b := [32]byte(h)
+	return b[:]
+}

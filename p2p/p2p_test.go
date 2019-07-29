@@ -184,22 +184,6 @@ func TestSendDirect(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	// peerid, err := peer.IDB58Decode("16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// protocols, err := sb.Host().Peerstore().GetProtocols(peerid)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// t.Log(protocols)
-
-	deadline, ok := sb.Ctx().Deadline()
-	if !ok {
-		fmt.Println("ctx has no deadline")
-	}
-	fmt.Println(deadline)
-
 	go func(s *Service) {
 		for {
 			fmt.Printf("PeerStore size %d\n",len(s.Host().Peerstore().Peers()))
@@ -213,9 +197,6 @@ func TestSendDirect(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
-
-	// t.Log(sb.Host().Addrs())
-	// t.Log(sb.Host().Mux().Protocols())
 
 	select {}
 }
