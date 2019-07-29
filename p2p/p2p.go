@@ -83,7 +83,7 @@ func NewService(conf *Config) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/ipfs/%s", conf.Port, h.ID().Pretty()))
 	if err != nil {
 		return nil, err
 	}

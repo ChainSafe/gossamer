@@ -164,6 +164,77 @@ func TestNoBootstrap(t *testing.T) {
 	}
 }
 
+func TestGossipSub(t *testing.T) {
+
+	//Start node A
+	nodeConfigA := &Config{
+		Port: 7000,
+	}
+
+	nodeA, err := NewService(nodeConfigA)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeA.Stop()
+
+	nodeA_Addr := nodeA.hostAddr.String()
+
+	//Start node B
+	nodeConfigB := &Config{
+		BootstrapNodes: []string{
+			nodeA_Addr,
+		},
+		Port: 7001,
+	}
+
+	nodeB, err := NewService(nodeConfigB)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeB.Stop()
+
+	nodeB_Addr := nodeA.hostAddr.String()
+
+	//Connect node A & node B
+	err = nodeB.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+
+	//Start node C
+	nodeConfigC := &Config{
+		BootstrapNodes: []string{
+			nodeB_Addr,
+		},
+		Port: 7002,
+	}
+
+	nodeC, err := NewService(nodeConfigC)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeC.Stop()
+
+	//Connect node B & node C
+	err = nodeC.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+
+	peer, _ := nodeB.dht.FindPeer(nodeB.ctx, nodeA.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeB.hostAddr.String(), peer)
+
+	peer, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeB.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeA.hostAddr.String(), peer)
+
+	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
+
+}
+
 // PING is not implemented in the kad-dht.
 // see https://github.com/libp2p/specs/pull/108
 // func TestPing(t *testing.T) {
