@@ -5,6 +5,7 @@ replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wago
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ChainSafe/log15 v1.0.0
+	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
 	github.com/florianlenz/go-libp2p-bootstrap v0.0.0-20180604154145-a6c8a6c5649a
