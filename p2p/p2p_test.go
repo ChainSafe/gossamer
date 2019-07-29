@@ -187,6 +187,7 @@ func TestSend(t *testing.T) {
 	}
 }
 
+// 		t.Errorf("Ping error: %s", err)
 func TestGossipSub(t *testing.T) {
 
 	//Start node A
