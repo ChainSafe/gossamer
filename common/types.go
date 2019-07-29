@@ -13,7 +13,7 @@ type BlockHeader struct {
 	Number         *big.Int // block number
 	StateRoot      Hash     // the root of the state trie
 	ExtrinsicsRoot Hash     // the root of the extrinsics trie
-	Digest         []byte   // any addition block info eg. logs, seal
+	Digest         []byte   // any additional block info eg. logs, seal
 }
 
 // NewHash casts a byte array to a Hash

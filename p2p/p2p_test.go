@@ -97,12 +97,6 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-	e := sa.Start()
-	err = <-e
-	if err != nil {
-		t.Errorf("Start error: %s", err)
-	}
-
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
 		Port:        7007,
@@ -130,8 +124,8 @@ func TestService_PeerCount(t *testing.T) {
 	}
 
 	count := sb.PeerCount()
-	if count != 1 {
-		t.Fatalf("incorrect peerCount expected %d got %d", 1, count)
+	if count == 0 {
+		t.Fatalf("incorrect peerCount got %d", count)
 	}
 
 	sa.Stop()
