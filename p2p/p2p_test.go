@@ -113,21 +113,21 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-    sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-    addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
-    if err != nil {
-        t.Fatal(err)
-    }
+	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
-    if err != nil {
-        t.Fatal(err)
-    }
+	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    err = sb.Host().Connect(sb.ctx, *addrInfo)
-    if err != nil {
-        t.Fatal(err)
-    }
+	err = sb.Host().Connect(sb.ctx, *addrInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	count := sb.PeerCount()
 	if count != 1 {
@@ -165,21 +165,21 @@ func TestSend(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
-    sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-    addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
-    if err != nil {
-        t.Fatal(err)
-    }
+	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
-    if err != nil {
-        t.Fatal(err)
-    }
+	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    err = sb.Host().Connect(sb.ctx, *addrInfo)
-    if err != nil {
-        t.Fatal(err)
-    }
+	err = sb.Host().Connect(sb.ctx, *addrInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	e = sb.Start()
 	err = <-e

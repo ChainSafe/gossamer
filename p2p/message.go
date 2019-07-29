@@ -23,6 +23,24 @@ import (
 	common "github.com/ChainSafe/gossamer/common"
 )
 
+const (
+	STATUS_MESSAGE          = 0
+	BLOCK_REQUEST           = 1
+	BLOCK_RESPONSE          = 2
+	BLOCK_ANNOUNCE          = 3
+	TRANSACTION             = 4
+	CONSENSUS               = 5
+	REMOTE_CALL_REQUEST     = 6
+	REMOTE_CALL_RESPONSE    = 7
+	REMOTE_READ_REQUEST     = 8
+	REMOTE_READ_RESPONSE    = 9
+	REMOTE_HEADER_REQUEST   = 10
+	REMOTE_HEADER_RESPONSE  = 11
+	REMOTE_CHANGES_REQUEST  = 12
+	REMOTE_CHANGES_RESPONSE = 13
+	CHAIN_SPECIFIC          = 255
+)
+
 type StatusMessage struct {
 	ProtocolVersion     uint32
 	MinSupportedVersion uint32

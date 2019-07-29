@@ -63,7 +63,7 @@ type Config struct {
 	Port           int
 	RandSeed       int64
 	NoBootstrap    bool
-	NoMdns			bool
+	NoMdns         bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -136,6 +136,9 @@ func (s *Service) start(e chan error) {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
+	// this is in a go func that loops every minute due to the fact that we appear
+	// to get kicked off the network after a few minutes
+	// this will likely be resolved once we send messages back to the network
 	go func() {
 		for {
 			if !s.noBootstrap {
@@ -150,7 +153,7 @@ func (s *Service) start(e chan error) {
 			if err != nil {
 				e <- err
 			}
-			time.Sleep(time.Second * 60)
+			time.Sleep(time.Minute)
 		}
 	}()
 
@@ -311,7 +314,7 @@ func handleStream(stream net.Stream) {
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
 
 	switch msgType {
-	case 0:
+	case STATUS_MESSAGE:
 		statusMsg := new(StatusMessage)
 		err = statusMsg.Decode(rw, length)
 		if err != nil {
