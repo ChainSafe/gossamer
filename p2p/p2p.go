@@ -320,15 +320,7 @@ func handleStream(stream net.Stream) {
 		if err != nil {
 			log.Info("stream handler", "err", err)
 		}
-
-		// log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
-		// 	"ProtocolVersion", statusMsg.ProtocolVersion,
-		// 	"MinSupportedVersion", statusMsg.MinSupportedVersion,
-		// 	"Roles", statusMsg.Roles,
-		// 	"BestBlockNumber", statusMsg.BestBlockNumber,
-		// 	"BestBlockHash", fmt.Sprintf("%x", statusMsg.BestBlockHash),
-		// 	"GenesisHash", fmt.Sprintf("%x", statusMsg.GenesisHash),
-		// 	"ChainStatus", statusMsg.ChainStatus)
+		
 		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
 			"msg", statusMsg.String())
 	default:
