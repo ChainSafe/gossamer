@@ -16,6 +16,10 @@
 
 package api
 
+import (
+	log "github.com/ChainSafe/log15"
+)
+
 // Service couples all components required for the API.
 type Service struct {
 	Api *Api
@@ -42,6 +46,8 @@ type Module string
 
 // NewApiService creates a new API instance.
 func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
+	log.Debug("API | Instatiating API service...", "peerCount", p2p.PeerCount(), "runtimeVer", rt.Version())
+
 	return &Service{
 		&Api{
 			System: &systemModule{
@@ -54,10 +60,12 @@ func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
 
 // Start creates, stores and returns an error channel
 func (s *Service) Start() <-chan error {
+	log.Debug("API | Starting service...", "peerCount", s.Api.System.PeerCount())
 	s.err = make(chan error)
 	return s.err
 }
 
 func (s *Service) Stop() <-chan error {
+	log.Debug("API | Stopping service...")
 	return nil
 }

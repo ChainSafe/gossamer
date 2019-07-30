@@ -10,6 +10,7 @@ type systemModule struct {
 }
 
 func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
+	log.Debug("API | Instatiating new system module...")
 	return &systemModule{
 		p2p,
 		rt,
@@ -17,12 +18,12 @@ func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
 }
 
 func (m *systemModule) Version() string {
-	log.Debug("[rpc] Executing System.Version", "params", nil)
+	log.Debug("API | [System.Version]", "version", m.runtime.Version())
 	return m.runtime.Version()
 }
 
 // TODO: Move to 'p2p' module
 func (m *systemModule) PeerCount() int {
-	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
+	log.Debug("API | [System.PeerCount]", "peerCount", m.p2p.PeerCount())
 	return m.p2p.PeerCount()
 }
