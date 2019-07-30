@@ -63,8 +63,72 @@ func (sm *StatusMessage) String() string {
 		sm.ChainStatus)
 }
 
-func (sm *StatusMessage) Encode(w io.Writer) (err error) {
-	return nil
+func (sm *StatusMessage) Encode(w io.Writer) (length int, err error) {
+	err = writeUint32(w, sm.ProtocolVersion)
+	if err != nil {
+		return length, err
+	}
+	length += 4
+
+	err = writeUint32(w, sm.MinSupportedVersion)
+	if err != nil {
+		return length, err
+	}
+	length += 4
+
+	err = writeByte(w, sm.Roles)
+	if err != nil {
+		return length, err
+	}
+	length += 1	
+
+	err = writeUint64(w, sm.BestBlockNumber)
+	if err != nil {
+		return length, err
+	}
+	length += 8
+
+	err = writeHash(w, sm.BestBlockHash)
+	if err != nil {
+		return length, err
+	}
+	length += 32
+
+	err = writeHash(w, sm.GenesisHash)
+	if err != nil {
+		return length, err
+	}
+	length += 32
+
+	_, err = w.Write(sm.ChainStatus)
+	length += len(sm.ChainStatus)
+
+	return length, err
+}
+
+func writeByte(w io.Writer, in byte) (error) {
+	buf := []byte{in}
+	_, err := w.Write(buf)
+	return err
+}
+
+func writeUint32(w io.Writer, in uint32) (error) {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, in)
+	_, err := w.Write(buf)
+	return err
+}
+
+func writeUint64(w io.Writer, in uint64) (error) {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, in)
+	_, err := w.Write(buf)
+	return err
+}
+
+func writeHash(w io.Writer, in common.Hash) (error) {
+	_, err := w.Write(in.ToBytes())
+	return err
 }
 
 // Decodes the buffer underlying the reader into a StatusMessage
@@ -117,10 +181,10 @@ func (sm *StatusMessage) Decode(r io.Reader, length uint64) (err error) {
 type BlockRequestMessage struct {
 	Id            uint32
 	RequestedData byte
-	StartingBlock []byte // scale encoded value of either block hash (32 byte) or block number (int64)
-	EndBlockHash  common.Hash
+	StartingBlock []byte // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	EndBlockHash  common.Hash // optional 
 	Direction     byte
-	Max           uint32
+	Max           uint32 // optional
 }
 
 func (bm *BlockRequestMessage) Encode(w io.Writer) (err error) {
