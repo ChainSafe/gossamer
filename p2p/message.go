@@ -63,6 +63,10 @@ func (sm *StatusMessage) String() string {
 		sm.ChainStatus)
 }
 
+func (sm *StatusMessage) Encode(w io.Writer) (err error) {
+	return nil
+}
+
 // Decodes the buffer underlying the reader into a StatusMessage
 // it reads up to specified length
 func (sm *StatusMessage) Decode(r io.Reader, length uint64) (err error) {
@@ -110,13 +114,17 @@ func (sm *StatusMessage) Decode(r io.Reader, length uint64) (err error) {
 	return nil
 }
 
-type BlockRequest struct {
+type BlockRequestMessage struct {
 	Id            uint32
 	RequestedData byte
 	StartingBlock []byte // scale encoded value of either block hash (32 byte) or block number (int64)
 	EndBlockHash  common.Hash
 	Direction     byte
 	Max           uint32
+}
+
+func (bm *BlockRequestMessage) Encode(w io.Writer) (err error) {
+	return nil
 }
 
 func readByte(r io.Reader) (byte, error) {
