@@ -19,7 +19,6 @@ package services
 import (
 	"fmt"
 	"reflect"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -47,40 +46,43 @@ func NewServiceRegistry() *ServiceRegistry {
 // RegisterService stores a new service in the map. If a service of that type has been seen
 func (s *ServiceRegistry) RegisterService(service Service) {
 	kind := reflect.TypeOf(service)
+	log.Debug("SERVICES | Registering service...", "type", kind)
 	if _, exists := s.services[kind]; exists {
-		log.Warn("Tried to add service type that has already been seen", "type", kind)
+		log.Warn("SERVICES | Tried to register service type that has already been seen", "type", kind)
 		return
 	}
 	s.services[kind] = service
 	s.serviceTypes = append(s.serviceTypes, kind)
+	log.Trace("SERVICES | Registered service", "type", kind)
+
 }
 
 // StartAll calls `Service.Start()` for all registered services
 func (s *ServiceRegistry) StartAll() {
-	log.Info(fmt.Sprintf("Starting services: %v", s.serviceTypes))
+	log.Info(fmt.Sprintf("SERVICES | Starting services: %v", s.serviceTypes))
 	for _, typ := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Starting service %v", typ))
+		log.Debug(fmt.Sprintf("SERVICES | Starting service %v", typ))
 		err := s.services[typ].Start()
 		s.errs[typ] = err
 	}
-	log.Debug("All services started.")
+	log.Debug("SERVICES | All services started.")
 }
 
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
-	log.Info(fmt.Sprintf("Stopping services: %v", s.serviceTypes))
+	log.Info(fmt.Sprintf("SERVICES | Stopping services: %v", s.serviceTypes))
 	for _, typ := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Stopping service %v", typ))
+		log.Debug(fmt.Sprintf("SERVICES | Stopping service %v", typ))
 		err := s.services[typ].Stop()
 		s.errs[typ] = err
 	}
-	log.Debug("All services stopped.")
+	log.Debug("SERVICES | All services stopped.")
 }
 
 // Get retrieves a service and stores a reference to it in the passed in `srvc`
 func (s *ServiceRegistry) Get(srvc interface{}) Service {
 	if reflect.TypeOf(srvc).Kind() != reflect.Ptr {
-		log.Warn("expected a pointer", "type", fmt.Sprintf("%T", srvc))
+		log.Warn("SERVICES | Expected a pointer", "type", fmt.Sprintf("%T", srvc))
 		return nil
 	}
 	e := reflect.ValueOf(srvc)
@@ -88,14 +90,14 @@ func (s *ServiceRegistry) Get(srvc interface{}) Service {
 	if s, ok := s.services[e.Type()]; ok {
 		return s
 	}
-	log.Warn("unknown service type", "type", fmt.Sprintf("%T", srvc))
+	log.Warn("SERVICES | Unknown service type", "type", fmt.Sprintf("%T", srvc))
 	return nil
 }
 
 // Err returns the error channel for a given service
 func (s *ServiceRegistry) Err(srvc interface{}) <-chan error {
 	if reflect.TypeOf(srvc).Kind() != reflect.Ptr {
-		log.Warn("expected a pointer", "type", fmt.Sprintf("%T", srvc))
+		log.Warn("SERVICES | Expected a pointer", "type", fmt.Sprintf("%T", srvc))
 		return nil
 	}
 	e := reflect.ValueOf(srvc)
@@ -103,6 +105,6 @@ func (s *ServiceRegistry) Err(srvc interface{}) <-chan error {
 	if e, ok := s.errs[e.Type()]; ok {
 		return e
 	}
-	log.Warn("unknown service type", "type", fmt.Sprintf("%T", srvc))
+	log.Warn("SERVICES | Unknown service type", "type", fmt.Sprintf("%T", srvc))
 	return nil
 }

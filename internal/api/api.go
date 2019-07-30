@@ -46,7 +46,7 @@ type Module string
 
 // NewApiService creates a new API instance.
 func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
-	log.Debug("API | Instatiating API service...", "peerCount", p2p.PeerCount(), "runtimeVer", rt.Version())
+	log.Info("API | Instatiating API service...", "peerCount", p2p.PeerCount(), "runtimeVer", rt.Version())
 
 	return &Service{
 		&Api{
