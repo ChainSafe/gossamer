@@ -59,7 +59,7 @@ func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len int32) {
 	log.Debug("WASM | [ext_print_utf8]", "data", utf8_data, "len", utf8_len)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("WASM | [ext_print_utf8] returned", "message", fmt.Sprintf("%s", memory[utf8_data:utf8_data+utf8_len]))
+	log.Trace("WASM | [ext_print_utf8] returned", "message", fmt.Sprintf("%s", memory[utf8_data:utf8_data+utf8_len]))
 }
 
 // prints hex formatted bytes located in memory at location `offset` with length `size`
@@ -68,7 +68,7 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 	log.Debug("WASM | [ext_print_hex]", "offset", offset, "size", size)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("WASM | [ext_print_hex] returned", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
+	log.Trace("WASM | [ext_print_hex] returned", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
 }
 
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
@@ -85,8 +85,11 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	val, err := t.Get(key)
 	if err != nil || val == nil {
 		ret := 1<<32 - 1
+		log.Error("WASM | [ext_get_storage_into] no value or error", "error", err, "returnVal", int32(ret))
 		return int32(ret)
 	}
+
+	log.Trace("WASM | [ext_get_storage_into] retrieved", "key", key, "val", val[valueOffset:])
 
 	if len(val) > int(valueLen) {
 		log.Error("WASM | [ext_get_storage_into]", "error", "value exceeds allocated buffer length")
@@ -94,7 +97,7 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
-	log.Debug("WASM | [ext_get_storage_into] returned", "value", int32(len(val[valueOffset:])))
+	log.Trace("WASM | [ext_get_storage_into] returned", "returnVal", int32(len(val[valueOffset:])))
 	return int32(len(val[valueOffset:]))
 }
 
@@ -113,7 +116,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	if err != nil {
 		log.Error("WASM | [ext_set_storage]", "error", err)
 	}
-	log.Debug("WASM | [ext_set_storage]", "key", key, "val", val)
+	log.Trace("WASM | [ext_set_storage] stored", "key", key, "val", val)
 }
 
 // returns the trie root in the memory location `resultPtr`
@@ -130,7 +133,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	}
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
-	log.Debug("WASM | [ext_storage_root] returned", "root", memory[resultPtr:resultPtr+32])
+	log.Trace("WASM | [ext_storage_root] returned", "root", fmt.Sprintf("%x", memory[resultPtr:resultPtr+32]))
 }
 
 //export ext_storage_changes_root
@@ -143,7 +146,7 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 // in memory where it's stored and stores its length in `writtenOut`
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
-	log.Debug("WASM | ext_get_allocated_storage]", "keyData", keyData, "keyLen", keyLen, "writtenOut", writtenOut)
+	log.Debug("WASM | [ext_get_allocated_storage]", "keyData", keyData, "keyLen", keyLen, "writtenOut", writtenOut)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
@@ -177,14 +180,14 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	copy(memory[lenPtr:lenPtr+4], byteLen)
 
 	// return ptr to value
-	log.Debug("WASM | [ext_get_allocated_storage] returned", "ptr", ptr)
+	log.Trace("WASM | [ext_get_allocated_storage] returned", "ptr", ptr)
 	return ptr
 }
 
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
-	log.Debug("WASM | [ext_sr25519_verify]", "keyData", keyData, "keyLen", keyLen)
+	log.Debug("WASM | [ext_clear_storage]", "keyData", keyData, "keyLen", keyLen)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := (*trie.Trie)(instanceContext.Data())
@@ -192,8 +195,9 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	key := memory[keyData : keyData+keyLen]
 	err := t.Delete(key)
 	if err != nil {
-		log.Error("WASM | [ext_storage_root]", "error", err)
+		log.Error("WASM | [ext_clear_storage]", "error", err)
 	}
+	log.Trace("WASM | [ext_clear_storage] cleared", "key", key)
 }
 
 // deletes all entries in the trie that have a key beginning with the prefix stored at `prefixData`
@@ -214,13 +218,14 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 			}
 		}
 	}
+	log.Trace("WASM | [ext_clear_prefix] cleared", "prefix", prefix)
 }
 
 // accepts an array of values, puts them into a trie, and returns the root
 // the keys to the values are their position in the array
 //export ext_blake2_256_enumerated_trie_root
 func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
-	log.Debug("WASM | [ext_blake2_256_enumerated_trie_root]", "valuesData",valuesData, "lensData", lensData,"lensLen",lensLen, "result", result )
+	log.Debug("WASM | [ext_blake2_256_enumerated_trie_root]", "valuesData",valuesData, "lensData", lensData,"lensLen",lensLen, "result", result)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	t := &trie.Trie{}
@@ -231,7 +236,6 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
 		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
 		value := memory[valuesData+pos : valuesData+pos+valueLen]
-		log.Debug("WASM | [ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%x", value), "valueLen", valueLen)
 		pos += valueLen
 
 		err := t.Put([]byte{byte(i)}, value)
@@ -246,7 +250,7 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	}
 
 	copy(memory[result:result+32], root[:])
-	log.Debug("WASM | [ext_blake2_256_enumerated_trie_root] returned", "root", fmt.Sprintf("%x", root[:]))
+	log.Trace("WASM | [ext_blake2_256_enumerated_trie_root] returned", "root", fmt.Sprintf("%x", root[:]))
 
 }
 
@@ -263,7 +267,7 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	}
 
 	copy(memory[out:out+32], hash[:])
-	log.Debug("WASM | [ext_blake2_256]", fmt.Sprintf("%x", hash[:]))
+	log.Trace("WASM | [ext_blake2_256]", "hash", fmt.Sprintf("%x", hash[:]))
 
 }
 
@@ -279,9 +283,9 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	_, err := h0.Write(memory[data : data+len])
 	if err != nil {
 		log.Error("WASM | [ext_twox_128]", "error", err)
-	}gi
+	}
 	res0 := h0.Sum64()
-	log.Debug("WASM | [ext_twox_128]", "xxH64(0) of value", res0)
+	log.Debug("WASM | [ext_twox_128]", "xxH64(0) of value", fmt.Sprintf("%x", res0))
 	hash0 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash0, uint64(res0))
 
@@ -291,7 +295,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 		log.Error("WASM | [ext_twox_128]", "error", err)
 	}
 	res1 := h1.Sum64()
-	log.Debug("WASM | [ext_twox_128]", "xxH64(1) of value", res1)
+	log.Debug("WASM | [ext_twox_128]", "xxH64(1) of value", fmt.Sprintf("%x", res1))
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
@@ -299,6 +303,8 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	both := append(hash0, hash1...)
 
 	copy(memory[out:out+16], both)
+	log.Trace("WASM | [ext_twox_128] return", "returnVal", fmt.Sprintf("%x", both))
+
 }
 
 //export ext_sr25519_verify
@@ -421,7 +427,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	data := unsafe.Pointer(t)
 	instance.SetContextData(data)
 
-	log.Trace("WASM | WASM module instantiated")
+	log.Trace("WASM | Module instantiated")
 	return &Runtime{
 		vm:   instance,
 		trie: t,
@@ -450,7 +456,7 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	length := int32(resi >> 32)
 	offset := int32(resi)
 	fmt.Printf("offset %d length %d\n", offset, length)
-	log.Debug("WASM | Exec result", "function", function, "result", resi, "offset", offset, "length", length )
+	log.Trace("WASM | Exec result", "function", function, "result", resi, "offset", offset, "length", length )
 	mem := r.vm.Memory.Data()
 	rawdata := make([]byte, length)
 	copy(rawdata, mem[offset:offset+length])
