@@ -314,21 +314,23 @@ func handleStream(stream net.Stream) {
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
 
 	switch msgType {
-	case STATUS_MESSAGE:
+	case StatusMsg:
 		statusMsg := new(StatusMessage)
 		err = statusMsg.Decode(rw, length)
 		if err != nil {
 			log.Info("stream handler", "err", err)
 		}
 
+		// log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
+		// 	"ProtocolVersion", statusMsg.ProtocolVersion,
+		// 	"MinSupportedVersion", statusMsg.MinSupportedVersion,
+		// 	"Roles", statusMsg.Roles,
+		// 	"BestBlockNumber", statusMsg.BestBlockNumber,
+		// 	"BestBlockHash", fmt.Sprintf("%x", statusMsg.BestBlockHash),
+		// 	"GenesisHash", fmt.Sprintf("%x", statusMsg.GenesisHash),
+		// 	"ChainStatus", statusMsg.ChainStatus)
 		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
-			"ProtocolVersion", statusMsg.ProtocolVersion,
-			"MinSupportedVersion", statusMsg.MinSupportedVersion,
-			"Roles", statusMsg.Roles,
-			"BestBlockNumber", statusMsg.BestBlockNumber,
-			"BestBlockHash", fmt.Sprintf("%x", statusMsg.BestBlockHash),
-			"GenesisHash", fmt.Sprintf("%x", statusMsg.GenesisHash),
-			"ChainStatus", statusMsg.ChainStatus)
+			"msg", statusMsg.String())
 	default:
 		log.Info("stream handler", "unimplemented message type", msgType)
 	}

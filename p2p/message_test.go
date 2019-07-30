@@ -8,6 +8,10 @@ import (
 )
 
 func TestDecodeStatusMessage(t *testing.T) {
+	if StatusMsg != 0 {
+		t.Error("StatusMsg does not have correct underlying value")
+	}
+
 	genesisHash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 	if err != nil {
 		t.Fatal(err)
@@ -50,4 +54,6 @@ func TestDecodeStatusMessage(t *testing.T) {
 	} else if !bytes.Equal(sm.ChainStatus, []byte{4, 0}) {
 		t.Error("did not get correct ChainStatus")
 	}
+
+	t.Log(sm.String())
 }

@@ -18,27 +18,28 @@ package p2p
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	common "github.com/ChainSafe/gossamer/common"
 )
 
 const (
-	STATUS_MESSAGE          = 0
-	BLOCK_REQUEST           = 1
-	BLOCK_RESPONSE          = 2
-	BLOCK_ANNOUNCE          = 3
-	TRANSACTION             = 4
-	CONSENSUS               = 5
-	REMOTE_CALL_REQUEST     = 6
-	REMOTE_CALL_RESPONSE    = 7
-	REMOTE_READ_REQUEST     = 8
-	REMOTE_READ_RESPONSE    = 9
-	REMOTE_HEADER_REQUEST   = 10
-	REMOTE_HEADER_RESPONSE  = 11
-	REMOTE_CHANGES_REQUEST  = 12
-	REMOTE_CHANGES_RESPONSE = 13
-	CHAIN_SPECIFIC          = 255
+	StatusMsg = iota
+	BlockRequestMsg
+	BlockResponseMsg
+	BlockAnnounceMsg
+	TransactionMsg
+	ConsensusMsg
+	RemoteCallRequest
+	RemoteCallResponse
+	RemoteReadRequest
+	RemoteReadResponse
+	RemoteHeaderRequest
+	RemoteHeaderResponse
+	RemoteChangesRequest
+	RemoteChangesResponse
+	ChainSpecificMsg = 255
 )
 
 type StatusMessage struct {
@@ -49,6 +50,17 @@ type StatusMessage struct {
 	BestBlockHash       common.Hash
 	GenesisHash         common.Hash
 	ChainStatus         []byte
+}
+
+func (sm *StatusMessage) String() string {
+	return fmt.Sprintf("ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
+		sm.ProtocolVersion,
+		sm.MinSupportedVersion,
+		sm.Roles,
+		sm.BestBlockNumber,
+		sm.BestBlockHash,
+		sm.GenesisHash,
+		sm.ChainStatus)
 }
 
 // Decodes the buffer underlying the reader into a StatusMessage
