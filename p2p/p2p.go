@@ -42,6 +42,7 @@ import (
 )
 
 const protocolPrefix = "/polkadot/0.0.0"
+const protocolPrefix2 = "/polkadot/0.0.1"
 
 // Service describes a p2p service, including host and dht
 type Service struct {
@@ -75,6 +76,7 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 	h.SetStreamHandler(protocolPrefix, handleStream)
+	h.SetStreamHandler(protocolPrefix2, handleBroadcastStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -165,8 +167,13 @@ func (s *Service) Stop() <-chan error {
 
 // Broadcast sends a message to all peers
 func (s *Service) Broadcast(msg []byte) (err error) {
+	//Get each node it's connected to & broadcast message to them
+	for _, node := range s.bootstrapNodes {
+		err = s.SendBroadcast(node, msg)
+	}
+	return err
 	// TODO
-	return nil
+	// return nil
 }
 
 // Send sends a message to a specific peer
@@ -177,6 +184,25 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) error {
 	}
 
 	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
+	if err != nil {
+		return err
+	}
+
+	_, err = stream.Write(msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
+	err := s.host.Connect(s.ctx, peer)
+	if err != nil {
+		return err
+	}
+
+	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
 	if err != nil {
 		return err
 	}
@@ -266,6 +292,27 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 
 // TODO: message handling
 func handleStream(stream net.Stream) {
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error("error closing stream", "err", err)
+		}
+	}()
+	// Create a buffer stream for non blocking read and write.
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	str, err := rw.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
+	_, err = rw.WriteString("hello friend")
+	if err != nil {
+		return
+	}
+}
+
+// TODO: message handling
+func handleBroadcastStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("error closing stream", "err", err)
