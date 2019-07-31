@@ -253,9 +253,29 @@ func TestGossipSub(t *testing.T) {
 	peer, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeB.dht.PeerID())
 	fmt.Printf("%s peer's: %s\n", nodeA.hostAddr.String(), peer)
 
+	msg := []byte("Hello World\n")
+	nodeB.Broadcast(msg)
+
 	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
 	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
 
+	msg1 := []byte("hello there1\n")
+	err = nodeA.Send(peer, msg1)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
+
+	msg2 := []byte("hello there2\n")
+	err = nodeA.Send(peer, msg2)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
+
+	msg3 := []byte("hello there3\n")
+	err = nodeA.Send(peer, msg3)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
 }
 
 // PING is not implemented in the kad-dht.
