@@ -185,6 +185,17 @@ func (s *Service) Stop() <-chan error {
 	return e
 }
 
+// Broadcast sends a message to all peers
+func (s *Service) Broadcast(msg []byte) (err error) {
+	//Get each node it's connected to & broadcast message to them
+	for _, node := range s.bootstrapNodes {
+		err = s.SendBroadcast(node, msg)
+	}
+	return err
+	// TODO
+	// return nil
+}
+
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	log.Debug("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
@@ -204,6 +215,25 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	_, err = stream.Write(msg)
 	if err != nil {
 		log.Error("fail to send message", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
+	err := s.host.Connect(s.ctx, peer)
+	if err != nil {
+		return err
+	}
+
+	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
+	if err != nil {
+		return err
+	}
+
+	_, err = stream.Write(msg)
+	if err != nil {
 		return err
 	}
 
@@ -366,4 +396,30 @@ func handleStream(stream net.Stream) {
 	}
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+}
+// TODO: message handling
+func handleBroadcastStream(stream net.Stream) {
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error("error closing stream", "err", err)
+		}
+	}()
+	// Create a buffer stream for non blocking read and write.
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	str, err := rw.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
+	_, err = rw.WriteString("hello friend")
+	if err != nil {
+		return
+	}
+}
+
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	peers := s.host.Network().Peers()
+	return len(peers)
 }
