@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"time"
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
@@ -33,7 +34,9 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -46,7 +49,9 @@ type Service struct {
 	host           core.Host
 	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
-	bootstrapNodes []*core.PeerAddrInfo
+	bootstrapNodes []peer.AddrInfo
+	mdns           discovery.Service
+	noBootstrap    bool
 }
 
 // Config is used to configure a p2p service
@@ -54,6 +59,7 @@ type Config struct {
 	BootstrapNodes []string
 	Port           int
 	RandSeed       int64
+	NoBootstrap    bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -82,6 +88,13 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
+	mdns, err := discovery.NewMdnsService(ctx, h, time.Second, "polkadot")
+	if err != nil {
+		return nil, err
+	}
+
+	mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
+
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
 		ctx:            ctx,
@@ -89,6 +102,8 @@ func NewService(conf *Config) (*Service, error) {
 		hostAddr:       hostAddr,
 		dht:            dht,
 		bootstrapNodes: bootstrapNodes,
+		noBootstrap:    conf.NoBootstrap,
+		mdns:           mdns,
 	}
 	return s, err
 }
@@ -102,14 +117,21 @@ func (s *Service) Start() <-chan error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 {
+	if len(s.bootstrapNodes) == 0 && !s.noBootstrap {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
-	// connect to the bootstrap nodes
-	err := s.bootstrapConnect()
+	err := s.dht.Bootstrap(s.ctx)
 	if err != nil {
 		e <- err
+	}
+
+	if !s.noBootstrap {
+		// connect to the bootstrap nodes
+		err := s.bootstrapConnect()
+		if err != nil {
+			e <- err
+		}
 	}
 
 	// Now we can build a full multiaddress to reach this host
@@ -124,8 +146,21 @@ func (s *Service) start(e chan error) {
 }
 
 // Stop stops the p2p service
-func (s *Service) Stop() {
-	// TODO
+func (s *Service) Stop() <-chan error {
+	e := make(chan error)
+
+	//Stop the host & IpfsDHT
+	err := s.host.Close()
+	if err != nil {
+		e <- err
+	}
+
+	err = s.dht.Close()
+	if err != nil {
+		e <- err
+	}
+
+	return e
 }
 
 // Broadcast sends a message to all peers

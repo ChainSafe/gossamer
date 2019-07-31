@@ -5,6 +5,7 @@ replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wago
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/ChainSafe/log15 v1.0.0
+	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/ipfs/go-datastore v0.0.5
@@ -18,8 +19,8 @@ require (
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/perlin-network/life v0.0.0-20190625155037-103174020946
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
+	github.com/wasmerio/go-ext-wasm v0.0.0-20190612094245-722faa9f1b90
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 )
