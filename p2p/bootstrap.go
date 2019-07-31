@@ -22,6 +22,8 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+	"log"
+	"sync"
 )
 
 func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
