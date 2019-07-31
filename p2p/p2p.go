@@ -381,23 +381,31 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	// read entire message
-	rawMsg, err := rw.Reader.Peek(int(length) - 1)
+// TODO: message handling
+func handleBroadcastStream(stream net.Stream) {
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error("error closing stream", "err", err)
+		}
+	}()
+	// Create a buffer stream for non blocking read and write.
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	str, err := rw.ReadString('\n')
 	if err != nil {
-		log.Error("failed to read message", "err", err)
 		return
 	}
 
-	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
-
-	// decode message
-	msg, err := DecodeMessage(rw.Reader)
+	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
+	_, err = rw.WriteString("hello friend")
 	if err != nil {
-		log.Error("failed to decode message", "error", err)
 		return
 	}
+}
 
-	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	peers := s.host.Network().Peers()
+	return len(peers)
 }
 
 // Peers returns connected peers
