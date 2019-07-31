@@ -407,3 +407,29 @@ func (s *Service) PeerCount() int {
 	peers := s.host.Network().Peers()
 	return len(peers)
 }
+// TODO: message handling
+func handleBroadcastStream(stream net.Stream) {
+	defer func() {
+		if err := stream.Close(); err != nil {
+			log.Error("error closing stream", "err", err)
+		}
+	}()
+	// Create a buffer stream for non blocking read and write.
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+	str, err := rw.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
+	_, err = rw.WriteString("hello friend")
+	if err != nil {
+		return
+	}
+}
+
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	peers := s.host.Network().Peers()
+	return len(peers)
+}
