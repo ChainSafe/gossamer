@@ -105,8 +105,8 @@ type BlockRequestMessage struct {
 	Id            uint32
 	RequestedData byte
 	StartingBlock []byte // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	EndBlockHash  common.Hash // optional 
 	Direction     byte
+	EndBlockHash  common.Hash // optional 
 	Max           uint32 // optional
 }
 

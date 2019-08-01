@@ -188,18 +188,23 @@ func (s *Service) Stop() <-chan error {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) error {
+	log.Info("sending stream", "to", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
+
 	err := s.host.Connect(s.ctx, peer)
 	if err != nil {
+		log.Warn("sending stream", "error", err)
 		return err
 	}
 
-	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix3)
+	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
 	if err != nil {
+		log.Warn("sending stream", "error", err)
 		return err
 	}
 
 	_, err = stream.Write(msg)
 	if err != nil {
+		log.Warn("sending stream", "error", err)
 		return err
 	}
 
@@ -313,25 +318,13 @@ func handleStream(stream net.Stream) {
 
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", rawMsg))
 
+	// decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
 		log.Info("stream handler", "err", err)		
 	}
 
 	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
-	// switch msgType {
-	// case StatusMsg:
-	// 	statusMsg := new(StatusMessage)
-	// 	err = statusMsg.Decode(rw, length)
-	// 	if err != nil {
-	// 		log.Info("stream handler", "err", err)
-	// 	}
-
-	// 	log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
-	// 		"msg", statusMsg.String())
-	// default:
-	// 	log.Info("stream handler", "unimplemented message type", msgType)
-	// }
 }
 
 // PeerCount returns the number of connected peers
