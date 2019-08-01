@@ -51,12 +51,15 @@ type Message interface {
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
 func DecodeMessage(r io.Reader, length uint64) (m Message, err error) {
 	msgType := make([]byte, 1)
-	r.Read(msgType)
+	_, err = r.Read(msgType)
+	if err != nil {
+		return nil, err
+	}
 
 	switch msgType[0] {
 	case StatusMsg:
 		m = new(StatusMessage)
-		err = m.Decode(r, length)
+		err = m.Decode(r, length-1)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
