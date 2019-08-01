@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
@@ -41,6 +42,27 @@ const (
 	RemoteChangesResponse
 	ChainSpecificMsg = 255
 )
+
+type Message interface {
+	Decode(r io.Reader, length uint64) error
+	String() string
+}
+
+// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
+func DecodeMessage(r io.Reader, length uint64) (m Message, err error) {
+	msgType := make([]byte, 1)
+	r.Read(msgType)
+
+	switch msgType[0] {
+	case StatusMsg:
+		m = new(StatusMessage)
+		err = m.Decode(r, length)
+	default:
+		return nil, errors.New("unsupported message type")
+	}
+
+	return m, err
+}
 
 type StatusMessage struct {
 	ProtocolVersion     uint32

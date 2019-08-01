@@ -299,33 +299,20 @@ func handleStream(stream net.Stream) {
 	length := LEB128ToUint64([]byte{lengthByte})
 	log.Info("stream handler", "got message with length", length)
 
-	// read message type byte
-	msgType, err := rw.Reader.ReadByte()
-	if err != nil {
-		log.Error("stream handler", "msg type err", err)
-	}
-
 	// read entire message
-	msg, err := rw.Reader.Peek(int(length))
+	rawMsg, err := rw.Reader.Peek(int(length))
 	if err != nil {
 		log.Info("stream handler", "err", err)
 	}
 
-	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", msg))
+	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", rawMsg))
 
-	switch msgType {
-	case StatusMsg:
-		statusMsg := new(StatusMessage)
-		err = statusMsg.Decode(rw, length)
-		if err != nil {
-			log.Info("stream handler", "err", err)
-		}
-
-		log.Info("stream handler", "got status message from", stream.Conn().RemotePeer(),
-			"msg", statusMsg.String())
-	default:
-		log.Info("stream handler", "unimplemented message type", msgType)
+	msg, err := DecodeMessage(rw, length)
+	if err != nil {
+		log.Info("stream handler", "err", err)
 	}
+
+	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "message", msg.String())
 }
 
 // PeerCount returns the number of connected peers
