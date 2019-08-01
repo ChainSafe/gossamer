@@ -17,11 +17,12 @@
 package p2p
 
 import (
-	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
 	common "github.com/ChainSafe/gossamer/common"
+	scale "github.com/ChainSafe/gossamer/codec"
 )
 
 const (
@@ -41,6 +42,32 @@ const (
 	RemoteChangesResponse
 	ChainSpecificMsg = 255
 )
+
+type Message interface{
+	Encode() ([]byte, error)
+	Decode([]byte) (error)
+	String() string
+}
+
+// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type 
+func DecodeMessage(r io.Reader) (m Message, err error) {
+	msgType := make([]byte, 1)
+	r.Read(msgType)
+	sd := scale.Decoder{Reader: r}
+
+	switch msgType[0] {
+	case StatusMsg:
+		m = new(StatusMessage)
+		_, err = sd.Decode(m)
+	case BlockRequestMsg:
+		m = new(BlockRequestMessage)
+		_, err = sd.Decode(m)
+	default:
+		return nil, errors.New("unsupported message type")
+	}
+
+	return m, err
+}
 
 type StatusMessage struct {
 	ProtocolVersion     uint32
@@ -63,119 +90,15 @@ func (sm *StatusMessage) String() string {
 		sm.ChainStatus)
 }
 
-func (sm *StatusMessage) Encode(w io.Writer) (length int, err error) {
-	err = writeUint32(w, sm.ProtocolVersion)
-	if err != nil {
-		return length, err
-	}
-	length += 4
-
-	err = writeUint32(w, sm.MinSupportedVersion)
-	if err != nil {
-		return length, err
-	}
-	length += 4
-
-	err = writeByte(w, sm.Roles)
-	if err != nil {
-		return length, err
-	}
-	length += 1	
-
-	err = writeUint64(w, sm.BestBlockNumber)
-	if err != nil {
-		return length, err
-	}
-	length += 8
-
-	err = writeHash(w, sm.BestBlockHash)
-	if err != nil {
-		return length, err
-	}
-	length += 32
-
-	err = writeHash(w, sm.GenesisHash)
-	if err != nil {
-		return length, err
-	}
-	length += 32
-
-	_, err = w.Write(sm.ChainStatus)
-	length += len(sm.ChainStatus)
-
-	return length, err
+func (sm *StatusMessage) Encode() ([]byte, error) {
+    return scale.Encode(sm)
 }
 
-func writeByte(w io.Writer, in byte) (error) {
-	buf := []byte{in}
-	_, err := w.Write(buf)
+// Decodes the message into a StatusMessage
+func (sm *StatusMessage) Decode(msg []byte) (error) {
+	dec, err := scale.Decode(msg, sm)
+	sm = dec.(*StatusMessage)
 	return err
-}
-
-func writeUint32(w io.Writer, in uint32) (error) {
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, in)
-	_, err := w.Write(buf)
-	return err
-}
-
-func writeUint64(w io.Writer, in uint64) (error) {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, in)
-	_, err := w.Write(buf)
-	return err
-}
-
-func writeHash(w io.Writer, in common.Hash) (error) {
-	_, err := w.Write(in.ToBytes())
-	return err
-}
-
-// Decodes the buffer underlying the reader into a StatusMessage
-// it reads up to specified length
-func (sm *StatusMessage) Decode(r io.Reader, length uint64) (err error) {
-	sm.ProtocolVersion, err = readUint32(r)
-	if err != nil {
-		return err
-	}
-
-	sm.MinSupportedVersion, err = readUint32(r)
-	if err != nil {
-		return err
-	}
-
-	sm.Roles, err = readByte(r)
-	if err != nil {
-		return err
-	}
-
-	sm.BestBlockNumber, err = readUint64(r)
-	if err != nil {
-		return err
-	}
-
-	sm.BestBlockHash, err = readHash(r)
-	if err != nil {
-		return err
-	}
-
-	sm.GenesisHash, err = readHash(r)
-	if err != nil {
-		return err
-	}
-
-	if length < 81 {
-		return nil
-	}
-
-	buf := make([]byte, length-81)
-	_, err = r.Read(buf)
-	if err != nil {
-		return err
-	}
-	sm.ChainStatus = buf
-
-	return nil
 }
 
 type BlockRequestMessage struct {
@@ -187,42 +110,23 @@ type BlockRequestMessage struct {
 	Max           uint32 // optional
 }
 
-func (bm *BlockRequestMessage) Encode(w io.Writer) (err error) {
-	return nil
+func (bm *BlockRequestMessage) String() string {
+	return fmt.Sprintf("Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
+		bm.Id,
+		bm.RequestedData,
+		bm.StartingBlock,
+		bm.EndBlockHash,
+		bm.Direction,
+		bm.Max)
 }
 
-func readByte(r io.Reader) (byte, error) {
-	buf := make([]byte, 1)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return buf[0], nil
+func (bm *BlockRequestMessage) Encode() ([]byte, error) {
+	return scale.Encode(bm)
 }
 
-func readUint32(r io.Reader) (uint32, error) {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint32(buf), nil
-}
-
-func readUint64(r io.Reader) (uint64, error) {
-	buf := make([]byte, 8)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint64(buf), nil
-}
-
-func readHash(r io.Reader) (common.Hash, error) {
-	buf := make([]byte, 32)
-	_, err := r.Read(buf)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return common.NewHash(buf), nil
+// Decodes the message into a BlockRequestMessage
+func (bm *BlockRequestMessage) Decode(msg []byte) (error) {
+	dec, err := scale.Decode(msg, bm)
+	bm = dec.(*BlockRequestMessage)
+	return err
 }

@@ -136,40 +136,38 @@ var decodeFixedWidthIntTestsUint32 = []struct {
 	{val: []byte{0x00, 0x00, 0x00, 0x40}, output: uint32(1073741824)},
 }
 
-var decodeIntTests = []struct {
+var decodeFixedWidthIntTestsInt64 = []struct {
 	val    []byte
 	output int64
 }{
 	// compact integers
 	{val: []byte{0x00}, output: int64(0)},
-	{val: []byte{0x04}, output: int64(1)},
-	{val: []byte{0xa8}, output: int64(42)},
-	{val: []byte{0x01, 0x01}, output: int64(64)},
-	{val: []byte{0x15, 0x01}, output: int64(69)},
-	{val: []byte{0xfd, 0xff}, output: int64(16383)},
-	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: int64(16384)},
-	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: int64(1073741823)},
-	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: int64(1073741824)},
-	{val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: int64(1<<32 - 1)},
-	{val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: int64(1 << 32)},
+	{val: []byte{0x04}, output: int64(4)},
+	{val: []byte{0xa8}, output: int64(168)},
+	{val: []byte{0x01, 0x01}, output: int64(257)},
+	{val: []byte{0x15, 0x01}, output: int64(277)},
+	{val: []byte{0xfd, 0xff}, output: int64(65533)},
+	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: int64(65538)},
+	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: int64(4294967294)},
+	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: int64(274877906947)},
+	{val: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, output: int64(-1)},
 }
 
-var decodeUintTests = []struct {
+var decodeFixedWidthIntTestsUint64 = []struct {
 	val    []byte
 	output uint64
 }{
 	// compact unsigned integers
 	{val: []byte{0x00}, output: uint64(0)},
-	{val: []byte{0x04}, output: uint64(1)},
-	{val: []byte{0xa8}, output: uint64(42)},
-	{val: []byte{0x01, 0x01}, output: uint64(64)},
-	{val: []byte{0x15, 0x01}, output: uint64(69)},
-	{val: []byte{0xfd, 0xff}, output: uint64(16383)},
-	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: uint64(16384)},
-	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: uint64(1073741823)},
-	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: uint64(1073741824)},
-	{val: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, output: uint64(1<<32 - 1)},
-	{val: []byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, output: uint64(1 << 32)},
+	{val: []byte{0x04}, output: uint64(4)},
+	{val: []byte{0xa8}, output: uint64(168)},
+	{val: []byte{0x01, 0x01}, output: uint64(257)},
+	{val: []byte{0x15, 0x01}, output: uint64(277)},
+	{val: []byte{0xfd, 0xff}, output: uint64(65533)},
+	{val: []byte{0x02, 0x00, 0x01, 0x00}, output: uint64(65538)},
+	{val: []byte{0xfe, 0xff, 0xff, 0xff}, output: uint64(4294967294)},
+	{val: []byte{0x03, 0x00, 0x00, 0x00, 0x40}, output: uint64(274877906947)},
+	{val: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, output: uint64(1<<64-1)},
 }
 
 var decodeBigIntTests = []decodeBigIntTest{
@@ -381,26 +379,22 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
-}
 
-func TestDecodeInts(t *testing.T) {
-	for _, test := range decodeIntTests {
+	for _, test := range decodeFixedWidthIntTestsInt64 {
 		output, err := Decode(test.val, int64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output != test.output {
+		} else if output.(int) != int(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
-}
 
-func TestDecodeUints(t *testing.T) {
-	for _, test := range decodeUintTests {
+	for _, test := range decodeFixedWidthIntTestsUint64 {
 		output, err := Decode(test.val, uint64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output != test.output {
-			t.Errorf("Fail: input %d got %d (%T) expected %d (%T)", test.val, output, output, test.output, test.output)
+		} else if output.(int) != int(test.output) {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
 }
