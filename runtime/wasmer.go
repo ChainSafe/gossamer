@@ -44,10 +44,13 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 }
 
 //export ext_malloc
-func ext_malloc(context unsafe.Pointer, size C.int32_t) C.int32_t {
+func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory()
+	fbha := FreeingBumpHeapAllocator{heap: memory}
 	log.Debug("[ext_malloc]", "size", size)
-	return 1
+	return fbha.allocate(size)
 }
 
 //export ext_free

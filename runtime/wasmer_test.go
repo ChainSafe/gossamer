@@ -651,3 +651,21 @@ func TestExt_twox_128(t *testing.T) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
 }
+
+// test ext_malloc
+func TestExt_malloc(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testFunc, ok := runtime.vm.Exports["test_ext_malloc"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+	res, err := testFunc(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("res:", res)
+}
