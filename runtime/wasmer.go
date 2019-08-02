@@ -51,11 +51,11 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	fbha := newAllocator(memory)
 	log.Debug("[ext_malloc]", "size", size)
 	log.Debug("[ext_malloc]", "heap_size", fbha.max_heap_size)
-	res, err := fbha.allocate(size)
+	res, err := fbha.allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_free] Error:", err)
 	}
-	return res
+	return int32(res)
 }
 
 //export ext_free
