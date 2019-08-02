@@ -40,9 +40,9 @@ func TestAlexander(t *testing.T) {
 		t.Errorf("Start error: %s", err)
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	pid, err := peer.IDB58Decode("16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj")
+	pid, err := peer.IDB58Decode("16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,35 +62,37 @@ func TestAlexander(t *testing.T) {
 		t.Error(err)
 	}
 
-	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil {
-		t.Fatal(err)
-	}
+	// time.Sleep(2 * time.Second)
 
-	endBlock, err := common.HexToHash("0x9aa25e4c67a8a7e1d77572e4c3b97ca8110df952cfc3d345cec5e88cb1e3a96f")
-	if err != nil {
-		t.Fatal(err)
-	}
+	// genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
-	bm := &BlockRequestMessage{
-		Id:            0,
-		RequestedData: 1,
-		//StartingBlock: append([]byte{0}, genesisHash...),
-		StartingBlock: genesisHash,
-		EndBlockHash:  endBlock,
-		Direction:     1,
-		Max:           1,
-	}
+	// endBlock, err := common.HexToHash("0x9aa25e4c67a8a7e1d77572e4c3b97ca8110df952cfc3d345cec5e88cb1e3a96f")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
-	msg, err := bm.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	// bm := &BlockRequestMessage{
+	// 	Id:            11,
+	// 	RequestedData: 1,
+	// 	StartingBlock: append([]byte{0}, genesisHash...),
+	// 	//StartingBlock: genesisHash,
+	// 	EndBlockHash:  endBlock,
+	// 	Direction:     1,
+	// 	Max:           1,
+	// }
 
-	err = sb.Send(p, msg)
-	if err != nil {
-		t.Errorf("Send error: %s", err)
-	}
+	// msg, err := bm.Encode()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// err = sb.Send(p, msg)
+	// if err != nil {
+	// 	t.Errorf("Send error: %s", err)
+	// }
 
 	// pid, err = peer.IDB58Decode("16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi")
 	// if err != nil {

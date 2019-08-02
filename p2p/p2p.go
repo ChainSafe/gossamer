@@ -254,12 +254,15 @@ func (sc *Config) buildOpts() ([]libp2p.Option, error) {
 		return nil, err
 	}
 
+	connMgr := ConnManager{}
+
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(priv),
 		libp2p.NATPortMap(),
 		libp2p.Ping(true),
+		libp2p.ConnectionManager(connMgr),
 	}, nil
 }
 
@@ -304,16 +307,27 @@ func handleStream(stream net.Stream) {
 	length := LEB128ToUint64([]byte{lengthByte})
 	log.Info("stream handler", "got message with length", length)
 
+	// read start 100 bytes of message
+	// msgPeek, err := rw.Reader.Peek(100)
+	// if err != nil {
+	// 	log.Error("stream handler", "msg peek err", err)
+	// 	return
+	// } else {
+	// 	log.Info("stream handler", "msg peek", fmt.Sprintf("%x", msgPeek))
+	// }
+
 	// read message type byte
 	msgType, err := rw.Reader.Peek(1)
 	if err != nil {
 		log.Error("stream handler", "msg type err", err)
+		return
 	}
 
 	// read entire message
 	rawMsg, err := rw.Reader.Peek(int(length))
 	if err != nil {
-		log.Info("stream handler", "err", err)
+		log.Error("stream handler", "read message err", err)
+		return
 	}
 
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", rawMsg))
@@ -321,7 +335,8 @@ func handleStream(stream net.Stream) {
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
-		log.Info("stream handler", "err", err)
+		log.Error("stream handler", "decode message err", err)
+		return
 	}
 
 	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
