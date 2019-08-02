@@ -1,8 +1,17 @@
 package runtime
 
-import "testing"
+import (
+	"github.com/wasmerio/go-ext-wasm/wasmer"
+	"testing"
+)
 
-func TestAllocator(t *testing.T) {
+func setOffset(mem wasmer.Memory, offset uint32) {
+	// TODO actually implement this so that offset passed in is used to build array
+	mem_values := []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+	copy(mem.Data()[0:len(mem_values) ], mem_values)
+}
+
+func TestAllocatorShouldAllocateProperly(t *testing.T) {
 	t.Log("testing Allocator")
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -14,7 +23,85 @@ func TestAllocator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("next:",3 , nextPowerOf2GT8( 15))
-	t.Log("fbha:", alloc_res)
+
+	t.Log("[allocator_test], should allocate properly", "result", alloc_res)
+	if alloc_res != 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 8)
+	}
+}
+
+func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := runtime.vm.Memory
+	setOffset(mem, 13)
+	fbha := newAllocator(&mem)
+	alloc_res, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("[allocator_test], should allign pointers to multiples of 8", "result", alloc_res)
+	if alloc_res != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 24)
+	}
+}
+
+func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := runtime.vm.Memory
+	fbha := newAllocator(&mem)
+	ptr1, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	ptr2, err := fbha.allocate(9 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	ptr3, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("[allocator_test], should increment pointers properly", "ptr1", ptr1, "ptr2", ptr2, "ptr3", ptr3)
+	if ptr1 != 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
+	}
+	if ptr2 != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
+	}
+	if ptr3 != 24 + 16 + 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24 + 16 + 8)
+	}
+}
+
+func TestAllocatorShouldFreeProperly(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := runtime.vm.Memory
+	fbha := newAllocator(&mem)
+	ptr1, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("ptr1", ptr1)
+	ptr2, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("ptr2", ptr2)
+	err = fbha.deallocate(ptr2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("[allocator_test], head[0]", "head0", fbha.heads[0], "ptr2", ptr2 -8)
 
 }

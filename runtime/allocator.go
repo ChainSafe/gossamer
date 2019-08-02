@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"encoding/binary"
 	"errors"
 	"math/bits"
 	log "github.com/ChainSafe/log15"
@@ -44,8 +45,7 @@ func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
 
 	return *fbha
 }
-func (fbha FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
-	// TODO: ed, implement this
+func (fbha *FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
 	if size > MAX_POSSIBLE_ALLOCATION {
 		err := errors.New("Error: size to large")
 		return 0,err
@@ -56,8 +56,63 @@ func (fbha FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
 		return 0, err
 	}
 	list_index := bits.TrailingZeros32(item_size) -3
-	log.Debug("TZ:","tz", list_index)
-	return 1, nil
+	log.Debug("list_index:","list_index", list_index)
+	var ptr uint32
+	if fbha.heads[list_index] != 0 {
+		// Something from the free list
+		item := fbha.heads[list_index]
+		four_bytes := fbha.get_heap_4bytes(item)
+		log.Debug("four_bytes", "fb", four_bytes)
+		fbha.heads[list_index] = binary.LittleEndian.Uint32(four_bytes)
+		log.Debug("uint32:", "val", binary.LittleEndian.Uint32(four_bytes))
+		ptr = item + 8
+	} else {
+		// Nothing te be freed. Bump.
+		ptr = fbha.bump(item_size + 8) + 8
+	}
+
+	for i := uint32(1); i <= 8; i++ {
+		fbha.set_heap(ptr - i, 255)
+	}
+	fbha.set_heap(ptr - 8, uint8(list_index))
+	fbha.total_size = fbha.total_size + item_size + 8;
+	log.Debug("ptr:", "ptr", ptr)
+	log.Debug("mem:", "mem", fbha.heap.Data()[0:16])
+	log.Debug("heap:", "size:", fbha.total_size)
+	return fbha.ptr_offset + ptr, nil
+}
+
+func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error  {
+	ptr := pointer - fbha.ptr_offset
+	if ptr < 8 {
+		return errors.New("Invalid pointer for deallocation")
+	}
+	list_index := fbha.get_heap_byte(ptr)
+	for i := uint32(1); i <= 8; i++ {
+		theByte := fbha.get_heap_byte(ptr - i)
+		log.Debug("byte ", "byte", theByte)
+		tail := fbha.heads[list_index]
+		log.Debug("tail", "tail", tail)
+	}
+	return nil
+}
+
+func (fbha *FreeingBumpHeapAllocator)bump(n uint32) uint32 {
+	res := fbha.bumper
+	fbha.bumper += n
+	return res
+}
+
+func (fbha *FreeingBumpHeapAllocator)set_heap(ptr uint32, value uint8) {
+	fbha.heap.Data()[fbha.ptr_offset + ptr] = value
+}
+
+func (fbha *FreeingBumpHeapAllocator)get_heap_4bytes(ptr uint32) []byte  {
+	return fbha.heap.Data()[fbha.ptr_offset + ptr: fbha.ptr_offset + ptr + 4]
+}
+
+func (fbha *FreeingBumpHeapAllocator)get_heap_byte(ptr uint32) byte {
+	return fbha.heap.Data()[fbha.ptr_offset + ptr]
 }
 
 func nextPowerOf2GT8(v uint32) uint32 {
