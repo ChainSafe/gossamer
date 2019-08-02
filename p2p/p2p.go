@@ -302,14 +302,14 @@ func handleStream(stream net.Stream) {
 	// read entire message
 	rawMsg, err := rw.Reader.Peek(int(length))
 	if err != nil {
-		log.Info("stream handler", "err", err)
+		log.Error("stream handler", "err", err)
 	}
 
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", rawMsg))
 
 	msg, err := DecodeMessage(rw, length)
 	if err != nil {
-		log.Info("stream handler", "err", err)
+		log.Error("stream handler", "err", err)
 	}
 
 	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "message", msg.String())

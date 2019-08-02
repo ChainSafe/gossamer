@@ -73,7 +73,7 @@ func (s *Service) bootstrapConnect() error {
 
 			s.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
 			if err = s.host.Connect(s.ctx, p); err != nil {
-				log.Warn("bootstrap error", "peer", p.ID, "error", err)
+				log.Error("bootstrap error", "peer", p.ID, "error", err)
 				errs <- err
 				return
 			}
