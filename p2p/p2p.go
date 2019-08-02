@@ -321,7 +321,7 @@ func handleStream(stream net.Stream) {
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
-		log.Info("stream handler", "err", err)		
+		log.Info("stream handler", "err", err)
 	}
 
 	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())

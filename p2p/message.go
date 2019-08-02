@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"io"
 
-	common "github.com/ChainSafe/gossamer/common"
 	scale "github.com/ChainSafe/gossamer/codec"
+	common "github.com/ChainSafe/gossamer/common"
 )
 
 const (
@@ -43,13 +43,13 @@ const (
 	ChainSpecificMsg = 255
 )
 
-type Message interface{
+type Message interface {
 	Encode() ([]byte, error)
-	Decode([]byte) (error)
+	Decode([]byte) error
 	String() string
 }
 
-// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type 
+// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
 func DecodeMessage(r io.Reader) (m Message, err error) {
 	msgType := make([]byte, 1)
 	r.Read(msgType)
@@ -79,6 +79,7 @@ type StatusMessage struct {
 	ChainStatus         []byte
 }
 
+// String formats a StatusMessage as a string
 func (sm *StatusMessage) String() string {
 	return fmt.Sprintf("ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
 		sm.ProtocolVersion,
@@ -90,12 +91,17 @@ func (sm *StatusMessage) String() string {
 		sm.ChainStatus)
 }
 
+// Encode encodes a status message using SCALE and appends the type byte to the start
 func (sm *StatusMessage) Encode() ([]byte, error) {
-    return scale.Encode(sm)
+	enc, err := scale.Encode(sm)
+	if err != nil {
+		return enc, err
+	}
+	return append([]byte{StatusMsg}, enc...), nil
 }
 
-// Decodes the message into a StatusMessage
-func (sm *StatusMessage) Decode(msg []byte) (error) {
+// Decodes the message into a StatusMessage, it assumes the type byte has been removed
+func (sm *StatusMessage) Decode(msg []byte) error {
 	dec, err := scale.Decode(msg, sm)
 	sm = dec.(*StatusMessage)
 	return err
@@ -104,12 +110,13 @@ func (sm *StatusMessage) Decode(msg []byte) (error) {
 type BlockRequestMessage struct {
 	Id            uint32
 	RequestedData byte
-	StartingBlock []byte // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	StartingBlock []byte      // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	EndBlockHash  common.Hash // optional
 	Direction     byte
-	EndBlockHash  common.Hash // optional 
 	Max           uint32 // optional
 }
 
+// String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
 	return fmt.Sprintf("Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
 		bm.Id,
@@ -120,12 +127,17 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max)
 }
 
+// Encode encodes a block request message using SCALE and appends the type byte to the start
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	return scale.Encode(bm)
+	enc, err := scale.Encode(bm)
+	if err != nil {
+		return enc, err
+	}
+	return append([]byte{BlockRequestMsg}, enc...), nil
 }
 
-// Decodes the message into a BlockRequestMessage
-func (bm *BlockRequestMessage) Decode(msg []byte) (error) {
+// Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
+func (bm *BlockRequestMessage) Decode(msg []byte) error {
 	dec, err := scale.Decode(msg, bm)
 	bm = dec.(*BlockRequestMessage)
 	return err
