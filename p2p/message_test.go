@@ -70,7 +70,8 @@ func TestDecodeStatusMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	
+	// from Alexander testnet
 	encStatus, err := common.HexToBytes("0x020000000200000004c1e72400000000008dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4dadcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0400")
 	if err != nil {
 		t.Fatal(err)
