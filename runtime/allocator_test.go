@@ -92,16 +92,70 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("ptr1", ptr1)
+	if ptr1 != 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
+	}
+
 	ptr2, err := fbha.allocate(1 );
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("ptr2", ptr2)
+	if ptr2 != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
+	}
+
 	err = fbha.deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	t.Log("[allocator_test], head[0]", "head0", fbha.heads[0], "ptr2", ptr2 -8)
+	if fbha.heads[0] != ptr2 -8 {
+		t.Errorf("Error deallocate, head ptr not equal expected value")
+	}
+}
 
+func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := runtime.vm.Memory
+	fbha := newAllocator(&mem)
+	ptr1, err := fbha.allocate(1 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("ptr1", ptr1)
+	if ptr1 != 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
+	}
+
+	ptr2, err := fbha.allocate(9 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("ptr2", ptr2)
+	if ptr2 != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
+	}
+
+	err = fbha.deallocate(ptr2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("[allocator_test], head[0]", "head0", fbha.heads[0], "ptr2", 0)
+	if fbha.heads[0] != 0 {
+		t.Errorf("Error deallocate, head ptr not equal expected value")
+	}
+
+	ptr3, err := fbha.allocate(9 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("ptr3", ptr3)
+	if ptr3 != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24)
+	}
+	t.Log("heap", "heap", fbha.heads)
 }
