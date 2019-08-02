@@ -48,8 +48,9 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	fbha := FreeingBumpHeapAllocator{heap: memory}
+	fbha := newAllocator(memory)
 	log.Debug("[ext_malloc]", "size", size)
+	log.Debug("[ext_malloc]", "heap_size", fbha.max_heap_size)
 	return fbha.allocate(size)
 }
 
