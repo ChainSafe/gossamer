@@ -8,10 +8,13 @@ func TestAllocator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	fbha := FreeingBumpHeapAllocator{bumper: 2}
-	alloc_res := fbha.allocate(2);
+	mem := runtime.vm.Memory
+	fbha := newAllocator(&mem)
+	alloc_res, err := fbha.allocate(16 );
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("next:",3 , nextPowerOf2GT8( 15))
 	t.Log("fbha:", alloc_res)
-	mem := runtime.vm.Memory.Data()
-	t.Log("mem", mem[:10])
+
 }

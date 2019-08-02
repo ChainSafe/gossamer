@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"errors"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -10,20 +11,21 @@ import (
 // The pointers need to be aligned to 8 bytes
 const ALIGNMENT int32 = 8
 const N = 22
+const MAX_POSSIBLE_ALLOCATION = 16777216    // 2^24 bytes
 
 type FreeingBumpHeapAllocator struct {
 	bumper         int32
 	heads          [N]int32
 	heap           *wasm.Memory
-	max_heap_size  uint32
+	max_heap_size  int32
 	ptr_offset     int32
-	total_size     uint32
+	total_size     int32
 }
 
 func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	current_size := mem.Length()
-	heap_size := current_size
+	heap_size := int32(current_size)
 	used_size := 0  // TODO actually calculate this
 
 	ptr_offset := int32(used_size)
@@ -40,7 +42,32 @@ func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
 
 	return *fbha
 }
-func (fbha FreeingBumpHeapAllocator) allocate(size int32) int32 {
+func (fbha FreeingBumpHeapAllocator) allocate(size int32) (int32, error) {
 	// TODO: ed, implement this
-	return 1
+	if size > MAX_POSSIBLE_ALLOCATION {
+		err := errors.New("Error size to large")
+		return 0,err
+	}
+	item_size := nextPowerOf2GT8(size);
+	if (item_size + 8 + fbha.total_size) > fbha.max_heap_size {
+		err := errors.New("Allocator Out of space")
+		return 0, err
+	}
+	return 1, nil
+}
+
+func nextPowerOf2GT8(v int32) int32 {
+	if v < 8 {
+		return 8
+	}
+	v--
+	v |= v >> 1
+	v |= v >> 2
+	v |= v >> 4
+	v |= v >> 8
+	v |= v >> 16
+	v |= v >> 32
+	v++
+	return v
+
 }
