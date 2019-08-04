@@ -4,6 +4,8 @@ import (
 	"math/big"
 )
 
+var EmptyHash [32]byte = [32]byte{}
+
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
