@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"bytes"
+	//"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -42,7 +43,7 @@ func TestAlexander(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	pid, err := peer.IDB58Decode("16Uiu2HAmJqVCtF5oMvu1rbJvqWubMMRuWiKJtpoM8KSQ3JNnL5Ec")
+	pid, err := peer.IDB58Decode("16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,25 +75,44 @@ func TestAlexander(t *testing.T) {
 	// 	t.Fatal(err)
 	// }
 
-	// bm := &BlockRequestMessage{
-	// 	Id:            11,
-	// 	RequestedData: 1,
-	// 	StartingBlock: append([]byte{0}, genesisHash...),
-	// 	//StartingBlock: genesisHash,
-	// 	EndBlockHash:  endBlock,
-	// 	Direction:     1,
-	// 	Max:           1,
+	bm := &BlockRequestMessage{
+		Id:            15,
+		RequestedData: 1,
+		StartingBlock: []byte{1, 1},// append([]byte{0}, genesisHash...),
+		//StartingBlock: genesisHash,
+		//EndBlockHash:  endBlock,
+		Direction:     1,
+		//Max:           2,
+	}
+
+	msg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// stream := sb.GetExistingStream(pid)
+	// if stream != nil {
+	// 	fmt.Printf("using existing stream to send block request...\n")
+	// 	_, err = stream.Write(msg)
+	// 	if err != nil {
+	// 		fmt.Printf("write to stream err %s", err)
+	// 	}
+	// } else {
+	// 	fmt.Printf("using new stream to send block request...\n")
+	// 	stream, err = sb.host.NewStream(sb.ctx, pid, protocolPrefix2)
+	// 	if err != nil {
+	// 		fmt.Printf("new stream err %s", err)
+	// 	}
+	// 	_, err = stream.Write(msg)
+	// 	if err != nil {
+	// 		fmt.Printf("write to stream err %s", err)
+	// 	}	
 	// }
 
-	// msg, err := bm.Encode()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// err = sb.Send(p, msg)
-	// if err != nil {
-	// 	t.Errorf("Send error: %s", err)
-	// }
+	err = sb.Send(p, msg)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
 
 	// pid, err = peer.IDB58Decode("16Uiu2HAkyhNWHTPcA2dVKzMnLpFebXqsDQMpkuGnS9SqjJyDyULi")
 	// if err != nil {
