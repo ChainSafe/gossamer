@@ -17,7 +17,6 @@
 package p2p
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -63,27 +62,6 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 	case BlockRequestMsg:
 		m = new(BlockRequestMessage)
 		_, err = sd.Decode(m)
-	default:
-		return nil, errors.New("unsupported message type")
-	}
-
-	return m, err
-}
-
-func DecodeMessageBytes(msg []byte) (m Message, err error) {
-	if len(msg) == 0 {
-		return nil, errors.New("cannot decode empty message")
-	}
-
-	msgType := msg[0]
-
-	switch msgType {
-	case StatusMsg:
-		m = new(StatusMessage)
-		_, err = scale.Decode(msg, m)
-	case BlockRequestMsg:
-		m = new(BlockRequestMessage)
-		_, err = scale.Decode(msg, m)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
@@ -151,42 +129,10 @@ func (bm *BlockRequestMessage) String() string {
 
 // Encode encodes a block request message using SCALE and appends the type byte to the start
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	// enc, err := scale.Encode(bm)
-	// if err != nil {
-	// 	return enc, err
-	// }
-	// return append([]byte{BlockRequestMsg}, enc...), nil
-	encMsg := []byte{1}
-
-	encId := make([]byte, 4)
-	binary.LittleEndian.PutUint32(encId, bm.Id)
-	encMsg = append(encMsg, encId...)
-
-	encMsg = append(encMsg, bm.RequestedData)
-	encMsg = append(encMsg, bm.StartingBlock...)
-
-	if bm.EndBlockHash != common.EmptyHash {
-		encMsg = append(encMsg, bm.EndBlockHash.ToBytes()...)
-	} else {
-		encMsg = append(encMsg, 0)
-	}
-
-	encMsg = append(encMsg, bm.Direction)
-
-	if bm.Max != 0 {
-		encMax := make([]byte, 4)
-		binary.LittleEndian.PutUint32(encMax, bm.Max)
-		encMsg = append(encMsg, encMax...)		
-	} else {
-		encMsg = append(encMsg, 0)
-	}
-
-	return encMsg, nil
+	return nil, nil
 }
 
 // Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
 func (bm *BlockRequestMessage) Decode(msg []byte) error {
-	dec, err := scale.Decode(msg, bm)
-	bm = dec.(*BlockRequestMessage)
-	return err
+	return nil
 }

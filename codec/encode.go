@@ -116,13 +116,13 @@ func (se *Encoder) encodeFixedWidthInteger(in interface{}) (bytesEncoded int, er
 		bytesEncoded = 4
 	case int64:
 		err = binary.Write(se.Writer, binary.LittleEndian, uint64(i))
-		bytesEncoded = 8		
+		bytesEncoded = 8
 	case uint64:
 		err = binary.Write(se.Writer, binary.LittleEndian, uint64(i))
-		bytesEncoded = 8	
+		bytesEncoded = 8
 	default:
-		err = errors.New("could not encode fixed width int: invalid type")	
-	}	
+		err = errors.New("could not encode fixed width int: invalid type")
+	}
 
 	return bytesEncoded, err
 }
@@ -228,7 +228,7 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	case reflect.Slice, reflect.Array:
 		v = reflect.ValueOf(t)
 	}
-	
+
 	values := make([]interface{}, v.NumField())
 
 	for i := 0; i < v.NumField(); i++ {

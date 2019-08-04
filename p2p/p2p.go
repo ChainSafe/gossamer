@@ -190,20 +190,14 @@ func (s *Service) Stop() <-chan error {
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	log.Info("sending stream", "to", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
 
-	// err := s.host.Connect(s.ctx, peer)
-	// if err != nil {
-	// 	log.Warn("sending stream", "error", err)
-	// 	return err
-	// }
-
-	stream := s.GetExistingStream(peer.ID)
+	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
 		stream, err = s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
 		log.Info("stream", "opening new stream to peer", peer.ID)
 		if err != nil {
 			log.Error("new stream", "error", err)
 			return err
-		}		
+		}
 	} else {
 		log.Info("stream", "using existing stream for peer", peer.ID)
 	}
@@ -212,20 +206,6 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	if err != nil {
 		log.Error("sending stream", "error", err)
 		return err
-	}
-
-	return nil
-}
-
-func (s *Service) GetExistingStream(p peer.ID) (net.Stream) {
-	conns := s.host.Network().ConnsToPeer(p)
-	for _, conn := range conns {
-		streams := conn.GetStreams()
-		for _, stream := range streams {
-			if stream.Protocol() == protocolPrefix2 || stream.Protocol() == protocolPrefix3 {
-				return stream
-			}
-		}
 	}
 
 	return nil
@@ -259,6 +239,12 @@ func (s *Service) DHT() *kaddht.IpfsDHT {
 // Ctx returns the service's ctx
 func (s *Service) Ctx() context.Context {
 	return s.ctx
+}
+
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	peers := s.host.Network().Peers()
+	return len(peers)
 }
 
 func (sc *Config) buildOpts() ([]libp2p.Option, error) {
@@ -308,6 +294,21 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
+// getExistingStream gets an existing stream for a peer that uses protocol "/substrate/dot/2" or "/substrate/dot/3"
+func (s *Service) getExistingStream(p peer.ID) net.Stream {
+	conns := s.host.Network().ConnsToPeer(p)
+	for _, conn := range conns {
+		streams := conn.GetStreams()
+		for _, stream := range streams {
+			if stream.Protocol() == protocolPrefix2 || stream.Protocol() == protocolPrefix3 {
+				return stream
+			}
+		}
+	}
+
+	return nil
+}
+
 // handles stream; reads message length, message type, and decodes message based on type
 // TODO: implement all message types; send message back to peer when we get a message; gossip for certain message types
 func handleStream(stream net.Stream) {
@@ -326,28 +327,9 @@ func handleStream(stream net.Stream) {
 	}
 	log.Info("stream handler", "got message with encoded length", lengthByte)
 
-	// length := rw.Reader.Buffered()
-	// buf := make([]byte, length)
-	// _, err := rw.Reader.Read(buf)
-	// if err != nil {
-	// 	log.Error("stream handler", "stream read err", err)
-	// 	return		
-	// }
-
-	// buf := make([]byte, 100)
-	// peekMsg, err := rw.Reader.Read(buf)
-	// if err != nil {
-	// 	log.Error("stream handler", "message peek err", err)
-	// 	return
-	// }
-
-	//log.Info("stream handler", "msg read", buf)
-
-
 	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
 	log.Info("stream handler", "got message with length", length)
-
 
 	// read message type byte
 	msgType, err := rw.Reader.Peek(1)
@@ -357,7 +339,7 @@ func handleStream(stream net.Stream) {
 	}
 
 	// read entire message
-	rawMsg, err := rw.Reader.Peek(int(length)-1)
+	rawMsg, err := rw.Reader.Peek(int(length) - 1)
 	if err != nil {
 		log.Error("stream handler", "read message err", err)
 		return
@@ -367,18 +349,10 @@ func handleStream(stream net.Stream) {
 
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
-	//msg, err := DecodeMessageBytes(buf)
 	if err != nil {
 		log.Error("stream handler", "decode message err", err)
 		return
 	}
 
-	//msgType := buf[0]
 	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
-}
-
-// PeerCount returns the number of connected peers
-func (s *Service) PeerCount() int {
-	peers := s.host.Network().Peers()
-	return len(peers)
 }

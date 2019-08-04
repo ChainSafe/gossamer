@@ -344,7 +344,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			_, err = sd.Reader.Read(b)
 
 			ptr := fieldValue.Addr().Interface().(*byte)
-			*ptr = b[0]			
+			*ptr = b[0]
 		case []byte:
 			o, err = sd.DecodeByteArray()
 			if err != nil {
@@ -406,7 +406,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 			ptr := fieldValue.Addr().Interface().(*uint64)
 			oint := o.(int)
-			*ptr = uint64(oint)	
+			*ptr = uint64(oint)
 		case bool:
 			o, err = sd.DecodeBool()
 			if err != nil {
