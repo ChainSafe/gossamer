@@ -219,8 +219,6 @@ func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 // encodeTuple reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
 // encoded as their respective types
 func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
-	//v := reflect.ValueOf(t)
-
 	var v reflect.Value
 	switch reflect.ValueOf(t).Kind() {
 	case reflect.Ptr:
