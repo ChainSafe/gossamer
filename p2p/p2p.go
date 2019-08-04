@@ -324,8 +324,8 @@ func handleStream(stream net.Stream) {
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
 		log.Error("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
+		return
 	}
-	log.Info("stream handler", "got message with encoded length", lengthByte)
 
 	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
