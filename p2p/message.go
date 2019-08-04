@@ -52,7 +52,11 @@ type Message interface {
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
 func DecodeMessage(r io.Reader) (m Message, err error) {
 	msgType := make([]byte, 1)
-	r.Read(msgType)
+	_, err = r.Read(msgType)
+	if err != nil {
+		return nil, err
+	}
+
 	sd := scale.Decoder{Reader: r}
 
 	switch msgType[0] {
@@ -102,8 +106,7 @@ func (sm *StatusMessage) Encode() ([]byte, error) {
 
 // Decodes the message into a StatusMessage, it assumes the type byte has been removed
 func (sm *StatusMessage) Decode(msg []byte) error {
-	dec, err := scale.Decode(msg, sm)
-	sm = dec.(*StatusMessage)
+	_, err := scale.Decode(msg, sm)
 	return err
 }
 
