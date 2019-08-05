@@ -18,25 +18,30 @@ func setOffset(mem wasmer.Memory, offset uint32) {
 }
 
 func TestAllocatorShouldAllocateProperly(t *testing.T) {
-	t.Log("testing Allocator")
+	// give
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
 	fbha := newAllocator(&mem)
-	alloc_res, err := fbha.allocate(16)
+
+	// when
+	alloc_res, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log("[allocator_test], should allocate properly", "result", alloc_res)
+	// then
+	t.Log("[TestAllocatorShouldAllocateProperly]", "result", alloc_res)
 	if alloc_res != 8 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 8)
 	}
 }
 
+// todo discuss how we want to handle offset
 func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -44,24 +49,30 @@ func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
 	mem := runtime.vm.Memory
 	setOffset(mem, 13)
 	fbha := newAllocator(&mem)
+
+	// when
 	alloc_res, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Log("[allocator_test], should allign pointers to multiples of 8", "result", alloc_res)
+	// then
+	t.Log("[TestAllocatorShouldAlignPointersToMultiplesOf8]", "result", alloc_res)
 	if alloc_res != 24 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 24)
 	}
 }
 
 func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
 	fbha := newAllocator(&mem)
+
+	// when
 	ptr1, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
@@ -74,19 +85,26 @@ func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("[allocator_test], should increment pointers properly", "ptr1", ptr1, "ptr2", ptr2, "ptr3", ptr3)
+
+	// then
+	t.Log("[TestAllocatorShouldIncrementPointersProperly]", "ptr1", ptr1, "ptr2", ptr2, "ptr3", ptr3)
+	// a prefix of 8 bytes is prepended to each pointer
 	if ptr1 != 8 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
-	if ptr2 != 24 {
+	// the prefix of 8 bytes + the content of ptr1 padded to the lowest possible
+	// item size of 8 bytes + the prefix of ptr1
+	if ptr2 != 8+16 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
 	}
+	// ptr2 + its content of 16 bytes + the prefix of 8 bytes
 	if ptr3 != 24+16+8 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24+16+8)
 	}
 }
 
 func TestAllocatorShouldFreeProperly(t *testing.T) {
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -97,6 +115,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// the prefix of 8 bytes is prepended to the pointer
 	t.Log("ptr1", ptr1)
 	if ptr1 != 8 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
@@ -107,21 +126,28 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("ptr2", ptr2)
+	// the prefix of 8 bytes + the content of ptr1 is prepended to the pointer
 	if ptr2 != 24 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
 	}
 
+	// when
 	err = fbha.deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("[allocator_test], head[0]", "head0", fbha.heads[0], "ptr2", ptr2-8)
+
+	// then
+	// then the heads table should contain a pointer to the prefix of ptr2 in the leftmost entry
+	t.Log("[TestAllocatorShouldFreeProperly]", "head0", fbha.heads[0], "ptr2", ptr2-8)
 	if fbha.heads[0] != ptr2-8 {
 		t.Errorf("Error deallocate, head ptr not equal expected value")
 	}
 }
 
+// todo we're NOT testing offset in this, discuss
 func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -146,26 +172,24 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
 	}
 
+	// when
 	err = fbha.deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("[allocator_test], head[0]", "head0", fbha.heads[0], "ptr2", 0)
-	if fbha.heads[0] != 0 {
-		t.Errorf("Error deallocate, head ptr not equal expected value")
-	}
-
 	ptr3, err := fbha.allocate(9)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// then
+	// should have re-allocated
 	t.Log("ptr3", ptr3)
 	if ptr3 != 24 {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24)
 	}
 	// TODO find way to compare head results to expected results
 	t.Log("[TestAllocatorShouldDeallocateAndReallocateProperly]", "heads", fbha.heads)
-
 }
 
 func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
@@ -181,19 +205,16 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("ptr1", ptr1)
 
 	ptr2, err := fbha.allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("ptr2", ptr2)
 
 	ptr3, err := fbha.allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("ptr3", ptr3)
 
 	// when
 	err = fbha.deallocate(ptr1)
@@ -212,8 +233,9 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	}
 
 	// then
-	expected := make([]uint32, 22)
-	expected[0] = ptr3 - 8
+	//expected := make([]uint32, 22)
+	//expected[0] = ptr3 - 8
+	expected := []uint32{ptr3 - 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	// TODO check slices are equal
 	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], heads", fbha.heads)
 	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], expected", expected)
@@ -230,11 +252,11 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 
 	expected[0] = ptr2 - 8
 	// TODO check slices are equal
-	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], heads", fbha.heads)
+	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], heads   ", fbha.heads)
 	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], expected", expected)
-
 }
 
+// todo discuss, wasm memory implementation issues regarding setup
 func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -346,7 +368,7 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 
 }
 
-func TestShouldColculateTotalHeapSizeToZero(t *testing.T) {
+func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -458,7 +480,7 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 
 	//
 	t.Log("[TestShouldGetMaxFromIndex]", "item_size", item_size)
-	if item_size != MAX_POSSIBLE_ALLOCATION  {
+	if item_size != MAX_POSSIBLE_ALLOCATION {
 		t.Errorf("item_size should be %d, got item_size: %d", MAX_POSSIBLE_ALLOCATION, item_size)
 	}
 }

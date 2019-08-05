@@ -49,19 +49,30 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
 	fbha := newAllocator(memory)
-	log.Debug("[ext_malloc]", "size", size)
-	log.Debug("[ext_malloc]", "heap_size", fbha.max_heap_size)
+
+	// allocate memory
 	res, err := fbha.allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_free] Error:", err)
 	}
+	log.Debug("[ext_malloc]", "pointer", res)
+	log.Debug("[ext_malloc]", "heap_size after allocation", fbha.total_size)
 	return int32(res)
 }
 
 //export ext_free
-func ext_free(context unsafe.Pointer, addr C.int32_t) {
+func ext_free(context unsafe.Pointer, addr int32) {
 	log.Debug("[ext_free] executing...")
 	log.Debug("[ext_free]", "addr", addr)
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory()
+	fbha := newAllocator(memory)
+
+	// deallocate memory
+	err := fbha.deallocate(uint32(addr))
+	if err != nil {
+		log.Error("[ext_free] Error:", err)
+	}
 }
 
 // prints string located in memory at location `offset` with length `size`

@@ -46,41 +46,40 @@ func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
 	return *fbha
 }
 func (fbha *FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
+	// test for space allocation
 	if size > MAX_POSSIBLE_ALLOCATION {
 		err := errors.New("Error: size to large")
 		return 0, err
 	}
 	item_size := nextPowerOf2GT8(size)
-	log.Debug("fbha", "item_size", item_size)
-	log.Debug("fbha", "max heap", fbha.max_heap_size)
+
 	if (item_size + 8 + fbha.total_size) > fbha.max_heap_size {
 		err := errors.New("Error: allocator out of space")
 		return 0, err
 	}
+
+	// get pointer based on list_index
 	list_index := bits.TrailingZeros32(item_size) - 3
-	log.Debug("list_index:", "list_index", list_index)
+
 	var ptr uint32
 	if fbha.heads[list_index] != 0 {
 		// Something from the free list
 		item := fbha.heads[list_index]
 		four_bytes := fbha.get_heap_4bytes(item)
-		log.Debug("four_bytes", "fb", four_bytes)
 		fbha.heads[list_index] = binary.LittleEndian.Uint32(four_bytes)
-		log.Debug("uint32:", "val", binary.LittleEndian.Uint32(four_bytes))
 		ptr = item + 8
 	} else {
 		// Nothing te be freed. Bump.
 		ptr = fbha.bump(item_size+8) + 8
 	}
 
+	// write "header" for allocated memory to heap
 	for i := uint32(1); i <= 8; i++ {
 		fbha.set_heap(ptr-i, 255)
 	}
 	fbha.set_heap(ptr-8, uint8(list_index))
 	fbha.total_size = fbha.total_size + item_size + 8
-	log.Debug("ptr:", "ptr", ptr)
-	log.Debug("mem:", "mem", fbha.heap.Data()[0:16])
-	log.Debug("heap:", "size:", fbha.total_size)
+	log.Debug("[allocate]", "heap_size after allocation", fbha.total_size)
 	return fbha.ptr_offset + ptr, nil
 }
 
@@ -89,25 +88,26 @@ func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error {
 	if ptr < 8 {
 		return errors.New("Invalid pointer for deallocation")
 	}
-	log.Debug("allocator", "ptr", ptr)
-	list_index := fbha.get_heap_byte(ptr -8)
-	log.Debug("allocator", "list_index", list_index)
+	log.Debug("[deallocate]", "ptr", ptr)
+	list_index := fbha.get_heap_byte(ptr - 8)
+	log.Debug("[deallocate]", "list_index", list_index)
 	for i := uint32(1); i <= 8; i++ {
 		theByte := fbha.get_heap_byte(ptr - i)
 		log.Debug("byte ", "byte", theByte)
 	}
+
+	// update heads array, and heap "header"
 	tail := fbha.heads[list_index]
-	log.Debug("tail", "tail", tail)
 	fbha.heads[list_index] = ptr - 8
 
-	b := make([]byte, 4)
-	binary.LittleEndian.PutUint32(b, tail)
-	fbha.set_heap_4bytes(ptr-8, b)
-	log.Debug("b", "b", b)
+	bTail := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bTail, tail)
+	fbha.set_heap_4bytes(ptr-8, bTail)
+
+	// update heap total size
 	item_size := get_item_size_from_index(uint(list_index))
-	log.Debug("Item size", "is", item_size)
-	fbha.total_size = fbha.total_size - uint32(item_size + 8)
-	log.Debug("size", "heap size", fbha.total_size)
+	fbha.total_size = fbha.total_size - uint32(item_size+8)
+	log.Debug("[deallocate]", "heap total_size after deallocate", fbha.total_size)
 
 	return nil
 }
