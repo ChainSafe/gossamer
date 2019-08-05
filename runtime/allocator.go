@@ -28,8 +28,8 @@ type FreeingBumpHeapAllocator struct {
 func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	current_size := mem.Length()
-	heap_size := uint32(current_size)
 	used_size := uint32(0) // TODO actually calculate this
+	heap_size := uint32(current_size) - used_size
 
 	ptr_offset := used_size
 	padding := ptr_offset % ALIGNMENT
@@ -51,6 +51,8 @@ func (fbha *FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
 		return 0, err
 	}
 	item_size := nextPowerOf2GT8(size)
+	log.Debug("fbha", "item_size", item_size)
+	log.Debug("fbha", "max heap", fbha.max_heap_size)
 	if (item_size + 8 + fbha.total_size) > fbha.max_heap_size {
 		err := errors.New("Error: allocator out of space")
 		return 0, err
@@ -102,9 +104,9 @@ func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error {
 	binary.LittleEndian.PutUint32(b, tail)
 	fbha.set_heap_4bytes(ptr-8, b)
 	log.Debug("b", "b", b)
-	item_size := get_item_size_from_index(uint32(list_index))
+	item_size := get_item_size_from_index(uint(list_index))
 	log.Debug("Item size", "is", item_size)
-	fbha.total_size = fbha.total_size - item_size + 8
+	fbha.total_size = fbha.total_size - uint32(item_size + 8)
 	log.Debug("size", "heap size", fbha.total_size)
 
 	return nil
@@ -131,7 +133,7 @@ func (fbha *FreeingBumpHeapAllocator) get_heap_byte(ptr uint32) byte {
 	return fbha.heap.Data()[fbha.ptr_offset+ptr]
 }
 
-func get_item_size_from_index(index uint32) uint32 {
+func get_item_size_from_index(index uint) uint {
 	// we shift 1 by three places since the first possible item size is 8
 	return 1 << 3 << index
 }
