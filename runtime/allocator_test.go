@@ -2,9 +2,10 @@ package runtime
 
 import (
 	"encoding/binary"
-	"github.com/wasmerio/go-ext-wasm/wasmer"
 	"math"
 	"testing"
+
+	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 const PAGE_SIZE = 65536
@@ -287,6 +288,9 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	fbha := newAllocator(&mem)
 
 	ptr1, err := fbha.allocate((PAGE_SIZE / 2) - 8)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("ptr1", ptr1)
 	if ptr1 != 8 {
 		t.Errorf("Expected value of 8")

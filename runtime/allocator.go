@@ -3,9 +3,10 @@ package runtime
 import (
 	"encoding/binary"
 	"errors"
+	"math/bits"
+
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
-	"math/bits"
 )
 
 // This module implements a freeing-bump allocator
@@ -147,7 +148,6 @@ func nextPowerOf2GT8(v uint32) uint32 {
 	v |= v >> 4
 	v |= v >> 8
 	v |= v >> 16
-	v |= v >> 32
 	v++
 	return v
 
