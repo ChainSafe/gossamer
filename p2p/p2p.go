@@ -193,13 +193,13 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
 		stream, err = s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
-		log.Info("stream", "opening new stream to peer", peer.ID)
+		log.Debug("stream", "opening new stream to peer", peer.ID)
 		if err != nil {
 			log.Error("new stream", "error", err)
 			return err
 		}
 	} else {
-		log.Info("stream", "using existing stream for peer", peer.ID)
+		log.Debug("stream", "using existing stream for peer", peer.ID)
 	}
 
 	_, err = stream.Write(msg)
@@ -329,7 +329,7 @@ func handleStream(stream net.Stream) {
 
 	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
-	log.Info("stream handler", "got message with length", length)
+	log.Debug("stream handler", "got message with length", length)
 
 	// read message type byte
 	msgType, err := rw.Reader.Peek(1)
@@ -345,7 +345,7 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("0x%x", rawMsg))
+	log.Debug("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("0x%x", rawMsg))
 
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
