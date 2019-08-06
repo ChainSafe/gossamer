@@ -417,7 +417,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			ptr := fieldValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
 		case *big.Int:
-			o, err := sd.DecodeBigInt()
+			o, err = sd.DecodeBigInt()
 			if err != nil {
 				break
 			}
