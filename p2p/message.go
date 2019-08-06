@@ -132,7 +132,32 @@ func (bm *BlockRequestMessage) String() string {
 
 // Encode encodes a block request message using SCALE and appends the type byte to the start
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	return nil, nil
+	encMsg := []byte{1}
+
+	encId := make([]byte, 4)
+	binary.LittleEndian.PutUint32(encId, bm.Id)
+	encMsg = append(encMsg, encId...)
+
+	encMsg = append(encMsg, bm.RequestedData)
+	encMsg = append(encMsg, bm.StartingBlock...)
+
+	if bm.EndBlockHash != common.EmptyHash {
+		encMsg = append(encMsg, bm.EndBlockHash.ToBytes()...)
+	} else {
+		encMsg = append(encMsg, 0)
+	}
+
+	encMsg = append(encMsg, bm.Direction)
+
+	if bm.Max != 0 {
+		encMax := make([]byte, 4)
+		binary.LittleEndian.PutUint32(encMax, bm.Max)
+		encMsg = append(encMsg, encMax...)		
+	} else {
+		encMsg = append(encMsg, 0)
+	}
+
+	return encMsg, nil
 }
 
 // Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
