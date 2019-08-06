@@ -47,13 +47,13 @@ func (_ ConnManager) Unprotect(peer.ID, string) bool           { return false }
 func (_ ConnManager) Close() error                             { return nil }
 
 func OpenedStream(n net.Network, s net.Stream) {
-	if string(s.Protocol()) == protocolPrefix2 || s.Protocol() == protocolPrefix3 {
+	if string(s.Protocol()) == protocolPrefix {
 		log.Info("opened stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
 	}
 }
 
 func ClosedStream(n net.Network, s net.Stream) {
-	if string(s.Protocol()) == protocolPrefix2 || s.Protocol() == protocolPrefix3 {
+	if string(s.Protocol()) == protocolPrefix {
 		log.Info("closed stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
 	}
 }

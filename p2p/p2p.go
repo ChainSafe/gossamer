@@ -41,8 +41,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix2 = "/substrate/dot/2"
-const protocolPrefix3 = "/substrate/dot/3"
+const protocolPrefix = "/substrate/dot/2"
 const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
@@ -79,8 +78,7 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	h.SetStreamHandler(protocolPrefix2, handleStream)
-	h.SetStreamHandler(protocolPrefix3, handleStream)
+	h.SetStreamHandler(protocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -96,7 +94,7 @@ func NewService(conf *Config) (*Service, error) {
 
 	var mdns discovery.Service
 	if !conf.NoMdns {
-		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, protocolPrefix3)
+		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, protocolPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +190,7 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
+		stream, err = s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
 		log.Debug("stream", "opening new stream to peer", peer.ID)
 		if err != nil {
 			log.Error("new stream", "error", err)
@@ -300,7 +298,7 @@ func (s *Service) getExistingStream(p peer.ID) net.Stream {
 	for _, conn := range conns {
 		streams := conn.GetStreams()
 		for _, stream := range streams {
-			if stream.Protocol() == protocolPrefix2 || stream.Protocol() == protocolPrefix3 {
+			if stream.Protocol() == protocolPrefix {
 				return stream
 			}
 		}

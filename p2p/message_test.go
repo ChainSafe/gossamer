@@ -124,3 +124,96 @@ func TestEncodeStatusMessage(t *testing.T) {
 		t.Errorf("Fail: got %x expected %x", encStatus, expected)
 	}
 }
+
+func TestEncodeBlockRequestMessage(t *testing.T) {
+	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bm := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: append([]byte{0}, genesisHash...),
+		EndBlockHash:  endBlock,
+		Direction:     1,
+		Max:           1,
+	}
+
+	encMsg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(encMsg, expected) {
+		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
+	}
+}
+
+func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
+	expected, err := common.HexToBytes("0x010700000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bm := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: []byte{1, 1},
+		EndBlockHash:  endBlock,
+		Direction:     1,
+		Max:           1,
+	}
+
+	encMsg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(encMsg, expected) {
+		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
+	}
+}
+
+func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
+	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bm := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: append([]byte{0}, genesisHash...),
+		Direction:     1,
+	}
+
+	encMsg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(encMsg, expected) {
+		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
+	}
+}

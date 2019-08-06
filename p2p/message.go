@@ -17,6 +17,7 @@
 package p2p
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -139,7 +140,14 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	encMsg = append(encMsg, encId...)
 
 	encMsg = append(encMsg, bm.RequestedData)
-	encMsg = append(encMsg, bm.StartingBlock...)
+	if bm.StartingBlock[0] == byte(0) {
+		encMsg = append(encMsg, bm.StartingBlock...)
+	} else {
+		encMsg = append(encMsg, bm.StartingBlock[0])
+		blocknum := make([]byte, 8)
+		copy(blocknum, bm.StartingBlock[1:])
+		encMsg = append(encMsg, blocknum...)
+	}
 
 	if bm.EndBlockHash != common.EmptyHash {
 		encMsg = append(encMsg, bm.EndBlockHash.ToBytes()...)
@@ -152,7 +160,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	if bm.Max != 0 {
 		encMax := make([]byte, 4)
 		binary.LittleEndian.PutUint32(encMax, bm.Max)
-		encMsg = append(encMsg, encMax...)		
+		encMsg = append(encMsg, encMax...)
 	} else {
 		encMsg = append(encMsg, 0)
 	}
