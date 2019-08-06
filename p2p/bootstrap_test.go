@@ -17,7 +17,6 @@
 package p2p
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -56,34 +55,6 @@ func TestStringsToPeerInfos(t *testing.T) {
 		if pi.ID.Pretty() != IPFS_PEERS[k][len(IPFS_PEERS[k])-46:] {
 			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), IPFS_PEERS[k])
 		}
-	}
-}
-
-func TestBootstrapConnect(t *testing.T) {
-	ipfsNode, err := StartIpfsNode()
-	if err != nil {
-		t.Fatalf("Could not start IPFS node: %s", err)
-	}
-
-	defer ipfsNode.Close()
-
-	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-
-	testServiceConfig := &Config{
-		BootstrapNodes: []string{
-			ipfsAddr,
-		},
-		Port: 7001,
-	}
-
-	s, err := NewService(testServiceConfig)
-	if err != nil {
-		t.Fatalf("NewService error: %s", err)
-	}
-
-	err = s.bootstrapConnect()
-	if err != nil {
-		t.Errorf("Start error :%s", err)
 	}
 }
 
