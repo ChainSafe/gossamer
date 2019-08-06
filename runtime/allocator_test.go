@@ -265,6 +265,7 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
+
 	fbha := newAllocator(&mem)
 
 	// when
