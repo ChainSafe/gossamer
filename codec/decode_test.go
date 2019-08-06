@@ -207,7 +207,7 @@ var decodeBoolTests = []decodeBoolTest{
 }
 
 var decodeTupleTests = []decodeTupleTest{
-	{val: []byte{0x04, 0x01, 0x08}, t: &struct {
+	{val: []byte{0x04, 0x01, 0x02}, t: &struct {
 		Foo []byte
 		Bar int64
 	}{}, output: &struct {
@@ -215,7 +215,7 @@ var decodeTupleTests = []decodeTupleTest{
 		Bar int64
 	}{[]byte{0x01}, 2}},
 
-	{val: []byte{0x04, 0x01, 0x03, 0xff, 0xff, 0xff, 0xff}, t: &struct {
+	{val: []byte{0x04, 0x01, 0xff, 0xff, 0xff, 0xff}, t: &struct {
 		Foo []byte
 		Bar int64
 	}{}, output: &struct {
@@ -233,25 +233,25 @@ var decodeTupleTests = []decodeTupleTest{
 
 	{val: []byte{0x04, 0x01, 0xfd, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, t: &struct {
 		Foo  []byte
-		Bar  int64
-		Noot int64
+		Bar  *big.Int
+		Noot *big.Int
 	}{}, output: &struct {
 		Foo  []byte
-		Bar  int64
-		Noot int64
-	}{[]byte{0x01}, 16383, int64(1 << 32)}},
+		Bar  *big.Int
+		Noot *big.Int
+	}{[]byte{0x01}, big.NewInt(16383), big.NewInt(int64(1 << 32))}},
 
 	{val: []byte{0x04, 0x01, 0xfd, 0xff, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00, 0x01}, t: &struct {
 		Foo  []byte
-		Bar  int64
+		Bar  *big.Int
 		Bo   bool
-		Noot int64
+		Noot *big.Int
 	}{}, output: &struct {
 		Foo  []byte
-		Bar  int64
+		Bar  *big.Int
 		Bo   bool
-		Noot int64
-	}{[]byte{0x01}, 16383, true, int64(1 << 32)}},
+		Noot *big.Int
+	}{[]byte{0x01}, big.NewInt(16383), true, big.NewInt(int64(1 << 32))}},
 
 	{val: []byte{0x04, 0x01, 0x04, 0x00}, t: &struct {
 		Foo []byte
@@ -330,7 +330,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int8(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -339,7 +339,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint8(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -348,7 +348,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int16(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -357,7 +357,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint16(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -366,7 +366,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int32(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -375,7 +375,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint32(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -384,7 +384,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -393,7 +393,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(int) != int(test.output) {
+		} else if output.(uint) != uint(test.output) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}

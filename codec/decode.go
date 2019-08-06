@@ -105,33 +105,33 @@ func (sd *Decoder) decodeSmallInt(firstByte byte, mode byte) (o int64, err error
 }
 
 // DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
-func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o int, err error) {
+func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o uint, err error) {
 	switch t.(type) {
 	case int8:
 		var b byte
 		b, err = sd.ReadByte()
-		o = int(b)
+		o = uint(b)
 	case uint8:
 		var b byte
 		b, err = sd.ReadByte()
-		o = int(uint8(b))
+		o = uint(b)
 	case int16, uint16:
 		buf := make([]byte, 2)
 		_, err = sd.Reader.Read(buf)
 		if err == nil {
-			o = int(binary.LittleEndian.Uint16(buf))
+			o = uint(binary.LittleEndian.Uint16(buf))
 		}
 	case int32, uint32:
 		buf := make([]byte, 4)
 		_, err = sd.Reader.Read(buf)
 		if err == nil {
-			o = int(binary.LittleEndian.Uint32(buf))
+			o = uint(binary.LittleEndian.Uint32(buf))
 		}
 	case int64, uint64:
 		buf := make([]byte, 8)
 		_, err = sd.Reader.Read(buf)
 		if err == nil {
-			o = int(binary.LittleEndian.Uint64(buf))
+			o = uint(binary.LittleEndian.Uint64(buf))
 		}
 	}
 	return o, err
@@ -361,7 +361,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int8)
-			oint := o.(int)
+			oint := o.(uint)
 			*ptr = int8(oint)
 		case int16:
 			o, err = sd.DecodeFixedWidthInt(int16(0))
@@ -370,7 +370,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int16)
-			oint := o.(int)
+			oint := o.(uint)
 			*ptr = int16(oint)
 		case int32:
 			o, err = sd.DecodeFixedWidthInt(int32(0))
@@ -379,16 +379,17 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int32)
-			oint := o.(int)
+			oint := o.(uint)
 			*ptr = int32(oint)
 		case int64:
-			o, err = sd.DecodeInteger()
+			o, err = sd.DecodeFixedWidthInt(int64(0))
 			if err != nil {
 				break
 			}
 
 			ptr := fieldValue.Addr().Interface().(*int64)
-			*ptr = o.(int64)
+			oint := o.(uint)
+			*ptr = int64(oint)
 		case uint32:
 			o, err = sd.DecodeFixedWidthInt(uint32(0))
 			if err != nil {
@@ -396,7 +397,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(*uint32)
-			oint := o.(int)
+			oint := o.(uint)
 			*ptr = uint32(oint)
 		case uint64:
 			o, err = sd.DecodeFixedWidthInt(uint64(0))
@@ -405,7 +406,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(*uint64)
-			oint := o.(int)
+			oint := o.(uint)
 			*ptr = uint64(oint)
 		case bool:
 			o, err = sd.DecodeBool()
@@ -415,6 +416,14 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 			ptr := fieldValue.Addr().Interface().(*bool)
 			*ptr = o.(bool)
+		case *big.Int:
+			o, err := sd.DecodeBigInt()
+			if err != nil {
+				break
+			}
+
+			ptr := fieldValue.Addr().Interface().(**big.Int)
+			*ptr = o
 		case common.Hash:
 			b := make([]byte, 32)
 			_, err = sd.Reader.Read(b)
