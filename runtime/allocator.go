@@ -26,13 +26,12 @@ type FreeingBumpHeapAllocator struct {
 	total_size    uint32
 }
 
-func newAllocator(mem *wasm.Memory) FreeingBumpHeapAllocator {
+func newAllocator(mem *wasm.Memory, ptr_offset uint32) FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	current_size := mem.Length()
-	used_size := uint32(0) // TODO actually calculate this
-	heap_size := uint32(current_size) - used_size
+	// we don't include offset memory in the heap
+	heap_size := uint32(current_size) - ptr_offset
 
-	ptr_offset := used_size
 	padding := ptr_offset % ALIGNMENT
 	if padding != 0 {
 		ptr_offset += ALIGNMENT - padding
@@ -91,11 +90,7 @@ func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error {
 	}
 	log.Debug("[deallocate]", "ptr", ptr)
 	list_index := fbha.get_heap_byte(ptr - 8)
-	log.Debug("[deallocate]", "list_index", list_index)
-	for i := uint32(1); i <= 8; i++ {
-		theByte := fbha.get_heap_byte(ptr - i)
-		log.Debug("byte ", "byte", theByte)
-	}
+
 
 	// update heads array, and heap "header"
 	tail := fbha.heads[list_index]

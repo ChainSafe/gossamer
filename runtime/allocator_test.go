@@ -25,7 +25,7 @@ func TestAllocatorShouldAllocateProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	alloc_res, err := fbha.allocate(1)
@@ -48,8 +48,8 @@ func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	setOffset(mem, 13)
-	fbha := newAllocator(&mem)
+	// set ptr_offset to simulate 13 bytes used
+	fbha := newAllocator(&mem, 13)
 
 	// when
 	alloc_res, err := fbha.allocate(1)
@@ -71,7 +71,7 @@ func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	ptr1, err := fbha.allocate(1)
@@ -111,7 +111,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 	ptr1, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
@@ -154,7 +154,7 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 	ptr1, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	ptr1, err := fbha.allocate(8)
 	if err != nil {
@@ -266,7 +266,7 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	ptr, err := fbha.allocate(PAGE_SIZE)
@@ -286,7 +286,7 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	ptr1, err := fbha.allocate((PAGE_SIZE / 2) - 8)
 	if err != nil {
@@ -315,7 +315,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	ptr1, err := fbha.allocate(MAX_POSSIBLE_ALLOCATION)
@@ -337,7 +337,7 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	_, err = fbha.allocate(MAX_POSSIBLE_ALLOCATION + 1)
@@ -358,7 +358,7 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	setOffset(mem, 1)
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 0)
 
 	// when
 	_, err = fbha.allocate(9)
@@ -381,7 +381,7 @@ func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	setOffset(mem, 13)
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 13)
 
 	// when
 	ptr, err := fbha.allocate(42)
@@ -409,7 +409,7 @@ func TestShouldColculateTotalSizeOfZero(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	setOffset(mem, 13)
-	fbha := newAllocator(&mem)
+	fbha := newAllocator(&mem, 13)
 
 	// when
 	for i := 0; i < 10; i++ {
@@ -488,4 +488,39 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 	if item_size != MAX_POSSIBLE_ALLOCATION {
 		t.Errorf("item_size should be %d, got item_size: %d", MAX_POSSIBLE_ALLOCATION, item_size)
 	}
+}
+
+func TestMemoryGrow(t *testing.T) {
+	// given
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := runtime.vm.Memory
+	t.Log("[TestingMemoryGrow]", "current mem data len", len(mem.Data()))
+	t.Log("[TestingMemoryGrow]", "current mem.Length", mem.Length())
+	mem.Grow(1)
+	setOffset(mem, 13)
+	t.Log("[TestingMemoryGrow]", "after mem data len", len(mem.Data()))
+	t.Log("[TestingMemoryGrow]", "after mem.Length", mem.Length())
+	fbha := newAllocator(&mem, 13)
+
+	// when
+	for i := 0; i < 10; i++ {
+		ptr, err := fbha.allocate(42)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = fbha.deallocate(ptr)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// then
+	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.total_size)
+	if fbha.total_size != 0 {
+		t.Error("Total heap size does not equal zero, total_size: ", fbha.total_size)
+	}
+
 }

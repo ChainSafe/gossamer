@@ -652,8 +652,9 @@ func TestExt_twox_128(t *testing.T) {
 	}
 }
 
-// test ext_malloc
+// test ext_malloc returns expected pointer value of 8
 func TestExt_malloc(t *testing.T) {
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -663,9 +664,47 @@ func TestExt_malloc(t *testing.T) {
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
+	// when
 	res, err := testFunc(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("res:", res)
+	t.Log("[TestExt_malloc]", "pointer", res)
+	if res.ToI64() != 8 {
+		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", res)
+	}
+}
+
+// test ext_free, confirm ext_free frees memory without error
+func TestExt_free(t *testing.T) {
+	// given
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	initFunc, ok := runtime.vm.Exports["test_ext_malloc"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	ptr, err := initFunc(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ptr.ToI64() != 8 {
+		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", ptr)
+	}
+
+	// when
+	testFunc, ok := runtime.vm.Exports["test_ext_free"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+	_, err = testFunc(ptr)
+
+	// then
+	if err != nil {
+		t.Fatal(err)
+	}
 }

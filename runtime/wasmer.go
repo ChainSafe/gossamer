@@ -48,15 +48,15 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	fbha := newAllocator(memory)
+	initMemAllocator(memory)
 
 	// allocate memory
-	res, err := fbha.allocate(uint32(size))
+	res, err := memAllocator.allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_free] Error:", err)
 	}
 	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", fbha.total_size)
+	log.Debug("[ext_malloc]", "heap_size after allocation", memAllocator.total_size)
 	return int32(res)
 }
 
@@ -66,12 +66,13 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	log.Debug("[ext_free]", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	fbha := newAllocator(memory)
+	initMemAllocator(memory)
 
 	// deallocate memory
-	err := fbha.deallocate(uint32(addr))
+	err := memAllocator.deallocate(uint32(addr))
 	if err != nil {
-		log.Error("[ext_free] Error:", err)
+		log.Error("[ext_free] Error:", "Error", err)
+		panic(err)
 	}
 }
 
@@ -428,6 +429,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 	data := unsafe.Pointer(t)
 	instance.SetContextData(data)
+	memAllocator = newAllocator(&instance.Memory, 0)
 
 	return &Runtime{
 		vm:   instance,
@@ -471,4 +473,15 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 
 	output, err := sd.Decode(t)
 	return output, err
+}
+
+// memory allocator
+var memAllocator FreeingBumpHeapAllocator
+
+// init memory allocator if it hasn't been
+func initMemAllocator(mem *wasm.Memory)  {
+	log.Debug("[getMemAllocator]","heap", memAllocator.heap)
+	if memAllocator.heap == nil {
+		memAllocator = newAllocator(mem, 0)
+	}
 }
