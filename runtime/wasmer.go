@@ -479,8 +479,8 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 var memAllocator FreeingBumpHeapAllocator
 
 // init memory allocator if it hasn't been
-func initMemAllocator(mem *wasm.Memory)  {
-	log.Debug("[getMemAllocator]","heap", memAllocator.heap)
+func initMemAllocator(mem *wasm.Memory) {
+	log.Debug("[getMemAllocator]", "heap", memAllocator.heap)
 	if memAllocator.heap == nil {
 		memAllocator = newAllocator(mem, 0)
 	}

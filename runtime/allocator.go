@@ -26,6 +26,19 @@ type FreeingBumpHeapAllocator struct {
 	total_size    uint32
 }
 
+// Creates a new allocation heap which follows a freeing-bump strategy.
+// The maximum size which can be allocated at once is 16 MiB.
+//
+// # Arguments
+//
+// * `mem` - A `MemoryRef` to the available `MemoryInstance` which is
+//   used as the heap.
+//
+// * `ptr_offset` - The pointers returned by `allocate()` start from this
+//   offset on. The pointer offset needs to be aligned to a multiple of 8,
+//   hence a padding might be added to align `ptr_offset` properly.
+//
+// * returns an initilized FreeingBumpHeapAllocator
 func newAllocator(mem *wasm.Memory, ptr_offset uint32) FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	current_size := mem.Length()
@@ -90,7 +103,6 @@ func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error {
 	}
 	log.Debug("[deallocate]", "ptr", ptr)
 	list_index := fbha.get_heap_byte(ptr - 8)
-
 
 	// update heads array, and heap "header"
 	tail := fbha.heads[list_index]

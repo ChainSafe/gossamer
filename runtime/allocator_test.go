@@ -3,23 +3,14 @@ package runtime
 import (
 	"encoding/binary"
 	"math"
+	"reflect"
 	"testing"
-
-	"github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 const PAGE_SIZE = 65536
 
-func setOffset(mem wasmer.Memory, offset uint32) {
-	mem_vals := make([]byte, offset)
-	for i := 0; i < len(mem_vals); i++ {
-		mem_vals[i] = 0xff
-	}
-	copy(mem.Data()[0:len(mem_vals)], mem_vals)
-}
-
 func TestAllocatorShouldAllocateProperly(t *testing.T) {
-	// give
+	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +31,6 @@ func TestAllocatorShouldAllocateProperly(t *testing.T) {
 	}
 }
 
-// todo discuss how we want to handle offset
 func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -146,7 +136,6 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	}
 }
 
-// todo we're NOT testing offset in this, discuss
 func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -154,13 +143,15 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
+	// test ptr_offset of 13, which should give is 16 for padding
+	fbha := newAllocator(&mem, 13)
+	padding_offset := 16
 	ptr1, err := fbha.allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("ptr1", ptr1)
-	if ptr1 != 8 {
+	if ptr1 != uint32(padding_offset+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
 
@@ -169,7 +160,7 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("ptr2", ptr2)
-	if ptr2 != 24 {
+	if ptr2 != uint32(padding_offset+16+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
 	}
 
@@ -186,11 +177,13 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	// then
 	// should have re-allocated
 	t.Log("ptr3", ptr3)
-	if ptr3 != 24 {
+	if ptr3 != uint32(padding_offset+16+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24)
 	}
-	// TODO find way to compare head results to expected results
-	t.Log("[TestAllocatorShouldDeallocateAndReallocateProperly]", "heads", fbha.heads)
+	expected := make([]uint32, 22)
+	if !reflect.DeepEqual(expected, fbha.heads[:]) {
+		t.Error("ERROR: Didn't get expected heads")
+	}
 }
 
 func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
@@ -234,12 +227,11 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	}
 
 	// then
-	//expected := make([]uint32, 22)
-	//expected[0] = ptr3 - 8
-	expected := []uint32{ptr3 - 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	// TODO check slices are equal
-	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], heads", fbha.heads)
-	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], expected", expected)
+	expected := make([]uint32, 22)
+	expected[0] = ptr3 - 8
+	if !reflect.DeepEqual(expected, fbha.heads[:]) {
+		t.Error("ERROR: Didn't get expected heads")
+	}
 
 	ptr4, err := fbha.allocate(8)
 	if err != nil {
@@ -252,12 +244,11 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	}
 
 	expected[0] = ptr2 - 8
-	// TODO check slices are equal
-	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], heads   ", fbha.heads)
-	t.Log("[TestAllocatorShouldBuildLinkedListOfFreeAreasProperly], expected", expected)
+	if !reflect.DeepEqual(expected, fbha.heads[:]) {
+		t.Error("ERROR: Didn't get expected heads")
+	}
 }
 
-// todo discuss, wasm memory implementation issues regarding setup
 func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -265,18 +256,20 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
+	currentSize := mem.Length()
 
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	ptr, err := fbha.allocate(PAGE_SIZE)
+	_, err = fbha.allocate(currentSize + 1)
 
-	// then
-	if err != nil {
-		// TODO check that correct error was returned
-		t.Fatal(err)
+	// then expect error since trying to over allocate
+	if err == nil {
+		t.Error("Error, expected out of space error, but didn't get one.")
 	}
-	t.Log("[TestShouldNotAllocateIfTooLarge]", "ptr", ptr)
+	if err != nil && err.Error() != "Error: allocator out of space" {
+		t.Errorf("Error: got unexpected error: %v", err.Error())
+	}
 }
 
 func TestShouldNotAllocateIfFull(t *testing.T) {
@@ -286,35 +279,41 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
+	currentSize := mem.Length()
 	fbha := newAllocator(&mem, 0)
 
-	ptr1, err := fbha.allocate((PAGE_SIZE / 2) - 8)
+	ptr1, err := fbha.allocate((currentSize / 2) - 8)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("ptr1", ptr1)
 	if ptr1 != 8 {
 		t.Errorf("Expected value of 8")
 	}
 
 	// when
-	ptr2, err := fbha.allocate((PAGE_SIZE / 2))
-	t.Log("ptr2", ptr2)
+	_, err = fbha.allocate((currentSize / 2))
 
 	// then
-	if err != nil {
-		t.Error(err)
+	// there is no room after half currentSize including it's 8 byte prefix, so error
+	if err == nil {
+		t.Error("Error, expected out of space error, but didn't get one.")
+	}
+	if err != nil && err.Error() != "Error: allocator out of space" {
+		t.Errorf("Error: got unexpected error: %v", err.Error())
 	}
 
 }
 
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
-	// given
+	// given, grow heap memory so that we have at least MAX_POSSIBLE_ALLOCATION available
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
+	pagesNeeded := (MAX_POSSIBLE_ALLOCATION / PAGE_SIZE) - (mem.Length() / PAGE_SIZE) + 1
+	mem.Grow(pagesNeeded)
+
 	fbha := newAllocator(&mem, 0)
 
 	// when
@@ -341,11 +340,14 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 
 	// when
 	_, err = fbha.allocate(MAX_POSSIBLE_ALLOCATION + 1)
+
 	// then
 	if err != nil {
 		if err.Error() != "Error: size to large" {
 			t.Error("Didn't get expected error")
 		}
+	} else {
+		t.Error("Error: Didn't get error but expected one.")
 	}
 
 }
@@ -357,8 +359,7 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	setOffset(mem, 1)
-	fbha := newAllocator(&mem, 0)
+	fbha := newAllocator(&mem, 1)
 
 	// when
 	_, err = fbha.allocate(9)
@@ -380,13 +381,15 @@ func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	setOffset(mem, 13)
 	fbha := newAllocator(&mem, 13)
 
 	// when
 	ptr, err := fbha.allocate(42)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if ptr != (16 + 8) {
+		t.Error("Error: Didn't get expected pointer value")
 	}
 	err = fbha.deallocate(ptr)
 	if err != nil {
@@ -401,15 +404,14 @@ func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 
 }
 
-func TestShouldColculateTotalSizeOfZero(t *testing.T) {
+func TestShouldCalculateTotalSizeOfZero(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	setOffset(mem, 13)
-	fbha := newAllocator(&mem, 13)
+	fbha := newAllocator(&mem, 19)
 
 	// when
 	for i := 0; i < 10; i++ {
@@ -442,9 +444,9 @@ func TestShouldWriteU32CorrectlyIntoLe(t *testing.T) {
 	binary.LittleEndian.PutUint32(heap, 1)
 
 	//then
-	// TODO find way to conpare slices
-	t.Log("[TestShouldWriteU32CorrectlyIntoLe]", "heap", heap)
-
+	if !reflect.DeepEqual(heap, []byte{1, 0, 0, 0, 0}) {
+		t.Error("Error Write U32 to LE")
+	}
 }
 
 func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
@@ -458,8 +460,9 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 	binary.LittleEndian.PutUint32(heap, math.MaxUint32)
 
 	//then
-	// TODO find way to conpare slices
-	t.Log("[TestShouldWriteU32MaxCorrectlyIntoLe]", "heap", heap)
+	if !reflect.DeepEqual(heap, []byte{255, 255, 255, 255, 0}) {
+		t.Error("Error Write U32 MAX to LE")
+	}
 }
 
 func TestShouldGetItemFromIndex(t *testing.T) {
@@ -488,39 +491,4 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 	if item_size != MAX_POSSIBLE_ALLOCATION {
 		t.Errorf("item_size should be %d, got item_size: %d", MAX_POSSIBLE_ALLOCATION, item_size)
 	}
-}
-
-func TestMemoryGrow(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	t.Log("[TestingMemoryGrow]", "current mem data len", len(mem.Data()))
-	t.Log("[TestingMemoryGrow]", "current mem.Length", mem.Length())
-	mem.Grow(1)
-	setOffset(mem, 13)
-	t.Log("[TestingMemoryGrow]", "after mem data len", len(mem.Data()))
-	t.Log("[TestingMemoryGrow]", "after mem.Length", mem.Length())
-	fbha := newAllocator(&mem, 13)
-
-	// when
-	for i := 0; i < 10; i++ {
-		ptr, err := fbha.allocate(42)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = fbha.deallocate(ptr)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// then
-	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.total_size)
-	if fbha.total_size != 0 {
-		t.Error("Total heap size does not equal zero, total_size: ", fbha.total_size)
-	}
-
 }
