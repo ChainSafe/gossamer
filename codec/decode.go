@@ -423,7 +423,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 			}
 
 			ptr := fieldValue.Addr().Interface().(**big.Int)
-			*ptr = o
+			*ptr = o.(*big.Int)
 		case common.Hash:
 			b := make([]byte, 32)
 			_, err = sd.Reader.Read(b)
