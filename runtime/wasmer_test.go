@@ -80,7 +80,7 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 		Hasher:hasher,
 	}
 	tt := trie.NewEmptyTrie(&database)
-*/
+	*/
 
 	r, err := NewRuntime(fp, tt)
 	if err != nil {
