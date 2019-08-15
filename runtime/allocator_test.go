@@ -367,7 +367,7 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	// then
-	t.Log("[TestShouldIncludePrefixesInTotalHeapSize]", "tetal_size", fbha.total_size)
+	t.Log("[TestShouldIncludePrefixesInTotalHeapSize]", "total_size", fbha.total_size)
 	if fbha.total_size != (8 + 16) {
 		t.Error("Total heap size not calculating properly")
 	}

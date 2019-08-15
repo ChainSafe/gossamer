@@ -65,6 +65,23 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 	tt := &trie.Trie{}
 
+	/* test init database
+	db, err := db.NewBadgerService("./gossamer_data")
+	if err != nil {
+		return nil, err
+	}
+
+	hasher, err := trie.NewHasher()
+	if err != nil {
+		return nil, err
+	}
+	database := trie.Database{
+		Db: db,
+		Hasher:hasher,
+	}
+	tt := trie.NewEmptyTrie(&database)
+*/
+
 	r, err := NewRuntime(fp, tt)
 	if err != nil {
 		t.Fatal(err)

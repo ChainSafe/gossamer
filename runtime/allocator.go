@@ -3,10 +3,9 @@ package runtime
 import (
 	"encoding/binary"
 	"errors"
-	"math/bits"
-
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+	"math/bits"
 )
 
 // This module implements a freeing-bump allocator
@@ -58,6 +57,7 @@ func newAllocator(mem *wasm.Memory, ptr_offset uint32) FreeingBumpHeapAllocator 
 
 	return *fbha
 }
+
 func (fbha *FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
 	// test for space allocation
 	if size > MAX_POSSIBLE_ALLOCATION {
@@ -145,6 +145,7 @@ func get_item_size_from_index(index uint) uint {
 	// we shift 1 by three places since the first possible item size is 8
 	return 1 << 3 << index
 }
+
 func nextPowerOf2GT8(v uint32) uint32 {
 	if v < 8 {
 		return 8
@@ -157,5 +158,4 @@ func nextPowerOf2GT8(v uint32) uint32 {
 	v |= v >> 16
 	v++
 	return v
-
 }
