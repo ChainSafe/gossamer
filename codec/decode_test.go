@@ -273,6 +273,16 @@ var decodeTupleTests = []decodeTupleTest{
 		Bo  bool
 	}{[]byte{0x01}, 1029, false}},
 
+	{val: []byte{0x04, 0x01, 0x05, 0x04, 0x00}, t: &struct {
+		Foo []byte
+		Bar uint16
+		Bo  bool
+	}{}, output: &struct {
+		Foo []byte
+		Bar uint16
+		Bo  bool
+	}{[]byte{0x01}, 1029, false}},
+
 	{val: []byte{0x04, 0x01, 0x02, 0xff, 0xff, 0x01, 0x00}, t: &struct {
 		Foo []byte
 		Bar int32
@@ -330,7 +340,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int8(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(int8) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -339,7 +349,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint8(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(uint8) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -348,7 +358,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int16(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(int16) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -357,7 +367,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint16(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(uint16) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -366,7 +376,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int32(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(int32) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -375,7 +385,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint32(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(uint32) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -384,7 +394,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, int64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(int64) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
@@ -393,7 +403,7 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 		output, err := Decode(test.val, uint64(0))
 		if err != nil {
 			t.Error(err)
-		} else if output.(uint) != uint(test.output) {
+		} else if output.(uint64) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
