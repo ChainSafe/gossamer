@@ -49,17 +49,17 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	initMemAllocator(memory)
+	allocator := (*RuntimeCtx)(instanceContext.Data()).allocator
+	log.Debug("[ext_malloc]", "runtimeCtx.allocator", allocator)
 
 	// allocate memory
-	res, err := memAllocator.allocate(uint32(size))
+	res, err := allocator.allocate(memory, uint32(size))
 	if err != nil {
-		log.Error("[ext_free] Error:", err)
+		log.Error("[ext_malloc]", "Error:", err)
 	}
 	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", memAllocator.total_size)
+	log.Debug("[ext_malloc]", "heap_size after allocation", allocator.total_size)
 	return int32(res)
-
 }
 
 //export ext_free
@@ -69,14 +69,16 @@ func ext_free(context unsafe.Pointer, addr int32) {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	initMemAllocator(memory)
+	allocator := (*RuntimeCtx)(instanceContext.Data()).allocator
+	log.Debug("[ext_free]", "runtimeCtx.allocator", allocator)
 
 	// deallocate memory
-	err := memAllocator.deallocate(uint32(addr))
+	err := allocator.deallocate(memory, uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
 		panic(err)
 	}
+
 }
 
 // prints string located in memory at location `offset` with length `size`
@@ -105,7 +107,7 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
@@ -130,7 +132,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	log.Debug("[ext_set_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
@@ -147,7 +149,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	log.Debug("[ext_storage_root] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	root, err := t.Hash()
 	if err != nil {
@@ -170,7 +172,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	log.Debug("[ext_get_allocated_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
@@ -210,7 +212,7 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	log.Debug("[ext_sr25519_verify] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	key := memory[keyData : keyData+keyLen]
 	err := t.Delete(key)
@@ -225,7 +227,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*trie.Trie)(instanceContext.Data())
+	t := (*RuntimeCtx)(instanceContext.Data()).trie
 
 	prefix := memory[prefixData : prefixData+prefixLen]
 	entries := t.Entries()
@@ -342,7 +344,10 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 
 	return 1
 }
-
+type RuntimeCtx struct {
+	trie trie.Trie
+	allocator FreeingBumpHeapAllocator
+}
 type Runtime struct {
 	vm   wasm.Instance
 	trie *trie.Trie
@@ -430,9 +435,16 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 		return nil, err
 	}
 
-	data := unsafe.Pointer(t)
+	memAllocator := newAllocator(&instance.Memory, 0)
+
+	runtimeCtx := &RuntimeCtx{
+		trie: *t,
+		allocator: memAllocator,
+	}
+	log.Debug("testing", "runtimeCtx", runtimeCtx)
+	data := unsafe.Pointer(runtimeCtx)
 	instance.SetContextData(data)
-	memAllocator = newAllocator(&instance.Memory, 0)
+
 
 	return &Runtime{
 		vm:   instance,
@@ -479,12 +491,14 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 }
 
 // memory allocator
-var memAllocator FreeingBumpHeapAllocator
+//var memAllocator FreeingBumpHeapAllocator
 
 // init memory allocator if it hasn't been
+/*
 func initMemAllocator(mem *wasm.Memory) {
 	log.Debug("[getMemAllocator]", "heap", memAllocator.heap)
 	if memAllocator.heap == nil {
 		memAllocator = newAllocator(mem, 0)
 	}
 }
+*/

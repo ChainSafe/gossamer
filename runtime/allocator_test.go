@@ -19,7 +19,7 @@ func TestAllocatorShouldAllocateProperly(t *testing.T) {
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	alloc_res, err := fbha.allocate(1)
+	alloc_res, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
 	fbha := newAllocator(&mem, 13)
 
 	// when
-	alloc_res, err := fbha.allocate(1)
+	alloc_res, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,15 +64,15 @@ func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	ptr1, err := fbha.allocate(1)
+	ptr1, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr2, err := fbha.allocate(9)
+	ptr2, err := fbha.allocate(&mem, 9)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr3, err := fbha.allocate(1)
+	ptr3, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	fbha := newAllocator(&mem, 0)
-	ptr1, err := fbha.allocate(1)
+	ptr1, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
 
-	ptr2, err := fbha.allocate(1)
+	ptr2, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	}
 
 	// when
-	err = fbha.deallocate(ptr2)
+	err = fbha.deallocate(&mem, ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	// test ptr_offset of 13, which should give is 16 for padding
 	fbha := newAllocator(&mem, 13)
 	padding_offset := 16
-	ptr1, err := fbha.allocate(1)
+	ptr1, err := fbha.allocate(&mem, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,7 +155,7 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
 
-	ptr2, err := fbha.allocate(9)
+	ptr2, err := fbha.allocate(&mem, 9)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,11 +165,11 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	}
 
 	// when
-	err = fbha.deallocate(ptr2)
+	err = fbha.deallocate(&mem, ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr3, err := fbha.allocate(9)
+	ptr3, err := fbha.allocate(&mem, 9)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,33 +195,33 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 	mem := runtime.vm.Memory
 	fbha := newAllocator(&mem, 0)
 
-	ptr1, err := fbha.allocate(8)
+	ptr1, err := fbha.allocate(&mem, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ptr2, err := fbha.allocate(8)
+	ptr2, err := fbha.allocate(&mem, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ptr3, err := fbha.allocate(8)
+	ptr3, err := fbha.allocate(&mem,8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// when
-	err = fbha.deallocate(ptr1)
+	err = fbha.deallocate(&mem, ptr1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = fbha.deallocate(ptr2)
+	err = fbha.deallocate(&mem, ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = fbha.deallocate(ptr3)
+	err = fbha.deallocate(&mem, ptr3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 		t.Error("ERROR: Didn't get expected heads")
 	}
 
-	ptr4, err := fbha.allocate(8)
+	ptr4, err := fbha.allocate(&mem, 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	_, err = fbha.allocate(currentSize + 1)
+	_, err = fbha.allocate(&mem, currentSize + 1)
 
 	// then expect error since trying to over allocate
 	if err == nil {
@@ -282,7 +282,7 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	currentSize := mem.Length()
 	fbha := newAllocator(&mem, 0)
 
-	ptr1, err := fbha.allocate((currentSize / 2) - 8)
+	ptr1, err := fbha.allocate(&mem,(currentSize / 2) - 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +291,7 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	}
 
 	// when
-	_, err = fbha.allocate((currentSize / 2))
+	_, err = fbha.allocate(&mem,(currentSize / 2))
 
 	// then
 	// there is no room after half currentSize including it's 8 byte prefix, so error
@@ -317,7 +317,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	ptr1, err := fbha.allocate(MAX_POSSIBLE_ALLOCATION)
+	ptr1, err := fbha.allocate(&mem, MAX_POSSIBLE_ALLOCATION)
 	if err != nil {
 		t.Error(err)
 	}
@@ -339,7 +339,7 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 	fbha := newAllocator(&mem, 0)
 
 	// when
-	_, err = fbha.allocate(MAX_POSSIBLE_ALLOCATION + 1)
+	_, err = fbha.allocate(&mem,MAX_POSSIBLE_ALLOCATION + 1)
 
 	// then
 	if err != nil {
@@ -362,7 +362,7 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 	fbha := newAllocator(&mem, 1)
 
 	// when
-	_, err = fbha.allocate(9)
+	_, err = fbha.allocate(&mem,9)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,14 +384,14 @@ func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 	fbha := newAllocator(&mem, 13)
 
 	// when
-	ptr, err := fbha.allocate(42)
+	ptr, err := fbha.allocate(&mem,42)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ptr != (16 + 8) {
 		t.Error("Error: Didn't get expected pointer value")
 	}
-	err = fbha.deallocate(ptr)
+	err = fbha.deallocate(&mem, ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,11 +415,11 @@ func TestShouldCalculateTotalSizeOfZero(t *testing.T) {
 
 	// when
 	for i := 0; i < 10; i++ {
-		ptr, err := fbha.allocate(42)
+		ptr, err := fbha.allocate(&mem,42)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = fbha.deallocate(ptr)
+		err = fbha.deallocate(&mem, ptr)
 		if err != nil {
 			t.Fatal(err)
 		}
