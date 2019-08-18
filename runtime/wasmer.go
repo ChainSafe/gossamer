@@ -26,6 +26,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -36,6 +37,10 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
 )
+
+var registry map[int]RuntimeCtx
+var handlers int
+var mutex = sync.Mutex{}
 
 //export ext_print_num
 func ext_print_num(context unsafe.Pointer, data C.int64_t) {
@@ -49,16 +54,19 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	allocator := (*RuntimeCtx)(instanceContext.Data()).allocator
-	log.Debug("[ext_malloc]", "runtimeCtx.allocator", allocator)
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
+	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// allocate memory
-	res, err := allocator.allocate(memory, uint32(size))
+	res, err := runtimeCtx.allocator.allocate(memory, uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
 	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", allocator.total_size)
+	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.total_size)
 	return int32(res)
 }
 
@@ -69,11 +77,14 @@ func ext_free(context unsafe.Pointer, addr int32) {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory()
-	allocator := (*RuntimeCtx)(instanceContext.Data()).allocator
-	log.Debug("[ext_free]", "runtimeCtx.allocator", allocator)
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+
+	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// deallocate memory
-	err := allocator.deallocate(memory, uint32(addr))
+	err := runtimeCtx.allocator.deallocate(memory, uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
 		panic(err)
@@ -107,7 +118,11 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
@@ -132,7 +147,11 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	log.Debug("[ext_set_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
@@ -149,7 +168,11 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	log.Debug("[ext_storage_root] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	root, err := t.Hash()
 	if err != nil {
@@ -172,7 +195,11 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	log.Debug("[ext_get_allocated_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
@@ -212,7 +239,11 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	log.Debug("[ext_sr25519_verify] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
 	err := t.Delete(key)
@@ -227,7 +258,11 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	log.Debug("[ext_clear_prefix] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	t := (*RuntimeCtx)(instanceContext.Data()).trie
+
+	mutex.Lock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.Unlock()
+	t := runtimeCtx.trie
 
 	prefix := memory[prefixData : prefixData+prefixLen]
 	entries := t.Entries()
@@ -344,9 +379,10 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 
 	return 1
 }
+
 type RuntimeCtx struct {
-	trie trie.Trie
-	allocator FreeingBumpHeapAllocator
+	trie *trie.Trie
+	allocator *FreeingBumpHeapAllocator
 }
 type Runtime struct {
 	vm   wasm.Instance
@@ -438,11 +474,20 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	memAllocator := newAllocator(&instance.Memory, 0)
 
 	runtimeCtx := &RuntimeCtx{
-		trie: *t,
-		allocator: memAllocator,
+		trie: t,
+		allocator: &memAllocator,
 	}
-	log.Debug("testing", "runtimeCtx", runtimeCtx)
-	data := unsafe.Pointer(runtimeCtx)
+	mutex.Lock()
+	index := handlers
+	handlers++
+	if registry == nil {
+		registry = make(map[int]RuntimeCtx)
+	}
+	registry[index] = *runtimeCtx
+	mutex.Unlock()
+	log.Debug("[NewRuntime]", "index", index)
+	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
+	data := unsafe.Pointer(&index)
 	instance.SetContextData(data)
 
 
@@ -461,6 +506,7 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not find exported function")
 	}
+	log.Debug("[Exec]", "runtime", r)
 
 	res, err := runtimeFunc(data, len)
 	if err != nil {
