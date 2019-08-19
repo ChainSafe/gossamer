@@ -55,22 +55,11 @@ func TestGenerateKey(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	ipfsNode, err := StartIpfsNode()
-	if err != nil {
-		t.Fatalf("Could not start IPFS node: %s", err)
-	}
-
-	defer ipfsNode.Close()
-
-	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-
-	t.Log("ipfsAddr:", ipfsAddr)
 
 	testServiceConfig := &Config{
-		BootstrapNodes: []string{
-			ipfsAddr,
-		},
+		BootstrapNodes: []string{},
 		Port: 7001,
+		NoBootstrap: true,
 	}
 
 	s, err := NewService(testServiceConfig)
