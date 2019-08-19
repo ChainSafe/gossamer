@@ -59,4 +59,9 @@ var (
 		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
 		Value: "",
 	}
+	RuntimePathFlag = cli.StringFlag{
+		Name: 	"runtimepath",
+		Usage: 	"Path to the wasm runtime file",
+		Value: "",
+	}
 )

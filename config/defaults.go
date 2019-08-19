@@ -35,6 +35,9 @@ const (
 	// P2P
 	DefaultP2PPort     = 7001
 	DefaultP2PRandSeed = int64(33)
+
+	// runtime
+	DefaultRuntimePath = "./runtime/polkadot_runtime.compact.wasm"
 )
 
 var DefaultP2PBootstrap = []string{

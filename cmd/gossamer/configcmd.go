@@ -160,7 +160,7 @@ func getRuntimePath(ctx *cli.Context, fig *cfg.Config) string {
 	} else if fig.RuntimeCfg.Path != "" {
 		return fig.RuntimeCfg.Path
 	} else {
-		return cfg.DefaultRuntimePath()
+		return cfg.DefaultRuntimePath
 	}
 }
 
