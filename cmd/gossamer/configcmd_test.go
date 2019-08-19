@@ -45,6 +45,7 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 		P2pCfg: TestP2PConfig,
 		DbCfg:  TestDBConfig,
 		RpcCfg: cfg.DefaultRpcConfig,
+		RuntimeCfg: cfg.DefaultRuntimeConfig,
 	}
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
@@ -302,7 +303,7 @@ func TestCommands(t *testing.T) {
 
 		err := command.Run(context)
 		if err != nil {
-			t.Fatalf("should have ran dumpConfig command")
+			t.Fatalf("%s%v","should have ran command", err)
 		}
 	}
 	defer teardown(tempFile)

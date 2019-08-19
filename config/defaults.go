@@ -17,6 +17,7 @@
 package cfg
 
 import (
+	runtime2 "github.com/ChainSafe/gossamer/runtime"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -66,6 +67,11 @@ var (
 		Port:    DefaultRpcHttpPort,
 		Modules: DefaultRpcModules,
 	}
+
+	// Runtime
+	DefaultRuntimeConfig = &runtime2.Config{
+		Path: DefaultRuntimePath,
+	}
 )
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
@@ -73,6 +79,7 @@ var DefaultConfig = &Config{
 	P2pCfg: DefaultP2PConfig,
 	DbCfg:  DefaultDBConfig,
 	RpcCfg: DefaultRpcConfig,
+	RuntimeCfg: DefaultRuntimeConfig,
 }
 
 // DefaultDataDir is the default data directory to use for the databases and other
