@@ -37,6 +37,9 @@ var (
 		utils.RpcHostFlag,
 		utils.RpcModuleFlag,
 	}
+	runtimeFlags = []cli.Flag{
+		utils.RuntimePathFlag,
+	}
 )
 
 // init initializes CLI
@@ -52,6 +55,7 @@ func init() {
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
+	app.Flags = append(app.Flags, runtimeFlags...)
 }
 
 func main() {
