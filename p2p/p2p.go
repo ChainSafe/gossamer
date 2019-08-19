@@ -27,6 +27,8 @@ import (
 	"time"
 
 	log "github.com/ChainSafe/log15"
+	//runtime "github.com/ChainSafe/gossamer/runtime"
+	
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -41,7 +43,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const protocolPrefix = "/substrate/dot/2"
+const ProtocolPrefix = "/substrate/dot/2"
 const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
@@ -78,7 +80,7 @@ func NewService(conf *Config) (*Service, error) {
 		return nil, err
 	}
 
-	h.SetStreamHandler(protocolPrefix, handleStream)
+	h.SetStreamHandler(ProtocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -94,7 +96,7 @@ func NewService(conf *Config) (*Service, error) {
 
 	var mdns discovery.Service
 	if !conf.NoMdns {
-		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, protocolPrefix)
+		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, ProtocolPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +192,7 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, protocolPrefix)
+		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
 		log.Debug("stream", "opening new stream to peer", peer.ID)
 		if err != nil {
 			log.Error("new stream", "error", err)
@@ -292,13 +294,13 @@ func generateKey(seed int64) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
-// getExistingStream gets an existing stream for a peer that uses protocol "/substrate/dot/2" or "/substrate/dot/3"
+// getExistingStream gets an existing stream for a peer that uses ProtocolPrefix
 func (s *Service) getExistingStream(p peer.ID) net.Stream {
 	conns := s.host.Network().ConnsToPeer(p)
 	for _, conn := range conns {
 		streams := conn.GetStreams()
 		for _, stream := range streams {
-			if stream.Protocol() == protocolPrefix {
+			if stream.Protocol() == ProtocolPrefix {
 				return stream
 			}
 		}
@@ -316,7 +318,7 @@ func handleStream(stream net.Stream) {
 		}
 	}()
 
-	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer())
+	log.Debug("stream handler", "got stream from", stream.Conn().RemotePeer())
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	lengthByte, err := rw.Reader.ReadByte()
@@ -352,5 +354,5 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+	log.Debug("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 }

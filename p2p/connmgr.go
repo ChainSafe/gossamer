@@ -26,6 +26,8 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
+// ConnManager implement connmgr.ConnManager
+// https://godoc.org/github.com/libp2p/go-libp2p-core/connmgr#ConnManager
 type ConnManager struct{}
 
 // Notifee is used to monitor changes to a connection
@@ -47,13 +49,13 @@ func (_ ConnManager) Unprotect(peer.ID, string) bool           { return false }
 func (_ ConnManager) Close() error                             { return nil }
 
 func OpenedStream(n net.Network, s net.Stream) {
-	if string(s.Protocol()) == protocolPrefix {
+	if string(s.Protocol()) == ProtocolPrefix {
 		log.Info("opened stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
 	}
 }
 
 func ClosedStream(n net.Network, s net.Stream) {
-	if string(s.Protocol()) == protocolPrefix {
+	if string(s.Protocol()) == ProtocolPrefix {
 		log.Info("closed stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
 	}
 }
