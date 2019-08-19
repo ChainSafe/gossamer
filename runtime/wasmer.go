@@ -420,6 +420,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	}, nil
 }
 
+func (r *Runtime) Start() {
+	// doesn't really do anything for now
+}
+
 func (r *Runtime) Stop() {
 	r.vm.Close()
 }

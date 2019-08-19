@@ -302,7 +302,7 @@ func TestCommands(t *testing.T) {
 
 		err := command.Run(context)
 		if err != nil {
-			t.Fatalf("should have ran dumpConfig command")
+			t.Fatalf("should have ran dumpConfig command: %s", err)
 		}
 	}
 	defer teardown(tempFile)
