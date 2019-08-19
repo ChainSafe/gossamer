@@ -19,7 +19,7 @@ const MAX_POSSIBLE_ALLOCATION = 16777216 // 2^24 bytes
 type FreeingBumpHeapAllocator struct {
 	bumper        uint32
 	heads         [N]uint32
-	//heap          *wasm.Memory
+	heap          *wasm.Memory
 	max_heap_size uint32
 	ptr_offset    uint32
 	total_size    uint32
@@ -50,7 +50,7 @@ func newAllocator(mem *wasm.Memory, ptr_offset uint32) FreeingBumpHeapAllocator 
 	}
 
 	fbha.bumper = 0
-	//fbha.heap = mem
+	fbha.heap = mem
 	fbha.max_heap_size = heap_size
 	fbha.ptr_offset = ptr_offset
 	fbha.total_size = 0
@@ -58,7 +58,7 @@ func newAllocator(mem *wasm.Memory, ptr_offset uint32) FreeingBumpHeapAllocator 
 	return *fbha
 }
 
-func (fbha *FreeingBumpHeapAllocator) allocate(mem *wasm.Memory, size uint32) (uint32, error) {
+func (fbha *FreeingBumpHeapAllocator) allocate(size uint32) (uint32, error) {
 	// test for space allocation
 	if size > MAX_POSSIBLE_ALLOCATION {
 		err := errors.New("Error: size to large")
@@ -78,7 +78,7 @@ func (fbha *FreeingBumpHeapAllocator) allocate(mem *wasm.Memory, size uint32) (u
 	if fbha.heads[list_index] != 0 {
 		// Something from the free list
 		item := fbha.heads[list_index]
-		four_bytes := fbha.get_heap_4bytes(mem, item)
+		four_bytes := fbha.get_heap_4bytes(item)
 		fbha.heads[list_index] = binary.LittleEndian.Uint32(four_bytes)
 		ptr = item + 8
 	} else {
@@ -88,21 +88,21 @@ func (fbha *FreeingBumpHeapAllocator) allocate(mem *wasm.Memory, size uint32) (u
 
 	// write "header" for allocated memory to heap
 	for i := uint32(1); i <= 8; i++ {
-		fbha.set_heap(mem, ptr-i, 255)
+		fbha.set_heap(ptr-i, 255)
 	}
-	fbha.set_heap(mem, ptr-8, uint8(list_index))
+	fbha.set_heap(ptr-8, uint8(list_index))
 	fbha.total_size = fbha.total_size + item_size + 8
 	log.Debug("[allocate]", "heap_size after allocation", fbha.total_size)
 	return fbha.ptr_offset + ptr, nil
 }
 
-func (fbha *FreeingBumpHeapAllocator) deallocate(mem *wasm.Memory, pointer uint32) error {
+func (fbha *FreeingBumpHeapAllocator) deallocate(pointer uint32) error {
 	ptr := pointer - fbha.ptr_offset
 	if ptr < 8 {
 		return errors.New("Invalid pointer for deallocation")
 	}
 	log.Debug("[deallocate]", "ptr", ptr)
-	list_index := fbha.get_heap_byte(mem, ptr - 8)
+	list_index := fbha.get_heap_byte(ptr - 8)
 
 	// update heads array, and heap "header"
 	tail := fbha.heads[list_index]
@@ -110,7 +110,7 @@ func (fbha *FreeingBumpHeapAllocator) deallocate(mem *wasm.Memory, pointer uint3
 
 	bTail := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bTail, tail)
-	fbha.set_heap_4bytes(mem, ptr-8, bTail)
+	fbha.set_heap_4bytes(ptr-8, bTail)
 
 	// update heap total size
 	item_size := get_item_size_from_index(uint(list_index))
@@ -126,19 +126,19 @@ func (fbha *FreeingBumpHeapAllocator) bump(n uint32) uint32 {
 	return res
 }
 
-func (fbha *FreeingBumpHeapAllocator) set_heap(mem *wasm.Memory, ptr uint32, value uint8) {
-	mem.Data()[fbha.ptr_offset+ptr] = value
+func (fbha *FreeingBumpHeapAllocator) set_heap(ptr uint32, value uint8) {
+	fbha.heap.Data()[fbha.ptr_offset+ptr] = value
 }
 
-func (fbha *FreeingBumpHeapAllocator) set_heap_4bytes(mem *wasm.Memory, ptr uint32, value []byte) {
-	copy(mem.Data()[fbha.ptr_offset+ptr:fbha.ptr_offset+ptr+4], value)
+func (fbha *FreeingBumpHeapAllocator) set_heap_4bytes(ptr uint32, value []byte) {
+	copy(fbha.heap.Data()[fbha.ptr_offset+ptr:fbha.ptr_offset+ptr+4], value)
 }
-func (fbha *FreeingBumpHeapAllocator) get_heap_4bytes(mem *wasm.Memory, ptr uint32) []byte {
-	return mem.Data()[fbha.ptr_offset+ptr : fbha.ptr_offset+ptr+4]
+func (fbha *FreeingBumpHeapAllocator) get_heap_4bytes(ptr uint32) []byte {
+	return fbha.heap.Data()[fbha.ptr_offset+ptr : fbha.ptr_offset+ptr+4]
 }
 
-func (fbha *FreeingBumpHeapAllocator) get_heap_byte(mem *wasm.Memory, ptr uint32) byte {
-	return mem.Data()[fbha.ptr_offset+ptr]
+func (fbha *FreeingBumpHeapAllocator) get_heap_byte(ptr uint32) byte {
+	return fbha.heap.Data()[fbha.ptr_offset+ptr]
 }
 
 func get_item_size_from_index(index uint) uint {

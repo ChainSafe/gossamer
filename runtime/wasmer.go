@@ -51,9 +51,8 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 //export ext_malloc
 func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc] executing...")
-
 	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory()
+
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
@@ -61,7 +60,7 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// allocate memory
-	res, err := runtimeCtx.allocator.allocate(memory, uint32(size))
+	res, err := runtimeCtx.allocator.allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
@@ -74,9 +73,8 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 func ext_free(context unsafe.Pointer, addr int32) {
 	log.Debug("[ext_free] executing...")
 	log.Debug("[ext_free]", "addr", addr)
-
 	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory()
+
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
@@ -84,7 +82,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// deallocate memory
-	err := runtimeCtx.allocator.deallocate(memory, uint32(addr))
+	err := runtimeCtx.allocator.deallocate(uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
 		panic(err)
@@ -381,9 +379,10 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 }
 
 type RuntimeCtx struct {
-	trie *trie.Trie
+	trie      *trie.Trie
 	allocator *FreeingBumpHeapAllocator
 }
+
 type Runtime struct {
 	vm   wasm.Instance
 	trie *trie.Trie
@@ -474,9 +473,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	memAllocator := newAllocator(&instance.Memory, 0)
 
 	runtimeCtx := &RuntimeCtx{
-		trie: t,
+		trie:      t,
 		allocator: &memAllocator,
 	}
+	// add runtimeCtx to registry
 	mutex.Lock()
 	index := handlers
 	handlers++
@@ -485,11 +485,11 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	}
 	registry[index] = *runtimeCtx
 	mutex.Unlock()
+
 	log.Debug("[NewRuntime]", "index", index)
 	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
 	data := unsafe.Pointer(&index)
 	instance.SetContextData(data)
-
 
 	return &Runtime{
 		vm:   instance,
@@ -506,8 +506,6 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("could not find exported function")
 	}
-	log.Debug("[Exec]", "runtime", r)
-
 	res, err := runtimeFunc(data, len)
 	if err != nil {
 		return nil, err
@@ -535,16 +533,3 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 	output, err := sd.Decode(t)
 	return output, err
 }
-
-// memory allocator
-//var memAllocator FreeingBumpHeapAllocator
-
-// init memory allocator if it hasn't been
-/*
-func initMemAllocator(mem *wasm.Memory) {
-	log.Debug("[getMemAllocator]", "heap", memAllocator.heap)
-	if memAllocator.heap == nil {
-		memAllocator = newAllocator(mem, 0)
-	}
-}
-*/
