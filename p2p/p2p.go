@@ -27,8 +27,7 @@ import (
 	"time"
 
 	log "github.com/ChainSafe/log15"
-	//runtime "github.com/ChainSafe/gossamer/runtime"
-	
+
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
