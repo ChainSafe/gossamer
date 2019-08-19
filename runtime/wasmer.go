@@ -325,6 +325,10 @@ type Runtime struct {
 	trie *trie.Trie
 }
 
+type Config struct {
+	Path 	string
+}
+
 func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)

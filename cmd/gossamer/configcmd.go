@@ -152,6 +152,18 @@ func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 	}
 }
 
+// getDatabaseDir initializes directory for BadgerService logs
+func getRuntimePath(ctx *cli.Context, fig *cfg.Config) string {
+	if file := ctx.GlobalString(utils.RuntimePathFlag.Name); file != "" {
+		fig.RuntimeCfg.Path = file
+		return file
+	} else if fig.RuntimeCfg.Path != "" {
+		return fig.RuntimeCfg.Path
+	} else {
+		return cfg.DefaultRuntimePath()
+	}
+}
+
 // createP2PService starts a p2p network layer from provided config
 func createP2PService(fig *p2p.Config) *p2p.Service {
 	srvc, err := p2p.NewService(fig)

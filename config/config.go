@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/runtime"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -32,6 +33,7 @@ type Config struct {
 	P2pCfg *p2p.Config     `toml:"p2p"`
 	DbCfg  *polkadb.Config `toml:"db"`
 	RpcCfg *rpc.Config     `toml:"rpc"`
+	RuntimeConfig *runtime.Config 	`toml:"runtime"`
 }
 
 // ToTOML encodes a state type into a TOML file.

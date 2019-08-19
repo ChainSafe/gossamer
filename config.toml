@@ -16,3 +16,6 @@ DataDir="chaindata"
 
 [rpc]
 Modules=["system"]
+
+[runtime]
+path="./runtime/polkadot_runtime.compact.wasm"
