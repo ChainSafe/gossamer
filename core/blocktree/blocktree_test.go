@@ -17,22 +17,56 @@
 package blocktree
 
 import (
-	"github.com/ChainSafe/gossamer/common"
+	"fmt"
 	"math/big"
+	"testing"
+
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core"
 )
 
-//for hash
-var byteArray32 = [32]byte{}
+var zeroHash, _ = common.HexToHash("0x00")
 
-
-//blocktree to conduct tests on
-
-
-type findChainTest struct {
-	initialTree		BlockTree
-	output			[]byte
-	
+func createGenesisBlock() core.Block {
+	return core.Block{
+		SlotNumber:   nil,
+		PreviousHash: zeroHash,
+		//VrfOutput:    nil,
+		//Transactions: nil,
+		//Signature:    nil,
+		BlockNumber: nil,
+		Hash:        common.Hash{0x00},
+	}
 }
 
+func TestBlockTree_AddBlock_GetBlock(t *testing.T) {
+	bt := NewBlockTreeFromGenesis(createGenesisBlock())
 
+	oneHash, _ := common.HexToHash("0x01")
+	twoHash, _ := common.HexToHash("0x02")
+
+	block1 := core.Block{
+		PreviousHash: zeroHash,
+		Hash:         oneHash,
+		BlockNumber:  big.NewInt(1),
+	}
+
+	bt.AddBlock(block1)
+
+	block2 := core.Block{
+		PreviousHash: oneHash,
+		Hash:         twoHash,
+		BlockNumber:  big.NewInt(2),
+	}
+
+	bt.AddBlock(block2)
+
+	blk := bt.GetNode(twoHash)
+
+	if blk.number.Cmp(big.NewInt(2)) != 0 {
+		t.Errorf("got: %s expected: %s", blk.number, big.NewInt(2))
+	}
+
+	fmt.Println(bt.String())
+}
 
