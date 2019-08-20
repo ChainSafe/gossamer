@@ -10,25 +10,17 @@ import (
 )
 
 func newTrie() (*Trie, error) {
-	hasher, err := NewHasher()
-	if err != nil {
-		return nil, err
-	}
-
 	db, err := db.NewBadgerService("./gossamer_data")
 	if err != nil {
 		return nil, err
 	}
 
+	tdb := NewDatabase(db)
+
 	trie := &Trie{
-		db: &Database{
-			Db:     db,
-			Hasher: hasher,
-		},
+		db: tdb,
 		root: nil,
 	}
-
-	trie.db.Batch = trie.db.Db.NewBatch()
 
 	return trie, nil
 }

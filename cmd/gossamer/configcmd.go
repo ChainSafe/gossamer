@@ -32,6 +32,8 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -76,6 +78,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 	srvcs = append(srvcs, dbSrvc)
+
+	// Trie and runtime
+	tdb := trie.NewDatabase(dbSrvc)
+	t := trie.NewEmptyTrie(tdb)
+	r := createRuntimeService(fig.RuntimeCfg, t)
+	srvcs = append(srvcs, r)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
@@ -169,6 +177,15 @@ func createP2PService(fig *p2p.Config) *p2p.Service {
 	srvc, err := p2p.NewService(fig)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
+	}
+	return srvc
+}
+
+// createRuntimeService starts a runtime from the provided config
+func createRuntimeService(fig *runtime.Config, t *trie.Trie) *runtime.Runtime {
+	srvc, err := runtime.NewRuntime(fig, t)
+	if err != nil {
+		log.Error("error starting runtime", "err", err.Error())
 	}
 	return srvc
 }

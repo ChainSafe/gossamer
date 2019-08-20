@@ -45,6 +45,7 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 		P2pCfg: TestP2PConfig,
 		DbCfg:  TestDBConfig,
 		RpcCfg: cfg.DefaultRpcConfig,
+		RuntimeCfg: cfg.DefaultRuntimeConfig,
 	}
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {

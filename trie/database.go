@@ -30,6 +30,24 @@ type Database struct {
 	Hasher *Hasher
 }
 
+func NewDatabase(db polkadb.Database) *Database {
+	hasher, err := NewHasher()
+	if err != nil {
+		return nil
+	}
+
+	lock := sync.RWMutex{}
+
+	batch := db.NewBatch()
+
+	return &Database{
+		Db: db,
+		Batch: batch,
+		Lock: lock,
+		Hasher: hasher,
+	}
+}
+
 // WriteToDB writes the trie to the underlying database batch writer
 // Stores the merkle value of the node as the key and the encoded node as the value
 // This does not actually write to the db, just to the batch writer
