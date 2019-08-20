@@ -27,6 +27,8 @@ import (
 	"time"
 
 	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/runtime"
+
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -54,6 +56,7 @@ type Service struct {
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
 	noBootstrap    bool
+	runtime 		*runtime.Runtime
 }
 
 // Config is used to configure a p2p service

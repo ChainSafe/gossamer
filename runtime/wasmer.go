@@ -329,9 +329,9 @@ type Config struct {
 	Path 	string
 }
 
-func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
+func NewRuntime(conf *Config, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := wasm.ReadBytes(fp)
+	bytes, err := wasm.ReadBytes(conf.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -420,12 +420,14 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	}, nil
 }
 
-func (r *Runtime) Start() {
+func (r *Runtime) Start() <-chan error {
 	// doesn't really do anything for now
+	return make(<-chan error)
 }
 
-func (r *Runtime) Stop() {
+func (r *Runtime) Stop() <-chan error {
 	r.vm.Close()
+	return make(<-chan error)
 }
 
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
