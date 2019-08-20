@@ -60,7 +60,9 @@ func TestStringsToPeerInfos(t *testing.T) {
 
 func TestBootstrapP2PConnect(t *testing.T) {
 	p2pNodeConfig := &Config{
+		Hostname: Localhost,
 		Port: 7000,
+		NoMdns: true,
 	}
 	bootstrapNode, err := NewService(p2pNodeConfig)
 
@@ -76,7 +78,9 @@ func TestBootstrapP2PConnect(t *testing.T) {
 		BootstrapNodes: []string{
 			p2pAddr,
 		},
+		Hostname: Localhost,
 		Port: 7001,
+		NoMdns: true,
 	}
 
 	s, err := NewService(testServiceConfig)

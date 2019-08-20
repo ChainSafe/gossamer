@@ -26,9 +26,12 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+var Localhost = "127.0.0.1"
+
 func TestBuildOpts(t *testing.T) {
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
+		Hostname: Localhost,
 		Port:           7001,
 	}
 
@@ -58,6 +61,7 @@ func TestStart(t *testing.T) {
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
+		Hostname: Localhost,
 		Port: 7001,
 		NoBootstrap: true,
 	}
@@ -72,11 +76,14 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
+
+	s.Stop()
 }
 
 func TestService_PeerCount(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
+		Hostname: Localhost,
 		Port:        7001,
 	}
 
@@ -93,6 +100,7 @@ func TestService_PeerCount(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
+		Hostname: Localhost,
 		Port:        7007,
 	}
 
@@ -102,7 +110,7 @@ func TestService_PeerCount(t *testing.T) {
 	}
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,6 +137,7 @@ func TestService_PeerCount(t *testing.T) {
 func TestSend(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
+		Hostname: Localhost,
 		Port:        7001,
 	}
 
@@ -145,6 +154,7 @@ func TestSend(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
+		Hostname: Localhost,
 		Port:        7007,
 	}
 
@@ -154,7 +164,7 @@ func TestSend(t *testing.T) {
 	}
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,11 +195,15 @@ func TestSend(t *testing.T) {
 	if err != nil {
 		t.Errorf("Send error: %s", err)
 	}
+
+	sa.Stop()
+	sb.Stop()
 }
 
 func TestNoBootstrap(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
+		Hostname: Localhost,
 		Port:        7001,
 	}
 
@@ -203,4 +217,6 @@ func TestNoBootstrap(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
+
+	sa.Stop()
 }

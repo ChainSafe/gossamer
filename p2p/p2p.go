@@ -57,15 +57,6 @@ type Service struct {
 	noBootstrap    bool
 }
 
-// Config is used to configure a p2p service
-type Config struct {
-	BootstrapNodes []string
-	Port           int
-	RandSeed       int64
-	NoBootstrap    bool
-	NoMdns         bool
-}
-
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *Config) (*Service, error) {
 	ctx := context.Background()
@@ -89,7 +80,7 @@ func NewService(conf *Config) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/ipfs/%s", conf.Port, h.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/ipfs/%s", conf.Hostname, conf.Port, h.ID().Pretty()))
 	if err != nil {
 		return nil, err
 	}
@@ -234,28 +225,6 @@ func (s *Service) DHT() *kaddht.IpfsDHT {
 // Ctx returns the service's ctx
 func (s *Service) Ctx() context.Context {
 	return s.ctx
-}
-
-func (sc *Config) buildOpts() ([]libp2p.Option, error) {
-	ip := "0.0.0.0"
-
-	priv, err := generateKey(sc.RandSeed)
-	if err != nil {
-		return nil, err
-	}
-
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, sc.Port))
-	if err != nil {
-		return nil, err
-	}
-
-	return []libp2p.Option{
-		libp2p.ListenAddrs(addr),
-		libp2p.DisableRelay(),
-		libp2p.Identity(priv),
-		libp2p.NATPortMap(),
-		libp2p.Ping(true),
-	}, nil
 }
 
 // generateKey generates a libp2p private key which is used for secure messaging
