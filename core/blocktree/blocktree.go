@@ -27,16 +27,10 @@ import (
 
 type Hash = common.Hash
 
-// node is an element in the BlockTree
-type node struct {
-	hash     Hash     // Block hash
-	number   *big.Int // Block number
-	children []*node  // Nodes of children blocks
-}
-
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
 	head            *node
+	leaves          leafMap
 	finalizedBlocks []*node
 }
 
@@ -45,6 +39,7 @@ func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 		hash:     genesis.Hash,
 		number:   genesis.BlockNumber,
 		children: []*node{},
+		depth:    big.NewInt(0),
 	}
 	return &BlockTree{
 		head:            head,
@@ -62,12 +57,16 @@ func (bt *BlockTree) AddBlock(block core.Block) {
 		log.Debug("Attempted to add block to tree that already exists", "hash", n.hash)
 		return
 	}
+
+	depth := big.NewInt(0)
+	depth.Add(parent.depth, big.NewInt(1))
+
 	n = &node{
-		hash: block.Hash,
-		number: block.BlockNumber,
+		hash:     block.Hash,
+		number:   block.BlockNumber,
 		children: []*node{},
+		depth:    depth,
 	}
-	log.Debug("Adding child to parent", "parent", parent, "child", n)
 	parent.addChild(n)
 }
 
@@ -98,38 +97,6 @@ func (bt *BlockTree) String() string {
 	return tree.Print()
 }
 
-// addChild appends node to list of children
-func (n *node) addChild(node *node) {
-	n.children = append(n.children, node)
-}
-
-func (n *node) String() string {
-	return n.hash.String()
-}
-
-// createTree adds all the nodes children to the existing printable tree
-func (n *node) createTree(tree gotree.Tree) {
-	log.Debug("Getting tree", "node", n)
-	for _, child := range n.children {
-		tree.Add(child.String())
-	}
-}
-
-func (n *node) getNode(h common.Hash) *node {
-	if n.hash == h {
-		return n
-	} else if len(n.children) == 0 {
-		return nil
-	} else {
-		for _, child := range n.children {
-			if n := child.getNode(h); n != nil {
-				return n
-			}
-		}
-	}
-	return nil
-}
-
 // TODO: Fix or remove
 //finds node by hash returns stack containing path to that node
 //need alternate with no return value to save space when not nessessary
@@ -138,16 +105,17 @@ func Chain(h Hash, BT BlockTree) []node {
 }
 
 //LongestPath returns path to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) LongestPath ([]node, *big.Int) BlockTree {
+func (bt *BlockTree) LongestPath([]node, *big.Int) BlockTree {
 	//dl := bt.DeepestLeaf()
 	return BlockTree{} //bt.SubChain(bt.head, dl)
 
 }
 
 //returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) DeepestLeaf() []node {
-	return nil //bt.head.deepestLeaf()
+func (bt *BlockTree) DeepestLeaf() *node {
+	return bt.leaves.DeepestLeaf()
 }
+
 //
 //// DeepestLeaf returns leftmost deepest leaf in BlockTree BT
 //func (n node) deepestLeaf() []node{
@@ -183,6 +151,7 @@ func (bt *BlockTree) SubChain(start Hash, end Hash) []node {
 	//}
 	return nil
 }
+
 //
 //func subChain(start node, end node, chain []node ) []node {
 //	for _, n := range start.children {
@@ -268,21 +237,5 @@ func (bt *BlockTree) SubChain(start Hash, end Hash) []node {
 //		}
 //	}
 //
-//	return false
-//}
-//
-//
-//func isDecendantOf(parent Hash, child Hash, bt BlockTree) bool {
-//	//TODO: verify that parent and child exist in the DB
-//	if (blockExists(parent) && blockExists(child)) {
-//		//get node
-//		p := findNode(parent, bt)
-//		//check if node exists as descendant
-//		if findNode(p, child) {
-//			return true
-//		}
-//	}
-//	// if node doesn't exist as a part of the tree with head parent,
-//	// it is not a decendant of that block.
 //	return false
 //}

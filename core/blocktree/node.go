@@ -1,18 +1,22 @@
 package blocktree
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/disiqueira/gotree"
-	"github.com/prometheus/common/log"
+	log "github.com/ChainSafe/log15"
 )
 
 // node is an element in the BlockTree
 type node struct {
 	hash     common.Hash     // Block hash
+	// TODO: Do we need this?
+	// parentHash common.Hash
 	number   *big.Int // Block number
 	children []*node  // Nodes of children blocks
+	depth *big.Int // Depth within the tree
 }
 
 // addChild appends node to list of children
@@ -21,7 +25,7 @@ func (n *node) addChild(node *node) {
 }
 
 func (n *node) String() string {
-	return n.hash.String()
+	return fmt.Sprintf("{h: %s, d: %s}", n.hash.String(), n.depth)
 }
 
 // createTree adds all the nodes children to the existing printable tree
@@ -45,4 +49,20 @@ func (n *node) getNode(h common.Hash) *node {
 		}
 	}
 	return nil
+}
+
+func (n *node) isDecendantOf(parent *node) bool {
+	// TODO: This might be improved by adding parent hash to node struct and searching child -> parent
+	// TODO: verify that parent and child exist in the DB
+	// NOTE: here we assume the nodes exist
+	if n.hash == parent.hash {
+		return true
+	} else if len(parent.children) == 0 {
+		return false
+	} else {
+		for _, child := range parent.children {
+			n.isDecendantOf(child)
+		}
+	}
+	return false
 }
