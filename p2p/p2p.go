@@ -320,3 +320,15 @@ func (s *Service) PeerCount() int {
 	peers := s.host.Network().Peers()
 	return len(peers)
 }
+
+// Peers returns connected peers
+func (s *Service) Peers() []peer.ID {
+	peers := s.host.Network().Peers()
+	return peers
+}
+
+// // Network state
+// func (s *Service) NetworkState() []peer.ID {
+// 	peers := s.host.Network().
+// 	return peers
+// }
