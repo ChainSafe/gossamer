@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const PAGE_SIZE = 65536
+const pageSize = 65536
 
 func TestAllocatorShouldAllocateProperly(t *testing.T) {
 	// given
@@ -16,18 +16,18 @@ func TestAllocatorShouldAllocateProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
 	// when
-	alloc_res, err := fbha.allocate(1)
+	allocRes, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// then
-	t.Log("[TestAllocatorShouldAllocateProperly]", "result", alloc_res)
-	if alloc_res != 8 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 8)
+	t.Log("[TestAllocatorShouldAllocateProperly]", "result", allocRes)
+	if allocRes != 8 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", allocRes, 8)
 	}
 }
 
@@ -39,18 +39,18 @@ func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	// set ptr_offset to simulate 13 bytes used
-	fbha := newAllocator(&mem, 13)
+	fbha := NewAllocator(&mem, 13)
 
 	// when
-	alloc_res, err := fbha.allocate(1)
+	allocRes, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// then
-	t.Log("[TestAllocatorShouldAlignPointersToMultiplesOf8]", "result", alloc_res)
-	if alloc_res != 24 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", alloc_res, 24)
+	t.Log("[TestAllocatorShouldAlignPointersToMultiplesOf8]", "result", allocRes)
+	if allocRes != 24 {
+		t.Errorf("Returned ptr not correct, got: %d, want: %d.", allocRes, 24)
 	}
 }
 
@@ -61,18 +61,18 @@ func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
 	// when
-	ptr1, err := fbha.allocate(1)
+	ptr1, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr2, err := fbha.allocate(9)
+	ptr2, err := fbha.Allocate(9)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr3, err := fbha.allocate(1)
+	ptr3, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,8 +101,8 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
-	ptr1, err := fbha.allocate(1)
+	fbha := NewAllocator(&mem, 0)
+	ptr1, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
 
-	ptr2, err := fbha.allocate(1)
+	ptr2, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	}
 
 	// when
-	err = fbha.deallocate(ptr2)
+	err = fbha.Deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestAllocatorShouldFreeProperly(t *testing.T) {
 	// then the heads table should contain a pointer to the prefix of ptr2 in the leftmost entry
 	t.Log("[TestAllocatorShouldFreeProperly]", "head0", fbha.heads[0], "ptr2", ptr2-8)
 	if fbha.heads[0] != ptr2-8 {
-		t.Errorf("Error deallocate, head ptr not equal expected value")
+		t.Errorf("Error Deallocate, head ptr not equal expected value")
 	}
 }
 
@@ -144,32 +144,32 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	// test ptr_offset of 13, which should give is 16 for padding
-	fbha := newAllocator(&mem, 13)
-	padding_offset := 16
-	ptr1, err := fbha.allocate(1)
+	fbha := NewAllocator(&mem, 13)
+	paddingOffset := 16
+	ptr1, err := fbha.Allocate(1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("ptr1", ptr1)
-	if ptr1 != uint32(padding_offset+8) {
+	if ptr1 != uint32(paddingOffset+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
 	}
 
-	ptr2, err := fbha.allocate(9)
+	ptr2, err := fbha.Allocate(9)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("ptr2", ptr2)
-	if ptr2 != uint32(padding_offset+16+8) {
+	if ptr2 != uint32(paddingOffset+16+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
 	}
 
 	// when
-	err = fbha.deallocate(ptr2)
+	err = fbha.Deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ptr3, err := fbha.allocate(9)
+	ptr3, err := fbha.Allocate(9)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
 	// then
 	// should have re-allocated
 	t.Log("ptr3", ptr3)
-	if ptr3 != uint32(padding_offset+16+8) {
+	if ptr3 != uint32(paddingOffset+16+8) {
 		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24)
 	}
 	expected := make([]uint32, 22)
@@ -193,35 +193,35 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
-	ptr1, err := fbha.allocate(8)
+	ptr1, err := fbha.Allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ptr2, err := fbha.allocate(8)
+	ptr2, err := fbha.Allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ptr3, err := fbha.allocate(8)
+	ptr3, err := fbha.Allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// when
-	err = fbha.deallocate(ptr1)
+	err = fbha.Deallocate(ptr1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = fbha.deallocate(ptr2)
+	err = fbha.Deallocate(ptr2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = fbha.deallocate(ptr3)
+	err = fbha.Deallocate(ptr3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
 		t.Error("ERROR: Didn't get expected heads")
 	}
 
-	ptr4, err := fbha.allocate(8)
+	ptr4, err := fbha.Allocate(8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,16 +258,16 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	mem := runtime.vm.Memory
 	currentSize := mem.Length()
 
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
 	// when
-	_, err = fbha.allocate(currentSize + 1)
+	_, err = fbha.Allocate(currentSize + 1)
 
-	// then expect error since trying to over allocate
+	// then expect error since trying to over Allocate
 	if err == nil {
 		t.Error("Error, expected out of space error, but didn't get one.")
 	}
-	if err != nil && err.Error() != "Error: allocator out of space" {
+	if err != nil && err.Error() != "allocator out of space" {
 		t.Errorf("Error: got unexpected error: %v", err.Error())
 	}
 }
@@ -280,9 +280,9 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	}
 	mem := runtime.vm.Memory
 	currentSize := mem.Length()
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
-	ptr1, err := fbha.allocate((currentSize / 2) - 8)
+	ptr1, err := fbha.Allocate((currentSize / 2) - 8)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,14 +291,14 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	}
 
 	// when
-	_, err = fbha.allocate((currentSize / 2))
+	_, err = fbha.Allocate(currentSize / 2)
 
 	// then
 	// there is no room after half currentSize including it's 8 byte prefix, so error
 	if err == nil {
 		t.Error("Error, expected out of space error, but didn't get one.")
 	}
-	if err != nil && err.Error() != "Error: allocator out of space" {
+	if err != nil && err.Error() != "allocator out of space" {
 		t.Errorf("Error: got unexpected error: %v", err.Error())
 	}
 
@@ -311,13 +311,15 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	pagesNeeded := (MAX_POSSIBLE_ALLOCATION / PAGE_SIZE) - (mem.Length() / PAGE_SIZE) + 1
-	mem.Grow(pagesNeeded)
-
-	fbha := newAllocator(&mem, 0)
+	pagesNeeded := (MaxPossibleAllocation / pageSize) - (mem.Length() / pageSize) + 1
+	err = mem.Grow(pagesNeeded)
+	if err != nil {
+		t.Error(err)
+	}
+	fbha := NewAllocator(&mem, 0)
 
 	// when
-	ptr1, err := fbha.allocate(MAX_POSSIBLE_ALLOCATION)
+	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
 	if err != nil {
 		t.Error(err)
 	}
@@ -336,14 +338,14 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 0)
+	fbha := NewAllocator(&mem, 0)
 
 	// when
-	_, err = fbha.allocate(MAX_POSSIBLE_ALLOCATION + 1)
+	_, err = fbha.Allocate(MaxPossibleAllocation + 1)
 
 	// then
 	if err != nil {
-		if err.Error() != "Error: size to large" {
+		if err.Error() != "size to large" {
 			t.Error("Didn't get expected error")
 		}
 	} else {
@@ -359,16 +361,16 @@ func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 1)
+	fbha := NewAllocator(&mem, 1)
 
 	// when
-	_, err = fbha.allocate(9)
+	_, err = fbha.Allocate(9)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// then
-	t.Log("[TestShouldIncludePrefixesInTotalHeapSize]", "total_size", fbha.total_size)
-	if fbha.total_size != (8 + 16) {
+	t.Log("[TestShouldIncludePrefixesInTotalHeapSize]", "total_size", fbha.totalSize)
+	if fbha.totalSize != (8 + 16) {
 		t.Error("Total heap size not calculating properly")
 	}
 
@@ -381,25 +383,25 @@ func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 13)
+	fbha := NewAllocator(&mem, 13)
 
 	// when
-	ptr, err := fbha.allocate(42)
+	ptr, err := fbha.Allocate(42)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ptr != (16 + 8) {
 		t.Error("Error: Didn't get expected pointer value")
 	}
-	err = fbha.deallocate(ptr)
+	err = fbha.Deallocate(ptr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// then
-	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.total_size)
-	if fbha.total_size != 0 {
-		t.Error("Total heap size does not equal zero, total_size: ", fbha.total_size)
+	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.totalSize)
+	if fbha.totalSize != 0 {
+		t.Error("Total heap size does not equal zero, total_size: ", fbha.totalSize)
 	}
 
 }
@@ -411,24 +413,24 @@ func TestShouldCalculateTotalSizeOfZero(t *testing.T) {
 		t.Fatal(err)
 	}
 	mem := runtime.vm.Memory
-	fbha := newAllocator(&mem, 19)
+	fbha := NewAllocator(&mem, 19)
 
 	// when
 	for i := 0; i < 10; i++ {
-		ptr, err := fbha.allocate(42)
+		ptr, err := fbha.Allocate(42)
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = fbha.deallocate(ptr)
+		err = fbha.Deallocate(ptr)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	// then
-	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.total_size)
-	if fbha.total_size != 0 {
-		t.Error("Total heap size does not equal zero, total_size: ", fbha.total_size)
+	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.totalSize)
+	if fbha.totalSize != 0 {
+		t.Error("Total heap size does not equal zero, total_size: ", fbha.totalSize)
 	}
 
 }
@@ -470,12 +472,12 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 	index := uint(0)
 
 	// when
-	item_size := get_item_size_from_index(index)
+	itemSize := getItemSizeFromIndex(index)
 
 	//
-	t.Log("[TestShouldGetItemFromIndex]", "item_size", item_size)
-	if item_size != 8 {
-		t.Error("item_size should be 8, got item_size:", item_size)
+	t.Log("[TestShouldGetItemFromIndex]", "item_size", itemSize)
+	if itemSize != 8 {
+		t.Error("item_size should be 8, got item_size:", itemSize)
 	}
 }
 
@@ -484,11 +486,11 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 	index := uint(21)
 
 	// when
-	item_size := get_item_size_from_index(index)
+	itemSize := getItemSizeFromIndex(index)
 
 	//
-	t.Log("[TestShouldGetMaxFromIndex]", "item_size", item_size)
-	if item_size != MAX_POSSIBLE_ALLOCATION {
-		t.Errorf("item_size should be %d, got item_size: %d", MAX_POSSIBLE_ALLOCATION, item_size)
+	t.Log("[TestShouldGetMaxFromIndex]", "item_size", itemSize)
+	if itemSize != MaxPossibleAllocation {
+		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
 	}
 }

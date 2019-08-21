@@ -59,13 +59,13 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
 	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
-	// allocate memory
-	res, err := runtimeCtx.allocator.allocate(uint32(size))
+	// Allocate memory
+	res, err := runtimeCtx.allocator.Allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
 	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.total_size)
+	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.totalSize)
 	return int32(res)
 }
 
@@ -81,8 +81,8 @@ func ext_free(context unsafe.Pointer, addr int32) {
 
 	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
-	// deallocate memory
-	err := runtimeCtx.allocator.deallocate(uint32(addr))
+	// Deallocate memory
+	err := runtimeCtx.allocator.Deallocate(uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
 		panic(err)
@@ -470,7 +470,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 		return nil, err
 	}
 
-	memAllocator := newAllocator(&instance.Memory, 0)
+	memAllocator := NewAllocator(&instance.Memory, 0)
 
 	runtimeCtx := &RuntimeCtx{
 		trie:      t,
