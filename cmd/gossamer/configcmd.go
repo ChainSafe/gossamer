@@ -80,8 +80,9 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, dbSrvc)
 
 	// Trie and runtime
-	tdb := trie.NewDatabase(dbSrvc)
-	t := trie.NewEmptyTrie(tdb)
+	// TODO: need to put DB into trie, right now wasmer throws a `panic: runtime error: cgo argument has Go pointer to Go pointer`
+	// when trying to initialize the runtime data with trie+db
+	t := &trie.Trie{}
 	r := createRuntimeService(fig.RuntimeCfg, t)
 	srvcs = append(srvcs, r)
 
