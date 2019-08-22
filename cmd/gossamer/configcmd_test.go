@@ -139,6 +139,39 @@ func TestGetDatabaseDir(t *testing.T) {
 	}
 }
 
+func TestGetRuntimePath(t *testing.T) {
+	tempFile, cfgClone := createTempConfigFile()
+
+	app := cli.NewApp()
+	app.Writer = ioutil.Discard
+	tc := []struct {
+		name     string
+		value    string
+		usage    string
+		expected string
+	}{
+		{"", "", "", cfg.DefaultRuntimeConfig.Path},
+		{"config", tempFile.Name(), "TOML configuration file", cfg.DefaultRuntimeConfig.Path},
+		{"runtimepath", "test1", "sets runtime path", "test1"},
+	}
+
+	for i, c := range tc {
+		set := flag.NewFlagSet(c.name, 0)
+		set.String(c.name, c.value, c.usage)
+		context := cli.NewContext(app, set, nil)
+		if i == 0 {
+			cfgClone.RuntimeCfg.Path = ""
+		} else {
+			cfgClone.RuntimeCfg.Path = "./runtime/polkadot_runtime.compact.wasm"
+		}
+		path := getRuntimePath(context, cfgClone)
+
+		if path != c.expected {
+			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, path, c.expected)
+		}
+	}
+}
+
 func TestCreateP2PService(t *testing.T) {
 	_, cfgClone := createTempConfigFile()
 	srv := createP2PService(cfgClone.P2pCfg)
