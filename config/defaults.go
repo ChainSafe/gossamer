@@ -76,9 +76,9 @@ var (
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 var DefaultConfig = &Config{
-	P2pCfg: DefaultP2PConfig,
-	DbCfg:  DefaultDBConfig,
-	RpcCfg: DefaultRpcConfig,
+	P2pCfg:     DefaultP2PConfig,
+	DbCfg:      DefaultDBConfig,
+	RpcCfg:     DefaultRpcConfig,
 	RuntimeCfg: DefaultRuntimeConfig,
 }
 

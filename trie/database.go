@@ -41,9 +41,9 @@ func NewDatabase(db polkadb.Database) *Database {
 	batch := db.NewBatch()
 
 	return &Database{
-		Db: db,
-		Batch: batch,
-		Lock: lock,
+		Db:     db,
+		Batch:  batch,
+		Lock:   lock,
 		Hasher: hasher,
 	}
 }

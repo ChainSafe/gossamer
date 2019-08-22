@@ -326,7 +326,7 @@ type Runtime struct {
 }
 
 type Config struct {
-	Path 	string
+	Path string
 }
 
 func NewRuntime(conf *Config, t *trie.Trie) (*Runtime, error) {

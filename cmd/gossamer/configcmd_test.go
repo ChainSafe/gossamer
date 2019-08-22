@@ -42,9 +42,9 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 			"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"},
 	}
 	var TestConfig = &cfg.Config{
-		P2pCfg: TestP2PConfig,
-		DbCfg:  TestDBConfig,
-		RpcCfg: cfg.DefaultRpcConfig,
+		P2pCfg:     TestP2PConfig,
+		DbCfg:      TestDBConfig,
+		RpcCfg:     cfg.DefaultRpcConfig,
 		RuntimeCfg: cfg.DefaultRuntimeConfig,
 	}
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")

@@ -60,8 +60,8 @@ var (
 		Value: "",
 	}
 	RuntimePathFlag = cli.StringFlag{
-		Name: 	"runtimepath",
-		Usage: 	"Path to the wasm runtime file",
+		Name:  "runtimepath",
+		Usage: "Path to the wasm runtime file",
 		Value: "",
 	}
 )

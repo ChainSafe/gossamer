@@ -30,10 +30,10 @@ import (
 
 // Config is a collection of configurations throughout the system
 type Config struct {
-	P2pCfg *p2p.Config     `toml:"p2p"`
-	DbCfg  *polkadb.Config `toml:"db"`
-	RpcCfg *rpc.Config     `toml:"rpc"`
-	RuntimeCfg *runtime.Config 	`toml:"runtime"`
+	P2pCfg     *p2p.Config     `toml:"p2p"`
+	DbCfg      *polkadb.Config `toml:"db"`
+	RpcCfg     *rpc.Config     `toml:"rpc"`
+	RuntimeCfg *runtime.Config `toml:"runtime"`
 }
 
 // ToTOML encodes a state type into a TOML file.

@@ -18,7 +18,7 @@ func newTrie() (*Trie, error) {
 	tdb := NewDatabase(db)
 
 	trie := &Trie{
-		db: tdb,
+		db:   tdb,
 		root: nil,
 	}
 
