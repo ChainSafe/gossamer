@@ -9,6 +9,39 @@ import (
 
 const pageSize = 65536
 
+type testHolder struct {
+	offset uint32
+	tests       []interface{}
+}
+
+type allocatorTest struct {
+	size uint32
+}
+
+var test1 = [] (allocatorTest) {allocatorTest{size:1}, allocatorTest{size:2}}
+
+var allTests  = []testHolder {
+
+	{offset:1, tests: test1 },
+}
+
+func TestAllocator(t *testing.T) {
+
+	for _, test := range allTests {
+		runtime, err := newTestRuntime()
+		if err != nil {
+			t.Fatal(err)
+		}
+		mem := runtime.vm.Memory
+		fbha := NewAllocator(&mem, 0)
+
+		for _, theTest := range test.tests {
+			t.Log("theTest", theTest)
+		}
+		t.Log("fbha", fbha)
+	}
+}
+
 func TestAllocatorShouldAllocateProperly(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
