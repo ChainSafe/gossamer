@@ -67,6 +67,7 @@ type Config struct {
 	RandSeed       int64
 	NoBootstrap    bool
 	NoMdns         bool
+	Runtime        *runtime.Runtime
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -122,6 +123,7 @@ func NewService(conf *Config) (*Service, error) {
 		bootstrapNodes: bootstrapNodes,
 		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
+		runtime:        conf.Runtime,
 	}
 	return s, err
 }
@@ -224,6 +226,10 @@ func (s *Service) Ping(peer core.PeerID) error {
 	return s.dht.Ping(s.ctx, peer)
 }
 
+func (s *Service) SetRuntime(r *runtime.Runtime) {
+	s.runtime = r
+}
+
 // Host returns the service's host
 func (s *Service) Host() host.Host {
 	return s.host
@@ -237,6 +243,11 @@ func (s *Service) DHT() *kaddht.IpfsDHT {
 // Ctx returns the service's ctx
 func (s *Service) Ctx() context.Context {
 	return s.ctx
+}
+
+// Runtime returns the service's runtime
+func (s *Service) Runtime() *runtime.Runtime {
+	return s.runtime
 }
 
 func (sc *Config) buildOpts() ([]libp2p.Option, error) {
