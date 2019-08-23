@@ -32,7 +32,7 @@ func (m *systemModule) version() string {
 /*?*/
 func (m *systemModule) health() Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
-	health := &Health{
+	health := Health{
 		peers:           uint64(len(m.peers())),
 		isSyncing:       false,
 		shouldHavePeers: (len(m.peers()) != 0),
@@ -50,7 +50,7 @@ func (m *systemModule) name() string {
 /**/
 func (m *systemModule) networkState() peer.ID {
 	log.Debug("[rpc] Executing System.networkState", "params", nil)
-	return m.p2p.peerID()
+	return m.p2p.NetworkState()
 }
 
 /**/

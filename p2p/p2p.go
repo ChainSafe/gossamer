@@ -327,8 +327,8 @@ func (s *Service) Peers() []peer.ID {
 	return peers
 }
 
-// // Network state
-// func (s *Service) NetworkState() []peer.ID {
-// 	peers := s.host.Network().
-// 	return peers
-// }
+// Network state
+func (s *Service) NetworkState() peer.ID {
+	peerID := s.host.ID()
+	return peerID
+}
