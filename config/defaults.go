@@ -17,7 +17,6 @@
 package cfg
 
 import (
-	runtime2 "github.com/ChainSafe/gossamer/runtime"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -27,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
+	runtime2 "github.com/ChainSafe/gossamer/runtime"
 )
 
 const (
