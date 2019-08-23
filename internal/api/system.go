@@ -24,7 +24,7 @@ func (m *systemModule) version() string {
 	return "0.0.1"
 }
 
-/* System Chain not implemented yet */
+// System Chain not implemented yet
 // func (m *systemModule) chain() string {
 // 	log.Debug("[rpc] Executing System.Chain", "params", nil)
 // 	return m.runtime.Chain()
@@ -58,13 +58,12 @@ func (m *systemModule) peers() []peer.ID {
 	return m.p2p.Peers()
 }
 
-/* System Properties not implemented yet */
+// System Properties not implemented yet
 // func (m *systemModule) properties() string {
 // 	log.Debug("[rpc] Executing System.Properties", "params", nil)
 // 	return m.runtime.properties()
 // }
 
-/**/
 // TODO: Move to 'p2p' module
 func (m *systemModule) PeerCount() int {
 	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
