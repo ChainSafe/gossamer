@@ -11,9 +11,7 @@ const (
 	TestPeerCount = 1
 	TestVersion   = "0.0.1"
 	Name          = "Gossamer"
-	networkState  = "blah"
 	peerID        = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
-	properties    = "blah"
 )
 
 var peers = []peer.ID{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}

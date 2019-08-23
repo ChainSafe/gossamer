@@ -24,12 +24,13 @@ func (m *systemModule) version() string {
 	return "0.0.1"
 }
 
+/* System Chain not implemented yet */
 // func (m *systemModule) chain() string {
 // 	log.Debug("[rpc] Executing System.Chain", "params", nil)
 // 	return m.runtime.Chain()
 // }
 
-/*?*/
+// Health of the node
 func (m *systemModule) health() Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
 	health := Health{
@@ -40,20 +41,18 @@ func (m *systemModule) health() Health {
 	return health
 }
 
-/**/
 func (m *systemModule) name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
 	//TODO: Replace with dynamic name
 	return "Gossamer"
 }
 
-/**/
 func (m *systemModule) networkState() peer.ID {
 	log.Debug("[rpc] Executing System.networkState", "params", nil)
 	return m.p2p.NetworkState()
 }
 
-/**/
+// Peers of the node
 func (m *systemModule) peers() []peer.ID {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return m.p2p.Peers()
