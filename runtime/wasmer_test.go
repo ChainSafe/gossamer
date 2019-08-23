@@ -96,7 +96,7 @@ func TestExecVersion(t *testing.T) {
 
 	t.Log(ret)
 
-	res, err := decodeToInterface(ret, &Version{})
+	res, err := DecodeToInterface(ret, &Version{})
 	if err != nil {
 		t.Fatal(err)
 	}

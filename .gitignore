@@ -28,3 +28,4 @@ trie/test_data
 /bin
 chaindata/
 *.wasm
+runtime/test_wasm/

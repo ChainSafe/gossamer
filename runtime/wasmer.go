@@ -452,7 +452,7 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	return rawdata, err
 }
 
-func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
+func DecodeToInterface(in []byte, t interface{}) (interface{}, error) {
 	buf := &bytes.Buffer{}
 	sd := scale.Decoder{Reader: buf}
 	_, err := buf.Write(in)

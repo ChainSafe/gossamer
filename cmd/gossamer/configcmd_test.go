@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/polkadb"
@@ -317,12 +318,20 @@ func TestMakeNode(t *testing.T) {
 func TestCommands(t *testing.T) {
 	tempFile, _ := createTempConfigFile()
 
+	runtimePath, err := filepath.Abs("./../../runtime/polkadot_runtime.compact.wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(runtimePath)
+
 	tc := []struct {
 		name  string
 		value string
 		usage string
 	}{
 		{"config", tempFile.Name(), "TOML configuration file"},
+		{"runtimepath", string(runtimePath), "Path to the wasm runtime file"},
 	}
 
 	for _, c := range tc {

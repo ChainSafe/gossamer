@@ -66,11 +66,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// P2P
-	setBootstrapNodes(ctx, fig.P2pCfg)
-	p2pSrvc := createP2PService(fig.P2pCfg)
-	srvcs = append(srvcs, p2pSrvc)
-
 	// DB
 	dataDir := getDatabaseDir(ctx, fig)
 	dbSrvc, err := polkadb.NewBadgerService(dataDir)
@@ -85,6 +80,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	t := &trie.Trie{}
 	r := createRuntimeService(fig.RuntimeCfg, t)
 	srvcs = append(srvcs, r)
+
+	// P2P
+	fig.P2pCfg.Runtime = r
+	setBootstrapNodes(ctx, fig.P2pCfg)
+	p2pSrvc := createP2PService(fig.P2pCfg)
+	//p2pSrvc.SetRuntime(r)
+	srvcs = append(srvcs, p2pSrvc)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
