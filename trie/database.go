@@ -36,14 +36,11 @@ func NewDatabase(db polkadb.Database) *Database {
 		return nil
 	}
 
-	lock := sync.RWMutex{}
-
 	batch := db.NewBatch()
 
 	return &Database{
 		Db:     db,
 		Batch:  batch,
-		Lock:   lock,
 		Hasher: hasher,
 	}
 }
