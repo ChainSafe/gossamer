@@ -9,279 +9,356 @@ import (
 
 const pageSize = 65536
 
+// struct to hold data for a round of tests
 type testHolder struct {
 	offset uint32
-	tests       []interface{}
+	tests  []testSet
 }
 
-type allocatorTest struct {
+// struct for data used in allocate tests
+type allocateTest struct {
 	size uint32
 }
 
-var test1 = [] (allocatorTest) {allocatorTest{size:1}, allocatorTest{size:2}}
-
-var allTests  = []testHolder {
-
-	{offset:1, tests: test1 },
+// struct for data used in free tests
+type freeTest struct {
+	ptr uint32
 }
 
-func TestAllocator(t *testing.T) {
+// struct to hold data used for expected allocator state
+type allocatorState struct {
+	bumper    uint32
+	heads     [n]uint32
+	ptrOffset uint32
+	totalSize uint32
+}
 
+// struct to hold set of test (allocateTest or freeTest), expected output (return result of test (if any))
+//  state, expected state of the allocator after given test is run
+type testSet struct {
+	test   interface{}
+	output interface{}
+	state  allocatorState
+}
+
+// allocate 1 byte test
+var allocate1ByteTest = []testSet{
+	{test: &allocateTest{size: 1},
+		output: uint32(8),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+}
+
+// allocate 1 byte test with allocator memory offset
+var allocate1ByteTestWithOffset = []testSet{
+	{test: &allocateTest{size: 1},
+		output: uint32(24),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 16}},
+}
+
+// allocate memory 3 times and confirm expected state of allocator
+var allocatorShouldIncrementPointers = []testSet{
+	{test: &allocateTest{size: 1},
+		output: uint32(8),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+	{test: &allocateTest{size: 9},
+		output: uint32(8 + 16),
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 40}},
+	{test: &allocateTest{size: 1},
+		output: uint32(8 + 16 + 24),
+		state: allocatorState{bumper: 56,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 56}},
+}
+
+// allocate memory twice and free the second allocation
+var allocateFreeTest = []testSet{
+	{test: &allocateTest{size: 1},
+		output: uint32(8),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+	{test: &allocateTest{size: 9},
+		output: uint32(8 + 16),
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 40}},
+	{test: &freeTest{ptr: 24}, // address of second allocation
+		output: nil,
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+}
+
+// allocate free and reallocate with memory offset
+var allocateDeallocateReallocateWithOffset = []testSet{
+	{test: &allocateTest{size: 1},
+		output: uint32(24),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 16}},
+	{test: &allocateTest{size: 9},
+		output: uint32(40),
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 40}},
+	{test: &freeTest{ptr: 40}, // address of second allocation
+		output: nil,
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 16}},
+	{test: &allocateTest{size: 9},
+		output: uint32(40),
+		state: allocatorState{bumper: 40,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 40}},
+}
+
+var allocateShouldBuildFreeList = []testSet{
+	// allocate 8 bytes
+	{test: &allocateTest{size: 8},
+		output: uint32(8),
+		state: allocatorState{bumper: 16,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+	// allocate 8 bytes
+	{test: &allocateTest{size: 8},
+		output: uint32(24),
+		state: allocatorState{bumper: 32,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 32}},
+	// allocate 8 bytes
+	{test: &allocateTest{size: 8},
+		output: uint32(40),
+		state: allocatorState{bumper: 48,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 48}},
+	// free first allocation
+	{test: &freeTest{ptr: 8}, // address of first allocation
+		output: nil,
+		state: allocatorState{bumper: 48,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 32}},
+	// free second allocation
+	{test: &freeTest{ptr: 24}, // address of second allocation
+		output: nil,
+		state: allocatorState{bumper: 48,
+			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+	// free third allocation
+	{test: &freeTest{ptr: 40}, // address of third allocation
+		output: nil,
+		state: allocatorState{bumper: 48,
+			heads:     [22]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 0}},
+	// allocate 8 bytes
+	{test: &allocateTest{size: 8},
+		output: uint32(40),
+		state: allocatorState{bumper: 48,
+			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 0,
+			totalSize: 16}},
+}
+
+// allocate 9 byte test with allocator memory offset
+var allocateCorrectlyWithOffset = []testSet{
+	{test: &allocateTest{size: 9},
+		output: uint32(16),
+		state: allocatorState{bumper: 24,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 8,
+			totalSize: 24}},
+}
+
+// allocate 42 bytes with offset, then free should leave total size 0
+var heapShouldBeZeroAfterFreeWithOffset = []testSet{
+	{test: &allocateTest{size: 42},
+		output: uint32(24),
+		state: allocatorState{bumper: 72,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 72}},
+
+	{test: &freeTest{ptr: 24},
+		output: nil,
+		state: allocatorState{bumper: 72,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 16,
+			totalSize: 0}},
+}
+
+var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
+	// first alloc
+	{test: &allocateTest{size: 42},
+		output: uint32(32),
+		state: allocatorState{bumper: 72,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 72}},
+	// first free
+	{test: &freeTest{ptr: 32},
+		output: nil,
+		state: allocatorState{bumper: 72,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 0}},
+	// second alloc
+	{test: &allocateTest{size: 42},
+		output: uint32(104),
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 72}},
+	// second free
+	{test: &freeTest{ptr: 104},
+		output: nil,
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 0}},
+	// third alloc
+	{test: &allocateTest{size: 42},
+		output: uint32(104),
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 72}},
+	// third free
+	{test: &freeTest{ptr: 104},
+		output: nil,
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 0}},
+	// forth alloc
+	{test: &allocateTest{size: 42},
+		output: uint32(104),
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 72}},
+	// forth free
+	{test: &freeTest{ptr: 104},
+		output: nil,
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 0}},
+	// fifth alloc
+	{test: &allocateTest{size: 42},
+		output: uint32(104),
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 72}},
+	// fifth free
+	{test: &freeTest{ptr: 104},
+		output: nil,
+		state: allocatorState{bumper: 144,
+			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+			ptrOffset: 24,
+			totalSize: 0}},
+}
+
+// all tests to be run
+var allTests = []testHolder{
+	{offset: 0, tests: allocate1ByteTest},
+	{offset: 13, tests: allocate1ByteTestWithOffset},
+	{offset: 0, tests: allocatorShouldIncrementPointers},
+	{offset: 0, tests: allocateFreeTest},
+	{offset: 13, tests: allocateDeallocateReallocateWithOffset},
+	{offset: 0, tests: allocateShouldBuildFreeList},
+	{offset: 1, tests: allocateCorrectlyWithOffset},
+	{offset: 13, tests: heapShouldBeZeroAfterFreeWithOffset},
+	{offset: 19, tests: heapShouldBeZeroAfterFreeWithOffsetFiveTimes},
+}
+
+// iterates allTests and runs tests on them based on data contained in
+//  test holder
+func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
 		runtime, err := newTestRuntime()
 		if err != nil {
 			t.Fatal(err)
 		}
 		mem := runtime.vm.Memory
-		fbha := NewAllocator(&mem, 0)
+		allocator := NewAllocator(&mem, test.offset)
 
 		for _, theTest := range test.tests {
-			t.Log("theTest", theTest)
+			switch v := theTest.test.(type) {
+			case *allocateTest:
+				result, err := allocator.Allocate(v.size)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				compareState(allocator, theTest.state, result, theTest.output, t)
+
+			case *freeTest:
+				t.Log("got free", v.ptr)
+				err = allocator.Deallocate(v.ptr)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Log("heads", allocator.heads[:])
+				compareState(allocator, theTest.state, nil, theTest.output, t)
+			default:
+				t.Log("default type")
+			}
 		}
-		t.Log("fbha", fbha)
 	}
 }
 
-func TestAllocatorShouldAllocateProperly(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
+// compare test results to expected results and fail test if differences are found
+func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, result interface{}, output interface{}, t *testing.T) {
+	t.Log("allocatorState", allocator)
+	t.Log("allocatorExpected", state)
+	t.Log("result:", result)
+	t.Log("output", output)
+	if !reflect.DeepEqual(allocator.bumper, state.bumper) {
+		t.Errorf("Fail: got %v expected %v", allocator.bumper, state.bumper)
 	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 0)
-
-	// when
-	allocRes, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
+	if !reflect.DeepEqual(allocator.heads, state.heads) {
+		t.Errorf("Fail: got %v expected %v", allocator.heads, state.heads)
 	}
-
-	// then
-	t.Log("[TestAllocatorShouldAllocateProperly]", "result", allocRes)
-	if allocRes != 8 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", allocRes, 8)
+	if !reflect.DeepEqual(allocator.ptrOffset, state.ptrOffset) {
+		t.Errorf("Fail: got %v expected %v", allocator.ptrOffset, state.ptrOffset)
 	}
-}
-
-func TestAllocatorShouldAlignPointersToMultiplesOf8(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
+	if !reflect.DeepEqual(allocator.totalSize, state.totalSize) {
+		t.Errorf("Fail: got %v expected %v", allocator.totalSize, state.totalSize)
 	}
-	mem := runtime.vm.Memory
-	// set ptr_offset to simulate 13 bytes used
-	fbha := NewAllocator(&mem, 13)
-
-	// when
-	allocRes, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	t.Log("[TestAllocatorShouldAlignPointersToMultiplesOf8]", "result", allocRes)
-	if allocRes != 24 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", allocRes, 24)
+	if !reflect.DeepEqual(result, output) {
+		t.Errorf("Fail: got %v expected %v", result, output)
 	}
 }
 
-func TestAllocatorShouldIncrementPointersProperly(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 0)
-
-	// when
-	ptr1, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ptr2, err := fbha.Allocate(9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ptr3, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	t.Log("[TestAllocatorShouldIncrementPointersProperly]", "ptr1", ptr1, "ptr2", ptr2, "ptr3", ptr3)
-	// a prefix of 8 bytes is prepended to each pointer
-	if ptr1 != 8 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
-	}
-	// the prefix of 8 bytes + the content of ptr1 padded to the lowest possible
-	// item size of 8 bytes + the prefix of ptr1
-	if ptr2 != 8+16 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
-	}
-	// ptr2 + its content of 16 bytes + the prefix of 8 bytes
-	if ptr3 != 24+16+8 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24+16+8)
-	}
-}
-
-func TestAllocatorShouldFreeProperly(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 0)
-	ptr1, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// the prefix of 8 bytes is prepended to the pointer
-	t.Log("ptr1", ptr1)
-	if ptr1 != 8 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
-	}
-
-	ptr2, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("ptr2", ptr2)
-	// the prefix of 8 bytes + the content of ptr1 is prepended to the pointer
-	if ptr2 != 24 {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
-	}
-
-	// when
-	err = fbha.Deallocate(ptr2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	// then the heads table should contain a pointer to the prefix of ptr2 in the leftmost entry
-	t.Log("[TestAllocatorShouldFreeProperly]", "head0", fbha.heads[0], "ptr2", ptr2-8)
-	if fbha.heads[0] != ptr2-8 {
-		t.Errorf("Error Deallocate, head ptr not equal expected value")
-	}
-}
-
-func TestAllocatorShouldDeallocateAndReallocateProperly(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	// test ptr_offset of 13, which should give is 16 for padding
-	fbha := NewAllocator(&mem, 13)
-	paddingOffset := 16
-	ptr1, err := fbha.Allocate(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("ptr1", ptr1)
-	if ptr1 != uint32(paddingOffset+8) {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr1, 8)
-	}
-
-	ptr2, err := fbha.Allocate(9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("ptr2", ptr2)
-	if ptr2 != uint32(paddingOffset+16+8) {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr2, 24)
-	}
-
-	// when
-	err = fbha.Deallocate(ptr2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ptr3, err := fbha.Allocate(9)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	// should have re-allocated
-	t.Log("ptr3", ptr3)
-	if ptr3 != uint32(paddingOffset+16+8) {
-		t.Errorf("Returned ptr not correct, got: %d, want: %d.", ptr3, 24)
-	}
-	expected := make([]uint32, 22)
-	if !reflect.DeepEqual(expected, fbha.heads[:]) {
-		t.Error("ERROR: Didn't get expected heads")
-	}
-}
-
-func TestAllocatorShouldBuildLinkedListOfFreeAreasProperly(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 0)
-
-	ptr1, err := fbha.Allocate(8)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ptr2, err := fbha.Allocate(8)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ptr3, err := fbha.Allocate(8)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// when
-	err = fbha.Deallocate(ptr1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = fbha.Deallocate(ptr2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = fbha.Deallocate(ptr3)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	expected := make([]uint32, 22)
-	expected[0] = ptr3 - 8
-	if !reflect.DeepEqual(expected, fbha.heads[:]) {
-		t.Error("ERROR: Didn't get expected heads")
-	}
-
-	ptr4, err := fbha.Allocate(8)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("ptr3", ptr3)
-	t.Log("ptr4", ptr4)
-	if ptr3 != ptr4 {
-		t.Errorf("Pointer values not equal")
-	}
-
-	expected[0] = ptr2 - 8
-	if !reflect.DeepEqual(expected, fbha.heads[:]) {
-		t.Error("ERROR: Didn't get expected heads")
-	}
-}
-
+// test that allocator should no allocate memory if the allocate
+//  request is larger than current size
 func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -305,6 +382,8 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	}
 }
 
+// test that the allocator should not allocate memory if
+//  it's already full
 func TestShouldNotAllocateIfFull(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -337,8 +416,9 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 
 }
 
+// test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
-	// given, grow heap memory so that we have at least MAX_POSSIBLE_ALLOCATION available
+	// given, grow heap memory so that we have at least MaxPossibleAllocation available
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -364,6 +444,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	}
 }
 
+// test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 	// given
 	runtime, err := newTestRuntime()
@@ -384,90 +465,9 @@ func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 	} else {
 		t.Error("Error: Didn't get error but expected one.")
 	}
-
 }
 
-func TestShouldIncludePrefixesInTotalHeapSize(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 1)
-
-	// when
-	_, err = fbha.Allocate(9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// then
-	t.Log("[TestShouldIncludePrefixesInTotalHeapSize]", "total_size", fbha.totalSize)
-	if fbha.totalSize != (8 + 16) {
-		t.Error("Total heap size not calculating properly")
-	}
-
-}
-
-func TestShouldCalculateTotalHeapSizeToZero(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 13)
-
-	// when
-	ptr, err := fbha.Allocate(42)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ptr != (16 + 8) {
-		t.Error("Error: Didn't get expected pointer value")
-	}
-	err = fbha.Deallocate(ptr)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// then
-	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.totalSize)
-	if fbha.totalSize != 0 {
-		t.Error("Total heap size does not equal zero, total_size: ", fbha.totalSize)
-	}
-
-}
-
-func TestShouldCalculateTotalSizeOfZero(t *testing.T) {
-	// given
-	runtime, err := newTestRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 19)
-
-	// when
-	for i := 0; i < 10; i++ {
-		ptr, err := fbha.Allocate(42)
-		if err != nil {
-			t.Fatal(err)
-		}
-		err = fbha.Deallocate(ptr)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	// then
-	t.Log("[TestShouldColculateTotalHeapSizeToZero]", "heap total size", fbha.totalSize)
-	if fbha.totalSize != 0 {
-		t.Error("Total heap size does not equal zero, total_size: ", fbha.totalSize)
-	}
-
-}
-
+// test to write Uint32 to LE correctly
 func TestShouldWriteU32CorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
@@ -484,6 +484,7 @@ func TestShouldWriteU32CorrectlyIntoLe(t *testing.T) {
 	}
 }
 
+// test to write MaxUint32 to LE correctly
 func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 	// NOTE: we used the go's binary.LittleEndianPutUint32 function
 	//  so this test isn't necessary, but is included for completeness
@@ -500,6 +501,7 @@ func TestShouldWriteU32MaxCorrectlyIntoLe(t *testing.T) {
 	}
 }
 
+// test that getItemSizeFromIndex method gets expected item size from index
 func TestShouldGetItemFromIndex(t *testing.T) {
 	// given
 	index := uint(0)
@@ -507,13 +509,15 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 	// when
 	itemSize := getItemSizeFromIndex(index)
 
-	//
+	//then
 	t.Log("[TestShouldGetItemFromIndex]", "item_size", itemSize)
 	if itemSize != 8 {
 		t.Error("item_size should be 8, got item_size:", itemSize)
 	}
 }
 
+// that that getItemSizeFromIndex method gets expected item size from index
+//  max index possition
 func TestShouldGetMaxFromIndex(t *testing.T) {
 	// given
 	index := uint(21)
@@ -521,7 +525,7 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 	// when
 	itemSize := getItemSizeFromIndex(index)
 
-	//
+	//then
 	t.Log("[TestShouldGetMaxFromIndex]", "item_size", itemSize)
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
