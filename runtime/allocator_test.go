@@ -312,9 +312,9 @@ func TestAllocator(t *testing.T) {
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
 			case *allocateTest:
-				result, err := allocator.Allocate(v.size)
-				if err != nil {
-					t.Fatal(err)
+				result, err1 := allocator.Allocate(v.size)
+				if err1 != nil {
+					t.Fatal(err1)
 				}
 
 				compareState(allocator, theTest.state, result, theTest.output, t)
