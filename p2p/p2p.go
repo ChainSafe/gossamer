@@ -187,18 +187,18 @@ func (s *Service) Stop() <-chan error {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Info("sending stream", "to", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
+	log.Info("sending stream", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
 		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
-		log.Debug("stream", "opening new stream to peer", peer.ID)
+		log.Debug("opening new stream ", "peer", peer.ID)
 		if err != nil {
 			log.Error("new stream", "error", err)
 			return err
 		}
 	} else {
-		log.Debug("stream", "using existing stream for peer", peer.ID)
+		log.Debug("using existing stream", "peer", peer.ID)
 	}
 
 	_, err = stream.Write(msg)
@@ -313,38 +313,38 @@ func (s *Service) getExistingStream(p peer.ID) net.Stream {
 func handleStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
-			log.Error("error closing stream", "err", err)
+			log.Error("error closing stream", "error", err)
 		}
 	}()
 
-	log.Debug("stream handler", "got stream from", stream.Conn().RemotePeer())
+	log.Debug("got stream", "peer", stream.Conn().RemotePeer())
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
-		log.Error("stream handler", "got stream from", stream.Conn().RemotePeer(), "err", err)
+		log.Error("got stream", "peer", stream.Conn().RemotePeer(), "error", err)
 		return
 	}
 
 	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
-	log.Debug("stream handler", "got message with length", length)
+	log.Debug("got message", "length", length)
 
 	// read message type byte
 	msgType, err := rw.Reader.Peek(1)
 	if err != nil {
-		log.Error("stream handler", "msg type err", err)
+		log.Error("stream handler msg type", "err", err)
 		return
 	}
 
 	// read entire message
 	rawMsg, err := rw.Reader.Peek(int(length) - 1)
 	if err != nil {
-		log.Error("stream handler", "read message err", err)
+		log.Error("stream handler read message", "err", err)
 		return
 	}
 
-	log.Debug("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("0x%x", rawMsg))
+	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
 
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
@@ -353,5 +353,5 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-	log.Debug("stream handler", "got message from", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 }
