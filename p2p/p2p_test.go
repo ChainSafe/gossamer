@@ -91,7 +91,7 @@ func TestStart(t *testing.T) {
 func TestService_PeerCount(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Port:        7001,
+		Port:        7002,
 	}
 
 	sa, err := NewService(testServiceConfigA)
@@ -109,7 +109,7 @@ func TestService_PeerCount(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
-		Port:        7007,
+		Port:        7003,
 	}
 
 	sb, err := NewService(testServiceConfigB)
@@ -144,7 +144,7 @@ func TestService_PeerCount(t *testing.T) {
 func TestSend(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Port:        7001,
+		Port:        7004,
 	}
 
 	sa, err := NewService(testServiceConfigA)
@@ -162,7 +162,7 @@ func TestSend(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
-		Port:        7007,
+		Port:        7005,
 	}
 
 	sb, err := NewService(testServiceConfigB)
@@ -209,7 +209,7 @@ func TestSend(t *testing.T) {
 func TestNoBootstrap(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Port:        7001,
+		Port:        7006,
 	}
 
 	sa, err := NewService(testServiceConfigA)
