@@ -79,7 +79,7 @@ func (n *node) isDecendantOf(parent *node) bool {
 		return false
 	} else {
 		for _, child := range parent.children {
-			if n.isDecendantOf(child) == true {
+			if n.isDecendantOf(child) {
 				return true
 			}
 		}
