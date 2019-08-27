@@ -43,6 +43,9 @@ func HexToHash(in string) (Hash, error) {
 	}
 	in = in[2:]
 	out, err := hex.DecodeString(in)
+	if err != nil {
+		return [32]byte{}, err
+	}
 	var buf = [32]byte{}
 	copy(buf[:], out)
 	return buf, err
