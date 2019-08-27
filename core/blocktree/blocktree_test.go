@@ -143,23 +143,17 @@ func TestNode_isDecendantOf(t *testing.T) {
 		t.Error("root should not be decendant of anything")
 	}
 
-	// Compute hash of leaf and fetch node
-	hashFour, err = common.HexToHash(intToHashable(3))
-	if err != nil {
-		t.Error(err)
-	}
-
 }
 
 func TestBlockTree_LongestPath(t *testing.T) {
-	bt := createFlatTree(t,3)
+	bt := createFlatTree(t, 3)
 
 	// Insert a block to create a competing path
 	extraBlock := core.Block{
 		SlotNumber:   nil,
 		PreviousHash: zeroHash,
-		BlockNumber: big.NewInt(1),
-		Hash:        common.Hash{0xAB},
+		BlockNumber:  big.NewInt(1),
+		Hash:         common.Hash{0xAB},
 	}
 
 	bt.AddBlock(extraBlock)
@@ -179,17 +173,16 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	}
 }
 
-
 // TODO: Need to define leftmost (see BlockTree.LongestPath)
 func TestBlockTree_LongestPath_LeftMost(t *testing.T) {
-	bt := createFlatTree(t,1)
+	bt := createFlatTree(t, 1)
 
 	// Insert a block to create a competing path
 	extraBlock := core.Block{
 		SlotNumber:   nil,
 		PreviousHash: zeroHash,
-		BlockNumber: big.NewInt(1),
-		Hash:        common.Hash{0xAB},
+		BlockNumber:  big.NewInt(1),
+		Hash:         common.Hash{0xAB},
 	}
 
 	bt.AddBlock(extraBlock)

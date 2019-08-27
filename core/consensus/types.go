@@ -17,8 +17,9 @@
 package consensus
 
 import (
-	"github.com/ChainSafe/gossamer/common"
 	"math/big"
+
+	"github.com/ChainSafe/gossamer/common"
 )
 
 //type used to store an authority Id
@@ -32,27 +33,23 @@ type Signature [32]byte
 
 type Hash [32]byte
 
-
 //Justified Header
 type JustifiedHeader struct {
-	BlockHeader		common.BlockHeader
-	Justification	[64]byte
-	AuthorityIds	[]authorityId
-
+	BlockHeader   common.BlockHeader
+	Justification [64]byte
+	AuthorityIds  []authorityId
 }
 
 type Block struct {
-	SlotNumber		*big.Int
-	PreviousHash	Hash
-	VrfOutput		VRFOutput
-	Transactions 	[]Transaction
-	Signature		Signature
-	BlockNumber		*big.Int
-	Hash			Hash			
-
+	SlotNumber   *big.Int
+	PreviousHash Hash
+	VrfOutput    VRFOutput
+	Transactions []Transaction
+	Signature    Signature
+	BlockNumber  *big.Int
+	Hash         Hash
 }
 
 //generalize this into extrinsic interface later
 type Transaction struct {
-	
 }

@@ -40,14 +40,14 @@ func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 	head := &node{
 		hash:     genesis.Hash,
 		number:   genesis.BlockNumber,
-		parent: nil,
+		parent:   nil,
 		children: []*node{},
 		depth:    big.NewInt(0),
 	}
 	return &BlockTree{
 		head:            head,
 		finalizedBlocks: []*node{},
-		leaves: leafMap{head.hash: head},
+		leaves:          leafMap{head.hash: head},
 	}
 }
 

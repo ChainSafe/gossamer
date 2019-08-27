@@ -26,11 +26,11 @@ import (
 
 // node is an element in the BlockTree
 type node struct {
-	hash     common.Hash     // Block hash
-	parent *node
+	hash     common.Hash // Block hash
+	parent   *node
 	number   *big.Int // Block number
 	children []*node  // Nodes of children blocks
-	depth *big.Int // Depth within the tree
+	depth    *big.Int // Depth within the tree
 }
 
 // addChild appends node to n's list of children
@@ -79,9 +79,9 @@ func (n *node) isDecendantOf(parent *node) bool {
 		return false
 	} else {
 		for _, child := range parent.children {
-			 if n.isDecendantOf(child) == true {
-			 	return true
-			 }
+			if n.isDecendantOf(child) == true {
+				return true
+			}
 		}
 	}
 	return false

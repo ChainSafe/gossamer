@@ -26,7 +26,7 @@ import (
 type leafMap map[common.Hash]*node
 
 // Replace deletes the old node from the map and inserts the new one
-func(ls leafMap) Replace(old, new *node) {
+func (ls leafMap) Replace(old, new *node) {
 	delete(ls, old.hash)
 	ls[new.hash] = new
 }
