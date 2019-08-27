@@ -187,14 +187,14 @@ func (s *Service) Stop() <-chan error {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Info("sending stream", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
+	log.Info("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
 		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
 		log.Debug("opening new stream ", "peer", peer.ID)
 		if err != nil {
-			log.Error("new stream", "error", err)
+			log.Error("failed to open stream", "error", err)
 			return err
 		}
 	} else {
@@ -203,7 +203,7 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 
 	_, err = stream.Write(msg)
 	if err != nil {
-		log.Error("sending stream", "error", err)
+		log.Error("fail to send message", "error", err)
 		return err
 	}
 
@@ -313,7 +313,7 @@ func (s *Service) getExistingStream(p peer.ID) net.Stream {
 func handleStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
-			log.Error("error closing stream", "error", err)
+			log.Error("fail to close stream", "error", err)
 		}
 	}()
 
@@ -322,25 +322,24 @@ func handleStream(stream net.Stream) {
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
-		log.Error("got stream", "peer", stream.Conn().RemotePeer(), "error", err)
+		log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
 		return
 	}
 
 	// decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
-	log.Debug("got message", "length", length)
 
 	// read message type byte
 	msgType, err := rw.Reader.Peek(1)
 	if err != nil {
-		log.Error("stream handler msg type", "err", err)
+		log.Error("failed to read message type", "err", err)
 		return
 	}
 
 	// read entire message
 	rawMsg, err := rw.Reader.Peek(int(length) - 1)
 	if err != nil {
-		log.Error("stream handler read message", "err", err)
+		log.Error("failed to read message", "err", err)
 		return
 	}
 
@@ -349,7 +348,7 @@ func handleStream(stream net.Stream) {
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
-		log.Error("stream handler", "decode message err", err)
+		log.Error("failed to decode message", "error", err)
 		return
 	}
 

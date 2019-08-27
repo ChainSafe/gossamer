@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -78,6 +79,8 @@ func TestStart(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
+	defer s.Stop()
+
 	e := s.Start()
 	err = <-e
 	if err != nil {
@@ -96,6 +99,8 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
+	defer sa.Stop()
+
 	e := sa.Start()
 	err = <-e
 	if err != nil {
@@ -111,6 +116,8 @@ func TestService_PeerCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
+
+	defer sb.Stop()
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
@@ -132,9 +139,6 @@ func TestService_PeerCount(t *testing.T) {
 	if count == 0 {
 		t.Fatalf("incorrect peerCount got %d", count)
 	}
-
-	sa.Stop()
-	sb.Stop()
 }
 
 func TestSend(t *testing.T) {
@@ -147,6 +151,8 @@ func TestSend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
+
+	defer sa.Stop()
 
 	e := sa.Start()
 	err = <-e
@@ -163,6 +169,8 @@ func TestSend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
+
+	defer sb.Stop()
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[2].String(), sa.Host().ID()))
@@ -209,9 +217,13 @@ func TestNoBootstrap(t *testing.T) {
 		t.Fatalf("NewService error: %s", err)
 	}
 
+	defer sa.Stop()
+
 	e := sa.Start()
 	err = <-e
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
+
+	defer fmt.Println(runtime.NumGoroutine())
 }

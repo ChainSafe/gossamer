@@ -86,7 +86,7 @@ type StatusMessage struct {
 
 // String formats a StatusMessage as a string
 func (sm *StatusMessage) String() string {
-	return fmt.Sprintf("ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
+	return fmt.Sprintf("StatusMessage ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
 		sm.ProtocolVersion,
 		sm.MinSupportedVersion,
 		sm.Roles,
@@ -122,7 +122,7 @@ type BlockRequestMessage struct {
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
+	return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
 		bm.Id,
 		bm.RequestedData,
 		bm.StartingBlock,
@@ -131,7 +131,7 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max)
 }
 
-// Encode encodes a block request message using SCALE and appends the type byte to the start
+// Encode encodes a block request message and appends the type byte to the start
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	encMsg := []byte{1}
 
