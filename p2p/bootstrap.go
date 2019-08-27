@@ -33,6 +33,10 @@ func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
 		return peer.AddrInfo{}, err
 	}
 	p, err := peer.AddrInfoFromP2pAddr(maddr)
+
+	if err != nil {
+		return peer.AddrInfo{}, err
+	}
 	return *p, err
 }
 

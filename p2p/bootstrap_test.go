@@ -72,11 +72,11 @@ func TestBootstrapP2PConnect(t *testing.T) {
 
 	defer bootstrapNode.Stop()
 
-	p2pAddr := bootstrapNode.hostAddr.String()
+	p2pAddr := bootstrapNode.host.Addrs()[0]
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{
-			p2pAddr,
+			p2pAddr.String(),
 		},
 		Hostname: Localhost,
 		Port: 7001,

@@ -38,7 +38,6 @@ import (
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 const protocolPrefix2 = "/substrate/dot/2"
@@ -49,7 +48,6 @@ const mdnsPeriod = time.Minute
 type Service struct {
 	ctx            context.Context
 	host           core.Host
-	hostAddr       ma.Multiaddr
 	dht            *kaddht.IpfsDHT
 	dhtConfig      kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
@@ -79,11 +77,6 @@ func NewService(conf *Config) (*Service, error) {
 	// wrap the host with routed host so we can look up peers in DHT
 	h = rhost.Wrap(h, dht)
 
-	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/ipfs/%s", conf.Hostname, conf.Port, h.ID().Pretty()))
-	if err != nil {
-		return nil, err
-	}
 
 	var mdns discovery.Service
 	if !conf.NoMdns {
@@ -104,7 +97,6 @@ func NewService(conf *Config) (*Service, error) {
 	s := &Service{
 		ctx:            ctx,
 		host:           h,
-		hostAddr:       hostAddr,
 		dht:            dht,
 		dhtConfig:      dhtConfig,
 		bootstrapNodes: bootstrapNodes,
@@ -147,13 +139,6 @@ func (s *Service) start(e chan error) {
 			time.Sleep(time.Minute)
 		}
 	}()
-
-	// Now we can build a full multiaddress to reach this host
-	// by encapsulating both addresses:
-	addrs := s.host.Addrs()
-	for _, addr := range addrs {
-		log.Info("address can be reached", "hostAddr", addr.Encapsulate(s.hostAddr))
-	}
 
 	log.Info("listening for connections...")
 	e <- nil
