@@ -224,6 +224,4 @@ func TestNoBootstrap(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error: %s", err)
 	}
-
-	defer fmt.Println(runtime.NumGoroutine())
 }
