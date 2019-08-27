@@ -206,7 +206,6 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	}
 }
 
-
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	// this value is a concatenation of:
 	// message type: 1 byte
