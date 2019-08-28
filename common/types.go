@@ -34,4 +34,3 @@ func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
 }
-
