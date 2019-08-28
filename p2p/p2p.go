@@ -187,7 +187,7 @@ func (s *Service) Stop() <-chan error {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Info("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
+	log.Debug("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
