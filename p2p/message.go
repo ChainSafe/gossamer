@@ -149,7 +149,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		encMsg = append(encMsg, blocknum...)
 	}
 
-	if bm.EndBlockHash != common.EmptyHash {
+	if bm.EndBlockHash != [32]byte{} {
 		encMsg = append(encMsg, bm.EndBlockHash.ToBytes()...)
 	} else {
 		encMsg = append(encMsg, 0)

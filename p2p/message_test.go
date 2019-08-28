@@ -127,13 +127,13 @@ func TestEncodeStatusMessage(t *testing.T) {
 
 func TestEncodeBlockRequestMessage(t *testing.T) {
 	// this value is a concatenation of:
-	// message type: 1 byte
-	// message ID: 4 bytes
-	// requested data: 1 byte
-	// starting block: 1 byte to identify type + 32 byte hash
-	// end block hash: 32 bytes
-	// direction: 1 byte
-	// max: 4 bytes
+	// message type: byte(1)
+	// message ID: uint32(7)
+	// requested data: byte(1)
+	// starting block: 1 byte to identify type + 32 byte hash: byte(0) + hash(dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b)
+	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
+	// direction: byte(1)
+	// max: uint32(1)
 	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
 		t.Fatal(err)
@@ -170,13 +170,13 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 
 func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	// this value is a concatenation of:
-	// message type: 1 byte
-	// message ID: 4 bytes
-	// requested data: 1 byte
-	// starting block: 1 byte to identify type + 8 byte number
-	// end block hash: 32 bytes
-	// direction: 1 byte
-	// max: 4 bytes
+	// message type: byte(1)
+	// message ID: uint32(7)
+	// requested data: byte(1)
+	// starting block: 1 byte to identify type + 8 byte number: byte(1) + uint64(1)
+	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
+	// direction: byte(1)
+	// max: uint32(1)
 	expected, err := common.HexToBytes("0x010700000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
 		t.Fatal(err)
@@ -208,12 +208,12 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	// this value is a concatenation of:
-	// message type: 1 byte
-	// message ID: 4 bytes
-	// requested data: 1 byte
-	// starting block: 1 byte to identify type + 8 byte number
+	// message type: byte(1)
+	// message ID: uint32(7)
+	// requested data: byte(1)
+	// starting block: 1 byte to identify type + 8 byte number: byte(1) + uint64(1)
 	// end block hash: byte(0)
-	// direction: 1 byte
+	// direction: byte(1)
 	// max: byte(0)
 	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
 	if err != nil {
