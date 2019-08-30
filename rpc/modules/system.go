@@ -35,9 +35,9 @@ type EmptyRequest struct{}
 type StringResponse string
 
 type SystemHealthResponse struct {
-	Peers int `json:"peers"`,
-	IsSyncing boolean `json:"isSyncing"`,
-	ShouldHavePeers boolean `json: "shouldHavePeers"`,
+	Peers           int  `json:"peers"`
+	IsSyncing       bool `json:"isSyncing"`
+	ShouldHavePeers bool `json:"shouldHavePeers"`
 }
 
 type SystemNetworkStateResponse struct {
@@ -46,23 +46,20 @@ type SystemNetworkStateResponse struct {
 
 // TODO: This should probably live elsewhere
 type Peer struct {
-	PeerId string `json:"peerId"`
-	Roles string `json:"roles"`
-	ProtocolVersion int `json:"protocolVersion"`
-	BestHash common.Hash `json:"bestHash"`
-	BestNumber *big.Int `json:"bestNumber"`
+	PeerId          string      `json:"peerId"`
+	Roles           string      `json:"roles"`
+	ProtocolVersion int         `json:"protocolVersion"`
+	BestHash        common.Hash `json:"bestHash"`
+	BestNumber      *big.Int    `json:"bestNumber"`
 }
 
 type SystemPeersResponse []Peer
 
 type SystemPropertiesResponse struct {
-	Ss58Format int `json:"ss58Format"`
-	TokenDecimals int `json:"tokenDecimals"`
-	TokenSymbol string `json:"tokenSymbol"`
+	Ss58Format    int    `json:"ss58Format"`
+	TokenDecimals int    `json:"tokenDecimals"`
+	TokenSymbol   string `json:"tokenSymbol"`
 }
-
-// SystemVersionResponse represents response from `system_version` RPC call
-type SystemVersionResponse string
 
 // NewSystemModule creates a new net API instance.
 func NewSystemModule(api *api.Api) *SystemModule {
@@ -71,7 +68,26 @@ func NewSystemModule(api *api.Api) *SystemModule {
 	}
 }
 
-func (s *SystemModule) Chain(r *http.Request, args *EmptyRequest, res *StringResponse) error {
-	*res = "hello"
-	return nil
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) {
+	*res = "not yet implemented"
+}
+
+func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
+	return
+}
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {
+	*res = "not yet implemented"
+}
+func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) {
+	return
+}
+func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) {
+	return
+}
+
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
+	return
+}
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) {
+	*res = "not yet implemented"
 }
