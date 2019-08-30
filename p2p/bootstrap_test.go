@@ -21,7 +21,7 @@ import (
 )
 
 // list of IPFS peers, eventually change this to polkadot bootstrap nodes
-var IPFS_PEERS = []string{
+var TestAddrs = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 	"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
 	"/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
@@ -34,7 +34,7 @@ var IPFS_PEERS = []string{
 }
 
 func TestStringToPeerInfo(t *testing.T) {
-	for _, str := range IPFS_PEERS {
+	for _, str := range TestAddrs {
 		pi, err := stringToPeerInfo(str)
 		if err != nil {
 			t.Error(err)
@@ -47,13 +47,13 @@ func TestStringToPeerInfo(t *testing.T) {
 }
 
 func TestStringsToPeerInfos(t *testing.T) {
-	pi, err := stringsToPeerInfos(IPFS_PEERS)
+	pi, err := stringsToPeerInfos(TestAddrs)
 	if err != nil {
 		t.Error(err)
 	}
 	for k, pi := range pi {
-		if pi.ID.Pretty() != IPFS_PEERS[k][len(IPFS_PEERS[k])-46:] {
-			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), IPFS_PEERS[k])
+		if pi.ID.Pretty() != TestAddrs[k][len(TestAddrs[k])-46:] {
+			t.Errorf("StringToPeerInfo error: got %s expected %s", pi.ID.Pretty(), TestAddrs[k])
 		}
 	}
 }

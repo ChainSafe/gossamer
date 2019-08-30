@@ -30,12 +30,12 @@ import (
 func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
 	maddr, err := ma.NewMultiaddr(peerString)
 	if err != nil {
-		return peer.AddrInfo{}, err
+		return peer.AddrInfo{}, fmt.Errorf("%s: %s", err, peerString)
 	}
 	p, err := peer.AddrInfoFromP2pAddr(maddr)
 
 	if err != nil {
-		return peer.AddrInfo{}, err
+		return peer.AddrInfo{}, fmt.Errorf("%s: %s", err, maddr.String())
 	}
 	return *p, err
 }
