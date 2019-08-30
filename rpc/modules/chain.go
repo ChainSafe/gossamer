@@ -47,19 +47,19 @@ func NewChainModule(api *api.Api) *SystemModule {
 	}
 }
 
-func(cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
+func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
 	return
 }
 
-func(cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
+func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
 	return
 }
 
-func(cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
 	return
 }
 
-func(cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
+func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
 	return
 }
 
@@ -71,4 +71,3 @@ func(cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Cha
 //func(cm *ChainModule) SubscribeNewHead(r *http.Request, req *_, res *_) {
 //	return_
 //}
-

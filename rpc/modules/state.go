@@ -65,7 +65,7 @@ type StateMetadataResponse []byte
 
 type StateRuntimeVersionResponse string
 
-// State is an RPC module providing access to storage API points.
+// StateModule is an RPC module providing access to storage API points.
 type StateModule struct {
 	api *api.Api
 }
