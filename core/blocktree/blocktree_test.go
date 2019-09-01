@@ -119,31 +119,6 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	}
 }
 
-func TestBlockTree_AddBlock(t *testing.T) {
-	bt := createFlatTree(t, 1)
-
-	block := core.Block{
-		SlotNumber:   nil,
-		PreviousHash: common.Hash{0x01},
-		BlockNumber:  nil,
-		Hash:         common.Hash{0x02},
-	}
-
-	bt.AddBlock(block)
-
-	n := bt.GetNode(common.Hash{0x02})
-
-	if bt.leaves[n.hash] == nil {
-		t.Errorf("expected %x to be a leaf", n.hash)
-	}
-
-	oldHash := common.Hash{0x01}
-
-	if bt.leaves[oldHash] != nil {
-		t.Errorf("expected %x to no longer be a leaf", oldHash)
-	}
-}
-
 func TestNode_isDecendantOf(t *testing.T) {
 	// Create tree with depth 4 (with 4 nodes)
 	bt := createFlatTree(t, 4)
