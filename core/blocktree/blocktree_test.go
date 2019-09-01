@@ -17,7 +17,6 @@
 package blocktree
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 	"testing"
@@ -75,8 +74,6 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 		previousHash = hash
 	}
 
-	fmt.Println("CREATED NEW TREE")
-	fmt.Println(bt.String())
 	return bt
 }
 
@@ -186,8 +183,6 @@ func TestBlockTree_LongestPath_LeftMost(t *testing.T) {
 	}
 
 	bt.AddBlock(extraBlock)
-
-	fmt.Println(bt.String())
 
 	expectedPath := []*node{
 		bt.GetNode(common.Hash{0x00}),

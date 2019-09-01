@@ -31,6 +31,8 @@ func (ls leafMap) Replace(old, new *node) {
 	ls[new.hash] = new
 }
 
+// DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
+// TODO: Select left-most
 func (ls leafMap) DeepestLeaf() *node {
 	max := big.NewInt(-1)
 	var dLeaf *node

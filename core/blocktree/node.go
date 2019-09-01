@@ -27,10 +27,10 @@ import (
 // node is an element in the BlockTree
 type node struct {
 	hash     common.Hash // Block hash
-	parent   *node
-	number   *big.Int // Block number
-	children []*node  // Nodes of children blocks
-	depth    *big.Int // Depth within the tree
+	parent   *node       // Parent node
+	number   *big.Int    // Block number
+	children []*node     // Nodes of children blocks
+	depth    *big.Int    // Depth within the tree
 }
 
 // addChild appends node to n's list of children
@@ -52,7 +52,7 @@ func (n *node) createTree(tree gotree.Tree) {
 	}
 }
 
-// getNode recursively searches for a given hash
+// getNode recursively searches for a node with a given hash
 func (n *node) getNode(h common.Hash) *node {
 	if n.hash == h {
 		return n

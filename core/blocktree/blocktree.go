@@ -35,7 +35,7 @@ type BlockTree struct {
 	finalizedBlocks []*node
 }
 
-// NewBlockTreeFromGenesis initializes a block tree with only a bare genesis block.
+// NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 	head := &node{
 		hash:     genesis.Hash,
@@ -52,7 +52,7 @@ func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 }
 
 // AddBlock inserts the block as child of its parent node
-// Note: Block must have no children
+// Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block core.Block) {
 	parent := bt.GetNode(block.PreviousHash)
 	// Check if it already exists
@@ -113,7 +113,6 @@ func (bt *BlockTree) String() string {
 }
 
 // LongestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-// TODO: How do we define leftmost?
 func (bt *BlockTree) LongestPath() []*node {
 	dl := bt.DeepestLeaf()
 	var path []*node
