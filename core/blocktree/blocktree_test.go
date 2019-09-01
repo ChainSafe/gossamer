@@ -84,7 +84,7 @@ func TestBlockTree_GetBlock(t *testing.T) {
 	// Calls AddBlock
 	bt := createFlatTree(t, 2)
 
-	h, err := common.HexToHash(intToHashable(1))
+	h, err := common.HexToHash(intToHashable(2))
 	if err != nil {
 		log.Error("failed to create hash", "err", err)
 	}
