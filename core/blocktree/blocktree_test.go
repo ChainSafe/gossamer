@@ -119,6 +119,31 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	}
 }
 
+func TestBlockTree_AddBlock(t *testing.T) {
+	bt := createFlatTree(t, 1)
+
+	block := core.Block{
+		SlotNumber:   nil,
+		PreviousHash: common.Hash{0x01},
+		BlockNumber:  nil,
+		Hash:         common.Hash{0x02},
+	}
+
+	bt.AddBlock(block)
+
+	n := bt.GetNode(common.Hash{0x02})
+
+	if bt.leaves[n.hash] == nil {
+		t.Errorf("expected %x to be a leaf", n.hash)
+	}
+
+	oldHash := common.Hash{0x01}
+
+	if bt.leaves[oldHash] != nil {
+		t.Errorf("expected %x to no longer be a leaf", oldHash)
+	}
+}
+
 func TestNode_isDecendantOf(t *testing.T) {
 	// Create tree with depth 4 (with 4 nodes)
 	bt := createFlatTree(t, 4)
@@ -159,41 +184,42 @@ func TestBlockTree_LongestPath(t *testing.T) {
 		bt.GetNode(common.Hash{0x00}),
 		bt.GetNode(common.Hash{0x01}),
 		bt.GetNode(common.Hash{0x02}),
+		bt.GetNode(common.Hash{0x03}),
 	}
 
 	longestPath := bt.LongestPath()
 
 	for i, n := range longestPath {
 		if n.hash != expectedPath[i].hash {
-			t.Errorf("expected hash: %s got: %s\n", expectedPath[i].hash, n.hash)
+			t.Errorf("expected hash: 0x%X got: 0x%X\n", expectedPath[i].hash, n.hash)
 		}
 	}
 }
 
 // TODO: Need to define leftmost (see BlockTree.LongestPath)
-func TestBlockTree_LongestPath_LeftMost(t *testing.T) {
-	bt := createFlatTree(t, 1)
-
-	// Insert a block to create a competing path
-	extraBlock := core.Block{
-		SlotNumber:   nil,
-		PreviousHash: zeroHash,
-		BlockNumber:  big.NewInt(1),
-		Hash:         common.Hash{0xAB},
-	}
-
-	bt.AddBlock(extraBlock)
-
-	expectedPath := []*node{
-		bt.GetNode(common.Hash{0x00}),
-		bt.GetNode(common.Hash{0xAB}),
-	}
-
-	longestPath := bt.LongestPath()
-
-	for i, n := range longestPath {
-		if n.hash != expectedPath[i].hash {
-			t.Errorf("expected hash: %s got: %s\n", expectedPath[i].hash, n.hash)
-		}
-	}
-}
+//func TestBlockTree_LongestPath_LeftMost(t *testing.T) {
+//	bt := createFlatTree(t, 1)
+//
+//	// Insert a block to create a competing path
+//	extraBlock := core.Block{
+//		SlotNumber:   nil,
+//		PreviousHash: zeroHash,
+//		BlockNumber:  big.NewInt(1),
+//		Hash:         common.Hash{0xAB},
+//	}
+//
+//	bt.AddBlock(extraBlock)
+//
+//	expectedPath := []*node{
+//		bt.GetNode(common.Hash{0x00}),
+//		bt.GetNode(common.Hash{0xAB}),
+//	}
+//
+//	longestPath := bt.LongestPath()
+//
+//	for i, n := range longestPath {
+//		if n.hash != expectedPath[i].hash {
+//			t.Errorf("expected hash: 0x%X got: 0x%X\n", expectedPath[i].hash, n.hash)
+//		}
+//	}
+//}

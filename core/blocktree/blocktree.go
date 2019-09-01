@@ -69,6 +69,7 @@ func (bt *BlockTree) AddBlock(block core.Block) {
 	n = &node{
 		hash:     block.Hash,
 		number:   block.BlockNumber,
+		parent:   parent,
 		children: []*node{},
 		depth:    depth,
 	}
@@ -116,12 +117,12 @@ func (bt *BlockTree) String() string {
 func (bt *BlockTree) LongestPath() []*node {
 	dl := bt.DeepestLeaf()
 	var path []*node
-	for curr := dl; curr.parent != nil; curr = curr.parent {
-		path = append(path, curr)
-		curr = curr.parent
+	for curr := dl; ; curr = curr.parent {
+		path = append([]*node{curr}, path...)
+		if curr.parent == nil {
+			return path
+		}
 	}
-	return path
-
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
