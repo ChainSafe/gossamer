@@ -93,7 +93,7 @@ func NewService(conf *Config) (*Service, error) {
 		Period:  time.Second,
 	}
 
-	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
+	bootstrapNodes, err := stringsToPeerAddrInfos(conf.BootstrapNodes)
 	s := &Service{
 		ctx:            ctx,
 		host:           h,
@@ -108,6 +108,7 @@ func NewService(conf *Config) (*Service, error) {
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start() <-chan error {
+	log.Debug("starting p2p service", "addrs", s.host.Addrs(), "id", s.host.ID())
 	e := make(chan error)
 	go s.start(e)
 	return e
@@ -119,26 +120,27 @@ func (s *Service) start(e chan error) {
 		e <- errors.New("no peers to bootstrap to")
 	}
 
+	// TODO: Remove (along with this function), seems to do nothing
 	// this is in a go func that loops every minute due to the fact that we appear
 	// to get kicked off the network after a few minutes
 	// this will likely be resolved once we send messages back to the network
-	go func() {
-		for {
-			if !s.noBootstrap {
-				// connect to the bootstrap nodes
-				err := s.bootstrapConnect()
-				if err != nil {
-					e <- err
-				}
-			}
-
-			err := s.dht.Bootstrap(s.ctx)
-			if err != nil {
-				e <- err
-			}
-			time.Sleep(time.Minute)
-		}
-	}()
+	//go func() {
+	//	for {
+	//		if !s.noBootstrap {
+	//			// connect to the bootstrap nodes
+	//			err := s.bootstrapConnect()
+	//			if err != nil {
+	//				e <- err
+	//			}
+	//		}
+	//
+	//		err := s.dht.Bootstrap(s.ctx)
+	//		if err != nil {
+	//			e <- err
+	//		}
+	//		time.Sleep(time.Minute)
+	//	}
+	//}()
 
 	log.Info("listening for connections...")
 	e <- nil
@@ -261,12 +263,12 @@ func handleStream(stream net.Stream) {
 
 	log.Info("stream handler", "got stream from", stream.Conn().RemotePeer(), "message", fmt.Sprintf("%x", rawMsg))
 
-	msg, err := DecodeMessage(rw, length)
+	_, err = DecodeMessage(rw, length)
 	if err != nil {
 		log.Error("stream handler", "err", err)
 	}
 
-	log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "message", msg.String())
+	//log.Info("stream handler", "got message from", stream.Conn().RemotePeer(), "message", msg.String())
 }
 
 // PeerCount returns the number of connected peers

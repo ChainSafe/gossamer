@@ -31,8 +31,9 @@ var Localhost = "127.0.0.1"
 func TestBuildOpts(t *testing.T) {
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
-		Hostname: Localhost,
+		Hostname:       Localhost,
 		Port:           7001,
+		NoMdns:         true,
 	}
 
 	_, err := testServiceConfig.buildOpts()
@@ -61,9 +62,10 @@ func TestStart(t *testing.T) {
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
-		Hostname: Localhost,
-		Port: 7001,
-		NoBootstrap: true,
+		Hostname:       Localhost,
+		Port:           7001,
+		NoBootstrap:    true,
+		NoMdns:         true,
 	}
 
 	s, err := NewService(testServiceConfig)
@@ -83,8 +85,9 @@ func TestStart(t *testing.T) {
 func TestService_PeerCount(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Hostname: Localhost,
+		Hostname:    Localhost,
 		Port:        7001,
+		NoMdns:      true,
 	}
 
 	sa, err := NewService(testServiceConfigA)
@@ -100,34 +103,38 @@ func TestService_PeerCount(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
-		Hostname: Localhost,
+		Hostname:    Localhost,
 		Port:        7007,
+		NoMdns:      true,
 	}
 
 	sb, err := NewService(testServiceConfigB)
 	if err != nil {
-		t.Fatalf("NewService error: %s", err)
+		t.Errorf("NewService error: %s", err)
 	}
 
+	e = sb.Start()
+	err = <-e
+
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	err = sb.Host().Connect(sb.ctx, *addrInfo)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	count := sb.PeerCount()
 	if count == 0 {
-		t.Fatalf("incorrect peerCount got %d", count)
+		t.Errorf("incorrect peerCount got %d", count)
 	}
 
 	sa.Stop()
@@ -137,8 +144,9 @@ func TestService_PeerCount(t *testing.T) {
 func TestSend(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Hostname: Localhost,
+		Hostname:    Localhost,
 		Port:        7001,
+		NoMdns:      true,
 	}
 
 	sa, err := NewService(testServiceConfigA)
@@ -154,8 +162,9 @@ func TestSend(t *testing.T) {
 
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
-		Hostname: Localhost,
+		Hostname:    Localhost,
 		Port:        7007,
+		NoMdns:      true,
 	}
 
 	sb, err := NewService(testServiceConfigB)
@@ -164,7 +173,7 @@ func TestSend(t *testing.T) {
 	}
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/ipfs/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +212,7 @@ func TestSend(t *testing.T) {
 func TestNoBootstrap(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
-		Hostname: Localhost,
+		Hostname:    Localhost,
 		Port:        7001,
 	}
 

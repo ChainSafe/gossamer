@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p"
 )
 
@@ -24,7 +23,6 @@ func (cfg *Config) buildOpts() ([]libp2p.Option, error) {
 	}
 
 	addr := fmt.Sprintf("/ip4/%s/tcp/%d", cfg.Hostname, cfg.Port)
-	log.Debug("configuring node address", "addr", addr)
 
 	return []libp2p.Option{
 		libp2p.ListenAddrStrings(addr),

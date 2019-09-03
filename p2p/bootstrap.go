@@ -27,7 +27,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
+func stringToPeerAddrInfo(peerString string) (peer.AddrInfo, error) {
 	maddr, err := ma.NewMultiaddr(peerString)
 	if err != nil {
 		return peer.AddrInfo{}, fmt.Errorf("%s: %s", err, peerString)
@@ -40,10 +40,11 @@ func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
 	return *p, err
 }
 
-func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
+// stringsToPeerAddrInfos takes multiaddrs in the form of strings and initializes AddrInfos for each
+func stringsToPeerAddrInfos(peers []string) ([]peer.AddrInfo, error) {
 	pinfos := make([]peer.AddrInfo, len(peers))
-	for i, peer := range peers {
-		p, err := stringToPeerInfo(peer)
+	for i, p := range peers {
+		p, err := stringToPeerAddrInfo(p)
 		if err != nil {
 			return nil, err
 		}

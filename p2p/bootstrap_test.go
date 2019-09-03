@@ -17,10 +17,11 @@
 package p2p
 
 import (
+	"fmt"
 	"testing"
 )
 
-// list of IPFS peers, eventually change this to polkadot bootstrap nodes
+// list of IPFS peers for testing purposes only
 var TestAddrs = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
 	"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
@@ -35,7 +36,7 @@ var TestAddrs = []string{
 
 func TestStringToPeerInfo(t *testing.T) {
 	for _, str := range TestAddrs {
-		pi, err := stringToPeerInfo(str)
+		pi, err := stringToPeerAddrInfo(str)
 		if err != nil {
 			t.Error(err)
 		}
@@ -47,7 +48,7 @@ func TestStringToPeerInfo(t *testing.T) {
 }
 
 func TestStringsToPeerInfos(t *testing.T) {
-	pi, err := stringsToPeerInfos(TestAddrs)
+	pi, err := stringsToPeerAddrInfos(TestAddrs)
 	if err != nil {
 		t.Error(err)
 	}
@@ -72,11 +73,11 @@ func TestBootstrapP2PConnect(t *testing.T) {
 
 	defer bootstrapNode.Stop()
 
-	p2pAddr := bootstrapNode.host.Addrs()[0]
+	bootstrapAddr := fmt.Sprintf("%s/p2p/%s",bootstrapNode.host.Addrs()[0], bootstrapNode.host.ID())
 
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{
-			p2pAddr.String(),
+			bootstrapAddr,
 		},
 		Hostname: Localhost,
 		Port: 7001,
