@@ -28,7 +28,7 @@ type freeTest struct {
 // struct to hold data used for expected allocator state
 type allocatorState struct {
 	bumper    uint32
-	heads     [n]uint32
+	heads     [HeadsQty]uint32
 	ptrOffset uint32
 	totalSize uint32
 }
@@ -46,8 +46,6 @@ var allocate1ByteTest = []testSet{
 	{test: &allocateTest{size: 1},
 		output: uint32(8),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 }
 
@@ -56,7 +54,6 @@ var allocate1ByteTestWithOffset = []testSet{
 	{test: &allocateTest{size: 1},
 		output: uint32(24),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 16}},
 }
@@ -66,20 +63,14 @@ var allocatorShouldIncrementPointers = []testSet{
 	{test: &allocateTest{size: 1},
 		output: uint32(8),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 	{test: &allocateTest{size: 9},
 		output: uint32(8 + 16),
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 40}},
 	{test: &allocateTest{size: 1},
 		output: uint32(8 + 16 + 24),
 		state: allocatorState{bumper: 56,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 56}},
 }
 
@@ -88,20 +79,14 @@ var allocateFreeTest = []testSet{
 	{test: &allocateTest{size: 1},
 		output: uint32(8),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 	{test: &allocateTest{size: 9},
 		output: uint32(8 + 16),
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 40}},
 	{test: &freeTest{ptr: 24}, // address of second allocation
-		output: nil,
 		state: allocatorState{bumper: 40,
 			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 }
 
@@ -110,17 +95,14 @@ var allocateDeallocateReallocateWithOffset = []testSet{
 	{test: &allocateTest{size: 1},
 		output: uint32(24),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 16}},
 	{test: &allocateTest{size: 9},
 		output: uint32(40),
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 40}},
 	{test: &freeTest{ptr: 40}, // address of second allocation
-		output: nil,
 		state: allocatorState{bumper: 40,
 			heads:     [22]uint32{0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
@@ -128,7 +110,6 @@ var allocateDeallocateReallocateWithOffset = []testSet{
 	{test: &allocateTest{size: 9},
 		output: uint32(40),
 		state: allocatorState{bumper: 40,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 40}},
 }
@@ -138,50 +119,36 @@ var allocateShouldBuildFreeList = []testSet{
 	{test: &allocateTest{size: 8},
 		output: uint32(8),
 		state: allocatorState{bumper: 16,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 	// allocate 8 bytes
 	{test: &allocateTest{size: 8},
 		output: uint32(24),
 		state: allocatorState{bumper: 32,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 32}},
 	// allocate 8 bytes
 	{test: &allocateTest{size: 8},
 		output: uint32(40),
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 48}},
 	// free first allocation
 	{test: &freeTest{ptr: 8}, // address of first allocation
-		output: nil,
 		state: allocatorState{bumper: 48,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 32}},
 	// free second allocation
 	{test: &freeTest{ptr: 24}, // address of second allocation
-		output: nil,
 		state: allocatorState{bumper: 48,
 			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 	// free third allocation
 	{test: &freeTest{ptr: 40}, // address of third allocation
-		output: nil,
 		state: allocatorState{bumper: 48,
 			heads:     [22]uint32{32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 0}},
 	// allocate 8 bytes
 	{test: &allocateTest{size: 8},
 		output: uint32(40),
 		state: allocatorState{bumper: 48,
 			heads:     [22]uint32{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-			ptrOffset: 0,
 			totalSize: 16}},
 }
 
@@ -190,7 +157,6 @@ var allocateCorrectlyWithOffset = []testSet{
 	{test: &allocateTest{size: 9},
 		output: uint32(16),
 		state: allocatorState{bumper: 24,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 8,
 			totalSize: 24}},
 }
@@ -200,14 +166,11 @@ var heapShouldBeZeroAfterFreeWithOffset = []testSet{
 	{test: &allocateTest{size: 42},
 		output: uint32(24),
 		state: allocatorState{bumper: 72,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 72}},
 
 	{test: &freeTest{ptr: 24},
-		output: nil,
 		state: allocatorState{bumper: 72,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 16,
 			totalSize: 0}},
 }
@@ -217,26 +180,21 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	{test: &allocateTest{size: 42},
 		output: uint32(32),
 		state: allocatorState{bumper: 72,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 72}},
 	// first free
 	{test: &freeTest{ptr: 32},
-		output: nil,
 		state: allocatorState{bumper: 72,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 0}},
 	// second alloc
 	{test: &allocateTest{size: 42},
 		output: uint32(104),
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 72}},
 	// second free
 	{test: &freeTest{ptr: 104},
-		output: nil,
 		state: allocatorState{bumper: 144,
 			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
@@ -245,12 +203,10 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	{test: &allocateTest{size: 42},
 		output: uint32(104),
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 72}},
 	// third free
 	{test: &freeTest{ptr: 104},
-		output: nil,
 		state: allocatorState{bumper: 144,
 			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
@@ -259,12 +215,10 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	{test: &allocateTest{size: 42},
 		output: uint32(104),
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 72}},
 	// forth free
 	{test: &freeTest{ptr: 104},
-		output: nil,
 		state: allocatorState{bumper: 144,
 			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
@@ -273,12 +227,10 @@ var heapShouldBeZeroAfterFreeWithOffsetFiveTimes = []testSet{
 	{test: &allocateTest{size: 42},
 		output: uint32(104),
 		state: allocatorState{bumper: 144,
-			heads:     [22]uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
 			totalSize: 72}},
 	// fifth free
 	{test: &freeTest{ptr: 104},
-		output: nil,
 		state: allocatorState{bumper: 144,
 			heads:     [22]uint32{0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			ptrOffset: 24,
@@ -312,12 +264,13 @@ func TestAllocator(t *testing.T) {
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
 			case *allocateTest:
-				result, err1 := allocator.Allocate(v.size)
+				result, err1 :=
+					allocator.Allocate(v.size)
 				if err1 != nil {
 					t.Fatal(err1)
 				}
 
-				compareState(allocator, theTest.state, result, theTest.output, t)
+				compareState(*allocator, theTest.state, result, theTest.output, t)
 
 			case *freeTest:
 				t.Log("got free", v.ptr)
@@ -326,7 +279,7 @@ func TestAllocator(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Log("heads", allocator.heads[:])
-				compareState(allocator, theTest.state, nil, theTest.output, t)
+				compareState(*allocator, theTest.state, nil, theTest.output, t)
 			default:
 				t.Log("default type")
 			}

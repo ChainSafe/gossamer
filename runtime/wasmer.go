@@ -479,7 +479,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 	runtimeCtx := &RuntimeCtx{
 		trie:      t,
-		allocator: &memAllocator,
+		allocator: memAllocator,
 	}
 	// add runtimeCtx to registry
 	// lock access to registry to avoid possible concurrent access
