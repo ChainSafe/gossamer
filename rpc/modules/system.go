@@ -75,9 +75,9 @@ func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringRes
 }
 
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
-	res.Peers = sm.api.System.Health().Peers
-	res.IsSyncing = sm.api.System.Health().IsSyncing
-	res.ShouldHavePeers = sm.api.System.Health().ShouldHavePeers
+	res.Peers = len(sm.api.System.Peers())
+	res.IsSyncing = sm.api.System.IsSyncing()
+	res.ShouldHavePeers = sm.api.System.ShouldHavePeers()
 	return
 }
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {

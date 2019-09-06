@@ -30,15 +30,12 @@ func (m *systemModule) Version() string {
 // 	return m.runtime.Chain()
 // }
 
-// Health of the node
-func (m *systemModule) Health() SystemHealthResponse {
-	log.Debug("[rpc] Executing System.Health", "params", nil)
-	health := SystemHealthResponse{
-		IsSyncing:       false,
-		Peers:           int(len(m.Peers())),
-		ShouldHavePeers: (len(m.Peers()) != 0),
-	}
-	return health
+func (m *systemModule) IsSyncing() bool {
+	return false
+}
+
+func (m *systemModule) ShouldHavePeers() bool {
+	return (len(m.Peers()) != 0)
 }
 
 func (m *systemModule) Name() string {
