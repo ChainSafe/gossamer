@@ -135,12 +135,12 @@ func TestNode_isDecendantOf(t *testing.T) {
 
 	// Check leaf is decendant of root
 	leaf := bt.GetNode(hashFour)
-	if !leaf.isDecendantOf(bt.head) {
+	if !leaf.isDescendantOf(bt.head) {
 		t.Error("failed to verify leaf is descendant of root")
 	}
 
 	// Verify the inverse relationship does not hold
-	if bt.head.isDecendantOf(leaf) {
+	if bt.head.isDescendantOf(leaf) {
 		t.Error("root should not be decendant of anything")
 	}
 
