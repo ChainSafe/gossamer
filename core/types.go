@@ -6,13 +6,22 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
-// TODO: Unsure if this differs from the block defined with the header in common/types.go
+// Block defines a state block
 type Block struct {
-	SlotNumber   *big.Int
-	PreviousHash common.Hash
-	//VrfOutput		VRFOutput
-	//Transactions 	[]Transaction
-	//Signature		Signature
-	BlockNumber *big.Int
-	Hash        common.Hash
+	Header BlockHeader
+	Body   BlockBody
 }
+
+// BlockHeader is a state block header
+type BlockHeader struct {
+	ParentHash     common.Hash
+	Number         *big.Int
+	StateRoot      common.Hash
+	ExtrinsicsRoot common.Hash
+	Digest         []byte
+	// TODO: Not part of spec, can potentially remove
+	Hash common.Hash
+}
+
+// BlockBody is the extrinsics inside a state block
+type BlockBody struct{}
