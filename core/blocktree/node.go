@@ -68,11 +68,15 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
+// TODO: This would improved by using parent in node struct and searching child -> parent
+// TODO: verify that parent and child exist in the DB
 // isDescendantOf traverses the tree following all possible paths until it determines if n is a descendant of parent
 func (n *node) isDecendantOf(parent *node) bool {
-	// TODO: This might be improved by using parent in node struct and searching child -> parent
-	// TODO: verify that parent and child exist in the DB
-	// NOTE: here we assume the nodes exist
+	if parent == nil {
+		return false
+	}
+
+	// NOTE: here we assume the nodes exists in tree
 	if n.hash == parent.hash {
 		return true
 	} else if len(parent.children) == 0 {

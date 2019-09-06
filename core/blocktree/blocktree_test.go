@@ -30,13 +30,12 @@ var zeroHash, _ = common.HexToHash("0x00")
 
 func createGenesisBlock() core.Block {
 	return core.Block{
-		SlotNumber:   nil,
-		PreviousHash: zeroHash,
-		//VrfOutput:    nil,
-		//Transactions: nil,
-		//Signature:    nil,
-		BlockNumber: big.NewInt(0),
-		Hash:        common.Hash{0x00},
+		Header: core.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+			Hash:       common.Hash{0x00},
+		},
+		Body: core.BlockBody{},
 	}
 }
 
@@ -65,9 +64,12 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 		}
 
 		block := core.Block{
-			PreviousHash: previousHash,
-			Hash:         hash,
-			BlockNumber:  big.NewInt(int64(i)),
+			Header: core.BlockHeader{
+				ParentHash: previousHash,
+				Hash:       hash,
+				Number:     big.NewInt(int64(i)),
+			},
+			Body: core.BlockBody{},
 		}
 
 		bt.AddBlock(block)
@@ -98,10 +100,12 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	bt := createFlatTree(t, 1)
 
 	block := core.Block{
-		SlotNumber:   nil,
-		PreviousHash: common.Hash{0x01},
-		BlockNumber:  nil,
-		Hash:         common.Hash{0x02},
+		Header: core.BlockHeader{
+			ParentHash: common.Hash{0x01},
+			Number:     nil,
+			Hash:       common.Hash{0x02},
+		},
+		Body: core.BlockBody{},
 	}
 
 	bt.AddBlock(block)
@@ -147,10 +151,12 @@ func TestBlockTree_LongestPath(t *testing.T) {
 
 	// Insert a block to create a competing path
 	extraBlock := core.Block{
-		SlotNumber:   nil,
-		PreviousHash: zeroHash,
-		BlockNumber:  big.NewInt(1),
-		Hash:         common.Hash{0xAB},
+		Header: core.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(1),
+			Hash:       common.Hash{0xAB},
+		},
+		Body: core.BlockBody{},
 	}
 
 	bt.AddBlock(extraBlock)
@@ -178,8 +184,8 @@ func TestBlockTree_LongestPath(t *testing.T) {
 //	// Insert a block to create a competing path
 //	extraBlock := core.Block{
 //		SlotNumber:   nil,
-//		PreviousHash: zeroHash,
-//		BlockNumber:  big.NewInt(1),
+//		ParentHash: zeroHash,
+//		Number:  big.NewInt(1),
 //		Hash:         common.Hash{0xAB},
 //	}
 //

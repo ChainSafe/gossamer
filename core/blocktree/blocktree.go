@@ -38,8 +38,8 @@ type BlockTree struct {
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 	head := &node{
-		hash:     genesis.Hash,
-		number:   genesis.BlockNumber,
+		hash:     genesis.Header.Hash,
+		number:   genesis.Header.Number,
 		parent:   nil,
 		children: []*node{},
 		depth:    big.NewInt(0),
@@ -54,10 +54,10 @@ func NewBlockTreeFromGenesis(genesis core.Block) *BlockTree {
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block core.Block) {
-	parent := bt.GetNode(block.PreviousHash)
+	parent := bt.GetNode(block.Header.ParentHash)
 	// Check if it already exists
 	// TODO: Can shortcut this by checking DB
-	n := bt.GetNode(block.Hash)
+	n := bt.GetNode(block.Header.Hash)
 	if n != nil {
 		log.Debug("Attempted to add block to tree that already exists", "hash", n.hash)
 		return
@@ -67,8 +67,8 @@ func (bt *BlockTree) AddBlock(block core.Block) {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:     block.Hash,
-		number:   block.BlockNumber,
+		hash:     block.Header.Hash,
+		number:   block.Header.Number,
 		parent:   parent,
 		children: []*node{},
 		depth:    depth,
