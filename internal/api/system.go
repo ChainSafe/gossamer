@@ -18,7 +18,7 @@ func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
 }
 
 // Release version
-func (m *systemModule) version() string {
+func (m *systemModule) Version() string {
 	log.Debug("[rpc] Executing System.Version", "params", nil)
 	//TODO: Replace with dynamic version
 	return "0.0.1"
@@ -31,29 +31,29 @@ func (m *systemModule) version() string {
 // }
 
 // Health of the node
-func (m *systemModule) health() Health {
+func (m *systemModule) Health() SystemHealthResponse {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
-	health := Health{
-		peers:           uint64(len(m.peers())),
-		isSyncing:       false,
-		shouldHavePeers: (len(m.peers()) != 0),
+	health := SystemHealthResponse{
+		IsSyncing:       false,
+		Peers:           int(len(m.Peers())),
+		ShouldHavePeers: (len(m.Peers()) != 0),
 	}
 	return health
 }
 
-func (m *systemModule) name() string {
+func (m *systemModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
 	//TODO: Replace with dynamic name
 	return "Gossamer"
 }
 
-func (m *systemModule) networkState() peer.ID {
+func (m *systemModule) NetworkState() SystemNetworkStateResponse {
 	log.Debug("[rpc] Executing System.networkState", "params", nil)
 	return m.p2p.NetworkState()
 }
 
 // Peers of the node
-func (m *systemModule) peers() []peer.ID {
+func (m *systemModule) Peers() []peer.ID {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return m.p2p.Peers()
 }

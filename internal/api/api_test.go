@@ -16,10 +16,10 @@ const (
 
 var peers = []peer.ID{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 
-var health = Health{
-	peers:           uint64(len(peers)),
-	isSyncing:       false,
-	shouldHavePeers: true,
+var health = SystemHealthResponse{
+	Peers:           int(len(peers)),
+	IsSyncing:       false,
+	ShouldHavePeers: true,
 }
 
 // Creating a mock peer
@@ -33,7 +33,7 @@ func (a *MockP2pApi) Peers() []peer.ID {
 	return peers
 }
 
-func (b *MockP2pApi) Health() Health {
+func (b *MockP2pApi) Health() SystemHealthResponse {
 	return health
 }
 
@@ -68,25 +68,25 @@ func TestSystemModule(t *testing.T) {
 	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
 	// System.Health
-	h := srvc.Api.System.health()
+	h := srvc.Api.System.Health()
 	if h != health {
 		t.Fatalf("System.Health - expected %+v got: %+v\n", health, h)
 	}
 
 	// System.Name
-	n := srvc.Api.System.name()
+	n := srvc.Api.System.Name()
 	if n != Name {
 		t.Fatalf("System.Name - expected %+v got: %+v\n", Name, n)
 	}
 
 	// System.networkState
-	s := srvc.Api.System.networkState()
+	s := srvc.Api.System.NetworkState()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peerID, s)
 	}
 
 	// System.peers
-	p := srvc.Api.System.peers()
+	p := srvc.Api.System.Peers()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peers, p)
 	}
@@ -98,7 +98,7 @@ func TestSystemModule(t *testing.T) {
 	}
 
 	// System.Version
-	v := srvc.Api.System.version()
+	v := srvc.Api.System.Version()
 	if v != TestVersion {
 		t.Fatalf("System.Version - expected: %s got: %s\n", TestVersion, v)
 	}

@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/internal/api"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // SystemModule is an RPC module providing access to core API points.
@@ -53,7 +54,7 @@ type Peer struct {
 	BestNumber      *big.Int    `json:"bestNumber"`
 }
 
-type SystemPeersResponse []Peer
+type SystemPeersResponse []peer.ID
 
 type SystemPropertiesResponse struct {
 	Ss58Format    int    `json:"ss58Format"`
@@ -67,27 +68,37 @@ func NewSystemModule(api *api.Api) *SystemModule {
 		api: api,
 	}
 }
-
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) {
 	*res = "not yet implemented"
+	return
+
 }
 
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
+	res.Peers = sm.api.System.Health().Peers
+	res.IsSyncing = sm.api.System.Health().IsSyncing
+	res.ShouldHavePeers = sm.api.System.Health().ShouldHavePeers
 	return
 }
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {
 	*res = "not yet implemented"
+	return
 }
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) {
+	res.PeerId = sm.api.System.NetworkState().PeerId
 	return
 }
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) {
+	*res = sm.api.System.Peers()
 	return
 }
 
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
-	return
-}
+// Not yet implemented
+// func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
+// 	return
+// }
+
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) {
 	*res = "not yet implemented"
+	return
 }

@@ -33,8 +33,8 @@ type Api struct {
 type P2pApi interface {
 	PeerCount() int
 	Peers() []peer.ID
-	Health() Health
-	NetworkState() peer.ID
+	Health() SystemHealthResponse
+	NetworkState() SystemNetworkStateResponse
 }
 
 // RuntimeApi is the interface expected to implemented by `runtime` package

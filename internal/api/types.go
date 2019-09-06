@@ -55,22 +55,22 @@ type ChainProperties struct {
 // }
 
 /** Struct */
-type Health struct {
+type SystemHealthResponse struct {
 	/** u64 */
-	peers uint64
+	Peers int `json:"peers"`
 	/** bool */
-	isSyncing bool
+	IsSyncing bool `json:"isSyncing"`
 	/** bool */
-	shouldHavePeers bool
+	ShouldHavePeers bool `json:"shouldHavePeers"`
 }
 
 // /** [StorageKey, Option<StorageData>] & Codec */
 // export type KeyValueOption = [StorageKey, Option<StorageData>] & Codec;
 
 /** Struct */
-type NetworkState struct {
+type SystemNetworkStateResponse struct {
 	/** Text */
-	peerId string
+	PeerId string `json:"peerId"`
 }
 
 // /** Struct */
