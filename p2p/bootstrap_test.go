@@ -17,7 +17,6 @@
 package p2p
 
 import (
-	"fmt"
 	"runtime"
 	"testing"
 	"time"
@@ -61,38 +60,7 @@ func TestStringsToPeerInfos(t *testing.T) {
 	}
 }
 
-func TestBootstrapConnect_IPFS(t *testing.T) {
-	ipfsNode, err := StartIpfsNode()
-	if err != nil {
-		t.Fatalf("Could not start IPFS node: %s", err)
-	}
-
-	defer ipfsNode.Close()
-
-	ipfsAddr := fmt.Sprintf("/ip4/127.0.0.1/tcp/4001/ipfs/%s", ipfsNode.Identity.String())
-
-	testServiceConfig := &Config{
-		BootstrapNodes: []string{
-			ipfsAddr,
-		},
-		Port: 7001,
-	}
-
-	s, err := NewService(testServiceConfig)
-	if err != nil {
-		t.Fatalf("NewService error: %s", err)
-	}
-
-	err = s.bootstrapConnect()
-	if err != nil {
-		t.Errorf("Start error :%s", err)
-	}
-
-	s.Stop()
-	t.Log("Stopped service")
-}
-
-func TestBootstrapConnect_NoIPFS(t *testing.T) {
+func TestBootstrapConnect(t *testing.T) {
 	bootnodeCfg := &Config{
 		BootstrapNodes: nil,
 		Port:           7000,
@@ -126,4 +94,24 @@ func TestBootstrapConnect_NoIPFS(t *testing.T) {
 	bootnode.Stop()
 
 	t.Logf("goroutines: %d\n", runtime.NumGoroutine())
+}
+
+func TestNoBootstrap(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7006,
+	}
+
+	sa, err := NewService(testServiceConfigA)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	defer sa.Stop()
+
+	e := sa.Start()
+	err = <-e
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
 }
