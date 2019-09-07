@@ -26,6 +26,21 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+func startNewService(t *testing.T, cfg *Config) *Service{
+	node, err := NewService(cfg)
+	if err != nil {
+		t.Error(err)
+	}
+
+	e := node.Start()
+	err = <-e
+	if err != nil {
+		t.Error(err)
+	}
+
+	return node
+}
+
 func TestBuildOpts(t *testing.T) {
 	testServiceConfig := &Config{
 		BootstrapNodes: []string{},
@@ -77,8 +92,6 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
-
-	defer s.Stop()
 
 	e := s.Start()
 	err = <-e

@@ -18,7 +18,9 @@ package p2p
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
+	"time"
 )
 
 // list of IPFS peers, eventually change this to polkadot bootstrap nodes
@@ -59,7 +61,7 @@ func TestStringsToPeerInfos(t *testing.T) {
 	}
 }
 
-func TestBootstrapConnect(t *testing.T) {
+func TestBootstrapConnect_IPFS(t *testing.T) {
 	ipfsNode, err := StartIpfsNode()
 	if err != nil {
 		t.Fatalf("Could not start IPFS node: %s", err)
@@ -85,4 +87,43 @@ func TestBootstrapConnect(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}
+
+	s.Stop()
+	t.Log("Stopped service")
+}
+
+func TestBootstrapConnect_NoIPFS(t *testing.T) {
+	bootnodeCfg := &Config{
+		BootstrapNodes: nil,
+		Port:           7000,
+		RandSeed:       0,
+		NoBootstrap:    true,
+		NoMdns:         true,
+	}
+
+	bootnode := startNewService(t, bootnodeCfg)
+
+	bootnodeAddr := bootnode.FullAddrs()[0]
+
+	nodeCfg := &Config{
+		BootstrapNodes: []string{bootnodeAddr.String()},
+		Port:           7001,
+		RandSeed:       1,
+		NoBootstrap:    false,
+		NoMdns:         true,
+	}
+
+	node := startNewService(t, nodeCfg)
+
+	// Allow everything to finish connecting
+	time.Sleep(1 * time.Second)
+
+	if bootnode.PeerCount() != 1 {
+		t.Errorf("expected peer count: %d got: %d", 1, bootnode.PeerCount())
+	}
+
+	node.Stop()
+	bootnode.Stop()
+
+	t.Logf("goroutines: %d\n", runtime.NumGoroutine())
 }
