@@ -50,8 +50,6 @@ func getRandomInt(m int) int {
 	return r
 }
 
-
-
 func main() {
 	if len(os.Args) < 2 {
 		log.Crit("please specify number of nodes to start in simulation: go run main.go [num]")
