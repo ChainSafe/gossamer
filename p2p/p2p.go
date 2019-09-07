@@ -230,7 +230,7 @@ func (s *Service) Host() host.Host {
 	return s.host
 }
 
-// TODO: Better name for this?
+// FullAddrs returns all the hosts addresses with their ID append as multiaddrs
 func (s *Service) FullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := s.host.Addrs()
 	for _, a := range addrs {

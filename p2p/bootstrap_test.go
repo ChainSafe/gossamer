@@ -17,7 +17,6 @@
 package p2p
 
 import (
-	"runtime"
 	"testing"
 	"time"
 )
@@ -92,8 +91,6 @@ func TestBootstrapConnect(t *testing.T) {
 
 	node.Stop()
 	bootnode.Stop()
-
-	t.Logf("goroutines: %d\n", runtime.NumGoroutine())
 }
 
 func TestNoBootstrap(t *testing.T) {
