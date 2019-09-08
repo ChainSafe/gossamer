@@ -21,13 +21,13 @@ package runtime
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
 // extern void ext_print_num(void *context, int64_t data);
 // extern void ext_keccak_256(void *context, int32_t data, int32_t len, int32_t out);
-// extern int32_t ext_secp256k1_ecdsa_recover(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_secp256k1_ecdsa_recover(void *context, int32_t msgData, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_128(void *context, int32_t data, int32_t len, int32_t out);
 // extern int32_t ext_is_validator(void *context);
-// extern int32_t ext_local_storage_get(void *context, int32_t data, int32_t len, int32_t a, int32_t b);
-// extern int32_t ext_local_storage_compare_and_set(void *context, int32_t data, int32_t len, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e);
-// extern int32_t ext_sr25519_public_keys(void *context, int32_t data, int32_t len);
-// extern int32_t ext_network_state(void *context, int32_t data);
+// extern int32_t ext_local_storage_get(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t valueLen);
+// extern int32_t ext_local_storage_compare_and_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t oldValue, int32_t oldValueLen, int32_t newValue, int32_t newValueLen);
+// extern int32_t ext_sr25519_public_keys(void *context, int32_t idData, int32_t resultLen);
+// extern int32_t ext_network_state(void *context, int32_t writtenOut);
 // extern int32_t ext_sr25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
 // extern int32_t ext_submit_transaction(void *context, int32_t data, int32_t len);
 // extern void ext_local_storage_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t value, int32_t valueLen);
@@ -348,7 +348,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 }
 
 //export ext_sr25519_public_keys
-func ext_sr25519_public_keys(context unsafe.Pointer, data, len int32) int32 {
+func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Debug("[ext_sr25519_public_keys] executing...")
 	return 0
 }
@@ -388,7 +388,7 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 }
 
 //export ext_secp256k1_ecdsa_recover
-func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, data, length, out int32) int32 {
+func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_secp256k1_ecdsa_recover] executing...")
 	return 0
 }
@@ -400,19 +400,19 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 }
 
 //export ext_local_storage_get
-func ext_local_storage_get(context unsafe.Pointer, data, length, a, b int32) int32 {
+func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
 	log.Debug("[ext_local_storage_get] executing...")
 	return 0
 }
 
 //export ext_local_storage_compare_and_set
-func ext_local_storage_compare_and_set(context unsafe.Pointer, data, length, a, b, c, d, e int32) int32 {
+func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, key, keyLen, oldValue, oldValueLen, newValue, newValueLen int32) int32 {
 	log.Debug("[ext_local_storage_compare_and_set] executing...")
 	return 0
 }
 
 //export ext_network_state
-func ext_network_state(context unsafe.Pointer, data int32) int32 {
+func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
 	log.Debug("[ext_network_state] executing...")
 	return 0
 }

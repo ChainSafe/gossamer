@@ -2,6 +2,7 @@ package babe
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/runtime"
@@ -35,5 +36,15 @@ func TestStartupData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(res)
+
+	expected := &BabeConfiguration{
+		SlotDuration:         6000,
+		C1:                   1,
+		C2:                   4,
+		MedianRequiredBlocks: 1000,
+	}
+
+	if !reflect.DeepEqual(res, expected) {
+		t.Errorf("Fail: got %v expected %v\n", res, expected)
+	}
 }
