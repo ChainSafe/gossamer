@@ -1,6 +1,7 @@
 package babe
 
 import (
+	"fmt"
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/runtime"
 )
@@ -44,4 +45,31 @@ func (b *BabeSession) startupData() (*BabeConfiguration, error) {
 	bc := new(BabeConfiguration)
 	_, err = scale.Decode(ret, bc)
 	return bc, err
+}
+
+// TODO: change to Schnorrkel public key
+type AuthorityId [32]byte
+
+type Epoch struct {
+	EpochIndex     uint64
+	StartSlot      uint64
+	Duration       uint64
+	Authorities    AuthorityId // Schnorrkel public key of authority
+	Randomness     byte
+	SecondarySlots bool
+}
+
+// gets number of slots in epoch
+func (b *BabeSession) epoch() (*Epoch, error) {
+	ret, err := b.rt.Exec("BabeApi_epoch", 1, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(ret)
+	fmt.Println(len(ret))
+
+	e := new(Epoch)
+	_, err = scale.Decode(ret, e)
+	return e, err
 }

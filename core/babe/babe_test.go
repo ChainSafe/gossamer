@@ -48,3 +48,26 @@ func TestStartupData(t *testing.T) {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 }
+
+func TestEpoch(t *testing.T) {
+	rt := newRuntime(t)
+	babesession := NewBabeSession([32]byte{}, [64]byte{}, rt)
+	res, err := babesession.epoch()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(res)
+
+	expected := &Epoch{
+		EpochIndex:     0,
+		StartSlot:      0,
+		Duration:       2400,
+		Authorities:    [32]byte{},
+		Randomness:     0,
+		SecondarySlots: false,
+	}
+
+	if !reflect.DeepEqual(res, expected) {
+		t.Errorf("Fail: got %v expected %v\n", res, expected)
+	}
+}
