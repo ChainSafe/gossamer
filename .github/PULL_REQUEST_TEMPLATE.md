@@ -23,4 +23,4 @@
     eg: 'closes #1 and closes #2'
     See: https://help.github.com/en/articles/closing-issues-using-keywords
 -->
-### Fixes:
+### Issues:
