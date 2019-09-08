@@ -1,8 +1,8 @@
 package babe
 
 import (
-	"github.com/ChainSafe/gossamer/runtime"
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/runtime"
 )
 
 type VrfPublicKey [32]byte
@@ -27,11 +27,10 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 	}
 }
 
-
 type BabeConfiguration struct {
-	SlotDuration uint64
-	C1 	uint64 // (1-(c1/c2)) is the probability of a slot being empty
-	C2 	uint64 
+	SlotDuration         uint64
+	C1                   uint64 // (1-(c1/c2)) is the probability of a slot being empty
+	C2                   uint64
 	MedianRequiredBlocks uint64
 }
 

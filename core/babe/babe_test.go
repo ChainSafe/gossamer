@@ -10,7 +10,7 @@ import (
 
 const POLKADOT_RUNTIME_FP string = "../../polkadot_runtime.wasm"
 
-func newRuntime(t *testing.T) (*runtime.Runtime) {
+func newRuntime(t *testing.T) *runtime.Runtime {
 	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
 	if err != nil {
 		t.Fatal("could not create filepath")

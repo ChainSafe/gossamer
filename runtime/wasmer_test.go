@@ -77,10 +77,10 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 func TestExecVersion(t *testing.T) {
 	expected := &Version{
-		Spec_name:         []byte("polkadot"),
-		Impl_name:         []byte("parity-polkadot"),
+		Spec_name:         []byte("kusama"),
+		Impl_name:         []byte("parity-kusama"),
 		Authoring_version: 1,
-		Spec_version:      1000,
+		Spec_version:      1002,
 		Impl_version:      0,
 	}
 

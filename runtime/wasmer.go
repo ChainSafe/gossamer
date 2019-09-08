@@ -425,9 +425,8 @@ func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 
 //export ext_local_storage_set
 func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
-	log.Debug("[ext_local_storage_set] executing...") 
+	log.Debug("[ext_local_storage_set] executing...")
 }
-
 
 type Runtime struct {
 	vm   wasm.Instance
