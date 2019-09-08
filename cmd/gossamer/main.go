@@ -82,7 +82,7 @@ func gossamer(ctx *cli.Context) error {
 
 	err := AddVerbosity(srvlog, ctx)
 	if err != nil {
-		log.Error("error making node", "err", err)
+		log.Error("verbosity level error", "err", err)
 	}
 
 	node, _, err := makeNode(ctx)
