@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
+const POLKADOT_RUNTIME_FP string = "../polkadot_runtime.wasm"
 const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github

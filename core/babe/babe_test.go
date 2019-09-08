@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-const POLKADOT_RUNTIME_FP string = "../../runtime/polkadot_runtime.compact.wasm"
+const POLKADOT_RUNTIME_FP string = "../../polkadot_runtime.wasm"
 
 func newRuntime(t *testing.T) (*runtime.Runtime) {
 	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
@@ -28,10 +28,10 @@ func newRuntime(t *testing.T) (*runtime.Runtime) {
 	return r
 }
 
-func TestGetNumberOfSlots(t *testing.T) {
+func TestStartupData(t *testing.T) {
 	rt := newRuntime(t)
 	babesession := NewBabeSession([32]byte{}, [64]byte{}, rt)
-	res, err := babesession.getNumberOfSlots(0)
+	res, err := babesession.startupData()
 	if err != nil {
 		t.Fatal(err)
 	}

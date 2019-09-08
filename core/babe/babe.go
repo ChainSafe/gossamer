@@ -1,8 +1,6 @@
 package babe
 
 import (
-	"encoding/binary"
-
 	"github.com/ChainSafe/gossamer/runtime"
 	scale "github.com/ChainSafe/gossamer/codec"
 )
@@ -29,12 +27,22 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 	}
 }
 
+
+type BabeConfiguration struct {
+	SlotDuration uint64
+	C1 	uint64 // (1-(c1/c2)) is the probability of a slot being empty
+	C2 	uint64 
+	MedianRequiredBlocks uint64
+}
+
 // gets number of slots in epoch
-func (b *BabeSession) startupData() (uint64, error) {
+func (b *BabeSession) startupData() (*BabeConfiguration, error) {
 	ret, err := b.rt.Exec("BabeApi_startup_data", 1, 0)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return binary.LittleEndian.Uint64(ret), nil
+	bc := new(BabeConfiguration)
+	_, err = scale.Decode(ret, bc)
+	return bc, err
 }
