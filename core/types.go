@@ -24,4 +24,4 @@ type BlockHeader struct {
 }
 
 // BlockBody is the extrinsics inside a state block
-type BlockBody struct{}
+type BlockBody []byte
