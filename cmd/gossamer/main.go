@@ -17,9 +17,7 @@
 package main
 
 import (
-	// "fmt"
 	"os"
-	// "reflect"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	log "github.com/ChainSafe/log15"
@@ -70,7 +68,6 @@ func main() {
 func AddVerbosity(logger log.Logger, ctx *cli.Context) error {
 	lvl, err := log.LvlFromString(ctx.String("verbosity"))
 	if err != nil {
-		log.Error("error with verbosity level", "err", err)
 		return err
 	}
 	handler := logger.GetHandler()
@@ -82,7 +79,11 @@ func AddVerbosity(logger log.Logger, ctx *cli.Context) error {
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
 	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
-	AddVerbosity(srvlog, ctx)
+
+	err := AddVerbosity(srvlog, ctx)
+	if err != nil {
+		log.Error("error making node", "err", err)
+	}
 
 	node, _, err := makeNode(ctx)
 	if err != nil {
