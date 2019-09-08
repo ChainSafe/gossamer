@@ -17,7 +17,9 @@
 package main
 
 import (
+	// "fmt"
 	"os"
+	// "reflect"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	log "github.com/ChainSafe/log15"
