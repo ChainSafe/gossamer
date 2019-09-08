@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 
 	"github.com/ChainSafe/gossamer/runtime"
+	scale "github.com/ChainSafe/gossamer/codec"
 )
 
 type VrfPublicKey [32]byte
@@ -29,14 +30,8 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 }
 
 // gets number of slots in epoch
-func (b *BabeSession) getNumberOfSlots(epoch uint64) (uint64, error) {
-	mem := b.rt.Mem()
-	var input int32 = 1
-
-	epochBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(epochBytes, epoch)
-	copy(mem[input:input+8], epochBytes)
-	ret, err := b.rt.Exec("BabeApi_slot_duration", input, 8)
+func (b *BabeSession) startupData() (uint64, error) {
+	ret, err := b.rt.Exec("BabeApi_startup_data", 1, 0)
 	if err != nil {
 		return 0, err
 	}
