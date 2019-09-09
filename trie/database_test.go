@@ -22,19 +22,19 @@ func newTrie() (*Trie, error) {
 
 	trie := &Trie{
 		db: &Database{
-			Db:     db,
+			StateDB:     db,
 			Hasher: hasher,
 		},
 		root: nil,
 	}
 
-	trie.db.Batch = trie.db.Db.NewBatch()
+	trie.db.Batch = trie.db.StateDB.NewBatch()
 
 	return trie, nil
 }
 
 func (t *Trie) closeDb() {
-	t.db.Db.Close()
+	t.db.StateDB.Close()
 	if err := os.RemoveAll("./gossamer_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}

@@ -24,7 +24,7 @@ import (
 
 // Database is a wrapper around a polkadb
 type Database struct {
-	Db     polkadb.Database
+	StateDB     polkadb.Database
 	Batch  polkadb.Batch
 	Lock   sync.RWMutex
 	Hasher *Hasher
@@ -35,7 +35,7 @@ type Database struct {
 // This does not actually write to the db, just to the batch writer
 // Commit must be called afterwards to finish writing to the db
 func (t *Trie) WriteToDB() error {
-	t.db.Batch = t.db.Db.NewBatch()
+	t.db.Batch = t.db.StateDB.NewBatch()
 	return t.writeToDB(t.root)
 }
 

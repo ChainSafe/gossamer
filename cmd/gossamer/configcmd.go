@@ -17,6 +17,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/core/blocktree"
+	"github.com/ChainSafe/gossamer/trie"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -71,11 +73,28 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// DB
 	dataDir := getDatabaseDir(ctx, fig)
-	dbSrvc, err := polkadb.NewBadgerService(dataDir)
+	stateDataDir := filepath.Join(dataDir, "state")
+	stateDB, err := polkadb.NewBadgerService(stateDataDir)
 	if err != nil {
 		return nil, nil, err
 	}
-	srvcs = append(srvcs, dbSrvc)
+	state := &trie.Database{
+		StateDB : stateDB,
+	}
+	srvcs = append(srvcs, stateDB)
+
+	_ = trie.NewEmptyTrie(state)
+
+	blockDataDir := filepath.Join(dataDir, "block")
+	blockDB, err := polkadb.NewBadgerService(blockDataDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	b := & blocktree.BlockTree{
+		BlockDB: blockDB,
+	}
+
+	srvcs = append(srvcs, blockDB)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
