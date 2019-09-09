@@ -35,7 +35,7 @@ func (m *systemModule) IsSyncing() bool {
 }
 
 func (m *systemModule) ShouldHavePeers() bool {
-	return (len(m.Peers()) != 0)
+	return m.p2p.ShouldHavePeers()
 }
 
 func (m *systemModule) Name() string {
@@ -44,7 +44,7 @@ func (m *systemModule) Name() string {
 	return "Gossamer"
 }
 
-func (m *systemModule) NetworkState() SystemNetworkStateResponse {
+func (m *systemModule) NetworkState() string {
 	log.Debug("[rpc] Executing System.networkState", "params", nil)
 	return m.p2p.NetworkState()
 }

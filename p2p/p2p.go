@@ -362,7 +362,12 @@ func (s *Service) Peers() []peer.ID {
 }
 
 // Network state
-func (s *Service) NetworkState() peer.ID {
-	peerID := s.host.ID()
+func (s *Service) NetworkState() string {
+	peerID := s.host.ID().String()
 	return peerID
+}
+
+// Should have peers
+func (s *Service) ShouldHavePeers() bool {
+	return (len(s.Peers()) != 0)
 }

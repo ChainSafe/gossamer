@@ -80,14 +80,17 @@ func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHe
 	res.ShouldHavePeers = sm.api.System.ShouldHavePeers()
 	return
 }
+
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {
 	*res = "not yet implemented"
 	return
 }
+
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) {
-	res.PeerId = sm.api.System.NetworkState().PeerId
+	res.PeerId = sm.api.System.NetworkState()
 	return
 }
+
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) {
 	*res = sm.api.System.Peers()
 	return
