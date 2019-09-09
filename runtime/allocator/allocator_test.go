@@ -18,7 +18,6 @@ package runtime
 
 import (
 	"encoding/binary"
-	"github.com/ChainSafe/log15"
 	"io"
 	"math"
 	"net/http"
@@ -295,6 +294,9 @@ func NewWasmMemory() (*wasm.Memory, error) {
 			defer resp.Body.Close()
 
 			_, err = io.Copy(out, resp.Body)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	// Reads the WebAssembly simple.wasm mock wasm blob.
@@ -305,7 +307,10 @@ func NewWasmMemory() (*wasm.Memory, error) {
 		return nil, err
 	}
 	instance, err := wasm.NewInstance(bytes)
-	log15.Debug("bytes", "bytes", err)
+	if err != nil {
+		return nil, err
+	}
+
 	return &instance.Memory, nil
 }
 
