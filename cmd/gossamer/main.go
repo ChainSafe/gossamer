@@ -65,22 +65,25 @@ func main() {
 	}
 }
 
-func AddVerbosity(logger log.Logger, ctx *cli.Context) error {
+func StartLogger(ctx *cli.Context) (log.Logger, error) {
+	// logger := log.New(log.Ctx{"blockchain": "gossamer"})
+	logger := log.Root()
+
 	lvl, err := log.LvlFromString(ctx.String("verbosity"))
 	if err != nil {
-		return err
+		return logger, err
 	}
+
 	handler := logger.GetHandler()
 	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
 
-	return nil
+	return logger, nil
 }
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 
-	err := AddVerbosity(srvlog, ctx)
+	srvlog, err := StartLogger(ctx)
 	if err != nil {
 		log.Error("verbosity level error", "err", err)
 	}
