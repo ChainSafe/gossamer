@@ -39,7 +39,7 @@ type FreeingBumpHeapAllocator struct {
 	heap        *wasm.Memory
 	maxHeapSize uint32
 	ptrOffset   uint32
-	totalSize   uint32
+	TotalSize   uint32
 }
 
 // Creates a new allocation heap which follows a freeing-bump strategy.
@@ -70,7 +70,7 @@ func NewAllocator(mem *wasm.Memory, ptrOffset uint32) *FreeingBumpHeapAllocator 
 	fbha.heap = mem
 	fbha.maxHeapSize = heapSize
 	fbha.ptrOffset = ptrOffset
-	fbha.totalSize = 0
+	fbha.TotalSize = 0
 
 	return fbha
 }
@@ -86,7 +86,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	}
 	itemSize := nextPowerOf2GT8(size)
 
-	if (itemSize + 8 + fbha.totalSize) > fbha.maxHeapSize {
+	if (itemSize + 8 + fbha.TotalSize) > fbha.maxHeapSize {
 		err := errors.New("allocator out of space")
 		return 0, err
 	}
@@ -111,8 +111,8 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		fbha.setHeap(ptr-i, 255)
 	}
 	fbha.setHeap(ptr-8, uint8(listIndex))
-	fbha.totalSize = fbha.totalSize + itemSize + 8
-	log.Debug("[Allocate]", "heap_size after allocation", fbha.totalSize)
+	fbha.TotalSize = fbha.TotalSize + itemSize + 8
+	log.Debug("[Allocate]", "heap_size after allocation", fbha.TotalSize)
 	return fbha.ptrOffset + ptr, nil
 }
 
@@ -135,8 +135,8 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 
 	// update heap total size
 	itemSize := getItemSizeFromIndex(uint(listIndex))
-	fbha.totalSize = fbha.totalSize - uint32(itemSize+8)
-	log.Debug("[Deallocate]", "heap total_size after Deallocate", fbha.totalSize)
+	fbha.TotalSize = fbha.TotalSize - uint32(itemSize+8)
+	log.Debug("[Deallocate]", "heap total_size after Deallocate", fbha.TotalSize)
 
 	return nil
 }

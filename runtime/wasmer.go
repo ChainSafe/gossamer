@@ -47,6 +47,7 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
+	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	xxhash "github.com/OneOfOne/xxhash"
@@ -68,7 +69,6 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Debug("[ext_malloc] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
@@ -81,7 +81,7 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
 	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.totalSize)
+	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
 	return int32(res)
 }
 
@@ -401,7 +401,7 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 
 type RuntimeCtx struct {
 	trie      *trie.Trie
-	allocator *FreeingBumpHeapAllocator
+	allocator *allocator.FreeingBumpHeapAllocator
 }
 
 type Runtime struct {
@@ -491,7 +491,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 		return nil, err
 	}
 
-	memAllocator := NewAllocator(&instance.Memory, 0)
+	memAllocator := allocator.NewAllocator(&instance.Memory, 0)
 
 	runtimeCtx := &RuntimeCtx{
 		trie:      t,

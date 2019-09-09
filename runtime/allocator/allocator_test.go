@@ -18,9 +18,15 @@ package runtime
 
 import (
 	"encoding/binary"
+	"github.com/ChainSafe/log15"
+	"io"
 	"math"
+	"net/http"
+	"os"
 	"reflect"
 	"testing"
+
+	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 const pageSize = 65536
@@ -266,16 +272,53 @@ var allTests = []testHolder{
 	{offset: 19, tests: heapShouldBeZeroAfterFreeWithOffsetFiveTimes},
 }
 
+const SimpleWasmFP = "simple.wasm"
+const SimpleWasmURL = "https://github.com//wasmerio/go-ext-wasm/blob/master/wasmer/test/testdata/examples/simple.wasm?raw=true"
+
+// utility function to create a wasm.Memory instance for testing
+//   it checks if simple.wasm has been downloaded from git repo, if not if fetchs it for building the test wasm blob
+func NewWasmMemory() (*wasm.Memory, error) {
+	// check if file already downloaded
+	if _, err := os.Stat(SimpleWasmFP); err != nil {
+		if os.IsNotExist(err) {
+			// file not found, so load if from git repo
+			out, err := os.Create(SimpleWasmFP)
+			if err != nil {
+				return nil, err
+			}
+			defer out.Close()
+
+			resp, err := http.Get(SimpleWasmURL)
+			if err != nil {
+				return nil, err
+			}
+			defer resp.Body.Close()
+
+			_, err = io.Copy(out, resp.Body)
+		}
+	}
+	// Reads the WebAssembly simple.wasm mock wasm blob.
+	//  note the wasm blob can be any valid wasm blob that will create a new wasm instance in this case we're using
+	//  test blob from https://github.com/wasmerio/go-ext-wasm/tree/master/wasmer/test/testdata/examples/simple.wasm
+	bytes, err := wasm.ReadBytes(SimpleWasmFP)
+	if err != nil {
+		return nil, err
+	}
+	instance, err := wasm.NewInstance(bytes)
+	log15.Debug("bytes", "bytes", err)
+	return &instance.Memory, nil
+}
+
 // iterates allTests and runs tests on them based on data contained in
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		runtime, err := newTestRuntime()
+		mem, err := NewWasmMemory()
 		if err != nil {
 			t.Fatal(err)
 		}
-		mem := runtime.vm.Memory
-		allocator := NewAllocator(&mem, test.offset)
+		t.Log("mem", "mem", mem)
+		allocator := NewAllocator(mem, test.offset)
 
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
@@ -290,7 +333,7 @@ func TestAllocator(t *testing.T) {
 
 			case *freeTest:
 				t.Log("got free", v.ptr)
-				err = allocator.Deallocate(v.ptr)
+				err := allocator.Deallocate(v.ptr)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -318,8 +361,8 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 	if !reflect.DeepEqual(allocator.ptrOffset, state.ptrOffset) {
 		t.Errorf("Fail: got %v expected %v", allocator.ptrOffset, state.ptrOffset)
 	}
-	if !reflect.DeepEqual(allocator.totalSize, state.totalSize) {
-		t.Errorf("Fail: got %v expected %v", allocator.totalSize, state.totalSize)
+	if !reflect.DeepEqual(allocator.TotalSize, state.totalSize) {
+		t.Errorf("Fail: got %v expected %v", allocator.TotalSize, state.totalSize)
 	}
 	if !reflect.DeepEqual(result, output) {
 		t.Errorf("Fail: got %v expected %v", result, output)
@@ -330,14 +373,13 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 //  request is larger than current size
 func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 	// given
-	runtime, err := newTestRuntime()
+	mem, err := NewWasmMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
-	mem := runtime.vm.Memory
 	currentSize := mem.Length()
 
-	fbha := NewAllocator(&mem, 0)
+	fbha := NewAllocator(mem, 0)
 
 	// when
 	_, err = fbha.Allocate(currentSize + 1)
@@ -355,13 +397,12 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 //  it's already full
 func TestShouldNotAllocateIfFull(t *testing.T) {
 	// given
-	runtime, err := newTestRuntime()
+	mem, err := NewWasmMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
-	mem := runtime.vm.Memory
 	currentSize := mem.Length()
-	fbha := NewAllocator(&mem, 0)
+	fbha := NewAllocator(mem, 0)
 
 	ptr1, err := fbha.Allocate((currentSize / 2) - 8)
 	if err != nil {
@@ -388,17 +429,16 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	runtime, err := newTestRuntime()
+	mem, err := NewWasmMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
-	mem := runtime.vm.Memory
 	pagesNeeded := (MaxPossibleAllocation / pageSize) - (mem.Length() / pageSize) + 1
 	err = mem.Grow(pagesNeeded)
 	if err != nil {
 		t.Error(err)
 	}
-	fbha := NewAllocator(&mem, 0)
+	fbha := NewAllocator(mem, 0)
 
 	// when
 	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
@@ -416,12 +456,11 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
 	// given
-	runtime, err := newTestRuntime()
+	mem, err := NewWasmMemory()
 	if err != nil {
 		t.Fatal(err)
 	}
-	mem := runtime.vm.Memory
-	fbha := NewAllocator(&mem, 0)
+	fbha := NewAllocator(mem, 0)
 
 	// when
 	_, err = fbha.Allocate(MaxPossibleAllocation + 1)
