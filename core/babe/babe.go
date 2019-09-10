@@ -1,7 +1,6 @@
 package babe
 
 import (
-	"fmt"
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/runtime"
 )
@@ -14,8 +13,8 @@ type BabeSession struct {
 	vrfPrivateKey VrfPrivateKey
 	rt            *runtime.Runtime
 
-	currentEpoch uint64
-	currentSlot  uint64
+	// currentEpoch uint64
+	// currentSlot  uint64
 
 	// TODO: TransactionQueue
 }
@@ -65,9 +64,6 @@ func (b *BabeSession) epoch() (*Epoch, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(ret)
-	fmt.Println(len(ret))
 
 	e := new(Epoch)
 	_, err = scale.Decode(ret, e)
