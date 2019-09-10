@@ -5,9 +5,11 @@ import (
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
+// TODO: change to Schnorrkel keys
 type VrfPublicKey [32]byte
 type VrfPrivateKey [64]byte
 
+// Babe
 type BabeSession struct {
 	vrfPublicKey  VrfPublicKey
 	vrfPrivateKey VrfPrivateKey
@@ -19,6 +21,7 @@ type BabeSession struct {
 	// TODO: TransactionQueue
 }
 
+// NewBabeSession returns a new Babe session using the provided VRF keys and runtime
 func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *BabeSession {
 	return &BabeSession{
 		vrfPublicKey:  pubkey,
@@ -27,6 +30,7 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 	}
 }
 
+// BabeConfiguration contains the starting data needed for Babe
 type BabeConfiguration struct {
 	SlotDuration         uint64
 	C1                   uint64 // (1-(c1/c2)) is the probability of a slot being empty
@@ -34,7 +38,7 @@ type BabeConfiguration struct {
 	MedianRequiredBlocks uint64
 }
 
-// gets number of slots in epoch
+// gets the startup data for Babe from the runtime
 func (b *BabeSession) startupData() (*BabeConfiguration, error) {
 	ret, err := b.rt.Exec("BabeApi_startup_data", 1, 0)
 	if err != nil {
@@ -49,6 +53,7 @@ func (b *BabeSession) startupData() (*BabeConfiguration, error) {
 // TODO: change to Schnorrkel public key
 type AuthorityId [32]byte
 
+// Epoch contains the data for an epoch
 type Epoch struct {
 	EpochIndex     uint64
 	StartSlot      uint64
@@ -58,7 +63,7 @@ type Epoch struct {
 	SecondarySlots bool
 }
 
-// gets number of slots in epoch
+// gets the current epoch data from the runtime
 func (b *BabeSession) epoch() (*Epoch, error) {
 	ret, err := b.rt.Exec("BabeApi_epoch", 1, 0)
 	if err != nil {
