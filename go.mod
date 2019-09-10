@@ -7,6 +7,7 @@ require (
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
+	github.com/disiqueira/gotree v1.0.0
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 	github.com/ipfs/go-datastore v0.0.5
@@ -22,6 +23,6 @@ require (
 	github.com/naoina/toml v0.1.1
 	github.com/pkg/errors v0.8.1
 	github.com/urfave/cli v1.20.0
-	github.com/wasmerio/go-ext-wasm v0.0.0-20190612094245-722faa9f1b90
+	github.com/wasmerio/go-ext-wasm v0.0.0-20190716093451-605a12aad995
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 )
