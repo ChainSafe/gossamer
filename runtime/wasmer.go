@@ -67,7 +67,6 @@ import (
 	xxhash "github.com/OneOfOne/xxhash"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
-	"golang.org/x/crypto/blake2b"
 )
 
 var registry map[int]RuntimeCtx
@@ -361,15 +360,11 @@ func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_blake2_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-
-	// new 16 byte / 128 bit blake2b hasher
-	hasher, err := blake2b.New(16, nil) 
+	hash, err := common.Blake2b128(memory[data:data+length])
 	if err != nil {
 		log.Error("[ext_blake2_128]", "error", err)
-		return
 	}
 
-	hash := hasher.Sum(memory[data:data+length])
 	copy(memory[out:out+16], hash[:])
 }
 
@@ -381,6 +376,19 @@ func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
 //export ext_twox_64
 func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_64] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	hasher := xxhash.NewS64(0) // create xxHash with 0 seed
+	_, err := hasher.Write(memory[data : data+len])
+	if err != nil {
+		log.Error("[ext_twox_64]", "error", err)
+	}
+
+	res := hasher.Sum64()
+	hash := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash, uint64(res))
+	copy(memory[out:out+8], hash)
 }
 
 //export ext_twox_128
@@ -397,7 +405,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 		log.Error("[ext_twox_128]", "error", err)
 	}
 	res0 := h0.Sum64()
-	log.Debug("[ext_twox_128]", "xxH64(0) of value", res0)
+	//log.Debug("[ext_twox_128]", "xxH64(0) of value", res0)
 	hash0 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash0, uint64(res0))
 
@@ -407,11 +415,11 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 		log.Error("[ext_twox_128]", "error", err)
 	}
 	res1 := h1.Sum64()
-	log.Debug("[ext_twox_128]", "xxH64(1) of value", res1)
+	//log.Debug("[ext_twox_128]", "xxH64(1) of value", res1)
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
-	//concatenaded result
+	//concatenated result
 	both := append(hash0, hash1...)
 
 	copy(memory[out:out+16], both)
@@ -474,6 +482,11 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 	return 0
 }
 
+//export ext_local_storage_set
+func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
+	log.Debug("[ext_local_storage_set] executing...")
+}
+
 //export ext_local_storage_get
 func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
 	log.Debug("[ext_local_storage_get] executing...")
@@ -496,11 +509,6 @@ func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
 func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 	log.Debug("[ext_submit_transaction] executing...")
 	return 0
-}
-
-//export ext_local_storage_set
-func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
-	log.Debug("[ext_local_storage_set] executing...")
 }
 
 type RuntimeCtx struct {

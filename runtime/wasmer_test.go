@@ -458,6 +458,39 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 }
 
+// test that ext_blake2_128 performs a blake2b hash of the data
+func TestExt_blake2_128(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	// save data in memory
+	data := []byte("helloworld")
+	pos := 170
+	out := 180
+	copy(mem[pos:pos+len(data)], data)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_blake2_128"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// make sure hashes match
+	hash, err := common.Blake2b128(data)
+	if err != nil {
+		t.Fatal(err)
+	} else if !bytes.Equal(hash, mem[out:out+16]) {
+		t.Errorf("hash saved in memory does not equal calculated hash, got %x expected %x", mem[out:out+16], hash)
+	}
+}
+
 // test that ext_blake2_256 performs a blake2b hash of the data
 func TestExt_blake2_256(t *testing.T) {
 	runtime, err := newTestRuntime()
@@ -610,6 +643,61 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	// confirm that returned hash matches expected hash
 	if !bytes.Equal(mem[result:result+32], expectedHash[:]) {
 		t.Error("did not get expected trie")
+	}
+}
+
+// test that ext_twox_64 performs a xxHash64
+func TestExt_twox_64(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+	// save data in memory
+	// test for empty []byte
+	data := []byte(nil)
+	pos := 170
+	out := pos + len(data)
+	copy(mem[pos:pos+len(data)], data)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_twox_64"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//check result against expected value
+	t.Logf("Ext_twox_64 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+8]))
+	if "99e9d85137db46ef4bbea33613baafd5" != hex.EncodeToString(mem[out:out+8]) {
+		t.Error("hash saved in memory does not equal calculated hash")
+	}
+
+	// test for data value "Hello world!"
+	data = []byte("Hello world!")
+	out = pos + len(data)
+	copy(mem[pos:pos+len(data)], data)
+
+	// call wasm function
+	testFunc, ok = runtime.vm.Exports["test_ext_twox_128"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//check result against expected value
+	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
+	if "b27dfd7f223f177f2a13647b533599af" != hex.EncodeToString(mem[out:out+16]) {
+		t.Error("hash saved in memory does not equal calculated hash")
 	}
 }
 
