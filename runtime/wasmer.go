@@ -280,27 +280,11 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 //export ext_blake2_128
 func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_blake2_128] executing...")
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// memory := instanceContext.Memory().Data()
-	// hash, err := common.Blake2bHash(memory[data : data+length])
-	// if err != nil {
-	// 	log.Error("[ext_blake2_256]", "error", err)
-	// }
-
-	// copy(memory[out:out+32], hash[:])
 }
 
 //export ext_keccak_256
 func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_keccak_256] executing...")
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// memory := instanceContext.Memory().Data()
-	// hash, err := common.Blake2bHash(memory[data : data+length])
-	// if err != nil {
-	// 	log.Error("[ext_blake2_256]", "error", err)
-	// }
-
-	// copy(memory[out:out+32], hash[:])
 }
 
 //export ext_twox_64
