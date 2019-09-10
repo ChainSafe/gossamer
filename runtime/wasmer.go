@@ -26,6 +26,7 @@ package runtime
 // extern void ext_set_storage(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
 // extern void ext_blake2_256(void *context, int32_t data, int32_t len, int32_t out);
 // extern void ext_clear_storage(void *context, int32_t keyData, int32_t keyLen);
+// extern void ext_twox_64(void *context, int32_t data, int32_t len, int32_t out);
 // extern void ext_twox_128(void *context, int32_t data, int32_t len, int32_t out);
 // extern int32_t ext_get_allocated_storage(void *context, int32_t keyData, int32_t keyLen, int32_t writtenOut);
 // extern void ext_storage_root(void *context, int32_t resultPtr);
@@ -35,6 +36,19 @@ package runtime
 // extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
 // extern void ext_print_num(void *context, int64_t data);
+// extern void ext_keccak_256(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_secp256k1_ecdsa_recover(void *context, int32_t msgData, int32_t sigData, int32_t pubkeyData);
+// extern void ext_blake2_128(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_is_validator(void *context);
+// extern int32_t ext_local_storage_get(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t valueLen);
+// extern int32_t ext_local_storage_compare_and_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t oldValue, int32_t oldValueLen, int32_t newValue, int32_t newValueLen);
+// extern int32_t ext_sr25519_public_keys(void *context, int32_t idData, int32_t resultLen);
+// extern int32_t ext_network_state(void *context, int32_t writtenOut);
+// extern int32_t ext_sr25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
+// extern int32_t ext_submit_transaction(void *context, int32_t data, int32_t len);
+// extern void ext_local_storage_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t value, int32_t valueLen);
+// extern void ext_ed25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
+// extern void ext_sr25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
 import "C"
 
 import (
@@ -53,6 +67,7 @@ import (
 	xxhash "github.com/OneOfOne/xxhash"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/blake2b"
 )
 
 var registry map[int]RuntimeCtx
@@ -103,7 +118,6 @@ func ext_free(context unsafe.Pointer, addr int32) {
 		log.Error("[ext_free] Error:", "Error", err)
 		panic(err)
 	}
-
 }
 
 // prints string located in memory at location `offset` with length `size`
@@ -342,6 +356,33 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	copy(memory[out:out+32], hash[:])
 }
 
+//export ext_blake2_128
+func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
+	log.Debug("[ext_blake2_128] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// new 16 byte / 128 bit blake2b hasher
+	hasher, err := blake2b.New(16, nil) 
+	if err != nil {
+		log.Error("[ext_blake2_128]", "error", err)
+		return
+	}
+
+	hash := hasher.Sum(memory[data:data+length])
+	copy(memory[out:out+16], hash[:])
+}
+
+//export ext_keccak_256
+func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
+	log.Debug("[ext_keccak_256] executing...")
+}
+
+//export ext_twox_64
+func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
+	log.Debug("[ext_twox_64] executing...")
+}
+
 //export ext_twox_128
 func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_128] executing...")
@@ -376,10 +417,32 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	copy(memory[out:out+16], both)
 }
 
+//export ext_sr25519_generate
+func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
+	log.Debug("[ext_sr25519_generate] executing...")
+}
+
+//export ext_sr25519_public_keys
+func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
+	log.Debug("[ext_sr25519_public_keys] executing...")
+	return 0
+}
+
+//export ext_sr25519_sign
+func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
+	log.Debug("[ext_sr25519_sign] executing...")
+	return 0
+}
+
 //export ext_sr25519_verify
 func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_sr25519_verify] executing...")
 	return 0
+}
+
+//export ext_ed25519_generate
+func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
+	log.Debug("[ext_ed25519_generate] executing...")
 }
 
 //export ext_ed25519_verify
@@ -397,6 +460,47 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 	}
 
 	return 1
+}
+
+//export ext_secp256k1_ecdsa_recover
+func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubkeyData int32) int32 {
+	log.Debug("[ext_secp256k1_ecdsa_recover] executing...")
+	return 0
+}
+
+//export ext_is_validator
+func ext_is_validator(context unsafe.Pointer) int32 {
+	log.Debug("[ext_is_validator] executing...")
+	return 0
+}
+
+//export ext_local_storage_get
+func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
+	log.Debug("[ext_local_storage_get] executing...")
+	return 0
+}
+
+//export ext_local_storage_compare_and_set
+func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, key, keyLen, oldValue, oldValueLen, newValue, newValueLen int32) int32 {
+	log.Debug("[ext_local_storage_compare_and_set] executing...")
+	return 0
+}
+
+//export ext_network_state
+func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
+	log.Debug("[ext_network_state] executing...")
+	return 0
+}
+
+//export ext_submit_transaction
+func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
+	log.Debug("[ext_submit_transaction] executing...")
+	return 0
+}
+
+//export ext_local_storage_set
+func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
+	log.Debug("[ext_local_storage_set] executing...")
 }
 
 type RuntimeCtx struct {
@@ -484,7 +588,62 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	_, err = imports.Append("ext_keccak_256", ext_keccak_256, C.ext_keccak_256)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_secp256k1_ecdsa_recover", ext_secp256k1_ecdsa_recover, C.ext_secp256k1_ecdsa_recover)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_128", ext_blake2_128, C.ext_blake2_128)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_is_validator", ext_is_validator, C.ext_is_validator)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_get", ext_local_storage_get, C.ext_local_storage_get)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_compare_and_set", ext_local_storage_compare_and_set, C.ext_local_storage_compare_and_set)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_public_keys", ext_sr25519_public_keys, C.ext_sr25519_public_keys)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_network_state", ext_network_state, C.ext_network_state)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_sign", ext_sr25519_sign, C.ext_sr25519_sign)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_submit_transaction", ext_submit_transaction, C.ext_submit_transaction)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_set", ext_local_storage_set, C.ext_local_storage_set)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_generate", ext_ed25519_generate, C.ext_ed25519_generate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_generate", ext_sr25519_generate, C.ext_sr25519_generate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_twox_64", ext_twox_64, C.ext_twox_64)
+	if err != nil {
+		return nil, err
+	}
 	// Instantiates the WebAssembly module.
 	instance, err := wasm.NewInstanceWithImports(bytes, imports)
 	if err != nil {
@@ -521,6 +680,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 func (r *Runtime) Stop() {
 	r.vm.Close()
+}
+
+func (r *Runtime) Mem() []byte {
+	return r.vm.Memory.Data()
 }
 
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
