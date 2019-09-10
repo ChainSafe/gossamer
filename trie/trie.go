@@ -19,6 +19,7 @@ package trie
 import (
 	"bytes"
 	"errors"
+
 	"github.com/ChainSafe/gossamer/common"
 )
 

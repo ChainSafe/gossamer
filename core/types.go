@@ -28,9 +28,9 @@ type BlockBody []byte
 
 /// Blockdata is stored within the BlockDB
 type Blockdata struct {
-	Hash common.Hash
+	Hash   common.Hash
 	Header BlockHeader
-	Body BlockBody
+	Body   BlockBody
 	// Receipt
 	// MessageQueue
 	// Justification

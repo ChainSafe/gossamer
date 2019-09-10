@@ -17,8 +17,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/core/blocktree"
-	"github.com/ChainSafe/gossamer/trie"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -72,29 +70,33 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, p2pSrvc)
 
 	// DB
+	// Create database dir and initialize stateDB and blockDB
 	dataDir := getDatabaseDir(ctx, fig)
+
 	stateDataDir := filepath.Join(dataDir, "state")
 	stateDB, err := polkadb.NewBadgerService(stateDataDir)
 	if err != nil {
 		return nil, nil, err
 	}
-	state := &trie.Database{
-		StateDB : stateDB,
-	}
-	srvcs = append(srvcs, stateDB)
-
-	_ = trie.NewEmptyTrie(state)
-
 	blockDataDir := filepath.Join(dataDir, "block")
 	blockDB, err := polkadb.NewBadgerService(blockDataDir)
 	if err != nil {
 		return nil, nil, err
 	}
-	b := & blocktree.BlockTree{
-		BlockDB: blockDB,
-	}
-
+	// append DBs to services registrar
+	srvcs = append(srvcs, stateDB)
 	srvcs = append(srvcs, blockDB)
+
+	// pass DBs to their respected components
+	//state := &trie.Database{
+	//	StateDB : stateDB,
+	//}
+	//_ = trie.NewEmptyTrie(state)
+	//
+	//b := & blocktree.BlockTree{
+	//	BlockDB: blockDB,
+	//}
+	//bt := blocktree.NewBlockTreeFromGenesis(gen, blockDB)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)

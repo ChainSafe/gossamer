@@ -15,15 +15,15 @@ func newTrie() (*Trie, error) {
 		return nil, err
 	}
 
-	db, err := db.NewBadgerService("./gossamer_data")
+	stateDB, err := db.NewBadgerService("./gossamer_data/state")
 	if err != nil {
 		return nil, err
 	}
 
 	trie := &Trie{
 		db: &Database{
-			StateDB:     db,
-			Hasher: hasher,
+			StateDB: stateDB,
+			Hasher:  hasher,
 		},
 		root: nil,
 	}

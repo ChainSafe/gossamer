@@ -24,10 +24,10 @@ import (
 
 // Database is a wrapper around a polkadb
 type Database struct {
-	StateDB     polkadb.Database
-	Batch  polkadb.Batch
-	Lock   sync.RWMutex
-	Hasher *Hasher
+	StateDB polkadb.Database
+	Batch   polkadb.Batch
+	Lock    sync.RWMutex
+	Hasher  *Hasher
 }
 
 // WriteToDB writes the trie to the underlying database batch writer
