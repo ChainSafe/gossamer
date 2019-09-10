@@ -83,20 +83,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	dbSrv := &polkadb.ChainDB{
+		StateDB: stateDB,
+		BlockDB: blockDB,
+	}
 	// append DBs to services registrar
-	srvcs = append(srvcs, stateDB)
-	srvcs = append(srvcs, blockDB)
-
-	// pass DBs to their respected components
-	//state := &trie.Database{
-	//	StateDB : stateDB,
-	//}
-	//_ = trie.NewEmptyTrie(state)
-	//
-	//b := & blocktree.BlockTree{
-	//	BlockDB: blockDB,
-	//}
-	//bt := blocktree.NewBlockTreeFromGenesis(gen, blockDB)
+	srvcs = append(srvcs, dbSrv)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)

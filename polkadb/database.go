@@ -28,7 +28,13 @@ import (
 type BadgerService struct {
 	config Config
 	db     *badger.DB
-	err    <-chan error
+}
+
+// ChainDB contains both databases for service registry
+type ChainDB struct {
+	StateDB *BadgerService
+	BlockDB *BadgerService
+	err     <-chan error
 }
 
 //Config defines configurations for BadgerService instance
@@ -61,15 +67,19 @@ type tableBatch struct {
 	prefix string
 }
 
-func (b *BadgerService) Start() <-chan error {
-	b.err = make(<-chan error)
-	return b.err
+func (chainDB *ChainDB) Start() <-chan error {
+	chainDB.err = make(<-chan error)
+	return chainDB.err
 }
 
-func (db *BadgerService) Stop() <-chan error {
+func (chainDB *ChainDB) Stop() <-chan error {
 	e := make(chan error)
 	// Closing Badger Database
-	err := db.db.Close()
+	err := chainDB.StateDB.db.Close()
+	if err != nil {
+		e <- err
+	}
+	err = chainDB.BlockDB.db.Close()
 	if err != nil {
 		e <- err
 	}

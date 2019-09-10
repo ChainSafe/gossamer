@@ -61,7 +61,14 @@ func (bt *BlockTree) AddBlock(block core.Block) {
 	parent := bt.GetNode(block.Header.ParentHash)
 	// Check if it already exists
 	// TODO: Can shortcut this by checking DB
-	// bt.BlockDB
+	// TODO: Write blockData to db and getter functions
+
+	//blockNum := block.Header.Number
+	//bestNum  := bt.BlockDB.Get()
+	//if (bestNum < blockNum) {
+	//	store block
+	//  bt.BlockDB.Put()
+	//}
 
 	n := bt.GetNode(block.Header.Hash)
 	if n != nil {
