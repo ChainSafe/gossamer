@@ -27,46 +27,44 @@ import (
 )
 
 const (
-	StatusMsg = iota
-	BlockRequestMsg
-	BlockResponseMsg
-	BlockAnnounceMsg
-	TransactionMsg
-	ConsensusMsg
-	RemoteCallRequest
-	RemoteCallResponse
-	RemoteReadRequest
-	RemoteReadResponse
-	RemoteHeaderRequest
-	RemoteHeaderResponse
-	RemoteChangesRequest
-	RemoteChangesResponse
-	ChainSpecificMsg = 255
+	StatusMsgType = iota
+	BlockRequestMsgType
+	BlockResponseMsgType
+	BlockAnnounceMsgType
+	TransactionMsgType
+	ConsensusMsgType
+	RemoteCallRequestType
+	RemoteCallResponseType
+	RemoteReadRequestType
+	RemoteReadResponseType
+	RemoteHeaderRequestType
+	RemoteHeaderResponseType
+	RemoteChangesRequestType
+	RemoteChangesResponseType
+	ChainSpecificMsgType = 255
 )
 
 type Message interface {
 	Encode() ([]byte, error)
-	Decode([]byte) error
+	Decode(io.Reader) error
 	String() string
 }
 
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
 func DecodeMessage(r io.Reader) (m Message, err error) {
 	msgType := make([]byte, 1)
-	_, err = r.Read(msgType)
-	if err != nil {
-		return nil, err
-	}
-
-	sd := scale.Decoder{Reader: r}
+	r.Read(msgType)
 
 	switch msgType[0] {
-	case StatusMsg:
+	case StatusMsgType:
 		m = new(StatusMessage)
-		_, err = sd.Decode(m)
-	case BlockRequestMsg:
+		err = m.Decode(r)
+	case BlockRequestMsgType:
 		m = new(BlockRequestMessage)
-		_, err = sd.Decode(m)
+		err = m.Decode(r)
+	case BlockResponseMsgType:
+		m = new(BlockResponseMessage)
+		err = m.Decode(r)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
@@ -102,17 +100,18 @@ func (sm *StatusMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return append([]byte{StatusMsg}, enc...), nil
+	return append([]byte{StatusMsgType}, enc...), nil
 }
 
 // Decodes the message into a StatusMessage, it assumes the type byte has been removed
-func (sm *StatusMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, sm)
+func (sm *StatusMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(sm)
 	return err
 }
 
 type BlockRequestMessage struct {
-	Id            uint32
+	Id            uint64
 	RequestedData byte
 	StartingBlock []byte      // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  common.Hash // optional
@@ -131,22 +130,25 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max)
 }
 
-// Encode encodes a block request message and appends the type byte to the start
+// Encode encodes a block request message using SCALE and appends the type byte to the start
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	encMsg := []byte{1}
+	encMsg := []byte{BlockRequestMsgType}
 
-	encId := make([]byte, 4)
-	binary.LittleEndian.PutUint32(encId, bm.Id)
+	encId := make([]byte, 8)
+	binary.LittleEndian.PutUint64(encId, bm.Id)
 	encMsg = append(encMsg, encId...)
 
 	encMsg = append(encMsg, bm.RequestedData)
-	if bm.StartingBlock[0] == byte(0) {
-		encMsg = append(encMsg, bm.StartingBlock...)
-	} else {
+
+	if bm.StartingBlock[0] == 1 {
 		encMsg = append(encMsg, bm.StartingBlock[0])
-		blocknum := make([]byte, 8)
-		copy(blocknum, bm.StartingBlock[1:])
-		encMsg = append(encMsg, blocknum...)
+		num := bm.StartingBlock[1:]
+		if len(num) < 8 {
+			num = common.AppendZeroes(num, 8)
+		}
+		encMsg = append(encMsg, num...)
+	} else {
+		encMsg = append(encMsg, bm.StartingBlock...)
 	}
 
 	if bm.EndBlockHash != [32]byte{} {
@@ -169,6 +171,110 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 }
 
 // Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
-func (bm *BlockRequestMessage) Decode(msg []byte) error {
+func (bm *BlockRequestMessage) Decode(r io.Reader) error {
+	var err error
+	bm.Id, err = readUint64(r)
+	if err != nil {
+		return err
+	}
+
+	bm.RequestedData, err = readByte(r)
+	if err != nil {
+		return err
+	}
+
+	startingBlockType, err := readByte(r)
+	if err != nil {
+		return err
+	}
+
+	if startingBlockType == 0 {
+		hash := make([]byte, 32)
+		_, err = r.Read(hash)
+		bm.StartingBlock = append([]byte{startingBlockType}, hash...)
+	} else {
+		num := make([]byte, 8)
+		_, err = r.Read(num)
+		bm.StartingBlock = append([]byte{startingBlockType}, num...)
+	}
+
+	endBlockHash := make([]byte, 32)
+	bytesread, err := r.Read(endBlockHash)
+	if err != nil {
+		return err
+	}
+
+	// if endBlockHash was None, then just set Direction and Max
+	if bytesread < 32 {
+		bm.Direction = endBlockHash[1]
+		max := binary.LittleEndian.Uint32(endBlockHash[2:6])
+		bm.Max = max
+	} else {
+		bm.EndBlockHash = common.NewHash(endBlockHash)
+
+		bm.Direction, err = readByte(r)
+		if err != nil {
+			return err
+		}
+
+		bm.Max, err = readUint32(r)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+type BlockResponseMessage struct {
+	Id   uint64
+	Data []byte // TODO: change this to BlockData type
+}
+
+func (bm *BlockResponseMessage) String() string {
+	return ""
+}
+
+func (bm *BlockResponseMessage) Encode() ([]byte, error) {
+	return nil, nil
+}
+
+func (bm *BlockResponseMessage) Decode(r io.Reader) error {
+	return nil
+}
+
+func readByte(r io.Reader) (byte, error) {
+	buf := make([]byte, 1)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
+
+func readUint32(r io.Reader) (uint32, error) {
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint32(buf), nil
+}
+
+func readUint64(r io.Reader) (uint64, error) {
+	buf := make([]byte, 8)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(buf), nil
+}
+
+func readHash(r io.Reader) (common.Hash, error) {
+	buf := make([]byte, 32)
+	_, err := r.Read(buf)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.NewHash(buf), nil
 }

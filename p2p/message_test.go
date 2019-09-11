@@ -2,14 +2,14 @@ package p2p
 
 import (
 	"bytes"
+	//"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
 )
 
-func TestDecodeMessage_Status(t *testing.T) {
-	// from Alexander testnet
+func TestDecodeMessageStatus(t *testing.T) {
 	encMsg, err := common.HexToBytes("0x00020000000200000004c1e72400000000008dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4dadcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0400")
 	if err != nil {
 		t.Fatal(err)
@@ -34,57 +34,59 @@ func TestDecodeMessage_Status(t *testing.T) {
 	}
 
 	sm := m.(*StatusMessage)
-
-	expected := &StatusMessage{
-		ProtocolVersion:     uint32(2),
-		MinSupportedVersion: uint32(2),
-		Roles:               byte(4),
-		BestBlockNumber:     uint64(2418625),
-		BestBlockHash:       bestBlockHash,
-		GenesisHash:         genesisHash,
-		ChainStatus:         []byte{0},
-	}
-
-	if !reflect.DeepEqual(sm, expected) {
-		t.Fatalf("Fail: got %v expected %v", sm, expected)
+	if sm.ProtocolVersion != 2 {
+		t.Error("did not get correct ProtocolVersion")
+	} else if sm.MinSupportedVersion != 2 {
+		t.Error("did not get correct MinSupportedVersion")
+	} else if sm.Roles != byte(4) {
+		t.Error("did not get correct Roles")
+	} else if sm.BestBlockNumber != 2418625 {
+		t.Error("did not get correct BestBlockNumber")
+	} else if !bytes.Equal(sm.BestBlockHash.ToBytes(), bestBlockHash.ToBytes()) {
+		t.Error("did not get correct BestBlockHash")
+	} else if !bytes.Equal(sm.GenesisHash.ToBytes(), genesisHash.ToBytes()) {
+		t.Error("did not get correct BestBlockHash")
+	} else if !bytes.Equal(sm.ChainStatus, []byte{0}) {
+		t.Error("did not get correct ChainStatus")
 	}
 }
 
-func TestDecodeStatusMessage(t *testing.T) {
-	// from Alexander testnet
-	encStatus, err := common.HexToBytes("0x020000000200000004c1e72400000000008dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4dadcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0400")
+func TestDecodeMessageBlockRequest(t *testing.T) {
+	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	genesisHash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	buf := &bytes.Buffer{}
+	buf.Write(encMsg)
+
+	m, err := DecodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	bestBlockHash, err := common.HexToHash("0x8dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4da")
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	sm := new(StatusMessage)
-	err = sm.Decode(encStatus)
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &StatusMessage{
-		ProtocolVersion:     uint32(2),
-		MinSupportedVersion: uint32(2),
-		Roles:               byte(4),
-		BestBlockNumber:     uint64(2418625),
-		BestBlockHash:       bestBlockHash,
-		GenesisHash:         genesisHash,
-		ChainStatus:         []byte{0},
+	expected := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: append([]byte{0}, genesisHash...),
+		EndBlockHash:  endBlock,
+		Direction:     1,
+		Max:           1,
 	}
 
-	if !reflect.DeepEqual(sm, expected) {
-		t.Fatalf("Fail: got %v expected %v", sm, expected)
+	bm := m.(*BlockRequestMessage)
+	if !reflect.DeepEqual(bm, expected) {
+		t.Fatalf("Fail: got %v expected %v", bm, expected)
 	}
 }
 
@@ -125,7 +127,7 @@ func TestEncodeStatusMessage(t *testing.T) {
 	}
 }
 
-func TestEncodeBlockRequestMessage(t *testing.T) {
+func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	// this value is a concatenation of:
 	// message type: byte(1)
 	// message ID: uint32(7)
@@ -134,7 +136,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
 	// direction: byte(1)
 	// max: uint32(1)
-	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +179,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
 	// direction: byte(1)
 	// max: uint32(1)
-	expected, err := common.HexToBytes("0x010700000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	expected, err := common.HexToBytes("0x01070000000000000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +217,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	// end block hash: byte(0)
 	// direction: byte(1)
 	// max: byte(0)
-	expected, err := common.HexToBytes("0x01070000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
+	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
 	if err != nil {
 		t.Fatal(err)
 	}
