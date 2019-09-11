@@ -10,9 +10,7 @@ var (
 	TestVersion     = "0.0.1"
 	Name            = "Gossamer"
 	peerID          = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
-	isSyncing       = false
 	ShouldHavePeers = false
-	Peers           = int(len(peers))
 	peers           = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 )
 

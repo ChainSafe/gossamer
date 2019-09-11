@@ -28,13 +28,6 @@ type Api struct {
 	RtSystem  *rtModule
 }
 
-type p2p struct {
-	p2p P2pApi
-}
-
-type runtime struct {
-	runtime RuntimeApi
-}
 
 // P2pApi is the interface expected to implemented by `p2p` package
 type P2pApi interface {

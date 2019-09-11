@@ -93,10 +93,8 @@ func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPee
 }
 
 func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
-	return
 }
 
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) {
 	*res = "not yet implemented"
-	return
 }
