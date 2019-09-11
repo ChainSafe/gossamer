@@ -207,6 +207,40 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
 }
+ 
+func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
+	encMsg, err := common.HexToBytes("0x01070000000000000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Write(encMsg)
+
+	m, err := DecodeMessage(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: []byte{1, 1, 0, 0, 0, 0, 0, 0, 0},
+		EndBlockHash:  endBlock,
+		Direction:     1,
+		Max:           1,
+	}
+
+	bm := m.(*BlockRequestMessage)
+	if !reflect.DeepEqual(bm, expected) {
+		t.Fatalf("Fail: got %v expected %v", bm, expected)
+	}
+}
 
 func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	// this value is a concatenation of:
@@ -241,5 +275,37 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	if !bytes.Equal(encMsg, expected) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
+	}
+}
+ 
+func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
+	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Write(encMsg)
+
+	m, err := DecodeMessage(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: append([]byte{0}, genesisHash...),
+		Direction:     1,
+	}
+
+	bm := m.(*BlockRequestMessage)
+	if !reflect.DeepEqual(bm, expected) {
+		t.Fatalf("Fail: got %v expected %v", bm, expected)
 	}
 }
