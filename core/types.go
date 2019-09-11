@@ -26,8 +26,8 @@ type BlockHeader struct {
 // BlockBody is the extrinsics inside a state block
 type BlockBody []byte
 
-/// Blockdata is stored within the BlockDB
-type Blockdata struct {
+/// BlockData is stored within the BlockDB
+type BlockData struct {
 	Hash   common.Hash
 	Header BlockHeader
 	Body   BlockBody
