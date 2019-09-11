@@ -10,59 +10,54 @@ type systemModule struct {
 	runtime RuntimeApi
 }
 
-func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
-	return &systemModule{
-		p2p,
-		rt,
-	}
+type p2pModule struct {
+	p2p P2pApi
+}
+type rtModule struct {
+	rt RuntimeApi
+}
+
+func NewP2PModule(p2papi P2pApi) *p2pModule {
+	return &p2pModule{p2papi}
+}
+
+func NewRTModule(RTapi RuntimeApi) *rtModule {
+	return &rtModule{RTapi}
 }
 
 // Release version
-func (m *systemModule) Version() string {
+func (r *rtModule) Version() string {
 	log.Debug("[rpc] Executing System.Version", "params", nil)
 	//TODO: Replace with dynamic version
 	return "0.0.1"
 }
 
-// System Chain not implemented yet
-// func (m *systemModule) chain() string {
-// 	log.Debug("[rpc] Executing System.Chain", "params", nil)
-// 	return m.runtime.Chain()
-// }
-
-func (m *systemModule) IsSyncing() bool {
-	return false
-}
-
-func (m *systemModule) ShouldHavePeers() bool {
-	return m.p2p.ShouldHavePeers()
-}
-
-func (m *systemModule) Name() string {
+func (r *rtModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
 	//TODO: Replace with dynamic name
 	return "Gossamer"
 }
 
-func (m *systemModule) NetworkState() string {
-	log.Debug("[rpc] Executing System.networkState", "params", nil)
-	return m.p2p.NetworkState()
+func (p *p2pModule) PeerCount() int {
+	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
+	return len(p.Peers())
 }
 
 // Peers of the node
-func (m *systemModule) Peers() []peer.ID {
+func (p *p2pModule) Peers() []peer.ID {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
-	return m.p2p.Peers()
+	return p.p2p.Peers()
 }
 
-// System Properties not implemented yet
-// func (m *systemModule) properties() string {
-// 	log.Debug("[rpc] Executing System.Properties", "params", nil)
-// 	return m.runtime.properties()
-// }
+func (p *p2pModule) ShouldHavePeers() bool {
+	return p.p2p.ShouldHavePeers()
+}
 
-// TODO: Move to 'p2p' module
-func (m *systemModule) PeerCount() int {
-	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
-	return m.p2p.PeerCount()
+func (p *p2pModule) NetworkState() string {
+	log.Debug("[rpc] Executing System.networkState", "params", nil)
+	return p.p2p.NetworkState()
+}
+
+func (p *p2pModule) IsSyncing() bool {
+	return false
 }

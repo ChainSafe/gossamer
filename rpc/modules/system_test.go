@@ -49,7 +49,8 @@ func newMockApi() *api.Api {
 	p2pApi := &mockP2PApi{}
 
 	return &api.Api{
-		System: api.NewSystemModule(p2pApi, runtimeApi),
+		P2pSystem: api.NewP2PModule(p2pApi),
+		RtSystem:  api.NewRTModule(runtimeApi),
 	}
 }
 
@@ -88,8 +89,8 @@ func TestSystemModule(t *testing.T) {
 	netState := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, netState)
 
-	if (*netState).PeerId != testNetworkState {
-		t.Fatalf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, (*netState).PeerId)
+	if netState.PeerId != testNetworkState {
+		t.Fatalf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, netState.PeerId)
 	}
 
 	//Test RPC's System.Health() response

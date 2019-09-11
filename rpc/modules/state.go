@@ -70,7 +70,7 @@ type StateModule struct {
 	api *api.Api
 }
 
-// NewSystemModule creates a new State module.
+// NewStateModule creates a new State module.
 func NewStateModule(api *api.Api) *SystemModule {
 	return &SystemModule{
 		api: api,
