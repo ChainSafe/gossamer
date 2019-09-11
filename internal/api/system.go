@@ -2,13 +2,7 @@ package api
 
 import (
 	log "github.com/ChainSafe/log15"
-	peer "github.com/libp2p/go-libp2p-peer"
 )
-
-type systemModule struct {
-	p2p     P2pApi
-	runtime RuntimeApi
-}
 
 type p2pModule struct {
 	p2p P2pApi
@@ -44,7 +38,7 @@ func (p *p2pModule) PeerCount() int {
 }
 
 // Peers of the node
-func (p *p2pModule) Peers() []peer.ID {
+func (p *p2pModule) Peers() []string {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return p.p2p.Peers()
 }
@@ -53,9 +47,9 @@ func (p *p2pModule) ShouldHavePeers() bool {
 	return p.p2p.ShouldHavePeers()
 }
 
-func (p *p2pModule) NetworkState() string {
+func (p *p2pModule) ID() string {
 	log.Debug("[rpc] Executing System.networkState", "params", nil)
-	return p.p2p.NetworkState()
+	return p.p2p.ID()
 }
 
 func (p *p2pModule) IsSyncing() bool {

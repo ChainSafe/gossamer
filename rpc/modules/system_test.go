@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/api"
-	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 var (
 	testRuntimeVersion = "1.2.3"
 	testRuntimeName    = "Gossamer"
-	testNetworkState   = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
-	peers              = []peer.ID{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX", "AbCDeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
+	testPeerId         = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
+	peers              = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX", "AbCDeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 	isSyncing          = false
 )
 
@@ -32,16 +31,16 @@ func (a *mockP2PApi) PeerCount() int {
 	return len(peers)
 }
 
-func (a *mockP2PApi) Peers() []peer.ID {
+func (a *mockP2PApi) Peers() []string {
 	return peers
 }
 
 func (a *mockP2PApi) ShouldHavePeers() bool {
-	return (peers != nil)
+	return (len(peers) != 0)
 }
 
-func (a *mockP2PApi) NetworkState() string {
-	return testNetworkState
+func (a *mockP2PApi) ID() string {
+	return testPeerId
 }
 
 func newMockApi() *api.Api {
@@ -62,35 +61,28 @@ func TestSystemModule(t *testing.T) {
 	sys.Peers(nil, nil, peersRes)
 
 	//Loop through each peer in input & RPC response
+	//Check if arrays are equal
 	equalPeers := true
-	for _, peerOriginal := range peers {
-		found := false
-		for _, peerResponse := range *peersRes {
-			//If we found matching peers in both arrays
-			if peerOriginal == peerResponse {
-				found = true
-			}
-		}
-		//If we dont find matching
-		if found == false {
+	for i, originalPeer := range peers {
+		if originalPeer != peersRes.Peers[i] {
 			equalPeers = false
 		}
 	}
 
-	if len(peers) != len(*peersRes) {
+	if len(peers) != len(peersRes.Peers) {
 		equalPeers = false
 	}
 
 	if equalPeers == false {
-		t.Fatalf("System.Peers: expected: %+v got: %+v\n", peers, *peersRes)
+		t.Errorf("System.Peers: expected: %+v got: %+v\n", peers, *peersRes)
 	}
 
 	//Test RPC's System.NetworkState() response
 	netState := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, netState)
 
-	if netState.PeerId != testNetworkState {
-		t.Fatalf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, netState.PeerId)
+	if netState.Id != testPeerId {
+		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testPeerId, netState.Id)
 	}
 
 	//Test RPC's System.Health() response
@@ -98,9 +90,16 @@ func TestSystemModule(t *testing.T) {
 	sys.Health(nil, nil, netHealth)
 	expectedHealth := &SystemHealthResponse{Peers: len(peers), IsSyncing: isSyncing, ShouldHavePeers: (peers != nil)}
 
-	if (*netHealth).Peers != expectedHealth.Peers || (*netHealth).IsSyncing != expectedHealth.IsSyncing || (*netHealth).ShouldHavePeers != expectedHealth.ShouldHavePeers {
+	if netHealth.Peers != expectedHealth.Peers {
+		t.Errorf("System.Health.Peers: expected: %+v got: %+v\n", netHealth.Peers, expectedHealth.Peers)
+	}
 
-		t.Fatalf("System.Health: expected: %+v got: %+v\n", (*netHealth), expectedHealth)
+	if netHealth.IsSyncing != expectedHealth.IsSyncing {
+		t.Errorf("System.Health.IsSyncing: expected: %+v got: %+v\n", netHealth.IsSyncing, expectedHealth.IsSyncing)
+	}
+
+	if netHealth.ShouldHavePeers != expectedHealth.ShouldHavePeers {
+		t.Errorf("System.Health.ShouldHavePeers: expected: %+v got: %+v\n", netHealth.ShouldHavePeers, expectedHealth.ShouldHavePeers)
 	}
 
 }

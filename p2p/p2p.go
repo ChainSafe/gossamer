@@ -356,15 +356,13 @@ func handleStream(stream net.Stream) {
 }
 
 // Peers returns connected peers
-func (s *Service) Peers() []peer.ID {
-	peers := s.host.Network().Peers()
-	return peers
+func (s *Service) Peers() []string {
+	return convIdToStringArray(s.host.Network().Peers())
 }
 
 // Network state
-func (s *Service) NetworkState() string {
-	peerID := s.host.ID().String()
-	return peerID
+func (s *Service) ID() string {
+	return s.host.ID().String()
 }
 
 // Should have peers

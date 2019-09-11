@@ -2,8 +2,6 @@ package api
 
 import (
 	"testing"
-
-	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // -------------- Mock Apis ------------------
@@ -15,10 +13,8 @@ var (
 	isSyncing       = false
 	ShouldHavePeers = false
 	Peers           = int(len(peers))
-	peers           = []peer.ID{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
+	peers           = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 )
-
-// var
 
 // Creating a mock peer
 type MockP2pApi struct{}
@@ -27,11 +23,11 @@ func (a *MockP2pApi) PeerCount() int {
 	return TestPeerCount
 }
 
-func (a *MockP2pApi) Peers() []peer.ID {
+func (a *MockP2pApi) Peers() []string {
 	return peers
 }
 
-func (b *MockP2pApi) NetworkState() string {
+func (b *MockP2pApi) ID() string {
 	return peerID
 }
 
@@ -65,38 +61,32 @@ func (a *MockRuntimeApi) Version() string {
 func TestSystemModule(t *testing.T) {
 	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
-	// // System.Health
-	// h := srvc.Api.System.Health()
-	// if h != health {
-	// 	t.Fatalf("System.Health - expected %+v got: %+v\n", health, h)
-	// }
-
 	// System.Name
-	n := srvc.Api.System.Name()
+	n := srvc.Api.RtSystem.Name()
 	if n != Name {
 		t.Fatalf("System.Name - expected %+v got: %+v\n", Name, n)
 	}
 
 	// System.networkState
-	s := srvc.Api.System.NetworkState()
+	s := srvc.Api.P2pSystem.ID()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peerID, s)
 	}
 
 	// System.peers
-	p := srvc.Api.System.Peers()
+	p := srvc.Api.P2pSystem.Peers()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peers, p)
 	}
 
 	// System.PeerCount
-	c := srvc.Api.System.PeerCount()
+	c := srvc.Api.P2pSystem.PeerCount()
 	if c != TestPeerCount {
 		t.Fatalf("System.PeerCount - expected: %d got: %d\n", TestPeerCount, c)
 	}
 
 	// System.Version
-	v := srvc.Api.System.Version()
+	v := srvc.Api.RtSystem.Version()
 	if v != TestVersion {
 		t.Fatalf("System.Version - expected: %s got: %s\n", TestVersion, v)
 	}

@@ -16,8 +16,6 @@
 
 package api
 
-import peer "github.com/libp2p/go-libp2p-peer"
-
 // Service couples all components required for the API.
 type Service struct {
 	Api *Api
@@ -41,9 +39,9 @@ type runtime struct {
 // P2pApi is the interface expected to implemented by `p2p` package
 type P2pApi interface {
 	PeerCount() int
-	Peers() []peer.ID
+	Peers() []string
 	ShouldHavePeers() bool
-	NetworkState() string
+	ID() string
 }
 
 // RuntimeApi is the interface expected to implemented by `runtime` package
