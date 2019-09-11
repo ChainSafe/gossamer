@@ -21,3 +21,9 @@ func TestBlake2bHash(t *testing.T) {
 	}
 	t.Log(h)
 }
+
+func TestSha3(t *testing.T) {
+	in := []byte{}
+	h := Sha3(in)
+	t.Logf("%x", h)
+}

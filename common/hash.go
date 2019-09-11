@@ -2,10 +2,11 @@ package common
 
 import (
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/sha3"
 )
 
 func Blake2b128(in []byte) ([]byte, error) {
-	hasher, err := blake2b.New(16, nil) 
+	hasher, err := blake2b.New(16, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -29,4 +30,8 @@ func Blake2bHash(in []byte) (Hash, error) {
 	var buf = [32]byte{}
 	copy(buf[:], res)
 	return buf, err
+}
+
+func Sha3(in []byte) Hash {
+	return sha3.Sum256(in)
 }

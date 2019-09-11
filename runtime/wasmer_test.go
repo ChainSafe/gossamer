@@ -674,7 +674,7 @@ func TestExt_twox_64(t *testing.T) {
 
 	//check result against expected value
 	t.Logf("Ext_twox_64 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+8]))
-	if "99e9d85137db46ef4bbea33613baafd5" != hex.EncodeToString(mem[out:out+8]) {
+	if "99e9d85137db46ef" != hex.EncodeToString(mem[out:out+8]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
 
@@ -684,7 +684,7 @@ func TestExt_twox_64(t *testing.T) {
 	copy(mem[pos:pos+len(data)], data)
 
 	// call wasm function
-	testFunc, ok = runtime.vm.Exports["test_ext_twox_128"]
+	testFunc, ok = runtime.vm.Exports["test_ext_twox_64"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -695,8 +695,8 @@ func TestExt_twox_64(t *testing.T) {
 	}
 
 	//check result against expected value
-	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
-	if "b27dfd7f223f177f2a13647b533599af" != hex.EncodeToString(mem[out:out+16]) {
+	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+8]))
+	if "b27dfd7f223f177f" != hex.EncodeToString(mem[out:out+8]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
 }
@@ -753,6 +753,41 @@ func TestExt_twox_128(t *testing.T) {
 	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
 	if "b27dfd7f223f177f2a13647b533599af" != hex.EncodeToString(mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
+	}
+}
+
+// test that ext_keccak_256 returns the correct hash
+func TestExt_keccak_256(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	data := []byte(nil)
+	pos := 170
+	out := pos + len(data)
+	copy(mem[pos:pos+len(data)], data)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_keccak_256"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(pos, len(data), out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := common.HexToHash("0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(expected[:], mem[out:out+32]) {
+		t.Fatalf("fail: got %x expected %x", mem[out:out+32], expected)
 	}
 }
 
