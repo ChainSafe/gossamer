@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/api"
+	module "github.com/ChainSafe/gossamer/internal/api/modules"
 )
 
 var (
@@ -11,6 +12,7 @@ var (
 	testRuntimeName    = "Gossamer"
 	testPeerId         = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
 	peers              = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX", "AbCDeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
+	noBoostrapping     = false
 	isSyncing          = false
 )
 
@@ -35,8 +37,8 @@ func (a *mockP2PApi) Peers() []string {
 	return peers
 }
 
-func (a *mockP2PApi) ShouldHavePeers() bool {
-	return (len(peers) != 0)
+func (a *mockP2PApi) NoBootstrapping() bool {
+	return noBoostrapping
 }
 
 func (a *mockP2PApi) ID() string {
@@ -48,8 +50,8 @@ func newMockApi() *api.Api {
 	p2pApi := &mockP2PApi{}
 
 	return &api.Api{
-		P2pSystem: api.NewP2PModule(p2pApi),
-		RtSystem:  api.NewRTModule(runtimeApi),
+		P2pSystem: module.NewP2PModule(p2pApi),
+		RtSystem:  module.NewRTModule(runtimeApi),
 	}
 }
 

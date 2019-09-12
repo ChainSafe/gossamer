@@ -1,26 +1,50 @@
-package api
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
+package module
 
 import (
+	//api "github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/ChainSafe/log15"
 )
 
-type rtModule struct {
-	rt RuntimeApi
+type RtModule struct {
+	Rt RuntimeApi
 }
 
-func NewRTModule(RTapi RuntimeApi) *rtModule {
-	return &rtModule{RTapi}
+// RuntimeApi is the interface expected to implemented by `runtime` package
+type RuntimeApi interface {
+	// Chain() string  //Cannot implement yet
+	Name() string //Replace with dynamic name later
+	// properties() string //Cannot implement yet
+	Version() string
 }
 
+func NewRTModule(RTapi RuntimeApi) *RtModule {
+	return &RtModule{RTapi}
+}
 
 // Release version
-func (r *rtModule) Version() string {
+func (r *RtModule) Version() string {
 	log.Debug("[rpc] Executing System.Version", "params", nil)
 	//TODO: Replace with dynamic version
 	return "0.0.1"
 }
 
-func (r *rtModule) Name() string {
+func (r *RtModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
 	//TODO: Replace with dynamic name
 	return "Gossamer"

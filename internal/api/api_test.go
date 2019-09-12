@@ -10,7 +10,7 @@ var (
 	TestVersion     = "0.0.1"
 	Name            = "Gossamer"
 	peerID          = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
-	ShouldHavePeers = false
+	NoBootstrapping = false
 	peers           = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 )
 
@@ -29,8 +29,8 @@ func (b *MockP2pApi) ID() string {
 	return peerID
 }
 
-func (b *MockP2pApi) ShouldHavePeers() bool {
-	return ShouldHavePeers
+func (b *MockP2pApi) NoBootstrapping() bool {
+	return NoBootstrapping
 }
 
 // Creating a mock runtime API

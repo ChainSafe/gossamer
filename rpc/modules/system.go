@@ -77,7 +77,7 @@ func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringRes
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
 	res.Peers = len(sm.api.P2pSystem.Peers())
 	res.IsSyncing = sm.api.P2pSystem.IsSyncing()
-	res.ShouldHavePeers = sm.api.P2pSystem.ShouldHavePeers()
+	res.ShouldHavePeers = !sm.api.P2pSystem.NoBootstrapping()
 }
 
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {

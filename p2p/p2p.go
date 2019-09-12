@@ -366,6 +366,6 @@ func (s *Service) ID() string {
 }
 
 // Should have peers
-func (s *Service) ShouldHavePeers() bool {
-	return (len(s.Peers()) != 0)
+func (s *Service) NoBootstrapping() bool {
+	return s.noBootstrap
 }
