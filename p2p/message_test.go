@@ -52,7 +52,7 @@ func TestDecodeMessageStatus(t *testing.T) {
 }
 
 func TestDecodeMessageBlockRequest(t *testing.T) {
-	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b01fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1010101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestDecodeMessageBlockRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	endBlock, err := common.HexToBytes("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,9 +79,9 @@ func TestDecodeMessageBlockRequest(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: append([]byte{0}, genesisHash...),
-		EndBlockHash:  endBlock,
+		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           1,
+		Max:           []byte{1, 1},
 	}
 
 	bm := m.(*BlockRequestMessage)
@@ -136,7 +136,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
 	// direction: byte(1)
 	// max: uint32(1)
-	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025bfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b01fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1010101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	endBlock, err := common.HexToBytes("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,9 +155,9 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: append([]byte{0}, genesisHash...),
-		EndBlockHash:  endBlock,
+		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           1,
+		Max:           []byte{1, 1},
 	}
 
 	encMsg, err := bm.Encode()
@@ -179,12 +179,12 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	// end block hash: 32 bytes: hash(fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1)
 	// direction: byte(1)
 	// max: uint32(1)
-	expected, err := common.HexToBytes("0x01070000000000000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	expected, err := common.HexToBytes("0x0107000000000000000101010000000000000001fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1010101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	endBlock, err := common.HexToBytes("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,9 +193,9 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1},
-		EndBlockHash:  endBlock,
+		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           1,
+		Max:           []byte{1, 1},
 	}
 
 	encMsg, err := bm.Encode()
@@ -207,7 +207,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
 }
- 
+
 func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	encMsg, err := common.HexToBytes("0x01070000000000000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
 	if err != nil {
@@ -222,7 +222,7 @@ func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	endBlock, err := common.HexToBytes("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,9 +231,9 @@ func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1, 0, 0, 0, 0, 0, 0, 0},
-		EndBlockHash:  endBlock,
+		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           1,
+		Max:           []byte{1, 1},
 	}
 
 	bm := m.(*BlockRequestMessage)
@@ -251,7 +251,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	// end block hash: byte(0)
 	// direction: byte(1)
 	// max: byte(0)
-	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
+	expected, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0000010000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +277,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
 }
- 
+
 func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b000100")
 	if err != nil {
