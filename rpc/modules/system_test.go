@@ -55,7 +55,7 @@ func newMockApi() *api.Api {
 	}
 }
 
-func TestSystemModule(t *testing.T) {
+func TestSystemModule_Peers(t *testing.T) {
 	sys := NewSystemModule(newMockApi())
 
 	//Test RPC's System.Peers() response
@@ -79,6 +79,11 @@ func TestSystemModule(t *testing.T) {
 		t.Errorf("System.Peers: expected: %+v got: %+v\n", peers, *peersRes)
 	}
 
+}
+
+func TestSystemModule_NetworkState(t *testing.T) {
+	sys := NewSystemModule(newMockApi())
+
 	//Test RPC's System.NetworkState() response
 	netState := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, netState)
@@ -86,6 +91,9 @@ func TestSystemModule(t *testing.T) {
 	if netState.Id != testPeerId {
 		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testPeerId, netState.Id)
 	}
+}
+func TestSystemModule_Health(t *testing.T) {
+	sys := NewSystemModule(newMockApi())
 
 	//Test RPC's System.Health() response
 	netHealth := &SystemHealthResponse{}
