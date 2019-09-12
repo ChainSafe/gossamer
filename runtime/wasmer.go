@@ -20,12 +20,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"unsafe"
+
 	scale "github.com/ChainSafe/gossamer/codec"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
-	"unsafe"
 )
 
 type RuntimeCtx struct {
