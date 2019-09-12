@@ -68,6 +68,25 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
+// getNodeHash recursively searches for a node with a given number
+func (n *node) getNodeHash(number *big.Int) common.Hash {
+	var hash [32]byte
+
+	if n.number == number {
+		return n.hash
+	} else if len(n.children) == 0 {
+		//TODO: empty bytes
+		return hash
+	} else {
+		for _, child := range n.children {
+			if n := child.getNodeHash(number); n != hash {
+				return n
+			}
+		}
+	}
+	return hash
+}
+
 // TODO: This would improved by using parent in node struct and searching child -> parent
 // TODO: verify that parent and child exist in the DB
 // isDescendantOf traverses the tree following all possible paths until it determines if n is a descendant of parent

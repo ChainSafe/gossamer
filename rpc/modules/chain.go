@@ -24,6 +24,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/api"
 )
 
+// EmptyRequest represents an RPC request with no fields
+type EmptyRequest struct{}
+
 type ChainHashRequest common.Hash
 
 type ChainBlockNumberRequest *big.Int
@@ -33,7 +36,9 @@ type ChainBlockResponse struct{}
 
 type ChainBlockHeaderResponse struct{}
 
-type ChainHashResponse common.Hash
+type ChainHashResponse struct {
+	ChainHash common.Hash `json:"chainHash"`
+}
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
@@ -41,8 +46,8 @@ type ChainModule struct {
 }
 
 // NewChainModule creates a new State module.
-func NewChainModule(api *api.Api) *SystemModule {
-	return &SystemModule{
+func NewChainModule(api *api.Api) *ChainModule {
+	return &ChainModule{
 		api: api,
 	}
 }
@@ -52,22 +57,24 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 }
 
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
+	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.GetBlockHashOfNode(*req)
 	return
 }
 
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.LastFinalizedHead()
 	return
 }
 
+//DB isn't implemented properly yet. Doesn't return block headers
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
 	return
 }
 
-// TODO: Finish implementing
-//func(cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *_, res *_) {
-//	return
-//}
-//
-//func(cm *ChainModule) SubscribeNewHead(r *http.Request, req *_, res *_) {
-//	return_
-//}
+func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+	return
+}
+
+func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+	return
+}

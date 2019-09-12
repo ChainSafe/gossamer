@@ -93,6 +93,23 @@ func (bt *BlockTree) GetNode(h Hash) *node {
 	return nil
 }
 
+// GetNode finds and returns a node based on its number. Returns nil if not found.
+func (bt *BlockTree) GetBlockHashOfNode(number *big.Int) common.Hash {
+	var hash [32]byte
+
+	if bt.head.number == number {
+		return bt.head.hash
+	}
+
+	for _, child := range bt.head.children {
+		if n := child.getNodeHash(number); n != hash {
+			return n
+		}
+	}
+
+	return hash
+}
+
 // String utilizes github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
 	// Construct tree
@@ -128,4 +145,9 @@ func (bt *BlockTree) LongestPath() []*node {
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
 func (bt *BlockTree) DeepestLeaf() *node {
 	return bt.leaves.DeepestLeaf()
+}
+
+// LastFinalized returns last node in the finalizedBlocks in BlockTree BT
+func (bt *BlockTree) LastFinalizedHead() common.Hash {
+	return bt.finalizedBlocks[len(bt.finalizedBlocks)].hash
 }

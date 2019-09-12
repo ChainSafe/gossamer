@@ -16,6 +16,8 @@
 
 package api
 
+import apiModule "github.com/ChainSafe/gossamer/internal/api/modules"
+
 // Service couples all components required for the API.
 type Service struct {
 	Api *Api
@@ -24,29 +26,18 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	System *systemModule
-}
-
-// P2pApi is the interface expected to implemented by `p2p` package
-type P2pApi interface {
-	PeerCount() int
-}
-
-// RuntimeApi is the interface expected to implemented by `runtime` package
-type RuntimeApi interface {
-	Version() string
+	BlocktreeSystem *apiModule.BlocktreeModule
 }
 
 // Module represents a collection of API endpoints.
 type Module string
 
 // NewApiService creates a new API instance.
-func NewApiService(p2p P2pApi, rt RuntimeApi) *Service {
+func NewApiService(blocktree apiModule.BlocktreeApi) *Service {
 	return &Service{
 		&Api{
-			System: &systemModule{
-				p2p,
-				rt,
+			BlocktreeSystem: &apiModule.BlocktreeModule{
+				blocktree,
 			},
 		}, nil,
 	}
