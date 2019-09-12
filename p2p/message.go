@@ -305,15 +305,6 @@ func readByte(r io.Reader) (byte, error) {
 	return buf[0], nil
 }
 
-func readUint32(r io.Reader) (uint32, error) {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint32(buf), nil
-}
-
 func readUint64(r io.Reader) (uint64, error) {
 	buf := make([]byte, 8)
 	_, err := r.Read(buf)
@@ -321,13 +312,4 @@ func readUint64(r io.Reader) (uint64, error) {
 		return 0, err
 	}
 	return binary.LittleEndian.Uint64(buf), nil
-}
-
-func readHash(r io.Reader) (common.Hash, error) {
-	buf := make([]byte, 32)
-	_, err := r.Read(buf)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return common.NewHash(buf), nil
 }

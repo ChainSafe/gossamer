@@ -18,7 +18,6 @@ package p2p
 
 import (
 	"bytes"
-	//"fmt"
 	"reflect"
 	"testing"
 
