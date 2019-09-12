@@ -96,7 +96,7 @@ func TestDecodeMessageBlockRequest(t *testing.T) {
 		StartingBlock: append([]byte{0}, genesisHash...),
 		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           []byte{1, 1},
+		Max:           []byte{1, 1, 0, 0, 0},
 	}
 
 	bm := m.(*BlockRequestMessage)
@@ -172,7 +172,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 		StartingBlock: append([]byte{0}, genesisHash...),
 		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           []byte{1, 1},
+		Max:           []byte{1, 1, 0, 0, 0},
 	}
 
 	encMsg, err := bm.Encode()
@@ -210,7 +210,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		StartingBlock: []byte{1, 1},
 		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           []byte{1, 1},
+		Max:           []byte{1, 1, 0, 0, 0},
 	}
 
 	encMsg, err := bm.Encode()
@@ -224,7 +224,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 }
 
 func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
-	encMsg, err := common.HexToBytes("0x01070000000000000001010100000000000000fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa10101000000")
+	encMsg, err := common.HexToBytes("0x0107000000000000000101010000000000000001fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1010101000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
 		StartingBlock: []byte{1, 1, 0, 0, 0, 0, 0, 0, 0},
 		EndBlockHash:  append([]byte{1}, endBlock...),
 		Direction:     1,
-		Max:           []byte{1, 1},
+		Max:           []byte{1, 1, 0, 0, 0},
 	}
 
 	bm := m.(*BlockRequestMessage)
@@ -280,7 +280,9 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: append([]byte{0}, genesisHash...),
+		EndBlockHash:  []byte{0, 0},
 		Direction:     1,
+		Max:           []byte{0, 0},
 	}
 
 	encMsg, err := bm.Encode()
@@ -316,7 +318,9 @@ func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
 		Id:            7,
 		RequestedData: 1,
 		StartingBlock: append([]byte{0}, genesisHash...),
+		EndBlockHash:  []byte{0, 0},
 		Direction:     1,
+		Max:           []byte{0, 0},
 	}
 
 	bm := m.(*BlockRequestMessage)
