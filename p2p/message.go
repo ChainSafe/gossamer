@@ -232,14 +232,26 @@ type BlockResponseMessage struct {
 }
 
 func (bm *BlockResponseMessage) String() string {
-	return ""
+	return fmt.Sprintf("BlockResponseMessage Id=%d Data=%x", bm.Id, bm.Data)
 }
 
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
-	return nil, nil
+	encMsg := []byte{BlockResponseMsgType}
+
+	encId := make([]byte, 8)
+	binary.LittleEndian.PutUint64(encId, bm.Id)
+	encMsg = append(encMsg, encId...)
+
+	return append(encMsg, bm.Data...), nil
 }
 
 func (bm *BlockResponseMessage) Decode(r io.Reader) error {
+	bm.Id, err = readUint64(r)
+	if err != nil {
+		return err
+	}
+
+	
 	return nil
 }
 
