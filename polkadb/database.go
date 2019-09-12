@@ -18,58 +18,40 @@ package polkadb
 
 import (
 	"os"
+	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
 )
 
-// BadgerService contains directory path to data and db instance
-type BadgerService struct {
+// Db contains directory path to data and db instance
+type Db struct {
 	config Config
 	db     *badger.DB
 }
 
 // ChainDB contains both databases for service registry
 type ChainDB struct {
-	StateDB *BadgerService
+	StateDB *StateDB
 	BlockDB *BlockDB
 
 	err     <-chan error
 }
 
+// BlockDB...
 type BlockDB struct {
-	Db *BadgerService
+	Db *Db
+}
+
+// StateDB...
+type StateDB struct {
+	Db *Db
 }
 
 //Config defines configurations for BadgerService instance
 type Config struct {
 	DataDir string
-}
-
-// Iterable struct contains a transaction, iterator and context fields released, initialized
-type Iterable struct {
-	txn      *badger.Txn
-	iter     *badger.Iterator
-	released bool
-	init     bool
-}
-
-// Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
-type batchWriter struct {
-	db   *BadgerService
-	b    map[string][]byte
-	size int
-}
-
-type table struct {
-	db     Database
-	prefix string
-}
-
-type tableBatch struct {
-	batch  Batch
-	prefix string
 }
 
 func (chainDB *ChainDB) Start() <-chan error {
@@ -80,7 +62,7 @@ func (chainDB *ChainDB) Start() <-chan error {
 func (chainDB *ChainDB) Stop() <-chan error {
 	e := make(chan error)
 	// Closing Badger Databases
-	err := chainDB.StateDB.db.Close()
+	err := chainDB.StateDB.Db.db.Close()
 	if err != nil {
 		e <- err
 	}
@@ -92,8 +74,50 @@ func (chainDB *ChainDB) Stop() <-chan error {
 	return e
 }
 
-// NewBadgerService opens and returns a new DB object
-func NewBadgerService(file string) (*BadgerService, error) {
+// NewDatabaseService opens and returns a new DB object
+func NewDatabaseService(file string) (*ChainDB, error) {
+	stateDataDir := filepath.Join(file, "state")
+	blockDataDir := filepath.Join(file, "block")
+
+	stateDb, err := NewStateDB(stateDataDir)
+	if err != nil {
+		// err handle
+	}
+
+	blockDb, err := NewBlockDB(blockDataDir)
+	if err != nil {
+		// err handle
+	}
+
+	return &ChainDB{
+		StateDB: stateDb,
+		BlockDB: blockDb,
+	}, nil
+}
+
+func NewBlockDB(dataDir string) (*BlockDB, error) {
+	db,err := NewBadgerService(dataDir)
+	if err != nil {
+		log.Crit("error", err)
+	}
+
+	return &BlockDB{
+	db,
+	}, nil
+}
+
+func NewStateDB(dataDir string) (*StateDB, error) {
+	db,err := NewBadgerService(dataDir)
+	if err != nil {
+		log.Crit("error", err)
+	}
+
+	return &StateDB{
+		db,
+	}, nil
+}
+
+func NewBadgerService(file string) (*Db, error) {
 	opts := badger.DefaultOptions(file)
 	if err := os.MkdirAll(file, os.ModePerm); err != nil {
 		log.Crit("err creating directory for DB ", err)
@@ -104,21 +128,28 @@ func NewBadgerService(file string) (*BadgerService, error) {
 		return nil, err
 	}
 
-	return &BadgerService{
-		config: Config{
-			DataDir: file,
+	return &Db {
+		config:Config{
+			DataDir:file,
 		},
-		db: db,
+		db:db,
 	}, nil
 }
 
 // Path returns the path to the database directory.
-func (db *BadgerService) Path() string {
+func (db *Db) Path() string {
 	return db.config.DataDir
 }
 
+// Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
+type batchWriter struct {
+	db   *Db
+	b    map[string][]byte
+	size int
+}
+
 // NewBatch returns batchWriter with a badgerDB instance and an initialized mapping
-func (db *BadgerService) NewBatch() Batch {
+func (db *Db) NewBatch() Batch {
 	return &batchWriter{
 		db: db,
 		b:  make(map[string][]byte),
@@ -126,7 +157,7 @@ func (db *BadgerService) NewBatch() Batch {
 }
 
 // Put puts the given key / value to the queue
-func (db *BadgerService) Put(key []byte, value []byte) error {
+func (db *Db) Put(key []byte, value []byte) error {
 	return db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(snappy.Encode(nil, key), snappy.Encode(nil, value))
 		return err
@@ -134,7 +165,7 @@ func (db *BadgerService) Put(key []byte, value []byte) error {
 }
 
 // Has checks the given key exists already; returning true or false
-func (db *BadgerService) Has(key []byte) (exists bool, err error) {
+func (db *Db) Has(key []byte) (exists bool, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
 		item, errr := txn.Get(snappy.Encode(nil, key))
 		if item != nil {
@@ -150,7 +181,7 @@ func (db *BadgerService) Has(key []byte) (exists bool, err error) {
 }
 
 // Get returns the given key
-func (db *BadgerService) Get(key []byte) (data []byte, err error) {
+func (db *Db) Get(key []byte) (data []byte, err error) {
 	_ = db.db.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(snappy.Encode(nil, key))
 		if err != nil {
@@ -167,7 +198,7 @@ func (db *BadgerService) Get(key []byte) (data []byte, err error) {
 }
 
 // Del removes the key from the queue and database
-func (db *BadgerService) Del(key []byte) error {
+func (db *Db) Del(key []byte) error {
 	return db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(snappy.Encode(nil, key))
 		if err == badger.ErrKeyNotFound {
@@ -178,7 +209,7 @@ func (db *BadgerService) Del(key []byte) error {
 }
 
 // Close closes a DB
-func (db *BadgerService) Close() {
+func (db *Db) Close() {
 	err := db.db.Close()
 	if err == nil {
 		log.Info("Database closed")
@@ -187,8 +218,16 @@ func (db *BadgerService) Close() {
 	}
 }
 
+// Iterable struct contains a transaction, iterator and context fields released, initialized
+type Iterable struct {
+	txn      *badger.Txn
+	iter     *badger.Iterator
+	released bool
+	init     bool
+}
+
 // NewIterator returns a new iterator within the Iterator struct along with a new transaction
-func (db *BadgerService) NewIterator() Iterable {
+func (db *Db) NewIterator() Iterable {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
 	iter := txn.NewIterator(opts)
@@ -296,6 +335,16 @@ func (b *batchWriter) Delete(key []byte) error {
 func (b *batchWriter) Reset() {
 	b.b = make(map[string][]byte)
 	b.size = 0
+}
+
+type table struct {
+	db     Database
+	prefix string
+}
+
+type tableBatch struct {
+	batch  Batch
+	prefix string
 }
 
 // NewTable returns a Database object that prefixes all keys with a given

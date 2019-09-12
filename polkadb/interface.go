@@ -16,6 +16,12 @@
 
 package polkadb
 
+import (
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core"
+	"math/big"
+)
+
 // PutItem wraps the database write operation supported by regular database.
 type PutItem interface {
 	Put(key []byte, value []byte) error
@@ -54,7 +60,15 @@ type Iteratee interface {
 	NewIterator() Iterable
 }
 
+type ChainReader interface {
+	GetBestHash() common.Hash
+	GetBestNumber() common.Hash
+}
 
-//type BlockDb interface {
-//	BestHash
-//}
+type ChainWriter interface {
+	SetBestHash(hash common.Hash)
+	SetBestNumber(hash common.Hash)
+	SetBlockData(blockData core.BlockData)
+	SetBlockHeader(header core.BlockHeader)
+	SetBlockHash(bn *big.Int, hash common.Hash)
+}
