@@ -35,11 +35,11 @@ type BlockTree struct {
 	head            *node
 	leaves          leafMap
 	finalizedBlocks []*node
-	BlockDB         polkadb.BadgerService
+	BlockDB         *polkadb.BadgerService
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
-func NewBlockTreeFromGenesis(genesis core.Block, db polkadb.BadgerService) *BlockTree {
+func NewBlockTreeFromGenesis(genesis core.Block, db *polkadb.BadgerService) *BlockTree {
 	head := &node{
 		hash:     genesis.Header.Hash,
 		number:   genesis.Header.Number,
