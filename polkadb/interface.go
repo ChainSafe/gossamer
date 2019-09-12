@@ -53,3 +53,8 @@ type Iterator interface {
 type Iteratee interface {
 	NewIterator() Iterable
 }
+
+
+//type BlockDb interface {
+//	BestHash
+//}

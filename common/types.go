@@ -21,6 +21,12 @@ import (
 	"math/big"
 )
 
+// Length of hashes in bytes.
+const (
+	// HashLength is the expected length of the hash
+	HashLength = 32
+)
+
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
@@ -49,4 +55,22 @@ func NewHash(in []byte) (res Hash) {
 func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
+}
+
+// BytesToHash sets b to hash.
+// If b is larger than len(h), b will be cropped from the left.
+func BytesToHash(b []byte) Hash {
+	var h Hash
+	h.SetBytes(b)
+	return h
+}
+
+// SetBytes sets the hash to the value of b.
+// If b is larger than len(h), b will be cropped from the left.
+func (h *Hash) SetBytes(b []byte) {
+	if len(b) > len(h) {
+		b = b[len(b)-HashLength:]
+	}
+
+	copy(h[HashLength-len(b):], b)
 }

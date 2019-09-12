@@ -33,8 +33,13 @@ type BadgerService struct {
 // ChainDB contains both databases for service registry
 type ChainDB struct {
 	StateDB *BadgerService
-	BlockDB *BadgerService
+	BlockDB *BlockDB
+
 	err     <-chan error
+}
+
+type BlockDB struct {
+	Db *BadgerService
 }
 
 //Config defines configurations for BadgerService instance
@@ -74,12 +79,12 @@ func (chainDB *ChainDB) Start() <-chan error {
 
 func (chainDB *ChainDB) Stop() <-chan error {
 	e := make(chan error)
-	// Closing Badger Database
+	// Closing Badger Databases
 	err := chainDB.StateDB.db.Close()
 	if err != nil {
 		e <- err
 	}
-	err = chainDB.BlockDB.db.Close()
+	err = chainDB.BlockDB.Db.db.Close()
 	if err != nil {
 		e <- err
 	}
