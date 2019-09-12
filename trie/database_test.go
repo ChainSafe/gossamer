@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
@@ -15,14 +31,14 @@ func newTrie() (*Trie, error) {
 		return nil, err
 	}
 
-	db, err := db.NewBadgerService("./gossamer_data")
+	stateDB, err := db.NewBadgerService("./test_data/state")
 	if err != nil {
 		return nil, err
 	}
 
 	trie := &Trie{
-		db: &Database{
-			Db:     db,
+		db: &StateDB{
+			Db:     stateDB,
 			Hasher: hasher,
 		},
 		root: nil,
@@ -35,7 +51,7 @@ func newTrie() (*Trie, error) {
 
 func (t *Trie) closeDb() {
 	t.db.Db.Close()
-	if err := os.RemoveAll("./gossamer_data"); err != nil {
+	if err := os.RemoveAll("./test_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}
 }
