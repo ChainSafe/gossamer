@@ -53,7 +53,10 @@ type Message interface {
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
 func DecodeMessage(r io.Reader) (m Message, err error) {
 	msgType := make([]byte, 1)
-	r.Read(msgType)
+	_, err = r.Read(msgType)
+	if err != nil {
+		return nil, err
+	}
 
 	switch msgType[0] {
 	case StatusMsgType:
@@ -193,10 +196,16 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	if startingBlockType == 0 {
 		hash := make([]byte, 32)
 		_, err = r.Read(hash)
+		if err != nil {
+			return err
+		}
 		bm.StartingBlock = append([]byte{startingBlockType}, hash...)
 	} else {
 		num := make([]byte, 8)
 		_, err = r.Read(num)
+		if err != nil {
+			return err
+		}
 		bm.StartingBlock = append([]byte{startingBlockType}, num...)
 	}
 
