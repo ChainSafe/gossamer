@@ -84,6 +84,7 @@ func (chainDB *ChainDB) Stop() <-chan error {
 	if err != nil {
 		e <- err
 	}
+
 	err = chainDB.BlockDB.Db.db.Close()
 	if err != nil {
 		e <- err
