@@ -31,14 +31,14 @@ import (
 var blockDB *db.BadgerService
 
 func TestMain(m *testing.M) {
-	dbSrv, err := db.NewBadgerService("./gossamer_data/block")
+	dbSrv, err := db.NewBadgerService("./test_data/block")
 	if err != nil {
 		log.Crit("database was not created ", "error ", err)
 	}
 	blockDB = dbSrv
 	exitVal := m.Run()
 	dbSrv.Close()
-	if err := os.RemoveAll("./gossamer_data/"); err != nil {
+	if err := os.RemoveAll("./test_data/"); err != nil {
 		log.Warn("removal of temp directory badger-test failed", "error", err)
 	}
 	os.Exit(exitVal)

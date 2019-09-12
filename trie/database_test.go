@@ -15,7 +15,7 @@ func newTrie() (*Trie, error) {
 		return nil, err
 	}
 
-	stateDB, err := db.NewBadgerService("./gossamer_data/state")
+	stateDB, err := db.NewBadgerService("./test_data/state")
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func newTrie() (*Trie, error) {
 
 func (t *Trie) closeDb() {
 	t.db.StateDB.Close()
-	if err := os.RemoveAll("./gossamer_data"); err != nil {
+	if err := os.RemoveAll("./test_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}
 }

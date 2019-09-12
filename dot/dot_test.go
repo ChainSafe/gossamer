@@ -9,7 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/ChainSafe/log15"
 )
 
 // Creates a Dot with default configurations. Does not include RPC server.
@@ -78,7 +77,7 @@ func TestDot_Start(t *testing.T) {
 
 	defer func() {
 		if err := os.RemoveAll("../test_data"); err != nil {
-			log.Warn("removal of temp directory test_data failed", "error", err)
+			t.Log("removal of temp directory test_data failed", "error", err)
 		}
 	}()
 }
