@@ -35,6 +35,11 @@ type StateChildStorageRequest struct {
 	Block           common.Hash `json:"block"`
 }
 
+type StateStorageKeyRequest struct {
+	Key   []byte      `json:"key"`
+	Block common.Hash `json:"block"`
+}
+
 type StateStorageQueryRequest struct {
 	Key   []byte      `json:"key"`
 	Block common.Hash `json:"block"`
@@ -42,13 +47,19 @@ type StateStorageQueryRequest struct {
 
 type StateBlockHashQuery common.Hash
 
+type StateRuntimeMetadataQuery common.Hash
+
 type StateStorageQueryRangeRequest struct {
 	Keys       []byte      `json:"keys"`
 	StartBlock common.Hash `json:"startBlock"`
-	EndBlock   common.Hash `json:"block"`
+	Block      common.Hash `json:"block"`
 }
 
-type StateCallResponse []byte
+type StateStorageKeysQuery [][]byte
+
+type StateCallResponse struct {
+	stateCallResponse []byte `json:"stateCallResponse"`
+}
 
 type StateKeysResponse [][]byte
 
@@ -77,59 +88,72 @@ func NewStateModule(api *api.Api) *SystemModule {
 	}
 }
 
+//Not implemented yet
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
 	return
 }
 
 func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
+	*res = sm.api.DatabaseSystem.GetChildKeys(req.ChildStorageKey, req.Key, req.Block)
 	return
 }
 
 func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) {
+	*res = sm.api.DatabaseSystem.GetChildStorage(req.ChildStorageKey, req.Key, req.Block)
 	return
 }
 
 func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateStorageHashResponse) {
+	*res = sm.api.DatabaseSystem.GetChildStorageHash(req.ChildStorageKey, req.Key, req.Block)
 	return
 }
 
 func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateStorageSizeResponse) {
+	*res = sm.api.DatabaseSystem.GetChildStorageSize(req.ChildStorageKey, req.Key, req.Block)
 	return
 }
 
-func (sm *StateModule) GetKeys(r *http.Request, req *StateChildStorageRequest, res *StateStorageKeysResponse) {
+func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) {
+	*res = sm.api.DatabaseSystem.GetKeys(req.Key, req.Block)
 	return
 }
 
-func (sm *StateModule) GetMetadata(r *http.Request, req *StateStorageQueryRequest, res *StateMetadataResponse) {
+func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) {
+	*res = sm.api.DatabaseSystem.GetMetadata(*req)
 	return
 }
 
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) {
+	*res = sm.api.DatabaseSystem.GetRuntimeVersion(*req)
 	return
 }
 
 func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) {
+	*res = sm.api.DatabaseSystem.GetStorage(req.Key, req.Block)
 	return
 }
 
 func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageQueryRequest, res *StateStorageHashResponse) {
+	*res = sm.api.DatabaseSystem.GetChildStorageHash(req.Key, req.Block)
 	return
 }
 
 func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryRequest, res *StateStorageSizeResponse) {
+	*res = sm.api.DatabaseSystem.GetStorageSize(req.Key, req.Block)
 	return
 }
 
 // TDDO: Complete implementation
-//func (sm *StateModule) QueryStorage(r *http.Request, _ _, _ _) {
-//
-//}
-//
-//func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *_, res *_) {
-//
-//}
-//
-//func (sm *StateModule) SubscribeStorage(r *http.Request, req *_, res *_) {
-//
-//}
+func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *_) {
+	return
+}
+
+// TDDO: Complete implementation
+func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *EmptyRequest, res *StateRuntimeVersionResponse) {
+	return
+}
+
+// TDDO: Complete implementation
+func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageKeysQuery, res *_) {
+	return
+}
