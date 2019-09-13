@@ -28,16 +28,16 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var blockDB *db.BadgerService
+var blockDB *db.BlockDB
 
 func TestMain(m *testing.M) {
-	dbSrv, err := db.NewBadgerService("./test_data/block")
+	dbSrv, err := db.NewDatabaseService("./test_data")
 	if err != nil {
 		log.Crit("database was not created ", "error ", err)
 	}
-	blockDB = dbSrv
+	blockDB = dbSrv.BlockDB
 	exitVal := m.Run()
-	dbSrv.Close()
+	dbSrv.BlockDB.Db.Close()
 	if err := os.RemoveAll("./test_data/"); err != nil {
 		log.Warn("removal of temp directory badger-test failed", "error", err)
 	}

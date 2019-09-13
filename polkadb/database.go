@@ -31,8 +31,8 @@ type Db struct {
 	db     *badger.DB
 }
 
-// ChainDB contains both databases for service registry
-type ChainDB struct {
+// DbService contains both databases for service registry
+type DbService struct {
 	StateDB *StateDB
 	BlockDB *BlockDB
 
@@ -54,20 +54,22 @@ type Config struct {
 	DataDir string
 }
 
-func (chainDB *ChainDB) Start() <-chan error {
-	chainDB.err = make(<-chan error)
-	return chainDB.err
+// Start starts running BlockDB and StateDB instances
+func (dbService *DbService) Start() <-chan error {
+	dbService.err = make(<-chan error)
+	return dbService.err
 }
 
-func (chainDB *ChainDB) Stop() <-chan error {
+// Stop kills running BlockDB and StateDB instances
+func (dbService *DbService) Stop() <-chan error {
 	e := make(chan error)
 	// Closing Badger Databases
-	err := chainDB.StateDB.Db.db.Close()
+	err := dbService.StateDB.Db.db.Close()
 	if err != nil {
 		e <- err
 	}
 
-	err = chainDB.BlockDB.Db.db.Close()
+	err = dbService.BlockDB.Db.db.Close()
 	if err != nil {
 		e <- err
 	}
@@ -75,26 +77,27 @@ func (chainDB *ChainDB) Stop() <-chan error {
 }
 
 // NewDatabaseService opens and returns a new DB object
-func NewDatabaseService(file string) (*ChainDB, error) {
+func NewDatabaseService(file string) (*DbService, error) {
 	stateDataDir := filepath.Join(file, "state")
 	blockDataDir := filepath.Join(file, "block")
 
 	stateDb, err := NewStateDB(stateDataDir)
 	if err != nil {
-		// err handle
+		log.Crit("failed to instantiate StateDB", "error", err)
 	}
 
 	blockDb, err := NewBlockDB(blockDataDir)
 	if err != nil {
-		// err handle
+		log.Crit("failed to instantiate BlockDB", "error", err)
 	}
 
-	return &ChainDB{
+	return &DbService{
 		StateDB: stateDb,
 		BlockDB: blockDb,
 	}, nil
 }
 
+// NewBlockDB instantiates BlockDB for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
 	db,err := NewBadgerService(dataDir)
 	if err != nil {
@@ -106,6 +109,7 @@ func NewBlockDB(dataDir string) (*BlockDB, error) {
 	}, nil
 }
 
+// NewStateDB instantiates StateDB for trie structure
 func NewStateDB(dataDir string) (*StateDB, error) {
 	db,err := NewBadgerService(dataDir)
 	if err != nil {
@@ -117,6 +121,7 @@ func NewStateDB(dataDir string) (*StateDB, error) {
 	}, nil
 }
 
+// NewBadgerService initializes badgerDB instance
 func NewBadgerService(file string) (*Db, error) {
 	opts := badger.DefaultOptions(file)
 	if err := os.MkdirAll(file, os.ModePerm); err != nil {

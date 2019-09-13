@@ -32,17 +32,17 @@ type data struct {
 	expected string
 }
 
-func newTestBadgerDB() (*BadgerService, func()) {
+func newTestDBService() (*DbService, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "badger-test")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
-	db, err := NewBadgerService(dir)
+	db, err := NewDatabaseService(dir)
 	if err != nil {
 		panic("failed to create test database: " + err.Error())
 	}
 	return db, func() {
-		db.Close()
+		db.Stop()
 		if err := os.RemoveAll(dir); err != nil {
 			fmt.Println("removal of temp directory badger-test failed")
 		}
@@ -60,14 +60,14 @@ func testSetup() []data {
 }
 
 func TestBadgerDB_PutGetDel(t *testing.T) {
-	db, remove := newTestBadgerDB()
+	db, remove := newTestDBService()
 	defer remove()
 
-	testPutGetter(db, t)
-	testHasGetter(db, t)
-	testUpdateGetter(db, t)
-	testDelGetter(db, t)
-	testGetPath(db, t)
+	testPutGetter(db.StateDB.Db, t)
+	testHasGetter(db.StateDB.Db, t)
+	testUpdateGetter(db.StateDB.Db, t)
+	testDelGetter(db.StateDB.Db, t)
+	testGetPath(db.StateDB.Db, t)
 }
 
 func testPutGetter(db Database, t *testing.T) {
@@ -147,7 +147,7 @@ func testDelGetter(db Database, t *testing.T) {
 	}
 }
 
-func testGetPath(db *BadgerService, t *testing.T) {
+func testGetPath(db *Db, t *testing.T) {
 	dir := db.Path()
 	if len(dir) <= 0 {
 		t.Fatalf("failed to set database path")
@@ -155,12 +155,12 @@ func testGetPath(db *BadgerService, t *testing.T) {
 }
 
 func TestBadgerDB_Batch(t *testing.T) {
-	db, remove := newTestBadgerDB()
+	db, remove := newTestDBService()
 	defer remove()
-	testBatchPut(db, t)
+	testBatchPut(db.StateDB.Db, t)
 }
 
-func batchTestSetup(db *BadgerService) (func(i int) []byte, func(i int) []byte, Batch) {
+func batchTestSetup(db *Db) (func(i int) []byte, func(i int) []byte, Batch) {
 	testKey := func(i int) []byte {
 		return []byte(fmt.Sprintf("%04d", i))
 	}
@@ -171,7 +171,7 @@ func batchTestSetup(db *BadgerService) (func(i int) []byte, func(i int) []byte, 
 	return testKey, testValue, b
 }
 
-func testBatchPut(db *BadgerService, t *testing.T) {
+func testBatchPut(db *Db, t *testing.T) {
 	k, v, b := batchTestSetup(db)
 
 	for i := 0; i < 10000; i++ {
@@ -199,15 +199,15 @@ func testBatchPut(db *BadgerService, t *testing.T) {
 }
 
 func TestBadgerDB_Iterator(t *testing.T) {
-	db, remove := newTestBadgerDB()
+	db, remove := newTestDBService()
 	defer remove()
 
-	testNewIterator(db, t)
-	testNextKeyIterator(db, t)
-	testSeekKeyValueIterator(db, t)
+	testNewIterator(db.StateDB.Db, t)
+	testNextKeyIterator(db.StateDB.Db, t)
+	testSeekKeyValueIterator(db.StateDB.Db, t)
 }
 
-func testIteratorSetup(db *BadgerService, t *testing.T) {
+func testIteratorSetup(db *Db, t *testing.T) {
 	k, v, b := batchTestSetup(db)
 
 	for i := 0; i < 5; i++ {
@@ -222,7 +222,7 @@ func testIteratorSetup(db *BadgerService, t *testing.T) {
 	}
 }
 
-func testNewIterator(db *BadgerService, t *testing.T) {
+func testNewIterator(db *Db, t *testing.T) {
 	testIteratorSetup(db, t)
 
 	it := db.NewIterator()
@@ -247,7 +247,7 @@ func testNewIterator(db *BadgerService, t *testing.T) {
 	}
 }
 
-func testNextKeyIterator(db *BadgerService, t *testing.T) {
+func testNextKeyIterator(db *Db, t *testing.T) {
 	testIteratorSetup(db, t)
 
 	it := db.NewIterator()
@@ -279,7 +279,7 @@ func testKVData() []data {
 	return testKeyValue
 }
 
-func testSeekKeyValueIterator(db *BadgerService, t *testing.T) {
+func testSeekKeyValueIterator(db *Db, t *testing.T) {
 	testIteratorSetup(db, t)
 	kv := testKVData()
 
@@ -306,12 +306,12 @@ func testSeekKeyValueIterator(db *BadgerService, t *testing.T) {
 }
 
 func TestBadgerDB_TablePrefixOps(t *testing.T) {
-	db, remove := newTestBadgerDB()
+	db, remove := newTestDBService()
 	defer remove()
 
-	testPutTablesWithPrefix(db, t)
-	testHasTablesWithPrefix(db, t)
-	testDelTablesWithPrefix(db, t)
+	testPutTablesWithPrefix(db.StateDB.Db, t)
+	testHasTablesWithPrefix(db.StateDB.Db, t)
+	testDelTablesWithPrefix(db.StateDB.Db, t)
 }
 
 func testPutTablesWithPrefix(db Database, t *testing.T) {
@@ -374,12 +374,12 @@ func testDelTablesWithPrefix(db Database, t *testing.T) {
 }
 
 func TestBadgerDB_TableBatchWithPrefix(t *testing.T) {
-	db, remove := newTestBadgerDB()
+	db, remove := newTestDBService()
 	defer remove()
-	testBatchTablePutWithPrefix(db, t)
+	testBatchTablePutWithPrefix(db.StateDB.Db, t)
 }
 
-func batchTableWithPrefixTestSetup(db *BadgerService) (func(i int) []byte, func(i int) []byte, Batch) {
+func batchTableWithPrefixTestSetup(db *Db) (func(i int) []byte, func(i int) []byte, Batch) {
 	testKey := func(i int) []byte {
 		return []byte(fmt.Sprintf("%04d", i))
 	}
@@ -390,7 +390,7 @@ func batchTableWithPrefixTestSetup(db *BadgerService) (func(i int) []byte, func(
 	return testKey, testValue, b
 }
 
-func testBatchTablePutWithPrefix(db *BadgerService, t *testing.T) {
+func testBatchTablePutWithPrefix(db *Db, t *testing.T) {
 	k, v, b := batchTableWithPrefixTestSetup(db)
 
 	for i := 0; i < 10000; i++ {

@@ -8,60 +8,60 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-func (c *BlockDB) SetBestHash(hash common.Hash) {
+func (bd *BlockDB) SetBestHash(hash common.Hash) {
 	bestHash := hash.ToBytes()
-	err := c.Db.Put([]byte("bestHash"), bestHash)
+	err := bd.Db.Put([]byte("bestHash"), bestHash)
 	if err != nil {
 		log.Crit("error", err)
 	}
 }
 
-func (c *BlockDB) GetBestHash() common.Hash {
-	h, err := c.Db.Get([]byte("bestHash"))
+func (bd *BlockDB) GetBestHash() common.Hash {
+	h, err := bd.Db.Get([]byte("bestHash"))
 	if err != nil {
 		log.Crit("error", err)
 	}
 	return common.BytesToHash(h)
 }
 
-func (c *BlockDB) SetBestNumber(hash common.Hash) {
+func (bd *BlockDB) SetBestNumber(hash common.Hash) {
 	bestHash := hash.ToBytes()
-	err := c.Db.Put([]byte("bestHash"), bestHash)
+	err := bd.Db.Put([]byte("bestHash"), bestHash)
 	if err != nil {
 		log.Crit("error", err)
 	}
 }
 
-func (c *BlockDB) GetBestNumber() common.Hash {
-	h, err := c.Db.Get([]byte("bestHash"))
+func (bd *BlockDB) GetBestNumber() common.Hash {
+	h, err := bd.Db.Get([]byte("bestHash"))
 	if err != nil {
 		log.Crit("error", err)
 	}
 	return common.BytesToHash(h)
 }
 
-func (c *BlockDB) SetBlockData(blockData core.BlockData) {
+func (bd *BlockDB) SetBlockData(blockData core.BlockData) {
 	hash := blockData.Hash.ToBytes()
-	bd := common.ToBytes(blockData)
-	err := c.Db.Put(bd, hash)
+	data := common.ToBytes(blockData)
+	err := bd.Db.Put(data, hash)
 	if err != nil {
 		log.Crit("error", err)
 	}
 }
 
-func (c *BlockDB) SetBlockHeader(header core.BlockHeader) {
+func (bd *BlockDB) SetBlockHeader(header core.BlockHeader) {
 	hash := header.Hash.ToBytes()
-	bd := common.ToBytes(header)
-	err := c.Db.Put(bd, hash)
+	data := common.ToBytes(header)
+	err := bd.Db.Put(data, hash)
 	if err != nil {
 		log.Crit("error", err)
 	}
 }
 
-func (c *BlockDB) SetBlockHash(blockNumber *big.Int, hash common.Hash) {
+func (bd *BlockDB) SetBlockHash(blockNumber *big.Int, hash common.Hash) {
 	h := hash.ToBytes()
 	bn := common.ToBytes(blockNumber)
-	err := c.Db.Put(bn, h)
+	err := bd.Db.Put(bn, h)
 	if err != nil {
 		log.Crit("error", err)
 	}
