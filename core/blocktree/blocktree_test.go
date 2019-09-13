@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 	exitVal := m.Run()
 	dbSrv.BlockDB.Db.Close()
 	if err := os.RemoveAll("./test_data/"); err != nil {
-		log.Warn("removal of temp directory badger-test failed", "error", err)
+		log.Warn("removal of temp directory test_data failed", "error", err)
 	}
 	os.Exit(exitVal)
 }

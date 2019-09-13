@@ -34,7 +34,7 @@ type Database interface {
 	Has(key []byte) (bool, error)
 	Del(key []byte) error
 	NewBatch() Batch
-	Close()
+	Close() bool
 }
 
 // Batch is a write-only operation

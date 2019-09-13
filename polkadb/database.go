@@ -39,12 +39,12 @@ type DbService struct {
 	err     <-chan error
 }
 
-// BlockDB...
+// BlockDB contains badger.DB instance
 type BlockDB struct {
 	Db *Db
 }
 
-// StateDB...
+// StateDB contains badger.DB instance
 type StateDB struct {
 	Db *Db
 }
@@ -214,12 +214,14 @@ func (db *Db) Del(key []byte) error {
 }
 
 // Close closes a DB
-func (db *Db) Close() {
+func (db *Db) Close() bool {
 	err := db.db.Close()
 	if err == nil {
 		log.Info("Database closed")
+		return true
 	} else {
 		log.Crit("Failed to close database", "err", err)
+		return false
 	}
 }
 
@@ -378,8 +380,16 @@ func (dt *table) Del(key []byte) error {
 	return dt.db.Del(append([]byte(dt.prefix), key...))
 }
 
-func (dt *table) Close() {
-	dt.db.Close()
+// Close closes table db
+func (dt *table) Close() bool {
+	success := dt.db.Close()
+	if success {
+		log.Info("Database closed")
+		return true
+	} else {
+		log.Crit("Failed to close database")
+		return false
+	}
 }
 
 // NewTableBatch returns a Batch object which prefixes all keys with a given string.

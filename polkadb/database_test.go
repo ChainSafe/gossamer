@@ -33,7 +33,7 @@ type data struct {
 }
 
 func newTestDBService() (*DbService, func()) {
-	dir, err := ioutil.TempDir(os.TempDir(), "badger-test")
+	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
@@ -44,8 +44,28 @@ func newTestDBService() (*DbService, func()) {
 	return db, func() {
 		db.Stop()
 		if err := os.RemoveAll(dir); err != nil {
-			fmt.Println("removal of temp directory badger-test failed")
+			fmt.Println("removal of temp directory test_data failed")
 		}
+	}
+}
+
+func TestDbService_Start(t *testing.T) {
+	db, remove := newTestDBService()
+	defer remove()
+
+	err:= db.Start()
+	if err == nil {
+		t.Fatalf("get returned wrong result, got %v", err)
+	}
+}
+
+func TestDb_Close(t *testing.T) {
+	db, remove := newTestDBService()
+	defer remove()
+
+	success := db.StateDB.Db.Close()
+	if !success {
+		t.Fatalf("get returned wrong result, got %v expected %v", success, true)
 	}
 }
 
@@ -312,6 +332,8 @@ func TestBadgerDB_TablePrefixOps(t *testing.T) {
 	testPutTablesWithPrefix(db.StateDB.Db, t)
 	testHasTablesWithPrefix(db.StateDB.Db, t)
 	testDelTablesWithPrefix(db.StateDB.Db, t)
+	testTableClose(db.StateDB.Db, t)
+	testNewTableBatch(db.StateDB.Db, t)
 }
 
 func testPutTablesWithPrefix(db Database, t *testing.T) {
@@ -370,6 +392,25 @@ func testDelTablesWithPrefix(db Database, t *testing.T) {
 				t.Fatalf("failed to delete value %q", v.input)
 			}
 		})
+	}
+}
+
+func testTableClose(db Database, t *testing.T) {
+	ops := NewTable(db, "99")
+
+	success := ops.Close()
+	if !success {
+		t.Fatalf("get returned wrong result, got %v expected %v", success, true)
+	}
+}
+
+func testNewTableBatch(db Database, t *testing.T) {
+	ops := NewTable(db, "99")
+	b := ops.NewBatch()
+
+	_, ok := b.(Batch)
+	if !ok {
+		t.Fatalf("get returned wrong result, got %v", ok)
 	}
 }
 
