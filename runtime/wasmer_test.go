@@ -783,22 +783,10 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 		Digest: []byte{},
 	}
 
-	//testHeader := core.BlockHeader{
-	//	ParentHash: parentHash,
-	//	Number: big.NewInt(1),
-	//	StateRoot: stateRoot,
-	//	ExtrinsicsRoot: extrinsicsRoot,
-	//	Digest: []byte{},
-	//}
-
-	t.Log("encode", "testStruct", testHeader)
-
-	type blockStruct struct {
-		BlockHeader *common.BlockHeader
-		Extrinsics []byte
+	testBlock := common.Block{
+		Header: &testHeader,
+		Extrinsics: []byte{},
 	}
-
-	testBlock := blockStruct{&testHeader, []byte{}}
 
 	buffer := bytes.Buffer{}
 

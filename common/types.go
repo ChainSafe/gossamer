@@ -50,3 +50,9 @@ func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
 }
+
+// Block defines a state block
+type Block struct {
+	Header *BlockHeader
+	Extrinsics  []byte
+}
