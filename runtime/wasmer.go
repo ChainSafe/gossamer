@@ -29,12 +29,13 @@ package runtime
 // extern void ext_twox_128(void *context, int32_t data, int32_t len, int32_t out);
 // extern int32_t ext_get_allocated_storage(void *context, int32_t keyData, int32_t keyLen, int32_t writtenOut);
 // extern void ext_storage_root(void *context, int32_t resultPtr);
-// extern int32_t ext_storage_changes_root(void *context, int32_t a, int32_t b, int32_t c);
+// extern int32_t ext_storage_changes_root(void *context, int32_t a, int32_t b, int64_t c, int32_t d);
 // extern void ext_clear_prefix(void *context, int32_t prefixData, int32_t prefixLen);
 // extern int32_t ext_sr25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
 // extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
 // extern void ext_print_num(void *context, int64_t data);
+// extern int32_t ext_exists_storage(void *context, int32_t keyData, int32_t keyLen);
 import "C"
 
 import (
@@ -46,13 +47,13 @@ import (
 	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
-	common "github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
-	trie "github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
-	xxhash "github.com/OneOfOne/xxhash"
+	"github.com/OneOfOne/xxhash"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
-	ed25519 "golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/ed25519"
 )
 
 var registry map[int]RuntimeCtx
@@ -72,30 +73,26 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
-	log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
-	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Allocate memory
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
-	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
+	//log.Debug("[ext_malloc]", "pointer", res)
+	//log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
 	return int32(res)
 }
 
 //export ext_free
 func ext_free(context unsafe.Pointer, addr int32) {
-	log.Debug("[ext_free] executing...")
+//	log.Debug("[ext_free] executing...")
 	log.Debug("[ext_free]", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
-
-	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Deallocate memory
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
@@ -199,8 +196,8 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 }
 
 //export ext_storage_changes_root
-func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
-	log.Debug("[ext_storage_changes_root] executing...")
+func ext_storage_changes_root(context unsafe.Pointer, a, b int32, c C.int64_t, d int32) int32 {
+	log.Debug("[****ext_storage_changes_root****] executing...")
 	return 0
 }
 
@@ -378,7 +375,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 
 //export ext_sr25519_verify
 func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
-	log.Debug("[ext_sr25519_verify] executing...")
+	log.Debug("[****ext_sr25519_verify****] executing...")
 	return 0
 }
 
@@ -397,6 +394,12 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 	}
 
 	return 1
+}
+
+//export ext_exists_storage
+func ext_exists_storage(context unsafe.Pointer, keyData, keyLen int32) int32 {
+	log.Debug("[****ext_exists_storage****] executing...")
+	return 0
 }
 
 type RuntimeCtx struct {
@@ -484,7 +487,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	_, err = imports.Append("ext_exists_storage", ext_exists_storage, C.ext_exists_storage)
+	if err != nil {
+		return nil, err
+	}
 	// Instantiates the WebAssembly module.
 	instance, err := wasm.NewInstanceWithImports(bytes, imports)
 	if err != nil {
