@@ -73,8 +73,9 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// Create database dir and initialize stateDB and blockDB
 	dataDir := getDatabaseDir(ctx, fig)
 	dbSrv, err := polkadb.NewDatabaseService(dataDir)
-
-
+	if err != nil {
+		log.Crit("error creating DB service", "error", err)
+	}
 	// append DBs to services registrar
 	srvcs = append(srvcs, dbSrv)
 

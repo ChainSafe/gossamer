@@ -17,9 +17,10 @@
 package polkadb
 
 import (
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core"
-	"math/big"
 )
 
 // PutItem wraps the database write operation supported by regular database.

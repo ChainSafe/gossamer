@@ -53,7 +53,7 @@ func TestDbService_Start(t *testing.T) {
 	db, remove := newTestDBService()
 	defer remove()
 
-	err:= db.Start()
+	err := db.Start()
 	if err == nil {
 		t.Fatalf("get returned wrong result, got %v", err)
 	}

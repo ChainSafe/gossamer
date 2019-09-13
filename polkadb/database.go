@@ -36,7 +36,7 @@ type DbService struct {
 	StateDB *StateDB
 	BlockDB *BlockDB
 
-	err     <-chan error
+	err <-chan error
 }
 
 // BlockDB contains badger.DB instance
@@ -99,19 +99,19 @@ func NewDatabaseService(file string) (*DbService, error) {
 
 // NewBlockDB instantiates BlockDB for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
-	db,err := NewBadgerService(dataDir)
+	db, err := NewBadgerService(dataDir)
 	if err != nil {
 		log.Crit("error", err)
 	}
 
 	return &BlockDB{
-	db,
+		db,
 	}, nil
 }
 
 // NewStateDB instantiates StateDB for trie structure
 func NewStateDB(dataDir string) (*StateDB, error) {
-	db,err := NewBadgerService(dataDir)
+	db, err := NewBadgerService(dataDir)
 	if err != nil {
 		log.Crit("error", err)
 	}
@@ -133,11 +133,11 @@ func NewBadgerService(file string) (*Db, error) {
 		return nil, err
 	}
 
-	return &Db {
-		config:Config{
-			DataDir:file,
+	return &Db{
+		config: Config{
+			DataDir: file,
 		},
-		db:db,
+		db: db,
 	}, nil
 }
 

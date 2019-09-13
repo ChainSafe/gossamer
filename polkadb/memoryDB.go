@@ -85,8 +85,9 @@ func (db *MemDatabase) Del(key []byte) error {
 }
 
 // Close ...
-func (db *MemDatabase) Close() {
+func (db *MemDatabase) Close() bool {
 	// do nothing
+	return true
 }
 
 // NewBatch ...
