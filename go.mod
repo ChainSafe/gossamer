@@ -24,5 +24,3 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.0.0-20190716093451-605a12aad995
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 )
-
-go 1.12
