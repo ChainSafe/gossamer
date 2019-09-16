@@ -53,9 +53,11 @@ func intToHashable(in int) string {
 }
 
 func createFlatTree(t *testing.T, depth int) *BlockTree {
-	memDB := db.NewMemDatabase()
+	d := &db.BlockDB{
+		Db: db.NewMemDatabase(),
+	}
 
-	bt := NewBlockTreeFromGenesis(createGenesisBlock(), memDB)
+	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)
 
 	previousHash := bt.head.hash
 

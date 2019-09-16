@@ -18,101 +18,11 @@ package polkadb
 
 import (
 	"os"
-	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/dgraph-io/badger"
 	"github.com/golang/snappy"
 )
-
-// Start...
-func (dbService *DbService) Start() <-chan error {
-	dbService.err = make(<-chan error)
-	return dbService.err
-}
-
-// Stop kills running BlockDB and StateDB instances
-func (dbService *DbService) Stop() <-chan error {
-	e := make(chan error)
-	// Closing Badger Databases
-	err := dbService.StateDB.Db.db.Close()
-	if err != nil {
-		e <- err
-	}
-
-	err = dbService.BlockDB.Db.db.Close()
-	if err != nil {
-		e <- err
-	}
-	return e
-}
-
-// DbService contains both databases for service registry
-type DbService struct {
-	StateDB *StateDB
-	BlockDB *BlockDB
-
-	err <-chan error
-}
-
-// NewDatabaseService opens and returns a new DB object
-func NewDatabaseService(file string) (*DbService, error) {
-	stateDataDir := filepath.Join(file, "state")
-	blockDataDir := filepath.Join(file, "block")
-
-	stateDb, err := NewStateDB(stateDataDir)
-	if err != nil {
-		log.Crit("failed to instantiate StateDB", "error", err)
-		return nil, err
-	}
-
-	blockDb, err := NewBlockDB(blockDataDir)
-	if err != nil {
-		log.Crit("failed to instantiate BlockDB", "error", err)
-		return nil, err
-	}
-
-	return &DbService{
-		StateDB: stateDb,
-		BlockDB: blockDb,
-	}, nil
-}
-
-// BlockDB contains badger.DB instance
-type BlockDB struct {
-	Db *Db
-}
-
-// NewBlockDB instantiates BlockDB for storing relevant BlockData
-func NewBlockDB(dataDir string) (*BlockDB, error) {
-	db, err := NewBadgerService(dataDir)
-	if err != nil {
-		log.Crit("error instantiating BlockDB", "error", err)
-		return nil, err
-	}
-
-	return &BlockDB{
-		db,
-	}, nil
-}
-
-// StateDB contains badger.DB instance
-type StateDB struct {
-	Db *Db
-}
-
-// NewStateDB instantiates StateDB for trie structure
-func NewStateDB(dataDir string) (*StateDB, error) {
-	db, err := NewBadgerService(dataDir)
-	if err != nil {
-		log.Crit("error instantiating StateDB", "error", err)
-		return nil, err
-	}
-
-	return &StateDB{
-		db,
-	}, nil
-}
 
 // Db contains directory path to data and db instance
 type Db struct {
@@ -128,6 +38,10 @@ type Config struct {
 // NewBadgerService initializes badgerDB instance
 func NewBadgerService(file string) (*Db, error) {
 	opts := badger.DefaultOptions(file)
+	opts.ValueDir = file
+	opts.WithSyncWrites(false)
+	opts.WithNumCompactors(20)
+
 	if err := os.MkdirAll(file, os.ModePerm); err != nil {
 		log.Crit("err creating directory for DB ", err)
 	}
@@ -221,14 +135,14 @@ func (db *Db) Del(key []byte) error {
 }
 
 // Close closes a DB
-func (db *Db) Close() bool {
+func (db *Db) Close() error {
 	err := db.db.Close()
 	if err == nil {
 		log.Info("Database closed")
-		return true
+		return err
 	} else {
 		log.Crit("Failed to close database", "err", err)
-		return false
+		return nil
 	}
 }
 
@@ -349,91 +263,4 @@ func (b *batchWriter) Delete(key []byte) error {
 func (b *batchWriter) Reset() {
 	b.b = make(map[string][]byte)
 	b.size = 0
-}
-
-type table struct {
-	db     Database
-	prefix string
-}
-
-type tableBatch struct {
-	batch  Batch
-	prefix string
-}
-
-// NewTable returns a Database object that prefixes all keys with a given
-// string.
-func NewTable(db Database, prefix string) Database {
-	return &table{db: db, prefix: prefix}
-}
-
-// Put adds keys with the prefix value given to NewTable
-func (dt *table) Put(key []byte, value []byte) error {
-	return dt.db.Put(append([]byte(dt.prefix), key...), value)
-}
-
-// Has checks keys with the prefix value given to NewTable
-func (dt *table) Has(key []byte) (bool, error) {
-	return dt.db.Has(append([]byte(dt.prefix), key...))
-}
-
-// Get retrieves keys with the prefix value given to NewTable
-func (dt *table) Get(key []byte) ([]byte, error) {
-	return dt.db.Get(append([]byte(dt.prefix), key...))
-}
-
-// Del removes keys with the prefix value given to NewTable
-func (dt *table) Del(key []byte) error {
-	return dt.db.Del(append([]byte(dt.prefix), key...))
-}
-
-// Close closes table db
-func (dt *table) Close() bool {
-	success := dt.db.Close()
-	if success {
-		log.Info("Database closed")
-		return true
-	} else {
-		log.Crit("Failed to close database")
-		return false
-	}
-}
-
-// NewTableBatch returns a Batch object which prefixes all keys with a given string.
-func NewTableBatch(db Database, prefix string) Batch {
-	return &tableBatch{db.NewBatch(), prefix}
-}
-
-// NewBatch returns tableBatch with a Batch type and the given prefix
-func (dt *table) NewBatch() Batch {
-	return &tableBatch{dt.db.NewBatch(), dt.prefix}
-}
-
-// Put encodes key-values with prefix given to NewBatchTable and adds them to a mapping for batch writes, sets the size of item value
-func (tb *tableBatch) Put(key, value []byte) error {
-	return tb.batch.Put(append([]byte(tb.prefix), key...), value)
-}
-
-// Write performs batched writes with the provided prefix
-func (tb *tableBatch) Write() error {
-	return tb.batch.Write()
-}
-
-// ValueSize returns the amount of data in the batch accounting for the given prefix
-func (tb *tableBatch) ValueSize() int {
-	return tb.batch.ValueSize()
-}
-
-// // Reset clears batch key-values and resets the size to zero
-func (tb *tableBatch) Reset() {
-	tb.batch.Reset()
-}
-
-// Delete removes the key from the batch and database
-func (tb *tableBatch) Delete(k []byte) error {
-	err := tb.batch.Delete(k)
-	if err != nil {
-		return err
-	}
-	return nil
 }
