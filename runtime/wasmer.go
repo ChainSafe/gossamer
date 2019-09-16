@@ -89,10 +89,6 @@ func (r *Runtime) Stop() {
 	r.vm.Close()
 }
 
-func (r *Runtime) Mem() []byte {
-	return r.vm.Memory.Data()
-}
-
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
