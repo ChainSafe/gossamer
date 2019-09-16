@@ -53,6 +53,6 @@ func (h Hash) ToBytes() []byte {
 
 // Block defines a state block
 type Block struct {
-	Header *BlockHeader
-	Extrinsics  []byte
+	Header     *BlockHeader
+	Extrinsics []byte
 }

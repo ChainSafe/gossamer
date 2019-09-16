@@ -86,7 +86,7 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 
 //export ext_free
 func ext_free(context unsafe.Pointer, addr int32) {
-//	log.Debug("[ext_free] executing...")
+	//	log.Debug("[ext_free] executing...")
 	log.Debug("[ext_free]", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 
@@ -565,7 +565,7 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 func (r *Runtime) CoreExecuteBlock(block common.Block) ([]byte, error) {
 	buffer := bytes.Buffer{}
 
-	encoder := scale.Encoder{ &buffer}
+	encoder := scale.Encoder{Writer: &buffer}
 	bytesEncoded, err := encoder.Encode(&block)
 	if err != nil {
 		return nil, err
@@ -575,8 +575,8 @@ func (r *Runtime) CoreExecuteBlock(block common.Block) ([]byte, error) {
 
 	var offset int32 = 16
 	//var offset int32 = 1126872
-	var length int32 = int32(bytesEncoded)
-	copy( r.vm.Memory.Data()[offset:offset+length], output)
+	var length = int32(bytesEncoded)
+	copy(r.vm.Memory.Data()[offset:offset+length], output)
 
 	ret, err := r.Exec("Core_execute_block", offset, length)
 	return ret, err

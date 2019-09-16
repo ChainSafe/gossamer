@@ -21,8 +21,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"io"
 	"math/big"
 	"net/http"
@@ -31,12 +29,16 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/polkadb"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/trie"
 	"golang.org/x/crypto/ed25519"
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
+
 //const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
 //const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-spec/raw/master/polkadot-runtime/kusama/polkadot_runtime.compact.wasm?raw=true"
 const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-spec/raw/master/polkadot-runtime/alexander/polkadot_runtime.compact.wasm?raw=true"
@@ -98,8 +100,8 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 		return nil, err
 	}
 	database := trie.Database{
-		Db: db,
-		Hasher:hasher,
+		Db:     db,
+		Hasher: hasher,
 	}
 	tt := trie.NewEmptyTrie(&database)
 
@@ -757,14 +759,14 @@ func createTestBlock() (common.Block, error) {
 
 	testHeader := common.BlockHeader{
 		ParentHash:     parentHash,
-		Number: big.NewInt(1),
-		StateRoot: stateRoot,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest: []byte{},
+		Digest:         []byte{},
 	}
 
 	testBlock := common.Block{
-		Header: &testHeader,
+		Header:     &testHeader,
 		Extrinsics: []byte{},
 	}
 	return testBlock, err
@@ -781,7 +783,7 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 	mem := r.vm.Memory.Data()
 
 	// sample test data from substrait test
-	data := []byte { 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
+	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
 	t.Log("wasmer_test", "target data", data)
 
 	testBlock, err := createTestBlock()
@@ -791,7 +793,7 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 
 	buffer := bytes.Buffer{}
 
-	encoder := codec.Encoder{ &buffer}
+	encoder := codec.Encoder{Writer: &buffer}
 	bytesEncoded, err := encoder.Encode(&testBlock)
 	if err != nil {
 		t.Fatal(err)
@@ -803,7 +805,7 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 
 	var offset int32 = 16
 	//var offset int32 = 1126872
-	var length int32 = int32(bytesEncoded)
+	var length = int32(bytesEncoded)
 	t.Log("length:", length)
 	copy(mem[offset:offset+length], output)
 
@@ -835,4 +837,3 @@ func TestCallFunctionCoreExecuteBlock(t *testing.T) {
 	}
 	t.Log(ret)
 }
-
