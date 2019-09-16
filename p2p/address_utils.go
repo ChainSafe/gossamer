@@ -47,7 +47,7 @@ func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
 
 func convIdToStringArray(peers []peer.ID) []string {
 	//Copy peer.ID array into a string array
-	var stringPeers []string
+	stringPeers := make([]string, len(peers))
 
 	for i, peer := range peers {
 		stringPeers[i] = peer.String()
