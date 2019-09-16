@@ -16,6 +16,8 @@ type BabeSession struct {
 	epochData 	*Epoch
 
 	authorityIndex uint64
+
+	// authorities []VrfPublicKey
 	authorityWeights []uint64
 
 	// currentEpoch uint64
@@ -57,14 +59,26 @@ func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
 	return nil, nil
 }
 
+// https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
 func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) (*big.Int, error) {
 	var sum uint64 = 0
 	for _, weight := range authorityWeights {
 		sum += weight
 	}
 
-	var theta float64 = float64(authorityWeights[authorityIndex]) / float64(sum)
+	theta :=float64(authorityWeights[authorityIndex]) / float64(sum)
+	//c := new(big.Float).SetFloat64(float64(C1)/float64(C2))
+	c := float64(C1)/float64(C2)
 
+ 	// let calc = || {
+	// 	let p = BigRational::from_float(1f64 - (1f64 - c).powf(theta))?;
+	// 	let numer = p.numer().to_biguint()?;
+	// 	let denom = p.denom().to_biguint()?;
+	// 	((BigUint::one() << 128) * numer / denom).to_u128()
+	// };
+
+	//p := new(big.Float).Sub(bigFloat1, bigFloat1.Sub(bigFloat1, c).Exp(theta))
+	p := 1.0 - (1.0-c)**theta
 	return nil, nil
 
 }
