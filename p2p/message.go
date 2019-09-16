@@ -20,10 +20,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
-
 	scale "github.com/ChainSafe/gossamer/codec"
-	common "github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common"
+	"io"
 )
 
 const (
@@ -171,4 +170,25 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 // Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
 func (bm *BlockRequestMessage) Decode(msg []byte) error {
 	return nil
+}
+
+
+type BlockHeaderMessage common.BlockHeader
+
+// string formats a BlockHeaderMessage as a string
+func (bhm *BlockHeaderMessage) String() string {
+	return fmt.Sprintf("BlockHeaderMessage ParentHash=%x Number=%d StateRoot=%x ExtrinsicsRoot=%x Digest=%x",
+		bhm.ParentHash,
+		bhm.Number,
+		bhm.StateRoot,
+		bhm.ExtrinsicsRoot,
+		bhm.Digest)
+}
+
+func (bhm *BlockHeaderMessage) Encode() ([]byte, error) {
+	enc, err := scale.Encode(bhm)
+	if err != nil {
+		return enc, err
+	}
+	return append([]byte{BlockAnnounceMsg}, enc...), nil
 }
