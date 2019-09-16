@@ -240,7 +240,8 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	if endBlockHashExists == 0 {
 		bm.EndBlockHash = common.OptionalHash{Exists: false}
 	} else {
-		endBlockHash, err := readHash(r)
+		var endBlockHash common.Hash
+		endBlockHash, err = readHash(r)
 		if err != nil {
 			return err
 		}
