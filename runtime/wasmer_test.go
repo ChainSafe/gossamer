@@ -99,7 +99,7 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	database := trie.Database{
+	database := trie.StateDB{
 		Db:     db,
 		Hasher: hasher,
 	}
@@ -117,10 +117,10 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 func TestExecVersion(t *testing.T) {
 	expected := &Version{
-		Spec_name:         []byte("polkadot"),
-		Impl_name:         []byte("parity-polkadot"),
+		Spec_name:         []byte("kusama"),
+		Impl_name:         []byte("parity-kusama"),
 		Authoring_version: 1,
-		Spec_version:      1000,
+		Spec_version:      1002,
 		Impl_version:      0,
 	}
 
@@ -154,7 +154,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/09d34b04fff635e92eaecfb192d42aae4f58ba54/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
