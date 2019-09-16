@@ -355,7 +355,7 @@ func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_keccak_256] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	hash := common.Sha3(memory[data : data+length])
+	hash := common.Keccak256(memory[data : data+length])
 	copy(memory[out:out+32], hash[:])
 }
 

@@ -17,6 +17,7 @@
 package common
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -38,8 +39,15 @@ func TestBlake2bHash(t *testing.T) {
 	t.Log(h)
 }
 
-func TestSha3(t *testing.T) {
+func TestKeccak256(t *testing.T) {
 	in := []byte{}
-	h := Sha3(in)
-	t.Logf("%x", h)
+	h := Keccak256(in)
+	expected, err := HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(expected[:], h[:]) {
+		t.Fatalf("Fail: got %x expected %x", h, expected)
+	}
 }

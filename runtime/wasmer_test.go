@@ -781,7 +781,7 @@ func TestExt_keccak_256(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, err := common.HexToHash("0xa7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a")
+	expected, err := common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
 	if err != nil {
 		t.Fatal(err)
 	}

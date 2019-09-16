@@ -48,6 +48,10 @@ func Blake2bHash(in []byte) (Hash, error) {
 	return buf, err
 }
 
-func Sha3(in []byte) Hash {
-	return sha3.Sum256(in)
+func Keccak256(in []byte) Hash {
+	h := sha3.NewLegacyKeccak256()
+	hash := h.Sum(in)
+	var buf = [32]byte{}
+	copy(buf[:], hash)
+	return buf
 }
