@@ -27,7 +27,13 @@ func TestBlake2b218(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(h)
+	expected, err := HexToBytes("0x01cae66941d9efbd404e4d88758ea676")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expected, h) {
+		t.Fatalf("Fail: got %x expected %x", h, expected)
+	}
 }
 
 func TestBlake2bHash(t *testing.T) {
@@ -36,7 +42,13 @@ func TestBlake2bHash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(h)
+	expected, err := HexToBytes("0xee155ace9c40292074cb6aff8c9ccdd273c81648ff1149ef36bcea6ebb8a3e25")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(expected, h[:]) {
+		t.Fatalf("Fail: got %x expected %x", h, expected)
+	}
 }
 
 func TestKeccak256(t *testing.T) {

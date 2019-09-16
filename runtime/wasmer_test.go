@@ -673,7 +673,6 @@ func TestExt_twox_64(t *testing.T) {
 	}
 
 	//check result against expected value
-	t.Logf("Ext_twox_64 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+8]))
 	if "99e9d85137db46ef" != hex.EncodeToString(mem[out:out+8]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
@@ -695,7 +694,6 @@ func TestExt_twox_64(t *testing.T) {
 	}
 
 	//check result against expected value
-	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+8]))
 	if "b27dfd7f223f177f" != hex.EncodeToString(mem[out:out+8]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
@@ -728,7 +726,6 @@ func TestExt_twox_128(t *testing.T) {
 	}
 
 	//check result against expected value
-	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
 	if "99e9d85137db46ef4bbea33613baafd5" != hex.EncodeToString(mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}
@@ -750,7 +747,6 @@ func TestExt_twox_128(t *testing.T) {
 	}
 
 	//check result against expected value
-	t.Logf("Ext_twox_128 data: %s, result: %s", data, hex.EncodeToString(mem[out:out+16]))
 	if "b27dfd7f223f177f2a13647b533599af" != hex.EncodeToString(mem[out:out+16]) {
 		t.Error("hash saved in memory does not equal calculated hash")
 	}

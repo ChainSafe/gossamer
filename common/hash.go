@@ -21,6 +21,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// Returns the 128-bit blake2b hash of the input data
 func Blake2b128(in []byte) ([]byte, error) {
 	hasher, err := blake2b.New(16, nil)
 	if err != nil {
