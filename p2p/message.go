@@ -118,21 +118,43 @@ func (sm *StatusMessage) Decode(r io.Reader) error {
 type BlockRequestMessage struct {
 	Id            uint64
 	RequestedData byte
-	StartingBlock []byte // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	EndBlockHash  []byte // optional [32]byte
+	StartingBlock []byte              // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	EndBlockHash  common.OptionalHash // optional [32]byte
 	Direction     byte
-	Max           []byte // optional uint32
+	Max           common.OptionalUint32 // optional uint32
 }
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
-		bm.Id,
-		bm.RequestedData,
-		bm.StartingBlock,
-		bm.EndBlockHash,
-		bm.Direction,
-		bm.Max)
+	if bm.EndBlockHash.Exists && bm.Max.Exists {
+		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
+			bm.Id,
+			bm.RequestedData,
+			bm.StartingBlock,
+			bm.EndBlockHash.Value,
+			bm.Direction,
+			bm.Max.Value)
+	} else if bm.EndBlockHash.Exists && !bm.Max.Exists {
+		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d",
+			bm.Id,
+			bm.RequestedData,
+			bm.StartingBlock,
+			bm.EndBlockHash.Value,
+			bm.Direction)
+	} else if !bm.EndBlockHash.Exists && bm.Max.Exists {
+		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x Direction=%d Max=%d",
+			bm.Id,
+			bm.RequestedData,
+			bm.StartingBlock,
+			bm.Direction,
+			bm.Max.Value)
+	} else {
+		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x Direction=%d",
+			bm.Id,
+			bm.RequestedData,
+			bm.StartingBlock,
+			bm.Direction)
+	}
 }
 
 // Encode encodes a block request message using SCALE and appends the type byte to the start
@@ -156,20 +178,20 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		encMsg = append(encMsg, bm.StartingBlock...)
 	}
 
-	if bm.EndBlockHash == nil || bm.EndBlockHash[0] == 0 {
+	if !bm.EndBlockHash.Exists {
 		encMsg = append(encMsg, []byte{0, 0}...)
 	} else {
-		encMsg = append(encMsg, bm.EndBlockHash...)
+		encMsg = append(encMsg, append([]byte{1}, bm.EndBlockHash.Value[:]...)...)
 	}
 
 	encMsg = append(encMsg, bm.Direction)
 
-	if bm.Max == nil || bm.Max[0] == 0 {
+	if !bm.Max.Exists {
 		encMsg = append(encMsg, []byte{0, 0}...)
 	} else {
-		encMax := make([]byte, 5)
-		copy(encMax, bm.Max)
-		encMsg = append(encMsg, encMax...)
+		max := make([]byte, 4)
+		binary.LittleEndian.PutUint32(max, bm.Max.Value)
+		encMsg = append(encMsg, append([]byte{1}, max...)...)
 	}
 
 	return encMsg, nil
@@ -216,14 +238,16 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 
 	// if endBlockHash was None, then just set Direction and Max
 	if endBlockHashExists == 0 {
-		bm.EndBlockHash = []byte{0, 0}
+		bm.EndBlockHash = common.OptionalHash{Exists: false}
 	} else {
-		endBlockHash := make([]byte, 32)
-		_, err = r.Read(endBlockHash)
+		endBlockHash, err := readHash(r)
 		if err != nil {
 			return err
 		}
-		bm.EndBlockHash = append([]byte{1}, endBlockHash...)
+		bm.EndBlockHash = common.OptionalHash{
+			Exists: true,
+			Value:  endBlockHash,
+		}
 	}
 
 	dir, err := readByte(r)
@@ -239,14 +263,16 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	}
 
 	if maxExists == 0 {
-		bm.Max = []byte{0, 0}
+		bm.Max = common.OptionalUint32{Exists: false}
 	} else {
-		max := make([]byte, 4)
-		_, err = r.Read(max)
+		max, err := readUint32(r)
 		if err != nil {
 			return err
 		}
-		bm.Max = append([]byte{1}, max...)
+		bm.Max = common.OptionalUint32{
+			Exists: true,
+			Value:  max,
+		}
 	}
 
 	return nil
@@ -302,6 +328,15 @@ func readByte(r io.Reader) (byte, error) {
 	return buf[0], nil
 }
 
+func readUint32(r io.Reader) (uint32, error) {
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint32(buf), nil
+}
+
 func readUint64(r io.Reader) (uint64, error) {
 	buf := make([]byte, 8)
 	_, err := r.Read(buf)
@@ -309,4 +344,15 @@ func readUint64(r io.Reader) (uint64, error) {
 		return 0, err
 	}
 	return binary.LittleEndian.Uint64(buf), nil
+}
+
+func readHash(r io.Reader) (common.Hash, error) {
+	buf := make([]byte, 32)
+	_, err := r.Read(buf)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	h := [32]byte{}
+	copy(h[:], buf)
+	return common.Hash(h), nil
 }
