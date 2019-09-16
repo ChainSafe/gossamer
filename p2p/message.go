@@ -24,6 +24,7 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
+	optional "github.com/ChainSafe/gossamer/common/optional"
 )
 
 const (
@@ -118,43 +119,21 @@ func (sm *StatusMessage) Decode(r io.Reader) error {
 type BlockRequestMessage struct {
 	Id            uint64
 	RequestedData byte
-	StartingBlock []byte              // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	EndBlockHash  common.OptionalHash // optional [32]byte
+	StartingBlock []byte // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
+	EndBlockHash  *optional.Hash
 	Direction     byte
-	Max           common.OptionalUint32 // optional uint32
+	Max           *optional.Uint32
 }
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	if bm.EndBlockHash.Exists && bm.Max.Exists {
-		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d Max=%d",
-			bm.Id,
-			bm.RequestedData,
-			bm.StartingBlock,
-			bm.EndBlockHash.Value,
-			bm.Direction,
-			bm.Max.Value)
-	} else if bm.EndBlockHash.Exists && !bm.Max.Exists {
-		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%x Direction=%d",
-			bm.Id,
-			bm.RequestedData,
-			bm.StartingBlock,
-			bm.EndBlockHash.Value,
-			bm.Direction)
-	} else if !bm.EndBlockHash.Exists && bm.Max.Exists {
-		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x Direction=%d Max=%d",
-			bm.Id,
-			bm.RequestedData,
-			bm.StartingBlock,
-			bm.Direction,
-			bm.Max.Value)
-	} else {
-		return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x Direction=%d",
-			bm.Id,
-			bm.RequestedData,
-			bm.StartingBlock,
-			bm.Direction)
-	}
+	return fmt.Sprintf("BlockRequestMessage Id=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%s Direction=%d Max=%s",
+		bm.Id,
+		bm.RequestedData,
+		bm.StartingBlock,
+		bm.EndBlockHash.String(),
+		bm.Direction,
+		bm.Max.String())
 }
 
 // Encode encodes a block request message using SCALE and appends the type byte to the start
@@ -178,19 +157,20 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		encMsg = append(encMsg, bm.StartingBlock...)
 	}
 
-	if !bm.EndBlockHash.Exists {
+	if !bm.EndBlockHash.Exists() {
 		encMsg = append(encMsg, []byte{0, 0}...)
 	} else {
-		encMsg = append(encMsg, append([]byte{1}, bm.EndBlockHash.Value[:]...)...)
+		val := bm.EndBlockHash.Value()
+		encMsg = append(encMsg, append([]byte{1}, val[:]...)...)
 	}
 
 	encMsg = append(encMsg, bm.Direction)
 
-	if !bm.Max.Exists {
+	if !bm.Max.Exists() {
 		encMsg = append(encMsg, []byte{0, 0}...)
 	} else {
 		max := make([]byte, 4)
-		binary.LittleEndian.PutUint32(max, bm.Max.Value)
+		binary.LittleEndian.PutUint32(max, bm.Max.Value())
 		encMsg = append(encMsg, append([]byte{1}, max...)...)
 	}
 
@@ -200,6 +180,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 // Decodes the message into a BlockRequestMessage, it assumes the type byte has been removed
 func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	var err error
+
 	bm.Id, err = readUint64(r)
 	if err != nil {
 		return err
@@ -210,6 +191,7 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 		return err
 	}
 
+	// starting block is a variable type; if next byte is 0 it is Hash, if next byte is 1 it is uint64
 	startingBlockType, err := readByte(r)
 	if err != nil {
 		return err
@@ -231,6 +213,7 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 		bm.StartingBlock = append([]byte{startingBlockType}, num...)
 	}
 
+	// EndBlockHash is an optional type, if next byte is 0 it doesn't exist
 	endBlockHashExists, err := readByte(r)
 	if err != nil {
 		return err
@@ -238,19 +221,15 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 
 	// if endBlockHash was None, then just set Direction and Max
 	if endBlockHashExists == 0 {
-		bm.EndBlockHash = common.OptionalHash{Exists: false}
+		bm.EndBlockHash = optional.NewHash(false, common.Hash{})
 	} else {
 		var endBlockHash common.Hash
 		endBlockHash, err = readHash(r)
 		if err != nil {
 			return err
 		}
-		bm.EndBlockHash = common.OptionalHash{
-			Exists: true,
-			Value:  endBlockHash,
-		}
+		bm.EndBlockHash = optional.NewHash(true, endBlockHash)
 	}
-
 	dir, err := readByte(r)
 	if err != nil {
 		return err
@@ -258,22 +237,20 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 
 	bm.Direction = dir
 
+	// Max is an optional type, if next byte is 0 it doesn't exist
 	maxExists, err := readByte(r)
 	if err != nil {
 		return err
 	}
 
 	if maxExists == 0 {
-		bm.Max = common.OptionalUint32{Exists: false}
+		bm.Max = optional.NewUint32(false, 0)
 	} else {
 		max, err := readUint32(r)
 		if err != nil {
 			return err
 		}
-		bm.Max = common.OptionalUint32{
-			Exists: true,
-			Value:  max,
-		}
+		bm.Max = optional.NewUint32(true, max)
 	}
 
 	return nil

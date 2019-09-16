@@ -50,13 +50,3 @@ type BlockHeader struct {
 	ExtrinsicsRoot Hash     // the root of the extrinsics trie
 	Digest         []byte   // any additional block info eg. logs, seal
 }
-
-type OptionalUint32 struct {
-	Exists bool
-	Value  uint32
-}
-
-type OptionalHash struct {
-	Exists bool
-	Value  Hash
-}
