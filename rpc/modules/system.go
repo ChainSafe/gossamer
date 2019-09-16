@@ -69,32 +69,38 @@ func NewSystemModule(api *api.Api) *SystemModule {
 		api: api,
 	}
 }
-func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) {
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
-
+	return nil
 }
 
-func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
+func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
 	res.Peers = len(sm.api.P2pSystem.Peers())
 	res.IsSyncing = sm.api.P2pSystem.IsSyncing()
 	res.ShouldHavePeers = !sm.api.P2pSystem.NoBootstrapping()
+	return nil
 }
 
-func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
+	return nil
 }
 
-func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) {
+func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
 	res.Id = sm.api.P2pSystem.ID()
+	return nil
 }
 
-func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) {
+func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
 	res.Peers = sm.api.P2pSystem.Peers()
+	return nil
 }
 
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
+	return nil
 }
 
-func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) {
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
+	return nil
 }
