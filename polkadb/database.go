@@ -191,18 +191,21 @@ func (db *Db) Has(key []byte) (exists bool, err error) {
 
 // Get returns the given key
 func (db *Db) Get(key []byte) (data []byte, err error) {
-	_ = db.db.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(snappy.Encode(nil, key))
-		if err != nil {
-			return err
+	err = db.db.View(func(txn *badger.Txn) error {
+		item, e := txn.Get(snappy.Encode(nil, key))
+		if e != nil {
+			return e
 		}
-		val, err := item.ValueCopy(nil)
-		if err != nil {
-			return err
+		val, e := item.ValueCopy(nil)
+		if e != nil {
+			return e
 		}
 		data, _ = snappy.Decode(nil, val)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	return data, nil
 }
 

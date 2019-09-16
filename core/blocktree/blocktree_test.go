@@ -18,7 +18,6 @@ package blocktree
 
 import (
 	"math/big"
-	"os"
 	"strconv"
 	"testing"
 
@@ -29,13 +28,6 @@ import (
 )
 
 var zeroHash, _ = common.HexToHash("0x00")
-
-func cleanup(db *db.BlockDB) {
-	db.Db.Close()
-	if err := os.RemoveAll("./test_data/"); err != nil {
-		log.Warn("removal of temp directory test_data failed", "error", err)
-	}
-}
 
 func createGenesisBlock() core.Block {
 	return core.Block{
@@ -61,12 +53,9 @@ func intToHashable(in int) string {
 }
 
 func createFlatTree(t *testing.T, depth int) *BlockTree {
-	dbSrv, err := db.NewDatabaseService("./test_data")
-	if err != nil {
-		log.Crit("database was not created ", "error ", err)
-	}
+	memDB := db.NewMemDatabase()
 
-	bt := NewBlockTreeFromGenesis(createGenesisBlock(), dbSrv.BlockDB)
+	bt := NewBlockTreeFromGenesis(createGenesisBlock(), memDB)
 
 	previousHash := bt.head.hash
 
@@ -96,10 +85,6 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 func TestBlockTree_GetBlock(t *testing.T) {
 	// Calls AddBlock
 	bt := createFlatTree(t, 2)
-	// Close db instance and remove dataDir
-	defer func() {
-		cleanup(bt.BlockDB)
-	}()
 
 	h, err := common.HexToHash(intToHashable(2))
 	if err != nil {
@@ -116,10 +101,6 @@ func TestBlockTree_GetBlock(t *testing.T) {
 
 func TestBlockTree_AddBlock(t *testing.T) {
 	bt := createFlatTree(t, 1)
-	// Close db instance and remove dataDir
-	defer func() {
-		cleanup(bt.BlockDB)
-	}()
 
 	block := core.Block{
 		Header: core.BlockHeader{
@@ -148,10 +129,6 @@ func TestBlockTree_AddBlock(t *testing.T) {
 func TestNode_isDecendantOf(t *testing.T) {
 	// Create tree with depth 4 (with 4 nodes)
 	bt := createFlatTree(t, 4)
-	// Close db instance and remove dataDir
-	defer func() {
-		cleanup(bt.BlockDB)
-	}()
 
 	// Compute hash of leaf and fetch node
 	hashFour, err := common.HexToHash(intToHashable(4))
@@ -174,10 +151,6 @@ func TestNode_isDecendantOf(t *testing.T) {
 
 func TestBlockTree_LongestPath(t *testing.T) {
 	bt := createFlatTree(t, 3)
-	// Close db instance and remove dataDir
-	defer func() {
-		cleanup(bt.BlockDB)
-	}()
 
 	// Insert a block to create a competing path
 	extraBlock := core.Block{
