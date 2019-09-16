@@ -25,7 +25,7 @@ import (
 	"github.com/golang/snappy"
 )
 
-// Start starts running BlockDB and StateDB instances
+// Start...
 func (dbService *DbService) Start() <-chan error {
 	dbService.err = make(<-chan error)
 	return dbService.err
