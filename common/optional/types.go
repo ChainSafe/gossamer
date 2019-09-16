@@ -2,6 +2,7 @@ package optional
 
 import (
 	"fmt"
+	
 	common "github.com/ChainSafe/gossamer/common"
 )
 
