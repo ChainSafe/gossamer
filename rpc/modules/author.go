@@ -42,7 +42,7 @@ type KeyRotateResponse []byte
 
 type ChainBlockHeaderResponse struct{}
 
-type ChainHashResponse common.Hash
+type AuthorHashResponse common.Hash
 
 // ChainModule is an RPC module providing access to storage API points.
 type AuthorModule struct {
@@ -57,12 +57,12 @@ func NewAuthorModule(api *api.Api) *AuthorModule {
 }
 
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
-	res = cm.api.AuthorSystem.Author
+	*res = cm.api.AuthorSystem.InsertKey(req.KeyType, req.Suri, req.PublicKey)
 	return
 }
 
-//Response -> Vec<Extrinsic>
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+	*res = cm.api.AuthorSystem.PendingExtrinsics()
 	return
 }
 
@@ -71,14 +71,15 @@ func (cm *AuthorModule) removeExtrinsic(r *http.Request, req *EmptyRequest, res 
 }
 
 func (cm *AuthorModule) rotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
+	*res = cm.api.AuthorSystem.RotateKeys()
 	return
 }
 
 // TODO: Finish implementing
-func (cm *ChainModule) submitAndWatchExtrinsic(r *http.Request, req *_, res *_) {
-	return
-}
+// func (cm *ChainModule) submitAndWatchExtrinsic(r *http.Request, req *_, res *_) {
+// 	return
+// }
 
-func (cm *ChainModule) submitExtrinsic(r *http.Request, req *_, res *_) {
+func (cm *AuthorModule) submitExtrinsic(r *http.Request, req *, res *AuthorHashResponse) {
 	return
 }

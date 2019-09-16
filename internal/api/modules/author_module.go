@@ -18,6 +18,8 @@ package module
 
 import (
 	"github.com/ethereum/go-ethereum/log"
+	"githum.com/ChainSafe/gossamer/common"
+	core "githum.com/ChainSafe/gossamer/core"
 )
 
 type AuthorModule struct {
@@ -27,9 +29,10 @@ type AuthorModule struct {
 // AuthorApi is the interface expected to implemented by `p2p` package
 type AuthorApi interface {
 	InsertKey(keyType, suri string, publicKey []byte) []byte
-	RotateKey() []byte
-	// GetBlockHashOfNode(*big.Int) common.Hash
-	// LastFinalizedHead() common.Hash
+	PendingExtrinsics() []core.BlockBody
+	// RemoveExtrinsic(bytesOrHash []core.BlockBody) []common.Hash
+	RotateKeys() []byte
+	SubmitExtrinsic(core.BlockBody) common.Hash
 }
 
 func NewAuthorModule(authorapi AuthorApi) *AuthorModule {
@@ -37,11 +40,25 @@ func NewAuthorModule(authorapi AuthorApi) *AuthorModule {
 }
 
 func (a *AuthorModule) InsertKey(keyType, suri string, publicKey []byte) []byte {
-	// log.Debug("[rpc] Executing Chain.getBlockHash", "params", nil)
+	log.Debug("[rpc] Executing Author.InsertKey", "params", nil)
 	return a.Author.InsertKey(keyType, suri, publicKey)
 }
 
-func (a *AuthorModule) RotateKey() []byte {
-	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
-	return a.Author.RotateKey()
+func (a *AuthorModule) PendingExtrinsics() []core.BlockBody {
+	log.Debug("[rpc] Executing Author.PendingExtrinsics", "params", nil)
+	return a.Author.PendingExtrinsics()
+}
+
+// func (a *AuthorModule) RemoveExtrinsic(extrinsic core.BlockBody) common.Hash {
+
+// }
+
+func (a *AuthorModule) RotateKeys() []byte {
+	log.Debug("[rpc] Executing Author.RotateKeys", "params", nil)
+	return a.Author.RotateKeys()
+}
+
+func (a *AuthorModule) SubmitExtrinsic(extrinsic core.BlockBody) common.Hash {
+	log.Debug("[rpc] Executing Author.SubmitExtrinsic", "params", nil)
+	return a.Author.SubmitExtrinsic(extrinsic)
 }
