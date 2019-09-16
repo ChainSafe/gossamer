@@ -257,10 +257,12 @@ type BlockResponseMessage struct {
 	Data []byte // TODO: change this to BlockData type
 }
 
+// String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
 	return fmt.Sprintf("BlockResponseMessage Id=%d Data=%x", bm.Id, bm.Data)
 }
 
+// Encode encodes a block response message using SCALE and appends the type byte to the start
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	encMsg := []byte{BlockResponseMsgType}
 
@@ -271,6 +273,7 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	return append(encMsg, bm.Data...), nil
 }
 
+// Decodes the message into a BlockResponseMessage, it assumes the type byte has been removed
 func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 	var err error
 	bm.Id, err = readUint64(r)
@@ -278,19 +281,13 @@ func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 		return err
 	}
 
-	buf := make([]byte, 1024)
 	for {
-		n, err := r.Read(buf)
+		b, err := readByte(r)
 		if err != nil {
-			return err
-		}
-
-		if n < 1024 {
-			bm.Data = append(bm.Data, buf[:n]...)
 			break
 		}
 
-		bm.Data = append(bm.Data, buf...)
+		bm.Data = append(bm.Data, b)
 	}
 
 	return nil
