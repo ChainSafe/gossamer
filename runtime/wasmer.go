@@ -35,7 +35,6 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-
 //export ext_exists_storage
 func ext_exists_storage(context unsafe.Pointer, keyData, keyLen int32) int32 {
 	log.Debug("[****ext_exists_storage****] executing...")
