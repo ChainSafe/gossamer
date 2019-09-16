@@ -1,9 +1,9 @@
 package babe
 
 import (
-	"math/big"
 	"errors"
 	"github.com/ChainSafe/gossamer/runtime"
+	"math/big"
 )
 
 // BabeSession contains the VRF keys for the validator
@@ -12,8 +12,8 @@ type BabeSession struct {
 	vrfPrivateKey VrfPrivateKey
 	rt            *runtime.Runtime
 
-	config		*BabeConfiguration
-	epochData 	*Epoch
+	config    *BabeConfiguration
+	epochData *Epoch
 
 	authorityIndex uint64
 
@@ -45,12 +45,10 @@ func (b *BabeSession) runLottery(slot uint64) (bool, error) {
 		return false, err
 	}
 
-	threshold, err := calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
-	if err != nil {
-		return false, err
-	}
+	output_int := new(big.Int).SetBytes(output)
+	threshold := calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
 
-	return true, nil
+	return output_int.Cmp(threshold) > 0, nil
 }
 
 func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
@@ -60,25 +58,32 @@ func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
 }
 
 // https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
-func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) (*big.Int, error) {
+func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) *big.Int {
 	var sum uint64 = 0
 	for _, weight := range authorityWeights {
 		sum += weight
 	}
 
-	theta :=float64(authorityWeights[authorityIndex]) / float64(sum)
-	//c := new(big.Float).SetFloat64(float64(C1)/float64(C2))
-	c := float64(C1)/float64(C2)
+	theta := float64(authorityWeights[authorityIndex]) / float64(sum)
+	c := new(big.Float).SetFloat64(float64(C1) / float64(C2))
 
- 	// let calc = || {
+	// let calc = || {
 	// 	let p = BigRational::from_float(1f64 - (1f64 - c).powf(theta))?;
 	// 	let numer = p.numer().to_biguint()?;
 	// 	let denom = p.denom().to_biguint()?;
 	// 	((BigUint::one() << 128) * numer / denom).to_u128()
 	// };
 
-	//p := new(big.Float).Sub(bigFloat1, bigFloat1.Sub(bigFloat1, c).Exp(theta))
-	p := 1.0 - (1.0-c)**theta
-	return nil, nil
+	pp := bigFloat1.Sub(bigFloat1, c)
+	pp_exp := pp.MantExp(pp)
+	pp_exp_theta := int(float64(pp_exp) * theta)
+	pp_theta := new(big.Float).SetMantExp(pp, pp_exp_theta)
+
+	p := new(big.Float).Sub(bigFloat1, pp_theta)
+	p_f64, _ := p.Float64()
+	p_rat := new(big.Rat).SetFloat64(p_f64)
+	q := new(big.Int).Lsh(big.NewInt(1), 128)
+
+	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 
 }
