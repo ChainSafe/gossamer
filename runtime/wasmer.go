@@ -561,3 +561,23 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 	output, err := sd.Decode(t)
 	return output, err
 }
+
+func (r *Runtime) CoreExecuteBlock(block common.Block) ([]byte, error) {
+	buffer := bytes.Buffer{}
+
+	encoder := scale.Encoder{ &buffer}
+	bytesEncoded, err := encoder.Encode(&block)
+	if err != nil {
+		return nil, err
+	}
+	output := buffer.Bytes()
+	log.Debug("encoded header", "output", output)
+
+	var offset int32 = 16
+	//var offset int32 = 1126872
+	var length int32 = int32(bytesEncoded)
+	copy( r.vm.Memory.Data()[offset:offset+length], output)
+
+	ret, err := r.Exec("Core_execute_block", offset, length)
+	return ret, err
+}

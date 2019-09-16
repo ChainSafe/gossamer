@@ -747,6 +747,29 @@ func TestExt_free(t *testing.T) {
 	}
 }
 
+// utility function to create a test block
+func createTestBlock() (common.Block, error) {
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+
+	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+
+	testHeader := common.BlockHeader{
+		ParentHash:     parentHash,
+		Number: big.NewInt(1),
+		StateRoot: stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest: []byte{},
+	}
+
+	testBlock := common.Block{
+		Header: &testHeader,
+		Extrinsics: []byte{},
+	}
+	return testBlock, err
+}
+
 func TestCallCoreExecuteBlock(t *testing.T) {
 	r, err := newRuntime(t)
 	if err != nil {
@@ -761,33 +784,9 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 	data := []byte { 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
 	t.Log("wasmer_test", "target data", data)
 
-	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	testBlock, err := createTestBlock()
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-
-	testHeader := common.BlockHeader{
-		ParentHash:     parentHash,
-		Number: big.NewInt(1),
-		StateRoot: stateRoot,
-		ExtrinsicsRoot: extrinsicsRoot,
-		Digest: []byte{},
-	}
-
-	testBlock := common.Block{
-		Header: &testHeader,
-		Extrinsics: []byte{},
 	}
 
 	buffer := bytes.Buffer{}
@@ -808,14 +807,32 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 	t.Log("length:", length)
 	copy(mem[offset:offset+length], output)
 
-		ret, err := r.Exec("Core_execute_block", offset, length)
-		if err != nil {
-			t.Fatal(err)
-		}
+	ret, err := r.Exec("Core_execute_block", offset, length)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		t.Log("ret:", ret)
+	t.Log("ret:", ret)
 
 }
 
+func TestCallFunctionCoreExecuteBlock(t *testing.T) {
+	r, err := newRuntime(t)
+	if err != nil {
+		t.Fatal(err)
+	} else if r == nil {
+		t.Fatal("did not create new VM")
+	}
 
+	testBlock, err := createTestBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ret, err := r.CoreExecuteBlock(testBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(ret)
+}
 
