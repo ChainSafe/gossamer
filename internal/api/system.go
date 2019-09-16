@@ -14,12 +14,31 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package api
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	log "github.com/ChainSafe/log15"
+)
+
+type systemModule struct {
+	p2p     P2pApi
+	runtime RuntimeApi
+}
+
+func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
+	return &systemModule{
+		p2p,
+		rt,
+	}
+}
+
+func (m *systemModule) Version() string {
+	log.Debug("[rpc] Executing System.Version", "params", nil)
+	return m.runtime.Version()
+}
+
+// TODO: Move to 'p2p' module
+func (m *systemModule) PeerCount() int {
+	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
+	return m.p2p.PeerCount()
 }

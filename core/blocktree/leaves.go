@@ -14,12 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package blocktree
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	"math/big"
+
+	"github.com/ChainSafe/gossamer/common"
+)
+
+// leafMap provides quick lookup for existing leaves
+type leafMap map[common.Hash]*node
+
+// Replace deletes the old node from the map and inserts the new one
+func (ls leafMap) Replace(old, new *node) {
+	delete(ls, old.hash)
+	ls[new.hash] = new
+}
+
+// DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
+// TODO: Select left-most
+func (ls leafMap) DeepestLeaf() *node {
+	max := big.NewInt(-1)
+	var dLeaf *node
+	for _, n := range ls {
+		if max.Cmp(n.depth) < 0 {
+			max = n.depth
+			dLeaf = n
+		}
+	}
+	return dLeaf
 }

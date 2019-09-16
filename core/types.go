@@ -14,12 +14,40 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package core
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	"math/big"
+
+	"github.com/ChainSafe/gossamer/common"
+)
+
+// Block defines a state block
+type Block struct {
+	Header BlockHeader
+	Body   BlockBody
+}
+
+// BlockHeader is a state block header
+type BlockHeader struct {
+	ParentHash     common.Hash
+	Number         *big.Int
+	StateRoot      common.Hash
+	ExtrinsicsRoot common.Hash
+	Digest         []byte
+	// TODO: Not part of spec, can potentially remove
+	Hash common.Hash
+}
+
+// BlockBody is the extrinsics inside a state block
+type BlockBody []byte
+
+/// BlockData is stored within the BlockDB
+type BlockData struct {
+	Hash   common.Hash
+	Header BlockHeader
+	Body   BlockBody
+	// Receipt
+	// MessageQueue
+	// Justification
 }

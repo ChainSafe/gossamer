@@ -14,12 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package p2p
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	"github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
+)
+
+func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
+	maddr, err := ma.NewMultiaddr(peerString)
+	if err != nil {
+		return peer.AddrInfo{}, err
+	}
+	p, err := peer.AddrInfoFromP2pAddr(maddr)
+	if err != nil {
+		return peer.AddrInfo{}, err
+	}
+	return *p, err
+}
+
+func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
+	pinfos := make([]peer.AddrInfo, len(peers))
+	for i, p := range peers {
+		p, err := stringToPeerInfo(p)
+		if err != nil {
+			return nil, err
+		}
+		pinfos[i] = p
+	}
+	return pinfos, nil
 }
