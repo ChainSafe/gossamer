@@ -157,9 +157,6 @@ func testDelGetter(db Database, t *testing.T) {
 				t.Fatalf("delete %q failed: %v", v.input, err)
 			}
 			d, err := db.Get([]byte(v.input))
-			if err != nil {
-				t.Fatalf("got deleted value %q failed: %v", v.input, err)
-			}
 			if len(d) > 1 {
 				t.Fatalf("failed to delete value %q", v.input)
 			}
@@ -385,9 +382,6 @@ func testDelTablesWithPrefix(db Database, t *testing.T) {
 				t.Fatalf("delete %q failed: %v", v.input, err)
 			}
 			d, err := ops.Get([]byte(v.input))
-			if err != nil {
-				t.Fatalf("got deleted value %q failed: %v", v.input, err)
-			}
 			if len(d) > 1 {
 				t.Fatalf("failed to delete value %q", v.input)
 			}
