@@ -38,10 +38,10 @@ func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi) *Service {
 	return &Service{
 		&Api{
 			P2pSystem: &apiModule.P2pModule{
-				p2p,
+				P2p: p2p,
 			},
 			RtSystem: &apiModule.RtModule{
-				rt,
+				Rt: rt,
 			},
 		}, nil,
 	}

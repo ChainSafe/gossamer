@@ -44,3 +44,14 @@ func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
 	}
 	return pinfos, nil
 }
+
+func convIdToStringArray(peers []peer.ID) []string {
+	//Copy peer.ID array into a string array
+	var stringPeers []string
+
+	for i, peer := range peers {
+		stringPeers[i] = peer.String()
+	}
+
+	return stringPeers
+}
