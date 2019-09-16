@@ -29,6 +29,11 @@ func (x *Uint32) String() string {
 	return fmt.Sprintf("%d", x.value)
 }
 
+func (x *Uint32) Set(exists bool, value uint32) {
+	x.exists = exists
+	x.value = value
+}
+
 type Hash struct {
 	exists bool
 	value  common.Hash
@@ -51,4 +56,9 @@ func (x *Hash) Value() common.Hash {
 
 func (x *Hash) String() string {
 	return fmt.Sprintf("%x", x.value)
+}
+
+func (x *Hash) Set(exists bool, value common.Hash) {
+	x.exists = exists
+	x.value = value
 }
