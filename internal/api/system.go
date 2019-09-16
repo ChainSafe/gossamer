@@ -16,16 +16,18 @@
 
 package api
 
+import apiModule "github.com/ChainSafe/gossamer/internal/api/modules"
+
 import (
 	log "github.com/ChainSafe/log15"
 )
 
 type systemModule struct {
-	p2p     P2pApi
-	runtime RuntimeApi
+	p2p     apiModule.P2pApi
+	runtime apiModule.RuntimeApi
 }
 
-func NewSystemModule(p2p P2pApi, rt RuntimeApi) *systemModule {
+func NewSystemModule(p2p apiModule.P2pApi, rt apiModule.RuntimeApi) *systemModule {
 	return &systemModule{
 		p2p,
 		rt,
