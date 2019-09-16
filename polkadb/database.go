@@ -25,35 +25,6 @@ import (
 	"github.com/golang/snappy"
 )
 
-// Db contains directory path to data and db instance
-type Db struct {
-	config Config
-	db     *badger.DB
-}
-
-// DbService contains both databases for service registry
-type DbService struct {
-	StateDB *StateDB
-	BlockDB *BlockDB
-
-	err <-chan error
-}
-
-// BlockDB contains badger.DB instance
-type BlockDB struct {
-	Db *Db
-}
-
-// StateDB contains badger.DB instance
-type StateDB struct {
-	Db *Db
-}
-
-//Config defines configurations for BadgerService instance
-type Config struct {
-	DataDir string
-}
-
 // Start starts running BlockDB and StateDB instances
 func (dbService *DbService) Start() <-chan error {
 	dbService.err = make(<-chan error)
@@ -76,6 +47,14 @@ func (dbService *DbService) Stop() <-chan error {
 	return e
 }
 
+// DbService contains both databases for service registry
+type DbService struct {
+	StateDB *StateDB
+	BlockDB *BlockDB
+
+	err <-chan error
+}
+
 // NewDatabaseService opens and returns a new DB object
 func NewDatabaseService(file string) (*DbService, error) {
 	stateDataDir := filepath.Join(file, "state")
@@ -84,11 +63,13 @@ func NewDatabaseService(file string) (*DbService, error) {
 	stateDb, err := NewStateDB(stateDataDir)
 	if err != nil {
 		log.Crit("failed to instantiate StateDB", "error", err)
+		return nil, err
 	}
 
 	blockDb, err := NewBlockDB(blockDataDir)
 	if err != nil {
 		log.Crit("failed to instantiate BlockDB", "error", err)
+		return nil, err
 	}
 
 	return &DbService{
@@ -97,11 +78,17 @@ func NewDatabaseService(file string) (*DbService, error) {
 	}, nil
 }
 
+// BlockDB contains badger.DB instance
+type BlockDB struct {
+	Db *Db
+}
+
 // NewBlockDB instantiates BlockDB for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
 	db, err := NewBadgerService(dataDir)
 	if err != nil {
-		log.Crit("error", err)
+		log.Crit("error instantiating BlockDB", "error", err)
+		return nil, err
 	}
 
 	return &BlockDB{
@@ -109,16 +96,33 @@ func NewBlockDB(dataDir string) (*BlockDB, error) {
 	}, nil
 }
 
+// StateDB contains badger.DB instance
+type StateDB struct {
+	Db *Db
+}
+
 // NewStateDB instantiates StateDB for trie structure
 func NewStateDB(dataDir string) (*StateDB, error) {
 	db, err := NewBadgerService(dataDir)
 	if err != nil {
-		log.Crit("error", err)
+		log.Crit("error instantiating StateDB", "error", err)
+		return nil, err
 	}
 
 	return &StateDB{
 		db,
 	}, nil
+}
+
+// Db contains directory path to data and db instance
+type Db struct {
+	config Config
+	db     *badger.DB
+}
+
+//Config defines configurations for BadgerService instance
+type Config struct {
+	DataDir string
 }
 
 // NewBadgerService initializes badgerDB instance
