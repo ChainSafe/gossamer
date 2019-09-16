@@ -37,7 +37,9 @@ import (
 )
 
 const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
-const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
+//const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
+//const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-spec/raw/master/polkadot-runtime/kusama/polkadot_runtime.compact.wasm?raw=true"
+const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-spec/raw/master/polkadot-runtime/alexander/polkadot_runtime.compact.wasm?raw=true"
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
 func getRuntimeBlob() (n int64, err error) {
