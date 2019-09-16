@@ -750,12 +750,21 @@ func TestExt_free(t *testing.T) {
 }
 
 // utility function to create a test block
-func createTestBlock() (common.Block, error) {
+func createTestBlock() (*common.Block, error) {
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	if err != nil {
+		return nil, err
+	}
 
 	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
+	if err != nil {
+		return nil, err
+	}
 
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	if err != nil {
+		return nil, err
+	}
 
 	testHeader := common.BlockHeader{
 		ParentHash:     parentHash,
@@ -769,7 +778,7 @@ func createTestBlock() (common.Block, error) {
 		Header:     &testHeader,
 		Extrinsics: []byte{},
 	}
-	return testBlock, err
+	return &testBlock, err
 }
 
 func TestCallCoreExecuteBlock(t *testing.T) {
@@ -794,7 +803,7 @@ func TestCallCoreExecuteBlock(t *testing.T) {
 	buffer := bytes.Buffer{}
 
 	encoder := codec.Encoder{Writer: &buffer}
-	bytesEncoded, err := encoder.Encode(&testBlock)
+	bytesEncoded, err := encoder.Encode(testBlock)
 	if err != nil {
 		t.Fatal(err)
 	}

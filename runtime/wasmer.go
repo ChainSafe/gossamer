@@ -562,11 +562,11 @@ func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
 	return output, err
 }
 
-func (r *Runtime) CoreExecuteBlock(block common.Block) ([]byte, error) {
+func (r *Runtime) CoreExecuteBlock(block *common.Block) ([]byte, error) {
 	buffer := bytes.Buffer{}
 
 	encoder := scale.Encoder{Writer: &buffer}
-	bytesEncoded, err := encoder.Encode(&block)
+	bytesEncoded, err := encoder.Encode(block)
 	if err != nil {
 		return nil, err
 	}
