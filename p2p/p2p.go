@@ -370,7 +370,7 @@ func handleStream(stream net.Stream) {
 
 // Peers returns connected peers
 func (s *Service) Peers() []string {
-	return convIdToStringArray(s.host.Network().Peers())
+	return PeerIdToStringArray(s.host.Network().Peers())
 }
 
 // Network state

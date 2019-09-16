@@ -22,11 +22,11 @@ import (
 
 // -------------- Mock Apis ------------------
 var (
-	TestPeerCount   = 1
-	TestVersion     = "0.0.1"
-	Name            = "Gossamer"
+	testPeerCount   = 1
+	testVersion     = "0.0.1"
+	name            = "Gossamer"
 	peerID          = "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"
-	NoBootstrapping = false
+	noBootstrapping = false
 	peers           = []string{"QmeQeqpf3fz3CG2ckQq3CUWwUnyT2cqxJepHpjji7ehVtX"}
 )
 
@@ -34,7 +34,7 @@ var (
 type MockP2pApi struct{}
 
 func (a *MockP2pApi) PeerCount() int {
-	return TestPeerCount
+	return testPeerCount
 }
 
 func (a *MockP2pApi) Peers() []string {
@@ -46,7 +46,7 @@ func (b *MockP2pApi) ID() string {
 }
 
 func (b *MockP2pApi) NoBootstrapping() bool {
-	return NoBootstrapping
+	return noBootstrapping
 }
 
 // Creating a mock runtime API
@@ -54,11 +54,11 @@ type MockRuntimeApi struct{}
 
 func (a *MockRuntimeApi) Name() string {
 	//TODO: Replace with dynamic name
-	return Name
+	return name
 }
 
 func (a *MockRuntimeApi) Version() string {
-	return TestVersion
+	return testVersion
 }
 
 // func (a *MockRuntimeApi) Chain() string {
@@ -77,8 +77,8 @@ func TestSystemModule(t *testing.T) {
 
 	// System.Name
 	n := srvc.Api.RtSystem.Name()
-	if n != Name {
-		t.Fatalf("System.Name - expected %+v got: %+v\n", Name, n)
+	if n != name {
+		t.Fatalf("System.Name - expected %+v got: %+v\n", name, n)
 	}
 
 	// System.networkState
@@ -95,13 +95,13 @@ func TestSystemModule(t *testing.T) {
 
 	// System.PeerCount
 	c := srvc.Api.P2pSystem.PeerCount()
-	if c != TestPeerCount {
-		t.Fatalf("System.PeerCount - expected: %d got: %d\n", TestPeerCount, c)
+	if c != testPeerCount {
+		t.Fatalf("System.PeerCount - expected: %d got: %d\n", testPeerCount, c)
 	}
 
 	// System.Version
 	v := srvc.Api.RtSystem.Version()
-	if v != TestVersion {
-		t.Fatalf("System.Version - expected: %s got: %s\n", TestVersion, v)
+	if v != testVersion {
+		t.Fatalf("System.Version - expected: %s got: %s\n", testVersion, v)
 	}
 }
