@@ -69,11 +69,14 @@ func NewSystemModule(api *api.Api) *SystemModule {
 		api: api,
 	}
 }
+
+// Not implemented yet
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }
 
+// Returns the Health status of the node
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
 	res.Peers = len(sm.api.P2pSystem.Peers())
 	res.IsSyncing = sm.api.P2pSystem.IsSyncing()
@@ -81,25 +84,30 @@ func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHe
 	return nil
 }
 
+// Not implemented yet
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }
 
+// Return the node's Network State
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
 	res.Id = sm.api.P2pSystem.ID()
 	return nil
 }
 
+// Returns the node's peers
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
 	res.Peers = sm.api.P2pSystem.Peers()
 	return nil
 }
 
+// Returns the node's properties
 func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
 	return nil
 }
 
+// Not implemented yet
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil

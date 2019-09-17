@@ -17,7 +17,6 @@
 package module
 
 import (
-	//api "github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/ChainSafe/log15"
 )
 

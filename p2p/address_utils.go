@@ -45,6 +45,7 @@ func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
 	return pinfos, nil
 }
 
+// Converts an array of Peer.ID into a string array
 func PeerIdToStringArray(peers []peer.ID) []string {
 	//Copy peer.ID array into a string array
 	stringPeers := make([]string, len(peers))
