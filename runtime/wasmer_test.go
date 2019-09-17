@@ -777,8 +777,9 @@ func TestExt_keccak_256(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
 	expected, err := common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
-	if err != nil {
+	if errorr != nil {
 		t.Fatal(err)
 	}
 

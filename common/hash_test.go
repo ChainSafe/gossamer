@@ -22,12 +22,12 @@ import (
 )
 
 func TestBlake2b218(t *testing.T) {
-	in := []byte{0x1}
+	in := []byte{}
 	h, err := Blake2b128(in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected, err := HexToBytes("0x01cae66941d9efbd404e4d88758ea676")
+	expected, err := HexToBytes("0xcae66941d9efbd404e4d88758ea67670")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,12 +37,12 @@ func TestBlake2b218(t *testing.T) {
 }
 
 func TestBlake2bHash(t *testing.T) {
-	in := []byte{0x1}
+	in := []byte("")
 	h, err := Blake2bHash(in)
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected, err := HexToBytes("0xee155ace9c40292074cb6aff8c9ccdd273c81648ff1149ef36bcea6ebb8a3e25")
+	expected, err := HexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,6 +52,7 @@ func TestBlake2bHash(t *testing.T) {
 }
 
 func TestKeccak256(t *testing.T) {
+	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
 	in := []byte{}
 	h := Keccak256(in)
 	expected, err := HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
