@@ -4,12 +4,12 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// StateDB contains badger.DB instance
+// StateDB stores trie structure in an underlying Database
 type StateDB struct {
 	Db Database
 }
 
-// NewStateDB instantiates StateDB for trie structure
+// NewStateDB instantiates badgerDB instance for storing trie structure
 func NewStateDB(dataDir string) (*StateDB, error) {
 	db, err := NewBadgerService(dataDir)
 	if err != nil {

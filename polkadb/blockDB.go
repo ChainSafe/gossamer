@@ -4,12 +4,12 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// BlockDB contains badger.DB instance
+// BlockDB stores block's in an underlying Database
 type BlockDB struct {
 	Db Database
 }
 
-// NewBlockDB instantiates BlockDB for storing relevant BlockData
+// NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
 	db, err := NewBadgerService(dataDir)
 	if err != nil {
