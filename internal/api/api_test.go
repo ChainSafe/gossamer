@@ -76,31 +76,31 @@ func TestSystemModule(t *testing.T) {
 	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
 	// System.Name
-	n := srvc.Api.RtSystem.Name()
+	n := srvc.Api.RuntimeModule.Name()
 	if n != name {
 		t.Fatalf("System.Name - expected %+v got: %+v\n", name, n)
 	}
 
 	// System.networkState
-	s := srvc.Api.P2pSystem.ID()
+	s := srvc.Api.P2pModule.ID()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peerID, s)
 	}
 
 	// System.peers
-	p := srvc.Api.P2pSystem.Peers()
+	p := srvc.Api.P2pModule.Peers()
 	if s != peerID {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peers, p)
 	}
 
 	// System.PeerCount
-	c := srvc.Api.P2pSystem.PeerCount()
+	c := srvc.Api.P2pModule.PeerCount()
 	if c != testPeerCount {
 		t.Fatalf("System.PeerCount - expected: %d got: %d\n", testPeerCount, c)
 	}
 
 	// System.Version
-	v := srvc.Api.RtSystem.Version()
+	v := srvc.Api.RuntimeModule.Version()
 	if v != testVersion {
 		t.Fatalf("System.Version - expected: %s got: %s\n", testVersion, v)
 	}

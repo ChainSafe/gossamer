@@ -78,9 +78,9 @@ func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringRes
 
 // Returns the Health status of the node
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
-	res.Peers = len(sm.api.P2pSystem.Peers())
-	res.IsSyncing = sm.api.P2pSystem.IsSyncing()
-	res.ShouldHavePeers = !sm.api.P2pSystem.NoBootstrapping()
+	res.Peers = len(sm.api.P2pModule.Peers())
+	res.IsSyncing = sm.api.P2pModule.IsSyncing()
+	res.ShouldHavePeers = !sm.api.P2pModule.NoBootstrapping()
 	return nil
 }
 
@@ -92,13 +92,13 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResp
 
 // Return the node's Network State
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
-	res.Id = sm.api.P2pSystem.ID()
+	res.Id = sm.api.P2pModule.ID()
 	return nil
 }
 
 // Returns the node's peers
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
-	res.Peers = sm.api.P2pSystem.Peers()
+	res.Peers = sm.api.P2pModule.Peers()
 	return nil
 }
 

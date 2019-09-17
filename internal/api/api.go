@@ -26,8 +26,8 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	P2pSystem *apiModule.P2pModule
-	RtSystem  *apiModule.RtModule
+	P2pModule     *apiModule.P2pModule
+	RuntimeModule *apiModule.RuntimeModule
 }
 
 // Module represents a collection of API endpoints.
@@ -37,10 +37,10 @@ type Module string
 func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi) *Service {
 	return &Service{
 		&Api{
-			P2pSystem: &apiModule.P2pModule{
+			P2pModule: &apiModule.P2pModule{
 				P2p: p2p,
 			},
-			RtSystem: &apiModule.RtModule{
+			RuntimeModule: &apiModule.RuntimeModule{
 				Rt: rt,
 			},
 		}, nil,

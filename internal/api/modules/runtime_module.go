@@ -20,7 +20,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-type RtModule struct {
+type RuntimeModule struct {
 	Rt RuntimeApi
 }
 
@@ -32,18 +32,18 @@ type RuntimeApi interface {
 	Version() string
 }
 
-func NewRTModule(RTapi RuntimeApi) *RtModule {
-	return &RtModule{RTapi}
+func NewRTModule(RTapi RuntimeApi) *RuntimeModule {
+	return &RuntimeModule{RTapi}
 }
 
 // Release version
-func (r *RtModule) Version() string {
+func (r *RuntimeModule) Version() string {
 	log.Debug("[rpc] Executing System.Version", "params", nil)
 	//TODO: Replace with dynamic version
 	return "0.0.1"
 }
 
-func (r *RtModule) Name() string {
+func (r *RuntimeModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
 	//TODO: Replace with dynamic name
 	return "Gossamer"

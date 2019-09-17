@@ -373,12 +373,12 @@ func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.Network().Peers())
 }
 
-// Network state
+// ID returns the ID of the node
 func (s *Service) ID() string {
 	return s.host.ID().String()
 }
 
-// Should have peers
+// NoBootstrapping returns true if you can't bootstrap nodes
 func (s *Service) NoBootstrapping() bool {
 	return s.noBootstrap
 }
