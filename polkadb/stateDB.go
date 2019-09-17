@@ -11,7 +11,7 @@ type StateDB struct {
 
 // NewStateDB instantiates badgerDB instance for storing trie structure
 func NewStateDB(dataDir string) (*StateDB, error) {
-	db, err := NewBadgerService(dataDir)
+	db, err := NewBadgerDB(dataDir)
 	if err != nil {
 		log.Crit("error instantiating StateDB", "error", err)
 		return nil, err

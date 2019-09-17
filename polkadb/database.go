@@ -24,8 +24,8 @@ import (
 	"github.com/golang/snappy"
 )
 
-// Db contains directory path to data and db instance
-type Db struct {
+// BadgerDB contains directory path to data and db instance
+type BadgerDB struct {
 	config Config
 	db     *badger.DB
 }
@@ -35,8 +35,8 @@ type Config struct {
 	DataDir string
 }
 
-// NewBadgerService initializes badgerDB instance
-func NewBadgerService(file string) (*Db, error) {
+// NewBadgerDB initializes badgerDB instance
+func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts := badger.DefaultOptions(file)
 	opts.ValueDir = file
 	opts.WithSyncWrites(false)
@@ -51,7 +51,7 @@ func NewBadgerService(file string) (*Db, error) {
 		return nil, err
 	}
 
-	return &Db{
+	return &BadgerDB{
 		config: Config{
 			DataDir: file,
 		},
@@ -60,19 +60,19 @@ func NewBadgerService(file string) (*Db, error) {
 }
 
 // Path returns the path to the database directory.
-func (db *Db) Path() string {
+func (db *BadgerDB) Path() string {
 	return db.config.DataDir
 }
 
 // Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
 type batchWriter struct {
-	db   *Db
+	db   *BadgerDB
 	b    map[string][]byte
 	size int
 }
 
 // NewBatch returns batchWriter with a badgerDB instance and an initialized mapping
-func (db *Db) NewBatch() Batch {
+func (db *BadgerDB) NewBatch() Batch {
 	return &batchWriter{
 		db: db,
 		b:  make(map[string][]byte),
@@ -80,7 +80,7 @@ func (db *Db) NewBatch() Batch {
 }
 
 // Put puts the given key / value to the queue
-func (db *Db) Put(key []byte, value []byte) error {
+func (db *BadgerDB) Put(key []byte, value []byte) error {
 	return db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(snappy.Encode(nil, key), snappy.Encode(nil, value))
 		return err
@@ -88,7 +88,7 @@ func (db *Db) Put(key []byte, value []byte) error {
 }
 
 // Has checks the given key exists already; returning true or false
-func (db *Db) Has(key []byte) (exists bool, err error) {
+func (db *BadgerDB) Has(key []byte) (exists bool, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
 		item, errr := txn.Get(snappy.Encode(nil, key))
 		if item != nil {
@@ -104,7 +104,7 @@ func (db *Db) Has(key []byte) (exists bool, err error) {
 }
 
 // Get returns the given key
-func (db *Db) Get(key []byte) (data []byte, err error) {
+func (db *BadgerDB) Get(key []byte) (data []byte, err error) {
 	err = db.db.View(func(txn *badger.Txn) error {
 		item, e := txn.Get(snappy.Encode(nil, key))
 		if e != nil {
@@ -124,7 +124,7 @@ func (db *Db) Get(key []byte) (data []byte, err error) {
 }
 
 // Del removes the key from the queue and database
-func (db *Db) Del(key []byte) error {
+func (db *BadgerDB) Del(key []byte) error {
 	return db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(snappy.Encode(nil, key))
 		if err == badger.ErrKeyNotFound {
@@ -135,7 +135,7 @@ func (db *Db) Del(key []byte) error {
 }
 
 // Close closes a DB
-func (db *Db) Close() error {
+func (db *BadgerDB) Close() error {
 	err := db.db.Close()
 	if err == nil {
 		log.Info("Database closed")
@@ -155,7 +155,7 @@ type Iterable struct {
 }
 
 // NewIterator returns a new iterator within the Iterator struct along with a new transaction
-func (db *Db) NewIterator() Iterable {
+func (db *BadgerDB) NewIterator() Iterable {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
 	iter := txn.NewIterator(opts)

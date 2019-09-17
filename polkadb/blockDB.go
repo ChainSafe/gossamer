@@ -11,7 +11,7 @@ type BlockDB struct {
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
-	db, err := NewBadgerService(dataDir)
+	db, err := NewBadgerDB(dataDir)
 	if err != nil {
 		log.Crit("error instantiating BlockDB", "error", err)
 		return nil, err
