@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 )
 
@@ -256,4 +257,28 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	if !bytes.Equal(encMsg, expected) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
+}
+type extrinsics = [][]byte
+
+func TestEncodeTransactionsMessage(t *testing.T) {
+	test1 := []byte{0x01, 0x02, 0x03}
+	test2 := []byte{0x04, 0x05, 0x06}
+
+	//combined := [][]byte{test1, test2}
+	combined := extrinsics{test1, test2}
+	t.Log("Combined", "combined", combined)
+
+	enc, err := scale.Encode(combined)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("enc", "enc", enc)
+
+	output, err := scale.Decode(enc, extrinsics{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("decode", "decode", output.([]byte))
+
 }
