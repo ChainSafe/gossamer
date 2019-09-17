@@ -52,7 +52,7 @@ func (dt *table) Close() error {
 	}
 }
 
-// NewIterator...
+// NewIterator initializes type Iterable
 func (dt *table) NewIterator() Iterable {
 	return Iterable{}
 }
