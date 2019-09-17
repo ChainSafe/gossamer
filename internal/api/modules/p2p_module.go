@@ -37,7 +37,7 @@ func NewP2PModule(p2papi P2pApi) *P2pModule {
 	return &P2pModule{p2papi}
 }
 
-// Returns the number of peers of a node
+// PeerCount Returns the number of peers of a node
 func (p *P2pModule) PeerCount() int {
 	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
 	return len(p.Peers())
@@ -49,19 +49,19 @@ func (p *P2pModule) Peers() []string {
 	return p.P2p.Peers()
 }
 
-// Returns true the node can bootstrap to other nodes
+// NoBootstrapping Returns true the node can bootstrap to other nodes
 func (p *P2pModule) NoBootstrapping() bool {
 	log.Debug("[rpc] Executing System.NoBootstrapping", "params", nil)
 	return p.P2p.NoBootstrapping()
 }
 
-// Returns the ID of the node
+// ID Returns the ID of the node
 func (p *P2pModule) ID() string {
 	log.Debug("[rpc] Executing System.NetworkState", "params", nil)
 	return p.P2p.ID()
 }
 
-// If the node is Syncing
+// IsSyncing is true if the node is Syncing
 func (p *P2pModule) IsSyncing() bool {
 	return false
 }
