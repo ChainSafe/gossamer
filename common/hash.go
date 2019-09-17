@@ -21,7 +21,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Returns the 128-bit blake2b hash of the input data
+// Blake2b128 returns the 128-bit blake2b hash of the input data
 func Blake2b128(in []byte) ([]byte, error) {
 	hasher, err := blake2b.New(16, nil)
 	if err != nil {
@@ -31,6 +31,7 @@ func Blake2b128(in []byte) ([]byte, error) {
 	return hasher.Sum(in)[:16], nil
 }
 
+// Blake2bHash returns the 256-bit blake2b hash of the input data
 func Blake2bHash(in []byte) (Hash, error) {
 	h, err := blake2b.New256(nil)
 	if err != nil {
@@ -49,6 +50,7 @@ func Blake2bHash(in []byte) (Hash, error) {
 	return buf, err
 }
 
+// Keccak256 returns the keccak256 hash of the input data
 func Keccak256(in []byte) Hash {
 	h := sha3.NewLegacyKeccak256()
 	hash := h.Sum(in)
