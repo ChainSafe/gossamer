@@ -177,7 +177,7 @@ type BlockHeaderMessage common.BlockHeader
 
 // string formats a BlockHeaderMessage as a string
 func (bhm *BlockHeaderMessage) String() string {
-	return fmt.Sprintf("BlockHeaderMessage ParentHash=%x Number=%d StateRoot=%x ExtrinsicsRoot=%x Digest=%x",
+	return fmt.Sprintf("BlockHeaderMessage ParentHash=0x%x Number=%d StateRoot=0x%x ExtrinsicsRoot=0x%x Digest=0x%x",
 		bhm.ParentHash,
 		bhm.Number,
 		bhm.StateRoot,
