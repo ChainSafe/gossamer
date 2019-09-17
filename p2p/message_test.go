@@ -295,6 +295,9 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Digest:         []byte{},
 	}
 	encMsg, err := bhm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !bytes.Equal(encMsg, expected) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
