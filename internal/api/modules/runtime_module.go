@@ -32,7 +32,7 @@ type RuntimeApi interface {
 	Version() string
 }
 
-func NewRTModule(RTapi RuntimeApi) *RuntimeModule {
+func NewRuntimeModule(RTapi RuntimeApi) *RuntimeModule {
 	return &RuntimeModule{RTapi}
 }
 

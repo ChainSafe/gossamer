@@ -66,8 +66,8 @@ func newMockApi() *api.Api {
 	p2pApi := &mockP2PApi{}
 
 	return &api.Api{
-		P2pSystem: module.NewP2PModule(p2pApi),
-		RtSystem:  module.NewRTModule(runtimeApi),
+		P2pModule:     module.NewP2PModule(p2pApi),
+		RuntimeModule: module.NewRuntimeModule(runtimeApi),
 	}
 }
 
