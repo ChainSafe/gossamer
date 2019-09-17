@@ -26,6 +26,15 @@ import (
 )
 
 func TestDecodeMessageStatus(t *testing.T) {
+	// this value is a concatenation of:
+	// message type: byte(0)
+	// protocol version uint32(2)
+	// minimum supported version: uint32(2)
+	// roles: byte(4)
+	// best block number: uint64(2418625)
+	// best block hash: 32 bytes hash 0x8dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4da
+	// genesis hash: 32 byte hash 0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b
+	// chain status: []byte{0}
 	encMsg, err := common.HexToBytes("0x00020000000200000004c1e72400000000008dac4bd53582976cd2834b47d3c7b3a9c8c708db84b3bae145753547ec9ee4dadcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b0400")
 	if err != nil {
 		t.Fatal(err)
