@@ -21,7 +21,6 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"time"
 
 	"github.com/ChainSafe/gossamer/runtime"
 )
@@ -39,9 +38,6 @@ type BabeSession struct {
 
 	// authorities []VrfPublicKey
 	authorityWeights []uint64
-
-	// currentEpoch uint64
-	// currentSlot  uint64
 
 	// TODO: TransactionQueue
 }
@@ -79,7 +75,6 @@ func (b *BabeSession) runLottery(slot uint64) (bool, error) {
 func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
 	// TOOD: return VRF output and proof
 	// sign b.epochData.Randomness and slot
-	rand.Seed(time.Now().UnixNano())
 	out := make([]byte, 32)
 	_, err := rand.Read(out)
 	return out, err
