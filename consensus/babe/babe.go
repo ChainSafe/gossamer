@@ -52,6 +52,8 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 	}
 }
 
+// runs the slot lottery for a specific slot
+// returns true if validator is authorized to produce a block for that slot, false otherwise
 func (b *BabeSession) runLottery(slot uint64) (bool, error) {
 	if slot < b.epochData.StartSlot {
 		return false, errors.New("slot is not in this epoch")
@@ -74,7 +76,11 @@ func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
 	return nil, nil
 }
 
-// https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
+// calculates the slot lottery threshold for the authority at authorityIndex.
+// equation: threshold = 2^128 * (1 - (1-c)^(w_k/sum(w_i)))
+// where w_k is the weight of the authority at the specified index, and sum(w_i) is the
+// sum of all the authority weights
+// see: https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
 func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) *big.Int {
 	var sum uint64 = 0
 	for _, weight := range authorityWeights {
@@ -83,23 +89,20 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 
 	theta := float64(authorityWeights[authorityIndex]) / float64(sum)
 	c := new(big.Float).SetFloat64(float64(C1) / float64(C2))
+	// c_int, _ := c.Int(new(big.Int))
+	// return c_int
 
-	// let calc = || {
-	// 	let p = BigRational::from_float(1f64 - (1f64 - c).powf(theta))?;
-	// 	let numer = p.numer().to_biguint()?;
-	// 	let denom = p.denom().to_biguint()?;
-	// 	((BigUint::one() << 128) * numer / denom).to_u128()
-	// };
+	pp := big.NewFloat(1).Sub(big.NewFloat(1), c) // 1-c
+	pp_exp := pp.MantExp(pp) // get exponent of 1-c
+	pp_exp_theta := int(float64(pp_exp) * theta) // multiply exponent by theta
+	pp_theta := new(big.Float).SetMantExp(pp, pp_exp_theta) // turn it back into a float
+	// pp_theta_int, _ := pp_theta.Int(new(big.Int))
+	// return pp_theta_int
 
-	pp := bigFloat1.Sub(bigFloat1, c)
-	pp_exp := pp.MantExp(pp)
-	pp_exp_theta := int(float64(pp_exp) * theta)
-	pp_theta := new(big.Float).SetMantExp(pp, pp_exp_theta)
-
-	p := new(big.Float).Sub(bigFloat1, pp_theta)
+	p := new(big.Float).Sub(big.NewFloat(1), pp_theta)
 	p_f64, _ := p.Float64()
 	p_rat := new(big.Rat).SetFloat64(p_f64)
-	q := new(big.Int).Lsh(big.NewInt(1), 128)
+	q := new(big.Int).Lsh(big.NewInt(1), 128) // 1 << 128
 
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 

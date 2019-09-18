@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"math/big"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -43,6 +44,33 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 	}
 
 	return r
+}
+
+func TestCalculateThreshold(t *testing.T) {
+	// C = 1
+	var C1 uint64 = 1
+	var C2 uint64 = 1
+	var authorityIndex uint64 = 0
+	authorityWeights := []uint64{1, 1, 1}
+
+	expected := new(big.Int).Lsh(big.NewInt(1), 128)
+
+	threshold := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
+
+	if threshold.Cmp(expected) != 0 {
+		t.Fatalf("Fail: got %d expected %d", threshold, expected)
+	}
+
+	// C = 1/2
+	C2 = 2
+
+	expected = new(big.Int).Lsh(big.NewInt(1), 128)
+
+	threshold = calculateThreshold(C1, C2, authorityIndex, authorityWeights)
+
+	if threshold.Cmp(expected) != 0 {
+		t.Fatalf("Fail: got %d expected %d", threshold, expected)
+	}
 }
 
 func TestStartupData(t *testing.T) {

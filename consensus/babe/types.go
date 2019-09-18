@@ -16,12 +16,6 @@
 
 package babe
 
-import (
-	"math/big"
-)
-
-var bigFloat1 = big.NewFloat(1)
-
 // TODO: change to Schnorrkel keys
 type VrfPublicKey [32]byte
 type VrfPrivateKey [64]byte
