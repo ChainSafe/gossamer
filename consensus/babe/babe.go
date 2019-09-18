@@ -17,10 +17,10 @@
 package babe
 
 import (
+	"crypto/rand"
 	"errors"
 	"math"
 	"math/big"
-	"crypto/rand"
 
 	"github.com/ChainSafe/gossamer/runtime"
 )
