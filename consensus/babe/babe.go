@@ -20,6 +20,8 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"math/rand"
+	"time"
 
 	"github.com/ChainSafe/gossamer/runtime"
 )
@@ -77,35 +79,43 @@ func (b *BabeSession) runLottery(slot uint64) (bool, error) {
 func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
 	// TOOD: return VRF output and proof
 	// sign b.epochData.Randomness and slot
-	return nil, nil
+	rand.Seed(time.Now().UnixNano())
+	out := make([]byte, 32)
+	_, err := rand.Read(out)
+	return out, err
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
 // equation: threshold = 2^128 * (1 - (1-c)^(w_k/sum(w_i)))
-// where w_k is the weight of the authority at the specified index, and sum(w_i) is the
+// where k is the authority index, and sum(w_i) is the
 // sum of all the authority weights
 // see: https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
 func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
-
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
 	}
 
+	// sum(w_i)
 	var sum uint64 = 0
 	for _, weight := range authorityWeights {
 		sum += weight
 	}
 
+	// w_k/sum(w_i)
 	theta := float64(authorityWeights[authorityIndex]) / float64(sum)
 
-	pp := 1 - c 
+	// (1-c)^(w_k/sum(w_i)))
+	pp := 1 - c
 	pp_exp := math.Pow(pp, theta)
 
+	// 1 - (1-c)^(w_k/sum(w_i)))
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
-	q := new(big.Int).Lsh(big.NewInt(1), 128) // 1 << 128
 
+	// 1 << 128
+	q := new(big.Int).Lsh(big.NewInt(1), 128)
+
+	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
-
 }

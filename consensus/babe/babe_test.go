@@ -70,7 +70,7 @@ func TestCalculateThreshold(t *testing.T) {
 
 	theta := float64(1) / float64(3)
 	c := float64(C1) / float64(C2)
-	pp := 1 - c 
+	pp := 1 - c
 	pp_exp := math.Pow(pp, theta)
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
@@ -95,7 +95,7 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 
 	theta := float64(6) / float64(24)
 	c := float64(C1) / float64(C2)
-	pp := 1 - c 
+	pp := 1 - c
 	pp_exp := math.Pow(pp, theta)
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
@@ -109,6 +109,36 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 
 	if threshold.Cmp(expected) != 0 {
 		t.Fatalf("Fail: got %d expected %d", threshold, expected)
+	}
+}
+
+func TestRunLottery(t *testing.T) {
+	rt := newRuntime(t)
+	babesession := NewBabeSession([32]byte{}, [64]byte{}, rt)
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1, 1, 1}
+	conf := &BabeConfiguration{
+		SlotDuration:         6000,
+		C1:                   1,
+		C2:                   4,
+		MedianRequiredBlocks: 1000,
+	}
+
+	epoch := &Epoch{
+		EpochIndex:     0,
+		StartSlot:      0,
+		Duration:       2400,
+		Authorities:    [32]byte{},
+		Randomness:     0,
+		SecondarySlots: false,
+	}
+
+	babesession.config = conf
+	babesession.epochData = epoch
+
+	_, err := babesession.runLottery(0)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
