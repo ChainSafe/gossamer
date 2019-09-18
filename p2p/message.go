@@ -274,7 +274,7 @@ func (bhm *BlockHeaderMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return append([]byte{BlockAnnounceMsg}, enc...), nil
+	return append([]byte{BlockAnnounceMsgType}, enc...), nil
 }
 
 //Decodes the message into a BlockHeaderMessage, it assumes the type byte has been removed
