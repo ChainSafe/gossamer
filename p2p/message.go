@@ -256,7 +256,6 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-
 type BlockHeaderMessage common.BlockHeader
 
 // string formats a BlockHeaderMessage as a string

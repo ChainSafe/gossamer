@@ -344,9 +344,9 @@ func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
-	}  
+	}
 
-  buf := &bytes.Buffer{}
+	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
 	m, err := DecodeMessage(buf)
@@ -373,14 +373,14 @@ func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", bm, expected)
 	}
 }
-    
+
 func TestEncodeBlockResponseMessage(t *testing.T) {
 	expected, err := common.HexToBytes("0x02070000000000000000")
 
 	if err != nil {
 		t.Fatal(err)
 	}
-  
+
 	bm := &BlockResponseMessage{
 		Id:   7,
 		Data: []byte{0},
@@ -395,13 +395,13 @@ func TestEncodeBlockResponseMessage(t *testing.T) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
 }
-    
+
 func TestDecodeBlockResponseMessage(t *testing.T) {
 	encMsg, err := common.HexToBytes("0x070000000000000000")
 	if err != nil {
 		t.Fatal(err)
 	}
-  
+
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
@@ -435,7 +435,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-  
+
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	if err != nil {
 		t.Fatal(err)
@@ -445,7 +445,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-  if err != nil {
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -460,7 +460,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-  if !bytes.Equal(encMsg, expected) {
+	if !bytes.Equal(encMsg, expected) {
 		t.Fatalf("Fail: got %x expected %x", encMsg, expected)
 	}
 }
@@ -499,5 +499,5 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 
 	if !reflect.DeepEqual(bhm, expected) {
 		t.Fatalf("Fail: got %v expected %v", bhm, expected)
-  }
+	}
 }
