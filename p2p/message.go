@@ -20,9 +20,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/log15"
 	"io"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+
 	common "github.com/ChainSafe/gossamer/common"
 	optional "github.com/ChainSafe/gossamer/common/optional"
 )
@@ -360,4 +362,22 @@ func readHash(r io.Reader) (common.Hash, error) {
 	copy(h[:], buf)
 	return common.Hash(h), nil
 
+}
+
+type TransactionMessage []byte
+
+//func (tm *TransactionMessage) String() string {
+//	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", tm)
+//}
+
+func (tm *TransactionMessage) Encode() ([]byte, error) {
+	log15.Debug("encode", "tm", *tm)
+	encoded, err := scale.Encode( &tm)
+	return encoded, err
+}
+
+//Decodes the message into a TransactionMessage, it assumes the type byte han been removed
+func (tm *TransactionMessage) Decode(msg []byte) error {
+	_, err := scale.Decode(msg, tm)
+	return err
 }

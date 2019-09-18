@@ -431,7 +431,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	//	ExtrinsicsRoot: Hash: 0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314
 	//	Digest: []byte
 
-	//                                    mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                  di
+	//                                        mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                  di
 	expected, err := common.HexToBytes("0x03454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400")
 	if err != nil {
 		t.Fatal(err)
@@ -501,4 +501,49 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	if !reflect.DeepEqual(bhm, expected) {
 		t.Fatalf("Fail: got %v expected %v", bhm, expected)
 	}
+}
+func TestEncodeTransactionsMessage (t *testing.T) {
+	ext1 := TransactionMessage{0x01, 0x02, 0x03}
+	t.Log("TRansMes", "TransMes", ext1)
+	encMsg, err := ext1.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("encTMes", "encTMess", encMsg)
+}
+
+func TestRawTransactionMessages (t *testing.T) {
+	test1 := []byte{0x01, 0x02, 0x03}
+	test2 := []byte{0x04, 0x05, 0x06}
+
+	enc1, err := scale.Encode(test1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("enc", "enc", enc1)
+
+	enc2, err := scale.Encode(test2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("enc", "enc", enc2)
+	both := enc1
+	both = append(both, enc2[0:]...)
+	t.Log("both", "both", both)
+
+	bothEnc, err := scale.Encode(both)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("bothEnc", "bothEnc", bothEnc)
+
+	output, err := scale.Decode(bothEnc, []byte{})
+
+	output2, err := scale.Decode(output.([]byte), []byte{})
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("decode", "decode", output2.([]byte))
+
 }
