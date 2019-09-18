@@ -20,7 +20,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
-	"math/rand"
+	"crypto/rand"
 
 	"github.com/ChainSafe/gossamer/runtime"
 )
