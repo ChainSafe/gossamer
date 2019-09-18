@@ -372,7 +372,9 @@ type TransactionMessage []byte
 
 func (tm *TransactionMessage) Encode() ([]byte, error) {
 	log15.Debug("encode", "tm", *tm)
-	encoded, err := scale.Encode( &tm)
+	ext1 := TransactionMessage{0x01, 0x02, 0x03}
+	//ext1 := []byte{0x01, 0x02, 0x03}
+	encoded, err := scale.Encode(ext1)
 	return encoded, err
 }
 
