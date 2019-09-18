@@ -21,7 +21,7 @@ import (
 	"testing"
 )
 
-func TestBlake2b218(t *testing.T) {
+func TestBlake2b218_EmptyHash(t *testing.T) {
 	in := []byte{}
 	h, err := Blake2b128(in)
 	if err != nil {
@@ -36,8 +36,8 @@ func TestBlake2b218(t *testing.T) {
 	}
 }
 
-func TestBlake2bHash(t *testing.T) {
-	in := []byte("")
+func TestBlake2bHash_EmptyHash(t *testing.T) {
+	in := []byte{}
 	h, err := Blake2bHash(in)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func TestBlake2bHash(t *testing.T) {
 	}
 }
 
-func TestKeccak256(t *testing.T) {
+func TestKeccak256_EmptyHash(t *testing.T) {
 	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
 	in := []byte{}
 	h := Keccak256(in)
