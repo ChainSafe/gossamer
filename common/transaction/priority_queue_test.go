@@ -10,16 +10,16 @@ func TestPriorityQueue(t *testing.T) {
 		{
 			validity: Validity{priority: 1},
 		},
-		&ValidTransaction{
+		{
 			validity: Validity{priority: 3},
 		},
-		&ValidTransaction{
+		{
 			validity: Validity{priority: 2},
 		},
-		&ValidTransaction{
+		{
 			validity: Validity{priority: 17},
 		},
-		&ValidTransaction{
+		{
 			validity: Validity{priority: 2},
 		},
 	}
