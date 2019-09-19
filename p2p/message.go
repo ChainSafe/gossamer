@@ -20,13 +20,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/log15"
 	"io"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 
-	common "github.com/ChainSafe/gossamer/common"
-	optional "github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 )
 
 const (
@@ -366,20 +365,24 @@ func readHash(r io.Reader) (common.Hash, error) {
 
 type TransactionMessage []byte
 
-//func (tm *TransactionMessage) String() string {
-//	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", tm)
-//}
+func (tm *TransactionMessage) String() string {
+	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", *tm)
+}
 
 func (tm *TransactionMessage) Encode() ([]byte, error) {
-	log15.Debug("encode", "tm", *tm)
-	ext1 := TransactionMessage{0x01, 0x02, 0x03}
-	//ext1 := []byte{0x01, 0x02, 0x03}
-	encoded, err := scale.Encode(ext1)
+	tmBytes := []byte (*tm)
+	encoded, err := scale.Encode(tmBytes)
 	return encoded, err
 }
 
 //Decodes the message into a TransactionMessage, it assumes the type byte han been removed
 func (tm *TransactionMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, tm)
+	result, err := scale.Decode(msg, []byte{} )
+	// convert result (interface{}) to []byte
+	resBtyes, ok := result.([]byte)
+	if !ok {
+		return errors.New("Error converting result to []bytes")
+	}
+	*tm = resBtyes
 	return err
 }

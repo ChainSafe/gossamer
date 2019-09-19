@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"testing"
 
-	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 )
@@ -502,48 +501,39 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", bhm, expected)
 	}
 }
-func TestEncodeTransactionsMessage (t *testing.T) {
-	ext1 := TransactionMessage{0x01, 0x02, 0x03}
-	t.Log("TRansMes", "TransMes", ext1)
-	encMsg, err := ext1.Encode()
+
+func TestEncodeTransactionMessage (t *testing.T) {
+	expected, err := common.HexToBytes("0x0C010203")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("encTMes", "encTMess", encMsg)
+
+	ext := TransactionMessage{0x01, 0x02, 0x03}
+
+	encMsg, err := ext.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(encMsg, expected) {
+		t.Fatalf("Fail: got: %v expected %v", encMsg, expected)
+	}
 }
 
-func TestRawTransactionMessages (t *testing.T) {
-	test1 := []byte{0x01, 0x02, 0x03}
-	test2 := []byte{0x04, 0x05, 0x06}
-
-	enc1, err := scale.Encode(test1)
+func TestDecodeTransactionMessage(t *testing.T) {
+	originalMessage, err := common.HexToBytes("0x0C010203")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("enc", "enc", enc1)
 
-	enc2, err := scale.Encode(test2)
+	decodedMessage := new(TransactionMessage)
+	err = decodedMessage.Decode(originalMessage)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("enc", "enc", enc2)
-	both := enc1
-	both = append(both, enc2[0:]...)
-	t.Log("both", "both", both)
 
-	bothEnc, err := scale.Encode(both)
-	if err != nil {
-		t.Fatal(err)
+	expected := TransactionMessage{0x01, 0x02, 0x03}
+	if !reflect.DeepEqual(*decodedMessage, expected) {
+		t.Fatalf("Fail: got: %v expected %v", decodedMessage, expected)
 	}
-	t.Log("bothEnc", "bothEnc", bothEnc)
-
-	output, err := scale.Decode(bothEnc, []byte{})
-
-	output2, err := scale.Decode(output.([]byte), []byte{})
-	if err != nil {
-		t.Error(err)
-	}
-
-	t.Log("decode", "decode", output2.([]byte))
-
 }
