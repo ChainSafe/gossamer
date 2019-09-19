@@ -370,14 +370,14 @@ func (tm *TransactionMessage) String() string {
 }
 
 func (tm *TransactionMessage) Encode() ([]byte, error) {
-	tmBytes := []byte (*tm)
+	tmBytes := []byte(*tm)
 	encoded, err := scale.Encode(tmBytes)
 	return encoded, err
 }
 
 //Decodes the message into a TransactionMessage, it assumes the type byte han been removed
 func (tm *TransactionMessage) Decode(msg []byte) error {
-	result, err := scale.Decode(msg, []byte{} )
+	result, err := scale.Decode(msg, []byte{})
 	// convert result (interface{}) to []byte
 	resBtyes, ok := result.([]byte)
 	if !ok {

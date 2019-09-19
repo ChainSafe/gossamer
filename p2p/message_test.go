@@ -502,7 +502,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	}
 }
 
-func TestEncodeTransactionMessage (t *testing.T) {
+func TestEncodeTransactionMessage(t *testing.T) {
 	expected, err := common.HexToBytes("0x0C010203")
 	if err != nil {
 		t.Fatal(err)
