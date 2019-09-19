@@ -471,8 +471,11 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	buf := &bytes.Buffer{}
+	buf.Write(announceMessage)
+
 	bhm := new(BlockHeaderMessage)
-	err = bhm.Decode(announceMessage)
+	err = bhm.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -503,7 +506,10 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestEncodeTransactionMessage(t *testing.T) {
-	expected, err := common.HexToBytes("0x0C010203")
+	// expected:  04 - Message Type
+	//  0C - byte array
+	//  010203 - value of array
+	expected, err := common.HexToBytes("0x040C010203")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -526,8 +532,11 @@ func TestDecodeTransactionMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	buf := &bytes.Buffer{}
+	buf.Write(originalMessage)
+
 	decodedMessage := new(TransactionMessage)
-	err = decodedMessage.Decode(originalMessage)
+	err = decodedMessage.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
 	}

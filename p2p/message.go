@@ -70,6 +70,12 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
+	case BlockAnnounceMsgType:
+		m = new(BlockHeaderMessage)
+		err = m.Decode(r)
+	case TransactionMsgType:
+		m = new(TransactionMessage)
+		err = m.Decode(r)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
@@ -278,8 +284,9 @@ func (bhm *BlockHeaderMessage) Encode() ([]byte, error) {
 }
 
 //Decodes the message into a BlockHeaderMessage, it assumes the type byte has been removed
-func (bhm *BlockHeaderMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, bhm)
+func (bhm *BlockHeaderMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bhm)
 	return err
 }
 
@@ -366,23 +373,25 @@ func readHash(r io.Reader) (common.Hash, error) {
 type TransactionMessage []byte
 
 func (tm *TransactionMessage) String() string {
-	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", *tm)
+	return fmt.Sprintf("TransactionMessage extrinsics=%v", *tm)
 }
 
 func (tm *TransactionMessage) Encode() ([]byte, error) {
 	tmBytes := []byte(*tm)
 	encoded, err := scale.Encode(tmBytes)
-	return encoded, err
+	return append([]byte{TransactionMsgType}, encoded...), err
 }
 
 //Decodes the message into a TransactionMessage, it assumes the type byte han been removed
-func (tm *TransactionMessage) Decode(msg []byte) error {
-	result, err := scale.Decode(msg, []byte{})
+func (tm *TransactionMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	result, err := sd.Decode([]byte{})
 	// convert result (interface{}) to []byte
 	resBtyes, ok := result.([]byte)
 	if !ok {
 		return errors.New("Error converting result to []bytes")
 	}
+
 	*tm = resBtyes
 	return err
 }
