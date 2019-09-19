@@ -7,7 +7,7 @@ import (
 
 func TestPriorityQueue(t *testing.T) {
 	tests := []*ValidTransaction{
-		&ValidTransaction{
+		{
 			validity: Validity{priority: 1},
 		},
 		&ValidTransaction{
