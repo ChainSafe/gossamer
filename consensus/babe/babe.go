@@ -39,6 +39,8 @@ type BabeSession struct {
 	// authorities []VrfPublicKey
 	authorityWeights []uint64
 
+	epochThreshold *big.Int
+
 	// TODO: TransactionQueue
 }
 
@@ -49,6 +51,21 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 		vrfPrivateKey: privkey,
 		rt:            rt,
 	}
+}
+
+// sets the slot lottery threshold for the current epoch
+func (b *BabeSession) setEpochThreshold() error {
+	var err error
+	if b.config == nil {
+		return errors.New("cannot set threshold: no babe config")
+	}
+
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // runs the slot lottery for a specific slot
@@ -64,12 +81,14 @@ func (b *BabeSession) runLottery(slot uint64) (bool, error) {
 	}
 
 	output_int := new(big.Int).SetBytes(output)
-	threshold, err := calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
-	if err != nil {
-		return false, err
+	if b.epochThreshold == nil {
+		err = b.setEpochThreshold()
+		if err != nil {
+			return false, err
+		}
 	}
 
-	return output_int.Cmp(threshold) > 0, nil
+	return output_int.Cmp(b.epochThreshold) > 0, nil
 }
 
 func (b *BabeSession) vrfSign(slot uint64) ([]byte, error) {
@@ -95,6 +114,10 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 	var sum uint64 = 0
 	for _, weight := range authorityWeights {
 		sum += weight
+	}
+
+	if sum == 0 {
+		return nil, errors.New("invalid authority weights: sums to zero")
 	}
 
 	// w_k/sum(w_i)
