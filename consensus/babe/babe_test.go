@@ -47,7 +47,7 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 
 func TestStartupData(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewBabeSession([32]byte{}, [64]byte{}, rt)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt)
 	res, err := babesession.startupData()
 	if err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestStartupData(t *testing.T) {
 
 func TestEpoch(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewBabeSession([32]byte{}, [64]byte{}, rt)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt)
 	res, err := babesession.epoch()
 	if err != nil {
 		t.Fatal(err)

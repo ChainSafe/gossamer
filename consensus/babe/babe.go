@@ -20,8 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
-// BabeSession contains the VRF keys for the validator
-type BabeSession struct {
+// Session contains the VRF keys for the validator
+type Session struct {
 	vrfPublicKey  VrfPublicKey
 	vrfPrivateKey VrfPrivateKey
 	rt            *runtime.Runtime
@@ -32,9 +32,9 @@ type BabeSession struct {
 	// TODO: TransactionQueue
 }
 
-// NewBabeSession returns a new Babe session using the provided VRF keys and runtime
-func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *BabeSession {
-	return &BabeSession{
+// NewSession returns a new Babe session using the provided VRF keys and runtime
+func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *Session {
+	return &Session{
 		vrfPublicKey:  pubkey,
 		vrfPrivateKey: privkey,
 		rt:            rt,
