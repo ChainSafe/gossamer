@@ -28,7 +28,7 @@ func (q *PriorityQueue) Insert(vt *ValidTransaction) {
 		return
 	}
 
-	for {
+	for ; curr != nil; curr = curr.child {
 		currPriority := curr.data.validity.priority
 		if vt.validity.priority > currPriority {
 			newNode := &node{
@@ -45,7 +45,13 @@ func (q *PriorityQueue) Insert(vt *ValidTransaction) {
 			curr.parent = newNode
 
 			return
+		} else if curr.child == nil {
+			newNode := &node{
+				data:   vt,
+				parent: curr,
+			}
+			curr.child = newNode
+			return
 		}
-		curr = curr.child
 	}
 }
