@@ -41,7 +41,7 @@ type SystemHealthResponse struct {
 }
 
 type SystemNetworkStateResponse struct {
-	PeerId string `json:"peerId"`
+	Id string `json:"Id"`
 }
 
 // TODO: This should probably live elsewhere
@@ -53,7 +53,9 @@ type Peer struct {
 	BestNumber      *big.Int    `json:"bestNumber"`
 }
 
-type SystemPeersResponse []Peer
+type SystemPeersResponse struct {
+	Peers []string `json:"peers"`
+}
 
 type SystemPropertiesResponse struct {
 	Ss58Format    int    `json:"ss58Format"`
@@ -68,26 +70,45 @@ func NewSystemModule(api *api.Api) *SystemModule {
 	}
 }
 
-func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) {
+// Not implemented yet
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
+	return nil
 }
 
-func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) {
-	return
-}
-func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) {
-	*res = "not yet implemented"
-}
-func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) {
-	return
-}
-func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) {
-	return
+// Returns the Health status of the node
+func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
+	res.Peers = len(sm.api.P2pModule.Peers())
+	res.IsSyncing = sm.api.P2pModule.IsSyncing()
+	res.ShouldHavePeers = !sm.api.P2pModule.NoBootstrapping()
+	return nil
 }
 
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) {
-	return
-}
-func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) {
+// Not implemented yet
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
+	return nil
+}
+
+// Return the node's Network State
+func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
+	res.Id = sm.api.P2pModule.ID()
+	return nil
+}
+
+// Returns the node's peers
+func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
+	res.Peers = sm.api.P2pModule.Peers()
+	return nil
+}
+
+// Returns the node's properties
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
+	return nil
+}
+
+// Not implemented yet
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
+	*res = "not yet implemented"
+	return nil
 }

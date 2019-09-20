@@ -14,31 +14,37 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package babe
+package module
 
 import (
-	tx "github.com/ChainSafe/gossamer/common/transaction"
-	"github.com/ChainSafe/gossamer/runtime"
+	log "github.com/ChainSafe/log15"
 )
 
-// BabeSession contains the VRF keys for the validator
-type BabeSession struct {
-	vrfPublicKey  VrfPublicKey
-	vrfPrivateKey VrfPrivateKey
-	rt            *runtime.Runtime
-
-	// currentEpoch uint64
-	// currentSlot  uint64
-
-	txQueue *tx.PriorityQueue
+type RuntimeModule struct {
+	Rt RuntimeApi
 }
 
-// NewBabeSession returns a new Babe session using the provided VRF keys and runtime
-func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *BabeSession {
-	return &BabeSession{
-		vrfPublicKey:  pubkey,
-		vrfPrivateKey: privkey,
-		rt:            rt,
-		txQueue:       new(tx.PriorityQueue),
-	}
+// RuntimeApi is the interface expected to implemented by `runtime` package
+type RuntimeApi interface {
+	// Chain() string  //Cannot implement yet
+	Name() string //Replace with dynamic name later
+	// properties() string //Cannot implement yet
+	Version() string
+}
+
+func NewRuntimeModule(RTapi RuntimeApi) *RuntimeModule {
+	return &RuntimeModule{RTapi}
+}
+
+// Release version
+func (r *RuntimeModule) Version() string {
+	log.Debug("[rpc] Executing System.Version", "params", nil)
+	//TODO: Replace with dynamic version
+	return "0.0.1"
+}
+
+func (r *RuntimeModule) Name() string {
+	log.Debug("[rpc] Executing System.Name", "params", nil)
+	//TODO: Replace with dynamic name
+	return "Gossamer"
 }
