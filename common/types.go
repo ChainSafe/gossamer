@@ -54,4 +54,3 @@ type BlockHeader struct {
 	Digest         []byte   // any additional block info eg. logs, seal
 }
 
-type Extrinsic []byte
