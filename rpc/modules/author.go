@@ -55,27 +55,27 @@ type ChainBlockHeaderResponse struct{}
 type AuthorHashResponse common.Hash
 
 // ChainModule is an RPC module providing access to storage API points.
-type AuthorModule struct {
+type AuthorRPC struct {
 	api *api.Api
 }
 
 // NewChainModule creates a new State module.
-func NewAuthorModule(api *api.Api) *AuthorModule {
-	return &AuthorModule{
+func NewAuthorRPC(api *api.Api) *AuthorRPC {
+	return &AuthorRPC{
 		api: api,
 	}
 }
 
-func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
+func (cm *AuthorRPC) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
 }
 
-func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+func (cm *AuthorRPC) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
 }
 
-func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *ChainHashResponse) {
+func (cm *AuthorRPC) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *ChainHashResponse) {
 }
 
-func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
+func (cm *AuthorRPC) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
 }
 
 // TODO: Finish implementing
@@ -83,5 +83,5 @@ func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyR
 // 	return
 // }
 
-func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *SubmitExtrinsicRequest, res *AuthorHashResponse) {
+func (cm *AuthorRPC) SubmitExtrinsic(r *http.Request, req *SubmitExtrinsicRequest, res *AuthorHashResponse) {
 }
