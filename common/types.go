@@ -50,3 +50,5 @@ type BlockHeader struct {
 	ExtrinsicsRoot Hash     // the root of the extrinsics trie
 	Digest         []byte   // any additional block info eg. logs, seal
 }
+
+type Extrinsic []byte

@@ -370,28 +370,50 @@ func readHash(r io.Reader) (common.Hash, error) {
 
 }
 
-type TransactionMessage []byte
+type TransactionMessage struct {
+	Extrinsics []common.Extrinsic
+}
 
 func (tm *TransactionMessage) String() string {
-	return fmt.Sprintf("TransactionMessage extrinsics=%v", *tm)
+	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", tm.Extrinsics)
 }
 
 func (tm *TransactionMessage) Encode() ([]byte, error) {
-	tmBytes := []byte(*tm)
-	encoded, err := scale.Encode(tmBytes)
-	return append([]byte{TransactionMsgType}, encoded...), err
+	// scale encode each extrinsic
+	var encodedExtrinsics = make([]byte, 0)
+	for _, extrinsic := range tm.Extrinsics {
+		encExt, err := scale.Encode([]byte(extrinsic))
+		if err != nil {
+			return nil, err
+		}
+		encodedExtrinsics = append(encodedExtrinsics, encExt...)
+	}
+
+	// scale encode the set of all extrinsics
+	encodedMessage, err := scale.Encode(encodedExtrinsics)
+
+	// prepend message type to message
+	return append([]byte{TransactionMsgType}, encodedMessage...), err
 }
 
 //Decodes the message into a TransactionMessage, it assumes the type byte han been removed
 func (tm *TransactionMessage) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
-	result, err := sd.Decode([]byte{})
-	// convert result (interface{}) to []byte
-	resBtyes, ok := result.([]byte)
-	if !ok {
-		return errors.New("Error converting result to []bytes")
+	decodedMessage, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+	messageSize := len(decodedMessage.([]byte))
+	bytesProcessed := 0
+	// loop through the message decoding extrinsics until they have all been decoded
+	for bytesProcessed < messageSize {
+		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
+		if err != nil {
+			return err
+		}
+		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
 	}
 
-	*tm = resBtyes
-	return err
+	return nil
 }
