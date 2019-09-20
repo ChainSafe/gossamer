@@ -246,7 +246,7 @@ func TestVrfSignAndVerify(t *testing.T) {
 	message := []byte("hello world")
 
 	limit := make([]byte, SR25519_VRF_OUTPUT_SIZE)
-	for i, _ := range limit {
+	for i := range limit {
 		limit[i] = 0xff
 	}
 
