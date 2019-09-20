@@ -26,8 +26,8 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	P2pModule     *apiModule.P2pModule
-	RuntimeModule *apiModule.RuntimeModule
+	P2pModule       *apiModule.P2pModule
+	RuntimeModule   *apiModule.RuntimeModule
 	BlocktreeSystem *apiModule.BlocktreeModule
 }
 
@@ -40,9 +40,9 @@ func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi, blocktree apiM
 		&Api{
 			P2pModule: &apiModule.P2pModule{
 				P2p: p2p,
-            },
+			},
 			BlocktreeSystem: &apiModule.BlocktreeModule{
-				blocktree,
+				Blocktree: blocktree,
 			},
 			RuntimeModule: &apiModule.RuntimeModule{
 				Rt: rt,
