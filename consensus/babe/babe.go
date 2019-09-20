@@ -22,6 +22,7 @@ import (
 	"math"
 	"math/big"
 
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
@@ -41,7 +42,7 @@ type BabeSession struct {
 
 	epochThreshold *big.Int
 
-	// TODO: TransactionQueue
+	txQueue *tx.PriorityQueue
 }
 
 // NewBabeSession returns a new Babe session using the provided VRF keys and runtime
@@ -50,6 +51,7 @@ func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runt
 		vrfPublicKey:  pubkey,
 		vrfPrivateKey: privkey,
 		rt:            rt,
+		txQueue:       new(tx.PriorityQueue),
 	}
 }
 
