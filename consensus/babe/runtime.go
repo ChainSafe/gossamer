@@ -14,12 +14,32 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package babe
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	scale "github.com/ChainSafe/gossamer/codec"
+)
+
+// gets the startup data for Babe from the runtime
+func (b *BabeSession) startupData() (*BabeConfiguration, error) {
+	ret, err := b.rt.Exec("BabeApi_startup_data", 1, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	bc := new(BabeConfiguration)
+	_, err = scale.Decode(ret, bc)
+	return bc, err
+}
+
+// gets the current epoch data from the runtime
+func (b *BabeSession) epoch() (*Epoch, error) {
+	ret, err := b.rt.Exec("BabeApi_epoch", 1, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	e := new(Epoch)
+	_, err = scale.Decode(ret, e)
+	return e, err
 }

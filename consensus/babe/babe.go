@@ -14,12 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package babe
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	"github.com/ChainSafe/gossamer/runtime"
+)
+
+// BabeSession contains the VRF keys for the validator
+type BabeSession struct {
+	vrfPublicKey  VrfPublicKey
+	vrfPrivateKey VrfPrivateKey
+	rt            *runtime.Runtime
+
+	// currentEpoch uint64
+	// currentSlot  uint64
+
+	// TODO: TransactionQueue
+}
+
+// NewBabeSession returns a new Babe session using the provided VRF keys and runtime
+func NewBabeSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *BabeSession {
+	return &BabeSession{
+		vrfPublicKey:  pubkey,
+		vrfPrivateKey: privkey,
+		rt:            rt,
+	}
 }
