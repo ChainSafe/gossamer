@@ -50,28 +50,22 @@ func NewChainModule(api *api.Api) *ChainModule {
 }
 
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
-	return
 }
 
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
 	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.GetBlockHashOfNode(*req)
-	return
 }
 
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
 	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.LastFinalizedHead()
-	return
 }
 
 //DB isn't implemented properly yet. Doesn't return block headers
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
-	return
 }
 
 func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
-	return
 }
 
 func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
-	return
 }
