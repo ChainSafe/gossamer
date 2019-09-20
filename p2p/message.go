@@ -417,4 +417,3 @@ func readHash(r io.Reader) (common.Hash, error) {
 	return common.Hash(h), nil
 
 }
-
