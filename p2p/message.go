@@ -331,45 +331,6 @@ func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-func readByte(r io.Reader) (byte, error) {
-	buf := make([]byte, 1)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return buf[0], nil
-}
-
-func readUint32(r io.Reader) (uint32, error) {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint32(buf), nil
-}
-
-func readUint64(r io.Reader) (uint64, error) {
-	buf := make([]byte, 8)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint64(buf), nil
-}
-
-func readHash(r io.Reader) (common.Hash, error) {
-	buf := make([]byte, 32)
-	_, err := r.Read(buf)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	h := [32]byte{}
-	copy(h[:], buf)
-	return common.Hash(h), nil
-
-}
-
 type TransactionMessage struct {
 	Extrinsics []common.Extrinsic
 }
@@ -417,3 +378,43 @@ func (tm *TransactionMessage) Decode(r io.Reader) error {
 
 	return nil
 }
+
+func readByte(r io.Reader) (byte, error) {
+	buf := make([]byte, 1)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
+
+func readUint32(r io.Reader) (uint32, error) {
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint32(buf), nil
+}
+
+func readUint64(r io.Reader) (uint64, error) {
+	buf := make([]byte, 8)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(buf), nil
+}
+
+func readHash(r io.Reader) (common.Hash, error) {
+	buf := make([]byte, 32)
+	_, err := r.Read(buf)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	h := [32]byte{}
+	copy(h[:], buf)
+	return common.Hash(h), nil
+
+}
+
