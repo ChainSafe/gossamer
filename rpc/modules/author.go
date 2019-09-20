@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/api"
 )
 
@@ -31,6 +32,15 @@ type KeyInsertRequest struct {
 }
 
 type Extrinsic struct {
+}
+
+type ExtrinsicOrHashRequest struct {
+	Extrinsic core.Block
+	Hash      common.Hash
+}
+
+type SubmitExtrinsicRequest struct {
+	Extrinsic core.Block
 }
 
 type ChainBlockNumberRequest *big.Int
@@ -57,22 +67,15 @@ func NewAuthorModule(api *api.Api) *AuthorModule {
 }
 
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
-	*res = cm.api.AuthorSystem.InsertKey(req.KeyType, req.Suri, req.PublicKey)
-	return
 }
 
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
-	*res = cm.api.AuthorSystem.PendingExtrinsics()
-	return
 }
 
-func (cm *AuthorModule) removeExtrinsic(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
-	return
+func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *ChainHashResponse) {
 }
 
-func (cm *AuthorModule) rotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
-	*res = cm.api.AuthorSystem.RotateKeys()
-	return
+func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
 }
 
 // TODO: Finish implementing
@@ -80,6 +83,5 @@ func (cm *AuthorModule) rotateKeys(r *http.Request, req *EmptyRequest, res *KeyR
 // 	return
 // }
 
-func (cm *AuthorModule) submitExtrinsic(r *http.Request, req *, res *AuthorHashResponse) {
-	return
+func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *SubmitExtrinsicRequest, res *AuthorHashResponse) {
 }

@@ -17,23 +17,19 @@
 package modules
 
 import (
-	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/api"
 )
 
 type ChainHashRequest common.Hash
 
-type ChainBlockNumberRequest *big.Int
-
 // TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type ChainBlockResponse struct{}
 
-type ChainBlockHeaderResponse struct{}
-
-type ChainHashResponse common.Hash
+type ChainHashResponse core.BlockBody
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
