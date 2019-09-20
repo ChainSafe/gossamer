@@ -38,7 +38,7 @@ func NewSchnorrkelExecutor(fp string) (*SchnorrkelExecutor, error) {
 	}
 
 	return &SchnorrkelExecutor{
-		vm:   instance,
+		vm: instance,
 	}, nil
 }
 
@@ -159,7 +159,7 @@ func (se *SchnorrkelExecutor) Sr25519Sign(public, secret, message []byte) ([]byt
 func (se *SchnorrkelExecutor) Sr25519Verify(signature, message, pubkey []byte) (bool, error) {
 	public_ptr := 1
 	signature_ptr := public_ptr + SR25519_SECRET_SIZE
-	message_ptr := signature_ptr + SR25519_SIGNATURE_SIZE	
+	message_ptr := signature_ptr + SR25519_SIGNATURE_SIZE
 
 	se.lock.Lock()
 	defer se.lock.Unlock()
@@ -180,7 +180,7 @@ func (se *SchnorrkelExecutor) Sr25519Verify(signature, message, pubkey []byte) (
 // Returns output + proof of signature, and bool which says whether VRF random number was under limit or not
 func (se *SchnorrkelExecutor) Sr25519VrfSign(keypair, message, limit []byte) ([]byte, bool, error) {
 	out_and_proof_ptr := 1
-	keypair_ptr := out_and_proof_ptr + SR25519_VRF_OUTPUT_SIZE + SR25519_VRF_PROOF_SIZE 
+	keypair_ptr := out_and_proof_ptr + SR25519_VRF_OUTPUT_SIZE + SR25519_VRF_PROOF_SIZE
 	message_ptr := keypair_ptr + SR25519_KEYPAIR_SIZE
 	limit_ptr := message_ptr + len(message)
 
@@ -193,20 +193,20 @@ func (se *SchnorrkelExecutor) Sr25519VrfSign(keypair, message, limit []byte) ([]
 	copy(mem[limit_ptr:limit_ptr+SR25519_VRF_OUTPUT_SIZE], limit)
 
 	under_limit, err := se.Exec("sr25519_vrf_sign_if_less", out_and_proof_ptr, keypair_ptr, message_ptr, int32(len(message)), limit_ptr)
-	if err != nil { 
+	if err != nil {
 		return nil, false, err
 	}
 
 	out_and_proof := make([]byte, SR25519_VRF_OUTPUT_SIZE+SR25519_VRF_PROOF_SIZE)
 	copy(out_and_proof, mem[out_and_proof_ptr:out_and_proof_ptr+SR25519_VRF_OUTPUT_SIZE+SR25519_VRF_PROOF_SIZE])
-;
+
 	return out_and_proof, under_limit != 0, nil
 }
 
 func (se *SchnorrkelExecutor) Sr25519VrfVerify(public, message, out, proof []byte) (int64, error) {
 	public_ptr := 1
 	message_ptr := public_ptr + SR25519_PUBLIC_SIZE
-	out_ptr := message_ptr + len(message)	
+	out_ptr := message_ptr + len(message)
 	proof_ptr := out_ptr + SR25519_VRF_OUTPUT_SIZE
 
 	se.lock.Lock()
@@ -226,7 +226,7 @@ func (se *SchnorrkelExecutor) Sr25519VrfVerify(public, message, out, proof []byt
 	return ret, nil
 }
 
-func (se *SchnorrkelExecutor) Exec(function string, params... interface{}) (int64, error) {
+func (se *SchnorrkelExecutor) Exec(function string, params ...interface{}) (int64, error) {
 	wasmFunc, ok := se.vm.Exports[function]
 	if !ok {
 		return 0, errors.New("could not find exported function")

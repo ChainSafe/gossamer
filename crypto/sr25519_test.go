@@ -68,7 +68,7 @@ func TestSr25519KeypairFromSeed(t *testing.T) {
 	seed, err = common.HexToBytes("0xfac7959dbfe72f052e5a0c3c8d6530f202b02fd8f9f5ca3580ec8deb7797479e")
 	if err != nil {
 		t.Fatal(err)
-	}	
+	}
 	keypair, err = se.Sr25519KeypairFromSeed(seed)
 	if err != nil {
 		t.Fatal(err)
@@ -189,7 +189,7 @@ func TestSignAndVerify(t *testing.T) {
 
 	message := []byte("this is a message")
 
-	sig, err := se.Sr25519Sign(public, secret, message) 
+	sig, err := se.Sr25519Sign(public, secret, message)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestVrfSignAndVerify(t *testing.T) {
 	keypair := newRandomKeypair(t)
 	t.Log(keypair)
 
-	message := []byte("hello world")	
+	message := []byte("hello world")
 
 	limit := make([]byte, SR25519_VRF_OUTPUT_SIZE)
 	for i, _ := range limit {
