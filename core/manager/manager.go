@@ -1,4 +1,4 @@
-package transaction
+package manager
 
 import (
 	log "github.com/ChainSafe/log15"
@@ -7,39 +7,72 @@ import (
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
-type Manager struct {
+type Service struct {
 	rt *runtime.Runtime
 	b  *babe.Session
+
+	msgChan <-chan p2p.Message
+}
+
+func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message) *Service {
+	return &Service{
+		rt:      rt,
+		b:       b,
+		msgChan: msgChan,
+	}
+}
+
+func (s *Service) Start() <-chan error {
+	e := make(chan error)
+	s.start(e)
+	return e
+}
+
+func (s *Service) start(e chan error) {
+	go func(msgChan <-chan p2p.Message) {
+		msg := <-msgChan
+		msgType := msg.GetType()
+		if msgType == p2p.TransactionMsgType {
+			// process tx
+		}
+	}(s.msgChan)
+}
+
+func (s *Service) Stop() <-chan error {
+	e := make(chan error)
+
+	return e
 }
 
 // ProcessTransaction attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
-func (m *Manager) ProcessTransaction(e core.Extrinsic) {
-	validity, err := m.validateTransaction(e)
+func (s *Service) ProcessTransaction(e core.Extrinsic) {
+	validity, err := s.validateTransaction(e)
 	if err != nil {
 		log.Error("ProcessTransaction", "error", err)
 		return
 	}
 
 	vtx := tx.NewValidTransaction(e, validity)
-	m.b.TxQueue.Insert(vtx)
+	s.b.PushToTxQueue(vtx)
 
 	return
 }
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (m *Manager) ProcessBlock(b *core.BlockHeader) {
+func (s *Service) ProcessBlock(b *core.BlockHeader) {
 	return
 }
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
-func (m *Manager) validateTransaction(e core.Extrinsic) (*tx.Validity, error) {
-	ret, err := m.rt.Exec("TaggedTransactionQueue_validate_transaction", 1, 0)
+func (s *Service) validateTransaction(e core.Extrinsic) (*tx.Validity, error) {
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", 1, 0)
 	if err != nil {
 		return nil, err
 	}
