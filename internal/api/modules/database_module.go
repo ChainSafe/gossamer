@@ -18,7 +18,7 @@ package module
 
 import (
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ethereum/go-ethereum/log"
+	log "github.com/ChainSafe/log15"
 )
 
 type DatabaseModule struct {
@@ -44,26 +44,31 @@ func NewDatabaseModule(databaseApi DatabaseApi) *DatabaseModule {
 	return &DatabaseModule{databaseApi}
 }
 
+// GetChildKeys returns the Child with prefix of a specific child storage
 func (p *DatabaseModule) GetChildKeys(childStorageKey, key []byte, block common.Hash) [][]byte {
 	log.Debug("[rpc] Executing Chain.getBlockHash", "params", nil)
 	return p.Database.GetChildKeys(childStorageKey, key, block)
 }
 
+// GetChildStorage retrieves the child storage for a key
 func (p *DatabaseModule) GetChildStorage(childStorageKey, key []byte, block common.Hash) []byte {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetChildStorage(childStorageKey, key, block)
 }
 
+// GetChildStorageHash retrieves the child storage hash
 func (p *DatabaseModule) GetChildStorageHash(childStorageKey, key []byte, block common.Hash) common.Hash {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetChildStorageHash(childStorageKey, key, block)
 }
 
+// GetChildStorageSize retrieves the child storage size
 func (p *DatabaseModule) GetChildStorageSize(childStorageKey, key []byte, block common.Hash) uint64 {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetChildStorageSize(childStorageKey, key, block)
 }
 
+// GetKeys retrieves the keys with a certain prefix
 func (p *DatabaseModule) GetKeys(key []byte, block common.Hash) [][]byte {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetKeys(key, block)
@@ -75,22 +80,31 @@ func (p *DatabaseModule) GetMetadata(block common.Hash) []byte {
 	return p.Database.GetMetadata(block)
 }
 
+// GetRuntimeVersion returns the runtime version
 func (p *DatabaseModule) GetRuntimeVersion(block common.Hash) string {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetRuntimeVersion(block)
 }
 
+// GetStorage retrieves the storage for a key
 func (p *DatabaseModule) GetStorage(key []byte, block common.Hash) []byte {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetStorage(key, block)
 }
 
+// GetStorageHash retrieves the storage hash
 func (p *DatabaseModule) GetStorageHash(key []byte, block common.Hash) common.Hash {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetStorageHash(key, block)
 }
 
+// GetStorageSize retrieves the storage size
 func (p *DatabaseModule) GetStorageSize(key []byte, block common.Hash) uint64 {
 	log.Debug("[rpc] Executing Chain.getFinalizedHead", "params", nil)
 	return p.Database.GetStorageSize(key, block)
 }
+
+// // TODO: Finish QueryStorage
+// func (p *DatabaseModule) QueryStorage(keys [][]byte, startBlock, block common.Hash) [][]{
+
+// }
