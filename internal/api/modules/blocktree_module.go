@@ -20,7 +20,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ethereum/go-ethereum/log"
+	log "github.com/ChainSafe/log15"
 )
 
 type BlocktreeModule struct {

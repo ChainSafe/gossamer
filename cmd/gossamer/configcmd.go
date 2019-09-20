@@ -80,7 +80,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, dbSrv)
 
 	// API
-	apiSrvc := api.NewApiService(p2pSrvc, nil)
+	apiSrvc := api.NewApiService(p2pSrvc, nil, nil)
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC

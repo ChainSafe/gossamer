@@ -24,9 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/api"
 )
 
-// EmptyRequest represents an RPC request with no fields
-type EmptyRequest struct{}
-
 type ChainHashRequest common.Hash
 
 type ChainBlockNumberRequest *big.Int
