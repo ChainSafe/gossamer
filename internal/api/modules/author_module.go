@@ -18,8 +18,8 @@ package module
 
 import (
 	"github.com/ethereum/go-ethereum/log"
-	"githum.com/ChainSafe/gossamer/common"
-	core "githum.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/common"
+	core "github.com/ChainSafe/gossamer/core"
 )
 
 type AuthorModule struct {
