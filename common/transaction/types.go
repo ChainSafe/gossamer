@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core"
 )
 
 type Pool map[common.Hash]*ValidTransaction
@@ -23,11 +24,11 @@ type Validity struct {
 }
 
 type ValidTransaction struct {
-	extrinsic common.Extrinsic
-	validity  Validity
+	extrinsic core.Extrinsic
+	validity  *Validity
 }
 
-func NewValidTransaction(extrinsic common.Extrinsic, validity Validity) *ValidTransaction {
+func NewValidTransaction(extrinsic core.Extrinsic, validity *Validity) *ValidTransaction {
 	return &ValidTransaction{
 		extrinsic: extrinsic,
 		validity:  validity,

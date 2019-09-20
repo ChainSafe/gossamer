@@ -7,19 +7,19 @@ import (
 
 func TestPriorityQueue(t *testing.T) {
 	a := &ValidTransaction{
-		validity: Validity{priority: 1},
+		validity: &Validity{priority: 1},
 	}
 	b := &ValidTransaction{
-		validity: Validity{priority: 3},
+		validity: &Validity{priority: 3},
 	}
 	c := &ValidTransaction{
-		validity: Validity{priority: 2},
+		validity: &Validity{priority: 2},
 	}
 	d := &ValidTransaction{
-		validity: Validity{priority: 17},
+		validity: &Validity{priority: 17},
 	}
 	e := &ValidTransaction{
-		validity: Validity{priority: 2},
+		validity: &Validity{priority: 2},
 	}
 
 	pq := new(PriorityQueue)

@@ -18,7 +18,6 @@ package common
 
 import (
 	"fmt"
-	"math/big"
 )
 
 // Hash used to store a blake2b hash
@@ -40,16 +39,4 @@ func NewHash(in []byte) (res Hash) {
 func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
-}
-
-// Extrinsic is a generic transaction whose format is verified in the runtime
-type Extrinsic []byte
-
-// BlockHeader is the header of a Polkadot block
-type BlockHeader struct {
-	ParentHash     Hash     // the block hash of the block's parent
-	Number         *big.Int // block number
-	StateRoot      Hash     // the root of the state trie
-	ExtrinsicsRoot Hash     // the root of the extrinsics trie
-	Digest         []byte   // any additional block info eg. logs, seal
 }
