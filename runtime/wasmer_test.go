@@ -33,7 +33,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 )
 
-const POLKADOT_RUNTIME_FP string = "polkadot_runtime.compact.wasm"
+const POLKADOT_RUNTIME_FP string = "../polkadot_runtime.wasm"
 const POLKADOT_RUNTIME_URL string = "https://github.com/w3f/polkadot-re-tests/blob/master/polkadot-runtime/polkadot_runtime.compact.wasm?raw=true"
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
@@ -93,10 +93,10 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 func TestExecVersion(t *testing.T) {
 	expected := &Version{
-		Spec_name:         []byte("polkadot"),
-		Impl_name:         []byte("parity-polkadot"),
+		Spec_name:         []byte("kusama"),
+		Impl_name:         []byte("parity-kusama"),
 		Authoring_version: 1,
-		Spec_version:      1000,
+		Spec_version:      1002,
 		Impl_version:      0,
 	}
 
@@ -130,7 +130,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/master/target/wasm32-unknown-unknown/release/test_wasm.wasm"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/09d34b04fff635e92eaecfb192d42aae4f58ba54/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
