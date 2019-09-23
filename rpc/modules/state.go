@@ -74,7 +74,17 @@ type StateStorageKeysResponse [][]byte
 // TODO: Determine actual type
 type StateMetadataResponse []byte
 
-type StorageChangeSetResponse [][]byte
+type StorageChangeSetResponse struct {
+	Block   common.Hash
+	Changes []KeyValueOption
+}
+
+type KeyValueOption struct {
+	StorageKey  []byte `json:"storageKey"`
+	StorageData []byte `json:"storageData"`
+}
+
+type StorageKey []byte
 
 type StateRuntimeVersionResponse string
 
@@ -83,14 +93,13 @@ type StateModule struct {
 	api *api.Api
 }
 
-// NewSystemModule creates a new State module.
+// NewStateModule creates a new State module.
 func NewStateModule(api *api.Api) *SystemModule {
 	return &SystemModule{
 		api: api,
 	}
 }
 
-//Not implemented yet
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
 }
 
@@ -125,4 +134,10 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryReq
 }
 
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+}
+
+func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) {
+}
+
+func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
 }
