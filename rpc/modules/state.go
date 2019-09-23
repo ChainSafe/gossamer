@@ -74,6 +74,8 @@ type StateStorageKeysResponse [][]byte
 // TODO: Determine actual type
 type StateMetadataResponse []byte
 
+type StorageChangeSetResponse [][]byte
+
 type StateRuntimeVersionResponse string
 
 // StateModule is an RPC module providing access to storage API points.
@@ -133,7 +135,6 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryReq
 	return
 }
 
-// TDDO: Complete implementation
-func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *_) {
+func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
 	return
 }
