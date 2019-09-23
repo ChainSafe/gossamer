@@ -50,7 +50,20 @@ type RemoveExtrinsicsResponse []common.Hash
 
 type KeyRotateResponse []byte
 
-type AuthorHashResponse common.Hash
+type ExtrinsicStatus struct {
+	IsFuture    bool
+	IsReady     bool
+	IsFinalized bool
+	AsFinalized common.Hash
+	IsUsurped   bool
+	AsUsurped   common.Hash
+	IsBroadcast bool
+	AsBroadcast []string
+	IsDropped   bool
+	IsInvalid   bool
+}
+
+type ExtrinsicHashResponse common.Hash
 
 // NewAuthorRPC creates a new Author module.
 func NewAuthorModule(api *api.Api) *AuthorModule {
@@ -61,6 +74,7 @@ func NewAuthorModule(api *api.Api) *AuthorModule {
 
 // Insert a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
+	_ = cm.api
 }
 
 // Returns all pending extrinsics
@@ -75,6 +89,10 @@ func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashReq
 func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
 }
 
+// Submit and subscribe to watch an extrinsic until unsubscribed
+func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) {
+}
+
 // Submit a fully formatted extrinsic for block inclusion
-func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *AuthorHashResponse) {
+func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) {
 }
