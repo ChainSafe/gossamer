@@ -101,6 +101,7 @@ func NewStateModule(api *api.Api) *SystemModule {
 }
 
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
+	_ = sm.api
 }
 
 func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
