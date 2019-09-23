@@ -50,6 +50,7 @@ func NewChainModule(api *api.Api) *ChainModule {
 }
 
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
+	_ = cm.api
 }
 
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
