@@ -44,19 +44,15 @@ func NewChainModule(api *api.Api) *SystemModule {
 }
 
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
-	return
 }
 
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
-	return
 }
 
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
-	return
 }
 
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
-	return
 }
 
 // TODO: Finish implementing
