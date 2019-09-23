@@ -84,16 +84,16 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
-	log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
-	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
+	// log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
+	// log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Allocate memory
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
-	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
+	// log.Debug("[ext_malloc]", "pointer", res)
+	// log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
 	return int32(res)
 }
 
@@ -107,7 +107,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
 
-	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
+	//log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Deallocate memory
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))

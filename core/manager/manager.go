@@ -28,7 +28,7 @@ func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message
 
 func (s *Service) Start() <-chan error {
 	e := make(chan error)
-	s.start(e)
+	go s.start(e)
 	return e
 }
 
@@ -40,6 +40,8 @@ func (s *Service) start(e chan error) {
 			// process tx
 		}
 	}(s.msgChan)
+
+	e <- nil
 }
 
 func (s *Service) Stop() <-chan error {
@@ -50,17 +52,17 @@ func (s *Service) Stop() <-chan error {
 
 // ProcessTransaction attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
-func (s *Service) ProcessTransaction(e core.Extrinsic) {
+func (s *Service) ProcessTransaction(e core.Extrinsic) error {
 	validity, err := s.validateTransaction(e)
 	if err != nil {
 		log.Error("ProcessTransaction", "error", err)
-		return
+		return err
 	}
 
 	vtx := tx.NewValidTransaction(e, validity)
 	s.b.PushToTxQueue(vtx)
 
-	return
+	return nil
 }
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
