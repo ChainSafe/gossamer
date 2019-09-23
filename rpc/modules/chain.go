@@ -53,11 +53,9 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 }
 
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) {
-	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.GetBlockHashOfNode(*req)
 }
 
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
-	res.ChainHash = cm.api.BlocktreeSystem.Blocktree.LastFinalizedHead()
 }
 
 //DB isn't implemented properly yet. Doesn't return block headers
