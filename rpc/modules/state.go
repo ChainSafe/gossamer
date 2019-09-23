@@ -58,7 +58,7 @@ type StateStorageQueryRangeRequest struct {
 type StateStorageKeysQuery [][]byte
 
 type StateCallResponse struct {
-	stateCallResponse []byte `json:"stateCallResponse"`
+	StateCallResponse []byte `json:"stateCallResponse"`
 }
 
 type StateKeysResponse [][]byte
@@ -92,49 +92,37 @@ func NewStateModule(api *api.Api) *SystemModule {
 
 //Not implemented yet
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
-	return
 }
 
 func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
-	return
 }
 
 func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) {
-	return
 }
 
 func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateStorageHashResponse) {
-	return
 }
 
 func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateStorageSizeResponse) {
-	return
 }
 
 func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) {
-	return
 }
 
 func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) {
-	return
 }
 
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) {
-	return
 }
 
 func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) {
-	return
 }
 
 func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageQueryRequest, res *StateStorageHashResponse) {
-	return
 }
 
 func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryRequest, res *StateStorageSizeResponse) {
-	return
 }
 
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
-	return
 }
