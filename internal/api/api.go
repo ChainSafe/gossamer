@@ -26,28 +26,22 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	DatabaseSystem *apiModule.DatabaseModule
-}
-
-// P2pApi is the interface expected to implemented by `p2p` package
-type P2pApi interface {
-	PeerCount() int
-}
-
-// RuntimeApi is the interface expected to implemented by `runtime` package
-type RuntimeApi interface {
-	Version() string
+	P2pModule     *apiModule.P2pModule
+	RuntimeModule *apiModule.RuntimeModule
 }
 
 // Module represents a collection of API endpoints.
 type Module string
 
 // NewApiService creates a new API instance.
-func NewApiService(database apiModule.DatabaseApi) *Service {
+func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi) *Service {
 	return &Service{
 		&Api{
-			DatabaseSystem: &apiModule.DatabaseModule{
-				database,
+			P2pModule: &apiModule.P2pModule{
+				P2p: p2p,
+			},
+			RuntimeModule: &apiModule.RuntimeModule{
+				Rt: rt,
 			},
 		}, nil,
 	}
