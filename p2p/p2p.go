@@ -54,6 +54,7 @@ type Service struct {
 	dhtConfig      kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
+	msgChan        chan Message
 	noBootstrap    bool
 }
 
@@ -78,8 +79,6 @@ func NewService(conf *Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	h.SetStreamHandler(ProtocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -119,6 +118,9 @@ func NewService(conf *Config) (*Service, error) {
 		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
 	}
+
+	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
+
 	return s, err
 }
 
@@ -230,6 +232,11 @@ func (s *Service) Host() host.Host {
 	return s.host
 }
 
+// MsgChan returns a channel where all messages that arrive are sent
+func (s *Service) MsgChan() chan Message {
+	return s.msgChan
+}
+
 // FullAddrs returns all the hosts addresses with their ID append as multiaddrs
 func (s *Service) FullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := s.host.Addrs()
@@ -323,7 +330,7 @@ func (s *Service) getExistingStream(p peer.ID) net.Stream {
 
 // handles stream; reads message length, message type, and decodes message based on type
 // TODO: implement all message types; send message back to peer when we get a message; gossip for certain message types
-func handleStream(stream net.Stream) {
+func (s *Service) handleStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("fail to close stream", "error", err)
@@ -366,6 +373,8 @@ func handleStream(stream net.Stream) {
 	}
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+
+	s.msgChan <- msg
 }
 
 // Peers returns connected peers
