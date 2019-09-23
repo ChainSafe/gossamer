@@ -61,30 +61,20 @@ func NewAuthorModule(api *api.Api) *AuthorModule {
 
 // Insert a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
-	*res = cm.api.Author.InsertKey(req.KeyType, req.Suri, req.PublicKey)
-	return
 }
 
 // Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) {
-	*res = cm.api.Author.PendingExtrinsics()
-	return
 }
 
 // Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
 func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) {
-	*res = cm.api.Author.RemoveExtrinsics(*req)
-	return
 }
 
 // Generate new session keys and returns the corresponding public keys
 func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
-	*res = cm.api.Author.RotateKeys()
-	return
 }
 
 // Submit a fully formatted extrinsic for block inclusion
 func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *AuthorHashResponse) {
-	*res = cm.api.Author.SubmitExtrinsic(*req)
-	return
 }
