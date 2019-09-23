@@ -73,7 +73,7 @@ func (a *MockRuntimeApi) Version() string {
 // -------------------------------------------
 
 func TestSystemModule(t *testing.T) {
-	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{}, nil)
+	srvc := NewApiService(&MockP2pApi{}, &MockRuntimeApi{})
 
 	// System.Name
 	n := srvc.Api.RuntimeModule.Name()

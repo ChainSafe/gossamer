@@ -26,23 +26,19 @@ type Service struct {
 
 // Api contains all the available modules
 type Api struct {
-	P2pModule       *apiModule.P2pModule
-	RuntimeModule   *apiModule.RuntimeModule
-	BlocktreeSystem *apiModule.BlocktreeModule
+	P2pModule     *apiModule.P2pModule
+	RuntimeModule *apiModule.RuntimeModule
 }
 
 // Module represents a collection of API endpoints.
 type Module string
 
 // NewApiService creates a new API instance.
-func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi, blocktree apiModule.BlocktreeApi) *Service {
+func NewApiService(p2p apiModule.P2pApi, rt apiModule.RuntimeApi) *Service {
 	return &Service{
 		&Api{
 			P2pModule: &apiModule.P2pModule{
 				P2p: p2p,
-			},
-			BlocktreeSystem: &apiModule.BlocktreeModule{
-				Blocktree: blocktree,
 			},
 			RuntimeModule: &apiModule.RuntimeModule{
 				Rt: rt,
