@@ -17,11 +17,9 @@
 package modules
 
 import (
-	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/api"
 )
 
@@ -31,26 +29,22 @@ type KeyInsertRequest struct {
 	PublicKey []byte `json:"publicKey"`
 }
 
-type Extrinsic struct {
-}
+type Extrinsic []byte
 
-type ExtrinsicOrHashRequest struct {
-	Extrinsic core.Block
+type ExtrinsicOrHash struct {
 	Hash      common.Hash
+	Extrinsic []byte
 }
-
-type SubmitExtrinsicRequest struct {
-	Extrinsic core.Block
-}
-
-type ChainBlockNumberRequest *big.Int
+type ExtrinsicOrHashRequest []ExtrinsicOrHash
 
 // TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type KeyInsertResponse []byte
 
-type KeyRotateResponse []byte
+type PendingExtrinsicsResponse [][]byte
 
-type ChainBlockHeaderResponse struct{}
+type RemoveExtrinsicsResponse []common.Hash
+
+type KeyRotateResponse []byte
 
 type AuthorHashResponse common.Hash
 
@@ -66,22 +60,32 @@ func NewAuthorRPC(api *api.Api) *AuthorRPC {
 	}
 }
 
-func (cm *AuthorRPC) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
+// Insert a key into the keystore
+func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
+	*res = cm.api.InsertKey(req.KeyType, req.Suri, req.PublicKey)
+	return
 }
 
-func (cm *AuthorRPC) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+// Returns all pending extrinsics
+func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) {
+	*res = cm.api.PendingExtrinsics()
+	return
 }
 
-func (cm *AuthorRPC) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *ChainHashResponse) {
+// Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
+func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) {
+	*res = cm.api.RemoveExtrinsics(*req)
+	return
 }
 
-func (cm *AuthorRPC) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
+// Generate new session keys and returns the corresponding public keys
+func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
+	*res = cm.api.RotateKeys()
+	return
 }
 
-// TODO: Finish implementing
-// func (cm *ChainModule) submitAndWatchExtrinsic(r *http.Request, req *_, res *_) {
-// 	return
-// }
-
-func (cm *AuthorRPC) SubmitExtrinsic(r *http.Request, req *SubmitExtrinsicRequest, res *AuthorHashResponse) {
+// Submit a fully formatted extrinsic for block inclusion
+func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *AuthorHashResponse) {
+	*res = cm.api.SubmitExtrinsic(*req)
+	return
 }
