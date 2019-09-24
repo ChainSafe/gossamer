@@ -108,7 +108,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
-		panic(err)
+		//panic(err)
 	}
 }
 
@@ -259,7 +259,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
-	log.Debug("[ext_sr25519_verify] executing...")
+	log.Debug("[ext_clear_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
@@ -417,7 +417,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 //export ext_sr25519_verify
 func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_sr25519_verify] executing...")
-	return 0
+	return 1
 }
 
 //export ext_ed25519_generate

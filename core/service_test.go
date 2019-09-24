@@ -68,6 +68,7 @@ func TestNewService_Start(t *testing.T) {
 func TestValidateTransaction(t *testing.T) {
 	rt := newRuntime(t)
 	mgr := NewService(rt, nil, make(chan p2p.Message))
+	// from https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
 	ext := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 210, 0, 0, 0, 0, 0, 0, 0, 48, 204, 253, 26, 48, 22, 196, 90, 229, 200, 40, 124, 6, 90, 250, 20, 175, 99, 56, 218, 6, 204, 43, 21, 251, 237, 207, 43, 4, 70, 87, 119, 70, 222, 229, 13, 1, 96, 97, 210, 174, 150, 225, 250, 180, 99, 23, 21, 72, 209, 94, 188, 114, 3, 65, 157, 85, 26, 48, 46, 206, 67, 218, 130}
 	validity, err := mgr.validateTransaction(ext)
 	if err != nil {
@@ -82,4 +83,18 @@ func TestProcessTransaction(t *testing.T) {
 	mgr := NewService(rt, b, make(chan p2p.Message))
 	ext := []byte{80, 131, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0}
 	mgr.ProcessTransaction(ext)
+}
+
+func TestValidateBlock(t *testing.T) {
+	rt := newRuntime(t)
+	mgr := NewService(rt, nil, make(chan p2p.Message))
+	// from https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
+	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
+	ret, err := mgr.validateBlock(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("ret:", ret)
+
 }

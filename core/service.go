@@ -92,7 +92,10 @@ func (s *Service) ProcessBlock(b *types.BlockHeader) error {
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
 func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
-	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", 1, 0)
+	var loc int32 = 1000
+	s.rt.Store(e, loc)
+
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
 	if err != nil {
 		return nil, err
 	}
@@ -100,4 +103,17 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	v := new(tx.Validity)
 	_, err = scale.Decode(ret, v)
 	return v, err
+}
+
+// runs the block through runtime function Core_execute_block and returns success
+func (s *Service) validateBlock(b []byte) ([]byte, error) {
+	var loc int32 = 1000
+	s.rt.Store(b, loc)
+
+	ret, err := s.rt.Exec("Core_execute_block", loc, int32(len(b)))
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, err
 }

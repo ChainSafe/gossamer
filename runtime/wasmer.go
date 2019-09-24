@@ -89,6 +89,11 @@ func (r *Runtime) Stop() {
 	r.vm.Close()
 }
 
+func (r *Runtime) Store(data []byte, location int32) {
+	mem := r.vm.Memory.Data()
+	copy(mem[location:location+int32(len(data))], data)
+}
+
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
