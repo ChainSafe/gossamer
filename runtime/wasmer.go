@@ -94,6 +94,11 @@ func (r *Runtime) Store(data []byte, location int32) {
 	copy(mem[location:location+int32(len(data))], data)
 }
 
+func (r *Runtime) Load(location, length int32) []byte {
+	mem := r.vm.Memory.Data()
+	return mem[location:location+length]	
+}
+
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
