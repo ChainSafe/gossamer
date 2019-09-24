@@ -52,10 +52,13 @@ func (s *Service) start(e chan error) {
 	go func(msgChan <-chan p2p.Message) {
 		msg := <-msgChan
 		msgType := msg.GetType()
-		if msgType == p2p.TransactionMsgType {
+		switch msgType {
+		case p2p.TransactionMsgType:
 			// process tx
-		} else if msgType == p2p.BlockAnnounceMsgType {
+		case p2p.BlockAnnounceMsgType:
 			// process block
+		default:
+			log.Error("core service", "error", "got unsupported message type")
 		}
 	}(s.msgChan)
 
