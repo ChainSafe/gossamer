@@ -51,6 +51,7 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 		vrfPublicKey:  pubkey,
 		vrfPrivateKey: privkey,
 		rt:            rt,
+		txQueue:       new(tx.PriorityQueue),
 	}
 }
 
