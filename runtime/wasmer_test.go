@@ -648,6 +648,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 
 // test that ext_twox_64 performs a xxHash64
 func TestExt_twox_64(t *testing.T) {
+	// test cases from https://github.com/paritytech/substrate/blob/13fc71c681cc9a3cc911c32c7890b52885092969/core/executor/src/wasm_executor.rs#L1701
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -701,6 +702,7 @@ func TestExt_twox_64(t *testing.T) {
 
 // test that ext_twox_128 performs a xxHash64 twice on give byte array of the data
 func TestExt_twox_128(t *testing.T) {
+	// test cases from https://github.com/paritytech/substrate/blob/13fc71c681cc9a3cc911c32c7890b52885092969/core/executor/src/wasm_executor.rs#L1701
 	runtime, err := newTestRuntime()
 	if err != nil {
 		t.Fatal(err)

@@ -22,6 +22,8 @@ import (
 )
 
 func TestBlake2b218_EmptyHash(t *testing.T) {
+	// test case from https://github.com/noot/blake2b_test which uses the blake2-rfp rust crate
+	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
 	in := []byte{}
 	h, err := Blake2b128(in)
 	if err != nil {
@@ -37,6 +39,8 @@ func TestBlake2b218_EmptyHash(t *testing.T) {
 }
 
 func TestBlake2bHash_EmptyHash(t *testing.T) {
+	// test case from https://github.com/noot/blake2b_test which uses the blake2-rfp rust crate
+	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
 	in := []byte{}
 	h, err := Blake2bHash(in)
 	if err != nil {
