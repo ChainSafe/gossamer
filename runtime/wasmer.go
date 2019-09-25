@@ -96,7 +96,7 @@ func (r *Runtime) Store(data []byte, location int32) {
 
 func (r *Runtime) Load(location, length int32) []byte {
 	mem := r.vm.Memory.Data()
-	return mem[location:location+length]	
+	return mem[location : location+length]
 }
 
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {

@@ -19,7 +19,7 @@ package core
 import (
 	log "github.com/ChainSafe/log15"
 
-	//scale "github.com/ChainSafe/gossamer/codec"
+	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -59,7 +59,7 @@ func (s *Service) start(e chan error) {
 				log.Error("core service", "error", err)
 			}
 		} else if msgType == p2p.BlockAnnounceMsgType {
-			// process block			
+			// process block
 			err := s.ProcessBlock((*types.BlockHeader)(msg.(*p2p.BlockAnnounceMessage)))
 			if err != nil {
 				log.Error("core service", "error", err)
@@ -94,35 +94,40 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
 func (s *Service) ProcessBlock(b *types.BlockHeader) error {
-	return nil
+	enc, err := scale.Encode(b)
+	if err != nil {
+		return err
+	}
+	err = s.validateBlock(enc)
+	return err
 }
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
 func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
-	// var loc int32 = 1000
-	// s.rt.Store(e, loc)
-
-	// ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// v := new(tx.Validity)
-	// _, err = scale.Decode(ret, v)
-	v := tx.NewValidity(1, []tx.TransactionTag{}, []tx.TransactionTag{}, 0, false)
-	return v, nil
-}
-
-// runs the block through runtime function Core_execute_block and returns success
-func (s *Service) validateBlock(b []byte) ([]byte, error) {
 	var loc int32 = 1000
-	s.rt.Store(b, loc)
+	s.rt.Store(e, loc)
 
-	ret, err := s.rt.Exec("execute_block", loc, int32(len(b)))
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
 	if err != nil {
 		return nil, err
 	}
 
-	return ret, err
+	v := new(tx.Validity)
+	_, err = scale.Decode(ret, v)
+	return v, nil
+}
+
+// runs the block through runtime function Core_execute_block
+// doesn't return data, but will error if the call isn't successful
+func (s *Service) validateBlock(b []byte) error {
+	var loc int32 = 1000
+	s.rt.Store(b, loc)
+
+	_, err := s.rt.Exec("Core_execute_block", loc, int32(len(b)))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

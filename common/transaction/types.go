@@ -16,20 +16,20 @@ type TransactionTag []byte
 
 // see: https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L178
 type Validity struct {
-	priority uint64
-	requires  []TransactionTag
-	provides  []TransactionTag
-	longevity uint64
-	propagate bool
+	Priority  uint64
+	Requires  []TransactionTag
+	Provides  []TransactionTag
+	Longevity uint64
+	Propagate bool
 }
 
 func NewValidity(priority uint64, requires, provides []TransactionTag, longevity uint64, propagate bool) *Validity {
 	return &Validity{
-		priority: priority,
-		requires: requires,
-		provides: provides,
-		longevity: longevity,
-		propagate: propagate,
+		Priority:  priority,
+		Requires:  requires,
+		Provides:  provides,
+		Longevity: longevity,
+		Propagate: propagate,
 	}
 }
 

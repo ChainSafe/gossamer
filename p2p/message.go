@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/core/types"
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
 	optional "github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 const (
