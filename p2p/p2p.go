@@ -54,7 +54,7 @@ type Service struct {
 	dhtConfig      kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
-	msgChan        chan Message
+	msgChan        chan<- Message
 	noBootstrap    bool
 }
 
@@ -68,7 +68,7 @@ type Config struct {
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *Config) (*Service, error) {
+func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 	ctx := context.Background()
 	opts, err := conf.buildOpts()
 	if err != nil {
@@ -117,6 +117,7 @@ func NewService(conf *Config) (*Service, error) {
 		bootstrapNodes: bootstrapNodes,
 		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
+		msgChan:        msgChan,
 	}
 
 	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
@@ -233,9 +234,9 @@ func (s *Service) Host() host.Host {
 }
 
 // MsgChan returns a channel where all messages that arrive are sent
-func (s *Service) MsgChan() chan Message {
-	return s.msgChan
-}
+// func (s *Service) MsgChan() chan Message {
+// 	return s.msgChan
+// }
 
 // FullAddrs returns all the hosts addresses with their ID append as multiaddrs
 func (s *Service) FullAddrs() (maddrs []ma.Multiaddr) {

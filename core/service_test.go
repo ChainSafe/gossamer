@@ -49,17 +49,12 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 func TestNewService_Start(t *testing.T) {
 	rt := newRuntime(t)
 	b := babe.NewSession([32]byte{}, [64]byte{}, rt)
-	p2pcfg := &p2p.Config{
-		BootstrapNodes: []string{},
-		Port:           7001,
-	}
-	p, err := p2p.NewService(p2pcfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	mgr := NewService(rt, b, p.MsgChan())
+	msgChan := make(chan p2p.Message)
+
+	mgr := NewService(rt, b, msgChan)
+
 	e := mgr.Start()
-	err = <-e
+	err := <-e
 	if err != nil {
 		t.Fatal(err)
 	}
