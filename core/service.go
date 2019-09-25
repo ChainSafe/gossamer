@@ -20,6 +20,7 @@ import (
 	log "github.com/ChainSafe/log15"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -52,18 +53,25 @@ func (s *Service) start(e chan error) {
 	go func(msgChan <-chan p2p.Message) {
 		msg := <-msgChan
 		msgType := msg.GetType()
-		if msgType == p2p.TransactionMsgType {
+		switch msgType {
+		case p2p.TransactionMsgType:
 			// process tx
-			err := s.ProcessTransaction([]byte{})
+			enc, err := msg.Encode()
 			if err != nil {
 				log.Error("core service", "error", err)
 			}
-		} else if msgType == p2p.BlockAnnounceMsgType {
+			err = s.ProcessTransaction(enc)
+			if err != nil {
+				log.Error("core service", "error", err)
+			}
+		case p2p.BlockAnnounceMsgType:
 			// process block
-			err := s.ProcessBlock((*types.BlockHeader)(msg.(*p2p.BlockAnnounceMessage)))
+			err := s.ProcessBlock((*common.BlockHeader)(msg.(*p2p.BlockAnnounceMessage)))
 			if err != nil {
 				log.Error("core service", "error", err)
 			}
+		default:
+			log.Error("core service", "error", "got unsupported message type")
 		}
 	}(s.msgChan)
 
@@ -85,7 +93,7 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 		return err
 	}
 
-	vtx := tx.NewValidTransaction(e, validity)
+	vtx := tx.NewValidTransaction(&e, validity)
 	s.b.PushToTxQueue(vtx)
 
 	return nil
@@ -93,7 +101,7 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlock(b *types.BlockHeader) error {
+func (s *Service) ProcessBlock(b *common.BlockHeader) error {
 	enc, err := scale.Encode(b)
 	if err != nil {
 		return err

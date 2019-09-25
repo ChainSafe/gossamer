@@ -25,7 +25,7 @@ import (
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
 	optional "github.com/ChainSafe/gossamer/common/optional"
-	"github.com/ChainSafe/gossamer/core/types"
+	//"github.com/ChainSafe/gossamer/core/types"
 )
 
 const (
@@ -270,7 +270,7 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 }
 
 // BlockAnnounceMessage is a state block header
-type BlockAnnounceMessage types.BlockHeader
+type BlockAnnounceMessage common.BlockHeader
 
 func (bm *BlockAnnounceMessage) GetType() int {
 	return BlockAnnounceMsgType

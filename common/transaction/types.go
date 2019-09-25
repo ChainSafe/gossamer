@@ -34,11 +34,11 @@ func NewValidity(priority uint64, requires, provides []TransactionTag, longevity
 }
 
 type ValidTransaction struct {
-	extrinsic types.Extrinsic
+	extrinsic *types.Extrinsic
 	validity  *Validity
 }
 
-func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTransaction {
+func NewValidTransaction(extrinsic *types.Extrinsic, validity *Validity) *ValidTransaction {
 	return &ValidTransaction{
 		extrinsic: extrinsic,
 		validity:  validity,
