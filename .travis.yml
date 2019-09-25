@@ -45,5 +45,5 @@ matrix:
     - name: "Golang-ci Linter"
       before_script:
         - go install github.com/golangci/golangci-lint/cmd/golangci-lint
-      script: ./scripts/linter.sh
+      script: golangci-lint run ./... -c .golangci.yml
 
