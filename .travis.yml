@@ -36,8 +36,16 @@ before_script:
   - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
   - chmod +x ./cc-test-reporter
   - ./cc-test-reporter before-build
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
-script: ./scripts/ci.sh
+jobs:
+  include:
+    - stage: "Tests"
+      name: "Unit Tests"
+      script: ./scripts/ci.sh
+    - stage: "Linter"
+      name: "Golang-ci Linter"
+      script: ./scripts/linter.sh
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
