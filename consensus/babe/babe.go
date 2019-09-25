@@ -59,6 +59,10 @@ func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 	b.txQueue.Insert(vt)
 }
 
+func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
+	return b.txQueue.Peek()
+}
+
 // sets the slot lottery threshold for the current epoch
 func (b *Session) setEpochThreshold() error {
 	var err error

@@ -83,6 +83,10 @@ func TestProcessTransaction(t *testing.T) {
 		t.Fatal(err)
 	}
 	// check if in babe tx queue
+	tx := b.PeekFromTxQueue()
+	if !bytes.Equal([]byte(*tx.Extrinsic), ext) {
+		t.Fatalf("Fail: got %x expected %x", tx.Extrinsic, ext)
+	}
 }
 
 func TestValidateBlock(t *testing.T) {
