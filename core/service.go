@@ -80,7 +80,7 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 		return err
 	}
 
-	vtx := tx.NewValidTransaction(e, validity)
+	vtx := tx.NewValidTransaction(&e, validity)
 	s.b.PushToTxQueue(vtx)
 
 	return nil
