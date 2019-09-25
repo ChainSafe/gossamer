@@ -77,10 +77,6 @@ func (b *Session) setEpochThreshold() error {
 // runs the slot lottery for a specific slot
 // returns true if validator is authorized to produce a block for that slot, false otherwise
 func (b *Session) runLottery(slot uint64) (bool, error) {
-	// if slot < b.epochData.StartSlot {
-	// 	return false, errors.New("slot is not in this epoch")
-	// }
-
 	output, err := b.vrfSign(slot)
 	if err != nil {
 		return false, err

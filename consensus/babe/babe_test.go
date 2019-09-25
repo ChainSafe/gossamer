@@ -20,7 +20,6 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/runtime"
@@ -112,36 +111,27 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 	}
 }
 
-// func TestRunLottery(t *testing.T) {
-// 	rt := newRuntime(t)
-// 	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-// 	babesession.authorityIndex = 0
-// 	babesession.authorityWeights = []uint64{1, 1, 1}
-// 	conf := &BabeConfiguration{
-// 		SlotDuration:         6000,
-// 		EpochLength:
-// 		C1:                   1,
-// 		C2:                   4,
-// 		MedianRequiredBlocks: 1000,
-// 	}
+func TestRunLottery(t *testing.T) {
+	rt := newRuntime(t)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt)
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1, 1, 1}
+	conf := &BabeConfiguration{
+		SlotDuration:       1000,
+		EpochLength:        6,
+		C1:                 3,
+		C2:                 10,
+		GenesisAuthorities: []AuthorityData{},
+		Randomness:         0,
+		SecondarySlots:     false,
+	}
+	babesession.config = conf
 
-// 	epoch := &Epoch{
-// 		EpochIndex:     0,
-// 		StartSlot:      0,
-// 		Duration:       2400,
-// 		Authorities:    [32]byte{},
-// 		Randomness:     0,
-// 		//SecondarySlots: false,
-// 	}
-
-// 	babesession.config = conf
-// 	babesession.epochData = epoch
-
-// 	_, err := babesession.runLottery(0)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// }
+	_, err := babesession.runLottery(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestCalculateThreshold_Failing(t *testing.T) {
 	var C1 uint64 = 5
@@ -155,7 +145,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 	}
 }
 
-func TestStartupData(t *testing.T) {
+func TestConfigurationFromRuntime(t *testing.T) {
 	rt := newRuntime(t)
 	babesession := NewSession([32]byte{}, [64]byte{}, rt)
 	res, err := babesession.configurationFromRuntime()
@@ -173,30 +163,7 @@ func TestStartupData(t *testing.T) {
 		SecondarySlots:     false,
 	}
 
-	if !reflect.DeepEqual(res, expected) {
+	if res == expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 }
-
-// func TestEpoch(t *testing.T) {
-// 	rt := newRuntime(t)
-// 	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-// 	res, err := babesession.epoch()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	t.Log(res)
-
-// 	expected := &Epoch{
-// 		EpochIndex:     0,
-// 		StartSlot:      0,
-// 		Duration:       2400,
-// 		Authorities:    [32]byte{},
-// 		Randomness:     0,
-// 		SecondarySlots: false,
-// 	}
-
-// 	if !reflect.DeepEqual(res, expected) {
-// 		t.Errorf("Fail: got %v expected %v\n", res, expected)
-// 	}
-// }
