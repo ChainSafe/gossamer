@@ -71,7 +71,7 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
 	case BlockAnnounceMsgType:
-		m = new(BlockHeaderMessage)
+		m = new(BlockAnnounceMessage)
 		err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
@@ -284,8 +284,9 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 }
 
 //Decodes the message into a BlockAnnounceMessage, it assumes the type byte has been removed
-func (bm *BlockAnnounceMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, bm)
+func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bm)
 	return err
 }
 

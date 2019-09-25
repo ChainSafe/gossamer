@@ -475,7 +475,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	buf.Write(announceMessage)
 
 	bhm := new(BlockAnnounceMessage)
-	err = bhm.Decode(announceMessage)
+	err = bhm.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
