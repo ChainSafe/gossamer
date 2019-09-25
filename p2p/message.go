@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/core/types"
 	scale "github.com/ChainSafe/gossamer/codec"
 	common "github.com/ChainSafe/gossamer/common"
 	optional "github.com/ChainSafe/gossamer/common/optional"
@@ -69,6 +70,9 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 		err = m.Decode(r)
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
+		err = m.Decode(r)
+	case BlockAnnounceMsgType:
+		m = new(BlockAnnounceMessage)
 		err = m.Decode(r)
 	default:
 		return nil, errors.New("unsupported message type")
@@ -265,7 +269,12 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-type BlockAnnounceMessage common.BlockHeader
+// BlockAnnounceMessage is a state block header
+type BlockAnnounceMessage types.BlockHeader
+
+func (bm *BlockAnnounceMessage) GetType() int {
+	return BlockAnnounceMsgType
+}
 
 // string formats a BlockAnnounceMessage as a string
 func (bm *BlockAnnounceMessage) String() string {
@@ -285,9 +294,10 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	return append([]byte{BlockAnnounceMsgType}, enc...), nil
 }
 
-//Decodes the message into a BlockAnnounceMessage, it assumes the type byte has been removed
-func (bm *BlockAnnounceMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, bm)
+// Decodes the message into a BlockAnnounceMessage, it assumes the type byte has been removed
+func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bm)
 	return err
 }
 

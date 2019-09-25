@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"path/filepath"
 	"testing"
 
@@ -26,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-const POLKADOT_RUNTIME_FP string = "../polkadot_runtime.wasm"
+const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
 
 func newRuntime(t *testing.T) *runtime.Runtime {
 	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
@@ -96,5 +97,30 @@ func TestValidateBlock(t *testing.T) {
 	}
 
 	t.Log("ret:", ret)
+
+}
+
+func TestHandleMsg_BlockAnnounce(t *testing.T) {
+	rt := newRuntime(t)
+	msgChan := make(chan p2p.Message)
+	mgr := NewService(rt, nil, msgChan)
+	e := mgr.Start()
+	if err := <-e; err != nil {
+		t.Fatal(err)
+	}
+
+	baMsg := new(p2p.BlockAnnounceMessage)
+	enc := []byte("0x03454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314000000")
+	buf := &bytes.Buffer{}
+	_, err := buf.Write(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = baMsg.Decode(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgChan <- baMsg
 
 }
