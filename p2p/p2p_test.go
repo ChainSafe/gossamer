@@ -278,6 +278,97 @@ func TestGossipSub(t *testing.T) {
 	}
 }
 
+func TestGossipSub(t *testing.T) {
+
+	//Start node A
+	nodeConfigA := &Config{
+		Port: 7000,
+	}
+
+	nodeA, err := NewService(nodeConfigA)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeA.Stop()
+
+	nodeA_Addr := nodeA.hostAddr.String()
+
+	//Start node B
+	nodeConfigB := &Config{
+		BootstrapNodes: []string{
+			nodeA_Addr,
+		},
+		Port: 7001,
+	}
+
+	nodeB, err := NewService(nodeConfigB)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeB.Stop()
+
+	nodeB_Addr := nodeA.hostAddr.String()
+
+	//Connect node A & node B
+	err = nodeB.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+
+	//Start node C
+	nodeConfigC := &Config{
+		BootstrapNodes: []string{
+			nodeB_Addr,
+		},
+		Port: 7002,
+	}
+
+	nodeC, err := NewService(nodeConfigC)
+	if err != nil {
+		t.Fatalf("Could not start p2p service: %s", err)
+	}
+
+	defer nodeC.Stop()
+
+	//Connect node B & node C
+	err = nodeC.bootstrapConnect()
+	if err != nil {
+		t.Errorf("Start error :%s", err)
+	}
+
+	peer, _ := nodeB.dht.FindPeer(nodeB.ctx, nodeA.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeB.hostAddr.String(), peer)
+
+	peer, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeB.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeA.hostAddr.String(), peer)
+
+	msg := []byte("Hello World\n")
+	nodeB.Broadcast(msg)
+
+	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
+	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
+
+	msg1 := []byte("hello there1\n")
+	err = nodeA.Send(peer, msg1)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
+
+	msg2 := []byte("hello there2\n")
+	err = nodeA.Send(peer, msg2)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
+
+	msg3 := []byte("hello there3\n")
+	err = nodeA.Send(peer, msg3)
+	if err != nil {
+		t.Errorf("Send error: %s", err)
+	}
+}
+
 // PING is not implemented in the kad-dht.
 // see https://github.com/libp2p/specs/pull/108
 // func TestPing(t *testing.T) {
