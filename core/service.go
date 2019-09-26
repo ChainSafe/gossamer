@@ -17,6 +17,11 @@
 package core
 
 import (
+	//"bytes"
+	"encoding/binary"
+	"errors"
+	"io"
+
 	log "github.com/ChainSafe/log15"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -124,9 +129,50 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 		return nil, err
 	}
 
+	if ret[0] != 0 {
+		return nil, errors.New("could not validate transaction")
+	}
+
 	v := new(tx.Validity)
-	_, err = scale.Decode(ret, v)
-	return v, nil
+	_, err = scale.Decode(ret[1:], v)
+
+	return v, err
+}
+
+func readByte(r io.Reader) (byte, error) {
+	buf := make([]byte, 1)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
+}
+
+func read16Bytes(r io.Reader) ([]byte, error) {
+	buf := make([]byte, 16)
+	_, err := r.Read(buf)
+	return buf, err
+}
+
+func readUint64(r io.Reader) (uint64, error) {
+	buf := make([]byte, 8)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(buf), nil
+}
+
+func (s *Service) validateTransactionTest(e types.Extrinsic) ([]byte, error) {
+	var loc int32 = 1000
+	s.rt.Store(e, loc)
+
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, err
 }
 
 // runs the block through runtime function Core_execute_block

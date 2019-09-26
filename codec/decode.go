@@ -269,6 +269,7 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 		return false, nil
 	}
 
+	return true, nil
 	return false, errors.New("cannot decode invalid boolean")
 }
 
@@ -303,6 +304,10 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	length, err := sd.DecodeInteger()
 	if err != nil {
 		return nil, err
+	}
+
+	if v.Len() == 0 {
+		return t, nil
 	}
 
 	for i := 0; i < int(length); i++ {
