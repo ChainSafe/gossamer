@@ -62,14 +62,6 @@ func (s *Service) start(e chan error) {
 		switch msgType {
 		case p2p.TransactionMsgType:
 			// process tx
-			enc, err := msg.Encode()
-			if err != nil {
-				log.Error("core service", "error", err)
-			}
-			err = s.ProcessTransaction(enc)
-			if err != nil {
-				log.Error("core service", "error", err)
-			}
 		case p2p.BlockAnnounceMsgType:
 			// get extrinsics by sending BlockRequest message
 			// process block
