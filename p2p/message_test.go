@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 func TestDecodeMessageStatus(t *testing.T) {
@@ -449,7 +450,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bhm := &BlockHeaderMessage{
+	bhm := &BlockAnnounceMessage{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
@@ -474,7 +475,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(announceMessage)
 
-	bhm := new(BlockHeaderMessage)
+	bhm := new(BlockAnnounceMessage)
 	err = bhm.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
@@ -492,7 +493,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expected := &BlockHeaderMessage{
+	expected := &BlockAnnounceMessage{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
@@ -515,9 +516,9 @@ func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	extrinsic := common.Extrinsic{0x01, 0x02, 0x03, 0x04}
+	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
 
-	transactionMessage := TransactionMessage{Extrinsics: []common.Extrinsic{extrinsic}}
+	transactionMessage := TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic}}
 
 	encMsg, err := transactionMessage.Encode()
 	if err != nil {
@@ -541,10 +542,10 @@ func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	extrinsic1 := common.Extrinsic{0x01, 0x02, 0x03}
-	extrinsic2 := common.Extrinsic{0x04, 0x05, 0x06, 0x07}
+	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
+	extrinsic2 := types.Extrinsic{0x04, 0x05, 0x06, 0x07}
 
-	transactionMessage := TransactionMessage{Extrinsics: []common.Extrinsic{extrinsic1, extrinsic2}}
+	transactionMessage := TransactionMessage{Extrinsics: []types.Extrinsic{extrinsic1, extrinsic2}}
 
 	encMsg, err := transactionMessage.Encode()
 	if err != nil {
@@ -571,8 +572,8 @@ func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extrinsic := common.Extrinsic{0x01, 0x02, 0x03, 0x04}
-	expected := TransactionMessage{[]common.Extrinsic{extrinsic}}
+	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
+	expected := TransactionMessage{[]types.Extrinsic{extrinsic}}
 	if !reflect.DeepEqual(*decodedMessage, expected) {
 		t.Fatalf("Fail: got: %v expected %v", *decodedMessage, expected)
 	}
@@ -593,9 +594,9 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extrinsic1 := common.Extrinsic{0x01, 0x02, 0x03}
-	extrinsic2 := common.Extrinsic{0x04, 0x05, 0x06, 0x07}
-	expected := TransactionMessage{[]common.Extrinsic{extrinsic1, extrinsic2}}
+	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
+	extrinsic2 := types.Extrinsic{0x04, 0x05, 0x06, 0x07}
+	expected := TransactionMessage{[]types.Extrinsic{extrinsic1, extrinsic2}}
 	if !reflect.DeepEqual(*decodedMessage, expected) {
 		t.Fatalf("Fail: got: %v expected %v", *decodedMessage, expected)
 	}
