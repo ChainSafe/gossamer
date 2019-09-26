@@ -139,30 +139,6 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	return v, err
 }
 
-func readByte(r io.Reader) (byte, error) {
-	buf := make([]byte, 1)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return buf[0], nil
-}
-
-func read16Bytes(r io.Reader) ([]byte, error) {
-	buf := make([]byte, 16)
-	_, err := r.Read(buf)
-	return buf, err
-}
-
-func readUint64(r io.Reader) (uint64, error) {
-	buf := make([]byte, 8)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint64(buf), nil
-}
-
 func (s *Service) validateTransactionTest(e types.Extrinsic) ([]byte, error) {
 	var loc int32 = 1000
 	s.rt.Store(e, loc)
