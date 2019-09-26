@@ -130,7 +130,7 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 		return nil, errors.New("could not validate transaction")
 	}
 
-	v := tx.NewValidity(0, [][]byte{[]byte{}}, [][]byte{[]byte{}}, 0, false)
+	v := tx.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	_, err = scale.Decode(ret[1:], v)
 
 	return v, err
