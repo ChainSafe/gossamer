@@ -233,11 +233,6 @@ func (s *Service) Host() host.Host {
 	return s.host
 }
 
-// MsgChan returns a channel where all messages that arrive are sent
-// func (s *Service) MsgChan() chan Message {
-// 	return s.msgChan
-// }
-
 // FullAddrs returns all the hosts addresses with their ID append as multiaddrs
 func (s *Service) FullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := s.host.Addrs()

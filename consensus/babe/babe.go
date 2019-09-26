@@ -55,6 +55,7 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 	}
 }
 
+// PushToTxQueue adds a ValidTransaction to BABE's transaction queue
 func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 	b.txQueue.Insert(vt)
 }

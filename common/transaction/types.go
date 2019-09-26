@@ -28,6 +28,7 @@ type ValidTransaction struct {
 	validity  *Validity
 }
 
+// NewValidTransaction creates a new ValidTransaction contains an extrinsic and Validity
 func NewValidTransaction(extrinsic *types.Extrinsic, validity *Validity) *ValidTransaction {
 	return &ValidTransaction{
 		extrinsic: extrinsic,
