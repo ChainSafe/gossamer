@@ -297,6 +297,10 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		v = reflect.ValueOf(t)
 	}
 
+	if v.Len() == 0 {
+		return t, nil
+	}
+
 	var err error
 	var o interface{}
 
@@ -305,7 +309,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	if length == 0 || v.Len() == 0 {
+	if length == 0 {
 		return t, nil
 	}
 
