@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -27,7 +28,6 @@ import (
 	"time"
 
 	log "github.com/ChainSafe/log15"
-
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -43,6 +43,7 @@ import (
 )
 
 const ProtocolPrefix = "/substrate/dot/2"
+const ProtocolPrefix2 = "/substrate/dot/3"
 const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
@@ -54,7 +55,9 @@ type Service struct {
 	dhtConfig      kaddht.BootstrapConfig
 	bootstrapNodes []peer.AddrInfo
 	mdns           discovery.Service
+	msgChan        chan<- Message
 	noBootstrap    bool
+	messagesRec    map[string]bool
 }
 
 // Config is used to configure a p2p service
@@ -66,8 +69,13 @@ type Config struct {
 	NoMdns         bool
 }
 
+type MessageWithID struct {
+	Id  int
+	Msg string
+}
+
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *Config) (*Service, error) {
+func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 	ctx := context.Background()
 	opts, err := conf.buildOpts()
 	if err != nil {
@@ -78,10 +86,6 @@ func NewService(conf *Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	h.SetStreamHandler(protocolPrefix, handleStream)
-	h.SetStreamHandler(protocolPrefix2, handleBroadcastStream)
-
-	h.SetStreamHandler(ProtocolPrefix, handleStream)
 
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
@@ -90,7 +94,7 @@ func NewService(conf *Config) (*Service, error) {
 	h = rhost.Wrap(h, dht)
 
 	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/ipfs/%s", conf.Port, h.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +124,11 @@ func NewService(conf *Config) (*Service, error) {
 		bootstrapNodes: bootstrapNodes,
 		noBootstrap:    conf.NoBootstrap,
 		mdns:           mdns,
+		msgChan:        msgChan,
 	}
+
+	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
+
 	return s, err
 }
 
@@ -190,12 +198,39 @@ func (s *Service) Stop() <-chan error {
 // Broadcast sends a message to all peers
 func (s *Service) Broadcast(msg []byte) (err error) {
 	//Get each node it's connected to & broadcast message to them
-	for _, node := range s.bootstrapNodes {
-		err = s.SendBroadcast(node, msg)
+
+	// //Check if message has an ID
+	// var unmarshaledMessage Message
+	// json.Unmarshal(msg, &unmarshaledMessage)
+	// msgID := unmarshaledMessage.Id
+
+	// //If origin node, create new msgID
+	// if msgID == 0 {
+	// 	//Get non-zero random integer
+	// 	for msgID == 0 && !s.messagesRec.Contains(msgID) {
+	// 		msgID = mrand.Int()
+	// 	}
+	// 	fmt.Println(msgID)
+	// }
+
+	// //Add msgID to messages received
+	// s.messagesRec.Append(msgID)
+	// // msgIDbyte := []byte(strconv.Itoa(msgID))
+	// // msgIDbyte.
+	// // msg = append(msg, strconv.Itoa(msgID)...) //len(msgIDbyte) )
+	// // msg = append(msg, strconv.Itoa(len(msgIDbyte))...)
+
+	fmt.Println("Broadcasting from ", s.host.ID())
+	fmt.Println("PEERS: ", s.host.Network().Peers())
+
+	for _, peers := range s.host.Network().Peers() {
+		addrInfo := s.dht.FindLocal(peers)
+		fmt.Println("BROADCASTING to ", peers)
+		err = s.SendBroadcast(addrInfo, msg)
+		fmt.Println("Finished broadcasting")
 	}
+
 	return err
-	// TODO
-	// return nil
 }
 
 // Send sends a message to a specific peer
@@ -223,17 +258,19 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	return nil
 }
 
+// SendBroadcast streams to broadcast stream handler
 func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
 	err := s.host.Connect(s.ctx, peer)
 	if err != nil {
 		return err
 	}
 
-	stream, err := s.host.NewStream(s.ctx, peer.ID, protocolPrefix2)
+	stream, err := s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix2)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("writing")
 	_, err = stream.Write(msg)
 	if err != nil {
 		return err
@@ -283,12 +320,6 @@ func (s *Service) DHT() *kaddht.IpfsDHT {
 // Ctx returns the service's ctx
 func (s *Service) Ctx() context.Context {
 	return s.ctx
-}
-
-// PeerCount returns the number of connected peers
-func (s *Service) PeerCount() int {
-	peers := s.host.Network().Peers()
-	return len(peers)
 }
 
 func (sc *Config) buildOpts() ([]libp2p.Option, error) {
@@ -355,7 +386,7 @@ func (s *Service) getExistingStream(p peer.ID) net.Stream {
 
 // handles stream; reads message length, message type, and decodes message based on type
 // TODO: implement all message types; send message back to peer when we get a message; gossip for certain message types
-func handleStream(stream net.Stream) {
+func (s *Service) handleStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("fail to close stream", "error", err)
@@ -381,37 +412,53 @@ func handleStream(stream net.Stream) {
 		return
 	}
 
-// TODO: message handling
-func handleBroadcastStream(stream net.Stream) {
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Error("error closing stream", "err", err)
-		}
-	}()
-	// Create a buffer stream for non blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	str, err := rw.ReadString('\n')
+	// read entire message
+	rawMsg, err := rw.Reader.Peek(int(length) - 1)
 	if err != nil {
+		log.Error("failed to read message", "err", err)
 		return
 	}
 
-	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
+	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
+
+	// decode message
+	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
+		log.Error("failed to decode message", "error", err)
 		return
 	}
+
+	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+
+	s.msgChan <- msg
 }
 
-// PeerCount returns the number of connected peers
-func (s *Service) PeerCount() int {
-	peers := s.host.Network().Peers()
-	return len(peers)
-}
+// // TODO: message handling
+// func handleBroadcastStream(stream net.Stream) {
+// 	defer func() {
+// 		if err := stream.Close(); err != nil {
+// 			log.Error("error closing stream", "err", err)
+// 		}
+// 	}()
+// 	// Create a buffer stream for non blocking read and write.
+// 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+// 	str, err := rw.ReadString('\n')
+// 	if err != nil {
+// 		return
+// 	}
+
+// 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
+// 	_, err = rw.WriteString("hello friend")
+// 	if err != nil {
+// 		return
+// 	}
+// }
 
 // Peers returns connected peers
 func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.Network().Peers())
 }
+
 // TODO: message handling
 func handleBroadcastStream(stream net.Stream) {
 	defer func() {
@@ -432,8 +479,9 @@ func handleBroadcastStream(stream net.Stream) {
 		return
 	}
 }
+
 // TODO: message handling
-func handleBroadcastStream(stream net.Stream) {
+func (s *Service) handleBroadcastStream(stream net.Stream) {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("error closing stream", "err", err)
@@ -441,16 +489,47 @@ func handleBroadcastStream(stream net.Stream) {
 	}()
 	// Create a buffer stream for non blocking read and write.
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	str, err := rw.ReadString('\n')
+	str, err := rw.ReadBytes('\n')
 	if err != nil {
 		return
 	}
 
-
-	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
+	var originalMsg MessageWithID
+	err = json.Unmarshal(str, &originalMsg)
 	if err != nil {
+		fmt.Println(err)
+	}
+
+	//If haven't received the message yet, add to list & rebroadcast it
+	if !s.messagesRec[string(originalMsg.Id)] {
+		s.messagesRec[string(originalMsg.Id)] = true
+		err = s.Broadcast(str)
+	} else { //If have received message previously, don't print message
 		return
+	}
+
+	fmt.Println(str)
+
+	fmt.Printf("got stream from %s -> %s: msg: %s ID: %X \n", stream.Conn().RemotePeer(), s.host.ID(), originalMsg.Msg, originalMsg.Id)
+	//_, err = rw.WriteString("hello friend")
+	// if err != nil {
+	// 	return
+	// }
+
+	fmt.Println("BOOTSTRAPNODES: ", s.bootstrapNodes)
+
+	// //Check if message was received before
+	// var unmarshaledMessage Message
+
+	// err = json.Unmarshal(str, &unmarshaledMessage)
+	// if err != nil {
+	// 	fmt.Println("Err: ", err)
+	// }
+
+	if err != nil {
+		fmt.Println("ERR: ", err)
+	} else {
+		fmt.Println("NO ERROR")
 	}
 }
 
