@@ -17,10 +17,7 @@
 package core
 
 import (
-	//"bytes"
-	"encoding/binary"
 	"errors"
-	"io"
 
 	log "github.com/ChainSafe/log15"
 
@@ -133,7 +130,7 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 		return nil, errors.New("could not validate transaction")
 	}
 
-	v := new(tx.Validity)
+	v := tx.NewValidity(0, [][]byte{[]byte{}}, [][]byte{[]byte{}}, 0, false)
 	_, err = scale.Decode(ret[1:], v)
 
 	return v, err

@@ -19,8 +19,10 @@ package core
 import (
 	"bytes"
 	"path/filepath"
+	"reflect"
 	"testing"
 
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -79,7 +81,20 @@ func TestValidateTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(validity)
+
+	// see: https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
+	expected := &tx.Validity{
+		Priority: 69,
+		Requires: [][]byte{[]byte{}},
+		// Provides is the twox128 hash of nonce and from: see https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
+		Provides:  [][]byte{[]byte{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
+		Longevity: 64,
+		Propagate: true,
+	}
+
+	if !reflect.DeepEqual(expected, validity) {
+		t.Fatalf("Fail: got %v expected %v", validity, expected)
+	}
 }
 
 func TestProcessTransaction(t *testing.T) {

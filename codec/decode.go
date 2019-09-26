@@ -306,7 +306,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	if v.Len() == 0 {
+	if length == 0 || v.Len() == 0 {
 		return t, nil
 	}
 
