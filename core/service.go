@@ -136,18 +136,6 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	return v, err
 }
 
-func (s *Service) validateTransactionTest(e types.Extrinsic) ([]byte, error) {
-	var loc int32 = 1000
-	s.rt.Store(e, loc)
-
-	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
-	if err != nil {
-		return nil, err
-	}
-
-	return ret, err
-}
-
 // runs the block through runtime function Core_execute_block
 // doesn't return data, but will error if the call isn't successful
 func (s *Service) validateBlock(b []byte) error {
