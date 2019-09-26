@@ -50,6 +50,7 @@ type Message interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error
 	String() string
+	GetType() int
 }
 
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
@@ -93,6 +94,10 @@ type StatusMessage struct {
 	ChainStatus         []byte
 }
 
+func (sm *StatusMessage) GetType() int {
+	return StatusMsgType
+}
+
 // String formats a StatusMessage as a string
 func (sm *StatusMessage) String() string {
 	return fmt.Sprintf("StatusMessage ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
@@ -130,6 +135,10 @@ type BlockRequestMessage struct {
 	EndBlockHash  *optional.Hash
 	Direction     byte
 	Max           *optional.Uint32
+}
+
+func (bm *BlockRequestMessage) GetType() int {
+	return BlockRequestMsgType
 }
 
 // String formats a BlockRequestMessage as a string
@@ -293,6 +302,10 @@ func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
 type BlockResponseMessage struct {
 	Id   uint64
 	Data []byte // TODO: change this to BlockData type
+}
+
+func (bm *BlockResponseMessage) GetType() int {
+	return BlockResponseMsgType
 }
 
 // String formats a BlockResponseMessage as a string
