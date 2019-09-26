@@ -27,6 +27,9 @@ import (
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
+// Service is a overhead layer that allows for communication between the runtime, BABE, and the p2p layer.
+// It deals with the validation of transactions and blocks by calling their respective validation functions
+// in the runtime.
 type Service struct {
 	rt *runtime.Runtime
 	b  *babe.Session
@@ -34,6 +37,7 @@ type Service struct {
 	msgChan <-chan p2p.Message
 }
 
+// NewService returns a Service that connects the runtime, BABE, and the p2p messages.
 func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message) *Service {
 	return &Service{
 		rt:      rt,
@@ -42,6 +46,7 @@ func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message
 	}
 }
 
+// Start begins the service. This begins watching the message channel for new block or transaction messages.
 func (s *Service) Start() <-chan error {
 	e := make(chan error)
 	go s.start(e)
