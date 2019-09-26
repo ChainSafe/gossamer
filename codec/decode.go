@@ -269,7 +269,6 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 		return false, nil
 	}
 
-	return true, nil
 	return false, errors.New("cannot decode invalid boolean")
 }
 
