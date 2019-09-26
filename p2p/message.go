@@ -273,6 +273,7 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	return nil
 }
 
+// BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage common.BlockHeader
 
 func (bm *BlockAnnounceMessage) GetType() int {

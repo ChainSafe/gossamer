@@ -17,6 +17,8 @@
 package core
 
 import (
+	"errors"
+
 	log "github.com/ChainSafe/log15"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -60,8 +62,19 @@ func (s *Service) start(e chan error) {
 		switch msgType {
 		case p2p.TransactionMsgType:
 			// process tx
+			enc, err := msg.Encode()
+			if err != nil {
+				log.Error("core service", "error", err)
+			}
+			err = s.ProcessTransaction(enc)
+			if err != nil {
+				log.Error("core service", "error", err)
+			}
 		case p2p.BlockAnnounceMsgType:
+			// get extrinsics by sending BlockRequest message
 			// process block
+		case p2p.BlockResponseMsgType:
+			// process response
 		default:
 			log.Error("core service", "error", "got unsupported message type")
 		}
@@ -93,19 +106,46 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlock(b *types.BlockHeader) error {
-	return nil
+func (s *Service) ProcessBlock(b *types.Block) error {
+	enc, err := scale.Encode(b)
+	if err != nil {
+		return err
+	}
+	err = s.validateBlock(enc)
+	return err
 }
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
 func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
-	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", 1, 0)
+	var loc int32 = 1000
+	s.rt.Store(e, loc)
+
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
 	if err != nil {
 		return nil, err
 	}
 
-	v := new(tx.Validity)
-	_, err = scale.Decode(ret, v)
+	if ret[0] != 0 {
+		return nil, errors.New("could not validate transaction")
+	}
+
+	v := tx.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	_, err = scale.Decode(ret[1:], v)
+
 	return v, err
+}
+
+// runs the block through runtime function Core_execute_block
+// doesn't return data, but will error if the call isn't successful
+func (s *Service) validateBlock(b []byte) error {
+	var loc int32 = 1000
+	s.rt.Store(b, loc)
+
+	_, err := s.rt.Exec("Core_execute_block", loc, int32(len(b)))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
