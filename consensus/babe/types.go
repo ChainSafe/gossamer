@@ -21,7 +21,7 @@ type VrfPublicKey [32]byte
 type VrfPrivateKey [64]byte
 
 // BabeConfiguration contains the starting data needed for Babe
-// see: https://github.com/paritytech/substrate/blob/5098710c15df00df162def0b3b4f5aeb95c5dd7d/node-template/runtime/src/lib.rs#L364
+// see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
 type BabeConfiguration struct {
 	SlotDuration       uint64
 	EpochLength        uint64
