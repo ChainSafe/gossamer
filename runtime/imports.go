@@ -112,7 +112,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
 	if err != nil {
 		log.Error("[ext_free] Error:", "Error", err)
-		//panic(err)
+		panic(err)
 	}
 }
 
@@ -465,7 +465,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 //export ext_sr25519_verify
 func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_sr25519_verify] executing...")
-	return 1
+	return 0
 }
 
 //export ext_ed25519_generate

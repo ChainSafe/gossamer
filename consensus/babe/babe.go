@@ -33,7 +33,6 @@ type Session struct {
 	rt            *runtime.Runtime
 
 	config *BabeConfiguration
-	//epochData *Epoch
 
 	authorityIndex uint64
 
