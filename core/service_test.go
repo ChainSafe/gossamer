@@ -87,7 +87,7 @@ func TestValidateTransaction(t *testing.T) {
 		Priority: 69,
 		Requires: [][]byte{{}},
 		// Provides is the twox128 hash of nonce and from: see https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
-		Provides:  [][]byte{[]byte{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
+		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
 		Longevity: 64,
 		Propagate: true,
 	}
