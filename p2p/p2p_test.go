@@ -19,6 +19,7 @@ package p2p
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -146,7 +147,8 @@ func TestSend(t *testing.T) {
 		Port:        7005,
 	}
 
-	sb, err := NewService(testServiceConfigB, nil)
+	msgChan := make(chan Message)
+	sb, err := NewService(testServiceConfigB, msgChan)
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
 	}
@@ -184,5 +186,11 @@ func TestSend(t *testing.T) {
 	err = sa.Send(p, msg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
+	}
+
+	select {
+	case <-sb.msgChan:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("Did not receive message from %s", sa.hostAddr)
 	}
 }
