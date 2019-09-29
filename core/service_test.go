@@ -19,9 +19,9 @@ package core
 import (
 	"bytes"
 	"io"
-	"path/filepath"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -67,7 +67,7 @@ func Exists(name string) bool {
 	return true
 }
 
-func newRuntime(t *testing.T) (*runtime.Runtime) {
+func newRuntime(t *testing.T) *runtime.Runtime {
 	_, err := getRuntimeBlob()
 	if err != nil {
 		t.Fatalf("Fail: could not get polkadot runtime")
@@ -89,7 +89,6 @@ func newRuntime(t *testing.T) (*runtime.Runtime) {
 
 	return r
 }
-
 
 func TestNewService_Start(t *testing.T) {
 	rt := newRuntime(t)
