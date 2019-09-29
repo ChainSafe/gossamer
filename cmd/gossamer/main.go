@@ -67,22 +67,22 @@ func main() {
 	}
 }
 
-func LvlFromInt(lvlUint int) (Lvl, error) {
+func LvlFromInt(lvlUint int) (log.Lvl, error) {
 	switch lvlUint {
 	case 5:
-		return LvlTrace, nil
+		return log.LvlTrace, nil
 	case 4:
-		return LvlDebug, nil
+		return log.LvlDebug, nil
 	case 3:
-		return LvlInfo, nil
+		return log.LvlInfo, nil
 	case 2:
-		return LvlWarn, nil
+		return log.LvlWarn, nil
 	case 1:
-		return LvlError, nil
+		return log.LvlError, nil
 	case 0:
-		return LvlCrit, nil
+		return log.LvlCrit, nil
 	default:
-		return LvlDebug, fmt.Errorf("Unknown level: %v", lvlUint)
+		return log.LvlDebug, fmt.Errorf("Unknown level: %v", lvlUint)
 	}
 }
 
@@ -102,7 +102,7 @@ func StartLogger(ctx *cli.Context) error {
 
 	} else {
 
-		lvl, err := log.LvlFromInt(level)
+		lvl, err := LvlFromInt(level)
 		if err != nil {
 			return err
 		}
