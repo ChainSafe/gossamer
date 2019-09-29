@@ -88,26 +88,23 @@ func LvlFromInt(lvlUint int) (log.Lvl, error) {
 
 func StartLogger(ctx *cli.Context) error {
 	logger := log.Root()
+	handler := logger.GetHandler()
 
 	level, err := strconv.Atoi(ctx.String("verbosity"))
 	if err != nil {
-
 		lvl, err := log.LvlFromString(ctx.String("verbosity"))
 		if err != nil {
 			return err
 		}
 
-		handler := logger.GetHandler()
 		log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
 
 	} else {
-
 		lvl, err := LvlFromInt(level)
 		if err != nil {
 			return err
 		}
 
-		handler := logger.GetHandler()
 		log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
 	}
 
