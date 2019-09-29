@@ -1,3 +1,19 @@
+# Copyright 2019 ChainSafe Systems (ON) Corp.
+# This file is part of gossamer.
+#
+# The gossamer library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The gossamer library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 language: go
 
 go:
@@ -16,12 +32,18 @@ cache:
 before_cache:
   - rm -f ./trie/failing_test_data
 
-before_script:
-  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-  - chmod +x ./cc-test-reporter
-  - ./cc-test-reporter before-build
+matrix:
+  include:
+    - name: "Unit Tests"
+      before_script:
+        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+        - chmod +x ./cc-test-reporter
+        - ./cc-test-reporter before-build
+      script: ./scripts/ci.sh
+      after_script:
+        - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+    - name: "Golang-ci Linter"
+      before_script:
+        - go install github.com/golangci/golangci-lint/cmd/golangci-lint
+      script: golangci-lint run ./... -c .golangci.yml
 
-script: ./scripts/ci.sh
-
-after_script:
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
