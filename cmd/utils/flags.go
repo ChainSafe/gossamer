@@ -62,7 +62,7 @@ var (
 	// cli service settings
 	VerbosityFlag = cli.StringFlag{
 		Name:  "verbosity",
-		Usage: "Supports levels 0 (silent) to 5 (trace)",
+		Usage: "Supports levels crit (silent) to trce (trace)",
 		Value: "info",
 	}
 )
