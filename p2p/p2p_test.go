@@ -17,11 +17,12 @@
 package p2p
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
-	log15 "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
@@ -189,97 +190,6 @@ func TestSend(t *testing.T) {
 	}
 }
 
-// func TestGossipSub(t *testing.T) {
-
-// 	//Start node A
-// 	nodeConfigA := &Config{
-// 		Port: 7000,
-// 	}
-
-// 	nodeA, err := NewService(nodeConfigA)
-// 	if err != nil {
-// 		t.Fatalf("Could not start p2p service: %s", err)
-// 	}
-
-// 	defer nodeA.Stop()
-
-// 	nodeA_Addr := nodeA.hostAddr.String()
-
-// 	//Start node B
-// 	nodeConfigB := &Config{
-// 		BootstrapNodes: []string{
-// 			nodeA_Addr,
-// 		},
-// 		Port: 7001,
-// 	}
-
-// 	nodeB, err := NewService(nodeConfigB)
-// 	if err != nil {
-// 		t.Fatalf("Could not start p2p service: %s", err)
-// 	}
-
-// 	defer nodeB.Stop()
-
-// 	nodeB_Addr := nodeA.hostAddr.String()
-
-// 	//Connect node A & node B
-// 	err = nodeB.bootstrapConnect()
-// 	if err != nil {
-// 		t.Errorf("Start error :%s", err)
-// 	}
-
-// 	//Start node C
-// 	nodeConfigC := &Config{
-// 		BootstrapNodes: []string{
-// 			nodeB_Addr,
-// 		},
-// 		Port: 7002,
-// 	}
-
-// 	nodeC, err := NewService(nodeConfigC)
-// 	if err != nil {
-// 		t.Fatalf("Could not start p2p service: %s", err)
-// 	}
-
-// 	defer nodeC.Stop()
-
-// 	//Connect node B & node C
-// 	err = nodeC.bootstrapConnect()
-// 	if err != nil {
-// 		t.Errorf("Start error :%s", err)
-// 	}
-
-// 	peer, _ := nodeB.dht.FindPeer(nodeB.ctx, nodeA.dht.PeerID())
-// 	fmt.Printf("%s peer's: %s\n", nodeB.hostAddr.String(), peer)
-
-// 	peer, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeB.dht.PeerID())
-// 	fmt.Printf("%s peer's: %s\n", nodeA.hostAddr.String(), peer)
-
-// 	msg := []byte("Hello World\n")
-// 	nodeB.Broadcast(msg)
-
-// 	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
-// 	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
-
-// 	msg1 := []byte("hello there1\n")
-// 	err = nodeA.Send(peer, msg1)
-// 	if err != nil {
-// 		t.Errorf("Send error: %s", err)
-// 	}
-
-// 	msg2 := []byte("hello there2\n")
-// 	err = nodeA.Send(peer, msg2)
-// 	if err != nil {
-// 		t.Errorf("Send error: %s", err)
-// 	}
-
-// 	msg3 := []byte("hello there3\n")
-// 	err = nodeA.Send(peer, msg3)
-// 	if err != nil {
-// 		t.Errorf("Send error: %s", err)
-// 	}
-// }
-
 func TestGossipSub(t *testing.T) {
 
 	//Start node A
@@ -304,7 +214,8 @@ func TestGossipSub(t *testing.T) {
 		BootstrapNodes: []string{
 			nodeA_Addr.String(),
 		},
-		Port: 7001,
+		Port:   7001,
+		NoMdns: true,
 	}
 
 	nodeB, err := NewService(nodeConfigB, nil)
@@ -314,7 +225,7 @@ func TestGossipSub(t *testing.T) {
 
 	defer nodeB.Stop()
 
-	nodeB_Addr := nodeA.FullAddrs()[0]
+	nodeB_Addr := nodeB.FullAddrs()[0]
 
 	fmt.Printf("ABOUT TO BOOTSTRAP\n")
 	//Connect node A & node B
@@ -329,7 +240,8 @@ func TestGossipSub(t *testing.T) {
 		BootstrapNodes: []string{
 			nodeB_Addr.String(),
 		},
-		Port: 7002,
+		Port:   7002,
+		NoMdns: true,
 	}
 
 	nodeC, err := NewService(nodeConfigC, nil)
@@ -357,43 +269,36 @@ func TestGossipSub(t *testing.T) {
 	fmt.Println("nodeB: ", nodeB.host.ID(), " peers: ", nodeB.bootstrapNodes)
 	fmt.Println("nodeC: ", nodeC.host.ID(), " peers: ", nodeC.bootstrapNodes)
 
-	//Broadcast "Hello World"
-	msga := "Hello World"
-	fmt.Println(msga)
-	//message := Message{Id: 2, msg: msga}
-	broadcastMsg, err := json.Marshal(&MessageWithID{Id: 2, Msg: "Hey!"})
-	if err != nil {
-		log15.Error("err: ", err)
-	} else {
-		nextbyte := []byte("\n")
-		fmt.Println("appending")
-		broadcastMsg = append(broadcastMsg, nextbyte...)
+	// Create mock BlockRequestMessage to broadcast
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+
+	bm := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: []byte{1, 1},
+		EndBlockHash:  optional.NewHash(true, endBlock),
+		Direction:     1,
+		Max:           optional.NewUint32(true, 1),
 	}
 
-	fmt.Printf("Broadcasting message: %s, size: %d\n", broadcastMsg, len(broadcastMsg))
-	nodeC.Broadcast(broadcastMsg)
-	// nodeC.Broadcast(message.msg)
+	encMsg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodeC.Broadcast(encMsg)
 
 	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
 	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
 
-	msg1 := []byte("hello there1\n")
-	err = nodeA.Send(peer, msg1)
-	if err != nil {
-		t.Errorf("Send error: %s", err)
+	test := make(chan int)
+
+	select {
+	case <-test:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("Did not receive message from")
 	}
 
-	msg2 := []byte("hello there2\n")
-	err = nodeA.Send(peer, msg2)
-	if err != nil {
-		t.Errorf("Send error: %s", err)
-	}
-
-	msg3 := []byte("hello there3\n")
-	err = nodeA.Send(peer, msg3)
-	if err != nil {
-		t.Errorf("Send error: %s", err)
-	}
 }
 
 // PING is not implemented in the kad-dht.

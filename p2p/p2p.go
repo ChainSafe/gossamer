@@ -20,13 +20,13 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	mrand "math/rand"
 	"time"
 
+	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -127,7 +127,10 @@ func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 		msgChan:        msgChan,
 	}
 
+	s.messagesRec = make(map[string]bool)
+
 	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
+	h.SetStreamHandler(ProtocolPrefix2, s.handleBroadcastStream)
 
 	return s, err
 }
@@ -265,12 +268,21 @@ func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
 		return err
 	}
 
-	stream, err := s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix2)
-	if err != nil {
-		return err
+	stream := s.getExistingStream(peer.ID)
+	if stream == nil {
+		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix2)
+		log.Debug("opening new stream ", "peer", peer.ID)
+		if err != nil {
+			log.Error("failed to open stream", "error", err)
+			return err
+		}
+	} else {
+		log.Debug("using existing stream", "peer", peer.ID)
 	}
 
-	fmt.Println("writing")
+	fmt.Println("writing: ", common.Uint16ToBytes(uint16(len(msg)))[0:1])
+	// Write length of message, and then message
+	_, err = stream.Write(common.Uint16ToBytes(uint16(len(msg)))[0:1])
 	_, err = stream.Write(msg)
 	if err != nil {
 		return err
@@ -433,104 +445,71 @@ func (s *Service) handleStream(stream net.Stream) {
 	s.msgChan <- msg
 }
 
-// // TODO: message handling
-// func handleBroadcastStream(stream net.Stream) {
-// 	defer func() {
-// 		if err := stream.Close(); err != nil {
-// 			log.Error("error closing stream", "err", err)
-// 		}
-// 	}()
-// 	// Create a buffer stream for non blocking read and write.
-// 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-// 	str, err := rw.ReadString('\n')
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-// 	_, err = rw.WriteString("hello friend")
-// 	if err != nil {
-// 		return
-// 	}
-// }
-
 // Peers returns connected peers
 func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.Network().Peers())
 }
 
 // TODO: message handling
-func handleBroadcastStream(stream net.Stream) {
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Error("error closing stream", "err", err)
-		}
-	}()
-	// Create a buffer stream for non blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	str, err := rw.ReadString('\n')
-	if err != nil {
-		return
-	}
-
-	fmt.Printf("got stream from %s: %s", stream.Conn().RemotePeer(), str)
-	_, err = rw.WriteString("hello friend")
-	if err != nil {
-		return
-	}
-}
-
-// TODO: message handling
 func (s *Service) handleBroadcastStream(stream net.Stream) {
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Error("error closing stream", "err", err)
-		}
-	}()
-	// Create a buffer stream for non blocking read and write.
+
+	log.Debug("got stream", "peer", stream.Conn().RemotePeer())
+
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	str, err := rw.ReadBytes('\n')
+	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
+		log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
 		return
 	}
 
-	var originalMsg MessageWithID
-	err = json.Unmarshal(str, &originalMsg)
+	// decode message length using LEB128
+	length := LEB128ToUint64([]byte{lengthByte})
+
+	// read message type byte
+	msgType, err := rw.Reader.Peek(1)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("failed to read message type", "err", err)
+		return
 	}
+
+	// read entire message
+	rawMsg, err := rw.Reader.Peek(int(length) - 1)
+	if err != nil {
+		log.Error("failed to read message", "err", err)
+		return
+	}
+
+	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
+
+	// decode message
+	msg, err := DecodeMessage(rw.Reader)
+	if err != nil {
+		log.Error("failed to decode message", "error", err)
+		return
+	}
+
+	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
 	//If haven't received the message yet, add to list & rebroadcast it
-	if !s.messagesRec[string(originalMsg.Id)] {
-		s.messagesRec[string(originalMsg.Id)] = true
-		err = s.Broadcast(str)
+	hash, err := common.Blake2bHash(rawMsg)
+	if err != nil {
+		log.Error("failed to hash message", "error", err)
+		return
+	}
+
+	if !s.messagesRec[hash.String()] {
+		s.messagesRec[hash.String()] = true
+		encodedMsg, err := msg.Encode()
+		if err != nil {
+			log.Error("failed to encode message")
+		}
+
+		err = s.Broadcast(encodedMsg)
 	} else { //If have received message previously, don't print message
 		return
 	}
 
-	fmt.Println(str)
-
-	fmt.Printf("got stream from %s -> %s: msg: %s ID: %X \n", stream.Conn().RemotePeer(), s.host.ID(), originalMsg.Msg, originalMsg.Id)
-	//_, err = rw.WriteString("hello friend")
-	// if err != nil {
-	// 	return
-	// }
-
-	fmt.Println("BOOTSTRAPNODES: ", s.bootstrapNodes)
-
-	// //Check if message was received before
-	// var unmarshaledMessage Message
-
-	// err = json.Unmarshal(str, &unmarshaledMessage)
-	// if err != nil {
-	// 	fmt.Println("Err: ", err)
-	// }
-
-	if err != nil {
-		fmt.Println("ERR: ", err)
-	} else {
-		fmt.Println("NO ERROR")
-	}
+	s.msgChan <- msg
 }
 
 // PeerCount returns the number of connected peers
