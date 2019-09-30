@@ -17,7 +17,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"os"
 	"strconv"
 
@@ -67,46 +67,19 @@ func main() {
 	}
 }
 
-func LvlFromInt(lvlUint int) (log.Lvl, error) {
-	switch lvlUint {
-	case 5:
-		return log.LvlTrace, nil
-	case 4:
-		return log.LvlDebug, nil
-	case 3:
-		return log.LvlInfo, nil
-	case 2:
-		return log.LvlWarn, nil
-	case 1:
-		return log.LvlError, nil
-	case 0:
-		return log.LvlCrit, nil
-	default:
-		return log.LvlDebug, fmt.Errorf("Unknown level: %v", lvlUint)
-	}
-}
-
 func StartLogger(ctx *cli.Context) error {
 	logger := log.Root()
 	handler := logger.GetHandler()
+	var lvl log.Lvl
 
-	level, err := strconv.Atoi(ctx.String("verbosity"))
-	if err != nil {
-		lvl, err := log.LvlFromString(ctx.String("verbosity"))
-		if err != nil {
-			return err
-		}
-
-		log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
-
+	if lvlToInt, err := strconv.Atoi(ctx.String(utils.VerbosityFlag.Name)); err == nil {
+		lvl = log.Lvl(lvlToInt)
 	} else {
-		lvl, err := LvlFromInt(level)
-		if err != nil {
+		if lvl, err = log.LvlFromString(ctx.String(utils.VerbosityFlag.Name)); err != nil {
 			return err
 		}
-
-		log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
 	}
+	log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
 
 	return nil
 }
@@ -116,7 +89,7 @@ func gossamer(ctx *cli.Context) error {
 
 	err := StartLogger(ctx)
 	if err != nil {
-		log.Error("verbosity level error", "err", err)
+		return err
 	}
 
 	node, _, err := makeNode(ctx)
@@ -124,7 +97,6 @@ func gossamer(ctx *cli.Context) error {
 		// TODO: Need to manage error propagation and exit smoothly
 		log.Error("error making node", "err", err)
 	}
-	// srvlog.Info("🕸️Starting node...")
 	log.Info("🕸️Starting node...")
 	node.Start()
 
