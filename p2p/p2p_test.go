@@ -209,7 +209,7 @@ func TestSend(t *testing.T) {
 	}
 
 	select {
-	case <-sb.msgChan:
+	case <-msgChan:
 	case <-time.After(5 * time.Second):
 		t.Fatalf("Did not receive message from %s", sa.hostAddr)
 	}
