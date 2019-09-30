@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
@@ -182,15 +184,33 @@ func TestSend(t *testing.T) {
 		t.Fatalf("could not find peer: %s", err)
 	}
 
-	msg := []byte("hello there\n")
-	err = sa.Send(p, msg)
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bm := &BlockRequestMessage{
+		Id:            7,
+		RequestedData: 1,
+		StartingBlock: []byte{1, 1},
+		EndBlockHash:  optional.NewHash(true, endBlock),
+		Direction:     1,
+		Max:           optional.NewUint32(true, 1),
+	}
+
+	encMsg, err := bm.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = sa.Send(p, encMsg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
 	}
 
 	select {
 	case <-sb.msgChan:
-	case <-time.After(10 * time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatalf("Did not receive message from %s", sa.hostAddr)
 	}
 }
