@@ -142,15 +142,19 @@ func TestHandleMsg_Transaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = baMsg.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	msgChan <- baMsg
+	
 	// check if in babe tx queue
 	tx := b.PeekFromTxQueue()
-	if !bytes.Equal([]byte(*tx.Extrinsic), ext) {
+	if tx == nil {
+		t.Fatalf("Fail: got nil expected %x", ext)
+	} else if !bytes.Equal([]byte(*tx.Extrinsic), ext) {
 		t.Fatalf("Fail: got %x expected %x", tx.Extrinsic, ext)
 	}
 }

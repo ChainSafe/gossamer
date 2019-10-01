@@ -185,6 +185,8 @@ func (s *Service) Stop() <-chan error {
 		e <- err
 	}
 
+	close(s.msgChan)
+
 	return e
 }
 

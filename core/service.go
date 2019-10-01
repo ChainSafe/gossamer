@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 
 	log "github.com/ChainSafe/log15"
 
@@ -56,19 +57,32 @@ func (s *Service) Start() <-chan error {
 }
 
 func (s *Service) start(e chan error) {
-	go func(msgChan <-chan p2p.Message) {
-		msg := <-msgChan
+	e <- nil
+
+	for {
+		msg, ok := <-s.msgChan
+		if !ok {
+			log.Warn("core service message watcher", "error", "channel closed")
+			break
+		}
+		fmt.Println("got msg")
 		msgType := msg.GetType()
+		fmt.Println("got msg type")
+		enc, err := msg.Encode()
+		if err != nil {
+			log.Error("core service", "error", err)
+			e <- err
+		}
+		fmt.Printf("encoded msg %x\n", enc)
+
 		switch msgType {
 		case p2p.TransactionMsgType:
+			fmt.Println("handling tx message")
 			// process tx
-			enc, err := msg.Encode()
-			if err != nil {
-				log.Error("core service", "error", err)
-			}
 			err = s.ProcessTransaction(enc)
 			if err != nil {
 				log.Error("core service", "error", err)
+				e <- err
 			}
 		case p2p.BlockAnnounceMsgType:
 			// get extrinsics by sending BlockRequest message
@@ -78,9 +92,7 @@ func (s *Service) start(e chan error) {
 		default:
 			log.Error("core service", "error", "got unsupported message type")
 		}
-	}(s.msgChan)
-
-	e <- nil
+	}
 }
 
 func (s *Service) Stop() <-chan error {
@@ -92,6 +104,8 @@ func (s *Service) Stop() <-chan error {
 // ProcessTransaction attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
 func (s *Service) ProcessTransaction(e types.Extrinsic) error {
+	fmt.Println(e)
+
 	validity, err := s.validateTransaction(e)
 	if err != nil {
 		log.Error("ProcessTransaction", "error", err)
