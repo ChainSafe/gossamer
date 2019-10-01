@@ -24,6 +24,8 @@ func ParseJson(file string) (*Genesis, error) {
 		return nil, err
 	}
 
+	fp = filepath.Clean(fp)
+
 	data, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, err
