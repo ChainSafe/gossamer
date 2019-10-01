@@ -43,7 +43,6 @@ import (
 )
 
 const ProtocolPrefix = "/substrate/dot/2"
-const ProtocolPrefix2 = "/substrate/dot/3"
 const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
@@ -131,14 +130,12 @@ func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 		msgChan:        msgChan,
 	}
 
-	s.statusMessagesRec = make(map[string]bool)
 	s.blockReqRec = make(map[string]bool)
 	s.blockRespRec = make(map[string]bool)
 	s.blockAnnounceRec = make(map[string]bool)
 	s.txMessageRec = make(map[string]bool)
 
 	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
-	h.SetStreamHandler(ProtocolPrefix2, s.handleBroadcastStream)
 
 	return s, err
 }
@@ -214,11 +211,6 @@ func (s *Service) Broadcast(msg Message) (err error) {
 	msgType := msg.GetType()
 
 	switch msgType {
-	case StatusMsgType:
-		if s.statusMessagesRec[msg.Id()] {
-			return nil
-		}
-		s.statusMessagesRec[msg.Id()] = true
 	case BlockRequestMsgType:
 		if s.blockReqRec[msg.Id()] {
 			return nil
@@ -291,7 +283,7 @@ func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix2)
+		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
 		log.Debug("opening new stream ", "peer", peer.ID)
 		if err != nil {
 			log.Error("failed to open stream", "error", err)
@@ -463,61 +455,21 @@ func (s *Service) handleStream(stream net.Stream) {
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
+	// Rebroadcast all messages except for status messages
+	if msg.GetType() != StatusMsgType {
+		err = s.Broadcast(msg)
+		if err != nil {
+			log.Debug("failed to broadcast message: ", err)
+			return
+		}
+	}
+
 	s.msgChan <- msg
 }
 
 // Peers returns connected peers
 func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.Network().Peers())
-}
-
-// TODO: message handling
-func (s *Service) handleBroadcastStream(stream net.Stream) {
-
-	log.Debug("got stream", "peer", stream.Conn().RemotePeer())
-
-	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-	lengthByte, err := rw.Reader.ReadByte()
-	if err != nil {
-		log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
-		return
-	}
-
-	// decode message length using LEB128
-	length := LEB128ToUint64([]byte{lengthByte})
-
-	// read message type byte
-	msgType, err := rw.Reader.Peek(1)
-	if err != nil {
-		log.Error("failed to read message type", "err", err)
-		return
-	}
-
-	// read entire message
-	rawMsg, err := rw.Reader.Peek(int(length) - 1)
-	if err != nil {
-		log.Error("failed to read message", "err", err)
-		return
-	}
-
-	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
-
-	// decode message
-	msg, err := DecodeMessage(rw.Reader)
-	if err != nil {
-		log.Error("failed to decode message", "error", err)
-		return
-	}
-
-	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
-
-	err = s.Broadcast(msg)
-	if err != nil {
-		log.Debug("failed to broadcast message: ", err)
-		return
-	}
-
-	s.msgChan <- msg
 }
 
 // PeerCount returns the number of connected peers

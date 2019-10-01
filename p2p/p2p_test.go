@@ -190,7 +190,7 @@ func TestSend(t *testing.T) {
 	}
 }
 
-func TestGossipSub(t *testing.T) {
+func TestGossiping(t *testing.T) {
 
 	//Start node A
 	nodeConfigA := &Config{
@@ -218,7 +218,8 @@ func TestGossipSub(t *testing.T) {
 		NoMdns: true,
 	}
 
-	nodeB, err := NewService(nodeConfigB, nil)
+	msgChanB := make(chan Message)
+	nodeB, err := NewService(nodeConfigB, msgChanB)
 	if err != nil {
 		t.Fatalf("Could not start p2p service: %s", err)
 	}
@@ -227,10 +228,8 @@ func TestGossipSub(t *testing.T) {
 
 	nodeB_Addr := nodeB.FullAddrs()[0]
 
-	fmt.Printf("ABOUT TO BOOTSTRAP\n")
 	//Connect node A & node B
 	err = nodeB.bootstrapConnect()
-	fmt.Printf("FINISHED BOOTSTRAPPING\n")
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}
@@ -244,7 +243,8 @@ func TestGossipSub(t *testing.T) {
 		NoMdns: true,
 	}
 
-	nodeC, err := NewService(nodeConfigC, nil)
+	msgChanC := make(chan Message)
+	nodeC, err := NewService(nodeConfigC, msgChanC)
 	if err != nil {
 		t.Fatalf("Could not start p2p service: %s", err)
 	}
@@ -256,18 +256,6 @@ func TestGossipSub(t *testing.T) {
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}
-
-	peer, _ := nodeB.dht.FindPeer(nodeB.ctx, nodeA.dht.PeerID())
-	peer2, _ := nodeB.dht.FindPeer(nodeB.ctx, nodeC.dht.PeerID())
-	fmt.Printf("%s peer's: %s, %s\n", nodeB.hostAddr.String(), peer, peer2)
-
-	peer, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeB.dht.PeerID())
-	peer2, _ = nodeA.dht.FindPeer(nodeA.ctx, nodeC.dht.PeerID())
-	fmt.Printf("%s peer's: %s, %s\n", nodeA.hostAddr.String(), peer, peer2)
-
-	fmt.Println("nodeA: ", nodeA.host.ID(), " peers: ", nodeA.bootstrapNodes)
-	fmt.Println("nodeB: ", nodeB.host.ID(), " peers: ", nodeB.bootstrapNodes)
-	fmt.Println("nodeC: ", nodeC.host.ID(), " peers: ", nodeC.bootstrapNodes)
 
 	// Create mock BlockRequestMessage to broadcast
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
@@ -281,17 +269,17 @@ func TestGossipSub(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	nodeC.Broadcast(bm)
-
-	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
-	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)
-
-	test := make(chan int)
+	nodeA.Broadcast(bm)
 
 	select {
-	case <-test:
-	case <-time.After(5 * time.Second):
-		t.Fatalf("Did not receive message from")
+	case <-msgChanB:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("Did not receive message from %s", nodeA.hostAddr)
+	}
+	select {
+	case <-msgChanC:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("Did not receive message from %s", nodeB.hostAddr)
 	}
 
 }
