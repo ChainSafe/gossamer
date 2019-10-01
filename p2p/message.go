@@ -315,9 +315,14 @@ func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
 	return err
 }
 
-// Id returns the unique Id of the block
+// Id returns the hash of the block
 func (bm *BlockAnnounceMessage) Id() string {
-	hash, err := common.Blake2bHash([]byte(bm.String()))
+	// scale encode each extrinsic
+	encMsg, err := bm.Encode()
+	if err != nil {
+		return ""
+	}
+	hash, err := common.Blake2bHash(encMsg)
 	if err != nil {
 		return ""
 	}
@@ -426,18 +431,18 @@ func (tm *TransactionMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-// Id returns the Id of TransactionMessage
+// Id returns the Hash of TransactionMessage
 func (tm *TransactionMessage) Id() string {
-
-	var hashedExtrinsics = make([]byte, 0)
-	for _, extrinsic := range tm.Extrinsics {
-		hashedExt, err := common.Blake2b128([]byte(extrinsic))
-		if err != nil {
-			return ""
-		}
-		hashedExtrinsics = append(hashedExtrinsics, hashedExt...)
+	// scale encode each extrinsic
+	encMsg, err := tm.Encode()
+	if err != nil {
+		return ""
 	}
-	return string(hashedExtrinsics)
+	hash, err := common.Blake2bHash(encMsg)
+	if err != nil {
+		return ""
+	}
+	return hash.String()
 }
 
 func readByte(r io.Reader) (byte, error) {
