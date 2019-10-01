@@ -149,7 +149,7 @@ func TestSend(t *testing.T) {
 		Port:        7005,
 	}
 
-	msgChan := make(chan Message)
+	msgChan := make(chan []byte)
 	sb, err := NewService(testServiceConfigB, msgChan)
 	if err != nil {
 		t.Fatalf("NewService error: %s", err)
