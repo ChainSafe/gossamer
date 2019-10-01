@@ -73,10 +73,8 @@ func StartLogger(ctx *cli.Context) error {
 
 	if lvlToInt, err := strconv.Atoi(ctx.String(utils.VerbosityFlag.Name)); err == nil {
 		lvl = log.Lvl(lvlToInt)
-	} else if err != nil {
-		if lvl, err = log.LvlFromString(ctx.String(utils.VerbosityFlag.Name)); err != nil {
-			return err
-		}
+	} else if lvl, err = log.LvlFromString(ctx.String(utils.VerbosityFlag.Name)); err != nil {
+		return err
 	}
 	log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
 
