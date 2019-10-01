@@ -273,7 +273,7 @@ func TestGossipSub(t *testing.T) {
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
 	bm := &BlockRequestMessage{
-		Id:            7,
+		ID:            7,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
@@ -281,12 +281,7 @@ func TestGossipSub(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	encMsg, err := bm.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nodeC.Broadcast(encMsg)
+	nodeC.Broadcast(bm)
 
 	peer, _ = nodeC.dht.FindPeer(nodeC.ctx, nodeB.dht.PeerID())
 	fmt.Printf("%s peer's: %s\n", nodeC.hostAddr.String(), peer)

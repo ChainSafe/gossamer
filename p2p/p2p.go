@@ -48,16 +48,20 @@ const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
 type Service struct {
-	ctx            context.Context
-	host           core.Host
-	hostAddr       ma.Multiaddr
-	dht            *kaddht.IpfsDHT
-	dhtConfig      kaddht.BootstrapConfig
-	bootstrapNodes []peer.AddrInfo
-	mdns           discovery.Service
-	msgChan        chan<- Message
-	noBootstrap    bool
-	messagesRec    map[string]bool
+	ctx               context.Context
+	host              core.Host
+	hostAddr          ma.Multiaddr
+	dht               *kaddht.IpfsDHT
+	dhtConfig         kaddht.BootstrapConfig
+	bootstrapNodes    []peer.AddrInfo
+	mdns              discovery.Service
+	msgChan           chan<- Message
+	noBootstrap       bool
+	statusMessagesRec map[string]bool
+	blockReqRec       map[string]bool
+	blockRespRec      map[string]bool
+	blockAnnounceRec  map[string]bool
+	txMessageRec      map[string]bool
 }
 
 // Config is used to configure a p2p service
@@ -127,7 +131,11 @@ func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 		msgChan:        msgChan,
 	}
 
-	s.messagesRec = make(map[string]bool)
+	s.statusMessagesRec = make(map[string]bool)
+	s.blockReqRec = make(map[string]bool)
+	s.blockRespRec = make(map[string]bool)
+	s.blockAnnounceRec = make(map[string]bool)
+	s.txMessageRec = make(map[string]bool)
 
 	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
 	h.SetStreamHandler(ProtocolPrefix2, s.handleBroadcastStream)
@@ -199,38 +207,51 @@ func (s *Service) Stop() <-chan error {
 }
 
 // Broadcast sends a message to all peers
-func (s *Service) Broadcast(msg []byte) (err error) {
+func (s *Service) Broadcast(msg Message) (err error) {
 	//Get each node it's connected to & broadcast message to them
 
-	// //Check if message has an ID
-	// var unmarshaledMessage Message
-	// json.Unmarshal(msg, &unmarshaledMessage)
-	// msgID := unmarshaledMessage.Id
+	//If haven't received the message yet, add to list & rebroadcast it
+	msgType := msg.GetType()
 
-	// //If origin node, create new msgID
-	// if msgID == 0 {
-	// 	//Get non-zero random integer
-	// 	for msgID == 0 && !s.messagesRec.Contains(msgID) {
-	// 		msgID = mrand.Int()
-	// 	}
-	// 	fmt.Println(msgID)
-	// }
+	switch msgType {
+	case StatusMsgType:
+		if s.statusMessagesRec[msg.Id()] {
+			return nil
+		}
+		s.statusMessagesRec[msg.Id()] = true
+	case BlockRequestMsgType:
+		if s.blockReqRec[msg.Id()] {
+			return nil
+		}
+		s.blockReqRec[msg.Id()] = true
+	case BlockResponseMsgType:
+		if s.blockRespRec[msg.Id()] {
+			return nil
+		}
+		s.blockRespRec[msg.Id()] = true
+	case BlockAnnounceMsgType:
+		if s.blockAnnounceRec[msg.Id()] {
+			return nil
+		}
+		s.blockAnnounceRec[msg.Id()] = true
+	case TransactionMsgType:
+		if s.txMessageRec[msg.Id()] {
+			return nil
+		}
+		s.txMessageRec[msg.Id()] = true
+	default:
+		log.Error("Can't decode message type")
+		return
+	}
 
-	// //Add msgID to messages received
-	// s.messagesRec.Append(msgID)
-	// // msgIDbyte := []byte(strconv.Itoa(msgID))
-	// // msgIDbyte.
-	// // msg = append(msg, strconv.Itoa(msgID)...) //len(msgIDbyte) )
-	// // msg = append(msg, strconv.Itoa(len(msgIDbyte))...)
-
-	fmt.Println("Broadcasting from ", s.host.ID())
-	fmt.Println("PEERS: ", s.host.Network().Peers())
+	decodedMsg, err := msg.Encode()
+	if err != nil {
+		log.Error("Can't encode message")
+	}
 
 	for _, peers := range s.host.Network().Peers() {
 		addrInfo := s.dht.FindLocal(peers)
-		fmt.Println("BROADCASTING to ", peers)
-		err = s.SendBroadcast(addrInfo, msg)
-		fmt.Println("Finished broadcasting")
+		err = s.SendBroadcast(addrInfo, decodedMsg)
 	}
 
 	return err
@@ -490,22 +511,9 @@ func (s *Service) handleBroadcastStream(stream net.Stream) {
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
-	//If haven't received the message yet, add to list & rebroadcast it
-	hash, err := common.Blake2bHash(rawMsg)
+	err = s.Broadcast(msg)
 	if err != nil {
-		log.Error("failed to hash message", "error", err)
-		return
-	}
-
-	if !s.messagesRec[hash.String()] {
-		s.messagesRec[hash.String()] = true
-		encodedMsg, err := msg.Encode()
-		if err != nil {
-			log.Error("failed to encode message")
-		}
-
-		err = s.Broadcast(encodedMsg)
-	} else { //If have received message previously, don't print message
+		log.Debug("failed to broadcast message: ", err)
 		return
 	}
 
