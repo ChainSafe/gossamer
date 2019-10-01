@@ -295,28 +295,3 @@ func TestGossipSub(t *testing.T) {
 	}
 
 }
-
-// PING is not implemented in the kad-dht.
-// see https://github.com/libp2p/specs/pull/108
-// func TestPing(t *testing.T) {
-// 	sim, err := NewSimulator(2)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	defer sim.IpfsNode.Close()
-
-// 	for _, node := range sim.Nodes {
-// 		e := node.Start()
-// 		if <-e != nil {
-// 			log.Println("start err: ", err)
-// 		}
-// 	}
-
-// 	sa := sim.Nodes[0]
-// 	sb := sim.Nodes[1]
-// 	err = sa.Ping(sb.host.ID())
-// 	if err != nil {
-// 		t.Errorf("Ping error: %s", err)
-// 	}
-// }
