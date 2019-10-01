@@ -265,6 +265,12 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 		log.Debug("using existing stream", "peer", peer.ID)
 	}
 
+	// Write length of message, and then message
+	_, err = stream.Write(common.Uint16ToBytes(uint16(len(msg)))[0:1])
+	if err != nil {
+		log.Error("fail to send message", "error", err)
+		return err
+	}
 	_, err = stream.Write(msg)
 	if err != nil {
 		log.Error("fail to send message", "error", err)
