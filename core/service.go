@@ -17,8 +17,6 @@
 package core
 
 import (
-	"fmt"
-
 	log "github.com/ChainSafe/log15"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -36,11 +34,11 @@ type Service struct {
 	rt *runtime.Runtime
 	b  *babe.Session
 
-	msgChan <-chan p2p.Message
+	msgChan <-chan []byte
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message) *Service {
+func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan []byte) *Service {
 	return &Service{
 		rt:      rt,
 		b:       b,
@@ -64,21 +62,12 @@ func (s *Service) start(e chan error) {
 			log.Warn("core service message watcher", "error", "channel closed")
 			break
 		}
-		fmt.Println("got msg")
-		msgType := msg.GetType()
-		fmt.Println("got msg type")
-		enc, err := msg.Encode()
-		if err != nil {
-			log.Error("core service", "error", err)
-			e <- err
-		}
-		fmt.Printf("encoded msg %x\n", enc)
 
+		msgType := msg[0]
 		switch msgType {
 		case p2p.TransactionMsgType:
-			fmt.Println("handling tx message")
 			// process tx
-			err = s.ProcessTransaction(enc)
+			err := s.ProcessTransaction(msg[1:])
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -103,8 +92,6 @@ func (s *Service) Stop() <-chan error {
 // ProcessTransaction attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
 func (s *Service) ProcessTransaction(e types.Extrinsic) error {
-	fmt.Println(e)
-
 	validity, err := s.validateTransaction(e)
 	if err != nil {
 		log.Error("ProcessTransaction", "error", err)

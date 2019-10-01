@@ -18,7 +18,7 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if ret[0] != 0 {
 		return nil, errors.New("could not validate transaction")
 	}
