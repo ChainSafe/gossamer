@@ -73,7 +73,7 @@ func StartLogger(ctx *cli.Context) error {
 
 	if lvlToInt, err := strconv.Atoi(ctx.String(utils.VerbosityFlag.Name)); err == nil {
 		lvl = log.Lvl(lvlToInt)
-	} else {
+	} else if err != nil {
 		if lvl, err = log.LvlFromString(ctx.String(utils.VerbosityFlag.Name)); err != nil {
 			return err
 		}
