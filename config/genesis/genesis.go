@@ -7,18 +7,18 @@ import (
 )
 
 type Genesis struct {
-	Name string
-	Id string
-	Bootnodes []string
+	Name       string
+	Id         string
+	Bootnodes  []string
 	ProtocolId string
-	Genesis genesisFields
+	Genesis    genesisFields
 }
 
 type genesisFields struct {
 	Raw []map[string]string
 }
 
-func parseJson(file string) (*Genesis, error) {
+func ParseJson(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err

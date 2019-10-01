@@ -37,6 +37,9 @@ var (
 		utils.RpcHostFlag,
 		utils.RpcModuleFlag,
 	}
+	genesisFlags = []cli.Flag{
+		utils.GenesisFlag,
+	}
 )
 
 // init initializes CLI
@@ -52,6 +55,7 @@ func init() {
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
+	app.Flags = append(app.Flags, genesisFlags...)
 }
 
 func main() {
@@ -63,13 +67,13 @@ func main() {
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-	srvlog := log.New(log.Ctx{"blockchain": "gossamer"})
 	node, _, err := makeNode(ctx)
 	if err != nil {
 		// TODO: Need to manage error propagation and exit smoothly
 		log.Error("error making node", "err", err)
 	}
-	srvlog.Info("🕸️Starting node...")
+	srvlog := log.New(log.Ctx{"blockchain": node.Genesis.Name})
+	srvlog.Info("🕸️Starting node...", "name", node.Genesis.Name, "ID", node.Genesis.Id)
 	node.Start()
 
 	return nil
