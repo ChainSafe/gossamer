@@ -64,13 +64,6 @@ func (db *BadgerDB) Path() string {
 	return db.config.DataDir
 }
 
-// Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
-type batchWriter struct {
-	db   *BadgerDB
-	b    map[string][]byte
-	size int
-}
-
 // NewBatch returns batchWriter with a badgerDB instance and an initialized mapping
 func (db *BadgerDB) NewBatch() Batch {
 	return &batchWriter{
@@ -216,6 +209,13 @@ func (i *Iterable) Value() []byte {
 		log.Warn("value decoding error ", "error", err)
 	}
 	return ret
+}
+
+// Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write
+type batchWriter struct {
+	db   *BadgerDB
+	b    map[string][]byte
+	size int
 }
 
 // Put encodes key-values and adds them to a mapping for batch writes, sets the size of item value

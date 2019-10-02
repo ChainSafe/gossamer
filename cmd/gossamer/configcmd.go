@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
@@ -33,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
+	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -65,10 +67,35 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
+	// read genesis file
+	fp := getGenesisPath(ctx, fig)
+	gen, err := genesis.ParseJson(fp)
+	if err != nil {
+		log.Crit("cannot read genesis file", "err", err)
+		return nil, nil, err
+	}
+
 	// set up message channel for p2p -> core.Service
 	msgChan := make(chan p2p.Message)
 
-	// TODO: trie and runtime
+	// DB: Create database dir and initialize stateDB and blockDB
+	dataDir := getDatabaseDir(ctx, fig)
+	dbSrv, err := polkadb.NewDatabaseService(dataDir)
+	if err != nil {
+		log.Crit("error creating DB service", "error", err)
+	}
+	// append DBs to services registrar
+	srvcs = append(srvcs, dbSrv)
+
+	// initialize trie and load genesis state into it
+	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
+	if err != nil {
+		log.Crit("error creating trie state DB", "error", err)
+	}
+	trie := trie.NewEmptyTrie(trieStateDB)
+	err = loadTrie(trie, gen.Genesis.Raw)
+
+	// TODO: runtime
 
 	// TODO: BABE
 
@@ -81,16 +108,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
 	srvcs = append(srvcs, p2pSrvc)
 
-	// DB
-	// Create database dir and initialize stateDB and blockDB
-	dataDir := getDatabaseDir(ctx, fig)
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
-	if err != nil {
-		log.Crit("error creating DB service", "error", err)
-	}
-	// append DBs to services registrar
-	srvcs = append(srvcs, dbSrv)
-
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
@@ -100,7 +117,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	setRpcHost(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
-	return dot.NewDot(srvcs, rpcSrvr), fig, nil
+	return dot.NewDot(gen, srvcs, rpcSrvr), fig, nil
 }
 
 // getConfig checks for config.toml if --config flag is specified
@@ -152,6 +169,15 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
+}
+
+// getGenesisPath gets the path to the genesis file
+func getGenesisPath(ctx *cli.Context, fig *cfg.Config) string {
+	if file := ctx.GlobalString(utils.GenesisFlag.Name); file != "" {
+		return file
+	} else {
+		return cfg.DefaultGenesisPath
+	}
 }
 
 // getDatabaseDir initializes directory for BadgerService logs
