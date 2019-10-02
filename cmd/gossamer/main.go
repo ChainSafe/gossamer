@@ -66,7 +66,7 @@ func main() {
 	}
 }
 
-func StartLogger(ctx *cli.Context) error {
+func startLogger(ctx *cli.Context) error {
 	logger := log.Root()
 	handler := logger.GetHandler()
 	var lvl log.Lvl
@@ -84,7 +84,7 @@ func StartLogger(ctx *cli.Context) error {
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
 
-	err := StartLogger(ctx)
+	err := startLogger(ctx)
 	if err != nil {
 		return err
 	}
