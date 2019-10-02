@@ -34,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
+	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
@@ -85,22 +86,37 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		log.Crit("error creating DB service", "error", err)
 	}
 	// append DBs to services registrar
-	srvcs = append(srvcs, dbSrv)
 
 	// initialize trie and load genesis state into it
 	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
 	if err != nil {
 		log.Crit("error creating trie state DB", "error", err)
 	}
-	trie := trie.NewEmptyTrie(trieStateDB)
-	err = loadTrie(trie, gen.Genesis.Raw)
+	t := trie.NewEmptyTrie(trieStateDB)
+	err = loadTrie(t, gen.Genesis.Raw)
+	if err != nil {
+		log.Crit("error writing genesis state to trie", "error", err)
+	}
+	// write state to DB
+	err = commitToDb(t)
+	if err != nil {
+		log.Crit("error writing genesis state to DB", "error", err)
+	}
 
-	// TODO: runtime
+	// load runtime code from trie and create runtime executor
+	code, err := t.Get([]byte(":code"))
+	if err != nil {
+		log.Crit("error retrieving :code from trie", "error", err)
+	}
+	r, err := runtime.NewRuntime(code, t)
+	if err != nil {
+		log.Crit("error creating runtime executor", "error", err)
+	}
 
 	// TODO: BABE
 
 	// core.Service
-	coreSrvc := core.NewService(nil, nil, msgChan)
+	coreSrvc := core.NewService(r, nil, msgChan)
 	srvcs = append(srvcs, coreSrvc)
 
 	// P2P

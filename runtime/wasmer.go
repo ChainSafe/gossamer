@@ -39,20 +39,24 @@ type Runtime struct {
 	trie *trie.Trie
 }
 
-func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
+	return NewRuntime(bytes, t)
+}
+
+func NewRuntime(code []byte, t *trie.Trie) (*Runtime, error) {
 	imports, err := registerImports()
 	if err != nil {
 		return nil, err
 	}
 
 	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(bytes, imports)
+	instance, err := wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
 		return nil, err
 	}

@@ -26,5 +26,10 @@ func loadTrie(t *trie.Trie, data []map[string]string) error {
 }
 
 func commitToDb(t *trie.Trie) error {
-	return nil
+	err := t.WriteToDB()
+	if err != nil {
+		return err
+	}
+	err = t.Commit()
+	return err
 }

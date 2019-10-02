@@ -23,7 +23,8 @@ func NewStateDB(dataDir string) (*StateDB, error) {
 }
 
 func (s *StateDB) Close() error {
-	return s.Db.Close()
+	//return s.Db.Close()
+	return nil
 }
 
 func (s *StateDB) Del(key []byte) error {
