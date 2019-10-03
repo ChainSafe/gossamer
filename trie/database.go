@@ -24,19 +24,19 @@ import (
 
 // StateDB is a wrapper around a polkadb
 type StateDB struct {
-	Db     polkadb.Database
+	Db     *polkadb.StateDB
 	Batch  polkadb.Batch
 	Lock   sync.RWMutex
 	Hasher *Hasher
 }
 
-func NewStateDB(stateDB polkadb.Database) (*StateDB, error) {
+func NewStateDB(stateDB *polkadb.StateDB) (*StateDB, error) {
 	hasher, err := NewHasher()
 	if err != nil {
 		return nil, err
 	}
 
-	batch := stateDB.NewBatch()
+	batch := stateDB.Db.NewBatch()
 
 	return &StateDB{
 		Db:     stateDB,
@@ -50,7 +50,7 @@ func NewStateDB(stateDB polkadb.Database) (*StateDB, error) {
 // This does not actually write to the db, just to the batch writer
 // Commit must be called afterwards to finish writing to the db
 func (t *Trie) WriteToDB() error {
-	t.db.Batch = t.db.Db.NewBatch()
+	t.db.Batch = t.db.Db.Db.NewBatch()
 	return t.writeToDB(t.root)
 }
 

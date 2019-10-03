@@ -31,7 +31,7 @@ func newTrie() (*Trie, error) {
 		return nil, err
 	}
 
-	stateDB, err := db.NewBadgerDB("./test_data/state")
+	stateDB, err := db.NewStateDB("./test_data/state")
 	if err != nil {
 		return nil, err
 	}
@@ -44,13 +44,13 @@ func newTrie() (*Trie, error) {
 		root: nil,
 	}
 
-	trie.db.Batch = trie.db.Db.NewBatch()
+	trie.db.Batch = trie.db.Db.Db.NewBatch()
 
 	return trie, nil
 }
 
 func (t *Trie) closeDb() {
-	t.db.Db.Close()
+	t.db.Db.Db.Close()
 	if err := os.RemoveAll("./test_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}
