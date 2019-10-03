@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
+// Genesis stores the data parsed from the genesis configuration file
 type Genesis struct {
 	Name       string
 	Id         string
@@ -21,6 +22,7 @@ type genesisFields struct {
 	Raw []map[string]string
 }
 
+// ParseJson parses a JSON formatted genesis file
 func ParseJson(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
@@ -37,6 +39,7 @@ func ParseJson(file string) (*Genesis, error) {
 	return g, err
 }
 
+// GenesisState stores the genesis state after it's been loaded into a trie and network configuartion
 type GenesisState struct {
 	Name        string
 	Id          string
