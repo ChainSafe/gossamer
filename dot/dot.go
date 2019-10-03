@@ -21,7 +21,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
@@ -29,7 +28,6 @@ import (
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Genesis   *genesis.Genesis
 	Services  *services.ServiceRegistry // Registry of all core services
 	Rpc       *rpc.HttpServer           // HTTP instance for RPC server
 	IsStarted chan struct{}             // Signals node startup complete
@@ -37,9 +35,8 @@ type Dot struct {
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(g *genesis.Genesis, srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
+func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
-		Genesis:   g,
 		Services:  services.NewServiceRegistry(),
 		Rpc:       rpc,
 		IsStarted: make(chan struct{}),

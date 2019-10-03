@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -50,7 +49,7 @@ func createTestDot(t *testing.T) *Dot {
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
-	return NewDot(&genesis.Genesis{Name: "gossamer", Id: "gossamer"}, services, nil)
+	return NewDot(services, nil)
 }
 
 func TestDot_Start(t *testing.T) {

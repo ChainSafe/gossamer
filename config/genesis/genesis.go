@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
 type Genesis struct {
@@ -32,4 +35,11 @@ func ParseJson(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
+}
+
+type GenesisState struct {
+	Name        string
+	Id          string
+	GenesisTrie *trie.Trie
+	P2pConfig   *p2p.Config
 }

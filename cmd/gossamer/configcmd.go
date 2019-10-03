@@ -57,7 +57,7 @@ var (
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
-func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
+func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)
 	if err != nil {
 		log.Crit("unable to extract required config", "err", err)
@@ -65,14 +65,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	}
 
 	var srvcs []services.Service
-
-	// read genesis file
-	fp := getGenesisPath(ctx, fig)
-	gen, err := genesis.ParseJson(fp)
-	if err != nil {
-		log.Crit("cannot read genesis file", "err", err)
-		return nil, nil, err
-	}
 
 	// set up message channel for p2p -> core.Service
 	msgChan := make(chan p2p.Message)
@@ -109,7 +101,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	setRpcHost(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
-	return dot.NewDot(gen, srvcs, rpcSrvr), fig, nil
+	return dot.NewDot(srvcs, rpcSrvr), fig, nil
 }
 
 // getConfig checks for config.toml if --config flag is specified
@@ -161,15 +153,6 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
-}
-
-// getGenesisPath gets the path to the genesis file
-func getGenesisPath(ctx *cli.Context, fig *cfg.Config) string {
-	if file := ctx.GlobalString(utils.GenesisFlag.Name); file != "" {
-		return file
-	} else {
-		return cfg.DefaultGenesisPath
-	}
 }
 
 // getDatabaseDir initializes directory for BadgerService logs
@@ -247,7 +230,7 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	_, fig, err := makeNode(ctx)
+	_, fig, err := makeNode(ctx, nil)
 	if err != nil {
 		return err
 	}

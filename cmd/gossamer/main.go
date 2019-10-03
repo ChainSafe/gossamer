@@ -67,13 +67,18 @@ func main() {
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-	node, _, err := makeNode(ctx)
+	genesisState, err := loadGenesis(ctx)
+	if err != nil {
+		log.Error("error loading genesis state", "error", err)
+	}
+
+	node, _, err := makeNode(ctx, genesisState)
 	if err != nil {
 		// TODO: Need to manage error propagation and exit smoothly
 		log.Error("error making node", "err", err)
 	}
-	srvlog := log.New(log.Ctx{"blockchain": node.Genesis.Name})
-	srvlog.Info("🕸️Starting node...", "name", node.Genesis.Name, "ID", node.Genesis.Id)
+	srvlog := log.New(log.Ctx{"blockchain": genesisState.Name})
+	srvlog.Info("🕸️Starting node...", "name", genesisState.Name, "ID", genesisState.Id)
 	node.Start()
 
 	return nil
