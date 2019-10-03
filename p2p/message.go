@@ -128,7 +128,7 @@ func (sm *StatusMessage) Decode(r io.Reader) error {
 	return err
 }
 
-// Decodes the message into a StatusMessage, it assumes the type byte has been removed
+// Returns an empty string to ensure we don't rebroadcast it
 func (sm *StatusMessage) Id() string {
 	return ""
 }

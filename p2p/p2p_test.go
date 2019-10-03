@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -190,7 +191,7 @@ func TestSend(t *testing.T) {
 	}
 
 	bm := &BlockRequestMessage{
-		Id:            7,
+		ID:            7,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
@@ -296,13 +297,40 @@ func TestGossiping(t *testing.T) {
 
 	nodeA.Broadcast(bm)
 
+	// Check returned values from channels in the 2 other nodes
 	select {
-	case <-msgChanB:
+	case res := <-msgChanB:
+		bmEnc, err := bm.Encode()
+		if err != nil {
+			t.Fatalf("Can't decode original message")
+		}
+		resEnc, err := res.Encode()
+		if err != nil {
+			t.Fatalf("Can't decode returned message")
+		}
+
+		// Compare the byte arrays of the original & returned message
+		if !reflect.DeepEqual(bmEnc, resEnc) {
+			t.Fatalf("Didn't receive the correct message")
+		}
 	case <-time.After(10 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeA.hostAddr)
 	}
 	select {
-	case <-msgChanC:
+	case res := <-msgChanC:
+		bmEnc, err := bm.Encode()
+		if err != nil {
+			t.Fatalf("Can't decode original message")
+		}
+		resEnc, err := res.Encode()
+		if err != nil {
+			t.Fatalf("Can't decode returned message")
+		}
+
+		// Compare the byte arrays of the original & returned message
+		if !reflect.DeepEqual(bmEnc, resEnc) {
+			t.Fatalf("Didn't receive the correct message")
+		}
 	case <-time.After(10 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeB.hostAddr)
 	}

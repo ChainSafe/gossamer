@@ -72,11 +72,6 @@ type Config struct {
 	NoMdns         bool
 }
 
-type MessageWithID struct {
-	Id  int
-	Msg string
-}
-
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 	ctx := context.Background()
@@ -205,11 +200,8 @@ func (s *Service) Stop() <-chan error {
 
 // Broadcast sends a message to all peers
 func (s *Service) Broadcast(msg Message) (err error) {
-	//Get each node it's connected to & broadcast message to them
-
-	//If haven't received the message yet, add to list & rebroadcast it
+	//If the node hasn't received the message yet, add it to a list of received messages & rebroadcast it
 	msgType := msg.GetType()
-
 	switch msgType {
 	case BlockRequestMsgType:
 		if s.blockReqRec[msg.Id()] {
@@ -243,7 +235,7 @@ func (s *Service) Broadcast(msg Message) (err error) {
 
 	for _, peers := range s.host.Network().Peers() {
 		addrInfo := s.dht.FindLocal(peers)
-		err = s.SendBroadcast(addrInfo, decodedMsg)
+		err = s.Send(addrInfo, decodedMsg)
 	}
 
 	return err
@@ -274,36 +266,6 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 	_, err = stream.Write(msg)
 	if err != nil {
 		log.Error("fail to send message", "error", err)
-		return err
-	}
-
-	return nil
-}
-
-// SendBroadcast streams to broadcast stream handler
-func (s *Service) SendBroadcast(peer core.PeerAddrInfo, msg []byte) error {
-	err := s.host.Connect(s.ctx, peer)
-	if err != nil {
-		return err
-	}
-
-	stream := s.getExistingStream(peer.ID)
-	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
-		log.Debug("opening new stream ", "peer", peer.ID)
-		if err != nil {
-			log.Error("failed to open stream", "error", err)
-			return err
-		}
-	} else {
-		log.Debug("using existing stream", "peer", peer.ID)
-	}
-
-	fmt.Println("writing: ", common.Uint16ToBytes(uint16(len(msg)))[0:1])
-	// Write length of message, and then message
-	_, err = stream.Write(common.Uint16ToBytes(uint16(len(msg)))[0:1])
-	_, err = stream.Write(msg)
-	if err != nil {
 		return err
 	}
 
