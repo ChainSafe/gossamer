@@ -23,6 +23,7 @@ import (
 	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/common"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
@@ -92,6 +93,16 @@ func NewRuntime(code []byte, t *trie.Trie) (*Runtime, error) {
 
 func (r *Runtime) Stop() {
 	r.vm.Close()
+}
+
+func (r *Runtime) StorageRoot() (common.Hash, error) {
+	if r == nil {
+		return common.Hash{}, errors.New("runtime is nil")
+	}
+	if r.trie == nil {
+		return common.Hash{}, errors.New("runtime does not have storage trie")
+	}
+	return r.trie.Hash()
 }
 
 func (r *Runtime) Store(data []byte, location int32) {

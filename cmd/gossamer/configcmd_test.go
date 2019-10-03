@@ -18,14 +18,17 @@ package main
 
 import (
 	"bytes"
+	"path/filepath"
 	"reflect"
 
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/trie"
 
 	"flag"
 	"fmt"
@@ -322,4 +325,50 @@ func TestCommands(t *testing.T) {
 		}
 	}
 	defer teardown(tempFile)
+}
+
+func TestGenesisStateLoading(t *testing.T) {
+	tempFile, _ := createTempConfigFile()
+	defer teardown(tempFile)
+
+	app := cli.NewApp()
+	app.Writer = ioutil.Discard
+
+	genesispath, err := filepath.Abs("../../genesis.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	set := flag.NewFlagSet("config", 0)
+	set.String("config", tempFile.Name(), "TOML configuration file")
+	set.String("genesis", genesispath, "genesis file")
+	context := cli.NewContext(nil, set, nil)
+
+	d, _, _ := makeNode(context)
+	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
+		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
+	}
+
+	expected := &trie.Trie{}
+	gen, err := genesis.ParseJson(genesispath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = loadTrie(expected, gen.Genesis.Raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedRoot, err := expected.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stateRoot, err := d.Manager.StorageRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(expectedRoot[:], stateRoot[:]) {
+		t.Fatalf("Fail: got %x expected %x", stateRoot, expectedRoot)
+	}
 }

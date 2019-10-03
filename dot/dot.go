@@ -22,6 +22,7 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/config/genesis"
+	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
@@ -32,16 +33,18 @@ type Dot struct {
 	Genesis   *genesis.Genesis
 	Services  *services.ServiceRegistry // Registry of all core services
 	Rpc       *rpc.HttpServer           // HTTP instance for RPC server
+	Manager   *core.Service             // service manager
 	IsStarted chan struct{}             // Signals node startup complete
 	stop      chan struct{}             // Used to signal node shutdown
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(g *genesis.Genesis, srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
+func NewDot(g *genesis.Genesis, srvcs []services.Service, rpc *rpc.HttpServer, cs *core.Service) *Dot {
 	d := &Dot{
 		Genesis:   g,
 		Services:  services.NewServiceRegistry(),
 		Rpc:       rpc,
+		Manager:   cs,
 		IsStarted: make(chan struct{}),
 		stop:      nil,
 	}

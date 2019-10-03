@@ -50,7 +50,7 @@ func createTestDot(t *testing.T) *Dot {
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
-	return NewDot(&genesis.Genesis{Name: "gossamer", Id: "gossamer"}, services, nil)
+	return NewDot(&genesis.Genesis{Name: "gossamer", Id: "gossamer"}, services, nil, nil)
 }
 
 func TestDot_Start(t *testing.T) {
