@@ -283,9 +283,10 @@ func TestGossiping(t *testing.T) {
 		t.Errorf("Start error :%s", err)
 	}
 
-	// Create mock BlockRequestMessage to broadcast
+	// Meaningless hash
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 
+	// Create mock BlockRequestMessage to broadcast
 	bm := &BlockRequestMessage{
 		ID:            7,
 		RequestedData: 1,
