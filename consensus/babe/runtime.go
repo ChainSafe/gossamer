@@ -18,7 +18,8 @@ package babe
 
 import (
 	scale "github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 // gets the configuration data for Babe from the runtime
@@ -40,4 +41,73 @@ func (b *Session) configurationFromRuntime() error {
 	b.config = bc
 
 	return err
+}
+
+// gets the configuration data for Babe from the runtime
+func (b *Session) blockHashFromIdFromRuntime(blockInherentData []byte) (*common.Hash, error) {
+	var loc int32 = 1000
+	b.rt.Store(blockInherentData, loc)
+
+	ret, err := b.rt.Exec("block_hash_from_id", loc, int32(len(blockInherentData)))
+	if err != nil {
+		return nil, err
+	}
+
+	bc := new(common.Hash)
+	_, err = scale.Decode(ret, bc)
+	return bc, err
+}
+
+// gets the configuration data for Babe from the runtime
+func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
+	var loc int32 = 1000
+	b.rt.Store(blockHeader, loc)
+
+	_, err := b.rt.Exec("initialze_block", loc, int32(len(blockHeader)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// gets the configuration data for Babe from the runtime
+func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) error {
+	var loc int32 = 1000
+	b.rt.Store(blockInherentData, loc)
+
+	_, err := b.rt.Exec("inherent_extrinsics", loc, int32(len(blockInherentData)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO: Figure out return type of apply_extrinsic
+// func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) (*BabeConfiguration, error) {
+// 	var loc int32 = 1000
+// 	b.rt.Store(e, loc)
+
+// 	ret, err := b.rt.Exec("apply_extrinsics", loc, int32(len(e)))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	bc := new(BabeConfiguration)
+// 	_, err = scale.Decode(ret, bc)
+// 	return bc, err
+// }
+
+// gets the configuration data for Babe from the runtime
+func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeader, error) {
+	var loc int32 = 1000
+	b.rt.Store(e, loc)
+
+	ret, err := b.rt.Exec("finalize_block", loc, int32(len(e)))
+	if err != nil {
+		return nil, err
+	}
+
+	bh := new(types.BlockHeader)
+	_, err = scale.Decode(ret, bh)
+	return bh, err
 }
