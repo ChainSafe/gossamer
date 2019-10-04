@@ -22,6 +22,14 @@ type genesisFields struct {
 	Raw []map[string]string
 }
 
+// GenesisState stores the genesis state after it's been loaded into a trie and network configuartion
+type GenesisState struct {
+	Name        string
+	Id          string
+	GenesisTrie *trie.Trie
+	P2pConfig   *p2p.Config
+}
+
 // ParseJson parses a JSON formatted genesis file
 func ParseJson(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
@@ -37,12 +45,4 @@ func ParseJson(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
-}
-
-// GenesisState stores the genesis state after it's been loaded into a trie and network configuartion
-type GenesisState struct {
-	Name        string
-	Id          string
-	GenesisTrie *trie.Trie
-	P2pConfig   *p2p.Config
 }
