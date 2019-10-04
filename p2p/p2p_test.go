@@ -285,6 +285,9 @@ func TestGossiping(t *testing.T) {
 
 	// Meaningless hash
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	if err != nil {
+		t.Errorf("Can't convert hex to hash")
+	}
 
 	// Create mock BlockRequestMessage to broadcast
 	bm := &BlockRequestMessage{

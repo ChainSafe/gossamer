@@ -47,20 +47,19 @@ const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
 type Service struct {
-	ctx               context.Context
-	host              core.Host
-	hostAddr          ma.Multiaddr
-	dht               *kaddht.IpfsDHT
-	dhtConfig         kaddht.BootstrapConfig
-	bootstrapNodes    []peer.AddrInfo
-	mdns              discovery.Service
-	msgChan           chan<- Message
-	noBootstrap       bool
-	statusMessagesRec map[string]bool
-	blockReqRec       map[string]bool
-	blockRespRec      map[string]bool
-	blockAnnounceRec  map[string]bool
-	txMessageRec      map[string]bool
+	ctx              context.Context
+	host             core.Host
+	hostAddr         ma.Multiaddr
+	dht              *kaddht.IpfsDHT
+	dhtConfig        kaddht.BootstrapConfig
+	bootstrapNodes   []peer.AddrInfo
+	mdns             discovery.Service
+	msgChan          chan<- Message
+	noBootstrap      bool
+	blockReqRec      map[string]bool
+	blockRespRec     map[string]bool
+	blockAnnounceRec map[string]bool
+	txMessageRec     map[string]bool
 }
 
 // Config is used to configure a p2p service
