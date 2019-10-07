@@ -44,11 +44,11 @@ func (b *Session) configurationFromRuntime() error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) blockHashFromIdFromRuntime(blockInherentData []byte) (*common.Hash, error) {
+func (b *Session) blockHashFromIdFromRuntime(blockId []byte) (*common.Hash, error) {
 	var loc int32 = 1000
-	b.rt.Store(blockInherentData, loc)
+	b.rt.Store(blockId, loc)
 
-	ret, err := b.rt.Exec("block_hash_from_id", loc, int32(len(blockInherentData)))
+	ret, err := b.rt.Exec("block_hash_from_id", loc, int32(len(blockId)))
 	if err != nil {
 		return nil, err
 	}
@@ -71,31 +71,34 @@ func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) error {
+func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]types.Extrinsic, error) {
 	var loc int32 = 1000
 	b.rt.Store(blockInherentData, loc)
 
-	_, err := b.rt.Exec("inherent_extrinsics", loc, int32(len(blockInherentData)))
+	ret, err := b.rt.Exec("inherent_extrinsics", loc, int32(len(blockInherentData)))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	ea := new([]types.Extrinsic)
+	_, err = scale.Decode(ret, ea)
+	return ea, nil
 }
 
 // TODO: Figure out return type of apply_extrinsic
-// func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) (*BabeConfiguration, error) {
-// 	var loc int32 = 1000
-// 	b.rt.Store(e, loc)
+func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) (*types.BlockBody, error) {
+	var loc int32 = 1000
+	b.rt.Store(e, loc)
 
-// 	ret, err := b.rt.Exec("apply_extrinsics", loc, int32(len(e)))
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	ret, err := b.rt.Exec("apply_extrinsics", loc, int32(len(e)))
+	if err != nil {
+		return nil, err
+	}
 
-// 	bc := new(BabeConfiguration)
-// 	_, err = scale.Decode(ret, bc)
-// 	return bc, err
-// }
+	bb := new(types.BlockBody)
+	_, err = scale.Decode(ret, bb)
+	return bb, err
+}
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeader, error) {
