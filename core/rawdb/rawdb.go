@@ -55,9 +55,9 @@ func SetBlockData(db polkadb.Writer, blockData *types.BlockData) {
 func GetBlockData(db polkadb.Reader, hash common.Hash) *types.BlockData {
 	var result *types.BlockData
 	data, err := db.Get(blockDataKey(hash))
-	check(err, "Failed to retrieve block header")
+	check(err, "Failed to retrieve blockData")
 
 	err = json.Unmarshal(data, &result)
-	check(err, "Failed to unmarshal block header")
+	check(err, "Failed to unmarshal blockData")
 	return result
 }
