@@ -163,8 +163,9 @@ func (s *Service) start(e chan error) {
 	// Now we can build a full multiaddress to reach this host
 	// by encapsulating both addresses:
 	addrs := s.host.Addrs()
+	log.Info("You can be reached on the following addresses:")
 	for _, addr := range addrs {
-		log.Info("address can be reached", "hostAddr", addr.Encapsulate(s.hostAddr))
+		log.Info(addr.Encapsulate(s.hostAddr).String())
 	}
 
 	log.Info("listening for connections...")
