@@ -1,6 +1,8 @@
 package rawdb
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/polkadb"
@@ -9,34 +11,48 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-type Chain struct{}
+func check(e error, msg string) {
+	if e != nil {
+		log.Warn(msg, "err", e)
+	}
+}
 
-// SetHeader stores a block header into the database and also stores the hash-
-// to-number mapping.
-func (c *Chain) SetHeader(db polkadb.Writer, header *types.BlockHeader) {
-	var (
-		hash   = header.Hash
-	)
+// SetHeader stores a block header into the database
+func SetHeader(db polkadb.Writer, header *types.BlockHeader) {
+	hash := header.Hash
 
 	// Write the encoded header
-	data := common.ToBytes(header)
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(header); err != nil {
+		log.Crit("error encoding header to bytes", "err", err)
+	}
 
-	if err := db.Put(hash.ToBytes(), data); err != nil {
+	if err := db.Put(headerKey(hash), buf.Bytes()); err != nil {
 		log.Crit("Failed to store header", "err", err)
 	}
 }
 
-func (c *Chain) SetBlockData(db polkadb.Writer, blockData *types.BlockData) {}
-func (c *Chain) SetBlockHash(db polkadb.Writer, num *big.Int) {}
-func (c *Chain) SetBestHash(db polkadb.Writer, hash *common.Hash) {}
-func (c *Chain) SetBestNumber(db polkadb.Writer, num *big.Int) {}
+func GetHeader(db polkadb.Reader, hash common.Hash) *types.BlockHeader {
+	var result *types.BlockHeader
+	data, err := db.Get(headerKey(hash))
+	check(err, "Failed to retrieve block header")
+
+	err = json.Unmarshal(data, &result)
+	check(err, "Failed to unmarshal block header")
+	return result
+}
+
+// BLOCK WRITES
+
+func SetBlockData(db polkadb.Writer, blockData *types.BlockData) {}
+func SetBlockHash(db polkadb.Writer, num *big.Int) {}
+func SetBestHash(db polkadb.Writer, hash *common.Hash) {}
+func SetBestNumber(db polkadb.Writer, num *big.Int) {}
 
 // BLOCK READS
 
-func (c *Chain) GetBlockHeader(db polkadb.Reader, hash *common.Hash) *types.BlockHeader { return &types.BlockHeader{}}
-func (c *Chain) GetBlockData(db polkadb.Reader, hash *common.Hash) *types.BlockData { return &types.BlockData{}}
-func (c *Chain) GetBlockHash(db polkadb.Reader, num *big.Int) *common.Hash { return &common.Hash{}}
-func (c *Chain) GetBestHash(db polkadb.Reader) *common.Hash { return &common.Hash{}}
-func (c *Chain) GetBestNumber(db polkadb.Reader) *big.Int { return &big.Int{}}
-
-
+func GetBlockHeader(db polkadb.Reader, hash *common.Hash) *types.BlockHeader { return &types.BlockHeader{}}
+func GetBlockData(db polkadb.Reader, hash *common.Hash) *types.BlockData { return &types.BlockData{}}
+func GetBlockHash(db polkadb.Reader, num *big.Int) *common.Hash { return &common.Hash{}}
+func GetBestHash(db polkadb.Reader) *common.Hash { return &common.Hash{}}
+func GetBestNumber(db polkadb.Reader) *big.Int { return &big.Int{}}
