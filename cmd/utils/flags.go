@@ -62,7 +62,7 @@ var (
 
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
-		Usage: "Disables p2p bootstraping",
+		Usage: "Disables p2p bootstrapping",
 	}
 	// cli service settings
 	VerbosityFlag = cli.StringFlag{
