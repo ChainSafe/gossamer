@@ -13,17 +13,22 @@ import (
 
 // Config is used to configure a p2p service
 type Config struct {
+	// Peers used for bootstrapping
 	BootstrapNodes []string
+	// Listening port
 	Port           int
-	randSeed       int64
+	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced
+	RandSeed       int64
+	// Disable bootstrapping altogether. BootstrapNodes has no effect over this.
 	NoBootstrap    bool
+	// Disables MDNS discovery
 	NoMdns         bool
 }
 
 func (c *Config) buildOpts() ([]libp2p.Option, error) {
 	ip := "0.0.0.0"
 
-	priv, err := generateKey(c.randSeed)
+	priv, err := generateKey(c.RandSeed)
 	if err != nil {
 		return nil, err
 	}
