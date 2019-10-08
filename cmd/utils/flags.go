@@ -62,7 +62,12 @@ var (
 
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
-		Usage: "Disables p2p bootstrapping",
+		Usage: "Disables p2p bootstrapping (mdns still enabled)",
+	}
+
+	NoMdnsFlag = cli.BoolFlag{
+		Name:  "nomdns",
+		Usage: "Disables p2p mdns discovery",
 	}
 	// cli service settings
 	VerbosityFlag = cli.StringFlag{

@@ -34,6 +34,7 @@ var (
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
 		utils.NoBootstrapFlag,
+		utils.NoMdnsFlag,
 	}
 	rpcFlags = []cli.Flag{
 		utils.RpcEnabledFlag,
