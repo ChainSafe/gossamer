@@ -37,7 +37,7 @@ const (
 	DefaultP2PRandSeed = int64(33)
 )
 
-var DefaultGenesisPath = os.Getenv("cwd") + "../genesis.json"
+var DefaultGenesisPath = os.Getenv("PWD") + "../genesis.json"
 
 var DefaultP2PBootstrap = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
