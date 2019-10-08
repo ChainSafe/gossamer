@@ -17,13 +17,9 @@
 package common
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"strings"
-
-	log "github.com/ChainSafe/log15"
 )
 
 // Length of hashes in bytes.
@@ -121,15 +117,4 @@ func (h *Hash) SetBytes(b []byte) {
 	}
 
 	copy(h[HashLength-len(b):], b)
-}
-
-func ToBytes(key interface{}) []byte {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(key)
-	if err != nil {
-		log.Crit("error converting to bytes", "error", err)
-		return nil
-	}
-	return buf.Bytes()
 }
