@@ -19,22 +19,25 @@ package p2p
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	mrand "math/rand"
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
-
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-	"github.com/libp2p/go-libp2p"
+	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/host"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -44,15 +47,28 @@ const mdnsPeriod = time.Minute
 
 // Service describes a p2p service, including host and dht
 type Service struct {
-	ctx            context.Context
-	host           core.Host
-	hostAddr       ma.Multiaddr
-	dht            *kaddht.IpfsDHT
-	dhtConfig      kaddht.BootstrapConfig
-	bootstrapNodes []peer.AddrInfo
-	mdns           discovery.Service
-	msgChan        chan<- Message
-	noBootstrap    bool
+	ctx              context.Context
+	host             core.Host
+	hostAddr         ma.Multiaddr
+	dht              *kaddht.IpfsDHT
+	dhtConfig        kaddht.BootstrapConfig
+	bootstrapNodes   []peer.AddrInfo
+	mdns             discovery.Service
+	msgChan          chan<- Message
+	noBootstrap      bool
+	blockReqRec      map[string]bool
+	blockRespRec     map[string]bool
+	blockAnnounceRec map[string]bool
+	txMessageRec     map[string]bool
+}
+
+// Config is used to configure a p2p service
+type Config struct {
+	BootstrapNodes []string
+	Port           int
+	RandSeed       int64
+	NoBootstrap    bool
+	NoMdns         bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
@@ -107,6 +123,11 @@ func NewService(conf *Config, msgChan chan<- Message) (*Service, error) {
 		mdns:           mdns,
 		msgChan:        msgChan,
 	}
+
+	s.blockReqRec = make(map[string]bool)
+	s.blockRespRec = make(map[string]bool)
+	s.blockAnnounceRec = make(map[string]bool)
+	s.txMessageRec = make(map[string]bool)
 
 	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
 
@@ -175,6 +196,49 @@ func (s *Service) Stop() <-chan error {
 	}
 
 	return e
+}
+
+// Broadcast sends a message to all peers
+func (s *Service) Broadcast(msg Message) (err error) {
+	//If the node hasn't received the message yet, add it to a list of received messages & rebroadcast it
+	msgType := msg.GetType()
+	switch msgType {
+	case BlockRequestMsgType:
+		if s.blockReqRec[msg.Id()] {
+			return nil
+		}
+		s.blockReqRec[msg.Id()] = true
+	case BlockResponseMsgType:
+		if s.blockRespRec[msg.Id()] {
+			return nil
+		}
+		s.blockRespRec[msg.Id()] = true
+	case BlockAnnounceMsgType:
+		if s.blockAnnounceRec[msg.Id()] {
+			return nil
+		}
+		s.blockAnnounceRec[msg.Id()] = true
+	case TransactionMsgType:
+		if s.txMessageRec[msg.Id()] {
+			return nil
+		}
+		s.txMessageRec[msg.Id()] = true
+	default:
+		log.Error("Can't decode message type")
+		return
+	}
+
+	decodedMsg, err := msg.Encode()
+	if err != nil {
+		log.Error("Can't encode message")
+	}
+
+	for _, peers := range s.host.Network().Peers() {
+		addrInfo := s.dht.FindLocal(peers)
+		err = s.Send(addrInfo, decodedMsg)
+	}
+
+	return err
 }
 
 // Send sends a message to a specific peer
@@ -317,6 +381,15 @@ func (s *Service) handleStream(stream net.Stream) {
 	}
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+
+	// Rebroadcast all messages except for status messages
+	if msg.GetType() != StatusMsgType {
+		err = s.Broadcast(msg)
+		if err != nil {
+			log.Debug("failed to broadcast message: ", err)
+			return
+		}
+	}
 
 	s.msgChan <- msg
 }
