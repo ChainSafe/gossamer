@@ -19,11 +19,8 @@ package p2p
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
-	"io"
-	mrand "math/rand"
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -32,7 +29,6 @@ import (
 	dsync "github.com/ipfs/go-datastore/sync"
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -60,15 +56,6 @@ type Service struct {
 	blockRespRec     map[string]bool
 	blockAnnounceRec map[string]bool
 	txMessageRec     map[string]bool
-}
-
-// Config is used to configure a p2p service
-type Config struct {
-	BootstrapNodes []string
-	Port           int
-	RandSeed       int64
-	NoBootstrap    bool
-	NoMdns         bool
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
