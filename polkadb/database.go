@@ -39,6 +39,7 @@ type Config struct {
 func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts := badger.DefaultOptions(file)
 	opts.ValueDir = file
+	opts.Logger = nil
 	opts.WithSyncWrites(false)
 	opts.WithNumCompactors(20)
 
