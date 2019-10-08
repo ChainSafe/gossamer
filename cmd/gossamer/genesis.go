@@ -11,7 +11,7 @@ import (
 func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 	// read genesis file
 	fp := getGenesisPath(ctx)
-	gen, err := genesis.ParseJson(fp)
+	gen, err := genesis.LoadGenesisJsonFile(fp)
 	if err != nil {
 		log.Crit("cannot read genesis file", "err", err)
 		return nil, err

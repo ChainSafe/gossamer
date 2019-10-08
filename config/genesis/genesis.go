@@ -22,8 +22,8 @@ type genesisFields struct {
 	Raw []map[string]string
 }
 
-// ParseJson parses a JSON formatted genesis file
-func ParseJson(file string) (*Genesis, error) {
+// LoadGenesisJsonFile parses a JSON formatted genesis file
+func LoadGenesisJsonFile(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err

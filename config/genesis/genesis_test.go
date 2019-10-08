@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestParseJson(t *testing.T) {
+func TestParseGenesisJson(t *testing.T) {
 	file := "../../genesis.json"
-	genesis, err := ParseJson(file)
+	genesis, err := LoadGenesisJsonFile(file)
 	if err != nil {
 		t.Fatal(err)
 	}
