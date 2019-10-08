@@ -78,6 +78,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// P2P
 	setBootstrapNodes(ctx, fig.P2pCfg)
+	setNoBootstrap(ctx, fig.P2pCfg)
 	p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
 	srvcs = append(srvcs, p2pSrvc)
 
@@ -188,6 +189,18 @@ func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
 		return // set in config, dont use defaults
 	} else {
 		fig.BootstrapNodes = cfg.DefaultP2PBootstrap
+	}
+}
+
+// setNoBootsrap sets config to flag value if true, or default value if not set in config
+func setNoBootstrap(ctx *cli.Context, fig *p2p.Config) {
+	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
+		fig.NoBootstrap = true
+		return
+	} else if fig.NoBootstrap == true {
+		return // set in config, dont use defaults
+	} else {
+		fig.NoBootstrap = cfg.DefaultNoBootstrap
 	}
 }
 

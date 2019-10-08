@@ -31,6 +31,10 @@ var (
 		utils.DataDirFlag,
 		configFileFlag,
 	}
+	p2pFlags = []cli.Flag{
+		utils.BootnodesFlag,
+		utils.NoBootstrapFlag,
+	}
 	rpcFlags = []cli.Flag{
 		utils.RpcEnabledFlag,
 		utils.RpcListenAddrFlag,
@@ -55,6 +59,7 @@ func init() {
 		dumpConfigCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
+	app.Flags = append(app.Flags, p2pFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, cliFlags...)
 }
