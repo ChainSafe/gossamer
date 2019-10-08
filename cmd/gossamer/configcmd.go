@@ -66,21 +66,19 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	var srvcs []services.Service
 
 	// set up message channel for p2p -> core.Service
-	msgChan := make(chan p2p.Message)
 
 	// TODO: trie and runtime
 
 	// TODO: BABE
 
+	// P2P
+	fig.P2pCfg = setP2pConfig(ctx, fig.P2pCfg)
+	p2pSrvc, msgChan := createP2PService(fig.P2pCfg)
+	srvcs = append(srvcs, p2pSrvc)
+
 	// core.Service
 	coreSrvc := core.NewService(nil, nil, msgChan)
 	srvcs = append(srvcs, coreSrvc)
-
-	// P2P
-	setBootstrapNodes(ctx, fig.P2pCfg)
-	setNoBootstrap(ctx, fig.P2pCfg)
-	p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
-	srvcs = append(srvcs, p2pSrvc)
 
 	// DB
 	// Create database dir and initialize stateDB and blockDB
@@ -97,9 +95,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	setRpcModules(ctx, fig.RpcCfg)
-	setRpcHost(ctx, fig.RpcCfg)
-	setRpcPort(ctx, fig.RpcCfg)
+	fig.RpcCfg = setRpcConfig(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
 	return dot.NewDot(srvcs, rpcSrvr), fig, nil
@@ -117,7 +113,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 		}
 		return config, nil
 	} else {
-		return cfg.DefaultConfig, nil
+		return cfg.DefaultConfig(), nil
 	}
 }
 
@@ -168,81 +164,53 @@ func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
 	}
 }
 
+func setP2pConfig(ctx *cli.Context, fig p2p.Config) p2p.Config {
+	// Bootnodes
+	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
+		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+	}
+
+	// NoBootstrap
+	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
+		fig.NoBootstrap = true
+	}
+
+	// NoMdns
+	if off := ctx.GlobalBool(utils.NoMdnsFlag.Name); off {
+		fig.NoMdns = true
+	}
+	return fig
+}
+
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *p2p.Config, msgChan chan<- p2p.Message) *p2p.Service {
-	srvc, err := p2p.NewService(fig, msgChan)
+func createP2PService(fig p2p.Config) (*p2p.Service, chan p2p.Message) {
+	msgChan := make(chan p2p.Message)
+
+	srvc, err := p2p.NewService(&fig, msgChan)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srvc
+	return srvc, msgChan
 }
 
-// setBootstrapNodes creates a list of bootstrap nodes from the command line
-// flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
-	var urls []string
-
-	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
-		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
-		fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
-		return
-	} else if fig.BootstrapNodes != nil {
-		return // set in config, dont use defaults
-	} else {
-		fig.BootstrapNodes = cfg.DefaultP2PBootstrap
-	}
-}
-
-// setNoBootsrap sets config to flag value if true, or default value if not set in config
-func setNoBootstrap(ctx *cli.Context, fig *p2p.Config) {
-	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
-		fig.NoBootstrap = true
-		return
-	} else if fig.NoBootstrap == true {
-		return // set in config, dont use defaults
-	} else {
-		fig.NoBootstrap = cfg.DefaultNoBootstrap
-	}
-}
-
-// setRpcModules checks the context for rpc modes and applies them to `cfg`, unless some are already set
-func setRpcModules(ctx *cli.Context, fig *rpc.Config) {
-	var strs []string
-
+func setRpcConfig(ctx *cli.Context, fig rpc.Config) rpc.Config{
+	// Modules
 	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
-		strs = strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ",")
-		fig.Modules = append(fig.Modules, strToMods(strs)...)
-		return
-	} else if fig.Modules != nil {
-		return // set in config, dont use defaults
-	} else {
-		fig.Modules = cfg.DefaultRpcModules
+		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
 	}
-}
 
-// setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
-func setRpcHost(ctx *cli.Context, fig *rpc.Config) {
+	// Host
 	if host := ctx.GlobalString(utils.RpcHostFlag.Name); host != "" {
 		fig.Host = host
-		return
-	} else if fig.Host != "" {
-		return
-	} else {
-		fig.Host = cfg.DefaultRpcHttpHost
 	}
-}
 
-// setRpcPort checks the context for a port and applies it to `cfg`, unless one is already set
-func setRpcPort(ctx *cli.Context, fig *rpc.Config) {
+	// Port
 	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
-		return
-	} else if fig.Port != 0 {
-		return
-	} else {
-		fig.Port = cfg.DefaultRpcHttpPort
 	}
+	return fig
 }
+
 
 // strToMods casts a []strings to []api.Module
 func strToMods(strs []string) []api.Module {

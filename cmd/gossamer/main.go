@@ -38,9 +38,8 @@ var (
 	}
 	rpcFlags = []cli.Flag{
 		utils.RpcEnabledFlag,
-		utils.RpcListenAddrFlag,
-		utils.RpcPortFlag,
 		utils.RpcHostFlag,
+		utils.RpcPortFlag,
 		utils.RpcModuleFlag,
 	}
 	cliFlags = []cli.Flag{
