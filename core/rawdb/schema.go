@@ -4,7 +4,7 @@ import "github.com/ChainSafe/gossamer/common"
 
 var (
 	// Data prefixes
-	headerPrefix = []byte("hdr") // headerPrefix + hash -> header
+	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
 	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
 )
 

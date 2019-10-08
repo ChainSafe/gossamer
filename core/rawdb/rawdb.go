@@ -2,6 +2,7 @@ package rawdb
 
 import (
 	"encoding/json"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/polkadb"
