@@ -18,8 +18,9 @@ package blocktree
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/core/types"
 	"math/big"
+
+	"github.com/ChainSafe/gossamer/core/types"
 
 	"github.com/ChainSafe/gossamer/polkadb"
 

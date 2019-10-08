@@ -34,7 +34,7 @@ func GetHeader(db polkadb.Reader, hash common.Hash) *types.BlockHeader {
 	data, err := db.Get(headerKey(hash))
 	check(err, "Failed to retrieve block header")
 
-	err = json.Unmarshal(data, &result)
+	err = json.Unmarshal(data, result)
 	check(err, "Failed to unmarshal block header")
 	return result
 }
@@ -57,7 +57,7 @@ func GetBlockData(db polkadb.Reader, hash common.Hash) *types.BlockData {
 	data, err := db.Get(blockDataKey(hash))
 	check(err, "Failed to retrieve blockData")
 
-	err = json.Unmarshal(data, &result)
+	err = json.Unmarshal(data, result)
 	check(err, "Failed to unmarshal blockData")
 	return result
 }

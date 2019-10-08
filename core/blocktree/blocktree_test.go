@@ -17,10 +17,11 @@
 package blocktree
 
 import (
-	"github.com/ChainSafe/gossamer/core/types"
 	"math/big"
 	"strconv"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/core/types"
 
 	"github.com/ChainSafe/gossamer/common"
 	db "github.com/ChainSafe/gossamer/polkadb"
