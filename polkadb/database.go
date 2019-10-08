@@ -44,11 +44,10 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 	opts.WithNumCompactors(20)
 
 	if err := os.MkdirAll(file, os.ModePerm); err != nil {
-		log.Crit("err creating directory for DB ", err)
+		return nil, err
 	}
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Crit("err opening DB directory", err)
 		return nil, err
 	}
 

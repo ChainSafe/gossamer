@@ -66,7 +66,7 @@ func init() {
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		log.Error("error starting app", "output", os.Stderr, "err", err)
+		log.Error("error starting app", "err", err)
 		os.Exit(1)
 	}
 }
@@ -97,7 +97,7 @@ func gossamer(ctx *cli.Context) error {
 	node, _, err := makeNode(ctx)
 	if err != nil {
 		// TODO: Need to manage error propagation and exit smoothly
-		log.Error("error making node", "err", err)
+		return err
 	}
 	log.Info("🕸️Starting node...")
 	node.Start()
