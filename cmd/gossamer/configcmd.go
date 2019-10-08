@@ -99,6 +99,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// RPC
 	setRpcModules(ctx, fig.RpcCfg)
 	setRpcHost(ctx, fig.RpcCfg)
+	setRpcPort(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
 	return dot.NewDot(srvcs, rpcSrvr), fig, nil
@@ -228,6 +229,18 @@ func setRpcHost(ctx *cli.Context, fig *rpc.Config) {
 		return
 	} else {
 		fig.Host = cfg.DefaultRpcHttpHost
+	}
+}
+
+// setRpcPort checks the context for a port and applies it to `cfg`, unless one is already set
+func setRpcPort(ctx *cli.Context, fig *rpc.Config) {
+	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
+		fig.Port = uint32(port)
+		return
+	} else if fig.Port != 0 {
+		return
+	} else {
+		fig.Port = cfg.DefaultRpcHttpPort
 	}
 }
 
