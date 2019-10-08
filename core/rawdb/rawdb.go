@@ -29,12 +29,12 @@ func SetHeader(db polkadb.Writer, header *types.BlockHeader) {
 }
 
 // GetHeader retrieves block header from KV-store using headerKey
-func GetHeader(db polkadb.Reader, hash common.Hash) *types.BlockHeader {
-	var result *types.BlockHeader
+func GetHeader(db polkadb.Reader, hash common.Hash) types.BlockHeader {
+	var result types.BlockHeader
 	data, err := db.Get(headerKey(hash))
 	check(err, "Failed to retrieve block header")
 
-	err = json.Unmarshal(data, result)
+	err = json.Unmarshal(data, &result)
 	check(err, "Failed to unmarshal block header")
 	return result
 }
@@ -52,12 +52,12 @@ func SetBlockData(db polkadb.Writer, blockData *types.BlockData) {
 }
 
 // GetBlockData retrieves blockData from KV-store using blockDataKey
-func GetBlockData(db polkadb.Reader, hash common.Hash) *types.BlockData {
-	var result *types.BlockData
+func GetBlockData(db polkadb.Reader, hash common.Hash) types.BlockData {
+	var result types.BlockData
 	data, err := db.Get(blockDataKey(hash))
 	check(err, "Failed to retrieve blockData")
 
-	err = json.Unmarshal(data, result)
+	err = json.Unmarshal(data, &result)
 	check(err, "Failed to unmarshal blockData")
 	return result
 }

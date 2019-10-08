@@ -25,9 +25,8 @@ func TestSetHeader(t *testing.T) {
 	memDB, h := setup()
 
 	SetHeader(memDB, h)
-	if entry := GetHeader(memDB, h.Hash); entry == nil {
-		t.Fatalf("stored header not found")
-	} else if entry.Hash != h.Hash {
+	entry := GetHeader(memDB, h.Hash)
+	if entry.Hash != h.Hash {
 		t.Fatalf("Retrieved header mismatch: have %v, want %v", entry, h)
 	}
 }
@@ -43,9 +42,8 @@ func TestSetBlockData(t *testing.T) {
 	}
 
 	SetBlockData(memDB, bd)
-	if entry := GetBlockData(memDB, bd.Hash); entry == nil {
-		t.Fatalf("stored blockData not found")
-	} else if entry.Hash != bd.Hash {
+	entry := GetBlockData(memDB, bd.Hash)
+	if entry.Hash != bd.Hash {
 		t.Fatalf("Retrieved blockData mismatch: have %v, want %v", entry, bd)
 	}
 }
