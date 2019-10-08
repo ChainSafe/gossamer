@@ -187,7 +187,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 //	bt := createFlatTree(t, 1)
 //
 //	// Insert a block to create a competing path
-//	extraBlock := core.Block{
+//	extraBlock := types.Block{
 //		SlotNumber:   nil,
 //		ParentHash: zeroHash,
 //		Number:  big.NewInt(1),

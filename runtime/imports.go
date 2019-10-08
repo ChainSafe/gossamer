@@ -43,12 +43,16 @@ package runtime
 // extern int32_t ext_local_storage_get(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t valueLen);
 // extern int32_t ext_local_storage_compare_and_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t oldValue, int32_t oldValueLen, int32_t newValue, int32_t newValueLen);
 // extern int32_t ext_sr25519_public_keys(void *context, int32_t idData, int32_t resultLen);
+// extern int32_t ext_ed25519_public_keys(void *context, int32_t idData, int32_t resultLen);
 // extern int32_t ext_network_state(void *context, int32_t writtenOut);
 // extern int32_t ext_sr25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
+// extern int32_t ext_ed25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
 // extern int32_t ext_submit_transaction(void *context, int32_t data, int32_t len);
 // extern void ext_local_storage_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t value, int32_t valueLen);
 // extern void ext_ed25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
 // extern void ext_sr25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
+// extern void ext_set_child_storage(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
+// extern int32_t ext_get_child_storage_into(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
 import "C"
 
 import (
@@ -84,16 +88,13 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
-	log.Debug("[ext_malloc]", "context", *(*int)(instanceContext.Data()))
-	log.Debug("[ext_malloc]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Allocate memory
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
 	}
-	log.Debug("[ext_malloc]", "pointer", res)
-	log.Debug("[ext_malloc]", "heap_size after allocation", runtimeCtx.allocator.TotalSize)
+
 	return int32(res)
 }
 
@@ -106,8 +107,6 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	mutex.Lock()
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.Unlock()
-
-	log.Debug("[ext_free]", "runtimeCtx.allocator", runtimeCtx.allocator)
 
 	// Deallocate memory
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
@@ -188,6 +187,16 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	}
 }
 
+//export ext_set_child_storage
+func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
+	return
+}
+
+//export ext_get_child_storage_into
+func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
+	return 0
+}
+
 // returns the trie root in the memory location `resultPtr`
 //export ext_storage_root
 func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
@@ -264,7 +273,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
 func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
-	log.Debug("[ext_sr25519_verify] executing...")
+	log.Debug("[ext_clear_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
@@ -356,16 +365,41 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 //export ext_blake2_128
 func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_blake2_128] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	hash, err := common.Blake2b128(memory[data : data+length])
+	if err != nil {
+		log.Error("[ext_blake2_128]", "error", err)
+	}
+
+	copy(memory[out:out+16], hash[:])
 }
 
 //export ext_keccak_256
 func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
 	log.Debug("[ext_keccak_256] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	hash := common.Keccak256(memory[data : data+length])
+	copy(memory[out:out+32], hash[:])
 }
 
 //export ext_twox_64
 func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_64] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	hasher := xxhash.NewS64(0) // create xxHash with 0 seed
+	_, err := hasher.Write(memory[data : data+len])
+	if err != nil {
+		log.Error("[ext_twox_64]", "error", err)
+	}
+
+	res := hasher.Sum64()
+	hash := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash, uint64(res))
+	copy(memory[out:out+8], hash)
 }
 
 //export ext_twox_128
@@ -373,7 +407,6 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Debug("[ext_twox_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	log.Debug("[ext_twox_128]", "value", memory[data:data+len])
 
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
@@ -382,7 +415,6 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 		log.Error("[ext_twox_128]", "error", err)
 	}
 	res0 := h0.Sum64()
-	log.Debug("[ext_twox_128]", "xxH64(0) of value", res0)
 	hash0 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash0, uint64(res0))
 
@@ -392,7 +424,6 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 		log.Error("[ext_twox_128]", "error", err)
 	}
 	res1 := h1.Sum64()
-	log.Debug("[ext_twox_128]", "xxH64(1) of value", res1)
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
@@ -407,9 +438,21 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	log.Debug("[ext_sr25519_generate] executing...")
 }
 
+//export ext_ed25519_public_keys
+func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
+	log.Debug("[ext_ed25519_public_keys] executing...")
+	return 0
+}
+
 //export ext_sr25519_public_keys
 func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Debug("[ext_sr25519_public_keys] executing...")
+	return 0
+}
+
+//export ext_ed25519_sign
+func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
+	log.Debug("[ext_ed25519_sign] executing...")
 	return 0
 }
 
@@ -581,6 +624,10 @@ func registerImports() (*wasm.Imports, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_ed25519_public_keys", ext_ed25519_public_keys, C.ext_ed25519_public_keys)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_sr25519_public_keys", ext_sr25519_public_keys, C.ext_sr25519_public_keys)
 	if err != nil {
 		return nil, err
@@ -590,6 +637,10 @@ func registerImports() (*wasm.Imports, error) {
 		return nil, err
 	}
 	_, err = imports.Append("ext_sr25519_sign", ext_sr25519_sign, C.ext_sr25519_sign)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_sign", ext_ed25519_sign, C.ext_ed25519_sign)
 	if err != nil {
 		return nil, err
 	}
@@ -610,6 +661,14 @@ func registerImports() (*wasm.Imports, error) {
 		return nil, err
 	}
 	_, err = imports.Append("ext_twox_64", ext_twox_64, C.ext_twox_64)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_set_child_storage", ext_set_child_storage, C.ext_set_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_child_storage_into", ext_get_child_storage_into, C.ext_get_child_storage_into)
 	if err != nil {
 		return nil, err
 	}

@@ -76,6 +76,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 	log.Debug("[NewRuntime]", "index", index)
 	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
+	//nolint:gosec
 	data := unsafe.Pointer(&index)
 	instance.SetContextData(data)
 
@@ -87,6 +88,16 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 func (r *Runtime) Stop() {
 	r.vm.Close()
+}
+
+func (r *Runtime) Store(data []byte, location int32) {
+	mem := r.vm.Memory.Data()
+	copy(mem[location:location+int32(len(data))], data)
+}
+
+func (r *Runtime) Load(location, length int32) []byte {
+	mem := r.vm.Memory.Data()
+	return mem[location : location+length]
 }
 
 func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {

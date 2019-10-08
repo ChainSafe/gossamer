@@ -22,6 +22,9 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+// Extrinsic is a generic transaction whose format is verified in the runtime
+type Extrinsic []byte
+
 // Block defines a state block
 type Block struct {
 	Header BlockHeader
@@ -34,7 +37,7 @@ type BlockHeader struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         []byte
+	Digest         []byte // any additional block info eg. logs, seal
 	// TODO: Not part of spec, can potentially remove
 	Hash common.Hash
 }

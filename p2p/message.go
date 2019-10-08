@@ -23,8 +23,10 @@ import (
 	"io"
 
 	scale "github.com/ChainSafe/gossamer/codec"
-	common "github.com/ChainSafe/gossamer/common"
-	optional "github.com/ChainSafe/gossamer/common/optional"
+
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 const (
@@ -49,6 +51,7 @@ type Message interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error
 	String() string
+	GetType() int
 }
 
 // DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
@@ -69,6 +72,12 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
+	case BlockAnnounceMsgType:
+		m = new(BlockAnnounceMessage)
+		err = m.Decode(r)
+	case TransactionMsgType:
+		m = new(TransactionMessage)
+		err = m.Decode(r)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
@@ -84,6 +93,10 @@ type StatusMessage struct {
 	BestBlockHash       common.Hash
 	GenesisHash         common.Hash
 	ChainStatus         []byte
+}
+
+func (sm *StatusMessage) GetType() int {
+	return StatusMsgType
 }
 
 // String formats a StatusMessage as a string
@@ -123,6 +136,10 @@ type BlockRequestMessage struct {
 	EndBlockHash  *optional.Hash
 	Direction     byte
 	Max           *optional.Uint32
+}
+
+func (bm *BlockRequestMessage) GetType() int {
+	return BlockRequestMsgType
 }
 
 // String formats a BlockRequestMessage as a string
@@ -256,35 +273,45 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-type BlockHeaderMessage common.BlockHeader
+// BlockAnnounceMessage is a state block header
+type BlockAnnounceMessage common.BlockHeader
 
-// string formats a BlockHeaderMessage as a string
-func (bhm *BlockHeaderMessage) String() string {
-	return fmt.Sprintf("BlockHeaderMessage ParentHash=0x%x Number=%d StateRoot=0x%x ExtrinsicsRoot=0x%x Digest=0x%x",
-		bhm.ParentHash,
-		bhm.Number,
-		bhm.StateRoot,
-		bhm.ExtrinsicsRoot,
-		bhm.Digest)
+func (bm *BlockAnnounceMessage) GetType() int {
+	return BlockAnnounceMsgType
 }
 
-func (bhm *BlockHeaderMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(bhm)
+// string formats a BlockAnnounceMessage as a string
+func (bm *BlockAnnounceMessage) String() string {
+	return fmt.Sprintf("BlockAnnounceMessage ParentHash=0x%x Number=%d StateRoot=0x%x ExtrinsicsRoot=0x%x Digest=0x%x",
+		bm.ParentHash,
+		bm.Number,
+		bm.StateRoot,
+		bm.ExtrinsicsRoot,
+		bm.Digest)
+}
+
+func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
+	enc, err := scale.Encode(bm)
 	if err != nil {
 		return enc, err
 	}
 	return append([]byte{BlockAnnounceMsgType}, enc...), nil
 }
 
-//Decodes the message into a BlockHeaderMessage, it assumes the type byte has been removed
-func (bhm *BlockHeaderMessage) Decode(msg []byte) error {
-	_, err := scale.Decode(msg, bhm)
+// Decodes the message into a BlockAnnounceMessage, it assumes the type byte has been removed
+func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bm)
 	return err
 }
 
 type BlockResponseMessage struct {
 	Id   uint64
 	Data []byte // TODO: change this to BlockData type
+}
+
+func (bm *BlockResponseMessage) GetType() int {
+	return BlockResponseMsgType
 }
 
 // String formats a BlockResponseMessage as a string
@@ -318,6 +345,58 @@ func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 		}
 
 		bm.Data = append(bm.Data, b)
+	}
+
+	return nil
+}
+
+type TransactionMessage struct {
+	Extrinsics []types.Extrinsic
+}
+
+func (tm *TransactionMessage) GetType() int {
+	return TransactionMsgType
+}
+
+func (tm *TransactionMessage) String() string {
+	return fmt.Sprintf("TransactionMessage extrinsics=0x%x", tm.Extrinsics)
+}
+
+func (tm *TransactionMessage) Encode() ([]byte, error) {
+	// scale encode each extrinsic
+	var encodedExtrinsics = make([]byte, 0)
+	for _, extrinsic := range tm.Extrinsics {
+		encExt, err := scale.Encode([]byte(extrinsic))
+		if err != nil {
+			return nil, err
+		}
+		encodedExtrinsics = append(encodedExtrinsics, encExt...)
+	}
+
+	// scale encode the set of all extrinsics
+	encodedMessage, err := scale.Encode(encodedExtrinsics)
+
+	// prepend message type to message
+	return append([]byte{TransactionMsgType}, encodedMessage...), err
+}
+
+// Decodes the message into a TransactionMessage, it assumes the type byte han been removed
+func (tm *TransactionMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	decodedMessage, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+	messageSize := len(decodedMessage.([]byte))
+	bytesProcessed := 0
+	// loop through the message decoding extrinsics until they have all been decoded
+	for bytesProcessed < messageSize {
+		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
+		if err != nil {
+			return err
+		}
+		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
 	}
 
 	return nil
