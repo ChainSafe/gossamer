@@ -37,6 +37,8 @@ import (
 	"github.com/urfave/cli"
 )
 
+const TestDataDir = "./test_data"
+
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
 		log.Warn("cannot create temp file", err)
@@ -47,15 +49,16 @@ func teardown(tempFile *os.File) {
 }
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
-	var TestConfig = cfg.DefaultConfig()
+	testConfig := cfg.DefaultConfig()
+	testConfig.DbCfg.DataDir = TestDataDir
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
 		log.Crit("Cannot create temporary file", err)
 		os.Exit(1)
 	}
 
-	f := cfg.ToTOML(tmpFile.Name(), TestConfig)
-	return f, TestConfig
+	f := cfg.ToTOML(tmpFile.Name(), testConfig)
+	return f, testConfig
 }
 
 // Creates a cli context for a test given a set of flags and values
@@ -296,7 +299,6 @@ func TestSetRpcConfig(t *testing.T) {
 	}
 }
 
-
 func TestStrToMods(t *testing.T) {
 	strs := []string{"test1", "test2"}
 	mods := strToMods(strs)
@@ -345,23 +347,27 @@ func TestCommands(t *testing.T) {
 	tempFile, _ := createTempConfigFile()
 
 	tc := []struct {
-		name  string
-		value string
-		usage string
+		description string
+		flags       []string
+		values      []interface{}
 	}{
-		{"config", tempFile.Name(), "TOML configuration file"},
+		{"from config file",
+			[]string{"config"},
+			[]interface{}{tempFile.Name()}},
 	}
 
 	for _, c := range tc {
 		app := cli.NewApp()
 		app.Writer = ioutil.Discard
-		set := flag.NewFlagSet(c.name, 0)
-		set.String(c.name, c.value, c.usage)
 
-		context := cli.NewContext(app, set, nil)
+		context, err := createCliContext(c.description, c.flags, c.values)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		command := dumpConfigCommand
 
-		err := command.Run(context)
+		err = command.Run(context)
 		if err != nil {
 			t.Fatalf("should have ran dumpConfig command. err: %s", err)
 		}
