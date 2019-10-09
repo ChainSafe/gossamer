@@ -16,6 +16,7 @@ func newTestDBService() (*DbService, func()) {
 	if err != nil {
 		panic("failed to create test database: " + err.Error())
 	}
+	db.Start()
 	return db, func() {
 		db.Stop()
 		if err := os.RemoveAll(dir); err != nil {
@@ -29,8 +30,13 @@ func TestDbService_Start(t *testing.T) {
 	defer remove()
 
 	err := db.Start()
-	if err == nil {
-		t.Fatalf("get returned wrong result, got %v", err)
+	if e := <- err; e != nil {
+		t.Fatal(e)
+	}
+
+	err = db.Stop()
+	if e := <- err; e != nil {
+		t.Fatal(e)
 	}
 }
 
