@@ -71,11 +71,6 @@ func TestDot_Start(t *testing.T) {
 		if s == nil {
 			t.Fatalf("error getting service: %T", srvc)
 		}
-
-		e := dot.Services.Err(srvc)
-		if e == nil {
-			t.Fatalf("error getting error channel for service: %T", srvc)
-		}
 	}
 
 	dot.Stop()

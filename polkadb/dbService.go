@@ -13,8 +13,6 @@ type DbService struct {
 	path string
 	StateDB *StateDB
 	BlockDB *BlockDB
-
-	err chan<- error
 }
 
 // NewDatabaseService opens and returns a new DB object
@@ -23,46 +21,43 @@ func NewDatabaseService(path string) (*DbService, error) {
 		path: path,
 		StateDB: nil,
 		BlockDB: nil,
-		err:     nil,
 	}, nil
 }
 
 // Start...
-func (s *DbService) Start() <-chan error {
-	ch := make(chan error)
-	s.err = ch
+func (s *DbService) Start() error {
+
 	stateDataDir := filepath.Join(s.path, "state")
 	blockDataDir := filepath.Join(s.path, "block")
 
 	stateDb, err := NewStateDB(stateDataDir)
 	if err != nil {
-		s.err <- err
+		return err
 	}
 
 	blockDb, err := NewBlockDB(blockDataDir)
 	if err != nil {
-		s.err <- err
+		return err
 	}
 
 	s.BlockDB = blockDb
 	s.StateDB = stateDb
 
-	return ch
+	return nil
 }
 
 // Stop kills running BlockDB and StateDB instances
-func (s *DbService) Stop() <-chan error {
-	e := make(chan error)
+func (s *DbService) Stop() error {
 	// Closing Badger Databases
 	err := s.StateDB.Db.Close()
 	if err != nil {
-		e <- err
+		return err
 	}
 
 	err = s.BlockDB.Db.Close()
 	if err != nil {
-		e <- err
+		return err
 	}
-	return e
+	return nil
 }
 

@@ -97,8 +97,7 @@ func TestNewService_Start(t *testing.T) {
 
 	mgr := NewService(rt, b, msgChan)
 
-	e := mgr.Start()
-	err := <-e
+	err := mgr.Start()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,14 +7,15 @@ import (
 	"testing"
 )
 
-func newTestDBService() (*DbService, func()) {
+// Returns started dbService
+func newTestDBService(t *testing.T) (*DbService, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
-		panic("failed to create test file: " + err.Error())
+		t.Fatal("failed to create test file: " + err.Error())
 	}
 	db, err := NewDatabaseService(dir)
 	if err != nil {
-		panic("failed to create test database: " + err.Error())
+		t.Fatal("failed to create test database: " + err.Error())
 	}
 	db.Start()
 	return db, func() {
@@ -26,26 +27,17 @@ func newTestDBService() (*DbService, func()) {
 }
 
 func TestDbService_Start(t *testing.T) {
-	db, remove := newTestDBService()
-	defer remove()
-
-	err := db.Start()
-	if e := <- err; e != nil {
-		t.Fatal(e)
-	}
-
-	err = db.Stop()
-	if e := <- err; e != nil {
-		t.Fatal(e)
-	}
-}
-
-func TestDb_Close(t *testing.T) {
-	db, remove := newTestDBService()
-	defer remove()
-
-	err := db.StateDB.Db.Close()
+	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
-		t.Fatalf("get returned wrong result, got %v", err)
+		t.Fatal("failed to create test file: " + err.Error())
+	}
+	db, err := NewDatabaseService(dir)
+	if err != nil {
+		t.Fatal("failed to create test database: " + err.Error())
+	}
+
+	err = db.Start()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
