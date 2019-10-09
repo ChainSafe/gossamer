@@ -85,7 +85,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// DB
 	// Create database dir and initialize stateDB and blockDB
 	dataDir := getDatabaseDir(ctx, fig)
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
+	dbSrv, err := polkadb.NewDbService(dataDir)
 	if err != nil {
 		return nil, nil, err
 	}

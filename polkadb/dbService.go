@@ -15,8 +15,8 @@ type DbService struct {
 	BlockDB *BlockDB
 }
 
-// NewDatabaseService opens and returns a new DB object
-func NewDatabaseService(path string) (*DbService, error) {
+// NewDbService opens and returns a new DB object
+func NewDbService(path string) (*DbService, error) {
 	return &DbService{
 		path: path,
 		StateDB: nil,

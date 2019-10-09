@@ -39,7 +39,7 @@ func createTestDot(t *testing.T) *Dot {
 
 	// DB
 	dataDir := "../test_data"
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
+	dbSrv, err := polkadb.NewDbService(dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}

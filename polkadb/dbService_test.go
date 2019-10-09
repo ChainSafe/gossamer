@@ -13,7 +13,7 @@ func newTestDBService(t *testing.T) (*DbService, func()) {
 	if err != nil {
 		t.Fatal("failed to create test file: " + err.Error())
 	}
-	db, err := NewDatabaseService(dir)
+	db, err := NewDbService(dir)
 	if err != nil {
 		t.Fatal("failed to create test database: " + err.Error())
 	}
@@ -31,7 +31,7 @@ func TestDbService_Start(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to create test file: " + err.Error())
 	}
-	db, err := NewDatabaseService(dir)
+	db, err := NewDbService(dir)
 	if err != nil {
 		t.Fatal("failed to create test database: " + err.Error())
 	}
