@@ -65,4 +65,14 @@ var (
 		Usage: "Path to genesis JSON file",
 		Value: cfg.DefaultGenesisPath,
 	}
+	NoBootstrapFlag = cli.BoolFlag{
+		Name:  "nobootstrap",
+		Usage: "Disables p2p bootstrapping",
+	}
+	// cli service settings
+	VerbosityFlag = cli.StringFlag{
+		Name:  "verbosity",
+		Usage: "Supports levels crit (silent) to trce (trace)",
+		Value: "info",
+	}
 )
