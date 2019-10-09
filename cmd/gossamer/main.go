@@ -33,6 +33,7 @@ var (
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
+		utils.P2pPortFlag,
 		utils.NoBootstrapFlag,
 		utils.NoMdnsFlag,
 	}
@@ -66,7 +67,6 @@ func init() {
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		log.Error("error starting app", "err", err)
 		os.Exit(1)
 	}
 }
@@ -88,7 +88,6 @@ func startLogger(ctx *cli.Context) error {
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-
 	err := startLogger(ctx)
 	if err != nil {
 		return err
@@ -96,7 +95,7 @@ func gossamer(ctx *cli.Context) error {
 
 	node, _, err := makeNode(ctx)
 	if err != nil {
-		// TODO: Need to manage error propagation and exit smoothly
+		log.Error("error starting gossamer", "err", err)
 		return err
 	}
 	log.Info("🕸️Starting node...")
