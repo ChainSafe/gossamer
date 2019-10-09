@@ -37,11 +37,11 @@ type Service struct {
 	rt *runtime.Runtime
 	b  *babe.Session
 
-	msgChan <-chan p2p.Message
+	msgChan <-chan []byte
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan p2p.Message) *Service {
+func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan []byte) *Service {
 	return &Service{
 		rt:      rt,
 		b:       b,
@@ -57,12 +57,24 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) start(e chan error) {
-	go func(msgChan <-chan p2p.Message) {
-		msg := <-msgChan
-		msgType := msg.GetType()
+	e <- nil
+
+	for {
+		msg, ok := <-s.msgChan
+		if !ok {
+			log.Warn("core service message watcher", "error", "channel closed")
+			break
+		}
+
+		msgType := msg[0]
 		switch msgType {
 		case p2p.TransactionMsgType:
 			// process tx
+			err := s.ProcessTransaction(msg[1:])
+			if err != nil {
+				log.Error("core service", "error", err)
+				e <- err
+			}
 		case p2p.BlockAnnounceMsgType:
 			// get extrinsics by sending BlockRequest message
 			// process block
@@ -71,9 +83,7 @@ func (s *Service) start(e chan error) {
 		default:
 			log.Error("core service", "error", "got unsupported message type")
 		}
-	}(s.msgChan)
-
-	e <- nil
+	}
 }
 
 func (s *Service) Stop() error {
