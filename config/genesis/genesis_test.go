@@ -6,7 +6,7 @@ import (
 )
 
 func TestParseGenesisJson(t *testing.T) {
-	file := "../../genesis.json"
+	file := "../../test_genesis.json"
 	genesis, err := LoadGenesisJsonFile(file)
 	if err != nil {
 		t.Fatal(err)

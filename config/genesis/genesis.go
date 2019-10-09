@@ -39,7 +39,7 @@ func LoadGenesisJsonFile(file string) (*Genesis, error) {
 	return g, err
 }
 
-// GenesisState stores the genesis state after it's been loaded into a trie and network configuartion
+// GenesisState stores the genesis state after it's been loaded into a trie and network configuration
 type GenesisState struct {
 	Name        string
 	Id          string
