@@ -65,8 +65,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// set up message channel for p2p -> core.Service
-
 	// TODO: trie and runtime
 
 	// TODO: BABE
@@ -187,8 +185,8 @@ func setP2pConfig(ctx *cli.Context, fig p2p.Config) p2p.Config {
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig p2p.Config) (*p2p.Service, chan p2p.Message) {
-	msgChan := make(chan p2p.Message)
+func createP2PService(fig p2p.Config) (*p2p.Service, chan []byte) {
+	msgChan := make(chan []byte)
 
 	srvc, err := p2p.NewService(&fig, msgChan)
 	if err != nil {
