@@ -151,7 +151,7 @@ func TestGetDatabaseDir(t *testing.T) {
 		} else {
 			cfgClone.DbCfg.DataDir = "chaingang"
 		}
-		dir := getDatabaseDir(context, cfgClone)
+		dir := getDataDir(context, cfgClone)
 
 		if dir != c.expected {
 			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, dir, c.expected)
@@ -204,6 +204,18 @@ func TestSetP2pConfig(t *testing.T) {
 			p2p.Config{
 				BootstrapNodes: []string{"1234", "5678"},
 				Port:           cfg.DefaultP2PPort,
+				RandSeed:       cfg.DefaultP2PRandSeed,
+				NoBootstrap:    false,
+				NoMdns:         false,
+			},
+		},
+		{
+			"port",
+			[]string{"p2pport"},
+			[]interface{}{uint(1337)},
+			p2p.Config{
+				BootstrapNodes: cfg.DefaultP2PBootstrap,
+				Port:           1337,
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
@@ -351,7 +363,7 @@ func TestCommands(t *testing.T) {
 
 		err := command.Run(context)
 		if err != nil {
-			t.Fatalf("should have ran dumpConfig command")
+			t.Fatalf("should have ran dumpConfig command. err: %s", err)
 		}
 	}
 	defer teardown(tempFile)

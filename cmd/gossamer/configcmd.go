@@ -82,7 +82,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// DB
 	// Create database dir and initialize stateDB and blockDB
-	dataDir := getDatabaseDir(ctx, fig)
+	dataDir := getDataDir(ctx, fig)
 	dbSrv, err := polkadb.NewDatabaseService(dataDir)
 	if err != nil {
 		return nil, nil, err
@@ -152,8 +152,8 @@ func loadConfig(file string) (*cfg.Config, error) {
 	return config, err
 }
 
-// getDatabaseDir initializes directory for BadgerService logs
-func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
+// getDataDir initializes directory for gossamer data
+func getDataDir(ctx *cli.Context, fig *cfg.Config) string {
 	if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
 		fig.DbCfg.DataDir = file
 		return file
@@ -168,6 +168,10 @@ func setP2pConfig(ctx *cli.Context, fig p2p.Config) p2p.Config {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
 		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+	}
+
+	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
+		fig.Port = uint32(port)
 	}
 
 	// NoBootstrap

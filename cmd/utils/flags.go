@@ -28,7 +28,40 @@ var (
 		Usage: "Data directory for the database",
 		Value: cfg.DefaultDataDir(),
 	}
-	// RPC settings
+	// cli service settings
+	VerbosityFlag = cli.StringFlag{
+		Name:  "verbosity",
+		Usage: "Supports levels crit (silent) to trce (trace)",
+		Value: "info",
+	}
+)
+
+// P2P flags
+var (
+	// P2P service settings
+	BootnodesFlag = cli.StringFlag{
+		Name:  "bootnodes",
+		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
+		Value: "",
+	}
+	P2pPortFlag = cli.UintFlag{
+		Name:  "p2pport",
+		Usage: "Set P2P listening port",
+		Value: cfg.DefaultP2PPort,
+	}
+	NoBootstrapFlag = cli.BoolFlag{
+		Name:  "nobootstrap",
+		Usage: "Disables p2p bootstrapping (mdns still enabled)",
+	}
+
+	NoMdnsFlag = cli.BoolFlag{
+		Name:  "nomdns",
+		Usage: "Disables p2p mdns discovery",
+	}
+)
+
+// RPC flags
+var (
 	RpcEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
@@ -47,27 +80,5 @@ var (
 		Name:  "rpcmods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
 		Value: "",
-	}
-	// P2P service settings
-	BootnodesFlag = cli.StringFlag{
-		Name:  "bootnodes",
-		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
-		Value: "",
-	}
-
-	NoBootstrapFlag = cli.BoolFlag{
-		Name:  "nobootstrap",
-		Usage: "Disables p2p bootstrapping (mdns still enabled)",
-	}
-
-	NoMdnsFlag = cli.BoolFlag{
-		Name:  "nomdns",
-		Usage: "Disables p2p mdns discovery",
-	}
-	// cli service settings
-	VerbosityFlag = cli.StringFlag{
-		Name:  "verbosity",
-		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: "info",
 	}
 )

@@ -37,10 +37,7 @@ const (
 	DefaultP2PRandSeed = int64(0)
 )
 
-var DefaultP2PBootstrap = []string{
-	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-	"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-}
+var DefaultP2PBootstrap []string
 
 var DefaultRpcModules = []api.Module{"system"}
 
