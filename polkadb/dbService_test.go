@@ -11,11 +11,11 @@ import (
 func newTestDBService(t *testing.T) (*DbService, func()) {
 	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
-		t.Fatal("failed to create test file: " + err.Error())
+		t.Fatal("failed to create temp dir: " + err.Error())
 	}
 	db, err := NewDbService(dir)
 	if err != nil {
-		t.Fatal("failed to create test database: " + err.Error())
+		t.Fatal("failed to create test dbService: " + err.Error())
 	}
 	db.Start()
 	return db, func() {
@@ -29,11 +29,11 @@ func newTestDBService(t *testing.T) (*DbService, func()) {
 func TestDbService_Start(t *testing.T) {
 	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
-		t.Fatal("failed to create test file: " + err.Error())
+		t.Fatal("failed to create temp dir: " + err.Error())
 	}
 	db, err := NewDbService(dir)
 	if err != nil {
-		t.Fatal("failed to create test database: " + err.Error())
+		t.Fatal("failed to create test dbService: " + err.Error())
 	}
 
 	err = db.Start()
