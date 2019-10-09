@@ -169,8 +169,8 @@ func TestHandleMsg_Transaction(t *testing.T) {
 	b := babe.NewSession([32]byte{}, [64]byte{}, rt)
 	msgChan := make(chan []byte)
 	mgr := NewService(rt, b, msgChan)
-	e := mgr.Start()
-	if err := <-e; err != nil {
+	err := mgr.Start()
+	if err != nil {
 		t.Fatal(err)
 	}
 
