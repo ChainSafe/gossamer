@@ -183,9 +183,6 @@ func TestHandleMsg_Transaction(t *testing.T) {
 
 	// wait for message to be handled
 	time.Sleep(time.Second)
-	if err := <-e; err != nil {
-		t.Fatal(err)
-	}
 
 	// check if in babe tx queue
 	tx := b.PeekFromTxQueue()
@@ -201,7 +198,8 @@ func TestHandleMsg_BlockResponse(t *testing.T) {
 	b := babe.NewSession([32]byte{}, [64]byte{}, rt)
 	msgChan := make(chan []byte)
 	mgr := NewService(rt, b, msgChan)
-	e := mgr.Start()
+	e := make(chan error)
+	go mgr.start(e)
 	if err := <-e; err != nil {
 		t.Fatal(err)
 	}
@@ -214,7 +212,6 @@ func TestHandleMsg_BlockResponse(t *testing.T) {
 
 	// wait for message to be handled
 	time.Sleep(time.Second)
-
 	if err := <-e; err != nil {
 		t.Fatal(err)
 	}
