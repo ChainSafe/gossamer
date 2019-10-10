@@ -2,17 +2,15 @@ package rawdb
 
 import (
 	"encoding/json"
-
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/polkadb"
-	log "github.com/ChainSafe/log15"
 )
 
 // check checks to see if there an error if so writes err + message to terminal
-func check(e error, msg string) {
+func check(e error) {
 	if e != nil {
-		log.Crit(msg, "err", e)
+		panic(e)
 	}
 }
 
@@ -22,20 +20,16 @@ func SetHeader(db polkadb.Writer, header *types.BlockHeader) {
 
 	// Write the encoded header
 	bh, err := json.Marshal(header)
-	check(err, "Failed to encode header to bytes")
+	check(err)
 
 	err = db.Put(headerKey(hash), bh)
-	check(err, "Failed to store header")
+	check(err)
 }
 
 // GetHeader retrieves block header from KV-store using headerKey
 func GetHeader(db polkadb.Reader, hash common.Hash) types.BlockHeader {
 	var result types.BlockHeader
-	data, err := db.Get(headerKey(hash))
-	check(err, "Failed to retrieve block header")
-
-	err = json.Unmarshal(data, &result)
-	check(err, "Failed to unmarshal block header")
+	get(db, headerKey(hash), &result)
 	return result
 }
 
@@ -45,19 +39,25 @@ func SetBlockData(db polkadb.Writer, blockData *types.BlockData) {
 
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
-	check(err, "Failed to encode blockData to bytes")
+	check(err)
 
 	err = db.Put(blockDataKey(hash), bh)
-	check(err, "Failed to store blockData")
+	check(err)
 }
 
 // GetBlockData retrieves blockData from KV-store using blockDataKey
 func GetBlockData(db polkadb.Reader, hash common.Hash) types.BlockData {
 	var result types.BlockData
-	data, err := db.Get(blockDataKey(hash))
-	check(err, "Failed to retrieve blockData")
-
-	err = json.Unmarshal(data, &result)
-	check(err, "Failed to unmarshal blockData")
+	get(db, blockDataKey(hash), &result)
 	return result
+}
+
+// get is a helper function for retrieving a value from KV-store and unmarshaling
+// into the provided type out
+func get(db polkadb.Reader, hash []byte, out interface{}) {
+	data, err := db.Get(hash)
+	check(err)
+
+	err = json.Unmarshal(data, &out)
+	check(err)
 }

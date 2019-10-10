@@ -30,6 +30,9 @@ func TestSetHeader(t *testing.T) {
 	if reflect.DeepEqual(entry, h) {
 		t.Fatalf("Retrieved header mismatch: have %v, want %v", entry, h)
 	}
+	if h.Hash != entry.Hash {
+		t.Fatalf("Retrieved header mismatch: have %v, want %v", entry, h)
+	}
 }
 
 func TestSetBlockData(t *testing.T) {
@@ -45,6 +48,9 @@ func TestSetBlockData(t *testing.T) {
 	SetBlockData(memDB, bd)
 	entry := GetBlockData(memDB, bd.Hash)
 	if reflect.DeepEqual(entry, bd) {
+		t.Fatalf("Retrieved blockData mismatch: have %v, want %v", entry, bd)
+	}
+	if bd.Hash != entry.Hash {
 		t.Fatalf("Retrieved blockData mismatch: have %v, want %v", entry, bd)
 	}
 }
