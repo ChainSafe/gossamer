@@ -2,6 +2,7 @@ package rawdb
 
 import (
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -26,7 +27,7 @@ func TestSetHeader(t *testing.T) {
 
 	SetHeader(memDB, h)
 	entry := GetHeader(memDB, h.Hash)
-	if entry.Hash != h.Hash {
+	if reflect.DeepEqual(entry, h) {
 		t.Fatalf("Retrieved header mismatch: have %v, want %v", entry, h)
 	}
 }
@@ -43,7 +44,7 @@ func TestSetBlockData(t *testing.T) {
 
 	SetBlockData(memDB, bd)
 	entry := GetBlockData(memDB, bd.Hash)
-	if entry.Hash != bd.Hash {
+	if reflect.DeepEqual(entry, bd) {
 		t.Fatalf("Retrieved blockData mismatch: have %v, want %v", entry, bd)
 	}
 }
