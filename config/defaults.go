@@ -35,6 +35,7 @@ const (
 	// P2P
 	DefaultP2PPort     = 7001
 	DefaultP2PRandSeed = int64(33)
+	DefaultNoBootstrap = false
 )
 
 var DefaultGenesisPath = os.Getenv("GOPATH") + "/src/github.com/ChainSafe/gossamer/genesis.json"

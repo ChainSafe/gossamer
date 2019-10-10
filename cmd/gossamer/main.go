@@ -18,6 +18,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	log "github.com/ChainSafe/log15"
@@ -30,6 +31,10 @@ var (
 		utils.DataDirFlag,
 		configFileFlag,
 	}
+	p2pFlags = []cli.Flag{
+		utils.BootnodesFlag,
+		utils.NoBootstrapFlag,
+	}
 	rpcFlags = []cli.Flag{
 		utils.RpcEnabledFlag,
 		utils.RpcListenAddrFlag,
@@ -39,6 +44,9 @@ var (
 	}
 	genesisFlags = []cli.Flag{
 		utils.GenesisFlag,
+	}
+	cliFlags = []cli.Flag{
+		utils.VerbosityFlag,
 	}
 )
 
@@ -54,26 +62,48 @@ func init() {
 		dumpConfigCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
+	app.Flags = append(app.Flags, p2pFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, genesisFlags...)
+	app.Flags = append(app.Flags, cliFlags...)
 }
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		log.Error("error starting app", "output", os.Stderr, "err", err)
+		log.Error("error starting app", "err", err)
 		os.Exit(1)
 	}
 }
 
+func startLogger(ctx *cli.Context) error {
+	logger := log.Root()
+	handler := logger.GetHandler()
+	var lvl log.Lvl
+
+	if lvlToInt, err := strconv.Atoi(ctx.String(utils.VerbosityFlag.Name)); err == nil {
+		lvl = log.Lvl(lvlToInt)
+	} else if lvl, err = log.LvlFromString(ctx.String(utils.VerbosityFlag.Name)); err != nil {
+		return err
+	}
+	log.Root().SetHandler(log.LvlFilterHandler(lvl, handler))
+
+	return nil
+}
+
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
+	err := startLogger(ctx)
+	if err != nil {
+		return err
+	}
+
 	node, _, err := makeNode(ctx)
 	if err != nil {
 		// TODO: Need to manage error propagation and exit smoothly
-		log.Error("error making node", "err", err)
+		return err
 	}
-	srvlog := log.New(log.Ctx{"blockchain": node.Genesis.Name})
-	srvlog.Info("🕸️Starting node...", "name", node.Genesis.Name, "ID", node.Genesis.Id)
+
+	log.Info("🕸️Starting node...", "name", node.Genesis.Name, "ID", node.Genesis.Id)
 	node.Start()
 
 	return nil
