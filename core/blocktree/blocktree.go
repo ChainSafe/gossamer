@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/polkadb"
 
@@ -41,11 +42,12 @@ type BlockTree struct {
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTree {
 	head := &node{
-		hash:     genesis.Header.Hash,
-		number:   genesis.Header.Number,
-		parent:   nil,
-		children: []*node{},
-		depth:    big.NewInt(0),
+		hash:     		genesis.Header.Hash,
+		number:   		genesis.Header.Number,
+		parent:   		nil,
+		children: 		[]*node{},
+		depth:    		big.NewInt(0),
+		arrivalTime: 	time.Now().UnixNano(), // set arrival time of genesis in nanoseconds since unix epoch
 	}
 	return &BlockTree{
 		head:            head,
@@ -74,11 +76,12 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:     block.Header.Hash,
-		number:   block.Header.Number,
-		parent:   parent,
-		children: []*node{},
-		depth:    depth,
+		hash:     		block.Header.Hash,
+		number:   		block.Header.Number,
+		parent:   		parent,
+		children: 		[]*node{},
+		depth:    		depth,
+		arrivalTime: 	time.Now().UnixNano(),
 	}
 	parent.addChild(n)
 
@@ -98,6 +101,22 @@ func (bt *BlockTree) GetNode(h Hash) *node {
 	}
 
 	return nil
+}
+
+// GetHashFromBlockNumber finds and returns a node from its number
+func (bt *BlockTree) GetNodeFromBlockNumber(b *big.Int) *node {
+	if bt.head.number ==  b {
+		return bt.head
+	}
+
+	for _, child := range bt.head.children {
+		if n := child.GetNodeFromBlockNumber(b); n != nil {
+			return n
+		}
+	}
+
+	return nil
+
 }
 
 // String utilizes github.com/disiqueira/gotree to create a printable tree
@@ -130,6 +149,11 @@ func (bt *BlockTree) LongestPath() []*node {
 			return path
 		}
 	}
+}
+
+func (bt *BlockTree) SubChain(start hash, end hash) []*node {
+	var path []*node
+
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT

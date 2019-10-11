@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/disiqueira/gotree"
@@ -26,11 +27,12 @@ import (
 
 // node is an element in the BlockTree
 type node struct {
-	hash     common.Hash // Block hash
-	parent   *node       // Parent node
-	number   *big.Int    // Block number
-	children []*node     // Nodes of children blocks
-	depth    *big.Int    // Depth within the tree
+	hash     	common.Hash // Block hash
+	parent   	*node       // Parent node
+	number   	*big.Int    // Block number
+	children 	[]*node     // Nodes of children blocks
+	depth    	*big.Int    // Depth within the tree
+	arrivalTime uint64   // Arrival time of the block
 }
 
 // addChild appends node to n's list of children
@@ -67,6 +69,25 @@ func (n *node) getNode(h common.Hash) *node {
 	}
 	return nil
 }
+
+// getNodeFromBlockNumber recursively searches for a node with a given number
+func (n *node) getNodeFromBlockNumber(b *big.Int) *node {
+	if n.number == b {
+		return n
+	} else if len(n.children) == 0 {
+		return nil
+	} else {
+		for _, child := range n.children {
+			if n := child.getNodeFromBlockNumber(b); n != nil {
+				return n
+			}
+		}
+	}
+	return nil
+}
+
+
+func (n *node) SubChain()
 
 // TODO: This would improved by using parent in node struct and searching child -> parent
 // TODO: verify that parent and child exist in the DB
