@@ -194,7 +194,7 @@ func createP2PService(fig p2p.Config) (*p2p.Service, chan []byte) {
 	return srvc, msgChan
 }
 
-func setRpcConfig(ctx *cli.Context, fig rpc.Config) rpc.Config{
+func setRpcConfig(ctx *cli.Context, fig rpc.Config) rpc.Config {
 	// Modules
 	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
 		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
@@ -211,7 +211,6 @@ func setRpcConfig(ctx *cli.Context, fig rpc.Config) rpc.Config{
 	}
 	return fig
 }
-
 
 // strToMods casts a []strings to []api.Module
 func strToMods(strs []string) []api.Module {
