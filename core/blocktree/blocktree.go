@@ -165,7 +165,7 @@ func (bt *BlockTree) DeepestLeaf() *Node {
 
 // computes the slot for a block from genesis
 // helper for now, there's a better way to do this
-func (bt *BlockTree) ComputeSlotForBlock(n *Node, sd uint64) uint64 {
+func (bt *BlockTree) ComputeSlotForNode(n *Node, sd uint64) uint64 {
 	gt := bt.head.ArrivalTime
 	nt := n.ArrivalTime
 	
