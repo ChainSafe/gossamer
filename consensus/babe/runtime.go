@@ -48,7 +48,7 @@ func (b *Session) blockHashFromIdFromRuntime(blockId []byte) (*common.Hash, erro
 	var loc int32 = 1000
 	b.rt.Store(blockId, loc)
 
-	ret, err := b.rt.Exec("block_hash_from_id", loc, int32(len(blockId)))
+	ret, err := b.rt.Exec("BabeApi_block_hash_from_id", loc, int32(len(blockId)))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 	var loc int32 = 1000
 	b.rt.Store(blockHeader, loc)
 
-	_, err := b.rt.Exec("initialze_block", loc, int32(len(blockHeader)))
+	_, err := b.rt.Exec("Core_initialize_block", loc, int32(len(blockHeader)))
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]ty
 	var loc int32 = 1000
 	b.rt.Store(blockInherentData, loc)
 
-	ret, err := b.rt.Exec("inherent_extrinsics", loc, int32(len(blockInherentData)))
+	ret, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, int32(len(blockInherentData)))
 	if err != nil {
 		return nil, err
 	}
@@ -85,19 +85,16 @@ func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]ty
 	return ea, nil
 }
 
-// TODO: Figure out return type of apply_extrinsic
-func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) (*types.BlockBody, error) {
+// gets the configuration data for Babe from the runtime
+func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
 
-	ret, err := b.rt.Exec("apply_extrinsics", loc, int32(len(e)))
+	_, err := b.rt.Exec("BlockBuilder_apply_extrinsic", loc, int32(len(e)))
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	bb := new(types.BlockBody)
-	_, err = scale.Decode(ret, bb)
-	return bb, err
+	return err
 }
 
 // gets the configuration data for Babe from the runtime
@@ -105,7 +102,7 @@ func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeade
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
 
-	ret, err := b.rt.Exec("finalize_block", loc, int32(len(e)))
+	ret, err := b.rt.Exec("BlockBuilder_finalize_block", loc, int32(len(e)))
 	if err != nil {
 		return nil, err
 	}

@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/p2p"
 	db "github.com/ChainSafe/gossamer/polkadb"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -74,7 +75,32 @@ func Exists(name string) bool {
 	return true
 }
 
+// func newTrie() (*trie.Trie, error) {
+// 	hasher, err := trie.NewHasher()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	stateDB, err := polkadb.NewBadgerDB("./test_data/state")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	trie := &trie.Trie{
+// 		Database: &trie.StateDB{
+// 			Db:     stateDB,
+// 			Hasher: hasher,
+// 		},
+// 		NodeRoot: nil,
+// 	}
+
+// 	trie.Database.Batch = trie.Database.Db.NewBatch()
+
+// 	return trie, nil
+// }
+
 func newRuntime(t *testing.T) *runtime.Runtime {
+	fmt.Println("CREATING NEW RUNTIMEBLOB")
 	_, err := getRuntimeBlob()
 	if err != nil {
 		t.Fatalf("Fail: could not get polkadot runtime")
@@ -85,7 +111,10 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := &trie.Trie{}
+	// DB, err := polkadb.NewDatabaseService()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
 
 	r, err := runtime.NewRuntimeFromFile(fp, tt, nil)
 	if err != nil {
@@ -414,5 +443,71 @@ func TestBabeAnnounceMessage(t *testing.T) {
 			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", blk, expectedBlockAnnounceMsg)
 		}
 	}
+
+}
+
+func TestBuildBlock(t *testing.T) {
+	rt := newRuntime(t)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt)
+	_, err := babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create 2 transactions & push to TxQueue in babesession
+	e1 := &types.Extrinsic{0x01, 0x02, 0x03}
+	v1 := &tx.Validity{Priority: 2}
+	tx1 := tx.NewValidTransaction(e1, v1)
+	babesession.PushToTxQueue(tx1)
+
+	e2 := &types.Extrinsic{0x04, 0x05, 0x06, 0x07}
+	v2 := &tx.Validity{Priority: 1}
+	tx2 := tx.NewValidTransaction(e2, v2)
+	babesession.PushToTxQueue(tx2)
+
+	// Create a block to put the transactions into
+	fmt.Println("@@@@@@@")
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatalf("Can't convert hex 0x00 to hash")
+	}
+
+	fmt.Println("@@@@@@@")
+
+	block := types.Block{
+		Header: types.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+		},
+		Body: types.BlockBody{},
+	}
+
+	fmt.Println("@@@@@@@")
+
+	// Create slot for block
+	slot := Slot{
+		start:    uint64(time.Now().Unix()),
+		duration: uint64(10000),
+		number:   1,
+	}
+
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
+
+	resultBlock, err := babesession.buildBlock(block, slot, common.Hash{0x00})
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
+	if err != nil {
+		t.Fatal("buildblock test failed: ", err)
+	}
+
+	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
+	t.Log("Got back block: ", resultBlock)
+
+	// e2 := []byte{'d', 'e', 'f'}
+
+	// babesession.PushToTxQueue()
+
+	// babesession.buildBlock()
+
+	// babesession.PushToTxQueue()
 
 }

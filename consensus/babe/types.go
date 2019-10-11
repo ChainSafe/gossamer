@@ -37,3 +37,14 @@ type AuthorityData struct {
 	AuthorityId     [32]byte
 	AuthorityWeight uint64
 }
+
+type BlockInherentsData struct {
+	Timstap0 int64
+	Babeslot int64
+}
+
+type Slot struct {
+	start    uint64
+	duration uint64
+	number   uint64
+}

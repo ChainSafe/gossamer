@@ -242,7 +242,7 @@ func TestEncodeRoot(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			_, err = Encode(trie.root)
+			_, err = Encode(trie.NodeRoot)
 			if err != nil {
 				t.Errorf("Fail to encode trie root: %s", err)
 			}

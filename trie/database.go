@@ -39,6 +39,9 @@ type Database struct {
 	Hasher *Hasher
 }
 
+	}
+}
+
 func NewDatabase(db polkadb.Database) *Database {
 	batch := db.NewBatch()
 
