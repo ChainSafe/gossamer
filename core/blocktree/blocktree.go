@@ -33,31 +33,31 @@ type Hash = common.Hash
 
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	head            *node
+	head            *Node
 	leaves          leafMap
-	finalizedBlocks []*node
+	finalizedBlocks []*Node
 	Db              *polkadb.BlockDB
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTree {
-	head := &node{
-		hash:     		genesis.Header.Hash,
-		number:   		genesis.Header.Number,
+	head := &Node{
+		Hash:     		genesis.Header.Hash,
+		Number:   		genesis.Header.Number,
 		parent:   		nil,
-		children: 		[]*node{},
+		children: 		[]*Node{},
 		depth:    		big.NewInt(0),
-		arrivalTime: 	time.Now().UnixNano(), // set arrival time of genesis in nanoseconds since unix epoch
+		ArrivalTime: 	uint64(time.Now().UnixNano()), // set arrival time of genesis in nanoseconds since unix epoch
 	}
 	return &BlockTree{
 		head:            head,
-		finalizedBlocks: []*node{},
-		leaves:          leafMap{head.hash: head},
+		finalizedBlocks: []*Node{},
+		leaves:          leafMap{head.Hash: head},
 		Db:              db,
 	}
 }
 
-// AddBlock inserts the block as child of its parent node
+// AddBlock inserts the block as child of its parent Node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block types.Block) {
 	parent := bt.GetNode(block.Header.ParentHash)
@@ -68,29 +68,29 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 
 	n := bt.GetNode(block.Header.Hash)
 	if n != nil {
-		log.Debug("Attempted to add block to tree that already exists", "hash", n.hash)
+		log.Debug("Attempted to add block to tree that already exists", "Hash", n.Hash)
 		return
 	}
 
 	depth := big.NewInt(0)
 	depth.Add(parent.depth, big.NewInt(1))
 
-	n = &node{
-		hash:     		block.Header.Hash,
-		number:   		block.Header.Number,
+	n = &Node{
+		Hash:     		block.Header.Hash,
+		Number:   		block.Header.Number,
 		parent:   		parent,
-		children: 		[]*node{},
+		children: 		[]*Node{},
 		depth:    		depth,
-		arrivalTime: 	time.Now().UnixNano(),
+		ArrivalTime: 	uint64(time.Now().UnixNano()),
 	}
 	parent.addChild(n)
 
 	bt.leaves.Replace(parent, n)
 }
 
-// GetNode finds and returns a node based on its hash. Returns nil if not found.
-func (bt *BlockTree) GetNode(h Hash) *node {
-	if bt.head.hash == h {
+// GetNode finds and returns a Node based on its Hash. Returns nil if not found.
+func (bt *BlockTree) GetNode(h Hash) *Node {
+	if bt.head.Hash == h {
 		return bt.head
 	}
 
@@ -103,14 +103,14 @@ func (bt *BlockTree) GetNode(h Hash) *node {
 	return nil
 }
 
-// GetHashFromBlockNumber finds and returns a node from its number
-func (bt *BlockTree) GetNodeFromBlockNumber(b *big.Int) *node {
-	if bt.head.number ==  b {
+// GetHashFromBlockNumber finds and returns a Node from its Number
+func (bt *BlockTree) GetNodeFromBlockNumber(b *big.Int) *Node {
+	if bt.head.Number ==  b {
 		return bt.head
 	}
 
 	for _, child := range bt.head.children {
-		if n := child.GetNodeFromBlockNumber(b); n != nil {
+		if n := child.getNodeFromBlockNumber(b); n != nil {
 			return n
 		}
 	}
@@ -140,23 +140,40 @@ func (bt *BlockTree) String() string {
 }
 
 // LongestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) LongestPath() []*node {
+func (bt *BlockTree) LongestPath() []*Node {
 	dl := bt.DeepestLeaf()
-	var path []*node
+	var path []*Node
 	for curr := dl; ; curr = curr.parent {
-		path = append([]*node{curr}, path...)
+		path = append([]*Node{curr}, path...)
 		if curr.parent == nil {
 			return path
 		}
 	}
 }
 
-func (bt *BlockTree) SubChain(start hash, end hash) []*node {
-	var path []*node
-
+// 
+func (bt *BlockTree) SubChain(start Hash, end Hash) []*Node {
+	sn := bt.GetNode(start)
+	eh := bt.GetNode(end)
+	return sn.subChain(eh)
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) DeepestLeaf() *node {
+func (bt *BlockTree) DeepestLeaf() *Node {
 	return bt.leaves.DeepestLeaf()
+}
+
+// computes the slot for a block from genesis
+// helper for now, there's a better way to do this
+func (bt *BlockTree) ComputeSlotForBlock(n *Node, sd uint64) uint64 {
+	gt := bt.head.ArrivalTime
+	nt := n.ArrivalTime
+	
+	sp := uint64(0)
+	for gt < nt {
+		gt += sd
+		sp += 1
+	}
+
+	return sp
 }

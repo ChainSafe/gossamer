@@ -19,44 +19,43 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/disiqueira/gotree"
 )
 
-// node is an element in the BlockTree
-type node struct {
-	hash     	common.Hash // Block hash
-	parent   	*node       // Parent node
-	number   	*big.Int    // Block number
-	children 	[]*node     // Nodes of children blocks
+// Node is an element in the BlockTree
+type Node struct {
+	Hash     	common.Hash // Block Hash
+	parent   	*Node       // Parent Node
+	Number   	*big.Int    // Block Number
+	children 	[]*Node     // Nodes of children blocks
 	depth    	*big.Int    // Depth within the tree
-	arrivalTime uint64   // Arrival time of the block
+	ArrivalTime uint64   // Arrival time of the block
 }
 
-// addChild appends node to n's list of children
-func (n *node) addChild(node *node) {
-	n.children = append(n.children, node)
+// addChild appends Node to n's list of children
+func (n *Node) addChild(Node *Node) {
+	n.children = append(n.children, Node)
 }
 
-// String returns stringified hash and depth of node
-func (n *node) String() string {
-	return fmt.Sprintf("{h: %s, d: %s}", n.hash.String(), n.depth)
+// String returns stringified Hash and depth of Node
+func (n *Node) String() string {
+	return fmt.Sprintf("{h: %s, d: %s}", n.Hash.String(), n.depth)
 }
 
 // createTree adds all the nodes children to the existing printable tree.
 // Note: this is strictly for BlockTree.String()
-func (n *node) createTree(tree gotree.Tree) {
+func (n *Node) createTree(tree gotree.Tree) {
 	for _, child := range n.children {
 		sub := tree.Add(child.String())
 		child.createTree(sub)
 	}
 }
 
-// getNode recursively searches for a node with a given hash
-func (n *node) getNode(h common.Hash) *node {
-	if n.hash == h {
+// getNode recursively searches for a Node with a given Hash
+func (n *Node) getNode(h common.Hash) *Node {
+	if n.Hash == h {
 		return n
 	} else if len(n.children) == 0 {
 		return nil
@@ -70,9 +69,9 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
-// getNodeFromBlockNumber recursively searches for a node with a given number
-func (n *node) getNodeFromBlockNumber(b *big.Int) *node {
-	if n.number == b {
+// getNodeFromBlockNumber recursively searches for a Node with a given Number
+func (n *Node) getNodeFromBlockNumber(b *big.Int) *Node {
+	if n.Number == b {
 		return n
 	} else if len(n.children) == 0 {
 		return nil
@@ -87,18 +86,29 @@ func (n *node) getNodeFromBlockNumber(b *big.Int) *node {
 }
 
 
-func (n *node) SubChain()
+func (n *Node) subChain(descendant *Node) []*Node {
+	if descendant == nil {
+		return nil
+	}
+	var path []*Node
+	for curr := descendant; ; curr = curr.parent {
+		path = append([]*Node{curr}, path...)
+		if curr.parent == n {
+			return path
+		}
+	}
+}
 
-// TODO: This would improved by using parent in node struct and searching child -> parent
+// TODO: This would improved by using parent in Node struct and searching child -> parent
 // TODO: verify that parent and child exist in the DB
 // isDescendantOf traverses the tree following all possible paths until it determines if n is a descendant of parent
-func (n *node) isDescendantOf(parent *node) bool {
+func (n *Node) isDescendantOf(parent *Node) bool {
 	if parent == nil {
 		return false
 	}
 
 	// NOTE: here we assume the nodes exists in tree
-	if n.hash == parent.hash {
+	if n.Hash == parent.Hash {
 		return true
 	} else if len(parent.children) == 0 {
 		return false

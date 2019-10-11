@@ -17,73 +17,54 @@
 package babe
 
 import (
-	"fmt"
 	"math/big"
+	"sort"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	log "github.com/ChainSafe/log15"
-	"time"
 )
 // used to calculate slot time current value of 1200 from spec suggestion
-const uint64 SlotTail = 1200
+const SlotTail uint64 = 1200
 
-// calculate the slot time for a given block in miliseconds, returns nil if it can't be calculated
-func (b *Session) slotTime(slot uint64, bt *blockTree) *time.Time {
-	at = []uint64
-	dl = bt.DeepestLeaf()
-	bn = big.NewInt(SlotTail)
-	bn.Sub(dl.number, bn)
+// calculate the slot time for a given block in miliseconds, returns 0 if it can't be calculated
+func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) uint64 {
+	var at []uint64
+	dl := bt.DeepestLeaf()
+	bn := new(big.Int).SetUint64(SlotTail)
+	bn.Sub(dl.Number, bn)
 	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
-	if n.Cmp(0) <= 0 {
-		log.Debug("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
-		return nil
+	if bn.Cmp(new(big.Int)) <= 0 {
+		log.Debug("Cannot calculate slot time, deepest leaf block Number less than or equal to Slot Tail")
+		return 0
 	}
-	s = bt.GetNodeFromBlockNumber(bn)
-	sd = b.Config.SlotDuration
-	for _, node in bt.SubChain(dl, s) {
-		st = node.arrivalTime + (slotOffset(bt.computeSlotForBlock(node, sd), slot) * sd)
-		at = append(st, at)
+	s := bt.GetNodeFromBlockNumber(bn)
+	sd := b.config.SlotDuration
+	for _, Node:= range(bt.SubChain(dl.Hash, s.Hash)) {
+		st := Node.ArrivalTime + (slotOffset(bt.ComputeSlotForBlock(Node, sd), slot) * sd)
+		at = append(at, st)
 	}
-
 	return median(at)
 
 }
 
-// will need to implement own quickselect because of library contraints, this will do for now
+// will need to implement own quickselect because of library contr	aints, this will do for now
 func median(l []uint64) uint64 {
 	// sort the list
 	sort.Slice(l, func(i, j int) bool { return l[i] < l[j] })
 
-	m = len(l)
+	m := len(l)
+	med := uint64(0)
 	if (m == 0) {
 		log.Debug("arrival times list is empty!")
-		return nil
+		return 0
 	} else if (m % 2 == 0){
-		median = (l[(m/2)-1] + l[(m/2)+1])/2
+		med = (l[(m/2)-1] + l[(m/2)+1])/2
 	} else {
-		median = l[m/2]
+		med = l[m/2]
 	}
-
-
-	
-
+	return med
 }
 
 // returns slotOffset
 func slotOffset(start uint64, end uint64) uint64 {
 	return (end - start)
-}
-
-// computes the slot for a block from genesis
-// helper for now, there's a better way to do this
-func (bt *blockTree) computeSlotForBlock(n *node, sd uint64) uint64 {
-	gt = bt.head.arrivalTime
-	nt = n.arrivalTime
-	
-	sp = 0
-	for gt < nt {
-		gt += sd
-		sp += 1
-	}
-
-	return sp
 }
