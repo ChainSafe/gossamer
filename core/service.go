@@ -17,15 +17,17 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
 
-	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 )
+
+var _ services.Service = &Service{}
 
 // Service is a overhead layer that allows for communication between the runtime, BABE, and the p2p layer.
 // It deals with the validation of transactions and blocks by calling their respective validation functions
@@ -47,10 +49,10 @@ func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan []byte) *Se
 }
 
 // Start begins the service. This begins watching the message channel for new block or transaction messages.
-func (s *Service) Start() <-chan error {
+func (s *Service) Start() error {
 	e := make(chan error)
 	go s.start(e)
-	return e
+	return <-e
 }
 
 func (s *Service) start(e chan error) {
@@ -72,21 +74,29 @@ func (s *Service) start(e chan error) {
 				log.Error("core service", "error", err)
 				e <- err
 			}
+			e <- nil
 		case p2p.BlockAnnounceMsgType:
 			// get extrinsics by sending BlockRequest message
 			// process block
 		case p2p.BlockResponseMsgType:
 			// process response
+			err := s.ProcessBlock(msg[1:])
+			if err != nil {
+				log.Error("core service", "error", err)
+				e <- err
+			}
+			e <- nil
 		default:
 			log.Error("core service", "error", "got unsupported message type")
 		}
 	}
 }
 
-func (s *Service) Stop() <-chan error {
-	e := make(chan error)
-
-	return e
+func (s *Service) Stop() error {
+	if s.rt != nil{
+		s.rt.Stop()
+	}
+	return nil
 }
 
 // ProcessTransaction attempts to validates the transaction
@@ -106,11 +116,7 @@ func (s *Service) ProcessTransaction(e types.Extrinsic) error {
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlock(b *types.Block) error {
-	enc, err := scale.Encode(b)
-	if err != nil {
-		return err
-	}
-	err = s.validateBlock(enc)
+func (s *Service) ProcessBlock(b []byte) error {
+	err := s.validateBlock(b)
 	return err
 }
