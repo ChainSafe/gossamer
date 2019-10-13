@@ -32,11 +32,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
-	//"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
-	//"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -208,7 +206,7 @@ func setNoBootstrap(ctx *cli.Context, fig *p2p.Config) {
 	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
 		fig.NoBootstrap = true
 		return
-	} else if fig.NoBootstrap == true {
+	} else if fig.NoBootstrap {
 		return // set in config, dont use defaults
 	} else {
 		fig.NoBootstrap = cfg.DefaultNoBootstrap
