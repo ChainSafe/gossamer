@@ -16,6 +16,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -31,11 +32,11 @@ import (
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
+	//"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/trie"
+	//"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -59,7 +60,7 @@ var (
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
-func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
+func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)
 	if err != nil {
 		log.Crit("unable to extract required config", "err", err)
@@ -68,47 +69,23 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// read genesis file
-	fp := getGenesisPath(ctx, fig)
-	gen, err := genesis.ParseJson(fp)
-	if err != nil {
-		log.Crit("cannot read genesis file", "err", err)
-		return nil, nil, err
-	}
-
 	// set up message channel for p2p -> core.Service
 	msgChan := make(chan []byte)
 
-	// DB: Create database dir and initialize stateDB and blockDB
-	dataDir := getDatabaseDir(ctx, fig)
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
-	if err != nil {
-		log.Crit("error creating DB service", "error", err)
+	if gen == nil {
+		return nil, nil, errors.New("genesis is nil")
 	}
-	// append DBs to services registrar
 
-	// initialize trie and load genesis state into it
-	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
-	if err != nil {
-		log.Crit("error creating trie state DB", "error", err)
-	}
-	t := trie.NewEmptyTrie(trieStateDB)
-	err = loadTrie(t, gen.Genesis.Raw)
-	if err != nil {
-		log.Crit("error writing genesis state to trie", "error", err)
-	}
-	// write state to DB
-	err = commitToDb(t)
-	if err != nil {
-		log.Crit("error writing genesis state to DB", "error", err)
+	if gen.GenesisTrie == nil {
+		return nil, nil, errors.New("no genesis trie exists")
 	}
 
 	// load runtime code from trie and create runtime executor
-	code, err := t.Get([]byte(":code"))
+	code, err := gen.GenesisTrie.Get([]byte(":code"))
 	if err != nil {
 		log.Crit("error retrieving :code from trie", "error", err)
 	}
-	r, err := runtime.NewRuntime(code, t)
+	r, err := runtime.NewRuntime(code, gen.GenesisTrie)
 	if err != nil {
 		log.Crit("error creating runtime executor", "error", err)
 	}
@@ -125,16 +102,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
 	srvcs = append(srvcs, p2pSrvc)
 
-	// DB
-	// // Create database dir and initialize stateDB and blockDB
-	// dataDir := getDatabaseDir(ctx, fig)
-	// dbSrv, err := polkadb.NewDatabaseService(dataDir)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-	// // append DBs to services registrar
-	// srvcs = append(srvcs, dbSrv)
-
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
@@ -145,7 +112,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	setRpcPort(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
-	return dot.NewDot(gen, srvcs, rpcSrvr, coreSrvc), fig, nil
+	return dot.NewDot(srvcs, rpcSrvr, coreSrvc), fig, nil
 }
 
 // getConfig checks for config.toml if --config flag is specified
@@ -197,15 +164,6 @@ func loadConfig(file string) (*cfg.Config, error) {
 		log.Error("decoding toml error", "err", err.Error())
 	}
 	return config, err
-}
-
-// getGenesisPath gets the path to the genesis file
-func getGenesisPath(ctx *cli.Context, fig *cfg.Config) string {
-	if file := ctx.GlobalString(utils.GenesisFlag.Name); file != "" {
-		return file
-	} else {
-		return cfg.DefaultGenesisPath
-	}
 }
 
 // getDatabaseDir initializes directory for BadgerService logs
@@ -307,7 +265,12 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	_, fig, err := makeNode(ctx)
+	gen, err := loadGenesis(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, fig, err := makeNode(ctx, gen)
 	if err != nil {
 		return err
 	}

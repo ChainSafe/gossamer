@@ -38,7 +38,7 @@ const (
 	DefaultNoBootstrap = false
 )
 
-var DefaultGenesisPath = os.Getenv("GOPATH") + "/src/github.com/ChainSafe/gossamer/genesis.json"
+var DefaultGenesisPath = "./genesis.json"
 
 var DefaultP2PBootstrap = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",

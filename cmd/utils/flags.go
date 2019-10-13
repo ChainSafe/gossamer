@@ -63,7 +63,7 @@ var (
 	GenesisFlag = cli.StringFlag{
 		Name:  "genesis",
 		Usage: "Path to genesis JSON file",
-		Value: "",
+		Value: cfg.DefaultGenesisPath,
 	}
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",

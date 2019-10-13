@@ -92,18 +92,23 @@ func startLogger(ctx *cli.Context) error {
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-	err := startLogger(ctx)
+	genesisState, err := loadGenesis(ctx)
+	if err != nil {
+		log.Error("error loading genesis state", "error", err)
+	}
+
+	err = startLogger(ctx)
 	if err != nil {
 		return err
 	}
 
-	node, _, err := makeNode(ctx)
+	node, _, err := makeNode(ctx, genesisState)
 	if err != nil {
 		// TODO: Need to manage error propagation and exit smoothly
 		return err
 	}
 
-	log.Info("🕸️Starting node...", "name", node.Genesis.Name, "ID", node.Genesis.Id)
+	log.Info("🕸️Starting node...", "name", genesisState.Name, "ID", genesisState.Id)
 	node.Start()
 
 	return nil

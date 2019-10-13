@@ -304,11 +304,22 @@ func TestMakeNode(t *testing.T) {
 		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
 	}
 
+	genesispath, err := filepath.Abs("../../genesis.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
+		set.String("genesis", genesispath, "genesis file")
 		context := cli.NewContext(nil, set, nil)
-		d, fig, _ := makeNode(context)
+		gen, err := loadGenesis(context)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		d, fig, _ := makeNode(context, gen)
 		if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
 			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
 		}
@@ -336,11 +347,17 @@ func TestCommands(t *testing.T) {
 		{"config", tempFile.Name(), "TOML configuration file"},
 	}
 
+	genesispath, err := filepath.Abs("../../genesis.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, c := range tc {
 		app := cli.NewApp()
 		app.Writer = ioutil.Discard
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
+		set.String("genesis", genesispath, "genesis file")
 
 		context := cli.NewContext(app, set, nil)
 		command := dumpConfigCommand
@@ -365,21 +382,27 @@ func TestGenesisStateLoading(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	gen, err := genesis.LoadGenesisJsonFile(genesispath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	set := flag.NewFlagSet("config", 0)
 	set.String("config", tempFile.Name(), "TOML configuration file")
 	set.String("genesis", genesispath, "genesis file")
 	context := cli.NewContext(nil, set, nil)
 
-	d, _, _ := makeNode(context)
+	genState, err := loadGenesis(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d, _, _ := makeNode(context, genState)
 	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
 		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
 	}
 
 	expected := &trie.Trie{}
-	gen, err := genesis.ParseJson(genesispath)
-	if err != nil {
-		t.Fatal(err)
-	}
 	err = loadTrie(expected, gen.Genesis.Raw)
 	if err != nil {
 		t.Fatal(err)

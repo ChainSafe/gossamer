@@ -39,9 +39,8 @@ type Dot struct {
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(g *genesis.Genesis, srvcs []services.Service, rpc *rpc.HttpServer, cs *core.Service) *Dot {
+func NewDot(srvcs []services.Service, rpc *rpc.HttpServer, cs *core.Service) *Dot {
 	d := &Dot{
-		Genesis:   g,
 		Services:  services.NewServiceRegistry(),
 		Rpc:       rpc,
 		Manager:   cs,
