@@ -18,6 +18,7 @@ package babe
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"math"
 	"math/big"
@@ -54,6 +55,15 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 	}
 }
 
+func (b *Session) Start() error {
+	var i uint64
+	for i = 0; i < b.config.EpochLength; i++ {
+
+	}
+
+	return nil
+}
+
 // PushToTxQueue adds a ValidTransaction to BABE's transaction queue
 func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 	b.txQueue.Insert(vt)
@@ -81,7 +91,10 @@ func (b *Session) setEpochThreshold() error {
 // runs the slot lottery for a specific slot
 // returns true if validator is authorized to produce a block for that slot, false otherwise
 func (b *Session) runLottery(slot uint64) (bool, error) {
-	output, err := b.vrfSign(slot)
+	slotBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(slotBytes, slot)
+	vrfInput := append(slotBytes, b.config.Randomness)
+	output, err := b.vrfSign(vrfInput)
 	if err != nil {
 		return false, err
 	}
@@ -97,9 +110,8 @@ func (b *Session) runLottery(slot uint64) (bool, error) {
 	return output_int.Cmp(b.epochThreshold) > 0, nil
 }
 
-func (b *Session) vrfSign(slot uint64) ([]byte, error) {
+func (b *Session) vrfSign(input []byte) ([]byte, error) {
 	// TOOD: return VRF output and proof
-	// sign b.epochData.Randomness and slot
 	out := make([]byte, 32)
 	_, err := rand.Read(out)
 	return out, err
