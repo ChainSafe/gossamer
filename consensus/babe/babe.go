@@ -24,9 +24,9 @@ import (
 	"math/big"
 	"time"
 
-	log "github.com/ChainSafe/log15"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
+	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator
@@ -74,7 +74,7 @@ func (b *Session) Start() error {
 				log.Info("BABE: building block", "slot", currentSlot)
 			}
 
-			time.Sleep(time.Millisecond*time.Duration(b.config.SlotDuration))
+			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 		}
 	}()
 
