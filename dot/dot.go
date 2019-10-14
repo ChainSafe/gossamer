@@ -21,7 +21,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
@@ -30,7 +29,6 @@ import (
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Genesis   *genesis.Genesis
 	Services  *services.ServiceRegistry // Registry of all core services
 	Rpc       *rpc.HttpServer           // HTTP instance for RPC server
 	Manager   *core.Service             // service manager

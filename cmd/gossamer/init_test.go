@@ -13,6 +13,9 @@ func TestLoadTrie(t *testing.T) {
 	testTrie := &trie.Trie{}
 
 	err := loadTrie(testTrie, data)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expectedTrie := &trie.Trie{}
 	for key, value := range data[0] {
