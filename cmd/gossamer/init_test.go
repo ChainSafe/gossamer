@@ -18,12 +18,13 @@ func TestLoadTrie(t *testing.T) {
 	}
 
 	expectedTrie := &trie.Trie{}
+	var keyBytes, valueBytes []byte
 	for key, value := range data[0] {
-		keyBytes, err := common.HexToBytes(key)
+		keyBytes, err = common.HexToBytes(key)
 		if err != nil {
 			t.Fatal(err)
 		}
-		valueBytes, err := common.HexToBytes(value)
+		valueBytes, err = common.HexToBytes(value)
 		if err != nil {
 			t.Fatal(err)
 		}
