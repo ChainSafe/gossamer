@@ -34,6 +34,12 @@ var (
 		Usage: "Supports levels crit (silent) to trce (trace)",
 		Value: "info",
 	}
+	//Genesis
+	GenesisFlag = cli.StringFlag{
+		Name:  "genesis",
+		Usage: "Path to genesis JSON file",
+		Value: cfg.DefaultGenesisPath,
+	}
 )
 
 // P2P flags

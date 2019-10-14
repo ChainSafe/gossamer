@@ -35,6 +35,8 @@ const (
 	// P2P
 	DefaultP2PPort     = 7001
 	DefaultP2PRandSeed = int64(0)
+
+	DefaultGenesisPath = "./genesis.json"
 )
 
 var DefaultP2PBootstrap []string
