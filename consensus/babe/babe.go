@@ -59,7 +59,9 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 
 func (b *Session) Start() error {
 	go func() {
+		// TODO: we might not actually be starting at slot 0, need to run median algorithm here
 		var currentSlot uint64 = 0
+
 		for ; currentSlot < b.config.EpochLength; currentSlot++ {
 			// depending how long it takes to run the lottery, it might make sense to move this out of the loop
 			// for slot 0, and then inside the loop, compute 1 slot in advance after block building
