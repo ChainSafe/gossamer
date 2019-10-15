@@ -227,6 +227,7 @@ func TestSetP2pConfig(t *testing.T) {
 	}
 
 	for _, c := range tc {
+		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			if err != nil {
@@ -283,6 +284,7 @@ func TestSetRpcConfig(t *testing.T) {
 	}
 
 	for _, c := range tc {
+		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			if err != nil {
@@ -323,6 +325,7 @@ func TestMakeNode(t *testing.T) {
 	}
 
 	for _, c := range tc {
+		c := c // bypass scopelint false positive
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
 		context := cli.NewContext(nil, set, nil)
@@ -357,6 +360,8 @@ func TestCommands(t *testing.T) {
 	}
 
 	for _, c := range tc {
+		c := c // bypass scopelint false positive
+
 		app := cli.NewApp()
 		app.Writer = ioutil.Discard
 
