@@ -18,8 +18,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"path/filepath"
 	"reflect"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
@@ -29,12 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/trie"
-
-	"flag"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"testing"
 
 	"github.com/ChainSafe/gossamer/polkadb"
 	log "github.com/ChainSafe/log15"
@@ -73,6 +73,37 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 
 	f := cfg.ToTOML(tmpFile.Name(), TestConfig)
 	return f, TestConfig
+}
+
+func createTempGenesisFile(t *testing.T) string {
+	tmp := &genesis.Genesis{
+		Name:       "gossamer",
+		Id:         "gossamer",
+		Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
+		ProtocolId: "gossamer",
+		Genesis: genesis.GenesisFields{
+			Raw: []map[string]string{{"0x3a636f6465": "0x00"}},
+		},
+	}
+
+	// Create temp file
+	file, err := ioutil.TempFile("", "genesis-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Grab json encoded bytes
+	bz, err := json.Marshal(tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Write to temp file
+	_, err = file.Write(bz)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return file.Name()
 }
 
 func TestGetConfig(t *testing.T) {
@@ -304,10 +335,8 @@ func TestMakeNode(t *testing.T) {
 		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
 	}
 
-	genesispath, err := filepath.Abs("../../genesis.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	genesispath := createTempGenesisFile(t)
+	defer os.Remove(genesispath)
 
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)

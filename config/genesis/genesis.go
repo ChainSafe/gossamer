@@ -16,10 +16,10 @@ type Genesis struct {
 	Id         string
 	Bootnodes  []string
 	ProtocolId string
-	Genesis    genesisFields
+	Genesis    GenesisFields
 }
 
-type genesisFields struct {
+type GenesisFields struct {
 	Raw []map[string]string
 }
 
