@@ -33,21 +33,15 @@ type DbService struct {
 
 // NewDbService opens and returns a new DB object
 func NewDbService(path string) (*DbService, error) {
-	stateDB, err := NewStateDB(path)
-	if err != nil {
-		return nil, err
-	}
-
 	return &DbService{
 		path:    path,
-		StateDB: stateDB,
+		StateDB: nil,
 		BlockDB: nil,
 	}, nil
 }
 
 // Start...
 func (s *DbService) Start() error {
-
 	stateDataDir := filepath.Join(s.path, "state")
 	blockDataDir := filepath.Join(s.path, "block")
 

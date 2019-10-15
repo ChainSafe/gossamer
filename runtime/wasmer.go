@@ -40,6 +40,7 @@ type Runtime struct {
 	trie *trie.Trie
 }
 
+// NewRuntimeFromFile instantiates a runtime from a .wasm file
 func NewRuntimeFromFile(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
@@ -50,6 +51,7 @@ func NewRuntimeFromFile(fp string, t *trie.Trie) (*Runtime, error) {
 	return NewRuntime(bytes, t)
 }
 
+// NewRuntime instantiates a runtime from raw wasm bytecode
 func NewRuntime(code []byte, t *trie.Trie) (*Runtime, error) {
 	imports, err := registerImports()
 	if err != nil {
@@ -96,9 +98,6 @@ func (r *Runtime) Stop() {
 }
 
 func (r *Runtime) StorageRoot() (common.Hash, error) {
-	if r == nil {
-		return common.Hash{}, errors.New("runtime is nil")
-	}
 	if r.trie == nil {
 		return common.Hash{}, errors.New("runtime does not have storage trie")
 	}
