@@ -30,6 +30,9 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 	}
 
 	err = dbSrv.Start()
+	if err != nil {
+		return nil, err
+	}
 
 	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
 	if err != nil {

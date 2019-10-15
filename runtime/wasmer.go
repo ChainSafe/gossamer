@@ -53,6 +53,10 @@ func NewRuntimeFromFile(fp string, t *trie.Trie) (*Runtime, error) {
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
 func NewRuntime(code []byte, t *trie.Trie) (*Runtime, error) {
+	if t == nil {
+		return nil, errors.New("runtime does not have storage trie")
+	}
+
 	imports, err := registerImports()
 	if err != nil {
 		return nil, err
@@ -98,9 +102,6 @@ func (r *Runtime) Stop() {
 }
 
 func (r *Runtime) StorageRoot() (common.Hash, error) {
-	if r.trie == nil {
-		return common.Hash{}, errors.New("runtime does not have storage trie")
-	}
 	return r.trie.Hash()
 }
 
