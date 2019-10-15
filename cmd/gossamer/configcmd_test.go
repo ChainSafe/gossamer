@@ -19,12 +19,12 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"path/filepath"
-	"reflect"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
