@@ -16,7 +16,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,21 +69,21 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	msgChan := make(chan []byte)
 
 	if gen == nil {
-		return nil, nil, errors.New("genesis is nil")
+		return nil, nil, fmt.Errorf("genesis is nil")
 	}
 
 	if gen.GenesisTrie == nil {
-		return nil, nil, errors.New("no genesis trie exists")
+		return nil, nil, fmt.Errorf("no genesis trie exists")
 	}
 
 	// load runtime code from trie and create runtime executor
 	code, err := gen.GenesisTrie.Get([]byte(":code"))
 	if err != nil {
-		return nil, nil, errors.New(fmt.Sprintf("error retrieving :code from trie: %s", err))
+		return nil, nil, fmt.Errorf("error retrieving :code from trie: %s", err)
 	}
 	r, err := runtime.NewRuntime(code, gen.GenesisTrie)
 	if err != nil {
-		return nil, nil, errors.New(fmt.Sprintf("error creating runtime executor: %s", err))
+		return nil, nil, fmt.Errorf("error creating runtime executor: %s", err)
 	}
 
 	// TODO: BABE

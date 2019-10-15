@@ -22,7 +22,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -77,8 +79,46 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 }
 
 const TESTS_FP string = "../../runtime/test_wasm.wasm"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/c0ff6e519676affd727a45fe605bc7c84a0a536d/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+// getTestBlob checks if the test wasm file exists and if not, it fetches it from github
+func getTestBlob() (n int64, err error) {
+	if Exists(TESTS_FP) {
+		return 0, nil
+	}
+
+	out, err := os.Create(TESTS_FP)
+	if err != nil {
+		return 0, err
+	}
+	defer out.Close()
+
+	resp, err := http.Get(TEST_WASM_URL)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	n, err = io.Copy(out, resp.Body)
+	return n, err
+}
 
 func createTempGenesisFile(t *testing.T) string {
+	_, err := getTestBlob()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		t.Fatal(err)
