@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
@@ -42,7 +44,7 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 	t := trie.NewEmptyTrie(trieStateDB)
 	err = loadTrie(t, gen.Genesis.Raw)
 	if err != nil {
-		return nil, err
+		return nil, errors.New(fmt.Sprintf("cannot load trie with initial state: %s", err))
 	}
 
 	// write state to DB

@@ -61,7 +61,6 @@ var (
 func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)
 	if err != nil {
-		log.Crit("unable to extract required config", "err", err)
 		return nil, nil, err
 	}
 
@@ -81,11 +80,11 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	// load runtime code from trie and create runtime executor
 	code, err := gen.GenesisTrie.Get([]byte(":code"))
 	if err != nil {
-		log.Crit("error retrieving :code from trie", "error", err)
+		return nil, nil, errors.New(fmt.Sprintf("error retrieving :code from trie: %s", err))
 	}
 	r, err := runtime.NewRuntime(code, gen.GenesisTrie)
 	if err != nil {
-		log.Crit("error creating runtime executor", "error", err)
+		return nil, nil, errors.New(fmt.Sprintf("error creating runtime executor: %s", err))
 	}
 
 	// TODO: BABE
