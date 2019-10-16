@@ -97,12 +97,6 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	coreSrvc := core.NewService(r, nil, msgChan)
 	srvcs = append(srvcs, coreSrvc)
 
-	// P2P
-	//setBootstrapNodes(ctx, fig.P2pCfg)
-	//setNoBootstrap(ctx, fig.P2pCfg)
-	//p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
-	//srvcs = append(srvcs, p2pSrvc)
-
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
