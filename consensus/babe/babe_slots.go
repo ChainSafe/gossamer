@@ -39,7 +39,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error)
 	s := bt.GetNodeFromBlockNumber(bn)
 	sd := b.config.SlotDuration
 	for _, node:= range(bt.SubChain(dl.Hash, s.Hash)) {
-		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForBlock(node, sd), slot) * sd)
+		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForNode(node, sd), slot) * sd)
 		at = append(at, st)
 	}
 	st, err := median(at)

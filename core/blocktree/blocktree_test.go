@@ -72,14 +72,14 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 		block := types.Block{
 			Header: types.BlockHeader{
 				ParentHash: previousHash,
-				Hash:       Hash,
+				Hash:       hash,
 				Number:     big.NewInt(int64(i)),
 			},
 			Body: types.BlockBody{},
 		}
 
 		bt.AddBlock(block)
-		previousHash = Hash
+		previousHash = hash
 	}
 
 	return bt
