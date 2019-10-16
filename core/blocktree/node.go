@@ -35,8 +35,8 @@ type Node struct {
 }
 
 // addChild appends node to n's list of children
-func (n *Node) addChild(node *node) {
-	n.children = append(n.children, Node)
+func (n *Node) addChild(node *Node) {
+	n.children = append(n.children, node)
 }
 
 // String returns stringified Hash and depth of Node
