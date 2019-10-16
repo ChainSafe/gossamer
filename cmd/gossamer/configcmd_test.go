@@ -435,10 +435,8 @@ func TestCommands(t *testing.T) {
 		{"config", tempFile.Name(), "TOML configuration file"},
 	}
 
-	genesispath, err := filepath.Abs("../../genesis.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	genesispath := createTempGenesisFile(t)
+	defer os.Remove(genesispath)
 
 	for _, c := range tc {
 		app := cli.NewApp()
@@ -465,10 +463,8 @@ func TestGenesisStateLoading(t *testing.T) {
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 
-	genesispath, err := filepath.Abs("../../genesis.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	genesispath := createTempGenesisFile(t)
+	defer os.Remove(genesispath)
 
 	gen, err := genesis.LoadGenesisJsonFile(genesispath)
 	if err != nil {
