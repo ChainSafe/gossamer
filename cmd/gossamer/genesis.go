@@ -25,7 +25,7 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 	}
 
 	// DB: Create database dir and initialize stateDB and blockDB
-	dataDir := getDatabaseDir(ctx, fig)
+	dataDir := getDataDir(ctx, fig)
 	dbSrv, err := polkadb.NewDbService(dataDir)
 	if err != nil {
 		return nil, err

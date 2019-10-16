@@ -22,7 +22,7 @@ func loadTrie(t *trie.Trie, data []map[string]string) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
