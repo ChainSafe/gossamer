@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	mrand "math/rand"
 	"path"
+	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p"
@@ -67,7 +68,6 @@ func (c *Config) buildOpts() ([]libp2p.Option, error) {
 		c.privateKey = key
 	}
 
-
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, c.Port))
 	if err != nil {
 		return nil, err
@@ -106,15 +106,14 @@ func (c *Config) setupPrivKey() error {
 }
 
 // tryLoadPrivkey will attempt to load the private key from the provided path
-func tryLoadPrivKey(fp string) (crypto.PrivKey, error){
-	keyData, err := ioutil.ReadFile(path.Join(fp, KeyFile))
+func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
+	keyData, err := ioutil.ReadFile(path.Join(filepath.Clean(fp), KeyFile))
 	if err != nil {
 		return nil, nil
 	}
 
 	return crypto.UnmarshalEd25519PrivateKey(keyData)
 }
-
 
 // generateKey generates an ed25519 private key and writes it to the data directory
 // If the seed is zero, we use real cryptographic randomness. Otherwise, we use a
@@ -136,11 +135,10 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(path.Join(fp, KeyFile), priv, 0600)
+	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), priv, 0600)
 	if err != nil {
 		return nil, err
 	}
-
 
 	return crypto.UnmarshalEd25519PrivateKey(priv)
 }

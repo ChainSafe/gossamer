@@ -45,15 +45,17 @@ func startNewService(t *testing.T, cfg *Config) *Service {
 	return node
 }
 
-
 func TestBuildOpts(t *testing.T) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.RemoveAll(tmpDir)
 
 	testCfgA := &Config{
 		BootstrapNodes: []string{},
 		Port:           7001,
-		DataDir: tmpDir,
+		DataDir:        tmpDir,
 	}
 
 	_, err = testCfgA.buildOpts()
@@ -68,7 +70,7 @@ func TestBuildOpts(t *testing.T) {
 	testCfgB := &Config{
 		BootstrapNodes: []string{},
 		Port:           7001,
-		DataDir: tmpDir,
+		DataDir:        tmpDir,
 	}
 
 	_, err = testCfgB.buildOpts()
@@ -85,7 +87,7 @@ func TestService_PeerCount(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
 		Port:        7002,
-		RandSeed: 1,
+		RandSeed:    1,
 	}
 
 	sa, err := NewService(testServiceConfigA, nil)
@@ -103,7 +105,7 @@ func TestService_PeerCount(t *testing.T) {
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
 		Port:        7003,
-		RandSeed: 2,
+		RandSeed:    2,
 	}
 
 	sb, err := NewService(testServiceConfigB, nil)
@@ -139,7 +141,7 @@ func TestSend(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
 		Port:        7004,
-		RandSeed: 1,
+		RandSeed:    1,
 	}
 
 	sa, err := NewService(testServiceConfigA, nil)
@@ -157,7 +159,7 @@ func TestSend(t *testing.T) {
 	testServiceConfigB := &Config{
 		NoBootstrap: true,
 		Port:        7005,
-		RandSeed: 2,
+		RandSeed:    2,
 	}
 
 	msgChan := make(chan []byte)
@@ -233,7 +235,7 @@ func TestGossiping(t *testing.T) {
 		Port:           7000,
 		NoBootstrap:    true,
 		NoMdns:         true,
-		RandSeed: 1,
+		RandSeed:       1,
 	}
 
 	nodeA, err := NewService(nodeConfigA, nil)
@@ -250,8 +252,8 @@ func TestGossiping(t *testing.T) {
 		BootstrapNodes: []string{
 			nodeA_Addr.String(),
 		},
-		Port:   7001,
-		NoMdns: true,
+		Port:     7001,
+		NoMdns:   true,
 		RandSeed: 2,
 	}
 
@@ -276,8 +278,8 @@ func TestGossiping(t *testing.T) {
 		BootstrapNodes: []string{
 			nodeB_Addr.String(),
 		},
-		Port:   7002,
-		NoMdns: true,
+		Port:     7002,
+		NoMdns:   true,
 		RandSeed: 3,
 	}
 
