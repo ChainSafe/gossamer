@@ -34,8 +34,8 @@ type Node struct {
 	ArrivalTime uint64   // Arrival time of the block
 }
 
-// addChild appends Node to n's list of children
-func (n *Node) addChild(Node *Node) {
+// addChild appends node to n's list of children
+func (n *Node) addChild(node *node) {
 	n.children = append(n.children, Node)
 }
 

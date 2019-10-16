@@ -103,9 +103,9 @@ func (bt *BlockTree) GetNode(h Hash) *Node {
 	return nil
 }
 
-// GetHashFromBlockNumber finds and returns a Node from its Number
+// GetNodeFromBlockNumber finds and returns a node from its number
 func (bt *BlockTree) GetNodeFromBlockNumber(b *big.Int) *Node {
-	if bt.head.Number ==  b {
+	if bt.head.Number.Cmp(b) != 0 {
 		return bt.head
 	}
 
@@ -154,8 +154,8 @@ func (bt *BlockTree) LongestPath() []*Node {
 // 
 func (bt *BlockTree) SubChain(start Hash, end Hash) []*Node {
 	sn := bt.GetNode(start)
-	eh := bt.GetNode(end)
-	return sn.subChain(eh)
+	en := bt.GetNode(end)
+	return sn.subChain(en)
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
@@ -165,7 +165,7 @@ func (bt *BlockTree) DeepestLeaf() *Node {
 
 // computes the slot for a block from genesis
 // helper for now, there's a better way to do this
-func (bt *BlockTree) ComputeSlotForNode(n *Node, sd uint64) uint64 {
+func (bt *BlockTree) ComputeSlotForBlock(n *Node, sd uint64) uint64 {
 	gt := bt.head.ArrivalTime
 	nt := n.ArrivalTime
 	

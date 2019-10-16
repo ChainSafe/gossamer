@@ -63,7 +63,7 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 	previousHash := bt.head.Hash
 
 	for i := 1; i <= depth; i++ {
-		Hash, err := common.HexToHash(intToHashable(i))
+		hash, err := common.HexToHash(intToHashable(i))
 
 		if err != nil {
 			t.Error(err)
