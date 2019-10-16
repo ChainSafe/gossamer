@@ -17,7 +17,7 @@
 package main
 
 import (
-	"bytes"
+	"path/filepath"
 	"reflect"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -50,7 +50,7 @@ func teardown(tempFile *os.File) {
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
-	testConfig.DbCfg.DataDir = TestDataDir
+	testConfig.GlobalCfg.DataDir = TestDataDir
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
 		log.Crit("Cannot create temporary file", err)
@@ -82,6 +82,7 @@ func createCliContext(description string, flags []string, values []interface{}) 
 
 func TestGetConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
+	defer teardown(tempFile)
 
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -103,33 +104,17 @@ func TestGetConfig(t *testing.T) {
 
 		fig, err := getConfig(context)
 		if err != nil {
-			teardown(tempFile)
 			t.Fatalf("failed to set fig %v", err)
 		}
 
-		r := fmt.Sprintf("%+v", fig.RpcCfg)
-		rpcExp := fmt.Sprintf("%+v", c.expected.RpcCfg)
-
-		db := fmt.Sprintf("%+v", fig.DbCfg)
-		dbExp := fmt.Sprintf("%+v", c.expected.DbCfg)
-
-		peer := fmt.Sprintf("%+v", fig.P2pCfg)
-		p2pExp := fmt.Sprintf("%+v", c.expected.P2pCfg)
-
-		if !bytes.Equal([]byte(r), []byte(rpcExp)) {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, r, rpcExp)
-		}
-		if !bytes.Equal([]byte(db), []byte(dbExp)) {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, db, dbExp)
-		}
-		if !bytes.Equal([]byte(peer), []byte(p2pExp)) {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, peer, p2pExp)
+		if !reflect.DeepEqual(fig, c.expected) {
+			t.Errorf("got: %+v expected: %+v", fig, c.expected)
 		}
 	}
 	defer teardown(tempFile)
 }
 
-func TestGetDatabaseDir(t *testing.T) {
+func TestSetGlobalConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 
 	app := cli.NewApp()
@@ -137,27 +122,22 @@ func TestGetDatabaseDir(t *testing.T) {
 	tc := []struct {
 		name     string
 		value    string
-		usage    string
 		expected string
 	}{
-		{"", "", "", cfg.DefaultDBConfig.DataDir},
-		{"config", tempFile.Name(), "TOML configuration file", "chaingang"},
-		{"datadir", "test1", "sets database directory", "test1"},
+		{"", "", cfg.DefaultGlobalConfig.DataDir},
+		{"config", tempFile.Name(), "chaingang"},
+		{"datadir", "test1", "test1"},
 	}
 
-	for i, c := range tc {
+	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
-		set.String(c.name, c.value, c.usage)
+		set.String(c.name, c.value, "")
 		context := cli.NewContext(app, set, nil)
-		if i == 0 {
-			cfgClone.DbCfg.DataDir = ""
-		} else {
-			cfgClone.DbCfg.DataDir = "chaingang"
-		}
-		dir := getDataDir(context, cfgClone)
 
-		if dir != c.expected {
-			t.Fatalf("test failed: %v, got %+v expected %+v", c.name, dir, c.expected)
+		setGlobalConfig(context, &cfgClone.GlobalCfg)
+
+		if !reflect.DeepEqual(cfgClone.GlobalCfg, c.expected) {
+			t.Errorf("got: %+v expected: %+v", cfgClone, c.expected)
 		}
 	}
 }
@@ -173,7 +153,7 @@ func TestCreateP2PService(t *testing.T) {
 
 func TestSetP2pConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
-
+	dataDir := filepath.Dir(tempFile.Name())
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
@@ -198,6 +178,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    true,
 				NoMdns:         true,
+				DataDir:        dataDir,
 			},
 		},
 		{
@@ -210,6 +191,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
+				DataDir:        dataDir,
 			},
 		},
 		{
@@ -222,6 +204,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
+				DataDir:        dataDir,
 			},
 		},
 	}
@@ -235,9 +218,9 @@ func TestSetP2pConfig(t *testing.T) {
 			}
 
 			input := cfg.DefaultConfig()
-			res := setP2pConfig(context, input.P2pCfg)
+			setP2pConfig(context, input)
 
-			if !reflect.DeepEqual(res, c.expected) {
+			if !reflect.DeepEqual(input.P2pCfg, c.expected) {
 				t.Fatalf("\ngot %+v\nexpected %+v", input.P2pCfg, c.expected)
 			}
 		})
@@ -292,9 +275,9 @@ func TestSetRpcConfig(t *testing.T) {
 			}
 
 			input := cfg.DefaultConfig()
-			res := setRpcConfig(context, input.RpcCfg)
+			setRpcConfig(context, &input.RpcCfg)
 
-			if !reflect.DeepEqual(res, c.expected) {
+			if !reflect.DeepEqual(input.RpcCfg, c.expected) {
 				t.Fatalf("\ngot %+v\nexpected %+v", input.RpcCfg, c.expected)
 			}
 		})

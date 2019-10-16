@@ -16,7 +16,6 @@ require (
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/ipfs/go-datastore v0.0.5
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-eventbus v0.0.3 // indirect
 	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-core v0.0.6
@@ -25,11 +24,10 @@ require (
 	github.com/libp2p/go-libp2p-swarm v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/multiformats/go-multiaddr v0.0.4
-	github.com/naoina/go-stringutil v0.1.0 // indirect
-	github.com/naoina/toml v0.1.1
 	github.com/onsi/ginkgo v1.10.1 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0 // indirect
+	github.com/pelletier/go-toml v1.5.0
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/wasmerio/go-ext-wasm v0.0.0-20190716093451-605a12aad995

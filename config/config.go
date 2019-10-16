@@ -22,16 +22,20 @@ import (
 
 	tml "github.com/BurntSushi/toml"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
 )
 
 // Config is a collection of configurations throughout the system
 type Config struct {
-	P2pCfg p2p.Config     `toml:"p2p"`
-	DbCfg  polkadb.Config `toml:"db"`
-	RpcCfg rpc.Config     `toml:"rpc"`
+	GlobalCfg GlobalConfig `toml:"global"`
+	P2pCfg    p2p.Config   `toml:"p2p"`
+	RpcCfg    rpc.Config   `toml:"rpc"`
+}
+
+type GlobalConfig struct {
+	DataDir   string  `toml:"dataDir"`
+	Verbosity log.Lvl `toml:"verbosity"`
 }
 
 // ToTOML encodes a state type into a TOML file.
@@ -51,7 +55,7 @@ func ToTOML(file string, s *Config) *os.File {
 	if err != nil {
 		log.Warn("error closing file", "err", err)
 	}
-	_, err = newFile.Write([]byte(buff.Bytes()))
+	_, err = newFile.Write(buff.Bytes())
 	if err != nil {
 		log.Warn("error closing file", "err", err)
 	}

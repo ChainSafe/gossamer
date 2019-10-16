@@ -39,6 +39,8 @@ type Config struct {
 	NoBootstrap bool
 	// Disables MDNS discovery
 	NoMdns bool
+	// Global data directory
+	DataDir string
 }
 
 func (c *Config) buildOpts() ([]libp2p.Option, error) {

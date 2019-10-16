@@ -24,8 +24,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/log15"
 )
 
 const (
@@ -44,6 +44,12 @@ var DefaultP2PBootstrap []string
 var DefaultRpcModules = []api.Module{"system"}
 
 var (
+	// Global
+	DefaultGlobalConfig = GlobalConfig{
+		DataDir: DefaultDataDir(),
+		Verbosity: log15.LvlInfo,
+	}
+
 	// P2P
 	DefaultP2PConfig = p2p.Config{
 		Port:           DefaultP2PPort,
@@ -51,11 +57,6 @@ var (
 		BootstrapNodes: DefaultP2PBootstrap,
 		NoBootstrap:    false,
 		NoMdns:         false,
-	}
-
-	// DB
-	DefaultDBConfig = polkadb.Config{
-		DataDir: DefaultDataDir(),
 	}
 
 	// RPC
@@ -69,8 +70,8 @@ var (
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 func DefaultConfig() *Config {
 	return &Config{
+		GlobalCfg: DefaultGlobalConfig,
 		P2pCfg: DefaultP2PConfig,
-		DbCfg:  DefaultDBConfig,
 		RpcCfg: DefaultRpcConfig,
 	}
 }
