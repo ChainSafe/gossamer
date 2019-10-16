@@ -17,51 +17,54 @@
 package babe
 
 import (
+	"errors"
 	"math/big"
 	"sort"
 	"github.com/ChainSafe/gossamer/core/blocktree"
-	log "github.com/ChainSafe/log15"
 )
 // used to calculate slot time current value of 1200 from spec suggestion
 const SlotTail uint64 = 1200
 
 // calculate the slot time for a given block in miliseconds, returns 0 if it can't be calculated
-func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) uint64 {
+func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error) {
 	var at []uint64
 	dl := bt.DeepestLeaf()
 	bn := new(big.Int).SetUint64(SlotTail)
 	bn.Sub(dl.Number, bn)
 	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
 	if bn.Cmp(new(big.Int)) <= 0 {
-		log.Debug("Cannot calculate slot time, deepest leaf block Number less than or equal to Slot Tail")
-		return 0
+
+		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
 	s := bt.GetNodeFromBlockNumber(bn)
 	sd := b.config.SlotDuration
 	for _, node:= range(bt.SubChain(dl.Hash, s.Hash)) {
-		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForBlock(Node, sd), slot) * sd)
+		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForBlock(node, sd), slot) * sd)
 		at = append(at, st)
 	}
-	return median(at)
+	st, err := median(at)
+	if err != nil {
+		return 0, err
+	}
+	return st, nil
 
 }
 
-// will need to implement own quickselect because of library contr	aints, this will do for now
-func median(l []uint64) uint64 {
+// will need to implement own quickselect because of library constraints, this will do for now
+func median(l []uint64) (uint64, error) {
 	// sort the list
 	sort.Slice(l, func(i, j int) bool { return l[i] < l[j] })
 
 	m := len(l)
 	med := uint64(0)
 	if (m == 0) {
-		log.Debug("arrival times list is empty!")
-		return 0
+		return 0, errors.New("Arrival times list is empty!")
 	} else if (m % 2 == 0){
 		med = (l[(m/2)-1] + l[(m/2)+1])/2
 	} else {
 		med = l[m/2]
 	}
-	return med
+	return med, nil
 }
 
 // returns slotOffset
