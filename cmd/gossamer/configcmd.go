@@ -65,9 +65,6 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 
 	var srvcs []services.Service
 
-	// set up message channel for p2p -> core.Service
-	//msgChan := make(chan []byte)
-
 	if gen == nil {
 		return nil, nil, fmt.Errorf("genesis is nil")
 	}

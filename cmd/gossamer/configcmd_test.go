@@ -511,7 +511,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	}
 
 	expected := &trie.Trie{}
-	err = loadTrie(expected, gen.Genesis.Raw)
+	err = expected.Load(gen.Genesis.Raw)
 	if err != nil {
 		t.Fatal(err)
 	}

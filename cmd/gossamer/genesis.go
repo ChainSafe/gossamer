@@ -36,24 +36,29 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 		return nil, err
 	}
 
+	// create and load storage trie with initial genesis state
 	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
 	if err != nil {
 		return nil, err
 	}
 
 	t := trie.NewEmptyTrie(trieStateDB)
-	err = loadTrie(t, gen.Genesis.Raw)
+	err = t.Load(gen.Genesis.Raw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load trie with initial state: %s", err)
 	}
 
-	// write state to DB
-	err = commitToDb(t)
+	// write initial genesis data to DB
+	err = t.WriteToDB()
+	if err != nil {
+		return nil, err
+	}
+	err = t.Commit()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: load genesis trie and create initial p2p config
+	// TODO: create initial p2p config
 	return &genesis.GenesisState{
 		Name:        gen.Name,
 		Id:          gen.Id,
