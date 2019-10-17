@@ -82,6 +82,7 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating runtime executor: %s", err)
 	}
+	srvcs = append(srvcs, gen.Db)
 
 	// TODO: BABE
 
