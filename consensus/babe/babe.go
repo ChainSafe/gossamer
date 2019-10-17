@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"time"
@@ -42,9 +43,9 @@ type Session struct {
 	// authorities []VrfPublicKey
 	authorityWeights []uint64
 
-	epochThreshold *big.Int
-
-	txQueue *tx.PriorityQueue
+	epochThreshold *big.Int // validator threshold for this epoch
+	txQueue        *tx.PriorityQueue
+	isProducer     map[uint64]bool // whether we are a block producer at a slot
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -54,24 +55,29 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 		vrfPrivateKey: privkey,
 		rt:            rt,
 		txQueue:       new(tx.PriorityQueue),
+		isProducer:    make(map[uint64]bool),
 	}
 }
 
 func (b *Session) Start() error {
+	var i uint64 = 0
+	for ; i < b.config.EpochLength; i++ {
+		isProducer, err := b.runLottery(i)
+		if err != nil {
+			return fmt.Errorf("BABE: error running slot lottery at slot %d: error %s", i, err)
+		}
+
+		if isProducer {
+			b.isProducer[i] = true
+		}
+	}
+
 	go func() {
 		// TODO: we might not actually be starting at slot 0, need to run median algorithm here
 		var currentSlot uint64 = 0
 
 		for ; currentSlot < b.config.EpochLength; currentSlot++ {
-			// depending how long it takes to run the lottery, it might make sense to move this out of the loop
-			// for slot 0, and then inside the loop, compute 1 slot in advance after block building
-			isProducer, err := b.runLottery(currentSlot)
-			if err != nil {
-				log.Error("BABE: error running slot lottery", "slot", currentSlot)
-				return
-			}
-
-			if isProducer {
+			if b.isProducer[currentSlot] {
 				// TODO: build block
 				log.Info("BABE: building block", "slot", currentSlot)
 			}
