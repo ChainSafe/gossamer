@@ -20,7 +20,7 @@ type Genesis struct {
 }
 
 type GenesisFields struct {
-	Raw []map[string]string
+	Raw map[string]string
 }
 
 // LoadGenesisJsonFile parses a JSON formatted genesis file

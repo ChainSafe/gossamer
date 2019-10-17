@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadTrie(t *testing.T) {
-	data := []map[string]string{{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}}
+	data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
 	testTrie := &trie.Trie{}
 
 	err := loadTrie(testTrie, data)
@@ -19,7 +19,7 @@ func TestLoadTrie(t *testing.T) {
 
 	expectedTrie := &trie.Trie{}
 	var keyBytes, valueBytes []byte
-	for key, value := range data[0] {
+	for key, value := range data {
 		keyBytes, err = common.HexToBytes(key)
 		if err != nil {
 			t.Fatal(err)
