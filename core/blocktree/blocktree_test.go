@@ -35,7 +35,6 @@ func createGenesisBlock() types.Block {
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
 			Hash:       common.Hash{0x00},
-			
 		},
 		Body: types.BlockBody{},
 	}
@@ -215,16 +214,15 @@ func TestBlockTree_Subchain(t *testing.T) {
 
 func TestBlockTree_ComputeSlotForNode(t *testing.T) {
 	bt := createFlatTree(t, 2)
-	
+
 	expectedSlotNumber := uint64(1)
 	slotNumber := bt.ComputeSlotForNode(bt.GetNode(common.Hash{0x01}), 100000000)
-	
-	if (slotNumber != expectedSlotNumber) {
-		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)	
-	}
-	
-}
 
+	if slotNumber != expectedSlotNumber {
+		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)
+	}
+
+}
 
 // TODO: Need to define leftmost (see BlockTree.LongestPath)
 //func TestBlockTree_LongestPath_LeftMost(t *testing.T) {

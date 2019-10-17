@@ -18,10 +18,11 @@ package babe
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
-	"github.com/ChainSafe/gossamer/core/blocktree"
 )
+
 // used to calculate slot time current value of 1200 from spec suggestion
 const SlotTail uint64 = 1200
 
@@ -38,7 +39,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error)
 	}
 	s := bt.GetNodeFromBlockNumber(bn)
 	sd := b.config.SlotDuration
-	for _, node:= range(bt.SubChain(dl.Hash, s.Hash)) {
+	for _, node := range bt.SubChain(dl.Hash, s.Hash) {
 		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForNode(node, sd), slot) * sd)
 		at = append(at, st)
 	}
@@ -57,10 +58,10 @@ func median(l []uint64) (uint64, error) {
 
 	m := len(l)
 	med := uint64(0)
-	if (m == 0) {
+	if m == 0 {
 		return 0, errors.New("Arrival times list is empty!")
-	} else if (m % 2 == 0){
-		med = (l[(m/2)-1] + l[(m/2)+1])/2
+	} else if m%2 == 0 {
+		med = (l[(m/2)-1] + l[(m/2)+1]) / 2
 	} else {
 		med = l[m/2]
 	}

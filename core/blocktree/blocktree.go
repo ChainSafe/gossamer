@@ -42,12 +42,12 @@ type BlockTree struct {
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTree {
 	head := &Node{
-		Hash:     		genesis.Header.Hash,
-		Number:   		genesis.Header.Number,
-		parent:   		nil,
-		children: 		[]*Node{},
-		depth:    		big.NewInt(0),
-		ArrivalTime: 	uint64(time.Now().UnixNano()), // set arrival time of genesis in nanoseconds since unix epoch
+		Hash:        genesis.Header.Hash,
+		Number:      genesis.Header.Number,
+		parent:      nil,
+		children:    []*Node{},
+		depth:       big.NewInt(0),
+		ArrivalTime: uint64(time.Now().UnixNano()), // set arrival time of genesis in nanoseconds since unix epoch
 	}
 	return &BlockTree{
 		head:            head,
@@ -76,12 +76,12 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &Node{
-		Hash:     		block.Header.Hash,
-		Number:   		block.Header.Number,
-		parent:   		parent,
-		children: 		[]*Node{},
-		depth:    		depth,
-		ArrivalTime: 	uint64(time.Now().UnixNano()),
+		Hash:        block.Header.Hash,
+		Number:      block.Header.Number,
+		parent:      parent,
+		children:    []*Node{},
+		depth:       depth,
+		ArrivalTime: uint64(time.Now().UnixNano()),
 	}
 	parent.addChild(n)
 
@@ -151,7 +151,7 @@ func (bt *BlockTree) LongestPath() []*Node {
 	}
 }
 
-// 
+//
 func (bt *BlockTree) SubChain(start Hash, end Hash) []*Node {
 	sn := bt.GetNode(start)
 	en := bt.GetNode(end)
@@ -168,7 +168,7 @@ func (bt *BlockTree) DeepestLeaf() *Node {
 func (bt *BlockTree) ComputeSlotForNode(n *Node, sd uint64) uint64 {
 	gt := bt.head.ArrivalTime
 	nt := n.ArrivalTime
-	
+
 	sp := uint64(0)
 	for gt < nt {
 		gt += sd

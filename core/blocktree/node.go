@@ -26,12 +26,12 @@ import (
 
 // Node is an element in the BlockTree
 type Node struct {
-	Hash     	common.Hash // Block Hash
-	parent   	*Node       // Parent Node
-	Number   	*big.Int    // Block Number
-	children 	[]*Node     // Nodes of children blocks
-	depth    	*big.Int    // Depth within the tree
-	ArrivalTime uint64   // Arrival time of the block
+	Hash        common.Hash // Block Hash
+	parent      *Node       // Parent Node
+	Number      *big.Int    // Block Number
+	children    []*Node     // Nodes of children blocks
+	depth       *big.Int    // Depth within the tree
+	ArrivalTime uint64      // Arrival time of the block
 }
 
 // addChild appends node to n's list of children
@@ -84,7 +84,6 @@ func (n *Node) getNodeFromBlockNumber(b *big.Int) *Node {
 	}
 	return nil
 }
-
 
 func (n *Node) subChain(descendant *Node) []*Node {
 	if descendant == nil {
