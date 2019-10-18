@@ -141,8 +141,7 @@ func TestSetGlobalConfig(t *testing.T) {
 }
 
 func TestCreateP2PService(t *testing.T) {
-	_, cfgClone := createTempConfigFile()
-	srv, _ := createP2PService(cfgClone.P2pCfg)
+	srv, _ := createP2PService(cfg.DefaultConfig().P2pCfg)
 
 	if srv == nil {
 		t.Fatalf("failed to create p2p service")

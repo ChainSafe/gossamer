@@ -94,7 +94,7 @@ func (c *Config) setupPrivKey() error {
 	}
 	// Otherwise, create a key
 	if key == nil {
-		log.Debug("No existing p2p key, generating a new one")
+		log.Debug("No existing p2p key, generating a new one", "path", path.Join(filepath.Clean(c.DataDir), KeyFile))
 		key, err = generateKey(c.RandSeed, c.DataDir)
 		if err != nil {
 			return err
