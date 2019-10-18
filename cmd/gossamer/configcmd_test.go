@@ -31,8 +31,8 @@ import (
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/config/genesis"
+	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
