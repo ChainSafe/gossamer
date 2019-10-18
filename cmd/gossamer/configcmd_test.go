@@ -50,7 +50,7 @@ func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
 		log.Warn("cannot create temp file", err)
 	}
-	if err := os.RemoveAll("./chaingang"); err != nil {
+	if err := os.RemoveAll("./test_data"); err != nil {
 		log.Warn("removal of temp directory bin failed", "err", err)
 	}
 }
@@ -232,7 +232,7 @@ func TestGetDatabaseDir(t *testing.T) {
 		expected string
 	}{
 		{"", "", "", cfg.DefaultDBConfig.DataDir},
-		{"config", tempFile.Name(), "TOML configuration file", "chaingang"},
+		{"config", tempFile.Name(), "TOML configuration file", TestDataDir},
 		{"datadir", "test1", "sets database directory", "test1"},
 	}
 
@@ -243,7 +243,7 @@ func TestGetDatabaseDir(t *testing.T) {
 		if i == 0 {
 			cfgClone.DbCfg.DataDir = ""
 		} else {
-			cfgClone.DbCfg.DataDir = "chaingang"
+			cfgClone.DbCfg.DataDir = TestDataDir
 		}
 		dir := getDataDir(context, cfgClone)
 
