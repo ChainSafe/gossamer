@@ -17,8 +17,13 @@
 package main
 
 import (
-	"path/filepath"
 	"reflect"
+
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot"
@@ -26,12 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
-
-	"flag"
-	"fmt"
-	"io/ioutil"
-	"os"
-	"testing"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -41,10 +40,7 @@ const TestDataDir = "./test_data"
 
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
-		log.Warn("cannot create temp file", err)
-	}
-	if err := os.RemoveAll("./chaingang"); err != nil {
-		log.Warn("removal of temp directory bin failed", "err", err)
+		log.Warn("cannot remove temp file", "err", err)
 	}
 }
 
@@ -53,7 +49,7 @@ func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig.GlobalCfg.DataDir = TestDataDir
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
-		log.Crit("Cannot create temporary file", err)
+		log.Crit("Cannot create temporary file", "err", err)
 		os.Exit(1)
 	}
 
@@ -108,10 +104,9 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(fig, c.expected) {
-			t.Errorf("got: %+v expected: %+v", fig, c.expected)
+			t.Errorf("\ngot: %+v \nexpected: %+v", fig, c.expected)
 		}
 	}
-	defer teardown(tempFile)
 }
 
 func TestSetGlobalConfig(t *testing.T) {
@@ -122,23 +117,26 @@ func TestSetGlobalConfig(t *testing.T) {
 	tc := []struct {
 		name     string
 		value    string
-		expected string
+		expected cfg.GlobalConfig
 	}{
-		{"", "", cfg.DefaultGlobalConfig.DataDir},
-		{"config", tempFile.Name(), "chaingang"},
-		{"datadir", "test1", "test1"},
+		{"default", "", cfg.GlobalConfig{DataDir: TestDataDir, Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
+		{"config", tempFile.Name(), cfg.GlobalConfig{DataDir: TestDataDir, Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
+		{"datadir", "test1", cfg.GlobalConfig{DataDir: "test1", Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
 	}
 
 	for _, c := range tc {
-		set := flag.NewFlagSet(c.name, 0)
-		set.String(c.name, c.value, "")
-		context := cli.NewContext(app, set, nil)
+		c := c // bypass scopelint false positive
+		t.Run(c.name, func(t *testing.T) {
+			set := flag.NewFlagSet(c.name, 0)
+			set.String(c.name, c.value, "")
+			context := cli.NewContext(app, set, nil)
 
-		setGlobalConfig(context, &cfgClone.GlobalCfg)
+			setGlobalConfig(context, &cfgClone.GlobalCfg)
 
-		if !reflect.DeepEqual(cfgClone.GlobalCfg, c.expected) {
-			t.Errorf("got: %+v expected: %+v", cfgClone, c.expected)
-		}
+			if !reflect.DeepEqual(cfgClone.GlobalCfg, c.expected) {
+				t.Errorf("\ngot: %+v \nexpected: %+v", cfgClone.GlobalCfg, c.expected)
+			}
+		})
 	}
 }
 
@@ -153,7 +151,6 @@ func TestCreateP2PService(t *testing.T) {
 
 func TestSetP2pConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
-	dataDir := filepath.Dir(tempFile.Name())
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
@@ -178,7 +175,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    true,
 				NoMdns:         true,
-				DataDir:        dataDir,
+				DataDir:        cfg.DefaultDataDir(),
 			},
 		},
 		{
@@ -191,7 +188,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
-				DataDir:        dataDir,
+				DataDir:        cfg.DefaultDataDir(),
 			},
 		},
 		{
@@ -204,7 +201,20 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
-				DataDir:        dataDir,
+				DataDir:        cfg.DefaultDataDir(),
+			},
+		},
+		{
+			"datadir",
+			[]string{"datadir"},
+			[]interface{}{TestDataDir},
+			p2p.Config{
+				BootstrapNodes: cfg.DefaultP2PBootstrap,
+				Port:           cfg.DefaultP2PPort,
+				RandSeed:       cfg.DefaultP2PRandSeed,
+				NoBootstrap:    false,
+				NoMdns:         false,
+				DataDir:        cfgClone.GlobalCfg.DataDir,
 			},
 		},
 	}
@@ -218,6 +228,8 @@ func TestSetP2pConfig(t *testing.T) {
 			}
 
 			input := cfg.DefaultConfig()
+			// Must call global setup to set data dir
+			setGlobalConfig(context, &input.GlobalCfg)
 			setP2pConfig(context, input)
 
 			if !reflect.DeepEqual(input.P2pCfg, c.expected) {

@@ -119,17 +119,18 @@ func loadConfig(file string) (*cfg.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug("Loading configuration", "path", filepath.Clean(fp))
 	raw, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
-	var config *cfg.Config
+	var config cfg.Config
 	err = toml.Unmarshal(raw, &config)
 	if err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return &config, nil
 }
 
 func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
@@ -206,7 +207,7 @@ func dumpConfig(ctx *cli.Context) error {
 	}
 	comment := ""
 
-	out, err := toml.Marshal(&fig)
+	out, err := toml.Marshal(fig)
 	if err != nil {
 		return err
 	}

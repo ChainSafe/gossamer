@@ -39,14 +39,16 @@ const (
 	DefaultGenesisPath = "./genesis.json"
 )
 
-var DefaultP2PBootstrap []string
-
-var DefaultRpcModules = []api.Module{"system"}
+var (
+	// Note: must be non-nil declaration, otherwise toml parsing breaks
+	DefaultP2PBootstrap = []string{}
+	DefaultRpcModules   = []api.Module{"system"}
+)
 
 var (
 	// Global
 	DefaultGlobalConfig = GlobalConfig{
-		DataDir: DefaultDataDir(),
+		DataDir:   DefaultDataDir(),
 		Verbosity: log15.LvlInfo,
 	}
 
@@ -57,6 +59,7 @@ var (
 		BootstrapNodes: DefaultP2PBootstrap,
 		NoBootstrap:    false,
 		NoMdns:         false,
+		DataDir:        DefaultDataDir(),
 	}
 
 	// RPC
@@ -71,8 +74,8 @@ var (
 func DefaultConfig() *Config {
 	return &Config{
 		GlobalCfg: DefaultGlobalConfig,
-		P2pCfg: DefaultP2PConfig,
-		RpcCfg: DefaultRpcConfig,
+		P2pCfg:    DefaultP2PConfig,
+		RpcCfg:    DefaultRpcConfig,
 	}
 }
 
