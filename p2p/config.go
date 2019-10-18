@@ -23,6 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
+	"os"
 	"path"
 	"path/filepath"
 
@@ -107,9 +108,14 @@ func (c *Config) setupPrivKey() error {
 
 // tryLoadPrivkey will attempt to load the private key from the provided path
 func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
-	keyData, err := ioutil.ReadFile(path.Join(filepath.Clean(fp), KeyFile))
-	if err != nil {
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	if _, err := os.Stat(pth); os.IsNotExist(err) {
 		return nil, nil
+	}
+
+	keyData, err := ioutil.ReadFile(pth)
+	if err != nil {
+		return nil, err
 	}
 
 	return crypto.UnmarshalEd25519PrivateKey(keyData)
@@ -135,7 +141,16 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), priv, 0600)
+	// Make sure the directory exists before writing
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	if _, err := os.Stat(path.Dir(pth)); os.IsNotExist(err) {
+		err = os.Mkdir(path.Dir(pth), os.ModeDir + os.ModePerm)
+		if err != nil {
+			return nil,err
+		}
+	}
+
+	err = ioutil.WriteFile(pth, priv, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}

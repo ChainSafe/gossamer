@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -46,11 +47,16 @@ func startNewService(t *testing.T, cfg *Config) *Service {
 }
 
 func TestBuildOpts(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
+	tmpPDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpPDir)
+	tmpDir := path.Join(tmpPDir, "data")
+	err = os.Mkdir(tmpDir, os.ModePerm + os.ModeDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testCfgA := &Config{
 		BootstrapNodes: []string{},
