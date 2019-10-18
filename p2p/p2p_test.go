@@ -53,7 +53,7 @@ func TestBuildOpts(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpPDir)
 	tmpDir := path.Join(tmpPDir, "data")
-	err = os.Mkdir(tmpDir, os.ModePerm + os.ModeDir)
+	err = os.Mkdir(tmpDir, os.ModePerm+os.ModeDir)
 	if err != nil {
 		t.Fatal(err)
 	}

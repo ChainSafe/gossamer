@@ -113,7 +113,7 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 		return nil, nil
 	}
 
-	keyData, err := ioutil.ReadFile(pth)
+	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
 	if err != nil {
 		return nil, err
 	}
@@ -143,10 +143,10 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 
 	// Make sure the directory exists before writing
 	pth := path.Join(filepath.Clean(fp), KeyFile)
-	if _, err := os.Stat(path.Dir(pth)); os.IsNotExist(err) {
-		err = os.Mkdir(path.Dir(pth), os.ModeDir + os.ModePerm)
-		if err != nil {
-			return nil,err
+	if _, e := os.Stat(path.Dir(pth)); os.IsNotExist(e) {
+		e = os.Mkdir(path.Dir(pth), os.ModeDir+os.ModePerm)
+		if e != nil {
+			return nil, e
 		}
 	}
 
