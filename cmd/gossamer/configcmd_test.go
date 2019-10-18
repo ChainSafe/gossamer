@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
@@ -520,7 +521,10 @@ func TestGenesisStateLoading(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stateRoot, err := d.Manager.StorageRoot()
+
+	mgr := d.Services.Get(&core.Service{})
+
+	stateRoot, err := mgr.(*core.Service).StorageRoot()
 	if err != nil {
 		t.Fatal(err)
 	}
