@@ -72,6 +72,60 @@ func TestGenerateKey(t *testing.T) {
 	}
 }
 
+
+func TestBootstrapConnect(t *testing.T) {
+	bootnodeCfg := &Config{
+		BootstrapNodes: nil,
+		Port:           7000,
+		RandSeed:       0,
+		NoBootstrap:    true,
+		NoMdns:         true,
+	}
+
+	bootnode := startNewService(t, bootnodeCfg)
+
+	bootnodeAddr := bootnode.FullAddrs()[0]
+
+	nodeCfg := &Config{
+		BootstrapNodes: []string{bootnodeAddr.String()},
+		Port:           7001,
+		RandSeed:       1,
+		NoBootstrap:    false,
+		NoMdns:         true,
+	}
+
+	node := startNewService(t, nodeCfg)
+
+	// Allow everything to finish connecting
+	time.Sleep(1 * time.Second)
+
+	if bootnode.PeerCount() != 1 {
+		t.Errorf("expected peer count: %d got: %d", 1, bootnode.PeerCount())
+	}
+
+	node.Stop()
+	bootnode.Stop()
+}
+
+func TestNoBootstrap(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7006,
+	}
+
+	sa, err := NewService(testServiceConfigA, nil)
+	if err != nil {
+		t.Fatalf("NewService error: %s", err)
+	}
+
+	defer sa.Stop()
+
+	err = sa.Start()
+	if err != nil {
+		t.Errorf("Start error: %s", err)
+	}
+}
+
 func TestService_PeerCount(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
@@ -251,7 +305,7 @@ func TestGossiping(t *testing.T) {
 	nodeB_Addr := nodeB.FullAddrs()[0]
 
 	//Connect node A & node B
-	err = nodeB.bootstrapConnect()
+	nodeB.bootstrap()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}
@@ -274,7 +328,7 @@ func TestGossiping(t *testing.T) {
 	defer nodeC.Stop()
 
 	//Connect node B & node C
-	err = nodeC.bootstrapConnect()
+	nodeC.bootstrap()
 	if err != nil {
 		t.Errorf("Start error :%s", err)
 	}

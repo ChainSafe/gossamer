@@ -51,7 +51,7 @@ type Service struct {
 	hostAddr         ma.Multiaddr
 	dht              *kaddht.IpfsDHT
 	dhtConfig        kaddht.BootstrapConfig
-	bootstrapNodes   []peer.AddrInfo
+	bootnodes        []peer.AddrInfo
 	mdns             discovery.Service
 	msgChan          chan<- []byte
 	noBootstrap      bool
@@ -103,15 +103,15 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 
 	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
-		ctx:            ctx,
-		host:           h,
-		hostAddr:       hostAddr,
-		dht:            dht,
-		dhtConfig:      dhtConfig,
-		bootstrapNodes: bootstrapNodes,
-		noBootstrap:    conf.NoBootstrap,
-		mdns:           mdns,
-		msgChan:        msgChan,
+		ctx:         ctx,
+		host:        h,
+		hostAddr:    hostAddr,
+		dht:         dht,
+		dhtConfig:   dhtConfig,
+		bootnodes:   bootstrapNodes,
+		noBootstrap: conf.NoBootstrap,
+		mdns:        mdns,
+		msgChan:     msgChan,
 	}
 
 	s.blockReqRec = make(map[string]bool)
@@ -133,37 +133,17 @@ func (s *Service) Start() error {
 
 // start begins the p2p Service, including discovery. start does not terminate once called.
 func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 && !s.noBootstrap {
+	if len(s.bootnodes) == 0 && !s.noBootstrap {
 		e <- errors.New("no peers to bootstrap to")
+		return
 	}
 
-	// this is in a go func that loops every minute due to the fact that we appear
-	// to get kicked off the network after a few minutes
-	// this will likely be resolved once we send messages back to the network
-	go func() {
-		for {
-			if !s.noBootstrap {
-				// connect to the bootstrap nodes
-				err := s.bootstrapConnect()
-				if err != nil {
-					e <- err
-				}
-			}
+	go s.bootstrap()
 
-			err := s.dht.Bootstrap(s.ctx)
-			if err != nil {
-				e <- err
-			}
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	// Now we can build a full multiaddress to reach this host
-	// by encapsulating both addresses:
 	addrs := s.host.Addrs()
 	log.Info("You can be reached on the following addresses:")
 	for _, addr := range addrs {
-		log.Info(addr.Encapsulate(s.hostAddr).String())
+		fmt.Println("\t" + addr.Encapsulate(s.hostAddr).String())
 	}
 
 	log.Info("listening for connections...")
