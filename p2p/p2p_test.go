@@ -31,7 +31,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func startNewService(t *testing.T, cfg *Config,  msgChan chan []byte) *Service {
+func startNewService(t *testing.T, cfg *Config, msgChan chan []byte) *Service {
 	node, err := NewService(cfg, msgChan)
 	if err != nil {
 		t.Fatal(err)
