@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-
 // list of IPFS peers, for testing only
 var TestPeers = []string{
 	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",

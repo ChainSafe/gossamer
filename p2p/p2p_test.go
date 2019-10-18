@@ -72,7 +72,6 @@ func TestGenerateKey(t *testing.T) {
 	}
 }
 
-
 func TestBootstrapConnect(t *testing.T) {
 	bootnodeCfg := &Config{
 		BootstrapNodes: nil,
