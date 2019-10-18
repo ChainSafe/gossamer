@@ -61,14 +61,11 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime)
 
 func (b *Session) Start() error {
 	var i uint64 = 0
+	var err error
 	for ; i < b.config.EpochLength; i++ {
-		isProducer, err := b.runLottery(i)
+		b.isProducer[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("BABE: error running slot lottery at slot %d: error %s", i, err)
-		}
-
-		if isProducer {
-			b.isProducer[i] = true
 		}
 	}
 

@@ -217,7 +217,7 @@ func TestStart(t *testing.T) {
 	babesession.authorityIndex = 0
 	babesession.authorityWeights = []uint64{1}
 	conf := &BabeConfiguration{
-		SlotDuration:       10,
+		SlotDuration:       1,
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
@@ -227,6 +227,9 @@ func TestStart(t *testing.T) {
 	}
 	babesession.config = conf
 
-	babesession.Start()
+	err := babesession.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
 }
