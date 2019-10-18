@@ -28,13 +28,13 @@ import (
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -126,19 +126,11 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start() error {
-	e := make(chan error)
-	go s.start(e)
-	return <-e
-}
-
-// start begins the p2p Service, including discovery. start does not terminate once called.
-func (s *Service) start(e chan error) {
 	if len(s.bootnodes) == 0 && !s.noBootstrap {
-		e <- errors.New("no peers to bootstrap to")
-		return
+		return errors.New("no peers to bootstrap to")
 	}
 
-	go s.bootstrap()
+	s.bootstrap()
 
 	addrs := s.host.Addrs()
 	log.Info("You can be reached on the following addresses:")
@@ -146,8 +138,9 @@ func (s *Service) start(e chan error) {
 		fmt.Println("\t" + addr.Encapsulate(s.hostAddr).String())
 	}
 
-	log.Info("listening for connections...")
-	e <- nil
+	log.Info("Listening for connections...")
+
+	return nil
 }
 
 // Stop stops the p2p service
@@ -196,18 +189,18 @@ func (s *Service) Broadcast(msg Message) (err error) {
 		}
 		s.txMessageRec[msg.Id()] = true
 	default:
-		log.Error("Can't decode message type")
-		return
+		log.Error("Invalid message type", "type", msgType)
+		return nil
 	}
 
-	decodedMsg, err := msg.Encode()
+	encodedMsg, err := msg.Encode()
 	if err != nil {
-		log.Error("Can't encode message")
+		return err
 	}
 
 	for _, peers := range s.host.Network().Peers() {
 		addrInfo := s.dht.FindLocal(peers)
-		err = s.Send(addrInfo, decodedMsg)
+		err = s.Send(addrInfo, encodedMsg)
 	}
 
 	return err
@@ -215,18 +208,18 @@ func (s *Service) Broadcast(msg Message) (err error) {
 
 // Send sends a message to a specific peer
 func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Debug("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
+	log.Debug("sending message", "to", peer.ID)
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
 		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
-		log.Debug("opening new stream ", "peer", peer.ID)
+		log.Debug("opening new stream ", "to", peer.ID)
 		if err != nil {
 			log.Error("failed to open stream", "error", err)
 			return err
 		}
 	} else {
-		log.Debug("using existing stream", "peer", peer.ID)
+		log.Debug("using existing stream", "to", peer.ID)
 	}
 
 	// Write length of message, and then message
