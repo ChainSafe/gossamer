@@ -93,8 +93,11 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	fig.RpcCfg = setRpcConfig(ctx, fig.RpcCfg)
-	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
+	var rpcSrvr *rpc.HttpServer
+	if ctx.GlobalBool(utils.RpcEnabledFlag.Name) {
+		fig.RpcCfg = setRpcConfig(ctx, fig.RpcCfg)
+		rpcSrvr = rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
+	}
 
 	return dot.NewDot(srvcs, rpcSrvr), fig, nil
 }
