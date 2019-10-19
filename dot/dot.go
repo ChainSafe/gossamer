@@ -21,7 +21,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
@@ -36,7 +35,7 @@ type Dot struct {
 }
 
 // NewDot initializes a Dot with provided components.
-func NewDot(srvcs []services.Service, rpc *rpc.HttpServer, cs *core.Service) *Dot {
+func NewDot(srvcs []services.Service, rpc *rpc.HttpServer) *Dot {
 	d := &Dot{
 		Services:  services.NewServiceRegistry(),
 		Rpc:       rpc,

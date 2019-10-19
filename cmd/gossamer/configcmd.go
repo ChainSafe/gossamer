@@ -103,7 +103,7 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	fig.RpcCfg = setRpcConfig(ctx, fig.RpcCfg)
 	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
 
-	return dot.NewDot(srvcs, rpcSrvr, coreSrvc), fig, nil
+	return dot.NewDot(srvcs, rpcSrvr), fig, nil
 }
 
 // getConfig checks for config.toml if --config flag is specified
