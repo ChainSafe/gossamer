@@ -17,8 +17,6 @@
 package p2p
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,6 +28,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -62,6 +61,7 @@ func (c *Config) buildOpts() ([]libp2p.Option, error) {
 			return nil, err
 		}
 	} else {
+		log.Debug("Generating temporary deterministic p2p identity")
 		key, err := generateKey(c.RandSeed, c.DataDir)
 		if err != nil {
 			return nil, err
@@ -100,6 +100,9 @@ func (c *Config) setupPrivKey() error {
 		if err != nil {
 			return err
 		}
+	} else {
+		id, _ := peer.IDFromPrivateKey(key)
+		log.Debug("Loaded existing p2p identity", "id", id)
 	}
 
 	c.privateKey = key
@@ -118,7 +121,7 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	return crypto.UnmarshalEd25519PrivateKey(keyData)
+	return crypto.UnmarshalPrivateKey(keyData)
 }
 
 // generateKey generates an ed25519 private key and writes it to the data directory
@@ -126,34 +129,29 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 // deterministic randomness source to make generated keys stay the same
 // across multiple runs
 func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
-
 	var r io.Reader
 	if seed == 0 {
-		r = rand.Reader
+		r = nil // GenerateEd25519Key uses crypto/rand under the hood if nil
 	} else {
 		r = mrand.New(mrand.NewSource(seed))
 	}
 
 	// Generate a key pair for this host. We will use it at least
 	// to obtain a valid host ID.
-	_, priv, err := ed25519.GenerateKey(r)
+	priv, _, err := crypto.GenerateEd25519Key(r)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := peer.IDFromPrivateKey(priv)
+	log.Debug("Created new p2p identity", "id", id.String())
+	raw, err := crypto.MarshalPrivateKey(priv)
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), raw, 0600)
 	if err != nil {
 		return nil, err
 	}
 
-	// Make sure the directory exists before writing
-	pth := path.Join(filepath.Clean(fp), KeyFile)
-	if _, e := os.Stat(path.Dir(pth)); os.IsNotExist(e) {
-		e = os.Mkdir(path.Dir(pth), os.ModeDir+os.ModePerm)
-		if e != nil {
-			return nil, e
-		}
-	}
-
-	err = ioutil.WriteFile(pth, priv, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-
-	return crypto.UnmarshalEd25519PrivateKey(priv)
+	return priv, nil
 }
