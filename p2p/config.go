@@ -163,13 +163,13 @@ func saveKey(priv crypto.PrivKey, fp string) error {
 	}
 
 	// Create `.gossamer` if it doesn't exist
-	if _, err := os.Stat(fp); os.IsNotExist(err) {
-		err = os.Mkdir(fp, os.ModePerm)
-		if err != nil {
-			return err
+	if _, e := os.Stat(fp); os.IsNotExist(e) {
+		e = os.Mkdir(fp, os.ModePerm)
+		if e != nil {
+			return e
 		}
-	} else if err != nil {
-		return err
+	} else if e != nil {
+		return e
 	}
 
 	pth := path.Join(filepath.Clean(fp), KeyFile)

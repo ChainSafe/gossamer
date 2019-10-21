@@ -176,7 +176,7 @@ func TestSend(t *testing.T) {
 		NoBootstrap: true,
 		Port:        7004,
 		RandSeed:    1,
-		DataDir: path.Join(os.TempDir(), "gossamer"),
+		DataDir:     path.Join(os.TempDir(), "gossamer"),
 	}
 
 	sa := startNewService(t, testServiceConfigA, nil)
@@ -186,7 +186,7 @@ func TestSend(t *testing.T) {
 		NoBootstrap: true,
 		Port:        7005,
 		RandSeed:    2,
-		DataDir: path.Join(os.TempDir(), "gossamer2"),
+		DataDir:     path.Join(os.TempDir(), "gossamer2"),
 	}
 
 	msgChan := make(chan []byte)
