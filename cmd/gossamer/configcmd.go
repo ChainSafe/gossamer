@@ -91,7 +91,7 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	setRpcConfig(ctx, fig.RpcCfg)
+	setRpcConfig(ctx, &fig.RpcCfg)
 	rpcSrvr := startRpc(ctx, fig.RpcCfg, apiSrvc)
 
 	return dot.NewDot(srvcs, rpcSrvr), fig, nil

@@ -144,14 +144,44 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	}
 	id, _ := peer.IDFromPrivateKey(priv)
 	log.Debug("Created new p2p identity", "id", id.String())
-	raw, err := crypto.MarshalPrivateKey(priv)
-	if err != nil {
-		return nil, err
-	}
-	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), raw, 0600)
-	if err != nil {
-		return nil, err
+
+	// Save the key if its secure
+	if seed == 0 {
+		err = saveKey(priv, fp)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return priv, nil
+}
+
+func saveKey(priv crypto.PrivKey, fp string) error {
+	raw, err := crypto.MarshalPrivateKey(priv)
+	if err != nil {
+		return err
+	}
+
+	// Create `.gossamer` if it doesn't exist
+	if _, err := os.Stat(fp); os.IsNotExist(err) {
+		err = os.Mkdir(fp, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	f, err := os.Create(pth)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Write(raw)
+	if err != nil {
+		return err
+	}
+
+	return f.Close()
 }
