@@ -124,6 +124,7 @@ func TestNoBootstrap(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
 		Port:        7006,
+		RandSeed:    1,
 	}
 
 	sa := startNewService(t, testServiceConfigA, nil)
