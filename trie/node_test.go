@@ -255,6 +255,10 @@ func TestBranchDecode(t *testing.T) {
 		&branch{nil, [16]node{}, nil, false},
 		&branch{[]byte{0x00}, [16]node{}, nil, false},
 		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, false},
+		&branch{nil, [16]node{}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, false},
 	}
 
 	for _, test := range tests {

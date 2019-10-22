@@ -117,7 +117,7 @@ func Encode(n node) ([]byte, error) {
 // where Extra partial key length is included if len(key) > 63: consists of the remaining key length
 // Partial Key is the branch's key
 // Value is:
-// Children Bitmap | Enc(Child[i_1]) | Enc(Child[i_2]) | ... | Enc(Child[i_n]) | SCALE Branch Node Value
+// Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
 func (b *branch) Encode() ([]byte, error) {
 	encoding, err := b.header()
 	if err != nil {
@@ -196,7 +196,9 @@ func (l *leaf) Encode() ([]byte, error) {
 // note that partial key length is the length of the pk in nibbles
 // Partial Key is the branch's key
 // Value is:
-// Children Bitmap | Enc(Child[i_1]) | Enc(Child[i_2]) | ... | Enc(Child[i_n]) | SCALE Branch Node Value
+// Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
+// Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
+// nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
 func (b *branch) Decode (r io.Reader) error {
 	header, err := readByte(r)
 	if err != nil {
@@ -204,6 +206,9 @@ func (b *branch) Decode (r io.Reader) error {
 	}
 
 	nodeType := header >> 6
+	if nodeType != 2 && nodeType != 3 {
+		return fmt.Errorf("cannot decode node to branch")
+	}
 	keyLen := header & 0x3f
 	var totalKeyLen int = int(keyLen)
 
@@ -236,13 +241,26 @@ func (b *branch) Decode (r io.Reader) error {
 		b.key = keyToNibbles(key)[:totalKeyLen]
 	}
 
-	switch nodeType {
-	case 2:
-		// branch w/o value
-	case 3: 
+	childrenBitmap := make([]byte, 2)
+	_, err = r.Read(childrenBitmap)
+	if err != nil {
+		return err
+	}
+
+	if nodeType == 3 {
 		// branch w/ value
-	default: 
-		return fmt.Errorf("cannot decode node to branch")
+		sd := &scale.Decoder{r}
+		value, err := sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+		b.value = value.([]byte)
+	}
+
+	for i := 0; i < 16; i++ {
+		if (childrenBitmap[i/8] >> (i%8)) & 1 == 1 {
+			b.children[i] = &leaf{}
+		}
 	}
 
 	return nil
