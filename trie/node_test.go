@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -247,4 +248,36 @@ func TestEncodeRoot(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestBranchDecode(t *testing.T) {
+	tests := []*branch{
+		&branch{nil, [16]node{}, nil, false},
+		&branch{[]byte{0x00}, [16]node{}, nil, false},
+		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, false},
+	}
+
+	for _, test := range tests {
+		enc, err := test.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+	 	res := new(branch)
+	 	r := &bytes.Buffer{}
+	 	_, err = r.Write(enc)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}
+
+	 	err = res.Decode(r)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}
+
+	 	if !reflect.DeepEqual(res, test) {
+	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+	 	}
+	}
+
 }

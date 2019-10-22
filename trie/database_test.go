@@ -115,3 +115,31 @@ func TestWriteDirty(t *testing.T) {
 
 	trie.closeDb()
 }
+
+func TestEncodeForDB(t *testing.T) {
+	trie, err := newTrie()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		// {key: []byte{0xf2}, value: []byte("feather")},
+		// {key: []byte{0x09, 0xd3}, value: []byte("noot")},
+	}
+
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	res, err := trie.EncodeForDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("%x", res)
+}

@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/polkadb"
@@ -28,6 +29,41 @@ type StateDB struct {
 	Batch  polkadb.Batch
 	Lock   sync.RWMutex
 	Hasher *Hasher
+}
+
+func (t *Trie) EncodeForDB() ([]byte, error) {
+	return t.encodeForDB(t.root, []byte{})
+}
+
+func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
+	nenc, err := n.Encode()
+	if err != nil {
+		return enc, err
+	}
+
+	enc = append(enc, nenc...)
+
+	switch n := n.(type) {
+	case *branch:
+		for _, child := range n.children {
+			if child != nil {
+				enc, err = t.encodeForDB(child, enc)
+				if err != nil {
+					return enc, err
+				}
+			}
+		}
+	}
+
+	return enc, nil
+}
+
+func (t *Trie) DecodeFromDB(enc []byte) error {
+	buf := &bytes.Buffer{}
+	buf.Write(enc)
+
+
+	return nil
 }
 
 // WriteToDB writes the trie to the underlying database batch writer

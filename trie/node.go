@@ -19,6 +19,8 @@ package trie
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"io"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
@@ -26,6 +28,7 @@ import (
 
 type node interface {
 	Encode() ([]byte, error)
+	Decode(r io.Reader) error
 	isDirty() bool
 	setDirty(dirty bool)
 	setKey(key []byte)
@@ -111,8 +114,7 @@ func Encode(n node) ([]byte, error) {
 // where NodeHeader is a byte:
 // most significant two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
 // least significant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
-// where Extra partial key length is included if len(key) > 63:
-// consists of the remaining key length
+// where Extra partial key length is included if len(key) > 63: consists of the remaining key length
 // Partial Key is the branch's key
 // Value is:
 // Children Bitmap | Enc(Child[i_1]) | Enc(Child[i_2]) | ... | Enc(Child[i_n]) | SCALE Branch Node Value
@@ -185,6 +187,71 @@ func (l *leaf) Encode() ([]byte, error) {
 	return encoding, nil
 }
 
+// Decode decodes a byte array with the following format into a branch node
+// NodeHeader | Extra partial key length | Partial Key | Value
+// where NodeHeader is a byte:
+// most significant two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
+// least significant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
+// where Extra partial key length is included if len(key) > 63: consists of the remaining key length
+// note that partial key length is the length of the pk in nibbles
+// Partial Key is the branch's key
+// Value is:
+// Children Bitmap | Enc(Child[i_1]) | Enc(Child[i_2]) | ... | Enc(Child[i_n]) | SCALE Branch Node Value
+func (b *branch) Decode (r io.Reader) error {
+	header, err := readByte(r)
+	if err != nil {
+		return err
+	}
+
+	nodeType := header >> 6
+	keyLen := header & 0x3f
+	var totalKeyLen int = int(keyLen)
+
+	if keyLen == 0x3f {
+		// partial key longer than 63, read next bytes for rest of pk len
+		for {
+			nextKeyLen, err := readByte(r)
+			if err != nil {
+				return err
+			}
+			totalKeyLen += int(nextKeyLen)
+
+			if nextKeyLen < 0xff {
+				break
+			}
+
+			if totalKeyLen >= 1<<16 {
+				return errors.New("partial key length greater than or equal to 2^16")
+			}
+		}
+	}
+
+	if totalKeyLen != 0 {
+		key := make([]byte, totalKeyLen/2 + totalKeyLen%2)
+		_, err = r.Read(key)
+		if err != nil {
+			return err
+		}
+
+		b.key = keyToNibbles(key)[:totalKeyLen]
+	}
+
+	switch nodeType {
+	case 2:
+		// branch w/o value
+	case 3: 
+		// branch w/ value
+	default: 
+		return fmt.Errorf("cannot decode node to branch")
+	}
+
+	return nil
+}
+
+func (l *leaf) Decode (r io.Reader) error {
+	return nil
+}
+
 func (b *branch) header() ([]byte, error) {
 	var header byte
 	if b.value == nil {
@@ -247,4 +314,13 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 	}
 
 	return fullHeader, nil
+}
+
+func readByte(r io.Reader) (byte, error) {
+	buf := make([]byte, 1)
+	_, err := r.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+	return buf[0], nil
 }
