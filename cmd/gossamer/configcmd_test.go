@@ -17,6 +17,7 @@
 package main
 
 import (
+	"path/filepath"
 	"reflect"
 
 	"flag"
@@ -31,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -47,6 +47,7 @@ func teardown(tempFile *os.File) {
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
 	testConfig.GlobalCfg.DataDir = TestDataDir
+
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
 		log.Crit("Cannot create temporary file", "err", err)
@@ -110,31 +111,38 @@ func TestGetConfig(t *testing.T) {
 }
 
 func TestSetGlobalConfig(t *testing.T) {
-	tempFile, cfgClone := createTempConfigFile()
-
+	tempPath, _ := filepath.Abs("test1")
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
-		name     string
-		value    string
+		description string
+		flags       []string
+		values      []interface{}
 		expected cfg.GlobalConfig
 	}{
-		{"default", "", cfg.GlobalConfig{DataDir: TestDataDir, Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
-		{"config", tempFile.Name(), cfg.GlobalConfig{DataDir: TestDataDir, Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
-		{"datadir", "test1", cfg.GlobalConfig{DataDir: "test1", Verbosity: cfg.DefaultGlobalConfig.Verbosity}},
+		{"datadir flag",
+			[]string{"datadir"},
+			[]interface{}{"test1"},
+			cfg.GlobalConfig{
+				DataDir: tempPath,
+				Verbosity: 0},
+		},
 	}
 
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
-		t.Run(c.name, func(t *testing.T) {
-			set := flag.NewFlagSet(c.name, 0)
-			set.String(c.name, c.value, "")
-			context := cli.NewContext(app, set, nil)
+		t.Run(c.description, func(t *testing.T) {
+			context, err := createCliContext(c.description, c.flags, c.values)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			setGlobalConfig(context, &cfgClone.GlobalCfg)
+			tCfg := &cfg.GlobalConfig{}
 
-			if !reflect.DeepEqual(cfgClone.GlobalCfg, c.expected) {
-				t.Errorf("\ngot: %+v \nexpected: %+v", cfgClone.GlobalCfg, c.expected)
+			setGlobalConfig(context, tCfg)
+
+			if !reflect.DeepEqual(*tCfg, c.expected) {
+				t.Errorf("\ngot: %+v \nexpected: %+v", tCfg, c.expected)
 			}
 		})
 	}
@@ -150,6 +158,7 @@ func TestCreateP2PService(t *testing.T) {
 
 func TestSetP2pConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
+	dataDirPath, _ := filepath.Abs(TestDataDir)
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
@@ -213,7 +222,7 @@ func TestSetP2pConfig(t *testing.T) {
 				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
-				DataDir:        cfgClone.GlobalCfg.DataDir,
+				DataDir:        dataDirPath,
 			},
 		},
 	}
