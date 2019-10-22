@@ -99,44 +99,44 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 
 // getConfig checks for config.toml if --config flag is specified
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
-	var fig *cfg.Config
+	fig := cfg.DefaultConfig()
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
-		config, err := loadConfig(file)
+		err := loadConfig(file, fig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
 			return fig, err
 		}
-		return config, nil
+		return fig, nil
 	} else {
 		return cfg.DefaultConfig(), nil
 	}
 }
 
 // loadConfig loads the contents from config toml and inits Config object
-func loadConfig(file string) (*cfg.Config, error) {
+func loadConfig(file string, config *cfg.Config) error {
 	fp, err := filepath.Abs(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	log.Debug("Loading configuration", "path", filepath.Clean(fp))
 	raw, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
-		return nil, err
+		return err
 	}
-	var config cfg.Config
-	err = toml.Unmarshal(raw, &config)
+	err = toml.Unmarshal(raw, config)
 	if err != nil {
-		return nil, err
+		return  err
 	}
 
-	return &config, nil
+	return nil
 }
 
 func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
 		fig.DataDir = dir
 	}
+	fig.DataDir, _ = filepath.Abs(fig.DataDir)
 }
 
 func setP2pConfig(ctx *cli.Context, fig *cfg.Config) {
@@ -188,6 +188,7 @@ func setRpcConfig(ctx *cli.Context, fig *rpc.Config) {
 	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
+
 }
 
 func startRpc(ctx *cli.Context, fig rpc.Config, apiSrvc *api.Service) *rpc.HttpServer {

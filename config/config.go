@@ -17,6 +17,7 @@
 package cfg
 
 import (
+	"encoding/json"
 	"os"
 
 	"github.com/ChainSafe/gossamer/p2p"
@@ -35,6 +36,11 @@ type Config struct {
 type GlobalConfig struct {
 	DataDir   string  `toml:"dataDir"`
 	Verbosity log.Lvl `toml:"verbosity"`
+}
+
+func (c *Config) String() string {
+	out, _ := json.MarshalIndent(c, "", "\t")
+	return string(out)
 }
 
 // ToTOML encodes a state type into a TOML file.
