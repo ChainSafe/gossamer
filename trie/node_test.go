@@ -283,5 +283,33 @@ func TestBranchDecode(t *testing.T) {
 	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
 	 	}
 	}
+}
 
+func TestLeafDecode(t *testing.T) {
+	tests := []*leaf{
+		&leaf{nil, nil, false},
+	}
+
+	for _, test := range tests {
+		enc, err := test.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+	 	res := new(leaf)
+	 	r := &bytes.Buffer{}
+	 	_, err = r.Write(enc)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}
+
+	 	err = res.Decode(r)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}
+
+	 	if !reflect.DeepEqual(res, test) {
+	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+	 	}
+	}
 }
