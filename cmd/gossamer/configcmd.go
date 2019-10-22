@@ -126,7 +126,7 @@ func loadConfig(file string, config *cfg.Config) error {
 	}
 	err = toml.Unmarshal(raw, config)
 	if err != nil {
-		return  err
+		return err
 	}
 
 	return nil

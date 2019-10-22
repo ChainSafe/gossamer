@@ -118,13 +118,13 @@ func TestSetGlobalConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected cfg.GlobalConfig
+		expected    cfg.GlobalConfig
 	}{
 		{"datadir flag",
 			[]string{"datadir"},
 			[]interface{}{"test1"},
 			cfg.GlobalConfig{
-				DataDir: tempPath,
+				DataDir:   tempPath,
 				Verbosity: 0},
 		},
 	}

@@ -26,9 +26,9 @@ import (
 
 // Config contains eneral RPC configuration options
 type Config struct {
-	Port    uint32  `toml:"port"`     // Listening port
-	Host    string `toml:"host"`      // Listening hostname
-	Modules []api.Module `toml:"modules"`// Enabled modules
+	Port    uint32       `toml:"port"`    // Listening port
+	Host    string       `toml:"host"`    // Listening hostname
+	Modules []api.Module `toml:"modules"` // Enabled modules
 }
 
 // HttpServer acts as gateway to an RPC server
