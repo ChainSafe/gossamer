@@ -39,7 +39,7 @@ import (
 )
 
 const POLKADOT_RUNTIME_FP string = "../../substrate_test_runtime.compact.wasm"
-const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/david/latest-blob/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 var zeroHash, _ = common.HexToHash("0x00")
 
