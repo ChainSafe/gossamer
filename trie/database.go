@@ -76,7 +76,7 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 		return err
 	}
 
-	sd := &scale.Decoder{r}
+	sd := &scale.Decoder{Reader: r}
 	scroot, err := sd.Decode([]byte{})
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 }
 
 func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
-	sd := &scale.Decoder{r}
+	sd := &scale.Decoder{Reader: r}
 
 	if b, ok := prev.(*branch); ok {
 		for i, child := range b.children {

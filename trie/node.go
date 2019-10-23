@@ -246,7 +246,7 @@ func (b *branch) Decode(r io.Reader, header byte) (err error) {
 
 	if nodeType == 3 {
 		// branch w/ value
-		sd := &scale.Decoder{r}
+		sd := &scale.Decoder{Reader: r}
 		value, err := sd.Decode([]byte{})
 		if err != nil {
 			return err
@@ -293,7 +293,7 @@ func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
-	sd := &scale.Decoder{r}
+	sd := &scale.Decoder{Reader: r}
 	value, err := sd.Decode([]byte{})
 	if err != nil {
 		return err
