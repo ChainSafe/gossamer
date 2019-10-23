@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -65,7 +66,7 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 
 	defer trie.closeDb()
 
-	rt := generateRandomTests(10)
+	rt := generateRandomTests(1)
 	var val []byte
 	for _, test := range rt {
 		err = trie.Put(test.key, test.value)
@@ -99,6 +100,10 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 	}
 
 	if strings.Compare(expected.String(), trie.String()) != 0 {
+		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+	}
+
+	if !reflect.DeepEqual(expected.root, trie.root) {
 		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
 	}
 }
@@ -137,6 +142,10 @@ func TestEncodeAndDecodeFromDB(t *testing.T) {
 	}
 
 	if strings.Compare(testTrie.String(), trie.String()) != 0 {
+		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
+	}
+
+	if !reflect.DeepEqual(testTrie.root, trie.root) {
 		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
 	}
 }

@@ -260,6 +260,8 @@ func (b *branch) Decode(r io.Reader, header byte) (err error) {
 		}
 	}
 
+	b.dirty = true
+
 	return nil
 }
 
@@ -300,6 +302,8 @@ func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 	if len(value.([]byte)) > 0 {
 		l.value = value.([]byte)
 	}
+
+	l.dirty = true
 
 	return nil
 }
@@ -400,7 +404,7 @@ func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
 		return keyToNibbles(key)[totalKeyLen%2:], nil
 	}
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 func readByte(r io.Reader) (byte, error) {

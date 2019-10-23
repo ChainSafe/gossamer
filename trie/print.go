@@ -29,12 +29,12 @@ func (t *Trie) String() string {
 func (t *Trie) string(str string, current node, prefix []byte) string {
 	switch c := current.(type) {
 	case *branch:
-		str += fmt.Sprintf("branch prefix %x key %x children %b value %s\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
+		str += fmt.Sprintf("branch prefix %x key %x children %b value %x\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
 		for i, child := range c.children {
 			str = t.string(str, child, append(append(prefix, byte(i)), c.key...))
 		}
 	case *leaf:
-		str += fmt.Sprintf("leaf prefix %x key %x value %s\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
+		str += fmt.Sprintf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
 	}
 
 	return str
