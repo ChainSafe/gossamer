@@ -88,13 +88,12 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 		return err
 	}
 
-	root, err := Decode(n)
+	t.root, err = Decode(n)
 	if err != nil {
 		return err
 	}
 
-	t.root = root
-	return t.decodeFromDB(r, root)
+	return t.decodeFromDB(r, t.root)
 }
 
 func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
@@ -115,13 +114,12 @@ func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
 					return err
 				}
 
-				next, err := Decode(n)
+				b.children[i], err = Decode(n)
 				if err != nil {
 					return fmt.Errorf("could not decode child at %d: %s", i, err)
 				}
 
-				b.children[i] = next
-				err = t.decodeFromDB(r, next)
+				err = t.decodeFromDB(r, b.children[i])
 				if err != nil {
 					return err
 				}
