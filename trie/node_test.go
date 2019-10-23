@@ -259,6 +259,12 @@ func TestBranchDecode(t *testing.T) {
 		&branch{nil, [16]node{&leaf{}}, []byte{0x01}, false},
 		&branch{nil, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, false},
 		&branch{nil, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, false},
+		&branch{byteArray(62), [16]node{}, nil, false},
+		&branch{byteArray(63), [16]node{}, nil, false},
+		&branch{byteArray(64), [16]node{}, nil, false},
+		&branch{byteArray(317), [16]node{}, []byte{0x01}, false},
+		&branch{byteArray(318), [16]node{}, []byte{0x01}, false},
+		&branch{byteArray(573), [16]node{}, []byte{0x01}, false},
 	}
 
 	for _, test := range tests {
@@ -288,6 +294,13 @@ func TestBranchDecode(t *testing.T) {
 func TestLeafDecode(t *testing.T) {
 	tests := []*leaf{
 		&leaf{nil, nil, false},
+		&leaf{[]byte{0x01}, nil, false},
+		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, false},
+		&leaf{byteArray(62), nil, false},
+		&leaf{byteArray(63), nil, false},
+		&leaf{byteArray(64), []byte{0x01}, false},
+		&leaf{byteArray(318), []byte{0x01}, false},
+		&leaf{byteArray(573), []byte{0x01}, false},
 	}
 
 	for _, test := range tests {
@@ -312,4 +325,34 @@ func TestLeafDecode(t *testing.T) {
 	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
 	 	}
 	}
+}
+
+func TestDecode(t *testing.T) {
+	tests := []node{
+		&branch{nil, [16]node{}, nil, false},
+		&branch{[]byte{0x00}, [16]node{}, nil, false},
+		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, false},
+		&branch{nil, [16]node{}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, false},
+		&branch{nil, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, false},
+		&leaf{nil, nil, false},
+		&leaf{[]byte{0x00}, nil, false},
+	}
+
+	for _, test := range tests {
+		enc, err := test.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+	 	res, err := Decode(enc)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}
+
+	 	if !reflect.DeepEqual(res, test) {
+	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+	 	}
+	}	
 }

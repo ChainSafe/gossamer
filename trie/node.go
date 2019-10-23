@@ -187,6 +187,24 @@ func (l *leaf) Encode() ([]byte, error) {
 	return encoding, nil
 }
 
+func Decode(in []byte) (node, error) {
+	r := &bytes.Buffer{}
+	r.Write(in)
+
+	nodeType := in[0] >> 6
+	if nodeType == 1 {
+		l := new(leaf)
+		err := l.Decode(r)
+		return l, err
+	} else if nodeType == 2 || nodeType == 3 {
+		b := new(branch)
+		err := b.Decode(r)
+		return b, err
+	} 
+
+	return nil, errors.New("cannot decode invalid encoding into node")
+}
+
 // Decode decodes a byte array with the following format into a branch node
 // NodeHeader | Extra partial key length | Partial Key | Value
 // where NodeHeader is a byte:
@@ -199,7 +217,7 @@ func (l *leaf) Encode() ([]byte, error) {
 // Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
 // Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
 // nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
-func (b *branch) Decode (r io.Reader) error {
+func (b *branch) Decode(r io.Reader) error {
 	header, err := readByte(r)
 	if err != nil {
 		return err
@@ -238,7 +256,7 @@ func (b *branch) Decode (r io.Reader) error {
 			return err
 		}
 
-		b.key = keyToNibbles(key)[:totalKeyLen]
+		b.key = keyToNibbles(key)[totalKeyLen%2:]
 	}
 
 	childrenBitmap := make([]byte, 2)
@@ -275,7 +293,7 @@ func (b *branch) Decode (r io.Reader) error {
 // consists of the remaining key length
 // Partial Key is the leaf's key
 // Value is the leaf's SCALE encoded value
-func (l *leaf) Decode (r io.Reader) error {
+func (l *leaf) Decode(r io.Reader) error {
 	header, err := readByte(r)
 	if err != nil {
 		return err
@@ -314,7 +332,7 @@ func (l *leaf) Decode (r io.Reader) error {
 			return err
 		}
 
-		l.key = keyToNibbles(key)[:totalKeyLen]
+		l.key = keyToNibbles(key)[totalKeyLen%2:]
 	}
 
 	sd := &scale.Decoder{r}
@@ -322,7 +340,7 @@ func (l *leaf) Decode (r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if len(value.([]byte)) > 0 {
 		l.value = value.([]byte)
 	}
