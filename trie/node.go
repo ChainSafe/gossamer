@@ -231,36 +231,11 @@ func (b *branch) Decode(r io.Reader, header byte) (err error) {
 	if nodeType != 2 && nodeType != 3 {
 		return fmt.Errorf("cannot decode node to branch")
 	}
+
 	keyLen := header & 0x3f
-	var totalKeyLen int = int(keyLen)
-
-	if keyLen == 0x3f {
-		// partial key longer than 63, read next bytes for rest of pk len
-		for {
-			nextKeyLen, err := readByte(r)
-			if err != nil {
-				return err
-			}
-			totalKeyLen += int(nextKeyLen)
-
-			if nextKeyLen < 0xff {
-				break
-			}
-
-			if totalKeyLen >= 1<<16 {
-				return errors.New("partial key length greater than or equal to 2^16")
-			}
-		}
-	}
-
-	if totalKeyLen != 0 {
-		key := make([]byte, totalKeyLen/2+totalKeyLen%2)
-		_, err = r.Read(key)
-		if err != nil {
-			return err
-		}
-
-		b.key = keyToNibbles(key)[totalKeyLen%2:]
+	b.key, err = decodeKey(r, keyLen)
+	if err != nil {
+		return err
 	}
 
 	childrenBitmap := make([]byte, 2)
@@ -309,36 +284,11 @@ func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 	if nodeType != 1 {
 		return fmt.Errorf("cannot decode node to leaf")
 	}
+
 	keyLen := header & 0x3f
-	var totalKeyLen int = int(keyLen)
-
-	if keyLen == 0x3f {
-		// partial key longer than 63, read next bytes for rest of pk len
-		for {
-			nextKeyLen, err := readByte(r)
-			if err != nil {
-				return err
-			}
-			totalKeyLen += int(nextKeyLen)
-
-			if nextKeyLen < 0xff {
-				break
-			}
-
-			if totalKeyLen >= 1<<16 {
-				return errors.New("partial key length greater than or equal to 2^16")
-			}
-		}
-	}
-
-	if totalKeyLen != 0 {
-		key := make([]byte, totalKeyLen/2+totalKeyLen%2)
-		_, err = r.Read(key)
-		if err != nil {
-			return err
-		}
-
-		l.key = keyToNibbles(key)[totalKeyLen%2:]
+	l.key, err = decodeKey(r, keyLen)
+	if err != nil {
+		return err
 	}
 
 	sd := &scale.Decoder{r}
@@ -416,6 +366,41 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 	}
 
 	return fullHeader, nil
+}
+
+func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
+	var totalKeyLen int = int(keyLen)
+
+	if keyLen == 0x3f {
+		// partial key longer than 63, read next bytes for rest of pk len
+		for {
+			nextKeyLen, err := readByte(r)
+			if err != nil {
+				return nil, err
+			}
+			totalKeyLen += int(nextKeyLen)
+
+			if nextKeyLen < 0xff {
+				break
+			}
+
+			if totalKeyLen >= 1<<16 {
+				return nil, errors.New("partial key length greater than or equal to 2^16")
+			}
+		}
+	}
+
+	if totalKeyLen != 0 {
+		key := make([]byte, totalKeyLen/2+totalKeyLen%2)
+		_, err := r.Read(key)
+		if err != nil {
+			return key, err
+		}
+
+		return keyToNibbles(key)[totalKeyLen%2:], nil
+	}
+
+	return nil, nil
 }
 
 func readByte(r io.Reader) (byte, error) {
