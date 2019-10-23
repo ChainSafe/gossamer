@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -187,18 +188,21 @@ func (l *leaf) Encode() ([]byte, error) {
 	return encoding, nil
 }
 
-func Decode(in []byte) (node, error) {
-	r := &bytes.Buffer{}
-	r.Write(in)
-
-	nodeType := in[0] >> 6
+func Decode(r io.Reader) (node, error) {
+	buf := bufio.NewReader(r)
+	first, err := buf.Peek(1)
+	if err != nil {
+		return nil, err
+	}
+	
+	nodeType := first[0] >> 6
 	if nodeType == 1 {
 		l := new(leaf)
-		err := l.Decode(r)
+		err := l.Decode(buf)
 		return l, err
 	} else if nodeType == 2 || nodeType == 3 {
 		b := new(branch)
-		err := b.Decode(r)
+		err := b.Decode(buf)
 		return b, err
 	} 
 

@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"io"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/polkadb"
@@ -59,10 +60,23 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 }
 
 func (t *Trie) DecodeFromDB(enc []byte) error {
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
+	r := &bytes.Buffer{}
+	_, err := r.Write(enc)
+	if err != nil {
+		return err
+	}
 
+	root, err := Decode(r)
+	if err != nil {
+		return err
+	}
 
+	t.decodeFromDB(r, root)
+
+	return nil
+}
+
+func (t *Trie) decodeFromDB(r io.Reader, parent node) error {
 	return nil
 }
 

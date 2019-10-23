@@ -346,7 +346,13 @@ func TestDecode(t *testing.T) {
 			t.Fatal(err)
 		}
 
-	 	res, err := Decode(enc)
+		 r := &bytes.Buffer{}
+	 	_, err = r.Write(enc)
+	 	if err != nil {
+	 		t.Fatal(err)
+	 	}	
+
+	 	res, err := Decode(r)
 	 	if err != nil {
 	 		t.Fatal(err)
 	 	}
