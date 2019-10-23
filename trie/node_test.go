@@ -273,21 +273,21 @@ func TestBranchDecode(t *testing.T) {
 			t.Fatal(err)
 		}
 
-	 	res := new(branch)
-	 	r := &bytes.Buffer{}
-	 	_, err = r.Write(enc)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}
+		res := new(branch)
+		r := &bytes.Buffer{}
+		_, err = r.Write(enc)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	err = res.Decode(r)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}
+		err = res.Decode(r, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	if !reflect.DeepEqual(res, test) {
-	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-	 	}
+		if !reflect.DeepEqual(res, test) {
+			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+		}
 	}
 }
 
@@ -309,21 +309,21 @@ func TestLeafDecode(t *testing.T) {
 			t.Fatal(err)
 		}
 
-	 	res := new(leaf)
-	 	r := &bytes.Buffer{}
-	 	_, err = r.Write(enc)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}
+		res := new(leaf)
+		r := &bytes.Buffer{}
+		_, err = r.Write(enc)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	err = res.Decode(r)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}
+		err = res.Decode(r, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	if !reflect.DeepEqual(res, test) {
-	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-	 	}
+		if !reflect.DeepEqual(res, test) {
+			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+		}
 	}
 }
 
@@ -346,19 +346,19 @@ func TestDecode(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		 r := &bytes.Buffer{}
-	 	_, err = r.Write(enc)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}	
+		r := &bytes.Buffer{}
+		_, err = r.Write(enc)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	res, err := Decode(r)
-	 	if err != nil {
-	 		t.Fatal(err)
-	 	}
+		res, err := Decode(r)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	 	if !reflect.DeepEqual(res, test) {
-	 		t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-	 	}
-	}	
+		if !reflect.DeepEqual(res, test) {
+			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+		}
+	}
 }

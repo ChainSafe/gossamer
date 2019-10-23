@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	db "github.com/ChainSafe/gossamer/polkadb"
@@ -117,16 +118,54 @@ func TestWriteDirty(t *testing.T) {
 }
 
 func TestEncodeForDB(t *testing.T) {
-	trie, err := newTrie()
-	if err != nil {
-		t.Fatal(err)
-	}
+	trie := &Trie{}
 
 	tests := []trieTest{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		// {key: []byte{0xf2}, value: []byte("feather")},
-		// {key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+	}
+
+	enc := []byte{}
+
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// nenc, err := test.Encode()
+		// if err != nil {
+		// 	t.Fatal(err)
+		// }
+
+		// enc = append(enc, nenc...)
+	}
+
+	res, err := trie.EncodeForDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(res, enc) {
+		t.Fatalf("Fail: got %x expected %x\n", res, enc)
+	}
+
+}
+
+func TestDecodeFromDB(t *testing.T) {
+	trie := &Trie{}
+
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
 	}
 
 	for _, test := range tests {
@@ -136,10 +175,19 @@ func TestEncodeForDB(t *testing.T) {
 		}
 	}
 
-	res, err := trie.EncodeForDB()
+	enc, err := trie.EncodeForDB()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("%x", res)
+	testTrie := &Trie{}
+	err = testTrie.DecodeFromDB(enc)
+	if err != nil {
+		testTrie.Print()
+		t.Fatal(err)
+	}
+
+	if strings.Compare(testTrie.String(), trie.String()) != 0 {
+		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
+	}
 }

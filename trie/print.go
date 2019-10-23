@@ -20,6 +20,26 @@ import (
 	"fmt"
 )
 
+// String returns the trie stringified through pre-order traversal
+func (t *Trie) String() string {
+	str := ""
+	return t.string(str, t.root, nil)
+}
+
+func (t *Trie) string(str string, current node, prefix []byte) string {
+	switch c := current.(type) {
+	case *branch:
+		str += fmt.Sprintf("branch prefix %x key %x children %b value %s\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
+		for i, child := range c.children {
+			str = t.string(str, child, append(append(prefix, byte(i)), c.key...))
+		}
+	case *leaf:
+		str += fmt.Sprintf("leaf prefix %x key %x value %s\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
+	}
+
+	return str
+}
+
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
 	fmt.Println("printing trie...")
@@ -61,7 +81,7 @@ func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
 			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
 	case *leaf:
-		fmt.Printf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
+		fmt.Printf("leaf prefix %x key %x value %s\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
 		if withEncoding {
 			fmt.Printf("leaf encoding ")
 			printHexBytes(encoding)

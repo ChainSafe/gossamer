@@ -18,9 +18,11 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
@@ -32,6 +34,8 @@ type StateDB struct {
 	Hasher *Hasher
 }
 
+// EncodeForDB traverses the trie recursively, encodes each node then SCALE encodes the encoding
+// and appends them all together
 func (t *Trie) EncodeForDB() ([]byte, error) {
 	return t.encodeForDB(t.root, []byte{})
 }
@@ -42,7 +46,14 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 		return enc, err
 	}
 
-	enc = append(enc, nenc...)
+	scnenc, err := scale.Encode(nenc)
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Printf("node %v enc %x len %d\n", n, scnenc, len(scnenc))
+
+	enc = append(enc, scnenc...)
 
 	switch n := n.(type) {
 	case *branch:
@@ -66,17 +77,60 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 		return err
 	}
 
-	root, err := Decode(r)
+	sd := &scale.Decoder{r}
+	scroot, err := sd.Decode([]byte{})
 	if err != nil {
 		return err
 	}
 
-	t.decodeFromDB(r, root)
+	n := &bytes.Buffer{}
+	_, err = n.Write(scroot.([]byte))
+	if err != nil {
+		return err
+	}
 
-	return nil
+	root, err := Decode(n)
+	if err != nil {
+		return err
+	}
+
+	t.root = root
+	return t.decodeFromDB(r, root)
 }
 
-func (t *Trie) decodeFromDB(r io.Reader, parent node) error {
+// if prev node is branch, and not
+func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
+	sd := &scale.Decoder{r}
+
+	if b, ok := prev.(*branch); ok {
+		for i, child := range b.children {
+			if child != nil {
+				// there's supposed to be a child here, decode the next node and place it
+				scnode, err := sd.Decode([]byte{})
+				if err != nil {
+					return err
+				}
+
+				n := &bytes.Buffer{}
+				_, err = n.Write(scnode.([]byte))
+				if err != nil {
+					return err
+				}
+
+				next, err := Decode(n)
+				if err != nil {
+					return fmt.Errorf("could not decode child at %d: %s", i, err)
+				}
+
+				b.children[i] = next
+				err = t.decodeFromDB(r, next)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

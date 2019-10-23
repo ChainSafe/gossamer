@@ -17,7 +17,6 @@
 package trie
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -29,7 +28,7 @@ import (
 
 type node interface {
 	Encode() ([]byte, error)
-	Decode(r io.Reader) error
+	Decode(r io.Reader, h byte) error
 	isDirty() bool
 	setDirty(dirty bool)
 	setKey(key []byte)
@@ -189,22 +188,21 @@ func (l *leaf) Encode() ([]byte, error) {
 }
 
 func Decode(r io.Reader) (node, error) {
-	buf := bufio.NewReader(r)
-	first, err := buf.Peek(1)
+	header, err := readByte(r)
 	if err != nil {
 		return nil, err
 	}
-	
-	nodeType := first[0] >> 6
+
+	nodeType := header >> 6
 	if nodeType == 1 {
 		l := new(leaf)
-		err := l.Decode(buf)
+		err := l.Decode(r, header)
 		return l, err
 	} else if nodeType == 2 || nodeType == 3 {
 		b := new(branch)
-		err := b.Decode(buf)
+		err := b.Decode(r, header)
 		return b, err
-	} 
+	}
 
 	return nil, errors.New("cannot decode invalid encoding into node")
 }
@@ -221,10 +219,12 @@ func Decode(r io.Reader) (node, error) {
 // Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
 // Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
 // nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
-func (b *branch) Decode(r io.Reader) error {
-	header, err := readByte(r)
-	if err != nil {
-		return err
+func (b *branch) Decode(r io.Reader, header byte) (err error) {
+	if header == 0 {
+		header, err = readByte(r)
+		if err != nil {
+			return err
+		}
 	}
 
 	nodeType := header >> 6
@@ -254,7 +254,7 @@ func (b *branch) Decode(r io.Reader) error {
 	}
 
 	if totalKeyLen != 0 {
-		key := make([]byte, totalKeyLen/2 + totalKeyLen%2)
+		key := make([]byte, totalKeyLen/2+totalKeyLen%2)
 		_, err = r.Read(key)
 		if err != nil {
 			return err
@@ -280,7 +280,7 @@ func (b *branch) Decode(r io.Reader) error {
 	}
 
 	for i := 0; i < 16; i++ {
-		if (childrenBitmap[i/8] >> (i%8)) & 1 == 1 {
+		if (childrenBitmap[i/8]>>(i%8))&1 == 1 {
 			b.children[i] = &leaf{}
 		}
 	}
@@ -297,10 +297,12 @@ func (b *branch) Decode(r io.Reader) error {
 // consists of the remaining key length
 // Partial Key is the leaf's key
 // Value is the leaf's SCALE encoded value
-func (l *leaf) Decode(r io.Reader) error {
-	header, err := readByte(r)
-	if err != nil {
-		return err
+func (l *leaf) Decode(r io.Reader, header byte) (err error) {
+	if header == 0 {
+		header, err = readByte(r)
+		if err != nil {
+			return err
+		}
 	}
 
 	nodeType := header >> 6
@@ -330,7 +332,7 @@ func (l *leaf) Decode(r io.Reader) error {
 	}
 
 	if totalKeyLen != 0 {
-		key := make([]byte, totalKeyLen/2 + totalKeyLen%2)
+		key := make([]byte, totalKeyLen/2+totalKeyLen%2)
 		_, err = r.Read(key)
 		if err != nil {
 			return err
