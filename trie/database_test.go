@@ -57,13 +57,15 @@ func (t *Trie) closeDb() {
 	}
 }
 
-func TestWriteToDB(t *testing.T) {
+func TestStoreAndLoadFromDB(t *testing.T) {
 	trie, err := newTrie()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rt := generateRandomTests(20000)
+	defer trie.closeDb()
+
+	rt := generateRandomTests(10)
 	var val []byte
 	for _, test := range rt {
 		err = trie.Put(test.key, test.value)
@@ -79,82 +81,29 @@ func TestWriteToDB(t *testing.T) {
 		}
 	}
 
-	err = trie.WriteToDB()
+	err = trie.StoreInDB()
 	if err != nil {
-		t.Errorf("Fail: could not write to batch writer: %s", err)
+		t.Fatalf("Fail: could not write trie to DB: %s", err)
 	}
 
-	err = trie.Commit()
-	if err != nil {
-		t.Errorf("Fail: could not commit (batch write) to DB: %s", err)
-	}
-
-	trie.closeDb()
-}
-
-func TestWriteDirty(t *testing.T) {
-	trie, err := newTrie()
+	encroot, err := trie.Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dirtyNode := &leaf{key: generateRandBytes(10), value: generateRandBytes(10), dirty: true}
-	written, err := trie.writeNodeToDB(dirtyNode)
+	expected := &Trie{root: trie.root}
+
+	err = trie.LoadFromDB(encroot)
 	if err != nil {
-		t.Errorf("Fail: could not write to db: %s", err)
-	} else if !written {
-		t.Errorf("Fail: did not write dirty node to db")
+		t.Errorf("Fail: could not load trie from DB: %s", err)
 	}
 
-	cleanNode := &leaf{key: generateRandBytes(10), value: generateRandBytes(10), dirty: false}
-	written, err = trie.writeNodeToDB(cleanNode)
-	if err != nil {
-		t.Errorf("Fail: could not write to db: %s", err)
-	} else if written {
-		t.Errorf("Fail: wrote clean node to db")
+	if strings.Compare(expected.String(), trie.String()) != 0 {
+		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
 	}
-
-	trie.closeDb()
 }
 
-func TestEncodeForDB(t *testing.T) {
-	trie := &Trie{}
-
-	tests := []trieTest{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0xf2}, value: []byte("feather")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-	}
-
-	enc := []byte{}
-
-	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// nenc, err := test.Encode()
-		// if err != nil {
-		// 	t.Fatal(err)
-		// }
-
-		// enc = append(enc, nenc...)
-	}
-
-	res, err := trie.EncodeForDB()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(res, enc) {
-		t.Fatalf("Fail: got %x expected %x\n", res, enc)
-	}
-
-}
-
-func TestDecodeFromDB(t *testing.T) {
+func TestEncodeAndDecodeFromDB(t *testing.T) {
 	trie := &Trie{}
 
 	tests := []trieTest{

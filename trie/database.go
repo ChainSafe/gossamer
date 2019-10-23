@@ -51,8 +51,6 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	//fmt.Printf("node %v enc %x len %d\n", n, scnenc, len(scnenc))
-
 	enc = append(enc, scnenc...)
 
 	switch n := n.(type) {
@@ -98,7 +96,6 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 	return t.decodeFromDB(r, root)
 }
 
-// if prev node is branch, and not
 func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
 	sd := &scale.Decoder{r}
 
@@ -134,64 +131,28 @@ func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
 	return nil
 }
 
-// WriteToDB writes the trie to the underlying database batch writer
-// Stores the merkle value of the node as the key and the encoded node as the value
-// This does not actually write to the db, just to the batch writer
-// Commit must be called afterwards to finish writing to the db
-func (t *Trie) WriteToDB() error {
-	t.db.Batch = t.db.Db.NewBatch()
-	return t.writeToDB(t.root)
-}
-
-// writeToDB recursively attempts to write each node in the trie to the db batch writer
-func (t *Trie) writeToDB(n node) error {
-	_, err := t.writeNodeToDB(n)
+// StoreInDB encodes the entire trie and writes it to the DB
+// The key to the DB entry is the root hash of the trie
+func (t *Trie) StoreInDB() error {
+	enc, err := t.EncodeForDB()
 	if err != nil {
 		return err
 	}
 
-	switch n := n.(type) {
-	case *branch:
-		for _, child := range n.children {
-			if child != nil {
-				err = t.writeToDB(child)
-				if err != nil {
-					return err
-				}
-			}
-		}
+	encroot, err := t.Encode()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	return t.db.Db.Put(encroot, enc)
 }
 
-// writeNodeToDB returns true if node is written to db batch writer, false otherwise
-// if node is clean, it will not attempt to be written to the db
-// otherwise if it's dirty, try to write it to db
-func (t *Trie) writeNodeToDB(n node) (bool, error) {
-	if !n.isDirty() {
-		return false, nil
-	}
-
-	encRoot, err := Encode(n)
+// LoadFromDB loads an encoded trie from the DB where the key is `root`
+func (t *Trie) LoadFromDB(root []byte) error {
+	enctrie, err := t.db.Db.Get(root)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	hash, err := t.db.Hasher.Hash(n)
-	if err != nil {
-		return false, err
-	}
-
-	t.db.Lock.Lock()
-	err = t.db.Batch.Put(hash[:], encRoot)
-	t.db.Lock.Unlock()
-
-	n.setDirty(false)
-	return true, err
-}
-
-// Commit writes the contents of the db's batch writer to the db
-func (t *Trie) Commit() error {
-	return t.db.Batch.Write()
+	return t.DecodeFromDB(enctrie)
 }
