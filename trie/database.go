@@ -34,8 +34,7 @@ type StateDB struct {
 	Hasher *Hasher
 }
 
-// EncodeForDB traverses the trie recursively, encodes each node then SCALE encodes the encoding
-// and appends them all together
+// EncodeForDB traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
 func (t *Trie) EncodeForDB() ([]byte, error) {
 	return t.encodeForDB(t.root, []byte{})
 }
@@ -68,6 +67,8 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 	return enc, nil
 }
 
+// DecodeFromDB decodes a trie from the DB and sets the receiver to it
+// The encoded trie must have been encoded with EncodeForDB
 func (t *Trie) DecodeFromDB(enc []byte) error {
 	r := &bytes.Buffer{}
 	_, err := r.Write(enc)
