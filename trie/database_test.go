@@ -87,7 +87,7 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 		t.Fatalf("Fail: could not write trie to DB: %s", err)
 	}
 
-	encroot, err := trie.Encode()
+	encroot, err := trie.EncodeRoot()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,13 +130,13 @@ func TestEncodeAndDecodeFromDB(t *testing.T) {
 		}
 	}
 
-	enc, err := trie.EncodeForDB()
+	enc, err := trie.Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	testTrie := &Trie{}
-	err = testTrie.DecodeFromDB(enc)
+	err = testTrie.Decode(enc)
 	if err != nil {
 		testTrie.Print()
 		t.Fatal(err)

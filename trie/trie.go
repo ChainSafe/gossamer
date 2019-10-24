@@ -58,7 +58,7 @@ func (t *Trie) Db() *StateDB {
 }
 
 // Encode returns the encoded root of the trie
-func (t *Trie) Encode() ([]byte, error) {
+func (t *Trie) EncodeRoot() ([]byte, error) {
 	return Encode(t.root)
 }
 

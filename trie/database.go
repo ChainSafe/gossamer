@@ -34,12 +34,12 @@ type StateDB struct {
 	Hasher *Hasher
 }
 
-// EncodeForDB traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
-func (t *Trie) EncodeForDB() ([]byte, error) {
-	return t.encodeForDB(t.root, []byte{})
+// Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
+func (t *Trie) Encode() ([]byte, error) {
+	return encode(t.root, []byte{})
 }
 
-func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
+func encode(n node, enc []byte) ([]byte, error) {
 	nenc, err := n.Encode()
 	if err != nil {
 		return enc, err
@@ -56,7 +56,7 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 	case *branch:
 		for _, child := range n.children {
 			if child != nil {
-				enc, err = t.encodeForDB(child, enc)
+				enc, err = encode(child, enc)
 				if err != nil {
 					return enc, err
 				}
@@ -67,9 +67,9 @@ func (t *Trie) encodeForDB(n node, enc []byte) ([]byte, error) {
 	return enc, nil
 }
 
-// DecodeFromDB decodes a trie from the DB and sets the receiver to it
+// Decode decodes a trie from the DB and sets the receiver to it
 // The encoded trie must have been encoded with EncodeForDB
-func (t *Trie) DecodeFromDB(enc []byte) error {
+func (t *Trie) Decode(enc []byte) error {
 	r := &bytes.Buffer{}
 	_, err := r.Write(enc)
 	if err != nil {
@@ -93,10 +93,10 @@ func (t *Trie) DecodeFromDB(enc []byte) error {
 		return err
 	}
 
-	return t.decodeFromDB(r, t.root)
+	return decode(r, t.root)
 }
 
-func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
+func decode(r io.Reader, prev node) error {
 	sd := &scale.Decoder{Reader: r}
 
 	if b, ok := prev.(*branch); ok {
@@ -119,7 +119,7 @@ func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
 					return fmt.Errorf("could not decode child at %d: %s", i, err)
 				}
 
-				err = t.decodeFromDB(r, b.children[i])
+				err = decode(r, b.children[i])
 				if err != nil {
 					return err
 				}
@@ -133,12 +133,12 @@ func (t *Trie) decodeFromDB(r io.Reader, prev node) error {
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
 func (t *Trie) StoreInDB() error {
-	enc, err := t.EncodeForDB()
+	enc, err := t.Encode()
 	if err != nil {
 		return err
 	}
 
-	encroot, err := t.Encode()
+	encroot, err := t.EncodeRoot()
 	if err != nil {
 		return err
 	}
@@ -153,5 +153,5 @@ func (t *Trie) LoadFromDB(root []byte) error {
 		return err
 	}
 
-	return t.DecodeFromDB(enctrie)
+	return t.Decode(enctrie)
 }
