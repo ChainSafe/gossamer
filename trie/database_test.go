@@ -66,7 +66,7 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 
 	defer trie.closeDb()
 
-	rt := generateRandomTests(1)
+	rt := generateRandomTests(1000)
 	var val []byte
 	for _, test := range rt {
 		err = trie.Put(test.key, test.value)
