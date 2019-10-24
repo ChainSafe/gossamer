@@ -94,6 +94,7 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 
 	expected := &Trie{root: trie.root}
 
+	trie.root = nil
 	err = trie.LoadFromDB(encroot)
 	if err != nil {
 		t.Errorf("Fail: could not load trie from DB: %s", err)
