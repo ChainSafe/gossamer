@@ -252,19 +252,19 @@ func TestEncodeRoot(t *testing.T) {
 
 func TestBranchDecode(t *testing.T) {
 	tests := []*branch{
-		&branch{[]byte{}, [16]node{}, nil, true},
-		&branch{[]byte{0x00}, [16]node{}, nil, true},
-		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
-		&branch{[]byte{}, [16]node{}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&branch{byteArray(62), [16]node{}, nil, true},
-		&branch{byteArray(63), [16]node{}, nil, true},
-		&branch{byteArray(64), [16]node{}, nil, true},
-		&branch{byteArray(317), [16]node{}, []byte{0x01}, true},
-		&branch{byteArray(318), [16]node{}, []byte{0x01}, true},
-		&branch{byteArray(573), [16]node{}, []byte{0x01}, true},
+		{[]byte{}, [16]node{}, nil, true},
+		{[]byte{0x00}, [16]node{}, nil, true},
+		{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
+		{[]byte{}, [16]node{}, []byte{0x01}, true},
+		{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
+		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+		{byteArray(62), [16]node{}, nil, true},
+		{byteArray(63), [16]node{}, nil, true},
+		{byteArray(64), [16]node{}, nil, true},
+		{byteArray(317), [16]node{}, []byte{0x01}, true},
+		{byteArray(318), [16]node{}, []byte{0x01}, true},
+		{byteArray(573), [16]node{}, []byte{0x01}, true},
 	}
 
 	for _, test := range tests {
@@ -293,14 +293,14 @@ func TestBranchDecode(t *testing.T) {
 
 func TestLeafDecode(t *testing.T) {
 	tests := []*leaf{
-		&leaf{[]byte{}, nil, true},
-		&leaf{[]byte{0x01}, nil, true},
-		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
-		&leaf{byteArray(62), nil, true},
-		&leaf{byteArray(63), nil, true},
-		&leaf{byteArray(64), []byte{0x01}, true},
-		&leaf{byteArray(318), []byte{0x01}, true},
-		&leaf{byteArray(573), []byte{0x01}, true},
+		{[]byte{}, nil, true},
+		{[]byte{0x01}, nil, true},
+		{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
+		{byteArray(62), nil, true},
+		{byteArray(63), nil, true},
+		{byteArray(64), []byte{0x01}, true},
+		{byteArray(318), []byte{0x01}, true},
+		{byteArray(573), []byte{0x01}, true},
 	}
 
 	for _, test := range tests {
