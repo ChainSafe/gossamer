@@ -23,8 +23,11 @@ import (
 	"sync"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
+
+var LATEST_HASH_KEY = []byte("latest_hash")
 
 // StateDB is a wrapper around a polkadb
 type StateDB struct {
@@ -138,20 +141,38 @@ func (t *Trie) StoreInDB() error {
 		return err
 	}
 
-	encroot, err := t.EncodeRoot()
+	roothash, err := t.Hash()
 	if err != nil {
 		return err
 	}
 
-	return t.db.Db.Put(encroot, enc)
+	return t.db.Db.Put(roothash[:], enc)
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (t *Trie) LoadFromDB(root []byte) error {
-	enctrie, err := t.db.Db.Get(root)
+func (t *Trie) LoadFromDB(root common.Hash) error {
+	enctrie, err := t.db.Db.Get(root[:])
 	if err != nil {
 		return err
 	}
 
 	return t.Decode(enctrie)
+}
+
+func (t *Trie) StoreHash() error {
+	hash, err := t.Hash()
+	if err != nil {
+		return err
+	}
+
+	return t.db.Db.Put(LATEST_HASH_KEY, hash[:])
+}
+
+func (t *Trie) LoadHash() (common.Hash, error) {
+	hashbytes, err := t.db.Db.Get(LATEST_HASH_KEY)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHash(hashbytes), nil
 }

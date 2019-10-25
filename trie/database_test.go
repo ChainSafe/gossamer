@@ -87,7 +87,7 @@ func TestStoreAndLoadFromDB(t *testing.T) {
 		t.Fatalf("Fail: could not write trie to DB: %s", err)
 	}
 
-	encroot, err := trie.EncodeRoot()
+	encroot, err := trie.Hash()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,5 +148,51 @@ func TestEncodeAndDecodeFromDB(t *testing.T) {
 
 	if !reflect.DeepEqual(testTrie.root, trie.root) {
 		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
+	}
+}
+
+func TestStoreAndLoadHash(t *testing.T) {
+	trie, err := newTrie()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer trie.closeDb()
+
+	tests := []trieTest{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+	}
+
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = trie.StoreHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hash, err := trie.LoadHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hash != expected {
+		t.Fatalf("Fail: got %x expected %x", hash, expected)
 	}
 }
