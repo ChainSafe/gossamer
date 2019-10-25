@@ -77,15 +77,3 @@ func (t *Trie) Print() {
 func (t *Trie) PrintEncoding() {
 	fmt.Println(t.StringWithEncoding())
 }
-
-func printHexBytes(in []byte) {
-	fmt.Print("[")
-	for i, b := range in {
-		if i < len(in)-1 {
-			fmt.Printf("%x, ", b)
-		} else {
-			fmt.Printf("%x", b)
-		}
-	}
-	fmt.Println("]")
-}

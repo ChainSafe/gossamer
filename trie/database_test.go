@@ -171,7 +171,7 @@ func TestStoreAndLoadHash(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
+		err = trie.Put(test.key, test.value)
 		if err != nil {
 			t.Fatal(err)
 		}
