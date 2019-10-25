@@ -71,7 +71,7 @@ func encode(n node, enc []byte) ([]byte, error) {
 }
 
 // Decode decodes a trie from the DB and sets the receiver to it
-// The encoded trie must have been encoded with EncodeForDB
+// The encoded trie must have been encoded with t.Encode
 func (t *Trie) Decode(enc []byte) error {
 	r := &bytes.Buffer{}
 	_, err := r.Write(enc)
