@@ -22,19 +22,48 @@ import (
 
 // String returns the trie stringified through pre-order traversal
 func (t *Trie) String() string {
-	str := ""
-	return t.string(str, t.root, nil)
+	return t.string("", t.root, nil, false)
 }
 
-func (t *Trie) string(str string, current node, prefix []byte) string {
+// StringWithEncoding returns the trie stringified as well as the encoding of each node
+func (t *Trie) StringWithEncoding() string {
+	return t.string("", t.root, nil, true)
+}
+
+func (t *Trie) string(str string, current node, prefix []byte, withEncoding bool) string {
+	h, err := NewHasher()
+	if err != nil {
+		return ""
+	}
+
+	var encoding []byte
+	var hash []byte
+	if withEncoding && current != nil {
+		encoding, err = current.Encode()
+		if err != nil {
+			return ""
+		}
+		hash, err = h.Hash(current)
+		if err != nil {
+			return ""
+		}
+	}
+
 	switch c := current.(type) {
 	case *branch:
 		str += fmt.Sprintf("branch prefix %x key %x children %b value %x\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
+		if withEncoding {
+			str += fmt.Sprintf("branch encoding %x branch hash %x", encoding, hash)
+		}
+
 		for i, child := range c.children {
-			str = t.string(str, child, append(append(prefix, byte(i)), c.key...))
+			str = t.string(str, child, append(append(prefix, byte(i)), c.key...), withEncoding)
 		}
 	case *leaf:
 		str += fmt.Sprintf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
+		if withEncoding {
+			str += fmt.Sprintf("leaf encoding %x leaf hash %x", encoding, hash)
+		}
 	}
 
 	return str
@@ -42,55 +71,11 @@ func (t *Trie) string(str string, current node, prefix []byte) string {
 
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
-	fmt.Println("printing trie...")
-	t.print(t.root, nil, false)
+	fmt.Println(t.String())
 }
 
 func (t *Trie) PrintEncoding() {
-	t.print(t.root, nil, true)
-}
-
-func (t *Trie) print(current node, prefix []byte, withEncoding bool) {
-	h, err := NewHasher()
-	if err != nil {
-		fmt.Printf("new hasher err %s\n", err)
-	}
-	var encoding []byte
-	var hash []byte
-	if withEncoding && current != nil {
-		encoding, err = current.Encode()
-		if err != nil {
-			fmt.Printf("encoding err %s\n", err)
-		}
-		hash, err = h.Hash(current)
-		if err != nil {
-			fmt.Printf("hashing err %s\n", err)
-		}
-	}
-
-	switch c := current.(type) {
-	case *branch:
-		fmt.Printf("branch prefix %x key %x children %b value %s\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
-		if withEncoding {
-			fmt.Printf("branch encoding ")
-			printHexBytes(encoding)
-			fmt.Printf("branch hash ")
-			printHexBytes(hash)
-		}
-		for i, child := range c.children {
-			t.print(child, append(append(prefix, byte(i)), c.key...), withEncoding)
-		}
-	case *leaf:
-		fmt.Printf("leaf prefix %x key %x value %s\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
-		if withEncoding {
-			fmt.Printf("leaf encoding ")
-			printHexBytes(encoding)
-			fmt.Printf("leaf hash ")
-			printHexBytes(hash)
-		}
-	default:
-		// do nothing
-	}
+	fmt.Println(t.StringWithEncoding())
 }
 
 func printHexBytes(in []byte) {
