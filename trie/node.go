@@ -187,6 +187,7 @@ func (l *leaf) Encode() ([]byte, error) {
 	return encoding, nil
 }
 
+// Decode wraps the decoding of different node types back into a node
 func Decode(r io.Reader) (node, error) {
 	header, err := readByte(r)
 	if err != nil {
