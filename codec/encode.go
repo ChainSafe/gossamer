@@ -223,7 +223,7 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	switch reflect.ValueOf(t).Kind() {
 	case reflect.Ptr:
 		v = reflect.ValueOf(t).Elem()
-	case reflect.Slice, reflect.Array:
+	case reflect.Slice, reflect.Array, reflect.Struct:
 		v = reflect.ValueOf(t)
 	}
 
