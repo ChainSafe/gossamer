@@ -16,10 +16,12 @@
 package main
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"unicode"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -33,7 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	log "github.com/ChainSafe/log15"
-	"github.com/pelletier/go-toml"
+	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
@@ -120,15 +122,13 @@ func loadConfig(file string, config *cfg.Config) error {
 		return err
 	}
 	log.Debug("Loading configuration", "path", filepath.Clean(fp))
-	raw, err := ioutil.ReadFile(filepath.Clean(fp))
+	f, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}
-	err = toml.Unmarshal(raw, config)
-	if err != nil {
+	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -244,4 +244,21 @@ func dumpConfig(ctx *cli.Context) error {
 		log.Warn("err writing comment output for dumpconfig command", "err", err.Error())
 	}
 	return nil
+}
+
+// These settings ensure that TOML keys use the same names as Go struct fields.
+var tomlSettings = toml.Config{
+	NormFieldName: func(rt reflect.Type, key string) string {
+		return key
+	},
+	FieldToKey: func(rt reflect.Type, field string) string {
+		return field
+	},
+	MissingField: func(rt reflect.Type, field string) error {
+		link := ""
+		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
+			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
+		}
+		return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
+	},
 }

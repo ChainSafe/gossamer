@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
+	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
@@ -47,6 +48,7 @@ func teardown(tempFile *os.File) {
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
 	testConfig.GlobalCfg.DataDir = TestDataDir
+	testConfig.P2pCfg.RandSeed = 1
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
@@ -241,7 +243,7 @@ func TestSetP2pConfig(t *testing.T) {
 			setP2pConfig(context, input)
 
 			if !reflect.DeepEqual(input.P2pCfg, c.expected) {
-				t.Fatalf("\ngot %+v\nexpected %+v", input.P2pCfg, c.expected)
+				t.Errorf("\ngot %+v\nexpected %+v", input.P2pCfg, c.expected)
 			}
 		})
 	}
@@ -315,6 +317,8 @@ func TestStrToMods(t *testing.T) {
 
 func TestMakeNode(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
+	defer teardown(tempFile)
+	defer os.Remove(TestDataDir)
 
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -346,7 +350,6 @@ func TestMakeNode(t *testing.T) {
 			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(fig), reflect.TypeOf(&cfg.Config{}))
 		}
 	}
-	defer teardown(tempFile)
 }
 
 func TestCommands(t *testing.T) {
