@@ -64,7 +64,7 @@ func (t *Trie) EncodeRoot() ([]byte, error) {
 
 // Hash returns the hashed root of the trie
 func (t *Trie) Hash() (common.Hash, error) {
-	encRoot, err := t.Encode()
+	encRoot, err := t.EncodeRoot()
 	if err != nil {
 		return [32]byte{}, err
 	}
