@@ -26,16 +26,16 @@ import (
 
 // HttpServer acts as gateway to an RPC server
 type HttpServer struct {
-	Port    uint32       // Listening port
-	Host    string       // Listening hostname
+	Port      uint32  // Listening port
+	Host      string  // Listening hostname
 	rpcServer *Server // Actual RPC call handler
 }
 
 // NewHttpServer creates a new http server and registers an associated rpc server
-func NewHttpServer(api *api.Api, codec Codec, port uint32, host string, modules []api.Module) *HttpServer {
+func NewHttpServer(api *api.Api, codec Codec, host string, port uint32, modules []api.Module) *HttpServer {
 	server := &HttpServer{
-		Port: port,
-		Host: host,
+		Port:      port,
+		Host:      host,
 		rpcServer: NewApiServer(modules, api),
 	}
 
