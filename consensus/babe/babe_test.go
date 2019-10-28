@@ -454,25 +454,22 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create 2 transactions & push to TxQueue in babesession
-	e1 := &types.Extrinsic{0x01, 0x02, 0x03}
-	v1 := &tx.Validity{Priority: 2}
-	tx1 := tx.NewValidTransaction(e1, v1)
+	// Push an extrinsic to the r
+	e1 := types.Extrinsic([]byte{1, 1, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 144, 113, 116, 62, 181, 98, 184, 56, 117, 228, 121, 88, 45, 21, 26, 200, 248, 62, 155, 0, 183, 222, 15, 145, 160, 249, 135, 252, 180, 226, 194, 88, 48, 123, 247, 162, 47, 213, 161, 96, 27, 77, 76, 159, 198, 1, 62, 132, 58, 140, 191, 96, 198, 4, 32, 138, 215, 61, 78, 143, 18, 32, 207, 140})
+	v1 := tx.Validity{Priority: 1}
+	tx1 := tx.NewValidTransaction(&e1, &v1)
 	babesession.PushToTxQueue(tx1)
 
-	e2 := &types.Extrinsic{0x04, 0x05, 0x06, 0x07}
-	v2 := &tx.Validity{Priority: 1}
-	tx2 := tx.NewValidTransaction(e2, v2)
-	babesession.PushToTxQueue(tx2)
+	_, err = babesession.validateTransaction(e1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// Create a block to put the transactions into
-	fmt.Println("@@@@@@@")
+	// Create a block to put the transactions
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
 		t.Fatalf("Can't convert hex 0x00 to hash")
 	}
-
-	fmt.Println("@@@@@@@")
 
 	block := types.Block{
 		Header: types.BlockHeader{
@@ -482,32 +479,19 @@ func TestBuildBlock(t *testing.T) {
 		Body: types.BlockBody{},
 	}
 
-	fmt.Println("@@@@@@@")
-
 	// Create slot for block
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000),
+		duration: uint64(10000000),
 		number:   1,
 	}
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
-
 	resultBlock, err := babesession.buildBlock(block, slot, common.Hash{0x00})
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
 	if err != nil {
 		t.Fatal("buildblock test failed: ", err)
 	}
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@")
 	t.Log("Got back block: ", resultBlock)
-
-	// e2 := []byte{'d', 'e', 'f'}
-
-	// babesession.PushToTxQueue()
-
-	// babesession.buildBlock()
-
-	// babesession.PushToTxQueue()
+}
 
 }

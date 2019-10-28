@@ -218,8 +218,6 @@ func (b *Session) buildBlock(chainBest types.Block, slot Slot, hash common.Hash)
 	// TODO: We're assuming parent already has hash as runtime call doesn't exist
 	// parentBlockHash, err := b.blockHashFromIdFromRuntime(parentBlockHeader.Number.Bytes())
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-
 	var newBlock types.Block
 	// Assign values to headers of the new block
 	newBlock.Header.ParentHash = hash
@@ -236,56 +234,47 @@ func (b *Session) buildBlock(chainBest types.Block, slot Slot, hash common.Hash)
 		return nil, err
 	}
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@A")
-
-	// Get Inherent Extrinsics through runtime
-	//TODO: figure out where to get timstap0 & babeslot
-	blockInherentsData := BlockInherentsData{Timstap0: int64(time.Now().Unix()), Babeslot: int64(slot.number)}
-	fmt.Printf("%+v\n", blockInherentsData)
-
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-	encodedBlockInherentsData, err := codec.Encode(&blockInherentsData)
+	// Calling BlockBuilder_inherent_extrinsics using encoded data
+	extrinsicsArray, err := b.inherentExtrinsicsFromRuntime([]byte{8, 102, 105, 110, 97, 108, 110, 117, 109, 32, 1, 0, 0, 0, 0, 0, 0, 0, 116, 105, 109, 115, 116, 97, 112, 48, 32, 5, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Encoding: %x\n", encodedBlockInherentsData)
-
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-	extrinsicsArray, err := b.inherentExtrinsicsFromRuntime(encodedBlockInherentsData)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+	log.Debug("Returning from BlockBuilder_inherent_extrinsics call", "extrinsics array", *extrinsicsArray)
 
 	// Loop through inherents in the queue and apply them to the block through runtime
-	var blockBody *types.BlockBody
+	var blockBody types.BlockBody = make(types.BlockBody, 0, MAX_BLOCK_SIZE)
 	for _, extrinsic := range *extrinsicsArray {
 		err = b.applyExtrinsicFromRuntime(extrinsic)
 		if err != nil {
 			return nil, err
 		}
+		log.Debug("Applied extrinsic", extrinsic)
 	}
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+	log.Debug("Returning from BlockBuilder_apply_extrinsic calls")
 
 	// Add Extrinsics to the block through runtime until block is full
 	var extrinsic types.Extrinsic
-	for !blockIsFull(*blockBody) && !endOfSlot(slot) {
+
+	for !blockIsFull(blockBody) && !endOfSlot(slot) {
 		extrinsic = b.nextReadyExtrinsic()
+		fmt.Println("Applying Extrinsic", extrinsic)
 		err = b.applyExtrinsicFromRuntime(extrinsic)
 		if err != nil {
 			return nil, err
 		}
 
 		// Add the extrinsic to the blockbody
-		*blockBody = append(*blockBody, extrinsic)
+		blockBody = append(blockBody, extrinsic)
 
-		if !blockIsFull(*blockBody) {
+		if !blockIsFull(blockBody) {
 			// Drop first extrinsic in queue
 			b.txQueue.Pop()
 		}
+		log.Debug("Applied extrinsic", extrinsic)
 	}
+
+	log.Debug("Added Extrinsics to the block")
 
 	// Finalize block through runtime
 	blockHeaderPointer, err := b.finalizeBlockFromRuntime(extrinsic)
@@ -293,7 +282,7 @@ func (b *Session) buildBlock(chainBest types.Block, slot Slot, hash common.Hash)
 		return nil, err
 	}
 	newBlock.Header = *blockHeaderPointer
-	newBlock.Body = *blockBody
+	newBlock.Body = blockBody
 	return &newBlock, nil
 }
 
@@ -302,10 +291,10 @@ func blockIsFull(blockBody types.BlockBody) bool {
 }
 
 func endOfSlot(slot Slot) bool {
-	return uint64(time.Now().Unix()) < slot.start+slot.duration
+	return uint64(time.Now().Unix()) > slot.start+slot.duration
 }
 
 func (b *Session) nextReadyExtrinsic() types.Extrinsic {
-	transaction := b.txQueue.Pop()
+	transaction := b.txQueue.Peek()
 	return *transaction.Extrinsic
 }
