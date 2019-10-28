@@ -39,7 +39,7 @@ func newTrie() (*Trie, error) {
 	}
 
 	trie := &Trie{
-		db: &StateDB{
+		db: &Database{
 			Db:     stateDB,
 			Hasher: hasher,
 		},

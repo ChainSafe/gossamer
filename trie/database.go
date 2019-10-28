@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"sync"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
@@ -29,12 +28,32 @@ import (
 
 var LatestHashKey = []byte("latest_hash")
 
-// StateDB is a wrapper around a polkadb
-type StateDB struct {
+// Database is a wrapper around a polkadb
+type Database struct {
 	Db     polkadb.Database
 	Batch  polkadb.Batch
-	Lock   sync.RWMutex
 	Hasher *Hasher
+}
+
+func (db *Database) Store(key, value []byte) error {
+	return db.Db.Put(key, value)
+}
+
+func (db *Database) Load(key []byte) ([]byte, error) {
+	return db.Db.Get(key)
+}
+
+func (db *Database) StoreLatestHash(hash []byte) error {
+	return db.Db.Put(LatestHashKey, hash)
+}
+
+func (db *Database) LoadLatestHash() (common.Hash, error) {
+	hashbytes, err := db.Db.Get(LatestHashKey)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHash(hashbytes), nil
 }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
@@ -107,7 +126,7 @@ func decode(r io.Reader, prev node) error {
 			if child != nil {
 				// there's supposed to be a child here, decode the next node and place it
 				// when we decode a branch node, we only know if a child is supposed to exist at a certain index (due to the
-				// bitmap). we also have the hashes of the children, but we can't reconstruct the children from that. so 
+				// bitmap). we also have the hashes of the children, but we can't reconstruct the children from that. so
 				// instead, we put an empty leaf node where the child should be, so when we reconstruct it in this function,
 				// we can see that it's non-nil and we should decode the next node from the reader and place it here
 				scnode, err := sd.Decode([]byte{})
@@ -150,12 +169,12 @@ func (t *Trie) StoreInDB() error {
 		return err
 	}
 
-	return t.db.Db.Put(roothash[:], enc)
+	return t.db.Store(roothash[:], enc)
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (t *Trie) LoadFromDB(root common.Hash) error {
-	enctrie, err := t.db.Db.Get(root[:])
+	enctrie, err := t.db.Load(root[:])
 	if err != nil {
 		return err
 	}
@@ -170,15 +189,10 @@ func (t *Trie) StoreHash() error {
 		return err
 	}
 
-	return t.db.Db.Put(LatestHashKey, hash[:])
+	return t.db.StoreLatestHash(hash[:])
 }
 
 // LoadHash retrieves the hash stores at `LatestHashKey` from the DB
 func (t *Trie) LoadHash() (common.Hash, error) {
-	hashbytes, err := t.db.Db.Get(LatestHashKey)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(hashbytes), nil
+	return t.db.LoadLatestHash()
 }
