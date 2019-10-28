@@ -106,6 +106,10 @@ func decode(r io.Reader, prev node) error {
 		for i, child := range b.children {
 			if child != nil {
 				// there's supposed to be a child here, decode the next node and place it
+				// when we decode a branch node, we only know if a child is supposed to exist at a certain index (due to the
+				// bitmap). we also have the hashes of the children, but we can't reconstruct the children from that. so 
+				// instead, we put an empty leaf node where the child should be, so when we reconstruct it in this function,
+				// we can see that it's non-nil and we should decode the next node from the reader and place it here
 				scnode, err := sd.Decode([]byte{})
 				if err != nil {
 					return err
@@ -159,6 +163,7 @@ func (t *Trie) LoadFromDB(root common.Hash) error {
 	return t.Decode(enctrie)
 }
 
+// StoreHash stores the current root hash in the database at `LatestHashKey`
 func (t *Trie) StoreHash() error {
 	hash, err := t.Hash()
 	if err != nil {
@@ -168,6 +173,7 @@ func (t *Trie) StoreHash() error {
 	return t.db.Db.Put(LatestHashKey, hash[:])
 }
 
+// LoadHash retrieves the hash stores at `LatestHashKey` from the DB
 func (t *Trie) LoadHash() (common.Hash, error) {
 	hashbytes, err := t.db.Db.Get(LatestHashKey)
 	if err != nil {
