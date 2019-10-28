@@ -94,6 +94,7 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
 	if err != nil {
 		log.Error("[ext_malloc]", "Error:", err)
+		panic(err)
 	}
 
 	return int32(res)
@@ -137,6 +138,7 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
 // location `valueData`. the value can have up to value `valueLen` and the returned value starts at value[valueOffset:]
+// Based off: https://github.com/paritytech/substrate/blob/cc0b1d08d6e0e7e9690947f484c9a1e2265bf05d/core/executor/src/host_interface.rs#L406
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	log.Trace("[ext_get_storage_into] executing...")
@@ -151,7 +153,12 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := t.Get(key)
-	if err != nil || val == nil {
+	if err != nil {
+		log.Error("[ext_get_storage_into]", "err", err)
+		ret := 1<<32 - 1
+		return int32(ret)
+	} else if val == nil {
+		log.Error("[ext_get_storage_into]", "err", "value is nil")
 		ret := 1<<32 - 1
 		return int32(ret)
 	}
@@ -190,10 +197,14 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 //export ext_set_child_storage
 func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
+	log.Debug("[ext_ed25519_sign] executing...")
+	log.Warn("[ext_ed25519_sign] Not yet implemented.")
 }
 
 //export ext_get_child_storage_into
 func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
+	log.Debug("[ext_ed25519_sign] executing...")
+	log.Warn("[ext_ed25519_sign] Not yet implemented.")
 	return 0
 }
 
@@ -213,6 +224,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	root, err := t.Hash()
 	if err != nil {
 		log.Error("[ext_storage_root]", "error", err)
+		return
 	}
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
@@ -221,6 +233,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 //export ext_storage_changes_root
 func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 	log.Trace("[ext_storage_changes_root] executing...")
+	log.Warn("[ext_storage_changes_root] Not yet implemented.")
 	return 0
 }
 
@@ -330,18 +343,20 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
 		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
 		value := memory[valuesData+pos : valuesData+pos+valueLen]
-		log.Debug("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%x", value), "valueLen", valueLen)
+		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%x", value), "valueLen", valueLen)
 		pos += valueLen
 
 		err := t.Put([]byte{byte(i)}, value)
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			return
 		}
 	}
 
 	root, err := t.Hash()
 	if err != nil {
 		log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+		return
 	}
 
 	copy(memory[result:result+32], root[:])
@@ -357,6 +372,7 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 	hash, err := common.Blake2bHash(memory[data : data+length])
 	if err != nil {
 		log.Error("[ext_blake2_256]", "error", err)
+		return
 	}
 
 	copy(memory[out:out+32], hash[:])
@@ -370,6 +386,7 @@ func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
 	hash, err := common.Blake2b128(memory[data : data+length])
 	if err != nil {
 		log.Error("[ext_blake2_128]", "error", err)
+		return
 	}
 
 	copy(memory[out:out+16], hash[:])
@@ -394,6 +411,7 @@ func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 	_, err := hasher.Write(memory[data : data+len])
 	if err != nil {
 		log.Error("[ext_twox_64]", "error", err)
+		return
 	}
 
 	res := hasher.Sum64()
@@ -413,6 +431,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	_, err := h0.Write(memory[data : data+len])
 	if err != nil {
 		log.Error("[ext_twox_128]", "error", err)
+		return
 	}
 	res0 := h0.Sum64()
 	hash0 := make([]byte, 8)
@@ -422,6 +441,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	_, err = h1.Write(memory[data : data+len])
 	if err != nil {
 		log.Error("[ext_twox_128]", "error", err)
+		return
 	}
 	res1 := h1.Sum64()
 	hash1 := make([]byte, 8)
