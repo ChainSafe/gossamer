@@ -138,7 +138,6 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
 // location `valueData`. the value can have up to value `valueLen` and the returned value starts at value[valueOffset:]
-// Based off: https://github.com/paritytech/substrate/blob/cc0b1d08d6e0e7e9690947f484c9a1e2265bf05d/core/executor/src/host_interface.rs#L406
 //export ext_get_storage_into
 func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	log.Trace("[ext_get_storage_into] executing...")
