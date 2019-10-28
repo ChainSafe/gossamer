@@ -42,6 +42,7 @@ func NewDbService(path string) (*DbService, error) {
 
 // Start...
 func (s *DbService) Start() error {
+
 	stateDataDir := filepath.Join(s.path, "state")
 	blockDataDir := filepath.Join(s.path, "block")
 

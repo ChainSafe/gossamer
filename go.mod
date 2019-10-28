@@ -8,6 +8,7 @@ require (
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/disiqueira/gotree v1.0.0
+	github.com/ethereum/go-ethereum v1.9.6
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
@@ -21,6 +22,7 @@ require (
 	github.com/libp2p/go-libp2p v0.2.0
 	github.com/libp2p/go-libp2p-core v0.0.6
 	github.com/libp2p/go-libp2p-kad-dht v0.1.1
+	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.2-0.20190621130618-cfa9bb890c1a // indirect
 	github.com/libp2p/go-libp2p-swarm v0.1.1 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
