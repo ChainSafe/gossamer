@@ -511,11 +511,11 @@ func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubke
 
 	pub, err := secp256k1.RecoverPubkey(msg, sig)
 	if err != nil {
-		return 0
+		return 1
 	}
 
 	copy(memory[pubkeyData:pubkeyData+65], pub)
-	return 1
+	return 0
 }
 
 //export ext_is_validator
