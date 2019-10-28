@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-var LATEST_HASH_KEY = []byte("latest_hash")
+var LatestHashKey = []byte("latest_hash")
 
 // StateDB is a wrapper around a polkadb
 type StateDB struct {
@@ -165,11 +165,11 @@ func (t *Trie) StoreHash() error {
 		return err
 	}
 
-	return t.db.Db.Put(LATEST_HASH_KEY, hash[:])
+	return t.db.Db.Put(LatestHashKey, hash[:])
 }
 
 func (t *Trie) LoadHash() (common.Hash, error) {
-	hashbytes, err := t.db.Db.Get(LATEST_HASH_KEY)
+	hashbytes, err := t.db.Db.Get(LatestHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}

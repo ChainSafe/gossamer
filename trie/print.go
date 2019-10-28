@@ -74,6 +74,7 @@ func (t *Trie) Print() {
 	fmt.Println(t.String())
 }
 
+// PrintEncoding prints the trie with node encodings through pre-order traversal
 func (t *Trie) PrintEncoding() {
 	fmt.Println(t.StringWithEncoding())
 }
