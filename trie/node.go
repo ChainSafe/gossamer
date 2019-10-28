@@ -14,6 +14,28 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
+// Modified Merkle-Patricia Trie
+// See https://github.com/w3f/polkadot-spec/blob/master/runtime-environment-spec/polkadot_re_spec.pdf for the full specification.
+//
+// Note that for the following definitions, `|` denotes concatentation
+//
+// Branch encoding:
+// NodeHeader | Extra partial key length | Partial Key | Value
+// `NodeHeader` is a byte such that:
+// most significant two bits of `NodeHeader`: 10 if branch w/o value, 11 if branch w/ value
+// least significant six bits of `NodeHeader`: if len(key) > 62, 0x3f, otherwise len(key)
+// `Extra partial key length` is included if len(key) > 63 and consists of the remaining key length
+// `Partial Key` is the branch's key
+// `Value` is: Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
+//
+// Leaf encoding:
+// NodeHeader | Extra partial key length | Partial Key | Value
+// `NodeHeader` is a byte such that:
+// most significant two bits of `NodeHeader`: 01
+// least signficant six bits of `NodeHeader`: if len(key) > 62, 0x3f, otherwise len(key)
+// `Extra partial key length` is included if len(key) > 63 and consists of the remaining key length
+// `Partial Key` is the leaf's key
+// `Value` is the leaf's SCALE encoded value
 package trie
 
 import (
@@ -109,15 +131,7 @@ func Encode(n node) ([]byte, error) {
 	return nil, nil
 }
 
-// Encode encodes a branch with the following format:
-// NodeHeader | Extra partial key length | Partial Key | Value
-// where NodeHeader is a byte:
-// most significant two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
-// least significant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
-// where Extra partial key length is included if len(key) > 63: consists of the remaining key length
-// Partial Key is the branch's key
-// Value is:
-// Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
+// Encode encodes a branch with the encoding specified at the top of this package
 func (b *branch) Encode() ([]byte, error) {
 	encoding, err := b.header()
 	if err != nil {
@@ -159,15 +173,7 @@ func (b *branch) Encode() ([]byte, error) {
 	return encoding, nil
 }
 
-// Encode encodes a leaf with the following format:
-// NodeHeader | Extra partial key length | Partial Key | Value
-// where NodeHeader is a byte:
-// most significant two bits of first byte: 01
-// least signficant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
-// where Extra partial key length is included if len(key) > 63:
-// consists of the remaining key length
-// Partial Key is the leaf's key
-// Value is the leaf's SCALE encoded value
+// Encode encodes a leaf with the encoding specified at the top of this package
 func (l *leaf) Encode() ([]byte, error) {
 	encoding, err := l.header()
 	if err != nil {
@@ -208,16 +214,7 @@ func Decode(r io.Reader) (node, error) {
 	return nil, errors.New("cannot decode invalid encoding into node")
 }
 
-// Decode decodes a byte array with the following format into a branch node
-// NodeHeader | Extra partial key length | Partial Key | Value
-// where NodeHeader is a byte:
-// most significant two bits of first byte: 10 if branch w/o value, 11 if branch w/ value
-// least significant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
-// where Extra partial key length is included if len(key) > 63: consists of the remaining key length
-// note that partial key length is the length of the pk in nibbles
-// Partial Key is the branch's key
-// Value is:
-// Children Bitmap | SCALE Branch Node Value | Hash(Enc(Child[i_1])) | Hash(Enc(Child[i_2])) | ... | Hash(Enc(Child[i_n]))
+// Decode decodes a byte array with the encoding specified at the top of this package into a branch node
 // Note that since the encoded branch stores the hash of the children nodes, we aren't able to reconstruct the child
 // nodes from the encoding. This function instead stubs where the children are known to be with an empty leaf.
 func (b *branch) Decode(r io.Reader, header byte) (err error) {
@@ -266,15 +263,7 @@ func (b *branch) Decode(r io.Reader, header byte) (err error) {
 	return nil
 }
 
-// Decode decodes a byte array with the following format into a leaf node:
-// NodeHeader | Extra partial key length | Partial Key | Value
-// where NodeHeader is a byte:
-// most significant two bits of first byte: 01
-// least signficant six bits of first byte: if len(key) > 62, 0x3f, otherwise len(key)
-// where Extra partial key length is included if len(key) > 63:
-// consists of the remaining key length
-// Partial Key is the leaf's key
-// Value is the leaf's SCALE encoded value
+// Decode decodes a byte array with the encoding specified at the top of this package into a leaf node
 func (l *leaf) Decode(r io.Reader, header byte) (err error) {
 	if header == 0 {
 		header, err = readByte(r)
