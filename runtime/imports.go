@@ -67,9 +67,9 @@ import (
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	xxhash "github.com/OneOfOne/xxhash"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 	ed25519 "golang.org/x/crypto/ed25519"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
 var registry map[int]RuntimeCtx
@@ -507,7 +507,7 @@ func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubke
 		return 0
 	}
 
-	copy(memory[pubkeyData : pubkeyData+65], pub)
+	copy(memory[pubkeyData:pubkeyData+65], pub)
 	return 1
 }
 
