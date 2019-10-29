@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -25,6 +26,8 @@ func loadGenesis(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	log.Info("🕸\t Initializing node", "genesisfile", fp)
 
 	// DB: Create database dir and initialize stateDB and blockDB
 	dataDir := getDataDir(ctx, fig)
@@ -43,6 +46,8 @@ func loadGenesis(ctx *cli.Context) error {
 	tdb := &trie.Database{
 		Db: dbSrv.StateDB.Db,
 	}
+
+	defer tdb.Db.Close()
 
 	// create and load storage trie with initial genesis state
 	t := trie.NewEmptyTrie(tdb)
@@ -82,20 +87,28 @@ func storeGenesisInfo(db *trie.Database, gen *genesis.Genesis) error {
 		return err
 	}
 
+	log.Info("🕸\t Initializing node", "name", gen.Name)
+
 	err = db.Store(common.NodeId, []byte(gen.Id))
 	if err != nil {
 		return err
 	}
+
+	log.Info("🕸\t Initializing node", "id", gen.Id)
 
 	err = db.Store(common.NodeProtocolId, []byte(gen.ProtocolId))
 	if err != nil {
 		return err
 	}
 
+	log.Info("🕸\t Initializing node", "protocolID", gen.ProtocolId)
+
 	encBootnodes, err := scale.Encode(gen.Bootnodes)
 	if err != nil {
 		return err
 	}
+
+	log.Info("🕸\t Initializing node", "bootnodes", gen.Bootnodes)
 
 	return db.Store(common.NodeBootnodes, encBootnodes)
 }

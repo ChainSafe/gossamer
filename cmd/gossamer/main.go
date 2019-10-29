@@ -86,6 +86,7 @@ func init() {
 	app.Version = "0.0.1"
 	app.Commands = []cli.Command{
 		dumpConfigCommand,
+		initCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, p2pFlags...)
@@ -123,6 +124,7 @@ func initNode(ctx *cli.Context) error {
 		return err
 	}
 
+	log.Info("🕸\t Finished initializing node!")
 	return nil
 }
 
