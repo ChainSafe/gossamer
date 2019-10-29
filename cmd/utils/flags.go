@@ -17,6 +17,7 @@
 package utils
 
 import (
+	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -30,6 +31,7 @@ var (
 	VerbosityFlag = cli.StringFlag{
 		Name:  "verbosity",
 		Usage: "Supports levels crit (silent) to trce (trace)",
+		Value: log.LvlInfo.String(),
 	}
 	//Genesis
 	GenesisFlag = cli.StringFlag{

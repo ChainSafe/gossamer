@@ -316,7 +316,7 @@ func TestMakeNode(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, _, err = makeNode(context, nil)
+			_, _, err = makeNode(context)
 			if err != nil {
 				t.Fatal(err)
 			}
