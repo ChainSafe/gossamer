@@ -42,7 +42,7 @@ func loadGenesis(ctx *cli.Context) error {
 	}
 
 	defer func() {
-		err := dbSrv.Stop()
+		err = dbSrv.Stop()
 		if err != nil {
 			log.Error("error stopping database service")
 		}
