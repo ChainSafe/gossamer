@@ -41,13 +41,16 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	defer dbSrv.Stop()
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			log.Error("error stopping database service")
+		}
+	}()
 
 	tdb := &trie.Database{
 		Db: dbSrv.StateDB.Db,
 	}
-
-	defer tdb.Db.Close()
 
 	// create and load storage trie with initial genesis state
 	t := trie.NewEmptyTrie(tdb)
