@@ -40,23 +40,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var (
-	dumpConfigCommand = cli.Command{
-		Action:      dumpConfig,
-		Name:        "dumpconfig",
-		Usage:       "Show configuration values",
-		ArgsUsage:   "",
-		Flags:       append(append(nodeFlags, rpcFlags...)),
-		Category:    "CONFIGURATION DEBUGGING",
-		Description: `The dumpconfig command shows configuration values.`,
-	}
-
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
-	}
-)
-
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
 func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)

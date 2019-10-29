@@ -51,6 +51,31 @@ var (
 	}
 )
 
+var (
+	dumpConfigCommand = cli.Command{
+		Action:      dumpConfig,
+		Name:        "dumpconfig",
+		Usage:       "Show configuration values",
+		ArgsUsage:   "",
+		Flags:       append(append(nodeFlags, rpcFlags...)),
+		Category:    "CONFIGURATION DEBUGGING",
+		Description: `The dumpconfig command shows configuration values.`,
+	}
+	initCommand = cli.Command{
+		Action:      initNode,
+		Name:        "init",
+		Usage:       "Initialize node genesis state",
+		ArgsUsage:   "",
+		Flags:       genesisFlags,
+		Category:    "INITIALIZATION",
+		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
+	}
+	configFileFlag = cli.StringFlag{
+		Name:  "config",
+		Usage: "TOML configuration file",
+	}
+)
+
 // init initializes CLI
 func init() {
 	app.Action = gossamer
@@ -90,14 +115,19 @@ func startLogger(ctx *cli.Context) error {
 	return nil
 }
 
+// initNode loads the genesis file and loads the initial state into the DB
+func initNode(ctx *cli.Context) error {
+	err := loadGenesis(ctx)
+	if err != nil {
+		log.Error("error loading genesis state", "error", err)
+		return err
+	}
+
+	return nil
+}
+
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-	// genesisState, err := loadGenesis(ctx)
-	// if err != nil {
-	// 	log.Error("error loading genesis state", "error", err)
-	// 	return err
-	// }
-
 	err := startLogger(ctx)
 	if err != nil {
 		return err

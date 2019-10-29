@@ -32,13 +32,11 @@ import (
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
-	"github.com/ChainSafe/gossamer/trie"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -122,6 +120,14 @@ func getTestBlob() (n int64, err error) {
 	return n, err
 }
 
+var tmpGenesis = &genesis.Genesis{
+	Name:       "gossamer",
+	Id:         "gossamer",
+	Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
+	ProtocolId: "gossamer",
+	Genesis:    genesis.GenesisFields{},
+}
+
 func createTempGenesisFile(t *testing.T) string {
 	_, err := getTestBlob()
 	if err != nil {
@@ -139,15 +145,8 @@ func createTempGenesisFile(t *testing.T) string {
 	}
 
 	testhex := hex.EncodeToString(testbytes)
-
-	tmp := &genesis.Genesis{
-		Name:       "gossamer",
-		Id:         "gossamer",
-		Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
-		ProtocolId: "gossamer",
-		Genesis: genesis.GenesisFields{
-			Raw: map[string]string{"0x3a636f6465": "0x" + testhex},
-		},
+	tmpGenesis.Genesis = genesis.GenesisFields{
+		Raw: map[string]string{"0x3a636f6465": "0x" + testhex},
 	}
 
 	// Create temp file
@@ -157,7 +156,7 @@ func createTempGenesisFile(t *testing.T) string {
 	}
 
 	// Grab json encoded bytes
-	bz, err := json.Marshal(tmp)
+	bz, err := json.Marshal(tmpGenesis)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,7 +424,7 @@ func TestMakeNode(t *testing.T) {
 		set.String("genesis", genesispath, "genesis file")
 		context := cli.NewContext(nil, set, nil)
 
-		_, err := loadGenesis(context)
+		err := loadGenesis(context)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -483,58 +482,4 @@ func TestCommands(t *testing.T) {
 		}
 	}
 	defer teardown(tempFile)
-}
-
-func TestGenesisStateLoading(t *testing.T) {
-	tempFile, _ := createTempConfigFile()
-	defer teardown(tempFile)
-
-	genesispath := createTempGenesisFile(t)
-	defer os.Remove(genesispath)
-
-	gen, err := genesis.LoadGenesisJsonFile(genesispath)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	set := flag.NewFlagSet("config", 0)
-	set.String("config", tempFile.Name(), "TOML configuration file")
-	set.String("genesis", genesispath, "genesis file")
-	context := cli.NewContext(nil, set, nil)
-
-	_, err = loadGenesis(context)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	d, _, err := makeNode(context)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
-	}
-
-	expected := &trie.Trie{}
-	err = expected.Load(gen.Genesis.Raw)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expectedRoot, err := expected.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	mgr := d.Services.Get(&core.Service{})
-
-	stateRoot, err := mgr.(*core.Service).StorageRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(expectedRoot[:], stateRoot[:]) {
-		t.Fatalf("Fail: got %x expected %x", stateRoot, expectedRoot)
-	}
 }

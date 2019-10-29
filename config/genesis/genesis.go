@@ -4,10 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
-
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
-	//"github.com/ChainSafe/gossamer/trie"
 )
 
 // Genesis stores the data parsed from the genesis configuration file
@@ -38,12 +34,4 @@ func LoadGenesisJsonFile(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
-}
-
-// GenesisState stores the genesis state after it's been loaded into a trie and network configuration
-type GenesisState struct {
-	Name        string
-	Id          string
-	Db          *polkadb.DbService
-	P2pConfig   *p2p.Config
 }

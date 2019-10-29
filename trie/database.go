@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-var LatestHashKey = []byte("latest_hash")
+var LatestHashKey = common.LatestHashKey
 
 // Database is a wrapper around a polkadb
 type Database struct {
