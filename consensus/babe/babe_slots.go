@@ -21,16 +21,14 @@ import (
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
+	"fmt"
 )
 
-// used to calculate slot time current value of 1200 from spec suggestion
-const SlotTail uint64 = 1200
-
-// calculate the slot time for a given block in miliseconds, returns 0 if it can't be calculated
-func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error) {
+// calculate the slot time for a given block in miliseconds, returns 0 and an error if it can't be calculated
+func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
 	dl := bt.DeepestLeaf()
-	bn := new(big.Int).SetUint64(SlotTail)
+	bn := new(big.Int).SetUint64(slotTail)
 	bn.Sub(dl.Number, bn)
 	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
 	if bn.Cmp(new(big.Int)) <= 0 {
@@ -38,9 +36,14 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error)
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
 	s := bt.GetNodeFromBlockNumber(bn)
+	fmt.Println("HEREEEEEE SD")
 	sd := b.config.SlotDuration
 	for _, node := range bt.SubChain(dl.Hash, s.Hash) {
-		st := node.ArrivalTime + (slotOffset(bt.ComputeSlotForNode(node, sd), slot) * sd)
+		so, err:= slotOffset(bt.ComputeSlotForNode(node, sd), slot)
+		if err != nil {
+			return 0, err
+		}
+		st := node.ArrivalTime + (so * sd)
 		at = append(at, st)
 	}
 	st, err := median(at)
@@ -51,7 +54,8 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree) (uint64, error)
 
 }
 
-// will need to implement own quickselect because of library constraints, this will do for now
+// Calculates the median of a uint64 slice
+// @TODO: Implement quickselect as an alternative to this.
 func median(l []uint64) (uint64, error) {
 	// sort the list
 	sort.Slice(l, func(i, j int) bool { return l[i] < l[j] })
@@ -69,6 +73,10 @@ func median(l []uint64) (uint64, error) {
 }
 
 // returns slotOffset
-func slotOffset(start uint64, end uint64) uint64 {
-	return (end - start)
+func slotOffset(start uint64, end uint64) (uint64, error) {
+	os := end - start
+	if (end <= start) {
+		return 0, errors.New("Slot end time less than or equal to slot start time!")
+	}
+	return os, nil
 }

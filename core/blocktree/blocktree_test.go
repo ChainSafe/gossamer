@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -62,6 +63,39 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 	previousHash := bt.head.Hash
 
 	for i := 1; i <= depth; i++ {
+		hash, err := common.HexToHash(intToHashable(i))
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		block := types.Block{
+			Header: types.BlockHeader{
+				ParentHash: previousHash,
+				Hash:       hash,
+				Number:     big.NewInt(int64(i)),
+			},
+			Body: types.BlockBody{},
+		}
+
+		bt.AddBlock(block)
+		previousHash = hash
+	}
+
+	return bt
+}
+
+func createFlatTree_WithWaitTime(t *testing.T, depth int) *BlockTree {
+	d := &db.BlockDB{
+		Db: db.NewMemDatabase(),
+	}
+
+	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)
+
+	previousHash := bt.head.Hash
+
+	for i := 1; i <= depth; i++ {
+		time.Sleep(10 * time.Millisecond)
 		hash, err := common.HexToHash(intToHashable(i))
 
 		if err != nil {
@@ -213,10 +247,10 @@ func TestBlockTree_Subchain(t *testing.T) {
 }
 
 func TestBlockTree_ComputeSlotForNode(t *testing.T) {
-	bt := createFlatTree(t, 2)
+	bt := createFlatTree_WithWaitTime(t, 9)
 
-	expectedSlotNumber := uint64(1)
-	slotNumber := bt.ComputeSlotForNode(bt.GetNode(common.Hash{0x01}), 100000000)
+	expectedSlotNumber := uint64(10)
+	slotNumber := bt.ComputeSlotForNode(bt.GetNode(common.Hash{0x09}), 10)
 
 	if slotNumber != expectedSlotNumber {
 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)

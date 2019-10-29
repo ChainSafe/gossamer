@@ -47,7 +47,7 @@ func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTre
 		parent:      nil,
 		children:    []*Node{},
 		depth:       big.NewInt(0),
-		ArrivalTime: uint64(time.Now().UnixNano()), // set arrival time of genesis in nanoseconds since unix epoch
+		ArrivalTime: uint64(time.Now().UnixNano()/1e6), // set arrival time of genesis in milliseconds since unix epoch
 	}
 	return &BlockTree{
 		head:            head,
@@ -81,7 +81,8 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 		parent:      parent,
 		children:    []*Node{},
 		depth:       depth,
-		ArrivalTime: uint64(time.Now().UnixNano()),
+		// There is no way to directly calculate the time from the Unix Epoch in Milliseconds in go
+		ArrivalTime: uint64(time.Now().UnixNano()/1e6),
 	}
 	parent.addChild(n)
 
