@@ -23,8 +23,6 @@ import (
 	"runtime"
 
 	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/log15"
 )
 
@@ -33,14 +31,13 @@ const (
 	DefaultRpcHttpPort = 8545        // Default port for
 
 	// P2P
-	DefaultP2PPort     = 7001
-	DefaultP2PRandSeed = int64(0)
+	DefaultP2PPort = 7001
 
 	DefaultGenesisPath = "./genesis.json"
 )
 
 var (
-	// Note: must be non-nil declaration, otherwise toml parsing breaks
+	// Must be non-nil to match toml parsing semantics
 	DefaultP2PBootstrap = []string{}
 	DefaultRpcModules   = []api.Module{"system"}
 )
@@ -53,17 +50,15 @@ var (
 	}
 
 	// P2P
-	DefaultP2PConfig = p2p.Config{
+	DefaultP2PConfig = P2pCfg{
 		Port:           DefaultP2PPort,
-		RandSeed:       DefaultP2PRandSeed,
 		BootstrapNodes: DefaultP2PBootstrap,
 		NoBootstrap:    false,
 		NoMdns:         false,
-		DataDir:        DefaultDataDir(),
 	}
 
 	// RPC
-	DefaultRpcConfig = rpc.Config{
+	DefaultRpcConfig = RpcCfg{
 		Host:    DefaultRpcHttpHost,
 		Port:    DefaultRpcHttpPort,
 		Modules: DefaultRpcModules,
@@ -73,9 +68,9 @@ var (
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 func DefaultConfig() *Config {
 	return &Config{
-		GlobalCfg: DefaultGlobalConfig,
-		P2pCfg:    DefaultP2PConfig,
-		RpcCfg:    DefaultRpcConfig,
+		Global: DefaultGlobalConfig,
+		P2p:    DefaultP2PConfig,
+		Rpc:    DefaultRpcConfig,
 	}
 }
 

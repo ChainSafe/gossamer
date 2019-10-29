@@ -30,10 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
-	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
-	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
@@ -47,8 +45,7 @@ func teardown(tempFile *os.File) {
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
-	testConfig.GlobalCfg.DataDir = TestDataDir
-	testConfig.P2pCfg.RandSeed = 1
+	testConfig.Global.DataDir = TestDataDir
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
@@ -151,7 +148,7 @@ func TestSetGlobalConfig(t *testing.T) {
 }
 
 func TestCreateP2PService(t *testing.T) {
-	srv, _ := createP2PService(cfg.DefaultConfig().P2pCfg)
+	srv, _ := createP2PService(cfg.DefaultConfig())
 
 	if srv == nil {
 		t.Fatalf("failed to create p2p service")
@@ -160,73 +157,66 @@ func TestCreateP2PService(t *testing.T) {
 
 func TestSetP2pConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
-	dataDirPath, _ := filepath.Abs(TestDataDir)
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    p2p.Config
+		expected    cfg.P2pCfg
 	}{
 		{
 			"config file",
 			[]string{"config"},
 			[]interface{}{tempFile.Name()},
-			cfgClone.P2pCfg,
+			cfgClone.P2p,
 		},
 		{
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			p2p.Config{
+			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           cfg.DefaultP2PPort,
-				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    true,
 				NoMdns:         true,
-				DataDir:        cfg.DefaultDataDir(),
 			},
 		},
 		{
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{"1234,5678"},
-			p2p.Config{
+			cfg.P2pCfg{
 				BootstrapNodes: []string{"1234", "5678"},
 				Port:           cfg.DefaultP2PPort,
-				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
-				DataDir:        cfg.DefaultDataDir(),
 			},
 		},
 		{
 			"port",
 			[]string{"p2pport"},
 			[]interface{}{uint(1337)},
-			p2p.Config{
+			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           1337,
-				RandSeed:       cfg.DefaultP2PRandSeed,
 				NoBootstrap:    false,
 				NoMdns:         false,
-				DataDir:        cfg.DefaultDataDir(),
 			},
 		},
-		{
-			"datadir",
-			[]string{"datadir"},
-			[]interface{}{TestDataDir},
-			p2p.Config{
-				BootstrapNodes: cfg.DefaultP2PBootstrap,
-				Port:           cfg.DefaultP2PPort,
-				RandSeed:       cfg.DefaultP2PRandSeed,
-				NoBootstrap:    false,
-				NoMdns:         false,
-				DataDir:        dataDirPath,
-			},
-		},
+		//{
+		//	"datadir",
+		//	[]string{"datadir"},
+		//	[]interface{}{TestDataDir},
+		//	p2p.Config{
+		//		BootstrapNodes: cfg.DefaultP2PBootstrap,
+		//		Port:           cfg.DefaultP2PPort,
+		//		RandSeed:       cfg.DefaultP2PRandSeed,
+		//		NoBootstrap:    false,
+		//		NoMdns:         false,
+		//		DataDir:        dataDirPath,
+		//	},
+		//},
 	}
 
 	for _, c := range tc {
@@ -239,11 +229,10 @@ func TestSetP2pConfig(t *testing.T) {
 
 			input := cfg.DefaultConfig()
 			// Must call global setup to set data dir
-			setGlobalConfig(context, &input.GlobalCfg)
-			setP2pConfig(context, input)
+			setP2pConfig(context, &input.P2p)
 
-			if !reflect.DeepEqual(input.P2pCfg, c.expected) {
-				t.Errorf("\ngot %+v\nexpected %+v", input.P2pCfg, c.expected)
+			if !reflect.DeepEqual(input.P2p, c.expected) {
+				t.Fatalf("\ngot %+v\nexpected %+v", input.P2p, c.expected)
 			}
 		})
 	}
@@ -258,19 +247,19 @@ func TestSetRpcConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    rpc.Config
+		expected    cfg.RpcCfg
 	}{
 		{
 			"config file",
 			[]string{"config"},
 			[]interface{}{tempFile.Name()},
-			cfgClone.RpcCfg,
+			cfgClone.Rpc,
 		},
 		{
 			"host and port",
 			[]string{"rpchost", "rpcport"},
 			[]interface{}{"someHost", uint(1337)},
-			rpc.Config{
+			cfg.RpcCfg{
 				Port:    1337,
 				Host:    "someHost",
 				Modules: cfg.DefaultRpcModules,
@@ -280,7 +269,7 @@ func TestSetRpcConfig(t *testing.T) {
 			"modules",
 			[]string{"rpcmods"},
 			[]interface{}{"system,state"},
-			rpc.Config{
+			cfg.RpcCfg{
 				Port:    cfg.DefaultRpcHttpPort,
 				Host:    cfg.DefaultRpcHttpHost,
 				Modules: []api.Module{"system", "state"},
@@ -297,10 +286,10 @@ func TestSetRpcConfig(t *testing.T) {
 			}
 
 			input := cfg.DefaultConfig()
-			setRpcConfig(context, &input.RpcCfg)
+			setRpcConfig(context, &input.Rpc)
 
-			if !reflect.DeepEqual(input.RpcCfg, c.expected) {
-				t.Fatalf("\ngot %+v\nexpected %+v", input.RpcCfg, c.expected)
+			if !reflect.DeepEqual(input.Rpc, c.expected) {
+				t.Fatalf("\ngot %+v\nexpected %+v", input.Rpc, c.expected)
 			}
 		})
 	}

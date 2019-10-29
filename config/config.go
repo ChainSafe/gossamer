@@ -20,17 +20,29 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/ChainSafe/log15"
-	"github.com/pelletier/go-toml"
+	"github.com/naoina/toml"
 )
 
 // Config is a collection of configurations throughout the system
 type Config struct {
-	GlobalCfg GlobalConfig `toml:"global"`
-	P2pCfg    p2p.Config   `toml:"p2p"`
-	RpcCfg    rpc.Config   `toml:"rpc"`
+	Global GlobalConfig `toml:"toml"`
+	P2p    P2pCfg       `toml:"p2p"`
+	Rpc    RpcCfg       `toml:"rpc"`
+}
+
+type P2pCfg struct {
+	BootstrapNodes []string `toml:"bootstrap-nodes"`
+	Port           uint32   `toml:"port"`
+	NoBootstrap    bool     `toml:"no-bootstrap"`
+	NoMdns         bool     `toml:"no-mdns"`
+}
+
+type RpcCfg struct {
+	Port    uint32       `toml:"port"`
+	Host    string       `toml:"host"`
+	Modules []api.Module `toml:"modules"`
 }
 
 type GlobalConfig struct {

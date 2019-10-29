@@ -66,35 +66,37 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 
 	var srvcs []services.Service
 
-	setGlobalConfig(ctx, &fig.GlobalCfg)
-
-	// DB
-	dbSrv, err := polkadb.NewDbService(fig.GlobalCfg.DataDir)
-	if err != nil {
-		return nil, nil, err
-	}
-	srvcs = append(srvcs, dbSrv)
+	// Parse CLI flags
+	setGlobalConfig(ctx, &fig.Global)
+	setP2pConfig(ctx, &fig.P2p)
+	setRpcConfig(ctx, &fig.Rpc)
 
 	// TODO: trie and runtime
 
 	// TODO: BABE
 
 	// P2P
-	setP2pConfig(ctx, fig)
-	p2pSrvc, msgChan := createP2PService(fig.P2pCfg)
+	p2pSrvc, msgChan := createP2PService(fig)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
 	coreSrvc := core.NewService(nil, nil, msgChan)
 	srvcs = append(srvcs, coreSrvc)
 
+	// DB
+	// Create database dir and initialize stateDB and blockDB
+	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	srvcs = append(srvcs, dbSrv)
+
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	setRpcConfig(ctx, &fig.RpcCfg)
-	rpcSrvr := startRpc(ctx, fig.RpcCfg, apiSrvc)
+	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
 	return dot.NewDot(srvcs, rpcSrvr), fig, nil
 }
@@ -139,41 +141,48 @@ func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 	fig.DataDir, _ = filepath.Abs(fig.DataDir)
 }
 
-func setP2pConfig(ctx *cli.Context, fig *cfg.Config) {
+func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
-		fig.P2pCfg.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
 	}
 
 	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
-		fig.P2pCfg.Port = uint32(port)
+		fig.Port = uint32(port)
 	}
 
 	// NoBootstrap
 	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
-		fig.P2pCfg.NoBootstrap = true
+		fig.NoBootstrap = true
 	}
 
 	// NoMdns
 	if off := ctx.GlobalBool(utils.NoMdnsFlag.Name); off {
-		fig.P2pCfg.NoMdns = true
+		fig.NoMdns = true
 	}
-
-	fig.P2pCfg.DataDir = fig.GlobalCfg.DataDir
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig p2p.Config) (*p2p.Service, chan []byte) {
+func createP2PService(fig *cfg.Config) (*p2p.Service, chan []byte) {
+	config := p2p.Config{
+		BootstrapNodes: fig.P2p.BootstrapNodes,
+		Port:           fig.P2p.Port,
+		RandSeed:       0,
+		NoBootstrap:    fig.P2p.NoBootstrap,
+		NoMdns:         fig.P2p.NoMdns,
+		DataDir:        fig.Global.DataDir,
+	}
+
 	msgChan := make(chan []byte)
 
-	srvc, err := p2p.NewService(&fig, msgChan)
+	srvc, err := p2p.NewService(&config, msgChan)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
 	return srvc, msgChan
 }
 
-func setRpcConfig(ctx *cli.Context, fig *rpc.Config) {
+func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
 	// Modules
 	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
 		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
@@ -191,9 +200,9 @@ func setRpcConfig(ctx *cli.Context, fig *rpc.Config) {
 
 }
 
-func startRpc(ctx *cli.Context, fig rpc.Config, apiSrvc *api.Service) *rpc.HttpServer {
+func startRpc(ctx *cli.Context, fig cfg.RpcCfg, apiSrvc *api.Service) *rpc.HttpServer {
 	if ctx.GlobalBool(utils.RpcEnabledFlag.Name) {
-		return rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig)
+		return rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
 	}
 	return nil
 }
