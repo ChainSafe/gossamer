@@ -46,8 +46,7 @@ type RpcCfg struct {
 }
 
 type GlobalConfig struct {
-	DataDir   string  `toml:"dataDir"`
-	Verbosity log.Lvl `toml:"verbosity"`
+	DataDir string `toml:"dataDir"`
 }
 
 func (c *Config) String() string {

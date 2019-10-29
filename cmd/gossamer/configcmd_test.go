@@ -27,10 +27,7 @@ import (
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/internal/services"
-	"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -40,6 +37,12 @@ const TestDataDir = "./test_data"
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
 		log.Warn("cannot remove temp file", "err", err)
+	}
+}
+
+func removeTestDataDir() {
+	if err := os.RemoveAll(TestDataDir); err != nil {
+		log.Warn("cannot remove test data dir", "err", err)
 	}
 }
 
@@ -86,16 +89,15 @@ func TestGetConfig(t *testing.T) {
 	tc := []struct {
 		name     string
 		value    string
-		usage    string
 		expected *cfg.Config
 	}{
-		{"", "", "", cfg.DefaultConfig()},
-		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
+		{"", "", cfg.DefaultConfig()},
+		{"config", tempFile.Name(), cfgClone},
 	}
 
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
-		set.String(c.name, c.value, c.usage)
+		set.String(c.name, c.value, "")
 		context := cli.NewContext(app, set, nil)
 
 		fig, err := getConfig(context)
@@ -122,9 +124,7 @@ func TestSetGlobalConfig(t *testing.T) {
 		{"datadir flag",
 			[]string{"datadir"},
 			[]interface{}{"test1"},
-			cfg.GlobalConfig{
-				DataDir:   tempPath,
-				Verbosity: 0},
+			cfg.GlobalConfig{DataDir: tempPath},
 		},
 	}
 
@@ -204,19 +204,6 @@ func TestSetP2pConfig(t *testing.T) {
 				NoMdns:         false,
 			},
 		},
-		//{
-		//	"datadir",
-		//	[]string{"datadir"},
-		//	[]interface{}{TestDataDir},
-		//	p2p.Config{
-		//		BootstrapNodes: cfg.DefaultP2PBootstrap,
-		//		Port:           cfg.DefaultP2PPort,
-		//		RandSeed:       cfg.DefaultP2PRandSeed,
-		//		NoBootstrap:    false,
-		//		NoMdns:         false,
-		//		DataDir:        dataDirPath,
-		//	},
-		//},
 	}
 
 	for _, c := range tc {
@@ -307,42 +294,40 @@ func TestStrToMods(t *testing.T) {
 func TestMakeNode(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 	defer teardown(tempFile)
-	defer os.Remove(TestDataDir)
+	defer removeTestDataDir()
 
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
 	tc := []struct {
 		name     string
-		value    string
-		usage    string
+		flags    []string
+		values   []interface{}
 		expected *cfg.Config
 	}{
-		{"config", tempFile.Name(), "TOML configuration file", cfgClone},
+		{"node from config (norpc)", []string{"config"}, []interface{}{tempFile.Name()}, cfgClone},
+		{"default node (norpc)", []string{}, []interface{}{}, cfgClone},
+		{"default node (rpc)", []string{"rpc"}, []interface{}{true}, cfgClone},
 	}
 
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
-		set := flag.NewFlagSet(c.name, 0)
-		set.String(c.name, c.value, c.usage)
-		context := cli.NewContext(nil, set, nil)
-		d, fig, _ := makeNode(context, nil)
-		if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
-			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
-		}
-		if reflect.TypeOf(d.Services) != reflect.TypeOf(&services.ServiceRegistry{}) {
-			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d.Services), reflect.TypeOf(&services.ServiceRegistry{}))
-		}
-		if reflect.TypeOf(d.Rpc) != reflect.TypeOf(&rpc.HttpServer{}) {
-			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d.Rpc), reflect.TypeOf(&rpc.HttpServer{}))
-		}
-		if reflect.TypeOf(fig) != reflect.TypeOf(&cfg.Config{}) {
-			t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(fig), reflect.TypeOf(&cfg.Config{}))
-		}
+		t.Run(c.name, func(t *testing.T) {
+			context, err := createCliContext(c.name, c.flags, c.values)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _, err = makeNode(context, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
 func TestCommands(t *testing.T) {
 	tempFile, _ := createTempConfigFile()
+	defer teardown(tempFile)
+	defer removeTestDataDir()
 
 	tc := []struct {
 		description string
@@ -372,5 +357,4 @@ func TestCommands(t *testing.T) {
 			t.Fatalf("should have ran dumpConfig command. err: %s", err)
 		}
 	}
-	defer teardown(tempFile)
 }

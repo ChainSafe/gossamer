@@ -23,7 +23,6 @@ import (
 	"runtime"
 
 	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/log15"
 )
 
 const (
@@ -45,8 +44,7 @@ var (
 var (
 	// Global
 	DefaultGlobalConfig = GlobalConfig{
-		DataDir:   DefaultDataDir(),
-		Verbosity: log15.LvlInfo,
+		DataDir: DefaultDataDir(),
 	}
 
 	// P2P
