@@ -32,6 +32,10 @@ type Config struct {
 	Rpc    RpcCfg       `toml:"rpc"`
 }
 
+type GlobalConfig struct {
+	DataDir string `toml:"data-dir"`
+}
+
 type P2pCfg struct {
 	BootstrapNodes []string `toml:"bootstrap-nodes"`
 	Port           uint32   `toml:"port"`
@@ -43,10 +47,6 @@ type RpcCfg struct {
 	Port    uint32       `toml:"port"`
 	Host    string       `toml:"host"`
 	Modules []api.Module `toml:"modules"`
-}
-
-type GlobalConfig struct {
-	DataDir string `toml:"dataDir"`
 }
 
 func (c *Config) String() string {
