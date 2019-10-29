@@ -25,15 +25,16 @@ import (
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -57,7 +58,7 @@ var (
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
-func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Config, error) {
+func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -65,24 +66,43 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 
 	var srvcs []services.Service
 
-	if gen == nil {
-		return nil, nil, fmt.Errorf("genesis is nil")
+	// DB: Create database dir and initialize stateDB and blockDB
+	dataDir := getDataDir(ctx, fig)
+	dbSrv, err := polkadb.NewDbService(dataDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
 	}
 
-	if gen.GenesisTrie == nil {
-		return nil, nil, fmt.Errorf("no genesis trie exists")
+	err = dbSrv.Start()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// load runtime code from trie and create runtime executor
-	code, err := gen.GenesisTrie.Get([]byte(":code"))
+	// Trie: load most recent state from DB
+	state := trie.NewEmptyTrie(&trie.Database{
+		Db: dbSrv.StateDB.Db,
+	})
+
+	latestState, err := state.LoadHash()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load latest state root hash: %s", err)
+	}
+
+	err = state.LoadFromDB(latestState)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load latest state: %s", err)
+	}
+
+	// Runtime: load runtime code from trie and create runtime executor
+	code, err := state.Get([]byte(":code"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error retrieving :code from trie: %s", err)
 	}
-	r, err := runtime.NewRuntime(code, gen.GenesisTrie)
+	r, err := runtime.NewRuntime(code, state)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating runtime executor: %s", err)
 	}
-	srvcs = append(srvcs, gen.Db)
+	srvcs = append(srvcs, dbSrv)
 
 	// TODO: BABE
 

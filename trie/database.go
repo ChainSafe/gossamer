@@ -192,7 +192,7 @@ func (t *Trie) StoreHash() error {
 	return t.db.StoreLatestHash(hash[:])
 }
 
-// LoadHash retrieves the hash stores at `LatestHashKey` from the DB
+// LoadHash retrieves the hash stored at `LatestHashKey` from the DB
 func (t *Trie) LoadHash() (common.Hash, error) {
 	return t.db.LoadLatestHash()
 }

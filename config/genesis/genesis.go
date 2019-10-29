@@ -7,7 +7,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/ChainSafe/gossamer/trie"
+	//"github.com/ChainSafe/gossamer/trie"
 )
 
 // Genesis stores the data parsed from the genesis configuration file
@@ -44,7 +44,6 @@ func LoadGenesisJsonFile(file string) (*Genesis, error) {
 type GenesisState struct {
 	Name        string
 	Id          string
-	GenesisTrie *trie.Trie
 	Db          *polkadb.DbService
 	P2pConfig   *p2p.Config
 }

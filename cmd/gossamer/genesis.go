@@ -36,24 +36,19 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 		return nil, err
 	}
 
-	// create and load storage trie with initial genesis state
-	trieStateDB, err := trie.NewStateDB(dbSrv.StateDB)
-	if err != nil {
-		return nil, err
-	}
+	defer dbSrv.Stop()
 
-	t := trie.NewEmptyTrie(trieStateDB)
+	// create and load storage trie with initial genesis state
+	t := trie.NewEmptyTrie(&trie.Database{
+		Db: dbSrv.StateDB.Db,
+	})
 	err = t.Load(gen.Genesis.Raw)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load trie with initial state: %s", err)
 	}
 
 	// write initial genesis data to DB
-	err = t.WriteToDB()
-	if err != nil {
-		return nil, err
-	}
-	err = t.Commit()
+	err = t.StoreInDB()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +57,6 @@ func loadGenesis(ctx *cli.Context) (*genesis.GenesisState, error) {
 	return &genesis.GenesisState{
 		Name:        gen.Name,
 		Id:          gen.Id,
-		GenesisTrie: t,
 		Db:          dbSrv,
 	}, nil
 }
