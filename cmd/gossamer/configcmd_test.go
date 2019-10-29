@@ -194,8 +194,8 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           cfg.DefaultP2PPort,
-				NoBootstrap: true,
-				NoMdns:      true,
+				NoBootstrap:    true,
+				NoMdns:         true,
 			},
 		},
 		{
@@ -205,8 +205,8 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: []string{"1234", "5678"},
 				Port:           cfg.DefaultP2PPort,
-				NoBootstrap: false,
-				NoMdns:      false,
+				NoBootstrap:    false,
+				NoMdns:         false,
 			},
 		},
 		{
@@ -216,8 +216,8 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           1337,
-				NoBootstrap: false,
-				NoMdns:      false,
+				NoBootstrap:    false,
+				NoMdns:         false,
 			},
 		},
 	}
