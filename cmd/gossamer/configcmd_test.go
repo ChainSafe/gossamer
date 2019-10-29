@@ -422,7 +422,13 @@ func TestMakeNode(t *testing.T) {
 		c := c // bypass scopelint false positive
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, c.usage)
+		set.String("genesis", genesispath, "genesis file")
 		context := cli.NewContext(nil, set, nil)
+
+		_, err := loadGenesis(context)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		d, fig, err := makeNode(context)
 		if err != nil {
