@@ -28,8 +28,8 @@ func loadGenesis(ctx *cli.Context) error {
 	log.Info("🕸\t Initializing node", "genesisfile", fp, "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
 
 	// DB: Create database dir and initialize stateDB and blockDB
-	dataDir := getDataDir(ctx, fig)
-	dbSrv, err := polkadb.NewDbService(dataDir)
+	setGlobalConfig(ctx, &fig.Global)
+	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
 		return err
 	}

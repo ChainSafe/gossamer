@@ -37,8 +37,8 @@ func TestStoreGenesisInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDir := getDataDir(ctx, fig)
-	dbSrv, err := polkadb.NewDbService(dataDir)
+	setGlobalConfig(ctx, &fig.Global)
+	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
