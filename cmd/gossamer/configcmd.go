@@ -61,6 +61,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
+	defer dbSrv.Stop()
+
 	// Trie: load most recent state from DB
 	state := trie.NewEmptyTrie(&trie.Database{
 		Db: dbSrv.StateDB.Db,
