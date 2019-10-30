@@ -66,7 +66,7 @@ var (
 		Name:        "init",
 		Usage:       "Initialize node genesis state",
 		ArgsUsage:   "",
-		Flags:       genesisFlags,
+		Flags:       append(append(genesisFlags, cliFlags...), utils.DataDirFlag),
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
@@ -118,7 +118,12 @@ func startLogger(ctx *cli.Context) error {
 
 // initNode loads the genesis file and loads the initial state into the DB
 func initNode(ctx *cli.Context) error {
-	err := loadGenesis(ctx)
+	err := startLogger(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = loadGenesis(ctx)
 	if err != nil {
 		log.Error("error loading genesis state", "error", err)
 		return err
@@ -141,7 +146,7 @@ func gossamer(ctx *cli.Context) error {
 		return err
 	}
 
-	//log.Info("🕸️Starting node...", "name", genesisState.Name, "ID", genesisState.Id)
+	log.Info("🕸️Starting node...", "name", node.Name)
 	node.Start()
 
 	return nil

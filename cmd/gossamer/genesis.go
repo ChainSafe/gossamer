@@ -90,28 +90,22 @@ func storeGenesisInfo(db *trie.Database, gen *genesis.Genesis) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "name", gen.Name)
+	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
 
 	err = db.Store(common.NodeId, []byte(gen.Id))
 	if err != nil {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "id", gen.Id)
-
 	err = db.Store(common.NodeProtocolId, []byte(gen.ProtocolId))
 	if err != nil {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "protocolID", gen.ProtocolId)
-
 	encBootnodes, err := scale.Encode(gen.Bootnodes)
 	if err != nil {
 		return err
 	}
-
-	log.Info("🕸\t Initializing node", "bootnodes", gen.Bootnodes)
 
 	return db.Store(common.NodeBootnodes, encBootnodes)
 }

@@ -24,6 +24,7 @@ import (
 	"unicode"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
+	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
@@ -108,7 +109,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	setRpcConfig(ctx, fig.Rpc)
 	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
-	return dot.NewDot(srvcs, rpcSrvr), fig, nil
+	name, err := state.Db().Load(common.NodeName)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dot.NewDot(string(name), srvcs, rpcSrvr), fig, nil
 }
 
 // getConfig checks for config.toml if --config flag is specified
