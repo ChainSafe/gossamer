@@ -27,7 +27,7 @@ import (
 
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
-	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 // Session contains the VRF keys for the validator
@@ -36,52 +36,44 @@ type Session struct {
 	vrfPrivateKey VrfPrivateKey
 	rt            *runtime.Runtime
 
-	config *BabeConfiguration
+	Config *BabeConfiguration
 
-	authorityIndex uint64
+	AuthorityIndex uint64
 
 	// authorities []VrfPublicKey
-	authorityWeights []uint64
+	AuthorityWeights []uint64
 
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
 	isProducer     map[uint64]bool // whether we are a block producer at a slot
+
+	// Block announce channel every time is creates a block
+	blockAnnounceChan chan<- []byte
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime) *Session {
+func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- []byte) *Session {
 	return &Session{
-		vrfPublicKey:  pubkey,
-		vrfPrivateKey: privkey,
-		rt:            rt,
-		txQueue:       new(tx.PriorityQueue),
-		isProducer:    make(map[uint64]bool),
+		vrfPublicKey:      pubkey,
+		vrfPrivateKey:     privkey,
+		rt:                rt,
+		txQueue:           new(tx.PriorityQueue),
+		isProducer:        make(map[uint64]bool),
+		blockAnnounceChan: blockAnnounceChannel,
 	}
 }
 
 func (b *Session) Start() error {
 	var i uint64 = 0
 	var err error
-	for ; i < b.config.EpochLength; i++ {
+	for ; i < b.Config.EpochLength; i++ {
 		b.isProducer[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("BABE: error running slot lottery at slot %d: error %s", i, err)
 		}
 	}
 
-	go func() {
-		// TODO: we might not actually be starting at slot 0, need to run median algorithm here
-		var currentSlot uint64 = 0
-
-		for ; currentSlot < b.config.EpochLength; currentSlot++ {
-			if b.isProducer[currentSlot] {
-				// TODO: build block
-				log.Info("BABE: building block", "slot", currentSlot)
-			}
-
-			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
-		}
-	}()
+	go b.invokeBlockAuthoring()
 
 	return nil
 }
@@ -95,19 +87,24 @@ func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 	return b.txQueue.Peek()
 }
 
-// sets the slot lottery threshold for the current epoch
-func (b *Session) setEpochThreshold() error {
-	var err error
-	if b.config == nil {
-		return errors.New("cannot set threshold: no babe config")
-	}
+func (b *Session) invokeBlockAuthoring() {
+	// TODO: we might not actually be starting at slot 0, need to run median algorithm here
+	var currentSlot uint64 = 0
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
-	if err != nil {
-		return err
-	}
+	for ; currentSlot < b.Config.EpochLength; currentSlot++ {
+		if b.isProducer[currentSlot] {
+			// TODO: build block
+			log.Info("BABE: building block", "slot", currentSlot)
+			block := b.buildBlock()
 
-	return nil
+			log.Info("BABE: Built block", "block", block)
+
+			// Broadcast the block
+			b.blockAnnounceChan <- block
+		}
+
+		time.Sleep(time.Millisecond * time.Duration(b.Config.SlotDuration))
+	}
 }
 
 // runs the slot lottery for a specific slot
@@ -115,7 +112,7 @@ func (b *Session) setEpochThreshold() error {
 func (b *Session) runLottery(slot uint64) (bool, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.config.Randomness)
+	vrfInput := append(slotBytes, b.Config.Randomness)
 	output, err := b.vrfSign(vrfInput)
 	if err != nil {
 		return false, err
@@ -132,11 +129,19 @@ func (b *Session) runLottery(slot uint64) (bool, error) {
 	return output_int.Cmp(b.epochThreshold) > 0, nil
 }
 
-func (b *Session) vrfSign(input []byte) ([]byte, error) {
-	// TOOD: return VRF output and proof
-	out := make([]byte, 32)
-	_, err := rand.Read(out)
-	return out, err
+// sets the slot lottery threshold for the current epoch
+func (b *Session) setEpochThreshold() error {
+	var err error
+	if b.Config == nil {
+		return errors.New("cannot set threshold: no babe config")
+	}
+
+	b.epochThreshold, err = calculateThreshold(b.Config.C1, b.Config.C2, b.AuthorityIndex, b.AuthorityWeights)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
@@ -176,4 +181,16 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
+}
+
+func (b *Session) vrfSign(input []byte) ([]byte, error) {
+	// TOOD: return VRF output and proof
+	out := make([]byte, 32)
+	_, err := rand.Read(out)
+	return out, err
+}
+
+// BuildBlock Builds the block
+func (s *Session) buildBlock() []byte {
+	return []byte{1, 2, 3, 4, 5}
 }

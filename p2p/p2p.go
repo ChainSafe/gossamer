@@ -53,7 +53,8 @@ type Service struct {
 	dhtConfig        kaddht.BootstrapConfig
 	bootnodes        []peer.AddrInfo
 	mdns             discovery.Service
-	msgChan          chan<- []byte
+	msgSendChan      chan<- []byte
+	msgRecChan       <-chan []byte
 	noBootstrap      bool
 	blockReqRec      map[string]bool
 	blockRespRec     map[string]bool
@@ -62,7 +63,7 @@ type Service struct {
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
+func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan []byte) (*Service, error) {
 	ctx := context.Background()
 	opts, err := conf.buildOpts()
 	if err != nil {
@@ -111,7 +112,8 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 		bootnodes:   bootstrapNodes,
 		noBootstrap: conf.NoBootstrap,
 		mdns:        mdns,
-		msgChan:     msgChan,
+		msgSendChan: msgChan,
+		msgRecChan:  msgRecChan,
 	}
 
 	s.blockReqRec = make(map[string]bool)
@@ -140,6 +142,9 @@ func (s *Service) Start() error {
 
 	log.Info("Listening for connections...")
 
+	log.Info("Starting MsgPolling for Block Announce Messages from BABE")
+	go s.MsgRecPoll()
+
 	return nil
 }
 
@@ -156,11 +161,30 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	if s.msgChan != nil {
-		close(s.msgChan)
+	if s.msgSendChan != nil {
+		close(s.msgSendChan)
 	}
 
 	return nil
+}
+
+// Start polling the msgRecChan channel for any blocks
+func (s *Service) MsgRecPoll() (err error) {
+	for {
+		// Receives block from babe
+		block := <-s.msgRecChan
+		msg := s.hostAddr.String() + " received block"
+		log.Info(msg, "block", block)
+
+		// Calls broadcast
+		for _, peers := range s.host.Network().Peers() {
+			addrInfo := s.dht.FindLocal(peers)
+			err = s.Send(addrInfo, block)
+		}
+
+		s.msgSendChan <- block
+		return err
+	}
 }
 
 // Broadcast sends a message to all peers
@@ -347,7 +371,7 @@ func (s *Service) handleStream(stream net.Stream) {
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
-	s.msgChan <- rawMsg
+	s.msgSendChan <- rawMsg
 
 	// Rebroadcast all messages except for status messages
 	if msg.GetType() != StatusMsgType {

@@ -32,7 +32,7 @@ import (
 )
 
 func startNewService(t *testing.T, cfg *Config, msgChan chan []byte) *Service {
-	node, err := NewService(cfg, msgChan)
+	node, err := NewService(cfg, msgChan, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

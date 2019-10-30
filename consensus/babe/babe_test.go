@@ -155,9 +155,9 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1, 1, 1}
+	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	babesession.AuthorityIndex = 0
+	babesession.AuthorityWeights = []uint64{1, 1, 1}
 	conf := &BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        6,
@@ -167,7 +167,7 @@ func TestRunLottery(t *testing.T) {
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
-	babesession.config = conf
+	babesession.Config = conf
 
 	_, err := babesession.runLottery(0)
 	if err != nil {
@@ -189,7 +189,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestConfigurationFromRuntime(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
 	res, err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -213,9 +213,9 @@ func TestConfigurationFromRuntime(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1}
+	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	babesession.AuthorityIndex = 0
+	babesession.AuthorityWeights = []uint64{1}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
@@ -225,7 +225,7 @@ func TestStart(t *testing.T) {
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
-	babesession.config = conf
+	babesession.Config = conf
 
 	err := babesession.Start()
 	if err != nil {
