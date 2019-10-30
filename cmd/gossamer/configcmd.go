@@ -68,9 +68,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	defer dbSrv.Stop()
 
 	// Trie: load most recent state from DB
-	state := trie.NewEmptyTrie(&trie.Database{
-		Db: dbSrv.StateDB.Db,
-	})
+	db := trie.NewDatabase(dbSrv.StateDB.Db)
+	state := trie.NewEmptyTrie(db)
 
 	latestState, err := state.LoadHash()
 	if err != nil {
@@ -110,6 +109,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// RPC
 	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
+	// load extra genesis data from DB
 	gendata, err := state.Db().LoadGenesisData()
 	if err != nil {
 		return nil, nil, err
