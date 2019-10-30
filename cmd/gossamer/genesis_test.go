@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	scale "github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
@@ -56,45 +54,20 @@ func TestStoreGenesisInfo(t *testing.T) {
 		Db: dbSrv.StateDB.Db,
 	}
 
-	name, err := tdb.Load(common.NodeName)
+	gendata, err := tdb.LoadGenesisData()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal([]byte(tmpGenesis.Name), name) {
-		t.Fatalf("Fail to get node name: got %s expected %s", name, tmpGenesis.Name)
+	expected := &trie.Genesis{
+		Name:       tmpGenesis.Name,
+		Id:         tmpGenesis.Id,
+		Bootnodes:  tmpGenesis.Bootnodes,
+		ProtocolId: tmpGenesis.ProtocolId,
 	}
 
-	id, err := tdb.Load(common.NodeId)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal([]byte(tmpGenesis.Id), id) {
-		t.Fatalf("Fail to get node name: got %s expected %s", id, tmpGenesis.Id)
-	}
-
-	pid, err := tdb.Load(common.NodeProtocolId)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal([]byte(tmpGenesis.ProtocolId), pid) {
-		t.Fatalf("Fail to get node name: got %s expected %s", pid, tmpGenesis.ProtocolId)
-	}
-
-	bnodes, err := tdb.Load(common.NodeBootnodes)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bnodesArr, err := scale.Decode(bnodes, []string{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if reflect.DeepEqual(bnodesArr, tmpGenesis.Bootnodes) {
-		t.Fatalf("Fail to get node name: got %s expected %s", bnodesArr, tmpGenesis.Bootnodes)
+	if reflect.DeepEqual(gendata, expected) {
+		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
 	}
 }
 

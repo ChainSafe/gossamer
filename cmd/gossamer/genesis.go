@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
-	scale "github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/polkadb"
@@ -27,7 +25,7 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "genesisfile", fp)
+	log.Info("🕸\t Initializing node", "genesisfile", fp, "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
 
 	// DB: Create database dir and initialize stateDB and blockDB
 	dataDir := getDataDir(ctx, fig)
@@ -72,7 +70,7 @@ func loadGenesis(ctx *cli.Context) error {
 	}
 
 	// store node name, ID, p2p protocol, bootnodes in DB
-	return storeGenesisInfo(tdb, gen)
+	return t.Db().StoreGenesisData(gen)
 }
 
 // getGenesisPath gets the path to the genesis file
@@ -82,30 +80,4 @@ func getGenesisPath(ctx *cli.Context) string {
 	} else {
 		return cfg.DefaultGenesisPath
 	}
-}
-
-func storeGenesisInfo(db *trie.Database, gen *genesis.Genesis) error {
-	err := db.Store(common.NodeName, []byte(gen.Name))
-	if err != nil {
-		return err
-	}
-
-	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
-
-	err = db.Store(common.NodeId, []byte(gen.Id))
-	if err != nil {
-		return err
-	}
-
-	err = db.Store(common.NodeProtocolId, []byte(gen.ProtocolId))
-	if err != nil {
-		return err
-	}
-
-	encBootnodes, err := scale.Encode(gen.Bootnodes)
-	if err != nil {
-		return err
-	}
-
-	return db.Store(common.NodeBootnodes, encBootnodes)
 }

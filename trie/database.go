@@ -23,16 +23,29 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-var LatestHashKey = common.LatestHashKey
+var (
+	LatestHashKey  = []byte("latest_hash")
+	GenesisDataKey = []byte("genesis_data")
+)
 
 // Database is a wrapper around a polkadb
 type Database struct {
 	Db     polkadb.Database
 	Batch  polkadb.Batch
 	Hasher *Hasher
+}
+
+func NewDatabase(db polkadb.Database) *Database {
+	batch := db.NewBatch()
+
+	return &Database{
+		Db:    db,
+		Batch: batch,
+	}
 }
 
 func (db *Database) Store(key, value []byte) error {
@@ -54,6 +67,44 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 	}
 
 	return common.NewHash(hashbytes), nil
+}
+
+type Genesis struct {
+	Name       string
+	Id         string
+	Bootnodes  []string
+	ProtocolId string
+}
+
+func (db *Database) StoreGenesisData(gen *genesis.Genesis) error {
+	data := &Genesis{
+		Name:       gen.Name,
+		Id:         gen.Id,
+		Bootnodes:  gen.Bootnodes,
+		ProtocolId: gen.ProtocolId,
+	}
+
+	enc, err := scale.Encode(data)
+	if err != nil {
+		return err
+	}
+
+	return db.Store(GenesisDataKey, enc)
+}
+
+func (db *Database) LoadGenesisData() (*Genesis, error) {
+	enc, err := db.Load(GenesisDataKey)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &Genesis{}
+	_, err = scale.Decode(enc, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
