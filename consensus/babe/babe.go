@@ -27,7 +27,7 @@ import (
 
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ethereum/go-ethereum/log"
+	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator

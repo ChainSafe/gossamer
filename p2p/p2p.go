@@ -142,7 +142,7 @@ func (s *Service) Start() error {
 
 	log.Info("Listening for connections...")
 
-	log.Info("Starting MsgPolling for Block Announce Messages from BABE")
+	log.Info("Starting Message Polling for Block Announce Messages from BABE")
 	go s.MsgRecPoll()
 
 	return nil
