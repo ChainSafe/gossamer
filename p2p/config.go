@@ -23,13 +23,14 @@ import (
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
+	"os"
 	"path"
 	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -96,7 +97,7 @@ func (c *Config) setupPrivKey() error {
 	}
 	// Otherwise, create a key
 	if key == nil {
-		log.Debug("No existing p2p key, generating a new one")
+		log.Debug("No existing p2p key, generating a new one", "path", path.Join(filepath.Clean(c.DataDir), KeyFile))
 		key, err = generateKey(c.RandSeed, c.DataDir)
 		if err != nil {
 			return err
@@ -112,9 +113,14 @@ func (c *Config) setupPrivKey() error {
 
 // tryLoadPrivkey will attempt to load the private key from the provided path
 func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
-	keyData, err := ioutil.ReadFile(path.Join(filepath.Clean(fp), KeyFile))
-	if err != nil {
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	if _, err := os.Stat(pth); os.IsNotExist(err) {
 		return nil, nil
+	}
+
+	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
+	if err != nil {
+		return nil, err
 	}
 
 	dec := make([]byte, hex.DecodedLen(len(keyData)))
@@ -124,7 +130,6 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 	}
 
 	return crypto.UnmarshalECDSAPrivateKey(dec)
-
 }
 
 // generateKey generates an ed25519 private key and writes it to the data directory
@@ -148,18 +153,43 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	id, _ := peer.IDFromPrivateKey(priv)
 	log.Debug("Created new p2p identity", "id", id.String())
 
+	// Save the key if its secure
+	if seed == 0 {
+		if err = saveKey(priv, fp); err != nil {
+			return nil, err
+		}
+	}
+
+	return priv, nil
+}
+
+func saveKey(priv crypto.PrivKey, fp string) error {
+	// Create `.gossamer` if it doesn't exist
+	if _, e := os.Stat(fp); os.IsNotExist(e) {
+		if e = os.Mkdir(fp, os.ModePerm); e != nil {
+			return e
+		}
+	} else if e != nil {
+		return e
+	}
+
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	f, err := os.Create(pth)
+	if err != nil {
+		return err
+	}
+
 	raw, err := priv.Raw()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	enc := make([]byte, hex.EncodedLen(len(raw)))
 	hex.Encode(enc, raw)
 
-	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), enc, 0600)
-	if err != nil {
-		return nil, err
+	if _, err = f.Write(enc); err != nil {
+		return err
 	}
 
-	return priv, nil
+	return f.Close()
 }
