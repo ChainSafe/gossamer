@@ -32,6 +32,7 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/polkadb"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -171,6 +172,12 @@ func createTempGenesisFile(t *testing.T) string {
 func TestGetConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 	defer teardown(tempFile)
+
+	var err error
+	cfgClone.Global.DataDir, err = filepath.Abs(cfgClone.Global.DataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -414,7 +421,15 @@ func TestMakeNode(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, _, err = makeNode(context)
+
+			node, _, err := makeNode(context)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			db := node.Services.Get(&polkadb.DbService{})
+
+			err = db.Stop()
 			if err != nil {
 				t.Fatal(err)
 			}

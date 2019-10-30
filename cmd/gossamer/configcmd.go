@@ -49,11 +49,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// Parse CLI flags
-	setGlobalConfig(ctx, &fig.Global)
-	setP2pConfig(ctx, &fig.P2p)
-	setRpcConfig(ctx, &fig.Rpc)
-
 	// DB: Create database dir and initialize stateDB and blockDB
 	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
@@ -65,13 +60,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
-
-	defer func() {
-		err = dbSrv.Stop()
-		if err != nil {
-			log.Error("cannot close db service")
-		}
-	}()
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	db := trie.NewDatabase(dbSrv.StateDB.Db)
@@ -126,7 +114,7 @@ func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
 	return runtime.NewRuntime(code, t)
 }
 
-// getConfig checks for config.toml if --config flag is specified
+// getConfig checks for config.toml if --config flag is specified and sets CLI flags
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	fig := cfg.DefaultConfig()
 	// Load config file.
@@ -136,10 +124,13 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 			log.Warn("err loading toml file", "err", err.Error())
 			return fig, err
 		}
-		return fig, nil
-	} else {
-		return cfg.DefaultConfig(), nil
 	}
+
+	// Parse CLI flags
+	setGlobalConfig(ctx, &fig.Global)
+	setP2pConfig(ctx, &fig.P2p)
+	setRpcConfig(ctx, &fig.Rpc)
+	return fig, nil
 }
 
 // loadConfig loads the contents from config toml and inits Config object
