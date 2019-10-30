@@ -17,6 +17,8 @@
 package p2p
 
 import (
+	crand "crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -115,7 +117,14 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 		return nil, nil
 	}
 
-	return crypto.UnmarshalPrivateKey(keyData)
+	dec := make([]byte, hex.DecodedLen(len(keyData)))
+	_, err = hex.Decode(dec, keyData)
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.UnmarshalECDSAPrivateKey(dec)
+
 }
 
 // generateKey generates an ed25519 private key and writes it to the data directory
@@ -125,24 +134,29 @@ func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
 func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	var r io.Reader
 	if seed == 0 {
-		r = nil // GenerateEd25519Key uses crypto/rand under the hood if nil
+		r = crand.Reader
 	} else {
 		r = mrand.New(mrand.NewSource(seed))
 	}
 
 	// Generate a key pair for this host. We will use it at least
 	// to obtain a valid host ID.
-	priv, _, err := crypto.GenerateEd25519Key(r)
+	priv, _, err := crypto.GenerateECDSAKeyPair(r)
 	if err != nil {
 		return nil, err
 	}
 	id, _ := peer.IDFromPrivateKey(priv)
 	log.Debug("Created new p2p identity", "id", id.String())
-	raw, err := crypto.MarshalPrivateKey(priv)
+
+	raw, err := priv.Raw()
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), raw, 0600)
+
+	enc := make([]byte, hex.EncodedLen(len(raw)))
+	hex.Encode(enc, raw)
+
+	err = ioutil.WriteFile(path.Join(filepath.Clean(fp), KeyFile), enc, 0600)
 	if err != nil {
 		return nil, err
 	}
