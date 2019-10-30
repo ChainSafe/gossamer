@@ -59,6 +59,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
 	}
+	srvcs = append(srvcs, dbSrv)
 
 	err = dbSrv.Start()
 	if err != nil {
@@ -72,30 +73,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		}
 	}()
 
-	// Trie: load most recent state from DB
+	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	db := trie.NewDatabase(dbSrv.StateDB.Db)
 	state := trie.NewEmptyTrie(db)
-
-	latestState, err := state.LoadHash()
+	r, err := loadStateAndRuntime(state)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot load latest state root hash: %s", err)
+		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
 	}
-
-	err = state.LoadFromDB(latestState)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot load latest state: %s", err)
-	}
-
-	// Runtime: load runtime code from trie and create runtime executor
-	code, err := state.Get([]byte(":code"))
-	if err != nil {
-		return nil, nil, fmt.Errorf("error retrieving :code from trie: %s", err)
-	}
-	r, err := runtime.NewRuntime(code, state)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating runtime executor: %s", err)
-	}
-	srvcs = append(srvcs, dbSrv)
 
 	// TODO: BABE
 
@@ -121,6 +105,25 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	}
 
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
+}
+
+func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
+	latestState, err := t.LoadHash()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state root hash: %s", err)
+	}
+
+	err = t.LoadFromDB(latestState)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state: %s", err)
+	}
+
+	code, err := t.Get([]byte(":code"))
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
+	}
+
+	return runtime.NewRuntime(code, t)
 }
 
 // getConfig checks for config.toml if --config flag is specified
@@ -241,7 +244,6 @@ func strToMods(strs []string) []api.Module {
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
 	fig, err := getConfig(ctx)
-	//_, fig, err := makeNode(ctx)
 	if err != nil {
 		return err
 	}
