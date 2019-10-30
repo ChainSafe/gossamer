@@ -1,4 +1,4 @@
-package keyring
+package keys
 
 import (
 	"crypto/rand"
@@ -8,18 +8,18 @@ import (
 )
 
 type Ed25519Keypair struct {
-	Public  ed25519.PublicKey
-	Private ed25519.PrivateKey
+	public  ed25519.PublicKey
+	private ed25519.PrivateKey
 }
 
 func NewEd25519Keypair(priv ed25519.PrivateKey) *Ed25519Keypair {
 	return &Ed25519Keypair{
-		Public:  priv.Public().(ed25519.PublicKey),
-		Private: priv,
+		public:  priv.Public().(ed25519.PublicKey),
+		private: priv,
 	}
 }
 
-func GenerateKeypair() (*Ed25519Keypair, error) {
+func GenerateEd25519Keypair() (*Ed25519Keypair, error) {
 	buf := make([]byte, 32)
 	_, err := rand.Read(buf)
 	if err != nil {
@@ -48,7 +48,15 @@ func NewEd25519PrivateKey(in []byte) (ed25519.PrivateKey, error) {
 }
 
 func (kp *Ed25519Keypair) Sign(msg []byte) []byte {
-	return ed25519.Sign(kp.Private, msg)
+	return ed25519.Sign(kp.private, msg)
+}
+
+func (kp *Ed25519Keypair) Public() ed25519.PublicKey {
+	return kp.public
+}
+
+func (kp *Ed25519Keypair) Private() ed25519.PrivateKey {
+	return kp.private
 }
 
 func Verify(pub ed25519.PublicKey, msg, sig []byte) bool {
