@@ -20,9 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sync"
 	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/core/types"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
@@ -35,8 +37,9 @@ type RuntimeCtx struct {
 }
 
 type Runtime struct {
-	vm   wasm.Instance
-	trie *trie.Trie
+	vm    wasm.Instance
+	trie  *trie.Trie
+	mutex sync.Mutex
 }
 
 func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
@@ -81,8 +84,9 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	instance.SetContextData(data)
 
 	return &Runtime{
-		vm:   instance,
-		trie: t,
+		vm:    instance,
+		trie:  t,
+		mutex: sync.Mutex{},
 	}, nil
 }
 
@@ -100,12 +104,27 @@ func (r *Runtime) Load(location, length int32) []byte {
 	return mem[location : location+length]
 }
 
-func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
+func (r *Runtime) Exec(function string, loc int32, data interface{}) ([]byte, error) {
+	r.mutex.Lock()
+
+	// Find out the type of data & store it correctly into memory
+	var leng int32 = 0
+	switch data.(type) {
+	case []byte:
+		r.Store(data.([]byte), loc)
+		leng = int32(len(data.([]byte)))
+	case types.Extrinsic:
+		r.Store(data.(types.Extrinsic), loc)
+		leng = int32(len(data.(types.Extrinsic)))
+	case int32:
+		leng = int32(1)
+	}
+
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
 		return nil, errors.New("could not find exported function")
 	}
-	res, err := runtimeFunc(data, len)
+	res, err := runtimeFunc(loc, leng)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +136,8 @@ func (r *Runtime) Exec(function string, data, len int32) ([]byte, error) {
 	mem := r.vm.Memory.Data()
 	rawdata := make([]byte, length)
 	copy(rawdata, mem[offset:offset+length])
+
+	r.mutex.Unlock()
 
 	return rawdata, err
 }
