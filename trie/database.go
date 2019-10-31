@@ -70,13 +70,22 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 }
 
 type Genesis struct {
-	Name       string
-	Id         string
+	Name       []byte
+	Id         []byte
+	ProtocolId []byte
 	Bootnodes  []string
-	ProtocolId string
 }
 
-func (db *Database) StoreGenesisData(gen *genesis.Genesis) error {
+func NewGenesisFromData(gen *genesis.Genesis) *Genesis {
+	return &Genesis{
+		Name:       []byte(gen.Name),
+		Id:         []byte(gen.Id),
+		ProtocolId: []byte(gen.ProtocolId),
+		Bootnodes:  gen.Bootnodes,
+	}
+}
+
+func (db *Database) StoreGenesisData(gen *Genesis) error {
 	data := &Genesis{
 		Name:       gen.Name,
 		Id:         gen.Id,
@@ -98,13 +107,12 @@ func (db *Database) LoadGenesisData() (*Genesis, error) {
 		return nil, err
 	}
 
-	data := &Genesis{}
-	_, err = scale.Decode(enc, data)
+	data, err := scale.Decode(enc, &Genesis{})
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return data.(*Genesis), nil
 }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together

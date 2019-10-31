@@ -94,6 +94,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
+	log.Debug("genesisdata", "data", gendata)
+
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
 

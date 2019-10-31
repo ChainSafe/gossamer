@@ -163,7 +163,7 @@ func gossamer(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸️Starting node...", "name", node.Name)
+	log.Info("🕸️\t Starting node...", "name", node.Name)
 	node.Start()
 
 	return nil

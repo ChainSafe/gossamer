@@ -69,7 +69,8 @@ func loadGenesis(ctx *cli.Context) error {
 	}
 
 	// store node name, ID, p2p protocol, bootnodes in DB
-	return t.Db().StoreGenesisData(gen)
+	tgen := trie.NewGenesisFromData(gen)
+	return t.Db().StoreGenesisData(tgen)
 }
 
 // getGenesisPath gets the path to the genesis file

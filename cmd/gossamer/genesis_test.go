@@ -60,10 +60,10 @@ func TestStoreGenesisInfo(t *testing.T) {
 	}
 
 	expected := &trie.Genesis{
-		Name:       tmpGenesis.Name,
-		Id:         tmpGenesis.Id,
+		Name:       []byte(tmpGenesis.Name),
+		Id:         []byte(tmpGenesis.Id),
 		Bootnodes:  tmpGenesis.Bootnodes,
-		ProtocolId: tmpGenesis.ProtocolId,
+		ProtocolId: []byte(tmpGenesis.ProtocolId),
 	}
 
 	if reflect.DeepEqual(gendata, expected) {
