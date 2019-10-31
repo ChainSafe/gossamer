@@ -64,7 +64,7 @@ import (
 	"unsafe"
 
 	common "github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/keys"
+	"github.com/ChainSafe/gossamer/crypto"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	xxhash "github.com/OneOfOne/xxhash"
@@ -507,12 +507,12 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 
 	msg := memory[msgData : msgData+msgLen]
 	sig := memory[sigData : sigData+64]
-	pubkey, err := keys.NewEd25519PublicKey(memory[pubkeyData : pubkeyData+32])
+	pubkey, err := crypto.NewEd25519PublicKey(memory[pubkeyData : pubkeyData+32])
 	if err != nil {
 		return 1
 	}
 
-	if keys.Verify(pubkey, msg, sig) {
+	if crypto.Verify(pubkey, msg, sig) {
 		return 0
 	}
 
