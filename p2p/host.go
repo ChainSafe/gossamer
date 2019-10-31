@@ -68,6 +68,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bootstrapNodes, err := stringsToPeerInfos(cfg.BootstrapNodes)
+	if err != nil {
+		return nil, err
+	}
 
 	return &host{
 		ctx:         ctx,
@@ -180,7 +183,6 @@ func (h *host) broadcast(msg []byte) {
 	}
 }
 
-// ping pings a peer
 func (h *host) ping(peer core.PeerID) error {
 	ps, err := h.dht.FindPeer(h.ctx, peer)
 	if err != nil {

@@ -172,6 +172,50 @@ func TestService_PeerCount(t *testing.T) {
 	}
 }
 
+func TestPing(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7004,
+		RandSeed:    1,
+		DataDir:     path.Join(os.TempDir(), "gossamer"),
+	}
+
+	sa := startNewService(t, testServiceConfigA, nil)
+	defer sa.Stop()
+
+	testServiceConfigB := &Config{
+		NoBootstrap: true,
+		Port:        7005,
+		RandSeed:    2,
+		DataDir:     path.Join(os.TempDir(), "gossamer2"),
+	}
+
+	msgChan := make(chan []byte)
+	sb := startNewService(t, testServiceConfigB, msgChan)
+	defer sb.Stop()
+
+	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = sb.host.connect(*addrInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = sb.host.ping(addrInfo.ID)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestSend(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
