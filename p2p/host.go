@@ -35,6 +35,7 @@ type host struct {
 	dhtConfig   kaddht.BootstrapConfig
 	bootnodes   []peer.AddrInfo
 	noBootstrap bool
+	noMdns      bool
 	mdns        discovery.Service
 }
 
@@ -61,16 +62,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	var mdns discovery.Service
-	if !cfg.NoMdns {
-		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, ProtocolPrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
-	}
-
 	dhtConfig := kaddht.BootstrapConfig{
 		Queries: 1,
 		Period:  time.Second,
@@ -79,13 +70,14 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	bootstrapNodes, err := stringsToPeerInfos(cfg.BootstrapNodes)
 
 	return &host{
-		ctx:       ctx,
-		h:         h,
-		hostAddr:  hostAddr,
-		dht:       dht,
-		dhtConfig: dhtConfig,
-		bootnodes: bootstrapNodes,
-		mdns:      mdns,
+		ctx:         ctx,
+		h:           h,
+		hostAddr:    hostAddr,
+		dht:         dht,
+		dhtConfig:   dhtConfig,
+		bootnodes:   bootstrapNodes,
+		noBootstrap: cfg.NoBootstrap,
+		noMdns:      cfg.NoMdns,
 	}, nil
 
 }
@@ -102,6 +94,19 @@ func (h *host) bootstrap() {
 		if err != nil {
 			log.Debug("failed to dial bootstrap peer", "err", err)
 		}
+	}
+}
+
+func (h *host) startMdns() {
+	if !h.noMdns {
+		mdns, err := discovery.NewMdnsService(h.ctx, h.h, mdnsPeriod, ProtocolPrefix)
+		if err != nil {
+			log.Error("error starting MDNS", "err", err)
+		}
+
+		mdns.RegisterNotifee(Notifee{ctx: h.ctx, host: h.h})
+
+		h.mdns = mdns
 	}
 }
 
@@ -201,6 +206,7 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
+// close shuts down the host and its components
 func (h *host) close() error {
 	//Stop the host & IpfsDHT
 	err := h.h.Close()

@@ -36,7 +36,6 @@ func (cm ConnManager) Notifee() net.Notifiee {
 	nb := new(net.NotifyBundle)
 	nb.OpenedStreamF = OpenedStream
 	nb.ClosedStreamF = ClosedStream
-	//nb.ConnectedF = Connected
 	return nb
 }
 
@@ -60,17 +59,3 @@ func ClosedStream(n net.Network, s net.Stream) {
 		log.Info("closed stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
 	}
 }
-
-//func Connected(n net.Network, c net.Conn) {
-//	sendStatus(c)
-//	readStatus(c)
-//}
-//
-//func sendStatus(c net.Conn) error {
-//	streams := c.GetStreams()
-//	if len(streams) ==0 {
-//		return errors.New("No streams to peer")
-//	}
-//
-//
-//}

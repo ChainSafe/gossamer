@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	module "github.com/ChainSafe/gossamer/internal/api/modules"
 	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
 
@@ -31,8 +32,8 @@ var _ services.Service = &Service{}
 
 // Service describes a p2p service, including host and dht
 type Service struct {
-	ctx              context.Context
-	host             *host
+	ctx  context.Context
+	host *host
 
 	msgChan          chan<- []byte
 	blockReqRec      map[string]bool
@@ -50,9 +51,9 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 	}
 
 	s := &Service{
-		ctx:         ctx,
-		host:        h,
-		msgChan:     msgChan,
+		ctx:     ctx,
+		host:    h,
+		msgChan: msgChan,
 	}
 
 	h.registerStreamHandler(s.handleStream)
@@ -67,6 +68,7 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 
 // Start begins the p2p Service, including discovery
 func (s *Service) Start() error {
+	s.host.startMdns()
 	s.host.bootstrap()
 	s.host.logAddrs()
 
@@ -129,13 +131,6 @@ func (s *Service) Broadcast(msg Message) (err error) {
 	return err
 }
 
-
-//// Ctx returns the service's ctx
-//func (s *Service) Ctx() context.Context {
-//	return s.ctx
-//}
-
-
 // handles stream; reads message length, message type, and decodes message based on type
 // TODO: implement all message types; send message back to peer when we get a message; gossip for certain message types
 func (s *Service) handleStream(stream net.Stream) {
@@ -194,19 +189,24 @@ func (s *Service) handleStream(stream net.Stream) {
 	}
 }
 
+var _ module.P2pApi = &Service{}
+
+// ID returns the host's ID
 func (s *Service) ID() string {
 	return s.host.id()
 }
+
 // Peers returns connected peers
 func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.h.Network().Peers())
 }
 
+// PeerCount returns the number of connected peers
 func (s *Service) PeerCount() int {
 	return s.host.peerCount()
 }
 
-// NoBootstrapping returns true if you can't bootstrap nodes
+// NoBootstrapping returns true if bootstrapping is disabled, otherwise false
 func (s *Service) NoBootstrapping() bool {
 	return s.host.noBootstrap
 }
