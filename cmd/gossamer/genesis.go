@@ -25,14 +25,13 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "genesisfile", fp, "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
-
 	// DB: Create database dir and initialize stateDB and blockDB
-	setGlobalConfig(ctx, &fig.Global)
 	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
 		return err
 	}
+
+	log.Info("🕸\t Initializing node", "genesisfile", fp, "datadir", fig.Global.DataDir, "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", gen.Bootnodes)
 
 	err = dbSrv.Start()
 	if err != nil {

@@ -49,6 +49,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
+	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir)
+
 	// DB: Create database dir and initialize stateDB and blockDB
 	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
@@ -152,8 +154,10 @@ func loadConfig(file string, config *cfg.Config) error {
 
 func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
-		fig.DataDir = dir
+		log.Info("datadir flag", "datadir", dir)
+		fig.DataDir, _ = filepath.Abs(dir)
 	}
+	log.Info("datadir", "datadir", fig.DataDir)
 	fig.DataDir, _ = filepath.Abs(fig.DataDir)
 }
 

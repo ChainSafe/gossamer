@@ -66,7 +66,7 @@ var (
 		Name:        "init",
 		Usage:       "Initialize node genesis state",
 		ArgsUsage:   "",
-		Flags:       append(append(genesisFlags, utils.VerbosityFlag), utils.DataDirFlag),
+		Flags:       append(append(genesisFlags, nodeFlags...), utils.VerbosityFlag),
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
