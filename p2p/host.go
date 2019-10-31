@@ -10,7 +10,7 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core"
+	core "github.com/libp2p/go-libp2p-core"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
