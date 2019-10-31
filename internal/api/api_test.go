@@ -93,10 +93,10 @@ func TestSystemModule(t *testing.T) {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", peers, p)
 	}
 
-	// System.PeerCount
+	// System.peerCount
 	c := srvc.Api.P2pModule.PeerCount()
 	if c != testPeerCount {
-		t.Fatalf("System.PeerCount - expected: %d got: %d\n", testPeerCount, c)
+		t.Fatalf("System.peerCount - expected: %d got: %d\n", testPeerCount, c)
 	}
 
 	// System.Version

@@ -37,9 +37,9 @@ func NewP2PModule(p2papi P2pApi) *P2pModule {
 	return &P2pModule{p2papi}
 }
 
-// PeerCount Returns the number of peers of a node
+// peerCount Returns the number of peers of a node
 func (p *P2pModule) PeerCount() int {
-	log.Debug("[rpc] Executing System.PeerCount", "params", nil)
+	log.Debug("[rpc] Executing System.peerCount", "params", nil)
 	return len(p.Peers())
 }
 
