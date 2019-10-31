@@ -62,16 +62,16 @@ var (
 		Description: `The dumpconfig command shows configuration values.`,
 	}
 	initCommand = cli.Command{
-		Action:      MigrateFlags(initNode),
-		Name:        "init",
-		Usage:       "Initialize node genesis state",
-		ArgsUsage:   "",
+		Action:    MigrateFlags(initNode),
+		Name:      "init",
+		Usage:     "Initialize node genesis state",
+		ArgsUsage: "",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.GenesisFlag,
 			utils.VerbosityFlag,
 			configFileFlag,
-	},
+		},
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
@@ -149,7 +149,6 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 		return action(ctx)
 	}
 }
-
 
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {

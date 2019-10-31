@@ -154,10 +154,8 @@ func loadConfig(file string, config *cfg.Config) error {
 
 func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
-		log.Info("datadir flag", "datadir", dir)
 		fig.DataDir, _ = filepath.Abs(dir)
 	}
-	log.Info("datadir", "datadir", fig.DataDir)
 	fig.DataDir, _ = filepath.Abs(fig.DataDir)
 }
 
