@@ -143,7 +143,10 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	return func(ctx *cli.Context) error {
 		for _, name := range ctx.FlagNames() {
 			if ctx.IsSet(name) {
-				ctx.GlobalSet(name, ctx.String(name))
+				err := ctx.GlobalSet(name, ctx.String(name))
+				if err != nil {
+					return nil
+				}
 			}
 		}
 		return action(ctx)
