@@ -33,13 +33,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-const ProtocolPrefix = "/substrate/dot/2"
+const DefaultProtocolId = protocol.ID("/gossamer/dot/0")
 const mdnsPeriod = time.Minute
 
 var _ services.Service = &Service{}
@@ -52,6 +53,7 @@ type Service struct {
 	dht              *kaddht.IpfsDHT
 	dhtConfig        kaddht.BootstrapConfig
 	bootnodes        []peer.AddrInfo
+	protocolId		protocol.ID
 	mdns             discovery.Service
 	msgChan          chan<- []byte
 	noBootstrap      bool
@@ -86,9 +88,14 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 		return nil, err
 	}
 
+	protocolId := protocol.ID(conf.ProtocolId)
+	if protocolId == "" {
+		protocolId = DefaultProtocolId
+	}
+
 	var mdns discovery.Service
 	if !conf.NoMdns {
-		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, ProtocolPrefix)
+		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, string(protocolId))
 		if err != nil {
 			return nil, err
 		}
@@ -109,6 +116,7 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 		dht:         dht,
 		dhtConfig:   dhtConfig,
 		bootnodes:   bootstrapNodes,
+		protocolId: protocolId,
 		noBootstrap: conf.NoBootstrap,
 		mdns:        mdns,
 		msgChan:     msgChan,
@@ -119,7 +127,7 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 	s.blockAnnounceRec = make(map[string]bool)
 	s.txMessageRec = make(map[string]bool)
 
-	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
+	h.SetStreamHandler(s.protocolId, s.handleStream)
 
 	return s, err
 }
@@ -212,7 +220,7 @@ func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
 
 	stream := s.getExistingStream(peer.ID)
 	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
+		stream, err = s.host.NewStream(s.ctx, peer.ID, s.protocolId)
 		log.Debug("opening new stream ", "to", peer.ID)
 		if err != nil {
 			log.Error("failed to open stream", "error", err)
@@ -286,13 +294,13 @@ func (s *Service) PeerCount() int {
 	return len(peers)
 }
 
-// getExistingStream gets an existing stream for a peer that uses ProtocolPrefix
+// getExistingStream gets an existing stream for a peer that uses the service's protocolId
 func (s *Service) getExistingStream(p peer.ID) net.Stream {
 	conns := s.host.Network().ConnsToPeer(p)
 	for _, conn := range conns {
 		streams := conn.GetStreams()
 		for _, stream := range streams {
-			if stream.Protocol() == ProtocolPrefix {
+			if stream.Protocol() == s.protocolId {
 				return stream
 			}
 		}
