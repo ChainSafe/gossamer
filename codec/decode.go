@@ -458,6 +458,15 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 			ptr := fieldValue.Addr().Interface().(*common.Hash)
 			*ptr = common.NewHash(b)
+		case string:
+			o, err = sd.DecodeByteArray()
+			if err != nil {
+				break
+			}
+
+			// get the pointer to the value and set the value
+			ptr := fieldValue.Addr().Interface().(*string)
+			*ptr =  string(o.([]byte))
 		default:
 			_, err = sd.Decode(v.Field(i).Interface())
 			if err != nil {
