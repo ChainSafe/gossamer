@@ -77,32 +77,13 @@ type Genesis struct {
 }
 
 func NewGenesisFromData(gen *genesis.Genesis) *Genesis {
-	bnodes := [][]byte{}
-	for _, bnode := range gen.Bootnodes {
-		bnodes = append(bnodes, []byte(bnode))
-	}
+	bnodes := common.StringArrayToBytes(gen.Bootnodes)
 	return &Genesis{
 		Name:       []byte(gen.Name),
 		Id:         []byte(gen.Id),
 		ProtocolId: []byte(gen.ProtocolId),
 		Bootnodes:  bnodes,
 	}
-}
-
-func StringArrayToBytes(in []string) [][]byte {
-	b := [][]byte{}
-	for _, str := range in {
-		b = append(b, []byte(str))
-	}
-	return b
-}
-
-func BytesToStringArray(in [][]byte) []string {
-	strs := []string{}
-	for _, b := range in {
-		strs = append(strs, string(b))
-	}
-	return strs
 }
 
 func (db *Database) StoreGenesisData(gen *Genesis) error {

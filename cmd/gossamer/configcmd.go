@@ -24,6 +24,7 @@ import (
 	"unicode"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
+	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
@@ -162,7 +163,7 @@ func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 }
 
 func updateP2pConfig(fig *cfg.P2pCfg, gendata *trie.Genesis) {
-	fig.BootstrapNodes = append(fig.BootstrapNodes, trie.BytesToStringArray(gendata.Bootnodes)...)
+	fig.BootstrapNodes = append(fig.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...)
 	fig.ProtocolId = string(gendata.ProtocolId)
 }
 
