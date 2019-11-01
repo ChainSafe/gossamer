@@ -49,8 +49,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir)
-
 	// DB: Create database dir and initialize stateDB and blockDB
 	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
@@ -71,6 +69,16 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
 	}
 
+	// load extra genesis data from DB
+	gendata, err := state.Db().LoadGenesisData()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	updateP2pConfig(&fig.P2p, gendata)
+
+	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir, "protocolID", fig.P2p.ProtocolId, "bootnodes", fig.P2p.BootstrapNodes)
+
 	// TODO: BABE
 
 	// P2P
@@ -87,14 +95,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// RPC
 	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
-
-	// load extra genesis data from DB
-	gendata, err := state.Db().LoadGenesisData()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	log.Debug("genesisdata", "data", gendata)
 
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
@@ -159,6 +159,11 @@ func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 		fig.DataDir, _ = filepath.Abs(dir)
 	}
 	fig.DataDir, _ = filepath.Abs(fig.DataDir)
+}
+
+func updateP2pConfig(fig *cfg.P2pCfg, gendata *trie.Genesis) {
+	fig.BootstrapNodes = append(fig.BootstrapNodes, trie.BytesToStringArray(gendata.Bootnodes)...)
+	fig.ProtocolId = string(gendata.ProtocolId)
 }
 
 func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {

@@ -68,14 +68,19 @@ func (s *DbService) Start() error {
 // Stop kills running BlockDB and StateDB instances
 func (s *DbService) Stop() error {
 	// Closing Badger Databases
-	err := s.StateDB.Db.Close()
-	if err != nil {
-		return err
+	if s.StateDB != nil {
+		err := s.StateDB.Db.Close()
+		if err != nil {
+			return err
+		}
 	}
 
-	err = s.BlockDB.Db.Close()
-	if err != nil {
-		return err
+	if s.BlockDB != nil {
+		err := s.BlockDB.Db.Close()
+		if err != nil {
+			return err
+		}
 	}
+
 	return nil
 }

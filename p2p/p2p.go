@@ -53,7 +53,7 @@ type Service struct {
 	dht              *kaddht.IpfsDHT
 	dhtConfig        kaddht.BootstrapConfig
 	bootnodes        []peer.AddrInfo
-	protocolId		protocol.ID
+	protocolId       protocol.ID
 	mdns             discovery.Service
 	msgChan          chan<- []byte
 	noBootstrap      bool
@@ -116,7 +116,7 @@ func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 		dht:         dht,
 		dhtConfig:   dhtConfig,
 		bootnodes:   bootstrapNodes,
-		protocolId: protocolId,
+		protocolId:  protocolId,
 		noBootstrap: conf.NoBootstrap,
 		mdns:        mdns,
 		msgChan:     msgChan,
