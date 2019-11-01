@@ -36,7 +36,7 @@ func NewSimulator(num int) (sim *Simulator, err error) {
 		NoMdns:         false,
 	}
 
-	sim.Bootnode, err = p2p.NewService(bootnodeCfg, nil)
+	sim.Bootnode, err = p2p.NewService(bootnodeCfg, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewSimulator(num int) (sim *Simulator, err error) {
 			Port: 5001 + uint32(i),
 		}
 		sim.Nodes[i] = new(p2p.Service)
-		sim.Nodes[i], err = p2p.NewService(conf, nil)
+		sim.Nodes[i], err = p2p.NewService(conf, nil, nil)
 		if err != nil {
 			return nil, err
 		}

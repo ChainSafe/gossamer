@@ -76,7 +76,7 @@ func makeNode(ctx *cli.Context, gen *genesis.GenesisState) (*dot.Dot, *cfg.Confi
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
-	coreSrvc := core.NewService(nil, nil, msgChan)
+	coreSrvc := core.NewService(nil, nil, msgChan, nil)
 	srvcs = append(srvcs, coreSrvc)
 
 	// DB
@@ -198,7 +198,7 @@ func createP2PService(fig cfg.Config) (*p2p.Service, chan []byte) {
 
 	msgChan := make(chan []byte)
 
-	srvc, err := p2p.NewService(&config, msgChan)
+	srvc, err := p2p.NewService(&config, msgChan, nil)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}

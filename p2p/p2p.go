@@ -143,9 +143,17 @@ func (s *Service) Start() error {
 	log.Info("Listening for connections...")
 
 	log.Info("Starting Message Polling for Block Announce Messages from BABE")
-	go s.MsgRecPoll()
 
-	return nil
+	e := make(chan error)
+
+	go s.MsgRecPoll(e)
+
+	select {
+	case err := <-e:
+		return err
+	case <-time.After(time.Second * 3):
+		return nil
+	}
 }
 
 // Stop stops the p2p service
@@ -169,7 +177,7 @@ func (s *Service) Stop() error {
 }
 
 // Start polling the msgRecChan channel for any blocks
-func (s *Service) MsgRecPoll() (err error) {
+func (s *Service) MsgRecPoll(e chan error) {
 	for {
 		// Receives block from babe
 		block := <-s.msgRecChan
@@ -179,11 +187,13 @@ func (s *Service) MsgRecPoll() (err error) {
 		// Calls broadcast
 		for _, peers := range s.host.Network().Peers() {
 			addrInfo := s.dht.FindLocal(peers)
-			err = s.Send(addrInfo, block)
+			err := s.Send(addrInfo, block)
+			if err != nil {
+				e <- err
+			}
 		}
 
 		s.msgSendChan <- block
-		return err
 	}
 }
 
