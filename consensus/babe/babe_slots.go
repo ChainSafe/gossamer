@@ -21,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
-	"fmt"
 )
 
 // calculate the slot time for a given block in miliseconds, returns 0 and an error if it can't be calculated
@@ -36,8 +35,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
 	s := bt.GetNodeFromBlockNumber(bn)
-	fmt.Println("HEREEEEEE SD")
-	sd := b.config.SlotDuration
+	sd := uint64(50) 
 	for _, node := range bt.SubChain(dl.Hash, s.Hash) {
 		so, err:= slotOffset(bt.ComputeSlotForNode(node, sd), slot)
 		if err != nil {

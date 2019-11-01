@@ -71,12 +71,17 @@ func (n *Node) getNode(h common.Hash) *Node {
 
 // getNodeFromBlockNumber recursively searches for a Node with a given Number
 func (n *Node) getNodeFromBlockNumber(b *big.Int) *Node {
-	if n.Number == b {
+	fmt.Println(b.Cmp(n.Number))
+	if b.Cmp(n.Number) == 0 {
+		fmt.Println("HERE2")
+		fmt.Println(n)
 		return n
 	} else if len(n.children) == 0 {
+		fmt.Println("HERE3")
 		return nil
 	} else {
 		for _, child := range n.children {
+			fmt.Println("HERE5")
 			if n := child.getNodeFromBlockNumber(b); n != nil {
 				return n
 			}
