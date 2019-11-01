@@ -12,22 +12,21 @@ func TestEncodeDecodeComplexStruct(t *testing.T) {
 	}
 
 	type ComplexStruct struct {
-		B bool
-		I int
-		I8 int8
+		B   bool
+		I   int
+		I8  int8
 		I16 int16
 		I32 int32
 		I64 int64
-		U uint
-		U8 uint8
+		U   uint
+		U8  uint8
 		U16 uint16
 		U32 uint32
 		U64 uint64
 		Str string
-		Bz []byte
+		Bz  []byte
 		Sub *SimpleStruct
 	}
-
 
 	test := &ComplexStruct{
 		B:   true,
@@ -48,7 +47,6 @@ func TestEncodeDecodeComplexStruct(t *testing.T) {
 			B: true,
 		},
 	}
-
 
 	enc, err := Encode(test)
 	if err != nil {

@@ -170,9 +170,9 @@ func TestEncode(t *testing.T) {
 }
 
 func TestEncodeAndDecodeStringInStruct(t *testing.T) {
-	test := &struct{
+	test := &struct {
 		A string
-	} {
+	}{
 		A: "noot",
 	}
 
@@ -181,7 +181,7 @@ func TestEncodeAndDecodeStringInStruct(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dec, err := Decode(enc, &struct{A string}{A: ""})
+	dec, err := Decode(enc, &struct{ A string }{A: ""})
 	if err != nil {
 		t.Fatal(err)
 	}
