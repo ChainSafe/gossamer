@@ -15,6 +15,15 @@ type Genesis struct {
 	Genesis    GenesisFields
 }
 
+// Genesis stores the data parsed from the genesis configuration file
+type GenesisData struct {
+	Name          string
+	Id            string
+	Bootnodes     []string
+	ProtocolId    string
+	genesisFields GenesisFields
+}
+
 type GenesisFields struct {
 	Raw map[string]string
 }
@@ -34,4 +43,23 @@ func LoadGenesisJsonFile(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
+}
+
+func LoadGenesisData(file string) (*GenesisData, error) {
+	g, err := LoadGenesisJsonFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GenesisData{
+		Name:          g.Name,
+		Id:            g.Id,
+		Bootnodes:     g.Bootnodes,
+		ProtocolId:    g.ProtocolId,
+		genesisFields: g.Genesis,
+	}, nil
+}
+
+func (g *GenesisData) GenesisFields() GenesisFields {
+	return g.genesisFields
 }

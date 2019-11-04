@@ -69,31 +69,32 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-type Genesis struct {
-	Name       []byte
-	Id         []byte
-	ProtocolId []byte
-	Bootnodes  []string
-}
+// type Genesis struct {
+// 	Name       []byte
+// 	Id         []byte
+// 	ProtocolId []byte
+// 	Bootnodes  [][]byte
+// }
 
-func NewGenesisFromData(gen *genesis.Genesis) *Genesis {
-	return &Genesis{
-		Name:       []byte(gen.Name),
-		Id:         []byte(gen.Id),
-		ProtocolId: []byte(gen.ProtocolId),
-		Bootnodes:  gen.Bootnodes,
-	}
-}
+// func NewGenesisFromData(gen *genesis.Genesis) *Genesis {
+// 	bnodes := common.StringArrayToBytes(gen.Bootnodes)
+// 	return &Genesis{
+// 		Name:       []byte(gen.Name),
+// 		Id:         []byte(gen.Id),
+// 		ProtocolId: []byte(gen.ProtocolId),
+// 		Bootnodes:  bnodes,
+// 	}
+// }
 
-func (db *Database) StoreGenesisData(gen *Genesis) error {
-	data := &Genesis{
-		Name:       gen.Name,
-		Id:         gen.Id,
-		Bootnodes:  gen.Bootnodes,
-		ProtocolId: gen.ProtocolId,
-	}
+func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
+	// data := &Genesis{
+	// 	Name:       gen.Name,
+	// 	Id:         gen.Id,
+	// 	Bootnodes:  gen.Bootnodes,
+	// 	ProtocolId: gen.ProtocolId,
+	// }
 
-	enc, err := scale.Encode(data)
+	enc, err := scale.Encode(gen)
 	if err != nil {
 		return err
 	}
@@ -101,18 +102,20 @@ func (db *Database) StoreGenesisData(gen *Genesis) error {
 	return db.Store(GenesisDataKey, enc)
 }
 
-func (db *Database) LoadGenesisData() (*Genesis, error) {
+func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
 	enc, err := db.Load(GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := scale.Decode(enc, &Genesis{})
+	data, err := scale.Decode(enc, &genesis.GenesisData{
+		Bootnodes: []string{""},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return data.(*Genesis), nil
+	return data.(*genesis.GenesisData), nil
 }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together

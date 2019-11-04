@@ -20,7 +20,7 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// read genesis file
 	fp := getGenesisPath(ctx)
-	gen, err := genesis.LoadGenesisJsonFile(fp)
+	gen, err := genesis.LoadGenesisData(fp)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func loadGenesis(ctx *cli.Context) error {
 	// create and load storage trie with initial genesis state
 	t := trie.NewEmptyTrie(tdb)
 
-	err = t.Load(gen.Genesis.Raw)
+	err = t.Load(gen.GenesisFields().Raw)
 	if err != nil {
 		return fmt.Errorf("cannot load trie with initial state: %s", err)
 	}
@@ -69,8 +69,8 @@ func loadGenesis(ctx *cli.Context) error {
 	}
 
 	// store node name, ID, p2p protocol, bootnodes in DB
-	tgen := trie.NewGenesisFromData(gen)
-	return t.Db().StoreGenesisData(tgen)
+	//tgen := trie.NewGenesisFromData(gen)
+	return t.Db().StoreGenesisData(gen)
 }
 
 // getGenesisPath gets the path to the genesis file

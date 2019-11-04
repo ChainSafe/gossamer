@@ -59,14 +59,14 @@ func TestStoreGenesisInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &trie.Genesis{
-		Name:       []byte(tmpGenesis.Name),
-		Id:         []byte(tmpGenesis.Id),
+	expected := &genesis.GenesisData{
+		Name:       tmpGenesis.Name,
+		Id:         tmpGenesis.Id,
+		ProtocolId: tmpGenesis.ProtocolId,
 		Bootnodes:  tmpGenesis.Bootnodes,
-		ProtocolId: []byte(tmpGenesis.ProtocolId),
 	}
 
-	if reflect.DeepEqual(gendata, expected) {
+	if !reflect.DeepEqual(gendata, expected) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
 	}
 }
