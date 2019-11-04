@@ -106,7 +106,6 @@ func (bt *BlockTree) GetNode(h Hash) *Node {
 
 // GetNodeFromBlockNumber finds and returns a node from its number
 func (bt *BlockTree) GetNodeFromBlockNumber(b *big.Int) *Node {
-//	if bt.head.Number.Cmp(b) != 0 {
 	if b.Cmp(bt.head.Number) == 0 {
 		return bt.head
 	}

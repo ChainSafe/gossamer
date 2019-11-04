@@ -21,28 +21,35 @@ import (
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
+	"fmt"
 )
 
-// calculate the slot time for a given block in miliseconds, returns 0 and an error if it can't be calculated
+// calculate the slot time in the form of miliseconds since the unix epoch 
+// for a given slot in miliseconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
 	dl := bt.DeepestLeaf()
 	bn := new(big.Int).SetUint64(slotTail)
-	bn.Sub(dl.Number, bn)
+	nf := bn.Sub(dl.Number, bn)
 	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
-	if bn.Cmp(new(big.Int)) <= 0 {
-
+	if dl.Number.Cmp(bn) <= 0 {
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
-	s := bt.GetNodeFromBlockNumber(bn)
-	sd := uint64(50) 
-	for _, node := range bt.SubChain(dl.Hash, s.Hash) {
+	s := bt.GetNodeFromBlockNumber(nf)
+	conf, err := b.configurationFromRuntime()
+	sd := conf.SlotDuration
+	if err != nil {
+		return 0, err
+	}
+	for _, node := range bt.SubChain(s.Hash, dl.Hash) {
+		fmt.Println(bt.ComputeSlotForNode(node, sd))
 		so, err:= slotOffset(bt.ComputeSlotForNode(node, sd), slot)
 		if err != nil {
 			return 0, err
 		}
 		st := node.ArrivalTime + (so * sd)
 		at = append(at, st)
+		fmt.Println(at)
 	}
 	st, err := median(at)
 	if err != nil {
@@ -73,8 +80,8 @@ func median(l []uint64) (uint64, error) {
 // returns slotOffset
 func slotOffset(start uint64, end uint64) (uint64, error) {
 	os := end - start
-	if (end <= start) {
-		return 0, errors.New("Slot end time less than or equal to slot start time!")
+	if (end < start) {
+		return 0, errors.New("Slot end time less than slot start time!")
 	}
 	return os, nil
 }

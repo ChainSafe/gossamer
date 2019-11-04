@@ -300,7 +300,7 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 	previousHash := genesisBlock.Header.Hash
 
 	for i := 1; i <= depth; i++ {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 		hex := fmt.Sprintf("%06x", i)
 		
 		hash, err := common.HexToHash("0x" + hex)
@@ -326,11 +326,11 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 
 }
 
-
+// TestSlotTime will always result in different numbers since SlotTime outputs the Time of the slot
+// in the format of miliseconds since the Unix Epoch
 func TestSlotTime(t *testing.T) {
 	rt := newRuntime(t)
-	// need more than 1200 nodes
-	bt := createFlatBlockTree_WithWaitTime(t, 50)
+	bt := createFlatBlockTree_WithWaitTime(t, 30)
 	babesession := NewSession([32]byte{}, [64]byte{}, rt)
 	_, err := babesession.configurationFromRuntime()
 	if err != nil {
@@ -338,10 +338,9 @@ func TestSlotTime(t *testing.T) {
 	}
 
 	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
-	slotTime, err := babesession.slotTime(10, bt, 30)
+	slotTime, err := babesession.slotTime(30, bt, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Errorf("Fail: got %d expected", slotTime)
 }
 
