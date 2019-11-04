@@ -96,7 +96,7 @@ func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 
 	enc, err := scale.Encode(gen)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
 
 	return db.Store(GenesisDataKey, enc)
@@ -109,7 +109,7 @@ func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
 	}
 
 	data, err := scale.Decode(enc, &genesis.GenesisData{
-		Bootnodes: []string{""},
+		Bootnodes: [][]byte{{}},
 	})
 	if err != nil {
 		return nil, err

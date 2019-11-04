@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // Genesis stores the data parsed from the genesis configuration file
@@ -19,7 +21,7 @@ type Genesis struct {
 type GenesisData struct {
 	Name          string
 	Id            string
-	Bootnodes     []string
+	Bootnodes     [][]byte
 	ProtocolId    string
 	genesisFields GenesisFields
 }
@@ -54,7 +56,7 @@ func LoadGenesisData(file string) (*GenesisData, error) {
 	return &GenesisData{
 		Name:          g.Name,
 		Id:            g.Id,
-		Bootnodes:     g.Bootnodes,
+		Bootnodes:     common.StringArrayToBytes(g.Bootnodes),
 		ProtocolId:    g.ProtocolId,
 		genesisFields: g.Genesis,
 	}, nil
