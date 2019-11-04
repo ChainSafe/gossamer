@@ -52,9 +52,8 @@ func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan BlockAnno
 	}
 
 	s := &Service{
-		ctx:     ctx,
-		host:    h,
-		msgChan: msgChan,
+		ctx:         ctx,
+		host:        h,
 		msgSendChan: msgChan,
 		msgRecChan:  msgRecChan,
 	}
@@ -93,11 +92,6 @@ func (s *Service) Stop() error {
 		log.Error("error closing host", "err", err)
 	}
 
-	err = s.dht.Close()
-	if err != nil {
-		return err
-	}
-
 	if s.msgSendChan != nil {
 		close(s.msgSendChan)
 	}
@@ -110,15 +104,20 @@ func (s *Service) MsgRecPoll(e chan error) {
 	for {
 		// Receives block from babe
 		blockAnnounceMsg := <-s.msgRecChan
-		msg := s.hostAddr.String() + " received block"
+		msg := s.host.hostAddr.String() + " received block"
 		log.Info(msg, "block", blockAnnounceMsg)
 
 		// Broadcast the received message
-		s.Broadcast(&blockAnnounceMsg)
+		err := s.Broadcast(&blockAnnounceMsg)
+		if err != nil {
+			e <- err
+			break
+		}
 
 		blockAnnounceMsgBytes, err := blockAnnounceMsg.Encode()
 		if err != nil {
 			e <- err
+			break
 		}
 		s.msgSendChan <- blockAnnounceMsgBytes
 	}

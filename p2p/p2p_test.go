@@ -181,7 +181,7 @@ func TestPing(t *testing.T) {
 		DataDir:     path.Join(os.TempDir(), "gossamer"),
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil)
+	sa := startNewService(t, testServiceConfigA, nil, nil)
 	defer sa.Stop()
 
 	testServiceConfigB := &Config{
@@ -192,7 +192,7 @@ func TestPing(t *testing.T) {
 	}
 
 	msgChan := make(chan []byte)
-	sb := startNewService(t, testServiceConfigB, msgChan)
+	sb := startNewService(t, testServiceConfigB, msgChan, nil)
 	defer sb.Stop()
 
 	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
