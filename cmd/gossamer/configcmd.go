@@ -76,14 +76,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	updateP2pConfig(&fig.P2p, gendata)
-
-	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir, "protocolID", fig.P2p.ProtocolId, "bootnodes", fig.P2p.BootstrapNodes)
+	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir, "protocolID", gendata.ProtocolId, "bootnodes", fig.P2p.BootstrapNodes)
 
 	// TODO: BABE
 
 	// P2P
-	p2pSrvc, msgChan := createP2PService(fig)
+	p2pSrvc, msgChan := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
@@ -162,11 +160,6 @@ func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
 	fig.DataDir, _ = filepath.Abs(fig.DataDir)
 }
 
-func updateP2pConfig(fig *cfg.P2pCfg, gendata *trie.Genesis) {
-	fig.BootstrapNodes = append(fig.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...)
-	fig.ProtocolId = string(gendata.ProtocolId)
-}
-
 func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
@@ -189,14 +182,15 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *cfg.Config) (*p2p.Service, chan []byte) {
+func createP2PService(fig *cfg.Config, gendata *trie.Genesis) (*p2p.Service, chan []byte) {
 	config := p2p.Config{
-		BootstrapNodes: fig.P2p.BootstrapNodes,
+		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
 		Port:           fig.P2p.Port,
 		RandSeed:       0,
 		NoBootstrap:    fig.P2p.NoBootstrap,
 		NoMdns:         fig.P2p.NoMdns,
 		DataDir:        fig.Global.DataDir,
+		ProtocolId:     string(gendata.ProtocolId),
 	}
 
 	msgChan := make(chan []byte)

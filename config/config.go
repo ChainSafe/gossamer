@@ -41,7 +41,6 @@ type P2pCfg struct {
 	Port           uint32   `toml:"port"`
 	NoBootstrap    bool     `toml:"no-bootstrap"`
 	NoMdns         bool     `toml:"no-mdns"`
-	ProtocolId     string   `toml:"protocol-id"`
 }
 
 type RpcCfg struct {
