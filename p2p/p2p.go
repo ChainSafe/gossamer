@@ -54,7 +54,7 @@ type Service struct {
 	bootnodes        []peer.AddrInfo
 	mdns             discovery.Service
 	msgSendChan      chan<- []byte
-	msgRecChan       <-chan []byte
+	msgRecChan       <-chan BlockAnnounceMessage
 	noBootstrap      bool
 	blockReqRec      map[string]bool
 	blockRespRec     map[string]bool
@@ -63,7 +63,7 @@ type Service struct {
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan []byte) (*Service, error) {
+func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan BlockAnnounceMessage) (*Service, error) {
 	ctx := context.Background()
 	opts, err := conf.buildOpts()
 	if err != nil {
@@ -142,18 +142,13 @@ func (s *Service) Start() error {
 
 	log.Info("Listening for connections...")
 
-	log.Info("Starting Message Polling for Block Announce Messages from BABE")
+	log.Debug("Starting Message Polling for Block Announce Messages from BABE")
 
 	e := make(chan error)
 
 	go s.MsgRecPoll(e)
 
-	select {
-	case err := <-e:
-		return err
-	case <-time.After(time.Second * 3):
-		return nil
-	}
+	return nil
 }
 
 // Stop stops the p2p service
@@ -176,24 +171,22 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// Start polling the msgRecChan channel for any blocks
+// MsgRecPoll starts polling the msgRecChan channel for any blocks
 func (s *Service) MsgRecPoll(e chan error) {
 	for {
 		// Receives block from babe
-		block := <-s.msgRecChan
+		blockAnnounceMsg := <-s.msgRecChan
 		msg := s.hostAddr.String() + " received block"
-		log.Info(msg, "block", block)
+		log.Info(msg, "block", blockAnnounceMsg)
 
-		// Calls broadcast
-		for _, peers := range s.host.Network().Peers() {
-			addrInfo := s.dht.FindLocal(peers)
-			err := s.Send(addrInfo, block)
-			if err != nil {
-				e <- err
-			}
+		// Broadcast the received message
+		s.Broadcast(&blockAnnounceMsg)
+
+		blockAnnounceMsgBytes, err := blockAnnounceMsg.Encode()
+		if err != nil {
+			e <- err
 		}
-
-		s.msgSendChan <- block
+		s.msgSendChan <- blockAnnounceMsgBytes
 	}
 }
 

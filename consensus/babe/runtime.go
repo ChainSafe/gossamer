@@ -28,6 +28,15 @@ func (b *Session) configurationFromRuntime() (*BabeConfiguration, error) {
 	}
 
 	bc := new(BabeConfiguration)
+	bc.GenesisAuthorities = []AuthorityData{}
 	_, err = scale.Decode(ret, bc)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Directly set the babe session's config
+	b.config = bc
+
 	return bc, err
 }

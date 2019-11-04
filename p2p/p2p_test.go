@@ -19,6 +19,7 @@ package p2p
 import (
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"reflect"
 	"testing"
@@ -31,8 +32,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func startNewService(t *testing.T, cfg *Config, msgChan chan []byte) *Service {
-	node, err := NewService(cfg, msgChan, nil)
+func startNewService(t *testing.T, cfg *Config, msgChan chan []byte, msgRecChan chan BlockAnnounceMessage) *Service {
+	node, err := NewService(cfg, msgChan, msgRecChan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +93,7 @@ func TestBootstrapConnect(t *testing.T) {
 		NoMdns:         true,
 	}
 
-	bootnode := startNewService(t, bootnodeCfg, nil)
+	bootnode := startNewService(t, bootnodeCfg, nil, nil)
 	defer bootnode.Stop()
 	bootnodeAddr := bootnode.FullAddrs()[0]
 
@@ -104,7 +105,7 @@ func TestBootstrapConnect(t *testing.T) {
 		NoMdns:         true,
 	}
 
-	node := startNewService(t, nodeCfg, nil)
+	node := startNewService(t, nodeCfg, nil, nil)
 	defer node.Stop()
 	// Allow everything to finish connecting
 	time.Sleep(1 * time.Second)
@@ -120,7 +121,7 @@ func TestNoBootstrap(t *testing.T) {
 		Port:        7006,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil)
+	sa := startNewService(t, testServiceConfigA, nil, nil)
 	sa.Stop()
 }
 
@@ -131,7 +132,7 @@ func TestService_PeerCount(t *testing.T) {
 		RandSeed:    1,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil)
+	sa := startNewService(t, testServiceConfigA, nil, nil)
 	defer sa.Stop()
 
 	testServiceConfigB := &Config{
@@ -140,7 +141,7 @@ func TestService_PeerCount(t *testing.T) {
 		RandSeed:    2,
 	}
 
-	sb := startNewService(t, testServiceConfigB, nil)
+	sb := startNewService(t, testServiceConfigB, nil, nil)
 	defer sb.Stop()
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
@@ -172,7 +173,7 @@ func TestSend(t *testing.T) {
 		RandSeed:    1,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil)
+	sa := startNewService(t, testServiceConfigA, nil, nil)
 	defer sa.Stop()
 
 	testServiceConfigB := &Config{
@@ -182,7 +183,7 @@ func TestSend(t *testing.T) {
 	}
 
 	msgChan := make(chan []byte)
-	sb := startNewService(t, testServiceConfigB, msgChan)
+	sb := startNewService(t, testServiceConfigB, msgChan, nil)
 	defer sb.Stop()
 
 	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
@@ -247,7 +248,7 @@ func TestGossiping(t *testing.T) {
 		RandSeed:       1,
 	}
 
-	nodeA := startNewService(t, nodeConfigA, nil)
+	nodeA := startNewService(t, nodeConfigA, nil, nil)
 	defer nodeA.Stop()
 	nodeAAddr := nodeA.FullAddrs()[0]
 
@@ -262,7 +263,7 @@ func TestGossiping(t *testing.T) {
 	}
 
 	msgChanB := make(chan []byte)
-	nodeB := startNewService(t, nodeConfigB, msgChanB)
+	nodeB := startNewService(t, nodeConfigB, msgChanB, nil)
 	defer nodeB.Stop()
 	nodeBAddr := nodeB.FullAddrs()[0]
 
@@ -277,7 +278,7 @@ func TestGossiping(t *testing.T) {
 	}
 
 	msgChanC := make(chan []byte)
-	nodeC := startNewService(t, nodeConfigC, msgChanC)
+	nodeC := startNewService(t, nodeConfigC, msgChanC, nil)
 	defer nodeC.Stop()
 
 	// Meaningless hash
@@ -329,6 +330,44 @@ func TestGossiping(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeB.hostAddr)
+	}
+
+}
+
+func TestP2pReceiveChan(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7004,
+		RandSeed:    1,
+	}
+
+	msgRecChan := make(chan BlockAnnounceMessage)
+	msgSendChan := make(chan []byte)
+
+	sa := startNewService(t, testServiceConfigA, msgSendChan, msgRecChan)
+	defer sa.Stop()
+
+	blockAnnounceMsg := BlockAnnounceMessage{
+		Number: big.NewInt(1),
+	}
+
+	encodedBlockAnnounceMsg, err := blockAnnounceMsg.Encode()
+	if err != nil {
+		t.Fatalf("Can't encode the block announce message")
+	}
+
+	// Send message down the P2p receive channel
+	msgRecChan <- blockAnnounceMsg
+
+	// Check that we receive the same message back
+	select {
+	case receivedBlockAnnounceMsg := <-msgSendChan:
+		if !reflect.DeepEqual(receivedBlockAnnounceMsg, encodedBlockAnnounceMsg) {
+			t.Fatalf("P2p service didn't receive the correct block")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("Did not receive message %+v", encodedBlockAnnounceMsg)
+
 	}
 
 }

@@ -17,15 +17,18 @@
 package babe
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -155,7 +158,10 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	babesession.AuthorityIndex = 0
 	babesession.AuthorityWeights = []uint64{1, 1, 1}
 	conf := &BabeConfiguration{
@@ -167,9 +173,9 @@ func TestRunLottery(t *testing.T) {
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
-	babesession.Config = conf
+	babesession.config = conf
 
-	_, err := babesession.runLottery(0)
+	_, err = babesession.runLottery(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +195,10 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestConfigurationFromRuntime(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	res, err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -213,7 +222,10 @@ func TestConfigurationFromRuntime(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	babesession.AuthorityIndex = 0
 	babesession.AuthorityWeights = []uint64{1}
 	conf := &BabeConfiguration{
@@ -225,11 +237,44 @@ func TestStart(t *testing.T) {
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
-	babesession.Config = conf
+	babesession.config = conf
 
-	err := babesession.Start()
+	err = babesession.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 	time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
+}
+
+func TestBabeAnnounceMessage(t *testing.T) {
+	rt := newRuntime(t)
+
+	// Block Announce Channel called when Build-Block Creates a block
+	blockAnnounceChan := make(chan p2p.BlockAnnounceMessage)
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, blockAnnounceChan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	babesession.AuthorityIndex = 0
+	babesession.AuthorityWeights = []uint64{1, 1, 1}
+
+	err = babesession.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Duration(babesession.config.SlotDuration) * time.Duration(babesession.config.EpochLength) * time.Millisecond)
+
+	for i := 0; i < int(babesession.config.EpochLength); i++ {
+		fmt.Println("Receiving block from BABE")
+		blk := <-blockAnnounceChan
+
+		expectedBlockAnnounceMsg := p2p.BlockAnnounceMessage{
+			Number: big.NewInt(int64(i)),
+		}
+
+		if !reflect.DeepEqual(blk, expectedBlockAnnounceMsg) {
+			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", blk, expectedBlockAnnounceMsg)
+		}
+	}
+
 }

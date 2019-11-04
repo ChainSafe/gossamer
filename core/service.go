@@ -98,7 +98,9 @@ func (s *Service) Stop() error {
 	if s.rt != nil {
 		s.rt.Stop()
 	}
-	close(s.sendChan)
+	if s.sendChan != nil {
+		close(s.sendChan)
+	}
 	return nil
 }
 

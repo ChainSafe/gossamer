@@ -18,7 +18,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -94,12 +93,15 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 
 func TestNewService_Start(t *testing.T) {
 	rt := newRuntime(t)
-	b := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	msgChan := make(chan []byte)
 
 	mgr := NewService(rt, b, msgChan, nil)
 
-	err := mgr.Start()
+	err = mgr.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,10 +143,13 @@ func TestValidateTransaction(t *testing.T) {
 
 func TestProcessTransaction(t *testing.T) {
 	rt := newRuntime(t)
-	b := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	mgr := NewService(rt, b, make(chan []byte), nil)
 	ext := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
-	err := mgr.ProcessTransaction(ext)
+	err = mgr.ProcessTransaction(ext)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,10 +173,13 @@ func TestValidateBlock(t *testing.T) {
 
 func TestHandleMsg_Transaction(t *testing.T) {
 	rt := newRuntime(t)
-	b := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	msgChan := make(chan []byte)
 	mgr := NewService(rt, b, msgChan, nil)
-	err := mgr.Start()
+	err = mgr.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +204,10 @@ func TestHandleMsg_Transaction(t *testing.T) {
 
 func TestHandleMsg_BlockResponse(t *testing.T) {
 	rt := newRuntime(t)
-	b := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	msgChan := make(chan []byte)
 	mgr := NewService(rt, b, msgChan, nil)
 	e := make(chan error)
@@ -216,71 +227,4 @@ func TestHandleMsg_BlockResponse(t *testing.T) {
 	if err := <-e; err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestP2pRecBlockAnnounce(t *testing.T) {
-	// Block Announce Channel called when Build-Block Creates a block
-	blockP2pRecChan := make(chan []byte)
-	blockP2pSendChan := make(chan []byte)
-
-	//Start node A
-	nodeConfig := &p2p.Config{
-		BootstrapNodes: nil,
-		Port:           7000,
-		NoBootstrap:    true,
-		NoMdns:         true,
-		RandSeed:       1,
-	}
-	node, err := p2p.NewService(nodeConfig, blockP2pSendChan, blockP2pRecChan)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = node.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer node.Stop()
-
-	// Create a new runtime
-	rt := newRuntime(t)
-
-	// Initialise the BABE session
-	b := babe.NewSession([32]byte{}, [64]byte{}, rt, blockP2pRecChan)
-	conf := &babe.BabeConfiguration{
-		SlotDuration:       1,
-		EpochLength:        1,
-		C1:                 1,
-		C2:                 10,
-		GenesisAuthorities: []babe.AuthorityData{},
-		Randomness:         0,
-		SecondarySlots:     false,
-	}
-	b.Config = conf
-	b.AuthorityIndex = 0
-	b.AuthorityWeights = []uint64{1, 1, 1}
-
-	// Make a new core service
-	msgChan := make(chan []byte)
-	core := NewService(rt, b, msgChan, nil)
-
-	e := make(chan error)
-	go core.start(e)
-	if err := <-e; err != nil {
-		t.Fatal(err)
-	}
-
-	err = b.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// wait for mgr to start
-	time.Sleep(time.Second)
-
-	// Check if p2p received the correct block (might have to remove this test when we implement dynamic block build)
-	receivedBlockFromP2p := <-blockP2pSendChan
-	fmt.Println(receivedBlockFromP2p)
-
 }

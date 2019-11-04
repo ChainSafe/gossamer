@@ -26,8 +26,9 @@ import (
 	"time"
 
 	tx "github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
-	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator
@@ -36,7 +37,7 @@ type Session struct {
 	vrfPrivateKey VrfPrivateKey
 	rt            *runtime.Runtime
 
-	Config *BabeConfiguration
+	config *BabeConfiguration
 
 	AuthorityIndex uint64
 
@@ -48,12 +49,12 @@ type Session struct {
 	isProducer     map[uint64]bool // whether we are a block producer at a slot
 
 	// Block announce channel every time is creates a block
-	blockAnnounceChan chan<- []byte
+	blockAnnounceChan chan<- p2p.BlockAnnounceMessage
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- []byte) *Session {
-	return &Session{
+func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.BlockAnnounceMessage) (*Session, error) {
+	babeSession := &Session{
 		vrfPublicKey:      pubkey,
 		vrfPrivateKey:     privkey,
 		rt:                rt,
@@ -61,12 +62,19 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime,
 		isProducer:        make(map[uint64]bool),
 		blockAnnounceChan: blockAnnounceChannel,
 	}
+	config, err := babeSession.configurationFromRuntime()
+	if err != nil {
+		return nil, err
+	}
+
+	babeSession.config = config
+	return babeSession, nil
 }
 
 func (b *Session) Start() error {
 	var i uint64 = 0
 	var err error
-	for ; i < b.Config.EpochLength; i++ {
+	for ; i < b.config.EpochLength; i++ {
 		b.isProducer[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("BABE: error running slot lottery at slot %d: error %s", i, err)
@@ -91,19 +99,22 @@ func (b *Session) invokeBlockAuthoring() {
 	// TODO: we might not actually be starting at slot 0, need to run median algorithm here
 	var currentSlot uint64 = 0
 
-	for ; currentSlot < b.Config.EpochLength; currentSlot++ {
+	for ; currentSlot < b.config.EpochLength; currentSlot++ {
 		if b.isProducer[currentSlot] {
-			// TODO: build block
-			log.Info("BABE: building block", "slot", currentSlot)
-			block := b.buildBlock()
-
-			log.Info("BABE: Built block", "block", block)
+			// TODO: implement build block
+			block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
+			if err != nil {
+				return
+			}
 
 			// Broadcast the block
-			b.blockAnnounceChan <- block
+			blockAnnounceMsg := p2p.BlockAnnounceMessage{
+				Number: block.Header.Number,
+			}
+			b.blockAnnounceChan <- blockAnnounceMsg
 		}
 
-		time.Sleep(time.Millisecond * time.Duration(b.Config.SlotDuration))
+		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
 }
 
@@ -112,7 +123,7 @@ func (b *Session) invokeBlockAuthoring() {
 func (b *Session) runLottery(slot uint64) (bool, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.Config.Randomness)
+	vrfInput := append(slotBytes, b.config.Randomness)
 	output, err := b.vrfSign(vrfInput)
 	if err != nil {
 		return false, err
@@ -132,11 +143,11 @@ func (b *Session) runLottery(slot uint64) (bool, error) {
 // sets the slot lottery threshold for the current epoch
 func (b *Session) setEpochThreshold() error {
 	var err error
-	if b.Config == nil {
+	if b.config == nil {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.Config.C1, b.Config.C2, b.AuthorityIndex, b.AuthorityWeights)
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.AuthorityIndex, b.AuthorityWeights)
 	if err != nil {
 		return err
 	}
@@ -191,6 +202,10 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 }
 
 // BuildBlock Builds the block
-func (s *Session) buildBlock() []byte {
-	return []byte{1, 2, 3, 4, 5}
+func (s *Session) buildBlock(number *big.Int) (*types.Block, error) {
+	block := types.Block{
+		Header: types.BlockHeader{Number: number},
+		Body:   []byte{1, 2, 3, 4, 5},
+	}
+	return &block, nil
 }
