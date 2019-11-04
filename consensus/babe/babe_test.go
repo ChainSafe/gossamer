@@ -338,6 +338,7 @@ func TestSlotTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
 func TestStart(t *testing.T) {
 	rt := newRuntime(t)

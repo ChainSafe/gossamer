@@ -18,6 +18,7 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
@@ -37,6 +38,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	s := bt.GetNodeFromBlockNumber(nf)
 	conf, err := b.configurationFromRuntime()
 	sd := conf.SlotDuration
+	fmt.Println(sd)
 	if err != nil {
 		return 0, err
 	}
