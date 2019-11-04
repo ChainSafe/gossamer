@@ -24,6 +24,7 @@ import (
 	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	trie "github.com/ChainSafe/gossamer/trie"
@@ -42,11 +43,21 @@ type Runtime struct {
 	mutex sync.Mutex
 }
 
-func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
+// NewRuntimeFromFile instantiates a runtime from a .wasm file
+func NewRuntimeFromFile(fp string, t *trie.Trie) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
+	}
+
+	return NewRuntime(bytes, t)
+}
+
+// NewRuntime instantiates a runtime from raw wasm bytecode
+func NewRuntime(code []byte, t *trie.Trie) (*Runtime, error) {
+	if t == nil {
+		return nil, errors.New("runtime does not have storage trie")
 	}
 
 	imports, err := registerImports()
@@ -55,7 +66,7 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 	}
 
 	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(bytes, imports)
+	instance, err := wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +103,10 @@ func NewRuntime(fp string, t *trie.Trie) (*Runtime, error) {
 
 func (r *Runtime) Stop() {
 	r.vm.Close()
+}
+
+func (r *Runtime) StorageRoot() (common.Hash, error) {
+	return r.trie.Hash()
 }
 
 func (r *Runtime) Store(data []byte, location int32) {
