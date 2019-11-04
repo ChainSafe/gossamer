@@ -69,31 +69,7 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-// type Genesis struct {
-// 	Name       []byte
-// 	Id         []byte
-// 	ProtocolId []byte
-// 	Bootnodes  [][]byte
-// }
-
-// func NewGenesisFromData(gen *genesis.Genesis) *Genesis {
-// 	bnodes := common.StringArrayToBytes(gen.Bootnodes)
-// 	return &Genesis{
-// 		Name:       []byte(gen.Name),
-// 		Id:         []byte(gen.Id),
-// 		ProtocolId: []byte(gen.ProtocolId),
-// 		Bootnodes:  bnodes,
-// 	}
-// }
-
 func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
-	// data := &Genesis{
-	// 	Name:       gen.Name,
-	// 	Id:         gen.Id,
-	// 	Bootnodes:  gen.Bootnodes,
-	// 	ProtocolId: gen.ProtocolId,
-	// }
-
 	enc, err := scale.Encode(gen)
 	if err != nil {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
