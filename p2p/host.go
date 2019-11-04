@@ -38,7 +38,7 @@ type host struct {
 	noBootstrap bool
 	noMdns      bool
 	mdns        discovery.Service
-	protocolId       protocol.ID
+	protocolId  protocol.ID
 }
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
