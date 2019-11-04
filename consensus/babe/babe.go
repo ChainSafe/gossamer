@@ -39,10 +39,10 @@ type Session struct {
 
 	config *BabeConfiguration
 
-	AuthorityIndex uint64
+	authorityIndex uint64
 
 	// authorities []VrfPublicKey
-	AuthorityWeights []uint64
+	authorityWeights []uint64
 
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
@@ -147,7 +147,7 @@ func (b *Session) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.AuthorityIndex, b.AuthorityWeights)
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
 	if err != nil {
 		return err
 	}

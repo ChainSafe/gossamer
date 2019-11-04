@@ -162,8 +162,8 @@ func TestRunLottery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	babesession.AuthorityIndex = 0
-	babesession.AuthorityWeights = []uint64{1, 1, 1}
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1, 1, 1}
 	conf := &BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        6,
@@ -226,8 +226,8 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	babesession.AuthorityIndex = 0
-	babesession.AuthorityWeights = []uint64{1}
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
@@ -255,8 +255,8 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	babesession.AuthorityIndex = 0
-	babesession.AuthorityWeights = []uint64{1, 1, 1}
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1, 1, 1}
 
 	err = babesession.Start()
 	if err != nil {
