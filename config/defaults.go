@@ -23,9 +23,6 @@ import (
 	"runtime"
 
 	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/ChainSafe/gossamer/rpc"
 )
 
 const (
@@ -33,33 +30,33 @@ const (
 	DefaultRpcHttpPort = 8545        // Default port for
 
 	// P2P
-	DefaultP2PPort     = 7001
-	DefaultP2PRandSeed = int64(33)
-	DefaultNoBootstrap = false
+	DefaultP2PPort = 7001
+
+	DefaultGenesisPath = "./genesis.json"
 )
 
-var DefaultP2PBootstrap = []string{
-	"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-	"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-}
-
-var DefaultRpcModules = []api.Module{"system"}
+var (
+	// Must be non-nil to match toml parsing semantics
+	DefaultP2PBootstrap = []string{}
+	DefaultRpcModules   = []api.Module{"system"}
+)
 
 var (
-	// P2P
-	DefaultP2PConfig = &p2p.Config{
-		Port:           DefaultP2PPort,
-		RandSeed:       DefaultP2PRandSeed,
-		BootstrapNodes: DefaultP2PBootstrap,
-	}
-
-	// DB
-	DefaultDBConfig = &polkadb.Config{
+	// Global
+	DefaultGlobalConfig = GlobalConfig{
 		DataDir: DefaultDataDir(),
 	}
 
+	// P2P
+	DefaultP2PConfig = P2pCfg{
+		Port:           DefaultP2PPort,
+		BootstrapNodes: DefaultP2PBootstrap,
+		NoBootstrap:    false,
+		NoMdns:         false,
+	}
+
 	// RPC
-	DefaultRpcConfig = &rpc.Config{
+	DefaultRpcConfig = RpcCfg{
 		Host:    DefaultRpcHttpHost,
 		Port:    DefaultRpcHttpPort,
 		Modules: DefaultRpcModules,
@@ -67,10 +64,12 @@ var (
 )
 
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
-var DefaultConfig = &Config{
-	P2pCfg: DefaultP2PConfig,
-	DbCfg:  DefaultDBConfig,
-	RpcCfg: DefaultRpcConfig,
+func DefaultConfig() *Config {
+	return &Config{
+		Global: DefaultGlobalConfig,
+		P2p:    DefaultP2PConfig,
+		Rpc:    DefaultRpcConfig,
+	}
 }
 
 // DefaultDataDir is the default data directory to use for the databases and other

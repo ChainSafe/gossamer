@@ -20,7 +20,6 @@ import (
 	"os"
 	"testing"
 
-	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -31,7 +30,15 @@ import (
 func createTestDot(t *testing.T) *Dot {
 	var services []services.Service
 	// P2P
-	p2pSrvc, err := p2p.NewService(cfg.DefaultP2PConfig, nil)
+	p2pCfg := &p2p.Config{
+		BootstrapNodes: []string{},
+		Port:           7000,
+		RandSeed:       1,
+		NoBootstrap:    false,
+		NoMdns:         false,
+		DataDir:        "",
+	}
+	p2pSrvc, err := p2p.NewService(p2pCfg, nil)
 	services = append(services, p2pSrvc)
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +46,7 @@ func createTestDot(t *testing.T) *Dot {
 
 	// DB
 	dataDir := "../test_data"
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
+	dbSrv, err := polkadb.NewDbService(dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +56,7 @@ func createTestDot(t *testing.T) *Dot {
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
-	return NewDot(services, nil)
+	return NewDot("gossamer", services, nil)
 }
 
 func TestDot_Start(t *testing.T) {
@@ -70,11 +77,6 @@ func TestDot_Start(t *testing.T) {
 		s := dot.Services.Get(srvc)
 		if s == nil {
 			t.Fatalf("error getting service: %T", srvc)
-		}
-
-		e := dot.Services.Err(srvc)
-		if e == nil {
-			t.Fatalf("error getting error channel for service: %T", srvc)
 		}
 	}
 

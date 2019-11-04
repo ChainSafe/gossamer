@@ -19,39 +19,23 @@ package p2p
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
-	"time"
 
-	"github.com/ChainSafe/gossamer/common"
+	module "github.com/ChainSafe/gossamer/internal/api/modules"
+	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
-	ds "github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-datastore/sync"
-	libp2p "github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	host "github.com/libp2p/go-libp2p-core/host"
+
 	net "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
-const ProtocolPrefix = "/substrate/dot/2"
-const mdnsPeriod = time.Minute
+var _ services.Service = &Service{}
 
 // Service describes a p2p service, including host and dht
 type Service struct {
-	ctx              context.Context
-	host             core.Host
-	hostAddr         ma.Multiaddr
-	dht              *kaddht.IpfsDHT
-	dhtConfig        kaddht.BootstrapConfig
-	bootstrapNodes   []peer.AddrInfo
-	mdns             discovery.Service
+	ctx  context.Context
+	host *host
+
 	msgChan          chan<- []byte
-	noBootstrap      bool
 	blockReqRec      map[string]bool
 	blockRespRec     map[string]bool
 	blockAnnounceRec map[string]bool
@@ -61,132 +45,50 @@ type Service struct {
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
 func NewService(conf *Config, msgChan chan<- []byte) (*Service, error) {
 	ctx := context.Background()
-	opts, err := conf.buildOpts()
+	h, err := newHost(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	h, err := libp2p.New(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	dstore := dsync.MutexWrap(ds.NewMapDatastore())
-	dht := kaddht.NewDHT(ctx, h, dstore)
-
-	// wrap the host with routed host so we can look up peers in DHT
-	h = rhost.Wrap(h, dht)
-
-	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
-	if err != nil {
-		return nil, err
-	}
-
-	var mdns discovery.Service
-	if !conf.NoMdns {
-		mdns, err = discovery.NewMdnsService(ctx, h, mdnsPeriod, ProtocolPrefix)
-		if err != nil {
-			return nil, err
-		}
-
-		mdns.RegisterNotifee(Notifee{ctx: ctx, host: h})
-	}
-
-	dhtConfig := kaddht.BootstrapConfig{
-		Queries: 1,
-		Period:  time.Second,
-	}
-
-	bootstrapNodes, err := stringsToPeerInfos(conf.BootstrapNodes)
 	s := &Service{
-		ctx:            ctx,
-		host:           h,
-		hostAddr:       hostAddr,
-		dht:            dht,
-		dhtConfig:      dhtConfig,
-		bootstrapNodes: bootstrapNodes,
-		noBootstrap:    conf.NoBootstrap,
-		mdns:           mdns,
-		msgChan:        msgChan,
+		ctx:     ctx,
+		host:    h,
+		msgChan: msgChan,
 	}
+
+	h.registerStreamHandler(s.handleStream)
 
 	s.blockReqRec = make(map[string]bool)
 	s.blockRespRec = make(map[string]bool)
 	s.blockAnnounceRec = make(map[string]bool)
 	s.txMessageRec = make(map[string]bool)
 
-	h.SetStreamHandler(ProtocolPrefix, s.handleStream)
-
 	return s, err
 }
 
 // Start begins the p2p Service, including discovery
-func (s *Service) Start() <-chan error {
-	e := make(chan error)
-	go s.start(e)
-	return e
-}
+func (s *Service) Start() error {
+	s.host.startMdns()
+	s.host.bootstrap()
+	s.host.logAddrs()
 
-// start begins the p2p Service, including discovery. start does not terminate once called.
-func (s *Service) start(e chan error) {
-	if len(s.bootstrapNodes) == 0 && !s.noBootstrap {
-		e <- errors.New("no peers to bootstrap to")
-	}
+	log.Info("Listening for connections...")
 
-	// this is in a go func that loops every minute due to the fact that we appear
-	// to get kicked off the network after a few minutes
-	// this will likely be resolved once we send messages back to the network
-	go func() {
-		for {
-			if !s.noBootstrap {
-				// connect to the bootstrap nodes
-				err := s.bootstrapConnect()
-				if err != nil {
-					e <- err
-				}
-			}
-
-			err := s.dht.Bootstrap(s.ctx)
-			if err != nil {
-				e <- err
-			}
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	// Now we can build a full multiaddress to reach this host
-	// by encapsulating both addresses:
-	addrs := s.host.Addrs()
-	log.Info("You can be reached on the following addresses:")
-	for _, addr := range addrs {
-		log.Info(addr.Encapsulate(s.hostAddr).String())
-	}
-
-	log.Info("listening for connections...")
-	e <- nil
+	return nil
 }
 
 // Stop stops the p2p service
-func (s *Service) Stop() <-chan error {
-	e := make(chan error)
-
-	//Stop the host & IpfsDHT
-	err := s.host.Close()
+func (s *Service) Stop() error {
+	err := s.host.close()
 	if err != nil {
-		e <- err
-	}
-
-	err = s.dht.Close()
-	if err != nil {
-		e <- err
+		log.Error("error closing host", "err", err)
 	}
 
 	if s.msgChan != nil {
 		close(s.msgChan)
 	}
 
-	return e
+	return nil
 }
 
 // Broadcast sends a message to all peers
@@ -215,116 +117,18 @@ func (s *Service) Broadcast(msg Message) (err error) {
 		}
 		s.txMessageRec[msg.Id()] = true
 	default:
-		log.Error("Can't decode message type")
-		return
+		log.Error("Invalid message type", "type", msgType)
+		return nil
 	}
 
-	decodedMsg, err := msg.Encode()
+	encodedMsg, err := msg.Encode()
 	if err != nil {
-		log.Error("Can't encode message")
+		return err
 	}
 
-	for _, peers := range s.host.Network().Peers() {
-		addrInfo := s.dht.FindLocal(peers)
-		err = s.Send(addrInfo, decodedMsg)
-	}
+	s.host.broadcast(encodedMsg)
 
 	return err
-}
-
-// Send sends a message to a specific peer
-func (s *Service) Send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Debug("sending message", "peer", peer.ID, "msg", fmt.Sprintf("0x%x", msg))
-
-	stream := s.getExistingStream(peer.ID)
-	if stream == nil {
-		stream, err = s.host.NewStream(s.ctx, peer.ID, ProtocolPrefix)
-		log.Debug("opening new stream ", "peer", peer.ID)
-		if err != nil {
-			log.Error("failed to open stream", "error", err)
-			return err
-		}
-	} else {
-		log.Debug("using existing stream", "peer", peer.ID)
-	}
-
-	// Write length of message, and then message
-	_, err = stream.Write(common.Uint16ToBytes(uint16(len(msg)))[0:1])
-	if err != nil {
-		log.Error("fail to send message", "error", err)
-		return err
-	}
-	_, err = stream.Write(msg)
-	if err != nil {
-		log.Error("fail to send message", "error", err)
-		return err
-	}
-
-	return nil
-}
-
-// Ping pings a peer
-func (s *Service) Ping(peer core.PeerID) error {
-	ps, err := s.dht.FindPeer(s.ctx, peer)
-	if err != nil {
-		return fmt.Errorf("could not find peer: %s", err)
-	}
-
-	err = s.host.Connect(s.ctx, ps)
-	if err != nil {
-		return err
-	}
-
-	return s.dht.Ping(s.ctx, peer)
-}
-
-// Host returns the service's host
-func (s *Service) Host() host.Host {
-	return s.host
-}
-
-// FullAddrs returns all the hosts addresses with their ID append as multiaddrs
-func (s *Service) FullAddrs() (maddrs []ma.Multiaddr) {
-	addrs := s.host.Addrs()
-	for _, a := range addrs {
-		maddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", a, s.host.ID().Pretty()))
-		if err != nil {
-			continue
-		}
-		maddrs = append(maddrs, maddr)
-	}
-	return maddrs
-}
-
-// DHT returns the service's dht
-func (s *Service) DHT() *kaddht.IpfsDHT {
-	return s.dht
-}
-
-// Ctx returns the service's ctx
-func (s *Service) Ctx() context.Context {
-	return s.ctx
-}
-
-// PeerCount returns the number of connected peers
-func (s *Service) PeerCount() int {
-	peers := s.host.Network().Peers()
-	return len(peers)
-}
-
-// getExistingStream gets an existing stream for a peer that uses ProtocolPrefix
-func (s *Service) getExistingStream(p peer.ID) net.Stream {
-	conns := s.host.Network().ConnsToPeer(p)
-	for _, conn := range conns {
-		streams := conn.GetStreams()
-		for _, stream := range streams {
-			if stream.Protocol() == ProtocolPrefix {
-				return stream
-			}
-		}
-	}
-
-	return nil
 }
 
 // handles stream; reads message length, message type, and decodes message based on type
@@ -385,17 +189,24 @@ func (s *Service) handleStream(stream net.Stream) {
 	}
 }
 
+var _ module.P2pApi = &Service{}
+
+// ID returns the host's ID
+func (s *Service) ID() string {
+	return s.host.id()
+}
+
 // Peers returns connected peers
 func (s *Service) Peers() []string {
-	return PeerIdToStringArray(s.host.Network().Peers())
+	return PeerIdToStringArray(s.host.h.Network().Peers())
 }
 
-// ID returns the ID of the node
-func (s *Service) ID() string {
-	return s.host.ID().String()
+// PeerCount returns the number of connected peers
+func (s *Service) PeerCount() int {
+	return s.host.peerCount()
 }
 
-// NoBootstrapping returns true if you can't bootstrap nodes
+// NoBootstrapping returns true if bootstrapping is disabled, otherwise false
 func (s *Service) NoBootstrapping() bool {
-	return s.noBootstrap
+	return s.host.noBootstrap
 }

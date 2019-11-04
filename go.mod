@@ -3,11 +3,11 @@ module github.com/ChainSafe/gossamer
 replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wagon v0.3.1-0.20180825141017-f8cb99b55a39
 
 require (
-	github.com/BurntSushi/toml v0.3.1
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/disiqueira/gotree v1.0.0
+	github.com/ethereum/go-ethereum v1.9.6
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
@@ -40,6 +40,7 @@ require (
 	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3 // indirect
 	golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.2.4 // indirect
 )
 
 go 1.13

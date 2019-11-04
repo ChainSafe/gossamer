@@ -21,10 +21,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ChainSafe/gossamer/core/types"
+
 	"github.com/ChainSafe/gossamer/polkadb"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/core/types"
 	log "github.com/ChainSafe/log15"
 	"github.com/disiqueira/gotree"
 )

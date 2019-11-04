@@ -17,36 +17,58 @@
 package p2p
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	mrand "math/rand"
+	"os"
+	"path"
+	"path/filepath"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+const KeyFile = "node.key"
 
 // Config is used to configure a p2p service
 type Config struct {
 	// Peers used for bootstrapping
 	BootstrapNodes []string
 	// Listening port
-	Port int
-	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced
+	Port uint32
+	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced, keys will not be loaded from data dir
 	RandSeed int64
 	// Disable bootstrapping altogether. BootstrapNodes has no effect over this.
 	NoBootstrap bool
 	// Disables MDNS discovery
 	NoMdns bool
+	// Global data directory
+	DataDir string
+	// Identity key for node
+	privateKey crypto.PrivKey
 }
 
 func (c *Config) buildOpts() ([]libp2p.Option, error) {
 	ip := "0.0.0.0"
 
-	priv, err := generateKey(c.RandSeed)
-	if err != nil {
-		return nil, err
+	if c.RandSeed == 0 {
+		err := c.setupPrivKey()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debug("Generating temporary deterministic p2p identity")
+		key, err := generateKey(c.RandSeed, c.DataDir)
+		if err != nil {
+			return nil, err
+		}
+		c.privateKey = key
 	}
 
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, c.Port))
@@ -59,31 +81,115 @@ func (c *Config) buildOpts() ([]libp2p.Option, error) {
 	return []libp2p.Option{
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
-		libp2p.Identity(priv),
+		libp2p.Identity(c.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.Ping(true),
 		libp2p.ConnectionManager(connMgr),
 	}, nil
 }
 
-// generateKey generates a libp2p private key which is used for secure messaging
-func generateKey(seed int64) (crypto.PrivKey, error) {
-	// If the seed is zero, use real cryptographic randomness. Otherwise, use a
-	// deterministic randomness source to make generated keys stay the same
-	// across multiple runs
+// setupPrivKey will attempt to load the nodes private key, if that fails it will create one
+func (c *Config) setupPrivKey() error {
+	// If key exists, load it
+	key, err := tryLoadPrivKey(c.DataDir)
+	if err != nil {
+		return err
+	}
+	// Otherwise, create a key
+	if key == nil {
+		log.Debug("No existing p2p key, generating a new one", "path", path.Join(filepath.Clean(c.DataDir), KeyFile))
+		key, err = generateKey(c.RandSeed, c.DataDir)
+		if err != nil {
+			return err
+		}
+	} else {
+		id, _ := peer.IDFromPrivateKey(key)
+		log.Debug("Loaded existing p2p identity", "id", id)
+	}
+
+	c.privateKey = key
+	return nil
+}
+
+// tryLoadPrivkey will attempt to load the private key from the provided path
+func tryLoadPrivKey(fp string) (crypto.PrivKey, error) {
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	if _, err := os.Stat(pth); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	keyData, err := ioutil.ReadFile(filepath.Clean(pth))
+	if err != nil {
+		return nil, err
+	}
+
+	dec := make([]byte, hex.DecodedLen(len(keyData)))
+	_, err = hex.Decode(dec, keyData)
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.UnmarshalECDSAPrivateKey(dec)
+}
+
+// generateKey generates an ed25519 private key and writes it to the data directory
+// If the seed is zero, we use real cryptographic randomness. Otherwise, we use a
+// deterministic randomness source to make generated keys stay the same
+// across multiple runs
+func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	var r io.Reader
 	if seed == 0 {
-		r = rand.Reader
+		r = crand.Reader
 	} else {
 		r = mrand.New(mrand.NewSource(seed))
 	}
 
 	// Generate a key pair for this host. We will use it at least
 	// to obtain a valid host ID.
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	priv, _, err := crypto.GenerateECDSAKeyPair(r)
 	if err != nil {
 		return nil, err
 	}
+	id, _ := peer.IDFromPrivateKey(priv)
+	log.Debug("Created new p2p identity", "id", id.String())
+
+	// Save the key if its secure
+	if seed == 0 {
+		if err = saveKey(priv, fp); err != nil {
+			return nil, err
+		}
+	}
 
 	return priv, nil
+}
+
+func saveKey(priv crypto.PrivKey, fp string) error {
+	// Create `.gossamer` if it doesn't exist
+	if _, e := os.Stat(fp); os.IsNotExist(e) {
+		if e = os.Mkdir(fp, os.ModePerm); e != nil {
+			return e
+		}
+	} else if e != nil {
+		return e
+	}
+
+	pth := path.Join(filepath.Clean(fp), KeyFile)
+	f, err := os.Create(pth)
+	if err != nil {
+		return err
+	}
+
+	raw, err := priv.Raw()
+	if err != nil {
+		return err
+	}
+
+	enc := make([]byte, hex.EncodedLen(len(raw)))
+	hex.Encode(enc, raw)
+
+	if _, err = f.Write(enc); err != nil {
+		return err
+	}
+
+	return f.Close()
 }

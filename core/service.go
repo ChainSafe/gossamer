@@ -17,14 +17,18 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
 
+	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 )
+
+var _ services.Service = &Service{}
 
 // Service is a overhead layer that allows for communication between the runtime, BABE, and the p2p layer.
 // It deals with the validation of transactions and blocks by calling their respective validation functions
@@ -46,10 +50,10 @@ func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan []byte) *Se
 }
 
 // Start begins the service. This begins watching the message channel for new block or transaction messages.
-func (s *Service) Start() <-chan error {
+func (s *Service) Start() error {
 	e := make(chan error)
 	go s.start(e)
-	return e
+	return <-e
 }
 
 func (s *Service) start(e chan error) {
@@ -89,10 +93,15 @@ func (s *Service) start(e chan error) {
 	}
 }
 
-func (s *Service) Stop() <-chan error {
-	e := make(chan error)
+func (s *Service) Stop() error {
+	if s.rt != nil {
+		s.rt.Stop()
+	}
+	return nil
+}
 
-	return e
+func (s *Service) StorageRoot() (common.Hash, error) {
+	return s.rt.StorageRoot()
 }
 
 // ProcessTransaction attempts to validates the transaction

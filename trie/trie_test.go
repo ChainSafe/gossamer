@@ -29,6 +29,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
@@ -68,7 +69,7 @@ var (
 )
 
 func newEmpty() *Trie {
-	db := &StateDB{
+	db := &Database{
 		Db: polkadb.NewMemDatabase(),
 	}
 	t := NewEmptyTrie(db)
@@ -83,7 +84,7 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	db := &StateDB{
+	db := &Database{
 		Db: polkadb.NewMemDatabase(),
 	}
 	trie := NewTrie(db, &leaf{key: []byte{0}, value: []byte{17}})
@@ -244,6 +245,46 @@ func runTests(t *testing.T, trie *Trie, tests []trieTest) {
 				}
 			}
 		})
+	}
+}
+
+func TestLoadTrie(t *testing.T) {
+	data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
+	testTrie := &Trie{}
+
+	err := testTrie.Load(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedTrie := &Trie{}
+	var keyBytes, valueBytes []byte
+	for key, value := range data {
+		keyBytes, err = common.HexToBytes(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		valueBytes, err = common.HexToBytes(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = expectedTrie.Put(keyBytes, valueBytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	testhash, err := testTrie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedhash, err := expectedTrie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(testhash[:], expectedhash[:]) {
+		t.Fatalf("Fail: got %x expected %x", testhash, expectedhash)
 	}
 }
 

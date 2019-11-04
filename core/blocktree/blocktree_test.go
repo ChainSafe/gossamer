@@ -22,8 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
+
+	"github.com/ChainSafe/gossamer/common"
 	db "github.com/ChainSafe/gossamer/polkadb"
 	log "github.com/ChainSafe/log15"
 )

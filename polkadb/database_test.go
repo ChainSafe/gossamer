@@ -41,7 +41,7 @@ func testSetup() []data {
 }
 
 func TestBadgerDB_PutGetDel(t *testing.T) {
-	db, remove := newTestDBService()
+	db, remove := newTestDBService(t)
 	defer remove()
 
 	testPutGetter(db.StateDB.Db, t)
@@ -133,7 +133,7 @@ func testGetPath(db Database, t *testing.T) {
 }
 
 func TestBadgerDB_Batch(t *testing.T) {
-	db, remove := newTestDBService()
+	db, remove := newTestDBService(t)
 	defer remove()
 	testBatchPut(db.StateDB.Db, t)
 }
@@ -152,7 +152,7 @@ func batchTestSetup(db Database) (func(i int) []byte, func(i int) []byte, Batch)
 func testBatchPut(db Database, t *testing.T) {
 	k, v, b := batchTestSetup(db)
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1000; i++ {
 		err := b.Put(k(i), v(i))
 		if err != nil {
 			t.Fatalf("failed to add key-value to batch mapping  %q", err)
@@ -177,7 +177,7 @@ func testBatchPut(db Database, t *testing.T) {
 }
 
 func TestBadgerDB_Iterator(t *testing.T) {
-	db, remove := newTestDBService()
+	db, remove := newTestDBService(t)
 	defer remove()
 
 	testNewIterator(db.StateDB.Db, t)

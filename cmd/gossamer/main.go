@@ -33,17 +33,51 @@ var (
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
+		utils.P2pPortFlag,
 		utils.NoBootstrapFlag,
+		utils.NoMdnsFlag,
 	}
 	rpcFlags = []cli.Flag{
 		utils.RpcEnabledFlag,
-		utils.RpcListenAddrFlag,
-		utils.RpcPortFlag,
 		utils.RpcHostFlag,
+		utils.RpcPortFlag,
 		utils.RpcModuleFlag,
+	}
+	genesisFlags = []cli.Flag{
+		utils.GenesisFlag,
 	}
 	cliFlags = []cli.Flag{
 		utils.VerbosityFlag,
+	}
+)
+
+var (
+	dumpConfigCommand = cli.Command{
+		Action:      dumpConfig,
+		Name:        "dumpconfig",
+		Usage:       "Show configuration values",
+		ArgsUsage:   "",
+		Flags:       append(append(nodeFlags, rpcFlags...)),
+		Category:    "CONFIGURATION DEBUGGING",
+		Description: `The dumpconfig command shows configuration values.`,
+	}
+	initCommand = cli.Command{
+		Action:    MigrateFlags(initNode),
+		Name:      "init",
+		Usage:     "Initialize node genesis state",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.GenesisFlag,
+			utils.VerbosityFlag,
+			configFileFlag,
+		},
+		Category:    "INITIALIZATION",
+		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
+	}
+	configFileFlag = cli.StringFlag{
+		Name:  "config",
+		Usage: "TOML configuration file",
 	}
 )
 
@@ -57,16 +91,17 @@ func init() {
 	app.Version = "0.0.1"
 	app.Commands = []cli.Command{
 		dumpConfigCommand,
+		initCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, p2pFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
+	app.Flags = append(app.Flags, genesisFlags...)
 	app.Flags = append(app.Flags, cliFlags...)
 }
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
-		log.Error("error starting app", "err", err)
 		os.Exit(1)
 	}
 }
@@ -86,9 +121,40 @@ func startLogger(ctx *cli.Context) error {
 	return nil
 }
 
+// initNode loads the genesis file and loads the initial state into the DB
+func initNode(ctx *cli.Context) error {
+	err := startLogger(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = loadGenesis(ctx)
+	if err != nil {
+		log.Error("error loading genesis state", "error", err)
+		return err
+	}
+
+	log.Info("🕸\t Finished initializing node!")
+	return nil
+}
+
+// MigrateFlags sets the global flag from a local flag when it's set.
+func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
+	return func(ctx *cli.Context) error {
+		for _, name := range ctx.FlagNames() {
+			if ctx.IsSet(name) {
+				err := ctx.GlobalSet(name, ctx.String(name))
+				if err != nil {
+					return nil
+				}
+			}
+		}
+		return action(ctx)
+	}
+}
+
 // gossamer is the main entrypoint into the gossamer system
 func gossamer(ctx *cli.Context) error {
-
 	err := startLogger(ctx)
 	if err != nil {
 		return err
@@ -96,10 +162,11 @@ func gossamer(ctx *cli.Context) error {
 
 	node, _, err := makeNode(ctx)
 	if err != nil {
-		// TODO: Need to manage error propagation and exit smoothly
+		log.Error("error starting gossamer", "err", err)
 		return err
 	}
-	log.Info("🕸️Starting node...")
+
+	log.Info("🕸️\t Starting node...", "name", node.Name)
 	node.Start()
 
 	return nil

@@ -85,7 +85,7 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 
 	tt := &trie.Trie{}
 
-	r, err := runtime.NewRuntime(fp, tt)
+	r, err := runtime.NewRuntimeFromFile(fp, tt)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -339,4 +339,25 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
+func TestStart(t *testing.T) {
+	rt := newRuntime(t)
+	babesession := NewSession([32]byte{}, [64]byte{}, rt)
+	babesession.authorityIndex = 0
+	babesession.authorityWeights = []uint64{1}
+	conf := &BabeConfiguration{
+		SlotDuration:       1,
+		EpochLength:        6,
+		C1:                 1,
+		C2:                 10,
+		GenesisAuthorities: []AuthorityData{},
+		Randomness:         0,
+		SecondarySlots:     false,
+	}
+	babesession.config = conf
+
+	err := babesession.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
 }

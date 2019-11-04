@@ -33,215 +33,198 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
-)
-
-var (
-	dumpConfigCommand = cli.Command{
-		Action:      dumpConfig,
-		Name:        "dumpconfig",
-		Usage:       "Show configuration values",
-		ArgsUsage:   "",
-		Flags:       append(append(nodeFlags, rpcFlags...)),
-		Category:    "CONFIGURATION DEBUGGING",
-		Description: `The dumpconfig command shows configuration values.`,
-	}
-
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
-	}
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
 func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	fig, err := getConfig(ctx)
 	if err != nil {
-		log.Crit("unable to extract required config", "err", err)
 		return nil, nil, err
 	}
 
 	var srvcs []services.Service
 
-	// set up message channel for p2p -> core.Service
-	msgChan := make(chan []byte)
+	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir)
 
-	// TODO: trie and runtime
+	// DB: Create database dir and initialize stateDB and blockDB
+	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
+	}
+	srvcs = append(srvcs, dbSrv)
+
+	err = dbSrv.Start()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
+	}
+
+	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
+	db := trie.NewDatabase(dbSrv.StateDB.Db)
+	state := trie.NewEmptyTrie(db)
+	r, err := loadStateAndRuntime(state)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
+	}
 
 	// TODO: BABE
 
-	// core.Service
-	coreSrvc := core.NewService(nil, nil, msgChan)
-	srvcs = append(srvcs, coreSrvc)
-
 	// P2P
-	setBootstrapNodes(ctx, fig.P2pCfg)
-	setNoBootstrap(ctx, fig.P2pCfg)
-	p2pSrvc := createP2PService(fig.P2pCfg, msgChan)
+	p2pSrvc, msgChan := createP2PService(fig)
 	srvcs = append(srvcs, p2pSrvc)
 
-	// DB
-	// Create database dir and initialize stateDB and blockDB
-	dataDir := getDatabaseDir(ctx, fig)
-	dbSrv, err := polkadb.NewDatabaseService(dataDir)
-	if err != nil {
-		return nil, nil, err
-	}
-	// append DBs to services registrar
-	srvcs = append(srvcs, dbSrv)
+	// core.Service
+	coreSrvc := core.NewService(r, nil, msgChan)
+	srvcs = append(srvcs, coreSrvc)
 
 	// API
 	apiSrvc := api.NewApiService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	setRpcModules(ctx, fig.RpcCfg)
-	setRpcHost(ctx, fig.RpcCfg)
-	setRpcPort(ctx, fig.RpcCfg)
-	rpcSrvr := rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.RpcCfg)
+	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
-	return dot.NewDot(srvcs, rpcSrvr), fig, nil
+	// load extra genesis data from DB
+	gendata, err := state.Db().LoadGenesisData()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debug("genesisdata", "data", gendata)
+
+	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
 
-// getConfig checks for config.toml if --config flag is specified
+func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
+	latestState, err := t.LoadHash()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state root hash: %s", err)
+	}
+
+	err = t.LoadFromDB(latestState)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state: %s", err)
+	}
+
+	code, err := t.Get([]byte(":code"))
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
+	}
+
+	return runtime.NewRuntime(code, t)
+}
+
+// getConfig checks for config.toml if --config flag is specified and sets CLI flags
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
-	var fig *cfg.Config
+	fig := cfg.DefaultConfig()
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
-		config, err := loadConfig(file)
+		err := loadConfig(file, fig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
 			return fig, err
 		}
-		return config, nil
-	} else {
-		return cfg.DefaultConfig, nil
 	}
+
+	// Parse CLI flags
+	setGlobalConfig(ctx, &fig.Global)
+	setP2pConfig(ctx, &fig.P2p)
+	setRpcConfig(ctx, &fig.Rpc)
+	return fig, nil
 }
 
-// loadConfig loads the contents from config.toml and inits Config object
-func loadConfig(file string) (*cfg.Config, error) {
+// loadConfig loads the contents from config toml and inits Config object
+func loadConfig(file string, config *cfg.Config) error {
 	fp, err := filepath.Abs(file)
 	if err != nil {
-		log.Warn("error finding working directory", "err", err)
+		return err
 	}
-	filep := filepath.Join(filepath.Clean(fp))
-	info, err := os.Lstat(filep)
+	log.Debug("Loading configuration", "path", filepath.Clean(fp))
+	f, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		log.Crit("config file err ", "err", err)
-		os.Exit(1)
+		return err
 	}
-	if info.IsDir() {
-		log.Crit("cannot pass in a directory, expecting file ")
-		os.Exit(1)
-	}
-	/* #nosec */
-	f, err := os.Open(filep)
-	if err != nil {
-		log.Crit("opening file err ", "err", err)
-		os.Exit(1)
-	}
-	defer func() {
-		err = f.Close()
-		if err != nil {
-			log.Warn("err closing conn", "err", err.Error())
-		}
-	}()
-	var config *cfg.Config
 	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
-		log.Error("decoding toml error", "err", err.Error())
+		return err
 	}
-	return config, err
+	return nil
 }
 
-// getDatabaseDir initializes directory for BadgerService logs
-func getDatabaseDir(ctx *cli.Context, fig *cfg.Config) string {
-	if file := ctx.GlobalString(utils.DataDirFlag.Name); file != "" {
-		fig.DbCfg.DataDir = file
-		return file
-	} else if fig.DbCfg.DataDir != "" {
-		return fig.DbCfg.DataDir
-	} else {
-		return cfg.DefaultDataDir()
+func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
+	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
+		fig.DataDir, _ = filepath.Abs(dir)
+	}
+	fig.DataDir, _ = filepath.Abs(fig.DataDir)
+}
+
+func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
+	// Bootnodes
+	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
+		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+	}
+
+	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
+		fig.Port = uint32(port)
+	}
+
+	// NoBootstrap
+	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
+		fig.NoBootstrap = true
+	}
+
+	// NoMdns
+	if off := ctx.GlobalBool(utils.NoMdnsFlag.Name); off {
+		fig.NoMdns = true
 	}
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *p2p.Config, msgChan chan<- []byte) *p2p.Service {
-	srvc, err := p2p.NewService(fig, msgChan)
+func createP2PService(fig *cfg.Config) (*p2p.Service, chan []byte) {
+	config := p2p.Config{
+		BootstrapNodes: fig.P2p.BootstrapNodes,
+		Port:           fig.P2p.Port,
+		RandSeed:       0,
+		NoBootstrap:    fig.P2p.NoBootstrap,
+		NoMdns:         fig.P2p.NoMdns,
+		DataDir:        fig.Global.DataDir,
+	}
+
+	msgChan := make(chan []byte)
+
+	srvc, err := p2p.NewService(&config, msgChan)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srvc
+	return srvc, msgChan
 }
 
-// setBootstrapNodes creates a list of bootstrap nodes from the command line
-// flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodes(ctx *cli.Context, fig *p2p.Config) {
-	var urls []string
-
-	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
-		urls = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
-		fig.BootstrapNodes = append(fig.BootstrapNodes, urls...)
-		return
-	} else if fig.BootstrapNodes != nil {
-		return // set in config, dont use defaults
-	} else {
-		fig.BootstrapNodes = cfg.DefaultP2PBootstrap
-	}
-}
-
-// setNoBootsrap sets config to flag value if true, or default value if not set in config
-func setNoBootstrap(ctx *cli.Context, fig *p2p.Config) {
-	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
-		fig.NoBootstrap = true
-		return
-	} else if fig.NoBootstrap {
-		return // set in config, dont use defaults
-	} else {
-		fig.NoBootstrap = cfg.DefaultNoBootstrap
-	}
-}
-
-// setRpcModules checks the context for rpc modes and applies them to `cfg`, unless some are already set
-func setRpcModules(ctx *cli.Context, fig *rpc.Config) {
-	var strs []string
-
+func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
+	// Modules
 	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
-		strs = strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ",")
-		fig.Modules = append(fig.Modules, strToMods(strs)...)
-		return
-	} else if fig.Modules != nil {
-		return // set in config, dont use defaults
-	} else {
-		fig.Modules = cfg.DefaultRpcModules
+		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
 	}
-}
 
-// setRpcHost checks the context for a hostname and applies it to `cfg`, unless one is already set
-func setRpcHost(ctx *cli.Context, fig *rpc.Config) {
+	// Host
 	if host := ctx.GlobalString(utils.RpcHostFlag.Name); host != "" {
 		fig.Host = host
-		return
-	} else if fig.Host != "" {
-		return
-	} else {
-		fig.Host = cfg.DefaultRpcHttpHost
 	}
-}
 
-// setRpcPort checks the context for a port and applies it to `cfg`, unless one is already set
-func setRpcPort(ctx *cli.Context, fig *rpc.Config) {
+	// Port
 	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
-		return
-	} else if fig.Port != 0 {
-		return
-	} else {
-		fig.Port = cfg.DefaultRpcHttpPort
 	}
+
+}
+
+func startRpc(ctx *cli.Context, fig cfg.RpcCfg, apiSrvc *api.Service) *rpc.HttpServer {
+	if ctx.GlobalBool(utils.RpcEnabledFlag.Name) {
+		return rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
+	}
+	return nil
 }
 
 // strToMods casts a []strings to []api.Module
@@ -255,13 +238,14 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	_, fig, err := makeNode(ctx)
+	fig, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
+
 	comment := ""
 
-	out, err := tomlSettings.Marshal(&fig)
+	out, err := toml.Marshal(fig)
 	if err != nil {
 		return err
 	}
