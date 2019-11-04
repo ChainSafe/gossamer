@@ -21,10 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
-	"fmt"
 )
 
-// calculate the slot time in the form of miliseconds since the unix epoch 
+// calculate the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
@@ -42,14 +41,12 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 		return 0, err
 	}
 	for _, node := range bt.SubChain(s.Hash, dl.Hash) {
-		fmt.Println(bt.ComputeSlotForNode(node, sd))
-		so, err:= slotOffset(bt.ComputeSlotForNode(node, sd), slot)
+		so, err := slotOffset(bt.ComputeSlotForNode(node, sd), slot)
 		if err != nil {
 			return 0, err
 		}
 		st := node.ArrivalTime + (so * sd)
 		at = append(at, st)
-		fmt.Println(at)
 	}
 	st, err := median(at)
 	if err != nil {
@@ -80,7 +77,7 @@ func median(l []uint64) (uint64, error) {
 // returns slotOffset
 func slotOffset(start uint64, end uint64) (uint64, error) {
 	os := end - start
-	if (end < start) {
+	if end < start {
 		return 0, errors.New("Slot end time less than slot start time!")
 	}
 	return os, nil

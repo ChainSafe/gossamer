@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"math/big"
@@ -25,15 +26,13 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
-	"fmt"
 
-
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/common"
 	db "github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
 const POLKADOT_RUNTIME_FP string = "../../substrate_test_runtime.compact.wasm"
@@ -220,28 +219,27 @@ func TestConfigurationFromRuntime(t *testing.T) {
 }
 
 func TestMedian_OddLength(t *testing.T) {
-	us := []uint64{3,2,1,4,5}
+	us := []uint64{3, 2, 1, 4, 5}
 	res, err := median(us)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var expected uint64 = 3
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 
-
 }
 
 func TestMedian_EvenLength(t *testing.T) {
-	us := []uint64{1,4,2,4,5,6}
+	us := []uint64{1, 4, 2, 4, 5, 6}
 	res, err := median(us)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var expected uint64 = 4
 
 	if res != expected {
@@ -250,7 +248,7 @@ func TestMedian_EvenLength(t *testing.T) {
 
 }
 
-func TestSlotOffset_Failing(t *testing.T){
+func TestSlotOffset_Failing(t *testing.T) {
 	var st uint64 = 1000001
 	var se uint64 = 1000000
 
@@ -261,7 +259,7 @@ func TestSlotOffset_Failing(t *testing.T){
 
 }
 
-func TestSlotOffset(t *testing.T){
+func TestSlotOffset(t *testing.T) {
 	var st uint64 = 1000000
 	var se uint64 = 1000001
 
@@ -279,14 +277,13 @@ func TestSlotOffset(t *testing.T){
 }
 
 func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockTree {
-	
+
 	genesisBlock := types.Block{
-				Header: types.BlockHeader{
-					ParentHash: zeroHash,
-					Number:     big.NewInt(0),
-					Hash:       common.Hash{0x00},
-			
-				},
+		Header: types.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+			Hash:       common.Hash{0x00},
+		},
 		Body: types.BlockBody{},
 	}
 
@@ -296,13 +293,13 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
 
-	// hard coded because we don't want to expose the hash of 
+	// hard coded because we don't want to expose the hash of
 	previousHash := genesisBlock.Header.Hash
 
 	for i := 1; i <= depth; i++ {
 		time.Sleep(300 * time.Millisecond)
 		hex := fmt.Sprintf("%06x", i)
-		
+
 		hash, err := common.HexToHash("0x" + hex)
 
 		if err != nil {
@@ -322,7 +319,7 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 		previousHash = hash
 	}
 
-	return bt 
+	return bt
 
 }
 
@@ -343,4 +340,3 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-
