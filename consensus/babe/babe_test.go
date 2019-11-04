@@ -334,9 +334,9 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
-	slotTime, err := babesession.slotTime(30, bt, 10)
+	_, err = babesession.slotTime(30, bt, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 }
