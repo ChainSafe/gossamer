@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -47,11 +48,16 @@ func startNewService(t *testing.T, cfg *Config, msgChan chan []byte, msgRecChan 
 }
 
 func TestBuildOpts(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
+	tmpPDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpPDir)
+	tmpDir := path.Join(tmpPDir, "data")
+	err = os.Mkdir(tmpDir, os.ModePerm+os.ModeDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testCfgA := &Config{
 		BootstrapNodes: []string{},
@@ -88,19 +94,19 @@ func TestBootstrapConnect(t *testing.T) {
 	bootnodeCfg := &Config{
 		BootstrapNodes: nil,
 		Port:           7000,
-		RandSeed:       0,
+		RandSeed:       1,
 		NoBootstrap:    true,
 		NoMdns:         true,
 	}
 
 	bootnode := startNewService(t, bootnodeCfg, nil, nil)
 	defer bootnode.Stop()
-	bootnodeAddr := bootnode.FullAddrs()[0]
+	bootnodeAddr := bootnode.host.fullAddrs()[0]
 
 	nodeCfg := &Config{
 		BootstrapNodes: []string{bootnodeAddr.String()},
 		Port:           7001,
-		RandSeed:       1,
+		RandSeed:       2,
 		NoBootstrap:    false,
 		NoMdns:         true,
 	}
@@ -110,8 +116,8 @@ func TestBootstrapConnect(t *testing.T) {
 	// Allow everything to finish connecting
 	time.Sleep(1 * time.Second)
 
-	if bootnode.PeerCount() != 1 {
-		t.Errorf("expected peer count: %d got: %d", 1, bootnode.PeerCount())
+	if bootnode.host.peerCount() != 1 {
+		t.Errorf("expected peer count: %d got: %d", 1, bootnode.host.peerCount())
 	}
 }
 
@@ -119,6 +125,7 @@ func TestNoBootstrap(t *testing.T) {
 	testServiceConfigA := &Config{
 		NoBootstrap: true,
 		Port:        7006,
+		RandSeed:    1,
 	}
 
 	sa := startNewService(t, testServiceConfigA, nil, nil)
@@ -144,8 +151,8 @@ func TestService_PeerCount(t *testing.T) {
 	sb := startNewService(t, testServiceConfigB, nil, nil)
 	defer sb.Stop()
 
-	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
+	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,14 +162,58 @@ func TestService_PeerCount(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = sb.Host().Connect(sb.ctx, *addrInfo)
+	err = sb.host.connect(*addrInfo)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	count := sb.PeerCount()
+	count := sb.host.peerCount()
 	if count == 0 {
 		t.Fatalf("incorrect peerCount got %d", count)
+	}
+}
+
+func TestPing(t *testing.T) {
+	testServiceConfigA := &Config{
+		NoBootstrap: true,
+		Port:        7004,
+		RandSeed:    1,
+		DataDir:     path.Join(os.TempDir(), "gossamer"),
+	}
+
+	sa := startNewService(t, testServiceConfigA, nil)
+	defer sa.Stop()
+
+	testServiceConfigB := &Config{
+		NoBootstrap: true,
+		Port:        7005,
+		RandSeed:    2,
+		DataDir:     path.Join(os.TempDir(), "gossamer2"),
+	}
+
+	msgChan := make(chan []byte)
+	sb := startNewService(t, testServiceConfigB, msgChan)
+	defer sb.Stop()
+
+	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = sb.host.connect(*addrInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = sb.host.ping(addrInfo.ID)
+	if err != nil {
+		t.Error(err)
 	}
 }
 
@@ -171,6 +222,7 @@ func TestSend(t *testing.T) {
 		NoBootstrap: true,
 		Port:        7004,
 		RandSeed:    1,
+		DataDir:     path.Join(os.TempDir(), "gossamer"),
 	}
 
 	sa := startNewService(t, testServiceConfigA, nil, nil)
@@ -180,14 +232,15 @@ func TestSend(t *testing.T) {
 		NoBootstrap: true,
 		Port:        7005,
 		RandSeed:    2,
+		DataDir:     path.Join(os.TempDir(), "gossamer2"),
 	}
 
 	msgChan := make(chan []byte)
 	sb := startNewService(t, testServiceConfigB, msgChan, nil)
 	defer sb.Stop()
 
-	sb.Host().Peerstore().AddAddrs(sa.Host().ID(), sa.Host().Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.Host().Addrs()[0].String(), sa.Host().ID()))
+	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,12 +250,12 @@ func TestSend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = sb.Host().Connect(sb.ctx, *addrInfo)
+	err = sb.host.connect(*addrInfo)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	p, err := sa.dht.FindPeer(sa.ctx, sb.host.ID())
+	p, err := sa.host.dht.FindPeer(sa.ctx, sb.host.h.ID())
 	if err != nil {
 		t.Fatalf("could not find peer: %s", err)
 	}
@@ -226,7 +279,7 @@ func TestSend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = sa.Send(p, encMsg)
+	err = sa.host.send(p, encMsg)
 	if err != nil {
 		t.Errorf("Send error: %s", err)
 	}
@@ -234,7 +287,7 @@ func TestSend(t *testing.T) {
 	select {
 	case <-msgChan:
 	case <-time.After(5 * time.Second):
-		t.Fatalf("Did not receive message from %s", sa.hostAddr)
+		t.Fatalf("Did not receive message from %s", sa.host.hostAddr)
 	}
 }
 
@@ -250,7 +303,7 @@ func TestGossiping(t *testing.T) {
 
 	nodeA := startNewService(t, nodeConfigA, nil, nil)
 	defer nodeA.Stop()
-	nodeAAddr := nodeA.FullAddrs()[0]
+	nodeAAddr := nodeA.host.fullAddrs()[0]
 
 	//Start node B
 	nodeConfigB := &Config{
@@ -265,7 +318,7 @@ func TestGossiping(t *testing.T) {
 	msgChanB := make(chan []byte)
 	nodeB := startNewService(t, nodeConfigB, msgChanB, nil)
 	defer nodeB.Stop()
-	nodeBAddr := nodeB.FullAddrs()[0]
+	nodeBAddr := nodeB.host.fullAddrs()[0]
 
 	//Start node C
 	nodeConfigC := &Config{
@@ -315,7 +368,7 @@ func TestGossiping(t *testing.T) {
 			t.Fatalf("Didn't receive the correct message")
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatalf("Did not receive message from %s", nodeA.hostAddr)
+		t.Fatalf("Did not receive message from %s", nodeA.host.hostAddr)
 	}
 	select {
 	case res := <-msgChanC:
@@ -329,7 +382,7 @@ func TestGossiping(t *testing.T) {
 			t.Fatalf("Didn't receive the correct message")
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatalf("Did not receive message from %s", nodeB.hostAddr)
+		t.Fatalf("Did not receive message from %s", nodeB.host.hostAddr)
 	}
 
 }

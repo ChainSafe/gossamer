@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
 
+	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -102,6 +103,10 @@ func (s *Service) Stop() error {
 		close(s.sendChan)
 	}
 	return nil
+}
+
+func (s *Service) StorageRoot() (common.Hash, error) {
+	return s.rt.StorageRoot()
 }
 
 // ProcessTransaction attempts to validates the transaction
