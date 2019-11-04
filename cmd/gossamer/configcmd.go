@@ -76,7 +76,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	log.Info("🕸\t Starting gossamer...", "datadir", fig.Global.DataDir, "protocolID", gendata.ProtocolId, "bootnodes", fig.P2p.BootstrapNodes)
+	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
 	// TODO: BABE
 
