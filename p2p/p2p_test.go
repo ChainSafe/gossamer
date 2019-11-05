@@ -286,7 +286,7 @@ func TestSend(t *testing.T) {
 
 	select {
 	case <-msgChan:
-	case <-time.After(5 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message from %s", sa.host.hostAddr)
 	}
 }
@@ -367,7 +367,7 @@ func TestGossiping(t *testing.T) {
 		if !reflect.DeepEqual(bmEnc, res) {
 			t.Fatalf("Didn't receive the correct message")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeA.host.hostAddr)
 	}
 	select {
@@ -381,7 +381,7 @@ func TestGossiping(t *testing.T) {
 		if !reflect.DeepEqual(bmEnc, res) {
 			t.Fatalf("Didn't receive the correct message")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeB.host.hostAddr)
 	}
 
@@ -418,7 +418,7 @@ func TestP2pReceiveChan(t *testing.T) {
 		if !reflect.DeepEqual(receivedBlockAnnounceMsg, encodedBlockAnnounceMsg) {
 			t.Fatalf("P2p service didn't receive the correct block")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message %+v", encodedBlockAnnounceMsg)
 
 	}
