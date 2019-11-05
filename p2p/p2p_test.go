@@ -380,7 +380,7 @@ func TestGossiping(t *testing.T) {
 		if !reflect.DeepEqual(bmEnc, res) {
 			t.Fatalf("Didn't receive the correct message")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message from %s", nodeB.host.hostAddr)
 	}
 
