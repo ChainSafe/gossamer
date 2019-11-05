@@ -13,6 +13,9 @@ type Ed25519Keypair struct {
 	private ed25519.PrivateKey
 }
 
+type Ed25519PrivateKey ed25519.PrivateKey
+type Ed25519PublicKey ed25519.PublicKey
+
 // NewEd25519Keypair returns an Ed25519 keypair given a ed25519 private key
 func NewEd25519Keypair(priv ed25519.PrivateKey) *Ed25519Keypair {
 	return &Ed25519Keypair{
@@ -54,7 +57,7 @@ func NewEd25519PrivateKey(in []byte) (ed25519.PrivateKey, error) {
 	return ed25519.PrivateKey(in), nil
 }
 
-// Sign uses the keypair to sign the message using the ed25519 signature algorith
+// Sign uses the keypair to sign the message using the ed25519 signature algorithm
 func (kp *Ed25519Keypair) Sign(msg []byte) []byte {
 	return ed25519.Sign(kp.private, msg)
 }
@@ -67,6 +70,19 @@ func (kp *Ed25519Keypair) Public() ed25519.PublicKey {
 // Private returns the keypair's private key
 func (kp *Ed25519Keypair) Private() ed25519.PrivateKey {
 	return kp.private
+}
+
+// Sign uses the ed25519 signature algorithm to sign the message
+func (k *Ed25519PrivateKey) Sign(msg []byte) []byte {
+	return ed25519.Sign(ed25519.PrivateKey(*k), msg)
+}
+
+func (k *Ed25519PrivateKey) Public() ed25519.PublicKey {
+	return k.Public()
+}
+
+func (k *Ed25519PublicKey) Verify(msg, sig []byte) bool {
+	return ed25519.Verify(ed25519.PublicKey(*k), msg, sig)
 }
 
 // Verify returns true if the signature is valid for the given message and public key, false otherwise
