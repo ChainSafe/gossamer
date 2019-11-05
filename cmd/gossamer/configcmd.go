@@ -72,13 +72,14 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	}
 
 	// TODO: BABE
+	sendChan := make(chan []byte)
 
 	// P2P
 	p2pSrvc, msgChan := createP2PService(fig)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
-	coreSrvc := core.NewService(r, nil, msgChan, nil)
+	coreSrvc := core.NewService(r, nil, msgChan, sendChan)
 	srvcs = append(srvcs, coreSrvc)
 
 	// API

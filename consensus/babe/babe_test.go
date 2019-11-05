@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"fmt"
 	"io"
 	"math"
 	"math/big"
@@ -199,7 +198,7 @@ func TestConfigurationFromRuntime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := babesession.configurationFromRuntime()
+	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,8 +214,8 @@ func TestConfigurationFromRuntime(t *testing.T) {
 		SecondarySlots:     false,
 	}
 
-	if res == expected {
-		t.Errorf("Fail: got %v expected %v\n", res, expected)
+	if babesession.config == expected {
+		t.Errorf("Fail: got %v expected %v\n", babesession.config, expected)
 	}
 }
 
@@ -265,7 +264,6 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	time.Sleep(time.Duration(babesession.config.SlotDuration) * time.Duration(babesession.config.EpochLength) * time.Millisecond)
 
 	for i := 0; i < int(babesession.config.EpochLength); i++ {
-		fmt.Println("Receiving block from BABE")
 		blk := <-blockAnnounceChan
 
 		expectedBlockAnnounceMsg := p2p.BlockAnnounceMessage{

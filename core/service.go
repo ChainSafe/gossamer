@@ -42,11 +42,11 @@ type Service struct {
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(rt *runtime.Runtime, b *babe.Session, msgChan <-chan []byte, sendChan chan<- []byte) *Service {
+func NewService(rt *runtime.Runtime, b *babe.Session, recChan <-chan []byte, sendChan chan<- []byte) *Service {
 	return &Service{
 		rt:       rt,
 		b:        b,
-		recChan:  msgChan,
+		recChan:  recChan,
 		sendChan: sendChan,
 	}
 }

@@ -62,12 +62,11 @@ func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime,
 		isProducer:        make(map[uint64]bool),
 		blockAnnounceChan: blockAnnounceChannel,
 	}
-	config, err := babeSession.configurationFromRuntime()
+	err := babeSession.configurationFromRuntime()
 	if err != nil {
 		return nil, err
 	}
 
-	babeSession.config = config
 	return babeSession, nil
 }
 
