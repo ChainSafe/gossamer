@@ -3,6 +3,7 @@ package keystore
 import (
 	"bytes"
 	"crypto/rand"
+	"os"
 	"reflect"
 	"testing"
 
@@ -51,6 +52,38 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	if !reflect.DeepEqual(priv, res) {
+		t.Fatalf("Fail: got %v expected %v", res, priv)
+	}
+}
+
+func TestEncryptAndDecryptFromFile(t *testing.T) {
+	filename := "./test_key"
+	password := []byte("noot")
+
+	buf := make([]byte, 64)
+	_, err := rand.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	priv, err := crypto.NewEd25519PrivateKey(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = EncryptAndWriteToFile(filename, priv, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := ReadFromFileAndDecrypt(filename, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(filename)
 
 	if !reflect.DeepEqual(priv, res) {
 		t.Fatalf("Fail: got %v expected %v", res, priv)

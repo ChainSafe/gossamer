@@ -5,6 +5,8 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"io"
+	"io/ioutil"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/crypto"
 	"golang.org/x/crypto/blake2b"
@@ -72,12 +74,30 @@ func DecryptPrivateKey(data, password []byte) (crypto.PrivateKey, error) {
 	return crypto.DecodePrivateKey(pk)
 }
 
-func EncryptAndWriteToFile(pk crypto.PrivateKey, password []byte) (filename string, err error) {
+func EncryptAndWriteToFile(filename string, pk crypto.PrivateKey, password []byte) error {
+	data, err := EncryptPrivateKey(pk, password)
+	if err != nil {
+		return err
+	}
 
-	return "", nil
+	fp, err := filepath.Abs(filename)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(fp, data, 0644)
 }
 
 func ReadFromFileAndDecrypt(filename string, password []byte) (pk crypto.PrivateKey, err error) {
+	fp, err := filepath.Abs(filename)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	data, err := ioutil.ReadFile(fp)
+	if err != nil {
+		return nil, err
+	}
+
+	return DecryptPrivateKey(data, password)
 }
