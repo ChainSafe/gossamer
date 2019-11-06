@@ -21,7 +21,7 @@ Our packages:
 | `codec` | SCALE codec; used for encoding and decoding |
 | `common` | commonly used types and functions |
 | `config` | client configuration |
-| `concensus` | BABE/GRANDPA implementations |
+| `consensus` | BABE/GRANDPA implementations |
 | `core` | Core service to orchestrate system interations |
 | `dot` | wraps other packages to allow a complete client |
 | `internal` | internal api  |
@@ -45,7 +45,7 @@ go get -u github.com/ChainSafe/gossamer
 ```
 make gossamer
 gossamer init
-gossamer --config config.toml
+gossamer
 ```
 
 
