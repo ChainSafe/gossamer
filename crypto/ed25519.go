@@ -86,15 +86,19 @@ func (k *Ed25519PrivateKey) Sign(msg []byte) []byte {
 	return ed25519.Sign(ed25519.PrivateKey(*k), msg)
 }
 
+// Public returns the public key corresponding to the ed25519 private key
 func (k *Ed25519PrivateKey) Public() PublicKey {
 	kp := NewEd25519Keypair(ed25519.PrivateKey(*k))
 	return kp.Public()
 }
 
+// Encode returns the bytes underlying the Ed25519PrivateKey
 func (k *Ed25519PrivateKey) Encode() []byte {
 	return []byte(ed25519.PrivateKey(*k))
 }
 
+// Decode turns the input bytes into a Ed25519PrivateKey
+// the input must be 32 bytes, or the function will return an error
 func (k *Ed25519PrivateKey) Decode(in []byte) error {
 	priv, err := NewEd25519PrivateKey(in)
 	if err != nil {
@@ -104,14 +108,18 @@ func (k *Ed25519PrivateKey) Decode(in []byte) error {
 	return nil
 }
 
+// Verify checks that Ed25519PublicKey was used to create the signature for the message
 func (k *Ed25519PublicKey) Verify(msg, sig []byte) bool {
 	return ed25519.Verify(ed25519.PublicKey(*k), msg, sig)
 }
 
+// Encode returns the encoding of the Ed25519PublicKey
 func (k *Ed25519PublicKey) Encode() []byte {
 	return []byte(ed25519.PublicKey(*k))
 }
 
+// Decode turns the input bytes into an Ed25519PublicKey
+// the input must be 64 bytes, or the function will return and error
 func (k *Ed25519PublicKey) Decode(in []byte) error {
 	pub, err := NewEd25519PublicKey(in)
 	if err != nil {

@@ -12,7 +12,8 @@ import (
 	"golang.org/x/crypto/blake2b"
 )
 
-func GCMFromPassphrase(password []byte) (cipher.AEAD, error) {
+// gcmFromPassphrase creates a symmetric AES key given a password
+func gcmFromPassphrase(password []byte) (cipher.AEAD, error) {
 	hash := blake2b.Sum256(password)
 
 	block, err := aes.NewCipher(hash[:])
@@ -28,8 +29,9 @@ func GCMFromPassphrase(password []byte) (cipher.AEAD, error) {
 	return gcm, nil
 }
 
+// Encrypt uses AES to encrypt `msg` with the symmetric key deterministically created from `password`
 func Encrypt(msg, password []byte) ([]byte, error) {
-	gcm, err := GCMFromPassphrase(password)
+	gcm, err := gcmFromPassphrase(password)
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +45,9 @@ func Encrypt(msg, password []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
+// Decrypt uses AES to decrypt ciphertext with the symmetric key deterministically created from `password`
 func Decrypt(data, password []byte) ([]byte, error) {
-	gcm, err := GCMFromPassphrase(password)
+	gcm, err := gcmFromPassphrase(password)
 	if err != nil {
 		return nil, err
 	}
@@ -59,10 +62,14 @@ func Decrypt(data, password []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
+// EncryptPrivateKey uses AES to encrypt an encoded `crypto.PrivateKey` with a symmetric key deterministically
+// created from `password`
 func EncryptPrivateKey(pk crypto.PrivateKey, password []byte) ([]byte, error) {
 	return Encrypt(pk.Encode(), password)
 }
 
+// DecryptPrivateKey uses AES to decrypt the ciphertext into a `crypto.PrivateKey` with a symmetric key deterministically
+// created from `password`
 func DecryptPrivateKey(data, password []byte) (crypto.PrivateKey, error) {
 	pk, err := Decrypt(data, password)
 	if err != nil {
@@ -72,6 +79,7 @@ func DecryptPrivateKey(data, password []byte) (crypto.PrivateKey, error) {
 	return crypto.DecodePrivateKey(pk)
 }
 
+// EncryptAndWriteToFile encrypts the `crypto.PrivateKey` using the password and saves it to the specificied file
 func EncryptAndWriteToFile(filename string, pk crypto.PrivateKey, password []byte) error {
 	data, err := EncryptPrivateKey(pk, password)
 	if err != nil {
@@ -86,6 +94,7 @@ func EncryptAndWriteToFile(filename string, pk crypto.PrivateKey, password []byt
 	return ioutil.WriteFile(fp, data, 0644)
 }
 
+// ReadFromFileAndDecrypt reads ciphertext from a file and decrypts it using the password into a `crypto.PrivateKey`
 func ReadFromFileAndDecrypt(filename string, password []byte) (pk crypto.PrivateKey, err error) {
 	fp, err := filepath.Abs(filename)
 	if err != nil {
