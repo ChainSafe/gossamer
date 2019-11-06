@@ -100,7 +100,7 @@ func (k *Ed25519PrivateKey) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	k = priv
+	*k = *priv
 	return nil
 }
 
@@ -109,9 +109,14 @@ func (k *Ed25519PublicKey) Verify(msg, sig []byte) bool {
 }
 
 func (k *Ed25519PublicKey) Encode() []byte {
-	return nil
+	return []byte(ed25519.PublicKey(*k))
 }
 
 func (k *Ed25519PublicKey) Decode(in []byte) error {
+	pub, err := NewEd25519PublicKey(in)
+	if err != nil {
+		return err
+	}
+	*k = *pub
 	return nil
 }

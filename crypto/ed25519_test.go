@@ -33,3 +33,39 @@ func TestPublicKeys(t *testing.T) {
 		t.Fatal("Fail: pubkeys do not match")
 	}
 }
+
+func TestEncodeAndDecodePrivateKey(t *testing.T) {
+	kp, err := GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enc := kp.Private().Encode()
+	res := new(Ed25519PrivateKey)
+	err = res.Decode(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(res, kp.Private()) {
+		t.Fatalf("Fail: got %x expected %x", res, kp.Private())
+	}
+}
+
+func TestEncodeAndDecodePublicKey(t *testing.T) {
+	kp, err := GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enc := kp.Public().Encode()
+	res := new(Ed25519PublicKey)
+	err = res.Decode(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(res, kp.Public()) {
+		t.Fatalf("Fail: got %x expected %x", res, kp.Public())
+	}
+}
