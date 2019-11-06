@@ -12,7 +12,7 @@ import (
 
 func TestEncryptAndDecrypt(t *testing.T) {
 	password := []byte("noot")
-	msg := []byte("h")
+	msg := []byte("helloworld")
 
 	ciphertext, err := Encrypt(msg, password)
 	if err != nil {

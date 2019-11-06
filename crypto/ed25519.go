@@ -87,7 +87,8 @@ func (k *Ed25519PrivateKey) Sign(msg []byte) []byte {
 }
 
 func (k *Ed25519PrivateKey) Public() PublicKey {
-	return k.Public()
+	kp := NewEd25519Keypair(ed25519.PrivateKey(*k))
+	return kp.Public()
 }
 
 func (k *Ed25519PrivateKey) Encode() []byte {

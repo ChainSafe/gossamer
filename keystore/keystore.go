@@ -36,9 +36,7 @@ func Encrypt(msg, password []byte) ([]byte, error) {
 
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	ciphertext := gcm.Seal(nonce, nonce, msg, nil)
@@ -94,7 +92,7 @@ func ReadFromFileAndDecrypt(filename string, password []byte) (pk crypto.Private
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(fp)
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
