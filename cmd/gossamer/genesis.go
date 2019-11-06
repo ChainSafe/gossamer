@@ -32,7 +32,8 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "genesisfile", fp, "datadir", fig.Global.DataDir, "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
+	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
+	log.Debug("Loading genesis", "genesisfile", fp, "datadir", fig.Global.DataDir)
 
 	err = dbSrv.Start()
 	if err != nil {
