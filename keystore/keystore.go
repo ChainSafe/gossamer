@@ -59,10 +59,25 @@ func Decrypt(data, password []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-func EncryptPrivateKey(pk crypto.PrivateKey) ([]byte, error) {
-	return nil, nil
+func EncryptPrivateKey(pk crypto.PrivateKey, password []byte) ([]byte, error) {
+	return Encrypt(pk.Encode(), password)
 }
 
-func DecryptPrivateKey(ciphertext []byte) crypto.PrivateKey {
-	return nil
+func DecryptPrivateKey(data, password []byte) (crypto.PrivateKey, error) {
+	pk, err := Decrypt(data, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.DecodePrivateKey(pk)
+}
+
+func EncryptAndWriteToFile(pk crypto.PrivateKey, password []byte) (filename string, err error) {
+
+	return "", nil
+}
+
+func ReadFromFileAndDecrypt(filename string, password []byte) (pk crypto.PrivateKey, err error) {
+
+	return nil, nil
 }
