@@ -21,19 +21,20 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// read genesis file
 	fp := getGenesisPath(ctx)
+	log.Debug("Loading genesis", "genesisfile", fp, "datadir", fig.Global.DataDir)
+
 	gen, err := genesis.LoadGenesisData(fp)
 	if err != nil {
 		return err
 	}
+
+	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
 
 	// DB: Create database dir and initialize stateDB and blockDB
 	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
 	if err != nil {
 		return err
 	}
-
-	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
-	log.Debug("Loading genesis", "genesisfile", fp, "datadir", fig.Global.DataDir)
 
 	err = dbSrv.Start()
 	if err != nil {
