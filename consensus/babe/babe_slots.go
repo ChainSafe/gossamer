@@ -27,25 +27,25 @@ import (
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
-	dl := bt.DeepestLeaf()
+	dl := bt.DeepestBlock()
 	bn := new(big.Int).SetUint64(slotTail)
-	nf := bn.Sub(dl.Number, bn)
+	nf := bn.Sub(dl.Header.Number, bn)
 	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
-	if dl.Number.Cmp(bn) <= 0 {
+	if dl.Header.Number.Cmp(bn) <= 0 {
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
-	s := bt.GetNodeFromBlockNumber(nf)
+	s := bt.GetBlockFromBlockNumber(nf)
 	conf, err := b.configurationFromRuntime()
 	sd := conf.SlotDuration
 	if err != nil {
 		return 0, err
 	}
-	for _, node := range bt.SubChain(s.Hash, dl.Hash) {
-		so, err := slotOffset(bt.ComputeSlotForNode(node, sd), slot)
+	for _, block := range bt.SubBlockchain(s.Header.Hash, dl.Header.Hash) {
+		so, err := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
 		if err != nil {
 			return 0, err
 		}
-		st := node.ArrivalTime + (so * sd)
+		st := block.ArrivalTime + (so * sd)
 		at = append(at, st)
 	}
 	st, err := median(at)

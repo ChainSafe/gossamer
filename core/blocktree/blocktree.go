@@ -90,7 +90,7 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 }
 
 // GetNode finds and returns a node based on its Hash. Returns nil if not found.
-func (bt *BlockTree) GetNode(h hash) *node {
+func (bt *BlockTree) GetNode(h Hash) *node {
 	if bt.head.hash == h {
 		return bt.head
 	}
@@ -108,32 +108,13 @@ func (bt *BlockTree) GetNode(h hash) *node {
 // TODO: Grab block details from Db, this currently constructs and returns a block from node info
 func (bt *BlockTree) GetBlockFromBlockNumber(b *big.Int) *types.Block {
 	if b.Cmp(bt.head.number) == 0 {
-		bh := &types.BlockHeader{
-			ParentHash:			bt.head.parent.hash,
-			Number:	         	bt.head.Number,
-			Hash common.Hash:	bt.head.Hash,
-		}
-		
-		b := &types.Block{
-			Header:			bh,
-			ArrivalTime:	bt.head.arrivalTime,
-		}
+		b := bt.head.getBlockFromNode()
 		return b
 	}
 
 	for _, child := range bt.head.children {
 		if n := child.getNodeFromBlockNumber(b); n != nil {
-			nh = &types.BlockHeader{
-				ParentHash:			n.parent.hash,
-				Number:	         	n.Number,
-				Hash common.Hash:	n.Hash,
-			}
-			
-			nb = &types.Block{
-				Header:			nh,
-				ArrivalTime:	n.arrivalTime,
-			}
-
+			nb := n.getBlockFromNode()
 			return nb
 		}
 	}
@@ -181,16 +162,34 @@ func (bt *BlockTree) SubChain(start Hash, end Hash) []*node {
 	return sn.subChain(en)
 }
 
+// SubChain returns the path from the node with Hash start to the node with Hash end
+func (bt *BlockTree) SubBlockchain(start Hash, end Hash) []*types.Block {
+	sc := bt.SubChain(start, end)
+	var bc []*types.Block
+	for _, node := range sc {
+		bc = append(bc, node.getBlockFromNode())
+	}
+	return bc
+
+}
+
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
 func (bt *BlockTree) DeepestLeaf() *node {
 	return bt.leaves.DeepestLeaf()
 }
 
+// DeepestLeaf returns leftmost deepest block in BlockTree BT
+func (bt *BlockTree) DeepestBlock() *types.Block {
+	b := bt.leaves.DeepestLeaf().getBlockFromNode()
+	return b
+}
+
+
 // computes the slot for a block from genesis
 // helper for now, there's a better way to do this
-func (bt *BlockTree) ComputeSlotForNode(n *node, sd uint64) uint64 {
+func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
 	gt := bt.head.arrivalTime
-	nt := n.arrivalTime
+	nt := b.ArrivalTime
 
 	sp := uint64(0)
 	for gt < nt {

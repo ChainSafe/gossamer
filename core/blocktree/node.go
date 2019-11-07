@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
+
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/disiqueira/gotree"
 )
@@ -83,6 +85,21 @@ func (n *node) getNodeFromBlockNumber(b *big.Int) *node {
 		}
 	}
 	return nil
+}
+
+func (n *node) getBlockFromNode() *types.Block {
+	bh := types.BlockHeader{
+		ParentHash:		n.parent.hash,
+		Number:	        n.number,
+		Hash:			n.hash,
+	}
+	
+	b := &types.Block{
+		Header:			bh,
+		ArrivalTime:	n.arrivalTime,
+	}
+
+	return b
 }
 
 // subChain recursively searches for a chain with head n and end descendant
