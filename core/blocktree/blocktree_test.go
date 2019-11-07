@@ -201,7 +201,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 
 	bt.AddBlock(extraBlock)
 
-	expectedPath := []*Node{
+	expectedPath := []*node{
 		bt.GetNode(common.Hash{0x00}),
 		bt.GetNode(common.Hash{0x01}),
 		bt.GetNode(common.Hash{0x02}),
@@ -232,7 +232,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 
 	bt.AddBlock(extraBlock)
 
-	expectedPath := []*Node{
+	expectedPath := []*node{
 		bt.GetNode(common.Hash{0x01}),
 		bt.GetNode(common.Hash{0x02}),
 		bt.GetNode(common.Hash{0x03}),
@@ -273,7 +273,7 @@ func TestBlockTree_ComputeSlotForNode(t *testing.T) {
 //
 //	bt.AddBlock(extraBlock)
 //
-//	expectedPath := []*Node{
+//	expectedPath := []*node{
 //		bt.GetNode(common.Hash{0x00}),
 //		bt.GetNode(common.Hash{0xAB}),
 //	}

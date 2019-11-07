@@ -27,8 +27,9 @@ type Extrinsic []byte
 
 // Block defines a state block
 type Block struct {
-	Header BlockHeader
-	Body   BlockBody
+	Header 			BlockHeader
+	Body   			BlockBody
+	ArrivalTime		uint64 		// arrival time of this block
 }
 
 // BlockHeader is a state block header
