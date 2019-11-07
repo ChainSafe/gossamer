@@ -41,7 +41,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	if err != nil {
 		return 0, err
 	}
-	for _, block := range bt.SubBlockchain(s.Header.Hash, dl.Header.Hash) {
+	for _, block := range bt.SubBlockchain(s.Header.Number, dl.Header.Number) {
 		so, offsetErr := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
 		if offsetErr != nil {
 			return 0, err

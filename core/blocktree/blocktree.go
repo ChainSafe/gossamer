@@ -107,15 +107,19 @@ func (bt *BlockTree) GetNode(h Hash) *node {
 // GetBlockFromBlockNumber finds and returns a block from its number
 // TODO: Grab block details from Db, this currently constructs and returns a block from node info
 func (bt *BlockTree) GetBlockFromBlockNumber(b *big.Int) *types.Block {
+	return bt.getNodeFromBlockNumber(b).getBlockFromNode()
+
+}
+
+// GetBNodeFromBlockNumber finds and returns a node from its number
+func (bt *BlockTree) getNodeFromBlockNumber(b *big.Int) *node {
 	if b.Cmp(bt.head.number) == 0 {
-		b := bt.head.getBlockFromNode()
-		return b
+		return bt.head
 	}
 
 	for _, child := range bt.head.children {
 		if n := child.getNodeFromBlockNumber(b); n != nil {
-			nb := n.getBlockFromNode()
-			return nb
+			return n
 		}
 	}
 
@@ -163,8 +167,10 @@ func (bt *BlockTree) SubChain(start Hash, end Hash) []*node {
 }
 
 // SubChain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubBlockchain(start Hash, end Hash) []*types.Block {
-	sc := bt.SubChain(start, end)
+func (bt *BlockTree) SubBlockchain(start *big.Int, end *big.Int) []*types.Block {
+	s := bt.getNodeFromBlockNumber(start)
+	e := bt.getNodeFromBlockNumber(end)
+	sc := bt.SubChain(s.hash, e.hash)
 	var bc []*types.Block
 	for _, node := range sc {
 		bc = append(bc, node.getBlockFromNode())
