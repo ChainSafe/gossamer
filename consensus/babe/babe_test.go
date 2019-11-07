@@ -279,13 +279,13 @@ func TestSlotOffset(t *testing.T) {
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 
 	genesisBlock := types.Block{
-		Header: 		types.BlockHeader{
-							ParentHash: zeroHash,
-							Number:     big.NewInt(0),
-							Hash:       common.Hash{0x00},
-						},
-		Body: 			types.BlockBody{},
-		ArrivalTime:	uint64(1000),
+		Header: types.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+			Hash:       common.Hash{0x00},
+		},
+		Body:        types.BlockBody{},
+		ArrivalTime: uint64(1000),
 	}
 
 	d := &db.BlockDB{
@@ -306,14 +306,13 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		}
 
 		block := types.Block{
-			Header: 		types.BlockHeader{
-								ParentHash: previousHash,
-								Hash:       hash,
-								Number:     big.NewInt(int64(i)),
-							},
-			Body: 			types.BlockBody{},
-			ArrivalTime:	previousAT + uint64(1000),
-			
+			Header: types.BlockHeader{
+				ParentHash: previousHash,
+				Hash:       hash,
+				Number:     big.NewInt(int64(i)),
+			},
+			Body:        types.BlockBody{},
+			ArrivalTime: previousAT + uint64(1000),
 		}
 
 		bt.AddBlock(block)

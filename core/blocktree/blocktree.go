@@ -77,11 +77,11 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:     block.Header.Hash,
-		number:   block.Header.Number,
-		parent:   parent,
-		children: []*node{},
-		depth:    depth,
+		hash:        block.Header.Hash,
+		number:      block.Header.Number,
+		parent:      parent,
+		children:    []*node{},
+		depth:       depth,
 		arrivalTime: block.ArrivalTime,
 	}
 	parent.addChild(n)
@@ -183,7 +183,6 @@ func (bt *BlockTree) DeepestBlock() *types.Block {
 	b := bt.leaves.DeepestLeaf().getBlockFromNode()
 	return b
 }
-
 
 // computes the slot for a block from genesis
 // helper for now, there's a better way to do this

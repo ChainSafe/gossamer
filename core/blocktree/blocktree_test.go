@@ -32,13 +32,13 @@ var zeroHash, _ = common.HexToHash("0x00")
 
 func createGenesisBlock() types.Block {
 	return types.Block{
-		Header: 		types.BlockHeader{
-							ParentHash: zeroHash,
-							Number:     big.NewInt(0),
-							Hash:       common.Hash{0x00},
-						},
-		Body: 			types.BlockBody{},
-		ArrivalTime:	uint64(0),
+		Header: types.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+			Hash:       common.Hash{0x00},
+		},
+		Body:        types.BlockBody{},
+		ArrivalTime: uint64(0),
 	}
 }
 
@@ -72,13 +72,13 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 		}
 
 		block := types.Block{
-			Header: 		types.BlockHeader{
-								ParentHash: previousHash,
-								Hash:       hash,
-								Number:     big.NewInt(int64(i)),
-							},
-			Body: 			types.BlockBody{},
-			ArrivalTime:	previousAT + uint64(1000),
+			Header: types.BlockHeader{
+				ParentHash: previousHash,
+				Hash:       hash,
+				Number:     big.NewInt(int64(i)),
+			},
+			Body:        types.BlockBody{},
+			ArrivalTime: previousAT + uint64(1000),
 		}
 
 		bt.AddBlock(block)
@@ -88,7 +88,6 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 
 	return bt
 }
-
 
 func TestBlockTree_GetBlock(t *testing.T) {
 	// Calls AddBlock
