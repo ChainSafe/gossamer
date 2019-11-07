@@ -113,13 +113,6 @@ func (s *Service) MsgRecPoll(e chan error) {
 			e <- err
 			break
 		}
-
-		blockAnnounceMsgBytes, err := blockAnnounceMsg.Encode()
-		if err != nil {
-			e <- err
-			break
-		}
-		s.msgSendChan <- blockAnnounceMsgBytes
 	}
 }
 

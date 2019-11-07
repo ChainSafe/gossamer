@@ -17,6 +17,7 @@
 package p2p
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -28,6 +29,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
+	log "github.com/ChainSafe/log15"
+	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
 	ma "github.com/multiformats/go-multiaddr"
@@ -388,20 +391,92 @@ func TestGossiping(t *testing.T) {
 }
 
 func TestP2pReceiveChan(t *testing.T) {
+	//Create nodeA
 	testServiceConfigA := &Config{
-		NoBootstrap: true,
-		Port:        7004,
-		RandSeed:    1,
+		BootstrapNodes: nil,
+		NoBootstrap:    true,
+		NoMdns:         true,
+		Port:           7000,
+		RandSeed:       1,
 	}
 
 	msgRecChan := make(chan BlockAnnounceMessage)
+
+	nodeA := startNewService(t, testServiceConfigA, nil, msgRecChan)
+	defer nodeA.Stop()
+
+	// Create nodeB
+	nodeAAddr := nodeA.host.fullAddrs()[0]
+	testServiceConfigB := &Config{
+		BootstrapNodes: []string{
+			nodeAAddr.String(),
+		},
+		Port:     7001,
+		NoMdns:   true,
+		RandSeed: 2,
+	}
 	msgSendChan := make(chan []byte)
+	nodeB := startNewService(t, testServiceConfigB, msgSendChan, nil)
+	defer nodeB.Stop()
 
-	sa := startNewService(t, testServiceConfigA, msgSendChan, msgRecChan)
-	defer sa.Stop()
+	// Create & set a custom stream handler for node B
+	nodeB.host.registerStreamHandler(func(stream net.Stream) {
+		defer func() {
+			if err := stream.Close(); err != nil {
+				log.Error("fail to close stream", "error", err)
+			}
+		}()
 
+		log.Debug("got customstream stream", "peer", stream.Conn().RemotePeer())
+
+		rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+		lengthByte, err := rw.Reader.ReadByte()
+		if err != nil {
+			log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
+			return
+		}
+
+		// decode message length using LEB128
+		length := LEB128ToUint64([]byte{lengthByte})
+
+		// read message type byte
+		msgType, err := rw.Reader.Peek(1)
+		if err != nil {
+			log.Error("failed to read message type", "err", err)
+			return
+		}
+
+		// read entire message
+		rawMsg, err := rw.Reader.Peek(int(length))
+		if err != nil {
+			log.Error("failed to read message", "err", err)
+			return
+		}
+
+		log.Debug("got customstream stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
+
+		// decode message
+		msg, err := DecodeMessage(rw.Reader)
+		if err != nil {
+			log.Error("failed to decode message", "error", err)
+			return
+		}
+
+		log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
+
+		msgBytes, err := msg.Encode()
+		if err != nil {
+			log.Error("failed to encode message", "error", err)
+			return
+		}
+
+		nodeB.msgSendChan <- msgBytes
+
+	})
+
+	//Create a blockAnnounceMessage & send to node A for broadcasting
 	blockAnnounceMsg := BlockAnnounceMessage{
-		Number: big.NewInt(1),
+		Number: big.NewInt(10),
 	}
 
 	encodedBlockAnnounceMsg, err := blockAnnounceMsg.Encode()
@@ -409,18 +484,16 @@ func TestP2pReceiveChan(t *testing.T) {
 		t.Fatalf("Can't encode the block announce message")
 	}
 
-	// Send message down the P2p receive channel
+	// Send message down the nodeA receive channel
 	msgRecChan <- blockAnnounceMsg
 
-	// Check that we receive the same message back
+	// Check that we receive the same message in nodeB
 	select {
 	case receivedBlockAnnounceMsg := <-msgSendChan:
 		if !reflect.DeepEqual(receivedBlockAnnounceMsg, encodedBlockAnnounceMsg) {
-			t.Fatalf("P2p service didn't receive the correct block")
+			t.Fatalf("Node B service didn't receive the correct block")
 		}
 	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message %+v", encodedBlockAnnounceMsg)
-
 	}
-
 }
