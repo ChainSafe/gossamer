@@ -153,7 +153,7 @@ func (bt *BlockTree) LongestPath() []*Node {
 	}
 }
 
-//
+// SubChain returns the path from the Node with Hash start to the Node with Hash end
 func (bt *BlockTree) SubChain(start Hash, end Hash) []*Node {
 	sn := bt.GetNode(start)
 	en := bt.GetNode(end)

@@ -85,6 +85,7 @@ func (n *Node) getNodeFromBlockNumber(b *big.Int) *Node {
 	return nil
 }
 
+// subChain recursively searches for a chain with head n and end descendant
 func (n *Node) subChain(descendant *Node) []*Node {
 	if descendant == nil {
 		return nil

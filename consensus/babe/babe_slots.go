@@ -24,7 +24,7 @@ import (
 	"sort"
 )
 
-// calculate the slot time in the form of miliseconds since the unix epoch
+// slotTime calculates the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
@@ -58,7 +58,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 
 }
 
-// Calculates the median of a uint64 slice
+// median calculates the median of a uint64 slice
 // @TODO: Implement quickselect as an alternative to this.
 func median(l []uint64) (uint64, error) {
 	// sort the list
@@ -76,7 +76,7 @@ func median(l []uint64) (uint64, error) {
 	return med, nil
 }
 
-// returns slotOffset
+// slotOffset returns the difference between two uint64 timestamps
 func slotOffset(start uint64, end uint64) (uint64, error) {
 	os := end - start
 	if end < start {
