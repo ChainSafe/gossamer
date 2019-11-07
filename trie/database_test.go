@@ -24,6 +24,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/config/genesis"
 	db "github.com/ChainSafe/gossamer/polkadb"
 )
 
@@ -205,11 +206,11 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 
 	defer trie.closeDb()
 
-	expected := &Genesis{
-		Name:       []byte("gossamer"),
-		Id:         []byte("gossamer"),
-		ProtocolId: []byte("gossamer"),
-		Bootnodes:  nil,
+	expected := &genesis.GenesisData{
+		Name:       "gossamer",
+		Id:         "gossamer",
+		ProtocolId: "gossamer",
+		Bootnodes:  [][]byte{[]byte("noot")},
 	}
 
 	err = trie.db.StoreGenesisData(expected)
@@ -225,5 +226,4 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 	if !reflect.DeepEqual(gen, expected) {
 		t.Fatalf("Fail: got %v expected %v", gen, expected)
 	}
-
 }
