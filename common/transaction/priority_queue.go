@@ -16,15 +16,28 @@
 
 package transaction
 
+import "sync"
+
 // PriorityQueue implements a priority queue using a double linked list
 type PriorityQueue struct {
-	head *node
+	head  *node
+	mutex sync.Mutex
 }
 
 type node struct {
 	data   *ValidTransaction
 	parent *node
 	child  *node
+}
+
+func NewPriorityQueue() *PriorityQueue {
+	// Reads the WebAssembly module as bytes.
+	pq := PriorityQueue{
+		head:  nil,
+		mutex: sync.Mutex{},
+	}
+
+	return &pq
 }
 
 // Pop removes the head of the queue and returns it
@@ -35,6 +48,8 @@ func (q *PriorityQueue) Pop() *ValidTransaction {
 }
 
 func (q *PriorityQueue) Peek() *ValidTransaction {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
 	if q.head == nil {
 		return nil
 	}
@@ -47,7 +62,9 @@ func (q *PriorityQueue) Peek() *ValidTransaction {
 func (q *PriorityQueue) Insert(vt *ValidTransaction) {
 	curr := q.head
 	if curr == nil {
+		q.mutex.Lock()
 		q.head = &node{data: vt}
+		q.mutex.Unlock()
 		return
 	}
 

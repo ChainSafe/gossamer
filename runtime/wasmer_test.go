@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/trie"
@@ -891,4 +892,29 @@ func TestExt_secp256k1_ecdsa_recover(t *testing.T) {
 	if !bytes.Equal(expected[:], mem[pubkeyData:pubkeyData+65]) {
 		t.Fatalf("fail: got %x expected %x", mem[pubkeyData:pubkeyData+65], expected)
 	}
+}
+
+// test used for ensuring runtime Exec calls can me made conrurrently
+func TestConcurrentRuntimeCalls(t *testing.T) {
+	r, err := newRuntime(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Execute 2
+	go func() {
+		_, err1 := r.Exec("Core_version", 1, 1)
+		if err1 != nil {
+			t.Fatal(err)
+		}
+	}()
+	go func() {
+		_, err2 := r.Exec("Core_version", 1, 1)
+		if err2 != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	// Wait for routines to return runtime calls
+	time.Sleep(2 * time.Second)
 }
