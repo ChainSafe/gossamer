@@ -30,7 +30,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	dl := bt.DeepestBlock()
 	bn := new(big.Int).SetUint64(slotTail)
 	nf := bn.Sub(dl.Header.Number, bn)
-	// check to make sure we have enough blocks before the deepest leaf to accurately calculate slot time
+	// check to make sure we have enough blocks before the deepest block to accurately calculate slot time
 	if dl.Header.Number.Cmp(bn) <= 0 {
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
@@ -74,11 +74,11 @@ func median(l []uint64) (uint64, error) {
 	return med, nil
 }
 
-// slotOffset returns the difference between two uint64 timestamps
+// slotOffset returns the number of slots between slot
 func slotOffset(start uint64, end uint64) (uint64, error) {
 	os := end - start
 	if end < start {
-		return 0, errors.New("Slot end time less than slot start time!")
+		return 0, errors.New("Cannot have negative Slot Offset!")
 	}
 	return os, nil
 }

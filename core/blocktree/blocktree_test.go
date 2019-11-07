@@ -20,7 +20,6 @@ import (
 	"math/big"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/core/types"
 
@@ -33,12 +32,13 @@ var zeroHash, _ = common.HexToHash("0x00")
 
 func createGenesisBlock() types.Block {
 	return types.Block{
-		Header: types.BlockHeader{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-			Hash:       common.Hash{0x00},
-		},
-		Body: types.BlockBody{},
+		Header: 		types.BlockHeader{
+							ParentHash: zeroHash,
+							Number:     big.NewInt(0),
+							Hash:       common.Hash{0x00},
+						},
+		Body: 			types.BlockBody{},
+		ArrivalTime:	uint64(0),
 	}
 }
 
@@ -62,6 +62,7 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)
 
 	previousHash := bt.head.hash
+	previousAT := bt.head.arrivalTime
 
 	for i := 1; i <= depth; i++ {
 		hash, err := common.HexToHash(intToHashable(i))
@@ -71,53 +72,23 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 		}
 
 		block := types.Block{
-			Header: types.BlockHeader{
-				ParentHash: previousHash,
-				Hash:       hash,
-				Number:     big.NewInt(int64(i)),
-			},
-			Body: types.BlockBody{},
+			Header: 		types.BlockHeader{
+								ParentHash: previousHash,
+								Hash:       hash,
+								Number:     big.NewInt(int64(i)),
+							},
+			Body: 			types.BlockBody{},
+			ArrivalTime:	previousAT + uint64(1000),
 		}
 
 		bt.AddBlock(block)
 		previousHash = hash
+		previousAT = block.ArrivalTime
 	}
 
 	return bt
 }
 
-func createFlatTree_WithWaitTime(t *testing.T, depth int) *BlockTree {
-	d := &db.BlockDB{
-		Db: db.NewMemDatabase(),
-	}
-
-	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)
-
-	previousHash := bt.head.hash
-
-	for i := 1; i <= depth; i++ {
-		time.Sleep(10 * time.Millisecond)
-		hash, err := common.HexToHash(intToHashable(i))
-
-		if err != nil {
-			t.Error(err)
-		}
-
-		block := types.Block{
-			Header: types.BlockHeader{
-				ParentHash: previousHash,
-				Hash:       hash,
-				Number:     big.NewInt(int64(i)),
-			},
-			Body: types.BlockBody{},
-		}
-
-		bt.AddBlock(block)
-		previousHash = hash
-	}
-
-	return bt
-}
 
 func TestBlockTree_GetBlock(t *testing.T) {
 	// Calls AddBlock
@@ -248,10 +219,10 @@ func TestBlockTree_Subchain(t *testing.T) {
 }
 
 func TestBlockTree_ComputeSlotForBlock(t *testing.T) {
-	bt := createFlatTree_WithWaitTime(t, 9)
+	bt := createFlatTree(t, 9)
 
-	expectedSlotNumber := uint64(10)
-	slotNumber := bt.ComputeSlotForBlock(bt.GetNode(common.Hash{0x09}).getBlockFromNode(), 10)
+	expectedSlotNumber := uint64(9)
+	slotNumber := bt.ComputeSlotForBlock(bt.GetNode(common.Hash{0x09}).getBlockFromNode(), 1000)
 
 	if slotNumber != expectedSlotNumber {
 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)

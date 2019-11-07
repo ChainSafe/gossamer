@@ -276,15 +276,16 @@ func TestSlotOffset(t *testing.T) {
 
 }
 
-func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockTree {
+func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 
 	genesisBlock := types.Block{
-		Header: types.BlockHeader{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-			Hash:       common.Hash{0x00},
-		},
-		Body: types.BlockBody{},
+		Header: 		types.BlockHeader{
+							ParentHash: zeroHash,
+							Number:     big.NewInt(0),
+							Hash:       common.Hash{0x00},
+						},
+		Body: 			types.BlockBody{},
+		ArrivalTime:	uint64(1000),
 	}
 
 	d := &db.BlockDB{
@@ -292,12 +293,10 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
-
-	// hard coded because we don't want to expose the hash of
 	previousHash := genesisBlock.Header.Hash
+	previousAT := genesisBlock.ArrivalTime
 
 	for i := 1; i <= depth; i++ {
-		time.Sleep(300 * time.Millisecond)
 		hex := fmt.Sprintf("%06x", i)
 
 		hash, err := common.HexToHash("0x" + hex)
@@ -307,37 +306,45 @@ func createFlatBlockTree_WithWaitTime(t *testing.T, depth int) *blocktree.BlockT
 		}
 
 		block := types.Block{
-			Header: types.BlockHeader{
-				ParentHash: previousHash,
-				Hash:       hash,
-				Number:     big.NewInt(int64(i)),
-			},
-			Body: types.BlockBody{},
+			Header: 		types.BlockHeader{
+								ParentHash: previousHash,
+								Hash:       hash,
+								Number:     big.NewInt(int64(i)),
+							},
+			Body: 			types.BlockBody{},
+			ArrivalTime:	previousAT + uint64(1000),
+			
 		}
 
 		bt.AddBlock(block)
 		previousHash = hash
+		previousAT = block.ArrivalTime
 	}
 
 	return bt
 
 }
 
-// TestSlotTime will always result in different numbers since SlotTime outputs the Time of the slot
-// in the format of miliseconds since the Unix Epoch
 func TestSlotTime(t *testing.T) {
 	rt := newRuntime(t)
-	bt := createFlatBlockTree_WithWaitTime(t, 30)
+	bt := createFlatBlockTree(t, 100)
 	babesession := NewSession([32]byte{}, [64]byte{}, rt)
 	_, err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = babesession.slotTime(30, bt, 10)
+	res, err := babesession.slotTime(103, bt, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	var expected uint64 = 104000
+
+	if res != expected {
+		t.Errorf("Fail: got %v expected %v\n", res, expected)
+	}
+
 }
 
 func TestStart(t *testing.T) {
