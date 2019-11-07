@@ -18,9 +18,10 @@ package babe
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/core/blocktree"
 	"math/big"
 	"sort"
+
+	"github.com/ChainSafe/gossamer/core/blocktree"
 )
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
@@ -41,8 +42,8 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 		return 0, err
 	}
 	for _, block := range bt.SubBlockchain(s.Header.Hash, dl.Header.Hash) {
-		so, err := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
-		if err != nil {
+		so, offsetErr := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
+		if offsetErr != nil {
 			return 0, err
 		}
 		st := block.ArrivalTime + (so * sd)

@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
-//	"time"
+	//	"time"
 )
 
 // Length of hashes in bytes.
