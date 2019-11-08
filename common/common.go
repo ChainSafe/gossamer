@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"strings"
-	//	"time"
 )
 
 // Length of hashes in bytes.
@@ -137,8 +136,3 @@ func (h *Hash) SetBytes(b []byte) {
 
 	copy(h[HashLength-len(b):], b)
 }
-
-// // UnixMilli returns the number of milliseconds that have passed since the unix epoch
-// func UnixMilli() uint64 {
-// 	return uint64(time.Now().UnixNano() / 1e6)
-// }
