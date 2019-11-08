@@ -901,18 +901,12 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Execute 2
+	// Execute 2 concurrent calls to the runtime
 	go func() {
-		_, err1 := r.Exec("Core_version", 1, 1)
-		if err1 != nil {
-			t.Fatal(err)
-		}
+		_, _ = r.Exec("Core_version", 1, 1)
 	}()
 	go func() {
-		_, err2 := r.Exec("Core_version", 1, 1)
-		if err2 != nil {
-			t.Fatal(err)
-		}
+		_, _ = r.Exec("Core_version", 1, 1)
 	}()
 
 	// Wait for routines to return runtime calls
