@@ -31,15 +31,16 @@ import (
 var zeroHash, _ = common.HexToHash("0x00")
 
 func createGenesisBlock() types.Block {
-	return types.Block{
+	b := types.Block{
 		Header: types.BlockHeader{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
 			Hash:       common.Hash{0x00},
 		},
-		Body:        types.BlockBody{},
-		ArrivalTime: uint64(0),
+		Body: types.BlockBody{},
 	}
+	b.SetBlockArrivalTime(uint64(0))
+	return b
 }
 
 func intToHashable(in int) string {
@@ -77,13 +78,14 @@ func createFlatTree(t *testing.T, depth int) *BlockTree {
 				Hash:       hash,
 				Number:     big.NewInt(int64(i)),
 			},
-			Body:        types.BlockBody{},
-			ArrivalTime: previousAT + uint64(1000),
+			Body: types.BlockBody{},
 		}
+
+		block.SetBlockArrivalTime(previousAT + uint64(1000))
 
 		bt.AddBlock(block)
 		previousHash = hash
-		previousAT = block.ArrivalTime
+		previousAT = block.GetBlockArrivalTime()
 	}
 
 	return bt

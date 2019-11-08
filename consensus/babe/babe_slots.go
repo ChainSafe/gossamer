@@ -46,7 +46,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 		if offsetErr != nil {
 			return 0, err
 		}
-		st := block.ArrivalTime + (so * sd)
+		st := block.GetBlockArrivalTime() + (so * sd)
 		at = append(at, st)
 	}
 	st, err := median(at)

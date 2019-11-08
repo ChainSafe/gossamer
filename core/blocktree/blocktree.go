@@ -48,7 +48,7 @@ func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTre
 		parent:      nil,
 		children:    []*node{},
 		depth:       big.NewInt(0),
-		arrivalTime: genesis.ArrivalTime,
+		arrivalTime: genesis.GetBlockArrivalTime(),
 	}
 	return &BlockTree{
 		head:            head,
@@ -82,7 +82,7 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 		parent:      parent,
 		children:    []*node{},
 		depth:       depth,
-		arrivalTime: block.ArrivalTime,
+		arrivalTime: block.GetBlockArrivalTime(),
 	}
 	parent.addChild(n)
 
@@ -194,7 +194,7 @@ func (bt *BlockTree) DeepestBlock() *types.Block {
 // helper for now, there's a better way to do this
 func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
 	gt := bt.head.arrivalTime
-	nt := b.ArrivalTime
+	nt := b.GetBlockArrivalTime()
 
 	sp := uint64(0)
 	for gt < nt {

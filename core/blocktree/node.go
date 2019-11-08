@@ -94,9 +94,10 @@ func (n *node) getBlockFromNode() *types.Block {
 	}
 
 	b := &types.Block{
-		Header:      bh,
-		ArrivalTime: n.arrivalTime,
+		Header: bh,
+		Body:   types.BlockBody{},
 	}
+	b.SetBlockArrivalTime(n.arrivalTime)
 
 	return b
 }
