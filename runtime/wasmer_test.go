@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/trie"
@@ -910,5 +909,5 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	}()
 
 	// Wait for routines to return runtime calls
-	time.Sleep(30 * time.Second)
+	// time.Sleep(30 * time.Second)
 }
