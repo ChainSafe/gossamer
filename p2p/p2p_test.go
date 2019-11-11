@@ -17,7 +17,6 @@
 package p2p
 
 import (
-	"bufio"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -29,7 +28,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
-	log "github.com/ChainSafe/log15"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-core/peerstore"
@@ -419,59 +417,14 @@ func TestP2pReceiveChan(t *testing.T) {
 	nodeB := startNewService(t, testServiceConfigB, msgSendChan, nil)
 	defer nodeB.Stop()
 
-	// Create & set a custom stream handler for node B
+	// node B only handles the stream, and doesn't need to rebroadcast it
 	nodeB.host.registerStreamHandler(func(stream net.Stream) {
-		defer func() {
-			if err := stream.Close(); err != nil {
-				log.Error("fail to close stream", "error", err)
-			}
-		}()
 
-		log.Debug("got customstream stream", "peer", stream.Conn().RemotePeer())
+		_, err := nodeB.handleStream(stream)
 
-		rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
-		lengthByte, err := rw.Reader.ReadByte()
 		if err != nil {
-			log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
 			return
 		}
-
-		// decode message length using LEB128
-		length := LEB128ToUint64([]byte{lengthByte})
-
-		// read message type byte
-		msgType, err := rw.Reader.Peek(1)
-		if err != nil {
-			log.Error("failed to read message type", "err", err)
-			return
-		}
-
-		// read entire message
-		rawMsg, err := rw.Reader.Peek(int(length))
-		if err != nil {
-			log.Error("failed to read message", "err", err)
-			return
-		}
-
-		log.Debug("got customstream stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
-
-		// decode message
-		msg, err := DecodeMessage(rw.Reader)
-		if err != nil {
-			log.Error("failed to decode message", "error", err)
-			return
-		}
-
-		log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
-
-		msgBytes, err := msg.Encode()
-		if err != nil {
-			log.Error("failed to encode message", "error", err)
-			return
-		}
-
-		nodeB.msgSendChan <- msgBytes
-
 	})
 
 	//Create a blockAnnounceMessage & send to node A for broadcasting
@@ -491,7 +444,7 @@ func TestP2pReceiveChan(t *testing.T) {
 	select {
 	case receivedBlockAnnounceMsg := <-msgSendChan:
 		if !reflect.DeepEqual(receivedBlockAnnounceMsg, encodedBlockAnnounceMsg) {
-			t.Fatalf("Node B service didn't receive the correct block")
+			t.Fatalf("Node B service didn't receive the correct block\ngot: %+v\nexpected: %+v", receivedBlockAnnounceMsg, encodedBlockAnnounceMsg)
 		}
 	case <-time.After(30 * time.Second):
 		t.Fatalf("Did not receive message %+v", encodedBlockAnnounceMsg)
