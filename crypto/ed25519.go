@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	ed25519 "golang.org/x/crypto/ed25519"
+	ed25519 "crypto/ed25519"
 )
 
 // Ed25519Keypair is a ed25519 public-private keypair
@@ -98,7 +98,7 @@ func (k *Ed25519PrivateKey) Encode() []byte {
 }
 
 // Decode turns the input bytes into a Ed25519PrivateKey
-// the input must be 32 bytes, or the function will return an error
+// the input must be 64 bytes, or the function will return an error
 func (k *Ed25519PrivateKey) Decode(in []byte) error {
 	priv, err := NewEd25519PrivateKey(in)
 	if err != nil {
@@ -119,7 +119,7 @@ func (k *Ed25519PublicKey) Encode() []byte {
 }
 
 // Decode turns the input bytes into an Ed25519PublicKey
-// the input must be 64 bytes, or the function will return and error
+// the input must be 32 bytes, or the function will return and error
 func (k *Ed25519PublicKey) Decode(in []byte) error {
 	pub, err := NewEd25519PublicKey(in)
 	if err != nil {
