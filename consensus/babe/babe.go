@@ -49,18 +49,18 @@ type Session struct {
 	isProducer     map[uint64]bool // whether we are a block producer at a slot
 
 	// Block announce channel every time is creates a block
-	blockAnnounceChan chan<- p2p.BlockAnnounceMessage
+	blockAnnounce chan<- p2p.BlockAnnounceMessage
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
 func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.BlockAnnounceMessage) (*Session, error) {
 	babeSession := &Session{
-		vrfPublicKey:      pubkey,
-		vrfPrivateKey:     privkey,
-		rt:                rt,
-		txQueue:           new(tx.PriorityQueue),
-		isProducer:        make(map[uint64]bool),
-		blockAnnounceChan: blockAnnounceChannel,
+		vrfPublicKey:  pubkey,
+		vrfPrivateKey: privkey,
+		rt:            rt,
+		txQueue:       new(tx.PriorityQueue),
+		isProducer:    make(map[uint64]bool),
+		blockAnnounce: blockAnnounceChannel,
 	}
 	err := babeSession.configurationFromRuntime()
 	if err != nil {
@@ -110,7 +110,7 @@ func (b *Session) invokeBlockAuthoring() {
 			blockAnnounceMsg := p2p.BlockAnnounceMessage{
 				Number: block.Header.Number,
 			}
-			b.blockAnnounceChan <- blockAnnounceMsg
+			b.blockAnnounce <- blockAnnounceMsg
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
