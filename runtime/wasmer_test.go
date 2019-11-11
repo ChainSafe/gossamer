@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/trie"
@@ -900,21 +901,14 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r1 := make(chan struct{})
-	r2 := make(chan struct{})
-
 	// Execute 2 concurrent calls to the runtime
 	go func() {
 		_, _ = r.Exec("Core_version", 1, 1)
-		close(r1)
 	}()
 	go func() {
 		_, _ = r.Exec("Core_version", 1, 1)
-		close(r2)
 	}()
 
 	// Wait for routines to return runtime calls
-	// time.Sleep(2 * time.Second)
-	<-r1
-	<-r2
+	time.Sleep(30 * time.Second)
 }
