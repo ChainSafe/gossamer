@@ -907,7 +907,4 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	go func() {
 		_, _ = r.Exec("Core_version", 1, 1)
 	}()
-
-	// Wait for routines to return runtime calls
-	// time.Sleep(30 * time.Second)
 }
