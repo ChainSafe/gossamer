@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"reflect"
@@ -151,7 +152,20 @@ func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o interface{}, err error)
 		if err == nil {
 			o = binary.LittleEndian.Uint64(buf)
 		}
+	case int:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			o = int(binary.LittleEndian.Uint64(buf))
+		}
+	case uint:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			o = uint(binary.LittleEndian.Uint64(buf))
+		}
 	}
+
 	return o, err
 }
 
@@ -283,8 +297,10 @@ func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
 		}
 	case reflect.Slice, reflect.Array:
 		return sd.DecodeArray(t)
-	default:
+	case reflect.Struct:
 		return sd.DecodeTuple(t)
+	default:
+		return nil, fmt.Errorf("unexpected kind: %s", reflect.ValueOf(t).Kind())
 	}
 }
 
@@ -352,121 +368,154 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
 func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
-	v := reflect.ValueOf(t).Elem()
+	var v reflect.Value
+	switch reflect.ValueOf(t).Kind() {
+	case reflect.Ptr:
+		v = reflect.ValueOf(t).Elem()
+	default:
+		v = reflect.ValueOf(t)
+	}
 
 	var err error
 	var o interface{}
 
-	val := reflect.Indirect(reflect.ValueOf(t))
-
 	// iterate through each field in the struct
 	for i := 0; i < v.NumField(); i++ {
 		// get the field value at i
-		fieldValue := val.Field(i)
+		field := v.Field(i)
 
-		switch v.Field(i).Interface().(type) {
-		case byte:
-			b := make([]byte, 1)
-			_, err = sd.Reader.Read(b)
+		if field.CanInterface() {
+			fieldValue := field.Addr().Interface()
 
-			ptr := fieldValue.Addr().Interface().(*byte)
-			*ptr = b[0]
-		case []byte:
-			o, err = sd.DecodeByteArray()
+			switch v.Field(i).Interface().(type) {
+			case byte:
+				b := make([]byte, 1)
+				_, err = sd.Reader.Read(b)
+
+				ptr := fieldValue.(*byte)
+				*ptr = b[0]
+			case []byte:
+				o, err = sd.DecodeByteArray()
+				if err != nil {
+					break
+				}
+
+				// get the pointer to the value and set the value
+				ptr := fieldValue.(*[]byte)
+				*ptr = o.([]byte)
+			case int8:
+				o, err = sd.DecodeFixedWidthInt(int8(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*int8)
+				*ptr = o.(int8)
+			case int16:
+				o, err = sd.DecodeFixedWidthInt(int16(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*int16)
+				*ptr = o.(int16)
+			case int32:
+				o, err = sd.DecodeFixedWidthInt(int32(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*int32)
+				*ptr = o.(int32)
+			case int64:
+				o, err = sd.DecodeFixedWidthInt(int64(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*int64)
+				*ptr = o.(int64)
+			case uint16:
+				o, err = sd.DecodeFixedWidthInt(uint16(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*uint16)
+				*ptr = o.(uint16)
+			case uint32:
+				o, err = sd.DecodeFixedWidthInt(uint32(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*uint32)
+				*ptr = o.(uint32)
+			case uint64:
+				o, err = sd.DecodeFixedWidthInt(uint64(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*uint64)
+				*ptr = o.(uint64)
+			case int:
+				o, err = sd.DecodeFixedWidthInt(int(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*int)
+				*ptr = o.(int)
+			case uint:
+				o, err = sd.DecodeFixedWidthInt(uint(0))
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*uint)
+				*ptr = o.(uint)
+			case bool:
+				o, err = sd.DecodeBool()
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(*bool)
+				*ptr = o.(bool)
+			case *big.Int:
+				o, err = sd.DecodeBigInt()
+				if err != nil {
+					break
+				}
+
+				ptr := fieldValue.(**big.Int)
+				*ptr = o.(*big.Int)
+			case common.Hash:
+				b := make([]byte, 32)
+				_, err = sd.Reader.Read(b)
+
+				ptr := fieldValue.(*common.Hash)
+				*ptr = common.NewHash(b)
+			case string:
+				o, err = sd.DecodeByteArray()
+				if err != nil {
+					break
+				}
+
+				// get the pointer to the value and set the value
+				ptr := fieldValue.(*string)
+				*ptr = string(o.([]byte))
+			default:
+				_, err = sd.Decode(v.Field(i).Interface())
+				if err != nil {
+					break
+				}
+			}
+
 			if err != nil {
 				break
 			}
-
-			// get the pointer to the value and set the value
-			ptr := fieldValue.Addr().Interface().(*[]byte)
-			*ptr = o.([]byte)
-		case int8:
-			o, err = sd.DecodeFixedWidthInt(int8(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*int8)
-			*ptr = o.(int8)
-		case int16:
-			o, err = sd.DecodeFixedWidthInt(int16(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*int16)
-			*ptr = o.(int16)
-		case int32:
-			o, err = sd.DecodeFixedWidthInt(int32(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*int32)
-			*ptr = o.(int32)
-		case int64:
-			o, err = sd.DecodeFixedWidthInt(int64(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*int64)
-			*ptr = o.(int64)
-		case uint16:
-			o, err = sd.DecodeFixedWidthInt(uint16(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*uint16)
-			*ptr = o.(uint16)
-		case uint32:
-			o, err = sd.DecodeFixedWidthInt(uint32(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*uint32)
-			*ptr = o.(uint32)
-		case uint64:
-			o, err = sd.DecodeFixedWidthInt(uint64(0))
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*uint64)
-			*ptr = o.(uint64)
-		case bool:
-			o, err = sd.DecodeBool()
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(*bool)
-			*ptr = o.(bool)
-		case *big.Int:
-			o, err = sd.DecodeBigInt()
-			if err != nil {
-				break
-			}
-
-			ptr := fieldValue.Addr().Interface().(**big.Int)
-			*ptr = o.(*big.Int)
-		case common.Hash:
-			b := make([]byte, 32)
-			_, err = sd.Reader.Read(b)
-
-			ptr := fieldValue.Addr().Interface().(*common.Hash)
-			*ptr = common.NewHash(b)
-		default:
-			_, err = sd.Decode(v.Field(i).Interface())
-			if err != nil {
-				break
-			}
-		}
-
-		if err != nil {
-			break
 		}
 	}
 
