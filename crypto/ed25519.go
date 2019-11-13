@@ -87,9 +87,9 @@ func (k *Ed25519PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // Public returns the public key corresponding to the ed25519 private key
-func (k *Ed25519PrivateKey) Public() PublicKey {
+func (k *Ed25519PrivateKey) Public() (PublicKey, error) {
 	kp := NewEd25519Keypair(ed25519.PrivateKey(*k))
-	return kp.Public()
+	return kp.Public(), nil
 }
 
 // Encode returns the bytes underlying the Ed25519PrivateKey

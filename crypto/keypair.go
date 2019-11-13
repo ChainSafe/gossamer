@@ -14,7 +14,7 @@ type PublicKey interface {
 
 type PrivateKey interface {
 	Sign(msg []byte) ([]byte, error)
-	Public() PublicKey
+	Public() (PublicKey, error)
 	Encode() []byte
 	Decode([]byte) error
 }

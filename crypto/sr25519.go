@@ -66,6 +66,9 @@ func (kp *Sr25519Keypair) Private() PrivateKey {
 
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
 func (k *Sr25519PrivateKey) Sign(msg []byte) ([]byte, error) {
+	if k.key == nil {
+		return nil, errors.New("key is nil")
+	}
 	t := sr25519.NewSigningContext(SigningContext, msg)
 	sig, err := k.key.Sign(t)
 	if err != nil {
@@ -76,13 +79,22 @@ func (k *Sr25519PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // Public returns the public key corresponding to this private key
-func (k *Sr25519PrivateKey) Public() PublicKey {
-	pub, _ := k.key.Public()
-	return &Sr25519PublicKey{key: pub}
+func (k *Sr25519PrivateKey) Public() (PublicKey, error) {
+	if k.key == nil {
+		return nil, errors.New("key is nil")
+	}
+	pub, err := k.key.Public()
+	if err != nil {
+		return nil, err
+	}
+	return &Sr25519PublicKey{key: pub}, nil
 }
 
 // Encode returns the 32-byte encoding of the private key
 func (k *Sr25519PrivateKey) Encode() []byte {
+	if k.key == nil {
+		return nil
+	}
 	enc := k.key.Encode()
 	return enc[:]
 }
@@ -103,6 +115,10 @@ func (k *Sr25519PrivateKey) Decode(in []byte) error {
 // this public key; it returns true if this key created the signature for the message,
 // false otherwise
 func (k *Sr25519PublicKey) Verify(msg, sig []byte) bool {
+	if k.key == nil {
+		return false
+	}
+
 	b := [64]byte{}
 	copy(b[:], sig)
 
@@ -118,6 +134,10 @@ func (k *Sr25519PublicKey) Verify(msg, sig []byte) bool {
 
 // Encode returns the 32-byte encoding of the public key
 func (k *Sr25519PublicKey) Encode() []byte {
+	if k.key == nil {
+		return nil
+	}
+
 	enc := k.key.Encode()
 	return enc[:]
 }
