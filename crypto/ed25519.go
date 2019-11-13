@@ -67,8 +67,8 @@ func Verify(pub *Ed25519PublicKey, msg, sig []byte) bool {
 }
 
 // Sign uses the keypair to sign the message using the ed25519 signature algorithm
-func (kp *Ed25519Keypair) Sign(msg []byte) []byte {
-	return ed25519.Sign(ed25519.PrivateKey(*kp.private), msg)
+func (kp *Ed25519Keypair) Sign(msg []byte) ([]byte, error) {
+	return ed25519.Sign(ed25519.PrivateKey(*kp.private), msg), nil
 }
 
 // Public returns the keypair's public key
@@ -82,8 +82,8 @@ func (kp *Ed25519Keypair) Private() PrivateKey {
 }
 
 // Sign uses the ed25519 signature algorithm to sign the message
-func (k *Ed25519PrivateKey) Sign(msg []byte) []byte {
-	return ed25519.Sign(ed25519.PrivateKey(*k), msg)
+func (k *Ed25519PrivateKey) Sign(msg []byte) ([]byte, error) {
+	return ed25519.Sign(ed25519.PrivateKey(*k), msg), nil
 }
 
 // Public returns the public key corresponding to the ed25519 private key

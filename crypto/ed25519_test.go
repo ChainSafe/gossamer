@@ -14,7 +14,7 @@ func TestEd25519SignAndVerify(t *testing.T) {
 	}
 
 	msg := []byte("helloworld")
-	sig := kp.Sign(msg)
+	sig, _ := kp.Sign(msg)
 
 	ok := Verify(kp.Public().(*Ed25519PublicKey), msg, sig)
 	if !ok {
