@@ -122,9 +122,8 @@ func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) 
 	r.mutex.Lock()
 
 	// Store the data into memory
-	var leng int32 = 0
 	r.Store(data, loc)
-	leng = int32(len(data))
+	leng := int32(len(data))
 
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
