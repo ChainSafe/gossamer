@@ -131,3 +131,30 @@ func TestPeek(t *testing.T) {
 		pq.Pop()
 	}
 }
+
+func TestPriorityQueueConcurrentCalls(t *testing.T) {
+
+	pq := NewPriorityQueue()
+
+	go func() {
+		pq.Insert(&ValidTransaction{Validity: &Validity{Priority: 1}})
+	}()
+	go func() {
+		pq.Insert(&ValidTransaction{Validity: &Validity{Priority: 1}})
+	}()
+
+	go func() {
+		pq.Pop()
+	}()
+
+	go func() {
+		pq.Pop()
+	}()
+
+	go func() {
+		pq.Peek()
+	}()
+	go func() {
+		pq.Peek()
+	}()
+}
