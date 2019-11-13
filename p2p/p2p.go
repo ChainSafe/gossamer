@@ -58,7 +58,7 @@ func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan BlockAnno
 		msgRecChan:  msgRecChan,
 	}
 
-	h.registerStreamHandler(s.handleP2pStream)
+	h.registerStreamHandler(s.handleStream)
 
 	s.blockReqRec = make(map[string]bool)
 	s.blockRespRec = make(map[string]bool)
@@ -156,14 +156,16 @@ func (s *Service) Broadcast(msg Message) (err error) {
 	return err
 }
 
-// handleP2pStream handles the stream, and rebroadcasts the message based on it's type
-func (s *Service) handleP2pStream(stream net.Stream) {
-
-	msg, err := s.handleStream(stream)
+// handleStream handles the stream, and rebroadcasts the message based on it's type
+func (s *Service) handleStream(stream net.Stream) {
+	msg, rawMsg, err := parseMessage(stream)
 
 	if err != nil {
 		return
 	}
+
+	// Write the message back to channel
+	s.msgSendChan <- rawMsg
 
 	// Rebroadcast all messages except for status messages
 	if msg.GetType() != StatusMsgType {
@@ -197,8 +199,8 @@ func (s *Service) NoBootstrapping() bool {
 	return s.host.noBootstrap
 }
 
-// handleStream reads message length, message type, decodes message based on type, and returns the decoded message
-func (s *Service) handleStream(stream net.Stream) (Message, error) {
+// parseMessage reads message length, message type, decodes message based on type, and returns the decoded message
+func parseMessage(stream net.Stream) (Message, []byte, error) {
 	defer func() {
 		if err := stream.Close(); err != nil {
 			log.Error("fail to close stream", "error", err)
@@ -211,7 +213,7 @@ func (s *Service) handleStream(stream net.Stream) (Message, error) {
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
 		log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// decode message length using LEB128
@@ -221,14 +223,14 @@ func (s *Service) handleStream(stream net.Stream) (Message, error) {
 	msgType, err := rw.Reader.Peek(1)
 	if err != nil {
 		log.Error("failed to read message type", "err", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// read entire message
 	rawMsg, err := rw.Reader.Peek(int(length))
 	if err != nil {
 		log.Error("failed to read message", "err", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
@@ -237,12 +239,10 @@ func (s *Service) handleStream(stream net.Stream) (Message, error) {
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
 		log.Error("failed to decode message", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
-	s.msgSendChan <- rawMsg
-
-	return msg, nil
+	return msg, rawMsg, nil
 }

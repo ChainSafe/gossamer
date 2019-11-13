@@ -420,7 +420,9 @@ func TestP2pReceiveChan(t *testing.T) {
 	// node B only handles the stream, and doesn't need to rebroadcast it
 	nodeB.host.registerStreamHandler(func(stream net.Stream) {
 
-		_, err := nodeB.handleStream(stream)
+		_, rawMsg, err := parseMessage(stream)
+
+		nodeB.msgSendChan <- rawMsg
 
 		if err != nil {
 			return
