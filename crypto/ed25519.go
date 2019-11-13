@@ -62,7 +62,7 @@ func NewEd25519PrivateKey(in []byte) (*Ed25519PrivateKey, error) {
 }
 
 // Verify returns true if the signature is valid for the given message and public key, false otherwise
-func Verify(pub *Ed25519PublicKey, msg, sig []byte) bool {
+func Ed25519Verify(pub *Ed25519PublicKey, msg, sig []byte) bool {
 	return ed25519.Verify(ed25519.PublicKey(*pub), msg, sig)
 }
 
