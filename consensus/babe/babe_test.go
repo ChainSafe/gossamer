@@ -31,8 +31,8 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
-	db "github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/p2p"
+	db "github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -337,8 +337,11 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 func TestSlotTime(t *testing.T) {
 	rt := newRuntime(t)
 	bt := createFlatBlockTree(t, 100)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-	_, err := babesession.configurationFromRuntime()
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
