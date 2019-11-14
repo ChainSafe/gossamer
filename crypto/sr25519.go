@@ -6,7 +6,7 @@ import (
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
 )
 
-// SigningContext is the context for signatures used or created with with substrate
+// SigningContext is the context for signatures used or created with substrate
 var SigningContext = []byte("substrate")
 
 // Sr25519Keypair is a sr25519 public-private keypair

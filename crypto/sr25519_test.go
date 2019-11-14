@@ -36,7 +36,7 @@ func TestSr25519PublicKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(kp.Public(), kp2.Public()) {
-		t.Fatal("Fail: pubkeys do not match")
+		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
 	}
 }
 
