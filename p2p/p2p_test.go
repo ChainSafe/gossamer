@@ -34,8 +34,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func startNewService(t *testing.T, cfg *Config, msgChan chan []byte, msgRecChan chan BlockAnnounceMessage) *Service {
-	node, err := NewService(cfg, msgChan, msgRecChan)
+func startNewService(t *testing.T, cfg *Config, msgSendChan chan []byte, msgRecChan chan BlockAnnounceMessage) *Service {
+	node, err := NewService(cfg, msgSendChan, msgRecChan)
 	if err != nil {
 		t.Fatal(err)
 	}

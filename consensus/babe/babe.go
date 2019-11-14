@@ -48,7 +48,7 @@ type Session struct {
 	txQueue        *tx.PriorityQueue
 	isProducer     map[uint64]bool // whether we are a block producer at a slot
 
-	// Block announce channel every time is creates a block
+	// Block announce channel used every time a block is created
 	blockAnnounce chan<- p2p.BlockAnnounceMessage
 }
 

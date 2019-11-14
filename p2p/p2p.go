@@ -44,7 +44,7 @@ type Service struct {
 }
 
 // NewService creates a new p2p.Service using the service config. It initializes the host and dht
-func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan BlockAnnounceMessage) (*Service, error) {
+func NewService(conf *Config, msgSendChan chan<- []byte, msgRecChan <-chan BlockAnnounceMessage) (*Service, error) {
 	ctx := context.Background()
 	h, err := newHost(ctx, conf)
 	if err != nil {
@@ -54,7 +54,7 @@ func NewService(conf *Config, msgChan chan<- []byte, msgRecChan <-chan BlockAnno
 	s := &Service{
 		ctx:         ctx,
 		host:        h,
-		msgSendChan: msgChan,
+		msgSendChan: msgSendChan,
 		msgRecChan:  msgRecChan,
 	}
 
