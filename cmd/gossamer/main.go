@@ -49,6 +49,15 @@ var (
 	cliFlags = []cli.Flag{
 		utils.VerbosityFlag,
 	}
+	configFileFlag = cli.StringFlag{
+		Name:  "config",
+		Usage: "TOML configuration file",
+	},
+	accountFlags = []cli.Flag{
+		utils.GenerateFlag,
+		utils.AccountTypeFlag,
+		utils.ImportFlag,
+	}
 )
 
 var (
@@ -75,9 +84,15 @@ var (
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
+	accountCommand = cli.Command{
+		Action:		handleAccounts,
+		Name:		"account",
+		Usage:		"manage gossamer keystore",
+		Flags:	[]cli.Flag{
+			utils.VerbosityFlag,	
+		},
+		Category: "KEYSTORE",
+		Description: "The account command is used to manage the gossamer keystore: Usage: gossamer account --generate --type sr25519",
 	}
 )
 
@@ -92,6 +107,7 @@ func init() {
 	app.Commands = []cli.Command{
 		dumpConfigCommand,
 		initCommand,
+		accountCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, p2pFlags...)
