@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/crypto"
@@ -14,6 +15,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 func handleAccounts(ctx *cli.Context) {
@@ -24,45 +26,78 @@ func handleAccounts(ctx *cli.Context) {
 
 	if keygen := ctx.Bool(utils.GenerateFlag.Name); keygen {
 		log.Info("generating keypair...")
-		generateKeypair(ctx)
+		err = generateKeypair(ctx)
+		if err != nil {
+			log.Error("generate error", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	if keyimport := ctx.String(utils.ImportFlag.Name); keyimport != "" {
-		// TODO: import keys from encrypted file
-		log.Info("importing keypair...")
+		log.Info("importing key...")
+		err = importKey(keyimport)
+		if err != nil {
+			log.Error("import error", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	if keylist := ctx.Bool(utils.ListFlag.Name); keylist {
-		// list all keys
-		listKeys()
+		err = listKeys()
+		if err != nil {
+			log.Error("list error", "error", err)
+			os.Exit(1)
+		}
 	}
 }
 
-func listKeys() {
-	home, err := os.UserHomeDir()
+func importKey(filename string) error {
+	keystorepath, err := keystoreDir()
 	if err != nil {
-		log.Error("list error: could not get home dir", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("could not get keystore directory: %s", err)
+	}
+	
+	importdata, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("could not read import file: %s", err)
 	}
 
-	keystorepath, err := filepath.Abs(home + "/.gossamer/keystore/")
+	ksjson := new(keystore.EncryptedKeystore)
+	err = json.Unmarshal(importdata, ksjson)
 	if err != nil {
-		log.Error("list error: could not get keystore dir", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("could not read file contents: %s", err)
 	}
 
+	keystorefile, err := filepath.Abs(keystorepath + "/" + ksjson.PublicKey[2:] + ".key")
+
+	err = ioutil.WriteFile(keystorefile, importdata, 0644)
+	if err != nil {
+		fmt.Errorf("could not write to keystore directory: %s", err)
+	}
+
+	log.Info("successfully imported key", "public key", ksjson.PublicKey, "file", keystorefile)
+	return nil
+}
+
+func listKeys() error {
+	keystorepath, err := keystoreDir()
+	if err != nil {
+		return fmt.Errorf("could not get keystore directory: %s", err)
+	}
+	
 	files, err := ioutil.ReadDir(keystorepath)
 	if err != nil {
-		log.Error("list error: could not read keystore dir", "err", err)
-		os.Exit(1)
+		return fmt.Errorf("could not read keystore dir: %s", err)
 	}
 
 	for _, f := range files {
 		fmt.Println(f.Name())
 	}
+
+	return nil
 }
 
-func generateKeypair(ctx *cli.Context) {
+func generateKeypair(ctx *cli.Context) error {
 	keytype := ""
 
 	// check if --type flag is set
@@ -71,8 +106,7 @@ func generateKeypair(ctx *cli.Context) {
 		if flagtype == "sr25519" || flagtype == "ed25519" {
 			keytype = flagtype
 		} else {
-			log.Error("generate error: invalid type supplied; must be sr25519 or ed25519", "type", flagtype)
-			os.Exit(1)
+			return fmt.Errorf("invalid type supplied; must be sr25519 or ed25519: type=%s", flagtype)
 		}
 	}
 
@@ -88,56 +122,62 @@ func generateKeypair(ctx *cli.Context) {
 		// generate sr25519 keys
 		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
-			log.Error("generate error: could not generate sr25519 keypair", "err", err)
-			os.Exit(1)
+			return fmt.Errorf("could not generate sr25519 keypair: %s", err)
 		}
 	} else if keytype == "ed25519" {
 		// generate ed25519 keys
 		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {
-			log.Error("generate error: could not generate ed25519 keypair", "err", err)
-			os.Exit(1)
+			return fmt.Errorf("could not generate ed25519 keypair: %s", err)
 		}
 	}
 
+	keystorepath, err := keystoreDir()
+	if err != nil {
+		return fmt.Errorf("could not get keystore directory: %s", err)
+	}
+
 	filename := hex.EncodeToString(kp.Public().Encode())
-	home, err := os.UserHomeDir()
+	fp, err := filepath.Abs(keystorepath + "/" + filename + ".key")
 	if err != nil {
-		log.Error("generate error: could not get home dir", "err", err)
-		os.Exit(1)
-	}
-
-	fp, err := filepath.Abs(home + "/.gossamer/keystore/" + filename + ".key")
-	if err != nil {
-		log.Error("generate error: invalid filepath", "err", err)
-		os.Exit(1)
-	}
-
-	keystorepath, err := filepath.Abs(home + "/.gossamer/keystore/")
-	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
-		os.Mkdir(keystorepath, os.ModePerm)
+		fmt.Errorf("invalid filepath: %s", err)
 	}
 
 	file, err := os.OpenFile(fp, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Error("", "err", err)
-		os.Exit(1)
+		return err
 	}
+
+	defer file.Close()
 
 	err = keystore.EncryptAndWriteToFile(file, kp.Private(), password)
 	if err != nil {
-		log.Error("generate error: could not write key to file", "err", err)
+		return fmt.Errorf("could not write key to file: %s", err)
 	}
 
 	log.Info("key generated", "public key", filename, "file", fp)
+	return nil
+}
+
+func keystoreDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	keystorepath, err := filepath.Abs(home + "/.gossamer/keystore")
+	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
+		os.Mkdir(keystorepath, os.ModePerm)
+	}
+
+	return keystorepath, nil
 }
 
 func getPassword() []byte {
-	buf := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Println("Enter password to encrypt keystore file:")
 		fmt.Print("> ")
-		password, err := buf.ReadBytes('\n')
+		password, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			fmt.Printf("invalid input: %s\n", err)
 		} else {
