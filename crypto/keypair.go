@@ -10,6 +10,7 @@ type PublicKey interface {
 	Verify(msg, sig []byte) bool
 	Encode() []byte
 	Decode([]byte) error
+	Hex() string
 }
 
 type PrivateKey interface {
@@ -19,11 +20,12 @@ type PrivateKey interface {
 	Decode([]byte) error
 }
 
-func DecodePrivateKey(in []byte) (PrivateKey, error) {
-	priv, err := NewEd25519PrivateKey(in)
-	if err != nil {
-		return nil, err
+func DecodePrivateKey(in []byte, keytype string) (priv PrivateKey, err error) {
+	if keytype == "ed25519" {
+		priv, err = NewEd25519PrivateKey(in)
+	} else {
+		priv, err = NewSr25519PrivateKey(in)
 	}
 
-	return priv, nil
+	return priv, err
 }

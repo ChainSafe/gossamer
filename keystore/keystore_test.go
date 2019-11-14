@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -48,7 +49,7 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := DecryptPrivateKey(data, password)
+	res, err := DecryptPrivateKey(data, password, "ed25519")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,12 +59,22 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 	}
 }
 
-func TestEncryptAndDecryptFromFile(t *testing.T) {
+func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	filename := "./test_key"
 	password := []byte("noot")
 
+	fp, err := filepath.Abs(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := os.Create(fp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	buf := make([]byte, 64)
-	_, err := rand.Read(buf)
+	_, err = rand.Read(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,12 +84,54 @@ func TestEncryptAndDecryptFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = EncryptAndWriteToFile(filename, priv, password)
+	err = EncryptAndWriteToFile(file, priv, password)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := ReadFromFileAndDecrypt(filename, password)
+	res, err := ReadFromFileAndDecrypt(fp, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(filename)
+
+	if !reflect.DeepEqual(priv, res) {
+		t.Fatalf("Fail: got %v expected %v", res, priv)
+	}
+}
+
+func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
+	filename := "./test_key"
+	password := []byte("noot")
+
+	fp, err := filepath.Abs(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := os.Create(fp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, 32)
+	_, err = rand.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	priv, err := crypto.NewSr25519PrivateKey(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = EncryptAndWriteToFile(file, priv, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := ReadFromFileAndDecrypt(fp, password)
 	if err != nil {
 		t.Fatal(err)
 	}

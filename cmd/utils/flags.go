@@ -85,15 +85,19 @@ var (
 // Account management flags
 var (
 	GenerateFlag = cli.BoolFlag{
-		Name:	"generate",
-		Usage: 	"Generate a new keypair. If type is not specified, defaults to sr25519",
+		Name:  "generate",
+		Usage: "Generate a new keypair. If type is not specified, defaults to sr25519",
 	}
 	AccountTypeFlag = cli.StringFlag{
-		Name: 	"type",
-		Usage: 	"Specify account type for key; types can be sr25519 or ed25519"
+		Name:  "type",
+		Usage: "Specify account type for key; types can be sr25519 or ed25519",
 	}
 	ImportFlag = cli.StringFlag{
-		Name:	"import",
-		Usage:	"Import encrypted keystore file generated with gossamer"
+		Name:  "import",
+		Usage: "Import encrypted keystore file generated with gossamer",
+	}
+	ListFlag = cli.BoolFlag{
+		Name:  "list",
+		Usage: "List node keys",
 	}
 )

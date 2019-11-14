@@ -52,11 +52,12 @@ var (
 	configFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
-	},
+	}
 	accountFlags = []cli.Flag{
 		utils.GenerateFlag,
 		utils.AccountTypeFlag,
 		utils.ImportFlag,
+		utils.ListFlag,
 	}
 )
 
@@ -85,13 +86,11 @@ var (
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
 	accountCommand = cli.Command{
-		Action:		handleAccounts,
-		Name:		"account",
-		Usage:		"manage gossamer keystore",
-		Flags:	[]cli.Flag{
-			utils.VerbosityFlag,	
-		},
-		Category: "KEYSTORE",
+		Action:      handleAccounts,
+		Name:        "account",
+		Usage:       "manage gossamer keystore",
+		Flags:       append(accountFlags, utils.VerbosityFlag),
+		Category:    "KEYSTORE",
 		Description: "The account command is used to manage the gossamer keystore: Usage: gossamer account --generate --type sr25519",
 	}
 )
