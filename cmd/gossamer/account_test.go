@@ -30,6 +30,36 @@ func TestGenerateCommand(t *testing.T) {
 	}
 }
 
+func TestGenerateCommand_Password(t *testing.T) {
+	ctx, err := createCliContext("account generate", []string{"generate", "datadir", "password"}, []interface{}{true, testKeystoreDir, string(testPassword)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(testKeystoreDir)
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGenerateCommand_Type(t *testing.T) {
+	ctx, err := createCliContext("account generate", []string{"generate", "datadir", "type"}, []interface{}{true, testKeystoreDir, "ed25519"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(testKeystoreDir)
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestGenerateKey_Sr25519(t *testing.T) {
 	keyfile, err := generateKeypair("sr25519", testKeystoreDir, testPassword)
 	if err != nil {
