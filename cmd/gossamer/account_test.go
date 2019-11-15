@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 )
 
-var testKeystoreDir = "./test_keystore"
+var testKeystoreDir = "./test_keystore/"
 var testPassword = []byte("1234")
 
 func TestGenerateCommand(t *testing.T) {

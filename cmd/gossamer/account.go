@@ -48,7 +48,12 @@ func handleAccounts(ctx *cli.Context) {
 			}
 		}
 
-		_, err = generateKeypair(keytype, datadir, nil)
+		var password []byte = nil
+		if pwdflag := ctx.String(utils.PasswordFlag.Name); pwdflag != "" {
+			password = []byte(pwdflag)
+		}
+
+		_, err = generateKeypair(keytype, datadir, password)
 		if err != nil {
 			log.Error("generate error", "error", err)
 			os.Exit(1)
@@ -155,6 +160,8 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
+	fmt.Println("keystorepath", keystorepath)
+
 	pub := hex.EncodeToString(kp.Public().Encode())
 	fp, err := filepath.Abs(keystorepath + "/" + pub + ".key")
 	if err != nil {
@@ -178,7 +185,7 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		return "", fmt.Errorf("could not write key to file: %s", err)
 	}
 
-	log.Info("key generated", "public key", pub, "file", fp)
+	log.Info("key generated", "public key", pub, "type", keytype, "file", fp)
 	return fp, nil
 }
 

@@ -58,6 +58,7 @@ var (
 		utils.AccountTypeFlag,
 		utils.ImportFlag,
 		utils.ListFlag,
+		utils.PasswordFlag,
 	}
 )
 

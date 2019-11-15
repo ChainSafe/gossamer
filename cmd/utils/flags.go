@@ -88,6 +88,10 @@ var (
 		Name:  "generate",
 		Usage: "Generate a new keypair. If type is not specified, defaults to sr25519",
 	}
+	PasswordFlag = cli.StringFlag{
+		Name:  "password",
+		Usage: "Password used to encrypt the keystore. Used with --generate or --unlock",
+	}
 	AccountTypeFlag = cli.StringFlag{
 		Name:  "type",
 		Usage: "Specify account type for key; types can be sr25519 or ed25519",
@@ -100,4 +104,5 @@ var (
 		Name:  "list",
 		Usage: "List node keys",
 	}
+	// TODO: account unlocking
 )
