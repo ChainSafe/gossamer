@@ -91,6 +91,9 @@ func importKey(filename, datadir string) (string, error) {
 	}
 
 	keystorefile, err := filepath.Abs(keystorepath + "/" + ksjson.PublicKey[2:] + ".key")
+	if err != nil {
+		return "", fmt.Errorf("could not create keystore file path: %s", err)
+	}
 
 	err = ioutil.WriteFile(keystorefile, importdata, 0644)
 	if err != nil {
@@ -153,12 +156,17 @@ func generateKeypair(keytype, datadir string) (string, error) {
 		return "", fmt.Errorf("invalid filepath: %s", err)
 	}
 
-	file, err := os.OpenFile(fp, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(fp, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return "", err
 	}
 
-	defer file.Close()
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			log.Error("generate keypair: could not close keystore file")
+		}
+	}()
 
 	err = keystore.EncryptAndWriteToFile(file, kp.Private(), password)
 	if err != nil {
@@ -177,7 +185,10 @@ func keystoreDir(datadir string) (string, error) {
 		}
 
 		if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
-			os.Mkdir(keystorepath, os.ModePerm)
+			err = os.Mkdir(keystorepath, os.ModePerm)
+			if err != nil {
+				return "", err
+			}
 		}
 
 		return keystorepath, nil
@@ -189,8 +200,15 @@ func keystoreDir(datadir string) (string, error) {
 	}
 
 	keystorepath, err := filepath.Abs(home + "/.gossamer/keystore")
+	if err != nil {
+		return "", fmt.Errorf("could not create keystore file path: %s", err)
+	}
+
 	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
-		os.Mkdir(keystorepath, os.ModePerm)
+		err = os.Mkdir(keystorepath, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return keystorepath, nil
