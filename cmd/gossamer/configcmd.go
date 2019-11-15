@@ -90,7 +90,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	coreSrvc.Rt = r
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
