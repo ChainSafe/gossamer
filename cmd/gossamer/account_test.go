@@ -22,18 +22,33 @@ func TestGenerateKey(t *testing.T) {
 	}
 }
 
-// func TestImportKey(t *testing.T) {
-// 	filename := ""
-// 	defer os.RemoveAll(testKeystoreDir)
+func TestImportKey(t *testing.T) {
+	filename := ""
+	defer os.RemoveAll(testKeystoreDir)
 
-// 	ctx, err := createCliContext("account import", []string{"import", "datadir"}, []interface{}{filename, testKeystoreDir})
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	ctx, err := createCliContext("account import", []string{"import", "datadir"}, []interface{}{filename, testKeystoreDir})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// 	command := accountCommand
-// 	err = command.Run(ctx)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// }
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestListKeys(t *testing.T) {
+	defer os.RemoveAll(testKeystoreDir)
+
+	ctx, err := createCliContext("account list", []string{"list", "datadir"}, []interface{}{true, testKeystoreDir})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
