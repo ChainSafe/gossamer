@@ -17,14 +17,7 @@
 package core
 
 import (
-	"errors"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-
 	"github.com/ChainSafe/gossamer/internal/services"
-	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -34,64 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 )
-
-const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
-const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
-
-// Exists reports whether the named file or directory exists.
-func Exists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
-func getRuntimeBlob() (n int64, err error) {
-	if Exists(POLKADOT_RUNTIME_FP) {
-		return 0, nil
-	}
-
-	out, err := os.Create(POLKADOT_RUNTIME_FP)
-	if err != nil {
-		return 0, err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(POLKADOT_RUNTIME_URL)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	n, err = io.Copy(out, resp.Body)
-	return n, err
-}
-
-func newRuntime() (*runtime.Runtime, error) {
-	_, err := getRuntimeBlob()
-	if err != nil {
-		return nil, err
-	}
-
-	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
-	if err != nil {
-		return nil, err
-	}
-
-	tt := &trie.Trie{}
-
-	r, err := runtime.NewRuntimeFromFile(fp, tt)
-	if err != nil {
-		return nil, err
-	} else if r == nil {
-		return nil, errors.New("did not create new VM")
-	}
-
-	return r, nil
-}
 
 var _ services.Service = &Service{}
 
@@ -106,12 +41,7 @@ type Service struct {
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(msgChan <-chan []byte) (*Service, error) {
-	rt, err := newRuntime()
-	if err != nil {
-		return nil, err
-	}
-
+func NewService(rt *runtime.Runtime, msgChan <-chan []byte) (*Service, error) {
 	return &Service{
 		Rt:      rt,
 		b:       babe.NewSession([32]byte{}, [64]byte{}, rt),

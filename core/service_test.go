@@ -18,18 +18,83 @@ package core
 
 import (
 	"bytes"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
+const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
+const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+
+// getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
+func getRuntimeBlob() (n int64, err error) {
+	if Exists(POLKADOT_RUNTIME_FP) {
+		return 0, nil
+	}
+
+	out, err := os.Create(POLKADOT_RUNTIME_FP)
+	if err != nil {
+		return 0, err
+	}
+	defer out.Close()
+
+	resp, err := http.Get(POLKADOT_RUNTIME_URL)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	n, err = io.Copy(out, resp.Body)
+	return n, err
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+func newRuntime(t *testing.T) *runtime.Runtime {
+	_, err := getRuntimeBlob()
+	if err != nil {
+		t.Fatalf("Fail: could not get polkadot runtime")
+	}
+
+	fp, err := filepath.Abs(POLKADOT_RUNTIME_FP)
+	if err != nil {
+		t.Fatal("could not create filepath")
+	}
+
+	tt := &trie.Trie{}
+
+	r, err := runtime.NewRuntimeFromFile(fp, tt)
+	if err != nil {
+		t.Fatal(err)
+	} else if r == nil {
+		t.Fatal("did not create new VM")
+	}
+
+	return r
+}
+
 func TestNewService_Start(t *testing.T) {
+	rt := newRuntime(t)
 	msgChan := make(chan []byte)
 
-	mgr, err := NewService(msgChan)
+	mgr, err := NewService(rt, msgChan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +106,8 @@ func TestNewService_Start(t *testing.T) {
 }
 
 func TestValidateTransaction(t *testing.T) {
-	mgr, err := NewService(make(chan []byte))
+	rt := newRuntime(t)
+	mgr, err := NewService(rt, make(chan []byte))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +143,8 @@ func TestValidateTransaction(t *testing.T) {
 }
 
 func TestProcessTransaction(t *testing.T) {
-	mgr, err := NewService(make(chan []byte))
+	rt := newRuntime(t)
+	mgr, err := NewService(rt, make(chan []byte))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,11 +162,11 @@ func TestProcessTransaction(t *testing.T) {
 }
 
 func TestValidateBlock(t *testing.T) {
-	mgr, err := NewService(make(chan []byte))
+	rt := newRuntime(t)
+	mgr, err := NewService(rt, make(chan []byte))
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	// from https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
 	err = mgr.validateBlock(data)
@@ -109,12 +176,12 @@ func TestValidateBlock(t *testing.T) {
 }
 
 func TestHandleMsg_Transaction(t *testing.T) {
+	rt := newRuntime(t)
 	msgChan := make(chan []byte)
-	mgr, err := NewService(msgChan)
+	mgr, err := NewService(rt, msgChan)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	err = mgr.Start()
 	if err != nil {
 		t.Fatal(err)
@@ -139,12 +206,12 @@ func TestHandleMsg_Transaction(t *testing.T) {
 }
 
 func TestHandleMsg_BlockResponse(t *testing.T) {
+	rt := newRuntime(t)
 	msgChan := make(chan []byte)
-	mgr, err := NewService(msgChan)
+	mgr, err := NewService(rt, msgChan)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	e := make(chan error)
 	go mgr.start(e)
 	if err := <-e; err != nil {
