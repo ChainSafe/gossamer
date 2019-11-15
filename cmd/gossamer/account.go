@@ -79,7 +79,7 @@ func importKey(filename, datadir string) (string, error) {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
-	importdata, err := ioutil.ReadFile(filename)
+	importdata, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return "", fmt.Errorf("could not read import file: %s", err)
 	}
