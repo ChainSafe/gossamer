@@ -48,7 +48,7 @@ func handleAccounts(ctx *cli.Context) {
 			}
 		}
 
-		_, err = generateKeypair(keytype, datadir)
+		_, err = generateKeypair(keytype, datadir, nil)
 		if err != nil {
 			log.Error("generate error", "error", err)
 			os.Exit(1)
@@ -65,7 +65,7 @@ func handleAccounts(ctx *cli.Context) {
 	}
 
 	if keylist := ctx.Bool(utils.ListFlag.Name); keylist {
-		err = listKeys(datadir)
+		_, err = listKeys(datadir)
 		if err != nil {
 			log.Error("list error", "error", err)
 			os.Exit(1)
@@ -104,26 +104,31 @@ func importKey(filename, datadir string) (string, error) {
 	return keystorefile, nil
 }
 
-func listKeys(datadir string) error {
+func listKeys(datadir string) ([]string, error) {
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
-		return fmt.Errorf("could not get keystore directory: %s", err)
+		return nil, fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
 	files, err := ioutil.ReadDir(keystorepath)
 	if err != nil {
-		return fmt.Errorf("could not read keystore dir: %s", err)
+		return nil, fmt.Errorf("could not read keystore dir: %s", err)
 	}
+
+	keys := []string{}
 
 	for _, f := range files {
 		fmt.Println(f.Name())
+		keys = append(keys, f.Name())
 	}
 
-	return nil
+	return keys, nil
 }
 
-func generateKeypair(keytype, datadir string) (string, error) {
-	password := getPassword()
+func generateKeypair(keytype, datadir string, password []byte) (string, error) {
+	if password == nil {
+		password = getPassword()
+	}
 
 	if keytype == "" {
 		keytype = "sr25519"
