@@ -37,7 +37,8 @@ type Service struct {
 	Rt *runtime.Runtime
 	b  *babe.Session
 
-	msgChan <-chan []byte
+	recChan  <-chan []byte
+	sendChan chan<- []byte
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
@@ -60,7 +61,7 @@ func (s *Service) start(e chan error) {
 	e <- nil
 
 	for {
-		msg, ok := <-s.msgChan
+		msg, ok := <-s.recChan
 		if !ok {
 			log.Warn("core service message watcher", "error", "channel closed")
 			break
@@ -96,6 +97,9 @@ func (s *Service) start(e chan error) {
 func (s *Service) Stop() error {
 	if s.Rt != nil {
 		s.Rt.Stop()
+	}
+	if s.sendChan != nil {
+		close(s.sendChan)
 	}
 	return nil
 }
