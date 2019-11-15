@@ -86,7 +86,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
-	coreSrvc := core.NewService(r, nil, msgChan)
+	coreSrvc, err := core.NewService(msgChan)
+	if err != nil {
+		return nil, nil, err
+	}
+	coreSrvc.Rt = r
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
