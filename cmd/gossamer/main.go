@@ -89,7 +89,7 @@ var (
 		Action:      handleAccounts,
 		Name:        "account",
 		Usage:       "manage gossamer keystore",
-		Flags:       append(accountFlags, utils.VerbosityFlag),
+		Flags:       append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
 		Category:    "KEYSTORE",
 		Description: "The account command is used to manage the gossamer keystore: Usage: gossamer account --generate --type sr25519",
 	}

@@ -24,9 +24,31 @@ func handleAccounts(ctx *cli.Context) {
 		log.Error("account", "error", err)
 	}
 
+	var datadir string
+	if dir := ctx.String(utils.DataDirFlag.Name); dir != "" {
+		datadir, err = filepath.Abs(dir)
+		if err != nil {
+			log.Error("invalid datadir", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	if keygen := ctx.Bool(utils.GenerateFlag.Name); keygen {
 		log.Info("generating keypair...")
-		err = generateKeypair(ctx)
+
+		keytype := ""
+		// check if --type flag is set
+		if flagtype := ctx.String(utils.AccountTypeFlag.Name); flagtype != "" {
+			// check if keytype is ed25519 or sr25519
+			if flagtype == "sr25519" || flagtype == "ed25519" {
+				keytype = flagtype
+			} else {
+				log.Error("invalid type supplied; must be sr25519 or ed25519", "type", err)
+				os.Exit(1)
+			}
+		}
+
+		_, err = generateKeypair(keytype, datadir)
 		if err != nil {
 			log.Error("generate error", "error", err)
 			os.Exit(1)
@@ -35,7 +57,7 @@ func handleAccounts(ctx *cli.Context) {
 
 	if keyimport := ctx.String(utils.ImportFlag.Name); keyimport != "" {
 		log.Info("importing key...")
-		err = importKey(keyimport)
+		_, err = importKey(keyimport, datadir)
 		if err != nil {
 			log.Error("import error", "error", err)
 			os.Exit(1)
@@ -43,7 +65,7 @@ func handleAccounts(ctx *cli.Context) {
 	}
 
 	if keylist := ctx.Bool(utils.ListFlag.Name); keylist {
-		err = listKeys()
+		err = listKeys(datadir)
 		if err != nil {
 			log.Error("list error", "error", err)
 			os.Exit(1)
@@ -51,40 +73,40 @@ func handleAccounts(ctx *cli.Context) {
 	}
 }
 
-func importKey(filename string) error {
-	keystorepath, err := keystoreDir()
+func importKey(filename, datadir string) (string, error) {
+	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
-		return fmt.Errorf("could not get keystore directory: %s", err)
+		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
-	
+
 	importdata, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("could not read import file: %s", err)
+		return "", fmt.Errorf("could not read import file: %s", err)
 	}
 
 	ksjson := new(keystore.EncryptedKeystore)
 	err = json.Unmarshal(importdata, ksjson)
 	if err != nil {
-		return fmt.Errorf("could not read file contents: %s", err)
+		return "", fmt.Errorf("could not read file contents: %s", err)
 	}
 
 	keystorefile, err := filepath.Abs(keystorepath + "/" + ksjson.PublicKey[2:] + ".key")
 
 	err = ioutil.WriteFile(keystorefile, importdata, 0644)
 	if err != nil {
-		fmt.Errorf("could not write to keystore directory: %s", err)
+		return "", fmt.Errorf("could not write to keystore directory: %s", err)
 	}
 
 	log.Info("successfully imported key", "public key", ksjson.PublicKey, "file", keystorefile)
-	return nil
+	return keystorefile, nil
 }
 
-func listKeys() error {
-	keystorepath, err := keystoreDir()
+func listKeys(datadir string) error {
+	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
 		return fmt.Errorf("could not get keystore directory: %s", err)
 	}
-	
+
 	files, err := ioutil.ReadDir(keystorepath)
 	if err != nil {
 		return fmt.Errorf("could not read keystore dir: %s", err)
@@ -97,19 +119,7 @@ func listKeys() error {
 	return nil
 }
 
-func generateKeypair(ctx *cli.Context) error {
-	keytype := ""
-
-	// check if --type flag is set
-	if flagtype := ctx.String(utils.AccountTypeFlag.Name); flagtype != "" {
-		// check if keytype is ed25519 or sr25519
-		if flagtype == "sr25519" || flagtype == "ed25519" {
-			keytype = flagtype
-		} else {
-			return fmt.Errorf("invalid type supplied; must be sr25519 or ed25519: type=%s", flagtype)
-		}
-	}
-
+func generateKeypair(keytype, datadir string) (string, error) {
 	password := getPassword()
 
 	if keytype == "" {
@@ -122,44 +132,57 @@ func generateKeypair(ctx *cli.Context) error {
 		// generate sr25519 keys
 		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
-			return fmt.Errorf("could not generate sr25519 keypair: %s", err)
+			return "", fmt.Errorf("could not generate sr25519 keypair: %s", err)
 		}
 	} else if keytype == "ed25519" {
 		// generate ed25519 keys
 		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {
-			return fmt.Errorf("could not generate ed25519 keypair: %s", err)
+			return "", fmt.Errorf("could not generate ed25519 keypair: %s", err)
 		}
 	}
 
-	keystorepath, err := keystoreDir()
+	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
-		return fmt.Errorf("could not get keystore directory: %s", err)
+		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
-	filename := hex.EncodeToString(kp.Public().Encode())
-	fp, err := filepath.Abs(keystorepath + "/" + filename + ".key")
+	pub := hex.EncodeToString(kp.Public().Encode())
+	fp, err := filepath.Abs(keystorepath + "/" + pub + ".key")
 	if err != nil {
-		fmt.Errorf("invalid filepath: %s", err)
+		return "", fmt.Errorf("invalid filepath: %s", err)
 	}
 
 	file, err := os.OpenFile(fp, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	defer file.Close()
 
 	err = keystore.EncryptAndWriteToFile(file, kp.Private(), password)
 	if err != nil {
-		return fmt.Errorf("could not write key to file: %s", err)
+		return "", fmt.Errorf("could not write key to file: %s", err)
 	}
 
-	log.Info("key generated", "public key", filename, "file", fp)
-	return nil
+	log.Info("key generated", "public key", pub, "file", fp)
+	return fp, nil
 }
 
-func keystoreDir() (string, error) {
+func keystoreDir(datadir string) (string, error) {
+	if datadir != "" {
+		keystorepath, err := filepath.Abs(datadir)
+		if err != nil {
+			return "", err
+		}
+
+		if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
+			os.Mkdir(keystorepath, os.ModePerm)
+		}
+
+		return keystorepath, nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
