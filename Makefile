@@ -21,6 +21,12 @@ $(GOLANGCI):
 lint: $(GOLANGCI)
 	golangci-lint run ./... -c .golangci.yml
 
+clean:
+	rm -fr ./build/bin
+
+format:
+	./scripts/goimports.sh
+
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
@@ -35,9 +41,6 @@ install:
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	go build -o ./bin/gossamer
-
-clean:
-	sudo rm -fr ./build/bin
 
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:
