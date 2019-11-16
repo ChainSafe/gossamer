@@ -1,7 +1,9 @@
+#!/usr/bin/env bash
+
 PROJECTNAME=$(shell basename "$(PWD)")
 GOLANGCI := $(GOPATH)/bin/golangci-lint
 
-.PHONY: help
+.PHONY: help lint test install build clean start docker gossamer
 all: help
 help: Makefile
 	@echo
@@ -34,6 +36,9 @@ build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	go build -o ./bin/gossamer
 
+clean:
+	sudo rm -fr ./build/bin
+
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:
 	@echo "  >  \033[32mStarting server...\033[0m "
@@ -54,5 +59,5 @@ docker:
 	@echo "  >  \033[32mRunning Docker Container...\033[0m "
 	docker run chainsafe/gossamer
 
-gossamer:
-	cd cmd/gossamer && go install
+gossamer: clean
+	GOBIN=$(PWD)/build/bin go run build/ci.go install
