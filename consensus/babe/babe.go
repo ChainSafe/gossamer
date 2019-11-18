@@ -49,11 +49,11 @@ type Session struct {
 	isProducer     map[uint64]bool // whether we are a block producer at a slot
 
 	// Block announce channel used every time a block is created
-	blockAnnounce chan<- p2p.BlockAnnounceMessage
+	blockAnnounce chan<- p2p.Message
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.BlockAnnounceMessage) (*Session, error) {
+func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.Message) (*Session, error) {
 	babeSession := &Session{
 		vrfPublicKey:  pubkey,
 		vrfPrivateKey: privkey,

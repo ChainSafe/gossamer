@@ -94,7 +94,7 @@ func TestNewService_Start(t *testing.T) {
 	rt := newRuntime(t)
 	msgChan := make(chan []byte)
 
-	mgr, err := NewService(rt, msgChan)
+	mgr, err := NewService(rt, msgChan, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestNewService_Start(t *testing.T) {
 
 func TestValidateTransaction(t *testing.T) {
 	rt := newRuntime(t)
-	mgr, err := NewService(rt, make(chan []byte))
+	mgr, err := NewService(rt, make(chan []byte), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestValidateTransaction(t *testing.T) {
 
 func TestProcessTransaction(t *testing.T) {
 	rt := newRuntime(t)
-	mgr, err := NewService(rt, make(chan []byte))
+	mgr, err := NewService(rt, make(chan []byte), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +163,7 @@ func TestProcessTransaction(t *testing.T) {
 
 func TestValidateBlock(t *testing.T) {
 	rt := newRuntime(t)
-	mgr, err := NewService(rt, make(chan []byte))
+	mgr, err := NewService(rt, make(chan []byte), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestValidateBlock(t *testing.T) {
 func TestHandleMsg_Transaction(t *testing.T) {
 	rt := newRuntime(t)
 	msgChan := make(chan []byte)
-	mgr, err := NewService(rt, msgChan)
+	mgr, err := NewService(rt, msgChan, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestHandleMsg_Transaction(t *testing.T) {
 func TestHandleMsg_BlockResponse(t *testing.T) {
 	rt := newRuntime(t)
 	msgChan := make(chan []byte)
-	mgr, err := NewService(rt, msgChan)
+	mgr, err := NewService(rt, msgChan, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

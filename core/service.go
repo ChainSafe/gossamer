@@ -34,19 +34,25 @@ var _ services.Service = &Service{}
 // It deals with the validation of transactions and blocks by calling their respective validation functions
 // in the runtime.
 type Service struct {
-	Rt *runtime.Runtime
+	rt *runtime.Runtime
 	b  *babe.Session
 
 	recChan  <-chan []byte
-	sendChan chan<- []byte
+	sendChan chan<- p2p.Message
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(rt *runtime.Runtime, msgChan <-chan []byte) (*Service, error) {
+func NewService(rt *runtime.Runtime, recChan <-chan []byte, sendChan chan<- p2p.Message) (*Service, error) {
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, sendChan)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
-		Rt:      rt,
-		b:       babe.NewSession([32]byte{}, [64]byte{}, rt),
-		msgChan: msgChan,
+		rt:       rt,
+		b:        b,
+		recChan:  recChan,
+		sendChan: sendChan,
 	}, nil
 }
 
@@ -95,8 +101,8 @@ func (s *Service) start(e chan error) {
 }
 
 func (s *Service) Stop() error {
-	if s.Rt != nil {
-		s.Rt.Stop()
+	if s.rt != nil {
+		s.rt.Stop()
 	}
 	if s.sendChan != nil {
 		close(s.sendChan)
@@ -105,7 +111,7 @@ func (s *Service) Stop() error {
 }
 
 func (s *Service) StorageRoot() (common.Hash, error) {
-	return s.Rt.StorageRoot()
+	return s.rt.StorageRoot()
 }
 
 // ProcessTransaction attempts to validates the transaction

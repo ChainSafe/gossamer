@@ -29,7 +29,7 @@ import (
 func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	var loc int32 = 1000
 
-	ret, err := s.Rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 func (s *Service) validateBlock(b []byte) error {
 	var loc int32 = 1000
 
-	_, err := s.Rt.Exec("Core_execute_block", loc, b)
+	_, err := s.rt.Exec("Core_execute_block", loc, b)
 	if err != nil {
 		return err
 	}

@@ -389,7 +389,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
 
 	// Block Announce Channel called when Build-Block Creates a block
-	blockAnnounceChan := make(chan p2p.BlockAnnounceMessage)
+	blockAnnounceChan := make(chan p2p.Message)
 	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, blockAnnounceChan)
 	if err != nil {
 		t.Fatal(err)
