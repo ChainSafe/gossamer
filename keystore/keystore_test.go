@@ -81,6 +81,9 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	file, fp := createTestFile(t)
 
 	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
 	priv := kp.Private()
 
 	err = EncryptAndWriteToFile(file, priv, password)
@@ -105,6 +108,9 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	file, fp := createTestFile(t)
 
 	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
 	priv := kp.Private()
 
 	err = EncryptAndWriteToFile(file, priv, password)
