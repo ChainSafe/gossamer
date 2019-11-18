@@ -18,6 +18,10 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+// handleAccounts manages the flags for the account subcommand
+// first, if the generate flag is set, if so, it generates a new keypair
+// then, if the import flag is set, if so, it imports a keypair
+// finally, if the list flag is set, it lists all the keys in the keystore
 func handleAccounts(ctx *cli.Context) error {
 	err := startLogger(ctx)
 	if err != nil {
@@ -25,6 +29,7 @@ func handleAccounts(ctx *cli.Context) error {
 		return err
 	}
 
+	// key directory is datadir/keystore/
 	var datadir string
 	if dir := ctx.String(utils.DataDirFlag.Name); dir != "" {
 		datadir, err = filepath.Abs(dir)
@@ -34,18 +39,21 @@ func handleAccounts(ctx *cli.Context) error {
 		}
 	}
 
+	// check if we want to generate a new keypair
+	// can specify key type using --ed25519 or --sr25519
+	// otherwise defaults to sr25519
 	if keygen := ctx.Bool(utils.GenerateFlag.Name); keygen {
 		log.Info("generating keypair...")
 
+		// check if --ed25519 or --sr25519 is set
 		keytype := utils.Sr25519KeyType
-		// check if --type flag is set
 		if flagtype := ctx.String(utils.Sr25519Flag.Name); flagtype != "" {
-			// check if keytype is ed25519 or sr25519
 			keytype = flagtype
 		} else if flagtype := ctx.String(utils.Ed25519Flag.Name); flagtype != "" {
 			keytype = flagtype
 		}
 
+		// check if --password is set
 		var password []byte = nil
 		if pwdflag := ctx.String(utils.PasswordFlag.Name); pwdflag != "" {
 			password = []byte(pwdflag)
@@ -58,6 +66,7 @@ func handleAccounts(ctx *cli.Context) error {
 		}
 	}
 
+	// import key
 	if keyimport := ctx.String(utils.ImportFlag.Name); keyimport != "" {
 		log.Info("importing key...")
 		_, err = importKey(keyimport, datadir)
@@ -67,6 +76,7 @@ func handleAccounts(ctx *cli.Context) error {
 		}
 	}
 
+	// list keys
 	if keylist := ctx.Bool(utils.ListFlag.Name); keylist {
 		_, err = listKeys(datadir)
 		if err != nil {
@@ -78,6 +88,9 @@ func handleAccounts(ctx *cli.Context) error {
 	return nil
 }
 
+// importKey imports a key specified by its filename to datadir/keystore/
+// it saves it under the filename "[publickey].key"
+// it returns the absolute path of the imported key file
 func importKey(filename, datadir string) (string, error) {
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
@@ -109,6 +122,7 @@ func importKey(filename, datadir string) (string, error) {
 	return keystorefile, nil
 }
 
+// listKeys lists all the keys in the datadir/keystore/ directory and returns them as a list of filepaths
 func listKeys(datadir string) ([]string, error) {
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
@@ -130,6 +144,9 @@ func listKeys(datadir string) ([]string, error) {
 	return keys, nil
 }
 
+// generateKeypair create a new keypair with the corresponding type and saves it to datadir/keystore/[public key].key
+// in json format encrypted using the specified password
+// it returns the resulting filepath of the new key
 func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	if password == nil {
 		password = getPassword()
@@ -160,8 +177,6 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
-	fmt.Println("keystorepath", keystorepath)
-
 	pub := hex.EncodeToString(kp.Public().Encode())
 	fp, err := filepath.Abs(keystorepath + "/" + pub + ".key")
 	if err != nil {
@@ -189,7 +204,11 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	return fp, nil
 }
 
+// keystoreDir returnns the absolute filepath of the keystore directory given gossamer's datadir
+// by default, it is ~/.gossamer/keystore/
+// otherwise, it is datadir/keystore/
 func keystoreDir(datadir string) (string, error) {
+	// datadir specified, return datadir/keystore as absolute path
 	if datadir != "" {
 		keystorepath, err := filepath.Abs(datadir)
 		if err != nil {
@@ -206,6 +225,7 @@ func keystoreDir(datadir string) (string, error) {
 		return keystorepath, nil
 	}
 
+	// datadir not specified, return ~/.gossamer/keystore as absolute path
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -226,6 +246,7 @@ func keystoreDir(datadir string) (string, error) {
 	return keystorepath, nil
 }
 
+// prompt user to enter password for encrypted keystore
 func getPassword() []byte {
 	for {
 		fmt.Println("Enter password to encrypt keystore file:")

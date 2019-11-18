@@ -216,33 +216,23 @@ func TestListKeys(t *testing.T) {
 	expected := []string{}
 	defer os.RemoveAll(testKeystoreDir)
 
-	keyfile, err := generateKeypair("sr25519", testKeystoreDir, testPassword)
-	if err != nil {
-		t.Fatal(err)
+	for i := 0; i < 5; i++ {
+		var err error
+		var keyfile string
+		if i%2 == 0 {
+			keyfile, err = generateKeypair("sr25519", testKeystoreDir, testPassword)
+			if err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			keyfile, err = generateKeypair("ed25519", testKeystoreDir, testPassword)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		expected = append(expected, keyfile)
 	}
-
-	expected = append(expected, keyfile)
-
-	keyfile, err = generateKeypair("ed25519", testKeystoreDir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected = append(expected, keyfile)
-
-	keyfile, err = generateKeypair("ed25519", testKeystoreDir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected = append(expected, keyfile)
-
-	keyfile, err = generateKeypair("sr25519", testKeystoreDir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected = append(expected, keyfile)
 
 	keys, err := listKeys(testKeystoreDir)
 	if err != nil {
@@ -257,7 +247,7 @@ func TestListKeys(t *testing.T) {
 
 	for i, key := range keys {
 		if strings.Compare(key, filepath.Base(expected[i])) != 0 {
-			t.Fatalf("Fail: got %s expected %s", key, keyfile)
+			t.Fatalf("Fail: got %s expected %s", key, filepath.Base(expected[i]))
 		}
 	}
 }

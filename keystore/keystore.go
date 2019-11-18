@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -98,7 +99,7 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 
 	pub, err := pk.Public()
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get public key: %s", err)
 	}
 
 	keytype := ""

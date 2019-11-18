@@ -59,9 +59,8 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 	}
 }
 
-func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
+func createTestFile(t *testing.T) (*os.File, string) {
 	filename := "./test_key"
-	password := []byte("noot")
 
 	fp, err := filepath.Abs(filename)
 	if err != nil {
@@ -73,16 +72,16 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	buf := make([]byte, 64)
-	_, err = rand.Read(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	return file, fp
+}
 
-	priv, err := crypto.NewEd25519PrivateKey(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
+	password := []byte("noot")
+
+	file, fp := createTestFile(t)
+
+	kp, err := crypto.GenerateSr25519Keypair()
+	priv := kp.Private()
 
 	err = EncryptAndWriteToFile(file, priv, password)
 	if err != nil {
@@ -94,37 +93,19 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.Remove(filename)
+	defer os.Remove(fp)
 
-	if !reflect.DeepEqual(priv, res) {
+	if !bytes.Equal(priv.Encode(), res.Encode()) {
 		t.Fatalf("Fail: got %v expected %v", res, priv)
 	}
 }
 
 func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
-	filename := "./test_key"
 	password := []byte("noot")
+	file, fp := createTestFile(t)
 
-	fp, err := filepath.Abs(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	file, err := os.Create(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf := make([]byte, 32)
-	_, err = rand.Read(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	priv, err := crypto.NewSr25519PrivateKey(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	kp, err := crypto.GenerateSr25519Keypair()
+	priv := kp.Private()
 
 	err = EncryptAndWriteToFile(file, priv, password)
 	if err != nil {
@@ -136,9 +117,9 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer os.Remove(filename)
+	defer os.Remove(fp)
 
-	if !reflect.DeepEqual(priv, res) {
+	if !bytes.Equal(priv.Encode(), res.Encode()) {
 		t.Fatalf("Fail: got %v expected %v", res, priv)
 	}
 }
