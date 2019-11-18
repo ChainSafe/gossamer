@@ -458,7 +458,21 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 //export ext_sr25519_generate
 func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
 	log.Trace("[ext_sr25519_generate] executing...")
-	log.Warn("[ext_sr25519_generate] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// TODO: key types not yet implemented
+	// id := memory[idData:idData+4]
+
+	seedBytes := memory[seed:seed+seedLen]
+
+	// todo: save ephemeral key in memory somewhere
+	kp, err := crypto.NewSr25519KeypairFromSeed(seedBytes)
+	if err != nil {
+		log.Debug("ext_sr25519_generate cannot generate key", "error", err)
+	}
+
+	copy(memory[out:out+32], kp.Public().Encode())
 }
 
 //export ext_ed25519_public_keys
