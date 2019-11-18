@@ -2,6 +2,10 @@
 
 PROJECTNAME=$(shell basename "$(PWD)")
 GOLANGCI := $(GOPATH)/bin/golangci-lint
+COMPANY=chainsafe
+NAME=gossamer
+VERSION=latest
+FULLDOCKERNAME=$(COMPANY)/$(NAME):$(VERSION)
 
 .PHONY: help lint test install build clean start docker gossamer
 all: help
@@ -56,11 +60,13 @@ license: $(ADDLICENSE)
 	@echo "  >  \033[32mAdding license headers...\033[0m "
 	addlicense -c gossamer -f ./copyright.txt -y 2019 .
 
-docker:
+docker: docker-build
+	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
+	docker run --rm $(FULLDOCKERNAME)
+
+docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
-	docker build -t chainsafe/gossamer -f Dockerfile.dev .
-	@echo "  >  \033[32mRunning Docker Container...\033[0m "
-	docker run chainsafe/gossamer
+	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
 
 gossamer: clean
 	GOBIN=$(PWD)/build/bin go run build/ci.go install
