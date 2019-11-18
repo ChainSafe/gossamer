@@ -29,7 +29,7 @@ var (
 	app       = cli.NewApp()
 	nodeFlags = []cli.Flag{
 		utils.DataDirFlag,
-		configFileFlag,
+		utils.ConfigFileFlag,
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
@@ -49,13 +49,10 @@ var (
 	cliFlags = []cli.Flag{
 		utils.VerbosityFlag,
 	}
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
-	}
 	accountFlags = []cli.Flag{
 		utils.GenerateFlag,
-		utils.AccountTypeFlag,
+		utils.Sr25519Flag,
+		utils.Ed25519Flag,
 		utils.ImportFlag,
 		utils.ListFlag,
 		utils.PasswordFlag,
@@ -81,7 +78,7 @@ var (
 			utils.DataDirFlag,
 			utils.GenesisFlag,
 			utils.VerbosityFlag,
-			configFileFlag,
+			utils.ConfigFileFlag,
 		},
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,

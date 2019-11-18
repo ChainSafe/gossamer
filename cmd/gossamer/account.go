@@ -18,10 +18,11 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func handleAccounts(ctx *cli.Context) {
+func handleAccounts(ctx *cli.Context) error {
 	err := startLogger(ctx)
 	if err != nil {
 		log.Error("account", "error", err)
+		return err
 	}
 
 	var datadir string
@@ -29,23 +30,20 @@ func handleAccounts(ctx *cli.Context) {
 		datadir, err = filepath.Abs(dir)
 		if err != nil {
 			log.Error("invalid datadir", "error", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
 	if keygen := ctx.Bool(utils.GenerateFlag.Name); keygen {
 		log.Info("generating keypair...")
 
-		keytype := ""
+		keytype := utils.Sr25519KeyType
 		// check if --type flag is set
-		if flagtype := ctx.String(utils.AccountTypeFlag.Name); flagtype != "" {
+		if flagtype := ctx.String(utils.Sr25519Flag.Name); flagtype != "" {
 			// check if keytype is ed25519 or sr25519
-			if flagtype == "sr25519" || flagtype == "ed25519" {
-				keytype = flagtype
-			} else {
-				log.Error("invalid type supplied; must be sr25519 or ed25519", "type", err)
-				os.Exit(1)
-			}
+			keytype = flagtype
+		} else if flagtype := ctx.String(utils.Ed25519Flag.Name); flagtype != "" {
+			keytype = flagtype
 		}
 
 		var password []byte = nil
@@ -56,7 +54,7 @@ func handleAccounts(ctx *cli.Context) {
 		_, err = generateKeypair(keytype, datadir, password)
 		if err != nil {
 			log.Error("generate error", "error", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
@@ -65,7 +63,7 @@ func handleAccounts(ctx *cli.Context) {
 		_, err = importKey(keyimport, datadir)
 		if err != nil {
 			log.Error("import error", "error", err)
-			os.Exit(1)
+			return err
 		}
 	}
 
@@ -73,9 +71,11 @@ func handleAccounts(ctx *cli.Context) {
 		_, err = listKeys(datadir)
 		if err != nil {
 			log.Error("list error", "error", err)
-			os.Exit(1)
+			return err
 		}
 	}
+
+	return nil
 }
 
 func importKey(filename, datadir string) (string, error) {
@@ -136,18 +136,18 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	}
 
 	if keytype == "" {
-		keytype = "sr25519"
+		keytype = utils.Sr25519KeyType
 	}
 
 	var kp crypto.Keypair
 	var err error
-	if keytype == "sr25519" {
+	if keytype == utils.Sr25519KeyType {
 		// generate sr25519 keys
 		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
 			return "", fmt.Errorf("could not generate sr25519 keypair: %s", err)
 		}
-	} else if keytype == "ed25519" {
+	} else if keytype == utils.Ed25519KeyType {
 		// generate ed25519 keys
 		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {

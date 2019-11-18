@@ -22,6 +22,11 @@ import (
 )
 
 var (
+	Ed25519KeyType = "ed25519"
+	Sr25519KeyType = "sr25519"
+)
+
+var (
 	// BadgerDB directory
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
@@ -33,10 +38,15 @@ var (
 		Usage: "Supports levels crit (silent) to trce (trace)",
 		Value: log.LvlInfo.String(),
 	}
-	//Genesis
+	// Genesis
 	GenesisFlag = cli.StringFlag{
 		Name:  "genesis",
 		Usage: "Path to genesis JSON file",
+	}
+	// config file
+	ConfigFileFlag = cli.StringFlag{
+		Name:  "config",
+		Usage: "TOML configuration file",
 	}
 )
 
@@ -92,10 +102,6 @@ var (
 		Name:  "password",
 		Usage: "Password used to encrypt the keystore. Used with --generate or --unlock",
 	}
-	AccountTypeFlag = cli.StringFlag{
-		Name:  "type",
-		Usage: "Specify account type for key; types can be sr25519 or ed25519",
-	}
 	ImportFlag = cli.StringFlag{
 		Name:  "import",
 		Usage: "Import encrypted keystore file generated with gossamer",
@@ -103,6 +109,14 @@ var (
 	ListFlag = cli.BoolFlag{
 		Name:  "list",
 		Usage: "List node keys",
+	}
+	Ed25519Flag = cli.StringFlag{
+		Name:  "ed25519",
+		Usage: "Specify account type as ed25519",
+	}
+	Sr25519Flag = cli.StringFlag{
+		Name:  "sr25519",
+		Usage: "Specify account type as sr25519",
 	}
 	// TODO: account unlocking
 )
