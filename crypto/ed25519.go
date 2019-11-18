@@ -26,6 +26,19 @@ func NewEd25519Keypair(priv ed25519.PrivateKey) *Ed25519Keypair {
 	}
 }
 
+func NewEd25519KeypairFromSeed(seed []byte) (*Ed25519Keypair, error) {
+	if len(seed) != 32 {
+		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
+	}
+	edpriv := ed25519.NewKeyFromSeed(seed)
+	pub := Ed25519PublicKey(edpriv.Public().(ed25519.PublicKey))
+	priv := Ed25519PrivateKey(edpriv)
+	return &Ed25519Keypair {
+		public: &pub,
+		private: &priv,
+	}, nil
+}
+
 // GenerateEd25519Keypair returns a new ed25519 keypair
 func GenerateEd25519Keypair() (*Ed25519Keypair, error) {
 	buf := make([]byte, 32)

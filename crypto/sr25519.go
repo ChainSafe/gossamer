@@ -36,6 +36,24 @@ func NewSr25519Keypair(priv *sr25519.SecretKey) (*Sr25519Keypair, error) {
 	}, nil
 }
 
+// NewSr25519KeypairFromSeed returns a new Sr25519Keypair given a seed
+func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
+	buf := [32]byte{}
+	copy(buf[:], seed)
+	msc, err:= sr25519.NewMiniSecretKeyFromRaw(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	priv := msc.ExpandEd25519()
+	pub := msc.Public()
+
+	return &Sr25519Keypair{
+		public: &Sr25519PublicKey{key: pub},
+		private: &Sr25519PrivateKey{key: priv},	
+	}, nil
+}
+
 // GenerateSr25519Keypair returns a new sr25519 keypair
 func GenerateSr25519Keypair() (*Sr25519Keypair, error) {
 	priv, pub, err := sr25519.GenerateKeypair()
