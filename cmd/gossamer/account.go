@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
+	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/keystore"
 
@@ -207,33 +208,21 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 // keystoreDir returnns the absolute filepath of the keystore directory given gossamer's datadir
 // by default, it is ~/.gossamer/keystore/
 // otherwise, it is datadir/keystore/
-func keystoreDir(datadir string) (string, error) {
+func keystoreDir(datadir string) (keystorepath string, err error) {
 	// datadir specified, return datadir/keystore as absolute path
 	if datadir != "" {
-		keystorepath, err := filepath.Abs(datadir)
+		keystorepath, err = filepath.Abs(datadir)
 		if err != nil {
 			return "", err
 		}
+	} else {
+		// datadir not specified, return ~/.gossamer/keystore as absolute path
+		home := cfg.DefaultDataDir()
 
-		if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
-			err = os.Mkdir(keystorepath, os.ModePerm)
-			if err != nil {
-				return "", err
-			}
+		keystorepath, err = filepath.Abs(home + "/keystore")
+		if err != nil {
+			return "", fmt.Errorf("could not create keystore file path: %s", err)
 		}
-
-		return keystorepath, nil
-	}
-
-	// datadir not specified, return ~/.gossamer/keystore as absolute path
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	keystorepath, err := filepath.Abs(home + "/.gossamer/keystore")
-	if err != nil {
-		return "", fmt.Errorf("could not create keystore file path: %s", err)
 	}
 
 	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {

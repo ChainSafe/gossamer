@@ -1,5 +1,9 @@
 package crypto
 
+import (
+	"github.com/ChainSafe/gossamer/cmd/utils"
+)
+
 type Keypair interface {
 	Sign(msg []byte) ([]byte, error)
 	Public() PublicKey
@@ -21,7 +25,7 @@ type PrivateKey interface {
 }
 
 func DecodePrivateKey(in []byte, keytype string) (priv PrivateKey, err error) {
-	if keytype == "ed25519" {
+	if keytype == utils.Ed25519KeyType {
 		priv, err = NewEd25519PrivateKey(in)
 	} else {
 		priv, err = NewSr25519PrivateKey(in)
