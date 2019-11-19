@@ -107,7 +107,7 @@ func (b *Session) invokeBlockAuthoring() {
 			}
 
 			// Broadcast the block
-			blockAnnounceMsg := p2p.BlockAnnounceMessage{
+			blockAnnounceMsg := &p2p.BlockAnnounceMessage{
 				Number: block.Header.Number,
 			}
 			b.blockAnnounce <- blockAnnounceMsg
