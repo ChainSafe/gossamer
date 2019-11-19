@@ -1,5 +1,3 @@
-// +build none
-
 package main
 
 import (
@@ -41,7 +39,7 @@ func install() {
 	}
 	var packages []string
 	for _, line := range strings.Split(string(out), "\n") {
-		if !strings.Contains(line, "/vendor/") {
+		if strings.Contains(line, "/gossamer/") {
 			packages = append(packages, strings.TrimSpace(line))
 		}
 	}
@@ -55,7 +53,7 @@ func install() {
 	cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
 
 	if err := cmd.Run(); err != nil {
-		log.Fatal("Error: Could not build Gossamer. ", "error ", err, "cmd", cmd)
+		log.Fatal("Error: Could not build Gossamer. ", "error: ", err, ", cmd: ", cmd)
 	}
 
 }
