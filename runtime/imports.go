@@ -449,7 +449,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	hash1 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(hash1, uint64(res1))
 
-	//concatenaded result
+	//concatenated result
 	both := append(hash0, hash1...)
 
 	copy(memory[out:out+16], both)
@@ -470,7 +470,6 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 
 	seedBytes := memory[seed : seed+seedLen]
 
-	// todo: save ephemeral key in memory somewhere
 	kp, err := crypto.NewSr25519KeypairFromSeed(seedBytes)
 	if err != nil {
 		log.Debug("ext_sr25519_generate cannot generate key", "error", err)
@@ -547,7 +546,6 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 
 	seedBytes := memory[seed : seed+seedLen]
 
-	// todo: save ephemeral key in memory somewhere
 	kp, err := crypto.NewEd25519KeypairFromSeed(seedBytes)
 	if err != nil {
 		log.Debug("ext_ed25519_generate cannot generate key", "error", err)
