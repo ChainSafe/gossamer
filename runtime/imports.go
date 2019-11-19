@@ -477,7 +477,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	}
 
 	log.Debug("ext_sr25519_generate", "public_key", kp.Public().Encode())
-	
+
 	runtimeCtx.keystore.Insert(kp)
 
 	copy(memory[out:out+32], kp.Public().Encode())
@@ -538,6 +538,10 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
+	mutex.RLock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.RUnlock()
+
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
@@ -548,6 +552,10 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	if err != nil {
 		log.Debug("ext_ed25519_generate cannot generate key", "error", err)
 	}
+
+	log.Debug("ext_ed25519_generate", "public_key", kp.Public().Encode())
+
+	runtimeCtx.keystore.Insert(kp)
 
 	copy(memory[out:out+32], kp.Public().Encode())
 }

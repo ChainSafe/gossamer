@@ -895,7 +895,7 @@ func TestExt_secp256k1_ecdsa_recover(t *testing.T) {
 	}
 }
 
-// test that ext_secp256k1_ecdsa_recover returns the correct public key
+// test that TestExt_sr25519_generate generates and saves a keypair in the keystore
 func TestExt_sr25519_generate(t *testing.T) {
 	runtime, err := newTestRuntime()
 	if err != nil {
@@ -913,10 +913,6 @@ func TestExt_sr25519_generate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// sigData, err := common.HexToBytes("0x90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 	idLoc := 1000
 	seedLoc := idLoc + len(idData)
 	out := seedLoc + seedLen
@@ -939,6 +935,56 @@ func TestExt_sr25519_generate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	kp := runtime.keystore.Get(pubkey.Address())
+	if kp == nil {
+		t.Fatal("Fail: keypair was not saved in keystore")
+	}
+}
+
+// test that TestExt_ed25519_generate generates and saves a keypair in the keystore
+func TestExt_ed25519_generate(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idData := []byte{1, 0, 0, 0}
+	seedLen := 32
+
+	seedData := make([]byte, seedLen)
+	_, err = rand.Read(seedData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idLoc := 1000
+	seedLoc := idLoc + len(idData)
+	out := seedLoc + seedLen
+	copy(mem[seedLoc:seedLoc+seedLen], seedData)
+	copy(mem[idLoc:idLoc+len(idData)], idData)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_generate"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, seedLoc, seedLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkeyData := mem[out:out+32]
+	pubkey, err := crypto.NewSr25519PublicKey(pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(runtime.keystore)
+	t.Log(pubkey.Address())
 
 	kp := runtime.keystore.Get(pubkey.Address())
 	if kp == nil {
