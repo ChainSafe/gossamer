@@ -5,6 +5,7 @@ import (
 )
 
 type KeyType = string
+
 const Ed25519Type KeyType = "ed25519"
 const Sr25519Type KeyType = "sr25519"
 
