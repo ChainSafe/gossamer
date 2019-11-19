@@ -138,8 +138,11 @@ func listKeys(datadir string) ([]string, error) {
 	keys := []string{}
 
 	for _, f := range files {
-		fmt.Println(f.Name())
-		keys = append(keys, f.Name())
+		ext := filepath.Ext(f.Name())
+		if ext == ".key" {
+			fmt.Println(f.Name())
+			keys = append(keys, f.Name())
+		}
 	}
 
 	return keys, nil
