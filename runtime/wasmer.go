@@ -42,6 +42,7 @@ type RuntimeCtx struct {
 type Runtime struct {
 	vm    wasm.Instance
 	trie  *trie.Trie
+	keystore  *keystore.Keystore
 	mutex sync.Mutex
 }
 
@@ -101,6 +102,7 @@ func NewRuntime(code []byte, t *trie.Trie, ks *keystore.Keystore) (*Runtime, err
 		vm:    instance,
 		trie:  t,
 		mutex: sync.Mutex{},
+		keystore: ks,
 	}
 
 	// Clean up the registry if r is GC'd

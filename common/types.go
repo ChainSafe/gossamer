@@ -18,9 +18,11 @@ package common
 
 import (
 	"fmt"
-
 	"math/big"
 )
+
+// Address represents a base58 encoded public key 
+type Address string 
 
 // Hash used to store a blake2b hash
 type Hash [32]byte

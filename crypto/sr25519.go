@@ -3,6 +3,7 @@ package crypto
 import (
 	"errors"
 
+	"github.com/ChainSafe/gossamer/common"
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
 )
 
@@ -180,4 +181,8 @@ func (k *Sr25519PublicKey) Decode(in []byte) error {
 	copy(b[:], in)
 	k.key = &sr25519.PublicKey{}
 	return k.key.Decode(b)
+}
+
+func (k *Sr25519PublicKey) Address() common.Address {
+	return PublicKeyToAddress(k)
 }

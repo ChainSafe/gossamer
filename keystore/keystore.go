@@ -1,24 +1,27 @@
 package keystore
 
 import (
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
 )
 
 type Keystore struct {
-	keys map[crypto.PublicKey]crypto.Keypair
+	// map of public key encodings to keypairs
+	keys map[common.Address]crypto.Keypair
 }
 
 func NewKeystore() *Keystore {
 	return &Keystore{
-		keys: make(map[crypto.PublicKey]crypto.Keypair),
+		keys: make(map[common.Address]crypto.Keypair),
 	}
 }
 
 func (ks *Keystore) Insert(kp crypto.Keypair) {
 	pub := kp.Public()
-	ks.keys[pub] = kp
+	addr := crypto.PublicKeyToAddress(pub)
+	ks.keys[addr] = kp
 }
 
-func (ks *Keystore) Get(pub crypto.PublicKey) crypto.Keypair {
+func (ks *Keystore) Get(pub common.Address) crypto.Keypair {
 	return ks.keys[pub]
 }

@@ -3,8 +3,9 @@ package crypto
 import (
 	"crypto/rand"
 	"fmt"
-
 	ed25519 "crypto/ed25519"
+
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // Ed25519Keypair is a ed25519 public-private keypair
@@ -140,4 +141,8 @@ func (k *Ed25519PublicKey) Decode(in []byte) error {
 	}
 	*k = *pub
 	return nil
+}
+
+func (k *Ed25519PublicKey) Address() common.Address {
+	return PublicKeyToAddress(k)
 }

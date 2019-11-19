@@ -6,6 +6,7 @@ require (
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20191119190741-a5524ad9568e
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.9.6
