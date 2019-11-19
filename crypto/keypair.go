@@ -1,8 +1,12 @@
 package crypto
 
 import (
-	"github.com/ChainSafe/gossamer/cmd/utils"
+	"errors"
 )
+
+type KeyType = string
+const Ed25519Type KeyType = "ed25519"
+const Sr25519Type KeyType = "sr25519"
 
 type Keypair interface {
 	Sign(msg []byte) ([]byte, error)
@@ -24,11 +28,13 @@ type PrivateKey interface {
 	Decode([]byte) error
 }
 
-func DecodePrivateKey(in []byte, keytype string) (priv PrivateKey, err error) {
-	if keytype == utils.Ed25519KeyType {
+func DecodePrivateKey(in []byte, keytype KeyType) (priv PrivateKey, err error) {
+	if keytype == Ed25519Type {
 		priv, err = NewEd25519PrivateKey(in)
-	} else {
+	} else if keytype == Sr25519Type {
 		priv, err = NewSr25519PrivateKey(in)
+	} else {
+		return nil, errors.New("cannot decode key: invalid key type")
 	}
 
 	return priv, err

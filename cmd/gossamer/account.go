@@ -162,13 +162,13 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 
 	var kp crypto.Keypair
 	var err error
-	if keytype == utils.Sr25519KeyType {
+	if keytype == crypto.Sr25519Type {
 		// generate sr25519 keys
 		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
 			return "", fmt.Errorf("could not generate sr25519 keypair: %s", err)
 		}
-	} else if keytype == utils.Ed25519KeyType {
+	} else if keytype == crypto.Ed25519Type {
 		// generate ed25519 keys
 		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {

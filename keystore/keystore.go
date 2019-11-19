@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/crypto"
 	"golang.org/x/crypto/blake2b"
 )
@@ -104,11 +103,11 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 
 	keytype := ""
 	if _, ok := pk.(*crypto.Ed25519PrivateKey); ok {
-		keytype = utils.Ed25519KeyType
+		keytype = crypto.Ed25519Type
 	}
 
 	if _, ok := pk.(*crypto.Sr25519PrivateKey); ok {
-		keytype = utils.Sr25519KeyType
+		keytype = crypto.Sr25519Type
 	}
 
 	if keytype == "" {
