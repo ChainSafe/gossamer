@@ -513,7 +513,21 @@ func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 //export ext_ed25519_generate
 func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
 	log.Debug("[ext_ed25519_generate] executing...")
-	log.Warn("[ext_ed25519_generate] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// TODO: key types not yet implemented
+	// id := memory[idData:idData+4]
+
+	seedBytes := memory[seed:seed+seedLen]
+
+	// todo: save ephemeral key in memory somewhere
+	kp, err := crypto.NewEd25519KeypairFromSeed(seedBytes)
+	if err != nil {
+		log.Debug("ext_ed25519_generate cannot generate key", "error", err)
+	}
+
+	copy(memory[out:out+32], kp.Public().Encode())
 }
 
 //export ext_ed25519_verify
