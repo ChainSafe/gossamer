@@ -464,7 +464,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
-	seedBytes := memory[seed:seed+seedLen]
+	seedBytes := memory[seed : seed+seedLen]
 
 	// todo: save ephemeral key in memory somewhere
 	kp, err := crypto.NewSr25519KeypairFromSeed(seedBytes)
@@ -506,8 +506,22 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 //export ext_sr25519_verify
 func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	log.Debug("[ext_sr25519_verify] executing...")
-	log.Warn("[ext_sr25519_verify] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	msg := memory[msgData : msgData+msgLen]
+	sig := memory[sigData : sigData+64]
+
+	pub, err := crypto.NewSr25519PublicKey(memory[pubkeyData : pubkeyData+32])
+	if err != nil {
+		return 1
+	}
+
+	if pub.Verify(msg, sig) {
+		return 0
+	}
+
+	return 1
 }
 
 //export ext_ed25519_generate
@@ -519,7 +533,7 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
-	seedBytes := memory[seed:seed+seedLen]
+	seedBytes := memory[seed : seed+seedLen]
 
 	// todo: save ephemeral key in memory somewhere
 	kp, err := crypto.NewEd25519KeypairFromSeed(seedBytes)

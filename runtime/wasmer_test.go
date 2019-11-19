@@ -29,6 +29,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/trie"
 	"golang.org/x/crypto/ed25519"
 )
@@ -81,7 +82,7 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 	tt := &trie.Trie{}
 
-	r, err := NewRuntimeFromFile(fp, tt)
+	r, err := NewRuntimeFromFile(fp, tt, keystore.NewKeystore())
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -166,7 +167,7 @@ func newTestRuntime() (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewRuntimeFromFile(fp, t)
+	r, err := NewRuntimeFromFile(fp, t, keystore.NewKeystore())
 	if err != nil {
 		return nil, err
 	}

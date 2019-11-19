@@ -33,8 +33,8 @@ func NewEd25519KeypairFromSeed(seed []byte) (*Ed25519Keypair, error) {
 	edpriv := ed25519.NewKeyFromSeed(seed)
 	pub := Ed25519PublicKey(edpriv.Public().(ed25519.PublicKey))
 	priv := Ed25519PrivateKey(edpriv)
-	return &Ed25519Keypair {
-		public: &pub,
+	return &Ed25519Keypair{
+		public:  &pub,
 		private: &priv,
 	}, nil
 }

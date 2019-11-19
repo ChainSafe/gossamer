@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
@@ -116,7 +117,10 @@ func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
 		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
 	}
 
-	return runtime.NewRuntime(code, t)
+	// TODO: load all static keys from keystore directory
+	ks := keystore.NewKeystore()
+
+	return runtime.NewRuntime(code, t, ks)
 }
 
 // getConfig checks for config.toml if --config flag is specified and sets CLI flags
