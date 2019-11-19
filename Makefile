@@ -44,7 +44,7 @@ install:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	go build -o ./bin/gossamer
+	GOBIN=$(PWD)/build/bin go run build/ci.go install
 
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:
