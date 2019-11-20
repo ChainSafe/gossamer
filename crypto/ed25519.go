@@ -3,6 +3,7 @@ package crypto
 import (
 	ed25519 "crypto/ed25519"
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -143,6 +144,14 @@ func (k *Ed25519PublicKey) Decode(in []byte) error {
 	return nil
 }
 
+// Address returns the ss58 address for this public key
 func (k *Ed25519PublicKey) Address() common.Address {
 	return PublicKeyToAddress(k)
+}
+
+// Hex returns the public key as a '0x' prefixed hex string
+func (k *Ed25519PublicKey) Hex() string {
+	enc := k.Encode()
+	h := hex.EncodeToString(enc)
+	return "0x" + h
 }

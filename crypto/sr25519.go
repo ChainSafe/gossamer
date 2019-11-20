@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"encoding/hex"
 	"errors"
 
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
@@ -54,6 +55,16 @@ func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
 		public:  &Sr25519PublicKey{key: pub},
 		private: &Sr25519PrivateKey{key: priv},
 	}, nil
+}
+
+// NewSr25519PrivateKey creates a new private key using the input bytes
+func NewSr25519PrivateKey(in []byte) (*Sr25519PrivateKey, error) {
+	if len(in) != 32 {
+		return nil, errors.New("input to create sr25519 private key is not 32 bytes")
+	}
+	priv := new(Sr25519PrivateKey)
+	err := priv.Decode(in)
+	return priv, err
 }
 
 // GenerateSr25519Keypair returns a new sr25519 keypair
@@ -184,6 +195,14 @@ func (k *Sr25519PublicKey) Decode(in []byte) error {
 	return k.key.Decode(b)
 }
 
+// Address returns the ss58 address for this public key
 func (k *Sr25519PublicKey) Address() common.Address {
 	return PublicKeyToAddress(k)
+}
+
+// Hex returns the public key as a '0x' prefixed hex string
+func (k *Sr25519PublicKey) Hex() string {
+	enc := k.Encode()
+	h := hex.EncodeToString(enc)
+	return "0x" + h
 }
