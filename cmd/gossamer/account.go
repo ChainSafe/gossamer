@@ -48,10 +48,10 @@ func handleAccounts(ctx *cli.Context) error {
 
 		// check if --ed25519 or --sr25519 is set
 		keytype := utils.Sr25519KeyType
-		if flagtype := ctx.String(utils.Sr25519Flag.Name); flagtype != "" {
-			keytype = flagtype
-		} else if flagtype := ctx.String(utils.Ed25519Flag.Name); flagtype != "" {
-			keytype = flagtype
+		if flagtype := ctx.Bool(utils.Sr25519Flag.Name); flagtype {
+			keytype = utils.Sr25519KeyType
+		} else if flagtype := ctx.Bool(utils.Ed25519Flag.Name); flagtype {
+			keytype = utils.Ed25519KeyType
 		}
 
 		// check if --password is set

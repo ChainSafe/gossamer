@@ -110,11 +110,11 @@ var (
 		Name:  "list",
 		Usage: "List node keys",
 	}
-	Ed25519Flag = cli.StringFlag{
+	Ed25519Flag = cli.BoolFlag{
 		Name:  "ed25519",
 		Usage: "Specify account type as ed25519",
 	}
-	Sr25519Flag = cli.StringFlag{
+	Sr25519Flag = cli.BoolFlag{
 		Name:  "sr25519",
 		Usage: "Specify account type as sr25519",
 	}
