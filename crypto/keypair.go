@@ -57,7 +57,7 @@ func PublicKeyToAddress(pub PublicKey) common.Address {
 	if err != nil {
 		return ""
 	}
-	err := hasher.Write(append(ss58Prefix, enc...))
+	_, err = hasher.Write(append(ss58Prefix, enc...))
 	if err != nil {
 		return ""
 	}
