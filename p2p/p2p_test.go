@@ -17,8 +17,6 @@
 package p2p
 
 import (
-	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
@@ -28,14 +26,11 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
-	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	ps "github.com/libp2p/go-libp2p-core/peerstore"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
-func startNewService(t *testing.T, cfg *Config, msgSendChan chan []byte, msgRecChan chan BlockAnnounceMessage) *Service {
-	node, err := NewService(cfg, msgSendChan, msgRecChan)
+func startNewService(t *testing.T, cfg *Config, sendChan chan []byte, recChan chan BlockAnnounceMessage) *Service {
+	node, err := NewService(cfg, sendChan, recChan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,217 +43,169 @@ func startNewService(t *testing.T, cfg *Config, msgSendChan chan []byte, msgRecC
 	return node
 }
 
-func TestBuildOpts(t *testing.T) {
-	tmpPDir, err := ioutil.TempDir(os.TempDir(), "p2p-test")
+func TestBuildOptions(t *testing.T) {
+	configA := &Config{
+		DataDir: path.Join(os.TempDir(), "p2p-test"),
+	}
+
+	_, err := configA.buildOpts()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpPDir)
-	tmpDir := path.Join(tmpPDir, "data")
-	err = os.Mkdir(tmpDir, os.ModePerm+os.ModeDir)
+
+	if configA.privateKey == nil {
+		t.Error("Private key was not set.")
+	}
+
+	configB := &Config{
+		DataDir: path.Join(os.TempDir(), "p2p-test"),
+	}
+
+	_, err = configB.buildOpts()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testCfgA := &Config{
-		BootstrapNodes: []string{},
-		Port:           7001,
-		DataDir:        tmpDir,
-	}
-
-	_, err = testCfgA.buildOpts()
-	if err != nil {
-		t.Fatalf("TestBuildOpts error: %s", err)
-	}
-
-	if testCfgA.privateKey == nil {
-		t.Error("Private key is nil")
-	}
-
-	testCfgB := &Config{
-		BootstrapNodes: []string{},
-		Port:           7001,
-		DataDir:        tmpDir,
-	}
-
-	_, err = testCfgB.buildOpts()
-	if err != nil {
-		t.Fatalf("TestBuildOpts error: %s", err)
-	}
-
-	if testCfgA.privateKey == testCfgB.privateKey {
-		t.Error("Private key does not match first key generated")
+	if configA.privateKey == configB.privateKey {
+		t.Error("Private keys should not match.")
 	}
 }
 
-func TestBootstrapConnect(t *testing.T) {
-	bootnodeCfg := &Config{
-		BootstrapNodes: nil,
-		Port:           7000,
-		RandSeed:       1,
-		NoBootstrap:    true,
-		NoMdns:         true,
+func TestStartService(t *testing.T) {
+	config := &Config{
+		RandSeed: 1,
 	}
 
-	bootnode := startNewService(t, bootnodeCfg, nil, nil)
-	defer bootnode.Stop()
-	bootnodeAddr := bootnode.host.fullAddrs()[0]
+	node := startNewService(t, config, nil, nil)
+	node.Stop()
+}
 
-	nodeCfg := &Config{
-		BootstrapNodes: []string{bootnodeAddr.String()},
-		Port:           7001,
+func TestBootstrapNode(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
+	}
+
+	nodeA := startNewService(t, configA, nil, nil)
+	defer nodeA.Stop()
+
+	addrA := nodeA.host.fullAddrs()[0]
+
+	configB := &Config{
+		BootstrapNodes: []string{addrA.String()},
 		RandSeed:       2,
-		NoBootstrap:    false,
-		NoMdns:         true,
 	}
 
-	node := startNewService(t, nodeCfg, nil, nil)
-	defer node.Stop()
-	// Allow everything to finish connecting
-	time.Sleep(1 * time.Second)
+	nodeB := startNewService(t, configB, nil, nil)
+	defer nodeB.Stop()
 
-	if bootnode.host.peerCount() != 1 {
-		t.Errorf("expected peer count: %d got: %d", 1, bootnode.host.peerCount())
+	peerCountA := nodeA.host.peerCount()
+
+	if peerCountA != 1 {
+		t.Errorf("Expected peer count: 1. Got peer count: %d.", peerCountA)
 	}
 }
 
-func TestNoBootstrap(t *testing.T) {
-	testServiceConfigA := &Config{
-		NoBootstrap: true,
-		Port:        7006,
-		RandSeed:    1,
+func TestConnectNode(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil, nil)
-	sa.Stop()
-}
+	nodeA := startNewService(t, configA, nil, nil)
+	defer nodeA.Stop()
 
-func TestService_PeerCount(t *testing.T) {
-	testServiceConfigA := &Config{
-		NoBootstrap: true,
-		Port:        7002,
-		RandSeed:    1,
+	configB := &Config{
+		RandSeed: 2,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil, nil)
-	defer sa.Stop()
+	nodeB := startNewService(t, configB, nil, nil)
+	defer nodeB.Stop()
 
-	testServiceConfigB := &Config{
-		NoBootstrap: true,
-		Port:        7003,
-		RandSeed:    2,
-	}
-
-	sb := startNewService(t, testServiceConfigB, nil, nil)
-	defer sb.Stop()
-
-	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
+	addrA := nodeA.host.fullAddrs()[0]
+	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	err = nodeB.host.connect(*addrInfoA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = sb.host.connect(*addrInfo)
-	if err != nil {
-		t.Fatal(err)
-	}
+	peerCountB := nodeB.host.peerCount()
 
-	count := sb.host.peerCount()
-	if count == 0 {
-		t.Fatalf("incorrect peerCount got %d", count)
+	if peerCountB != 1 {
+		t.Errorf("Expected peer count: 1. Got peer count: %d.", peerCountB)
 	}
 }
 
-func TestPing(t *testing.T) {
-	testServiceConfigA := &Config{
-		NoBootstrap: true,
-		Port:        7004,
-		RandSeed:    1,
-		DataDir:     path.Join(os.TempDir(), "gossamer"),
+func TestPingNode(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil, nil)
-	defer sa.Stop()
+	nodeA := startNewService(t, configA, nil, nil)
+	defer nodeA.Stop()
 
-	testServiceConfigB := &Config{
-		NoBootstrap: true,
-		Port:        7005,
-		RandSeed:    2,
-		DataDir:     path.Join(os.TempDir(), "gossamer2"),
+	configB := &Config{
+		RandSeed: 2,
 	}
 
-	msgChan := make(chan []byte)
-	sb := startNewService(t, testServiceConfigB, msgChan, nil)
-	defer sb.Stop()
+	sendChanB := make(chan []byte)
 
-	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
+	nodeB := startNewService(t, configB, sendChanB, nil)
+	defer nodeB.Stop()
+
+	addrA := nodeA.host.fullAddrs()[0]
+	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	err = nodeB.host.connect(*addrInfoA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = sb.host.connect(*addrInfo)
+	err = nodeB.host.ping(addrInfoA.ID)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	err = sb.host.ping(addrInfo.ID)
-	if err != nil {
-		t.Error(err)
 	}
 }
 
-func TestSend(t *testing.T) {
-	testServiceConfigA := &Config{
-		NoBootstrap: true,
-		Port:        7004,
-		RandSeed:    1,
-		DataDir:     path.Join(os.TempDir(), "gossamer"),
+func TestSendRequest(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
 	}
 
-	sa := startNewService(t, testServiceConfigA, nil, nil)
-	defer sa.Stop()
+	nodeA := startNewService(t, configA, nil, nil)
+	defer nodeA.Stop()
 
-	testServiceConfigB := &Config{
-		NoBootstrap: true,
-		Port:        7005,
-		RandSeed:    2,
-		DataDir:     path.Join(os.TempDir(), "gossamer2"),
+	configB := &Config{
+		RandSeed: 2,
 	}
 
-	msgChan := make(chan []byte)
-	sb := startNewService(t, testServiceConfigB, msgChan, nil)
-	defer sb.Stop()
+	sendChanB := make(chan []byte)
 
-	sb.host.h.Peerstore().AddAddrs(sa.host.h.ID(), sa.host.h.Addrs(), ps.PermanentAddrTTL)
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", sa.host.h.Addrs()[0].String(), sa.host.h.ID()))
+	nodeB := startNewService(t, configB, sendChanB, nil)
+	defer nodeB.Stop()
+
+	addrA := nodeA.host.fullAddrs()[0]
+
+	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addrInfo, err := peer.AddrInfoFromP2pAddr(addr)
+	err = nodeB.host.connect(*addrInfoA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = sb.host.connect(*addrInfo)
+	addrB := nodeB.host.fullAddrs()[0]
+
+	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	p, err := sa.host.dht.FindPeer(sa.ctx, sb.host.h.ID())
-	if err != nil {
-		t.Fatalf("could not find peer: %s", err)
 	}
 
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
@@ -266,8 +213,8 @@ func TestSend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bm := &BlockRequestMessage{
-		ID:            7,
+	blockRequest := &BlockRequestMessage{
+		ID:            1,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
@@ -275,75 +222,69 @@ func TestSend(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	encMsg, err := bm.Encode()
+	encBlockRequest, err := blockRequest.Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = sa.host.send(p, encMsg)
+	err = nodeA.host.send(*addrInfoB, encBlockRequest)
 	if err != nil {
-		t.Errorf("Send error: %s", err)
+		t.Fatal(err)
 	}
 
 	select {
-	case <-msgChan:
+	case message := <-sendChanB:
+		if !reflect.DeepEqual(message, encBlockRequest) {
+			t.Error("Did not receive the correct message.")
+		}
 	case <-time.After(30 * time.Second):
-		t.Fatalf("Did not receive message from %s", sa.host.hostAddr)
+		t.Errorf("Did not receive message from %s.", nodeA.host.hostAddr)
 	}
 }
 
-func TestGossiping(t *testing.T) {
-	//Start node A
-	nodeConfigA := &Config{
-		BootstrapNodes: nil,
-		Port:           7000,
-		NoBootstrap:    true,
-		NoMdns:         true,
-		RandSeed:       1,
+func TestGossip(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
 	}
 
-	nodeA := startNewService(t, nodeConfigA, nil, nil)
+	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
-	nodeAAddr := nodeA.host.fullAddrs()[0]
 
-	//Start node B
-	nodeConfigB := &Config{
+	addrA := nodeA.host.fullAddrs()[0]
+
+	configB := &Config{
 		BootstrapNodes: []string{
-			nodeAAddr.String(),
+			addrA.String(),
 		},
-		Port:     7001,
-		NoMdns:   true,
 		RandSeed: 2,
 	}
 
-	msgChanB := make(chan []byte)
-	nodeB := startNewService(t, nodeConfigB, msgChanB, nil)
+	sendChanB := make(chan []byte)
+
+	nodeB := startNewService(t, configB, sendChanB, nil)
 	defer nodeB.Stop()
+
 	nodeBAddr := nodeB.host.fullAddrs()[0]
 
-	//Start node C
-	nodeConfigC := &Config{
+	configC := &Config{
 		BootstrapNodes: []string{
 			nodeBAddr.String(),
 		},
-		Port:     7002,
-		NoMdns:   true,
 		RandSeed: 3,
 	}
 
-	msgChanC := make(chan []byte)
-	nodeC := startNewService(t, nodeConfigC, msgChanC, nil)
+	sendChanC := make(chan []byte)
+
+	nodeC := startNewService(t, configC, sendChanC, nil)
 	defer nodeC.Stop()
 
-	// Meaningless hash
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
-		t.Errorf("Can't convert hex to hash")
+		t.Fatal(err)
 	}
 
-	// Create mock BlockRequestMessage to broadcast
-	bm := &BlockRequestMessage{
-		ID:            7,
+	blockRequest := &BlockRequestMessage{
+		ID:            1,
 		RequestedData: 1,
 		StartingBlock: []byte{1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
@@ -351,104 +292,76 @@ func TestGossiping(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	err = nodeA.Broadcast(bm)
+	err = nodeA.Broadcast(blockRequest)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
-	// Check returned values from channels in the 2 other nodes
-	select {
-	case res := <-msgChanB:
-		bmEnc, err := bm.Encode()
-		if err != nil {
-			t.Fatalf("Can't decode original message")
-		}
+	encBlockRequest, err := blockRequest.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		// Compare the byte arrays of the original & returned message
-		if !reflect.DeepEqual(bmEnc, res) {
-			t.Fatalf("Didn't receive the correct message")
+	select {
+	case message := <-sendChanB:
+		if !reflect.DeepEqual(message, encBlockRequest) {
+			t.Error("Did not receive the correct message.")
 		}
 	case <-time.After(30 * time.Second):
-		t.Fatalf("Did not receive message from %s", nodeA.host.hostAddr)
+		t.Errorf("Did not receive message from %s.", nodeA.host.hostAddr)
 	}
-	select {
-	case res := <-msgChanC:
-		bmEnc, err := bm.Encode()
-		if err != nil {
-			t.Fatalf("Can't decode original message")
-		}
 
-		// Compare the byte arrays of the original & returned message
-		if !reflect.DeepEqual(bmEnc, res) {
-			t.Fatalf("Didn't receive the correct message")
+	select {
+	case message := <-sendChanC:
+		if !reflect.DeepEqual(encBlockRequest, message) {
+			t.Error("Did not receive the correct message.")
 		}
 	case <-time.After(30 * time.Second):
-		t.Fatalf("Did not receive message from %s", nodeB.host.hostAddr)
+		t.Errorf("Did not receive message from %s.", nodeB.host.hostAddr)
 	}
-
 }
 
-func TestP2pReceiveChan(t *testing.T) {
-	//Create nodeA
-	testServiceConfigA := &Config{
-		BootstrapNodes: nil,
-		NoBootstrap:    true,
-		NoMdns:         true,
-		Port:           7000,
-		RandSeed:       1,
+func TestReceiveChannel(t *testing.T) {
+	configA := &Config{
+		RandSeed: 1,
 	}
 
-	msgRecChan := make(chan BlockAnnounceMessage)
+	recChanA := make(chan BlockAnnounceMessage)
 
-	nodeA := startNewService(t, testServiceConfigA, nil, msgRecChan)
+	nodeA := startNewService(t, configA, nil, recChanA)
 	defer nodeA.Stop()
 
-	// Create nodeB
-	nodeAAddr := nodeA.host.fullAddrs()[0]
-	testServiceConfigB := &Config{
+	addrA := nodeA.host.fullAddrs()[0]
+
+	configB := &Config{
 		BootstrapNodes: []string{
-			nodeAAddr.String(),
+			addrA.String(),
 		},
-		Port:     7001,
-		NoMdns:   true,
 		RandSeed: 2,
 	}
-	msgSendChan := make(chan []byte)
-	nodeB := startNewService(t, testServiceConfigB, msgSendChan, nil)
+
+	sendChanB := make(chan []byte)
+
+	nodeB := startNewService(t, configB, sendChanB, nil)
 	defer nodeB.Stop()
 
-	// node B only handles the stream, and doesn't need to rebroadcast it
-	nodeB.host.registerStreamHandler(func(stream net.Stream) {
-
-		_, rawMsg, err := parseMessage(stream)
-
-		nodeB.msgSendChan <- rawMsg
-
-		if err != nil {
-			return
-		}
-	})
-
-	//Create a blockAnnounceMessage & send to node A for broadcasting
-	blockAnnounceMsg := BlockAnnounceMessage{
+	blockAnnounce := BlockAnnounceMessage{
 		Number: big.NewInt(10),
 	}
 
-	encodedBlockAnnounceMsg, err := blockAnnounceMsg.Encode()
+	recChanA <- blockAnnounce
+
+	encBlockAnnounce, err := blockAnnounce.Encode()
 	if err != nil {
-		t.Fatalf("Can't encode the block announce message")
+		t.Fatal(err)
 	}
 
-	// Send message down the nodeA receive channel
-	msgRecChan <- blockAnnounceMsg
-
-	// Check that we receive the same message in nodeB
 	select {
-	case receivedBlockAnnounceMsg := <-msgSendChan:
-		if !reflect.DeepEqual(receivedBlockAnnounceMsg, encodedBlockAnnounceMsg) {
-			t.Fatalf("Node B service didn't receive the correct block\ngot: %+v\nexpected: %+v", receivedBlockAnnounceMsg, encodedBlockAnnounceMsg)
+	case message := <-sendChanB:
+		if !reflect.DeepEqual(message, encBlockAnnounce) {
+			t.Error("Did not receive the correct message.")
 		}
 	case <-time.After(30 * time.Second):
-		t.Fatalf("Did not receive message %+v", encodedBlockAnnounceMsg)
+		t.Errorf("Did not receive message from %s.", nodeB.host.hostAddr)
 	}
 }
