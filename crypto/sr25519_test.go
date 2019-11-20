@@ -13,8 +13,6 @@ func TestNewSr25519KeypairFromSeed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	copy(seed[26:32], []byte{0, 0, 0, 0, 0, 0})
-
 	kp, err := NewSr25519KeypairFromSeed(seed)
 	if err != nil {
 		t.Fatal(err)
