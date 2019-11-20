@@ -20,6 +20,6 @@ func TestKeystore(t *testing.T) {
 	kp2 := ks.Get(addr)
 
 	if !reflect.DeepEqual(kp, kp2) {
-		t.Fatalf("Fail: got %x expected %x", kp2, kp)
+		t.Fatalf("Fail: got %v expected %v", kp2, kp)
 	}
 }
