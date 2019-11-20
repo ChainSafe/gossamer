@@ -108,7 +108,11 @@ func (b *Session) invokeBlockAuthoring() {
 
 			// Broadcast the block
 			blockAnnounceMsg := &p2p.BlockAnnounceMessage{
-				Number: block.Header.Number,
+				ParentHash:     block.Header.ParentHash,
+				Number:         block.Header.Number,
+				StateRoot:      block.Header.StateRoot,
+				ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+				Digest:         block.Header.Digest,
 			}
 			b.blockAnnounce <- blockAnnounceMsg
 		}
@@ -203,7 +207,7 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 // BuildBlock Builds the block
 func (s *Session) buildBlock(number *big.Int) (*types.Block, error) {
 	block := types.Block{
-		Header: types.BlockHeader{Number: number},
+		Header: types.BlockHeaderWithHash{Number: number},
 		Body:   []byte{1, 2, 3, 4, 5},
 	}
 	return &block, nil

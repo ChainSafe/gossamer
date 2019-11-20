@@ -287,7 +287,7 @@ func TestSlotOffset(t *testing.T) {
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 
 	genesisBlock := types.Block{
-		Header: types.BlockHeader{
+		Header: types.BlockHeaderWithHash{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
 			Hash:       common.Hash{0x00},
@@ -315,7 +315,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		}
 
 		block := types.Block{
-			Header: types.BlockHeader{
+			Header: types.BlockHeaderWithHash{
 				ParentHash: previousHash,
 				Hash:       hash,
 				Number:     big.NewInt(int64(i)),
@@ -406,7 +406,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	for i := 0; i < int(babesession.config.EpochLength); i++ {
 		blk := <-blockAnnounceChan
 
-		expectedBlockAnnounceMsg := p2p.BlockAnnounceMessage{
+		expectedBlockAnnounceMsg := &p2p.BlockAnnounceMessage{
 			Number: big.NewInt(int64(i)),
 		}
 
