@@ -29,6 +29,7 @@ import (
 type Trie struct {
 	db   *Database
 	root node
+	children map[common.Hash]*Trie
 }
 
 // NewEmptyTrie creates a trie with a nil root and merkleRoot
