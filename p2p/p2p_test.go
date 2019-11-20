@@ -18,8 +18,6 @@ package p2p
 
 import (
 	"math/big"
-	"os"
-	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -41,34 +39,6 @@ func startNewService(t *testing.T, cfg *Config, sendChan chan []byte, recChan ch
 	}
 
 	return node
-}
-
-func TestBuildOptions(t *testing.T) {
-	configA := &Config{
-		DataDir: path.Join(os.TempDir(), "p2p-test"),
-	}
-
-	_, err := configA.buildOpts()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if configA.privateKey == nil {
-		t.Error("Private key was not set.")
-	}
-
-	configB := &Config{
-		DataDir: path.Join(os.TempDir(), "p2p-test"),
-	}
-
-	_, err = configB.buildOpts()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if configA.privateKey == configB.privateKey {
-		t.Error("Private keys should not match.")
-	}
 }
 
 func TestStartService(t *testing.T) {
