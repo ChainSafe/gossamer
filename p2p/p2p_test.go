@@ -43,16 +43,21 @@ func startNewService(t *testing.T, cfg *Config, sendChan chan []byte, recChan ch
 
 func TestStartService(t *testing.T) {
 	config := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
-
 	node := startNewService(t, config, nil, nil)
 	node.Stop()
 }
 
-func TestBootstrapNode(t *testing.T) {
+func TestBootstrap(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -62,7 +67,9 @@ func TestBootstrapNode(t *testing.T) {
 
 	configB := &Config{
 		BootstrapNodes: []string{addrA.String()},
+		Port:           7002,
 		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -75,22 +82,29 @@ func TestBootstrapNode(t *testing.T) {
 	}
 }
 
-func TestConnectNode(t *testing.T) {
+func TestConnect(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
-		RandSeed: 2,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
+
 	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
@@ -108,16 +122,22 @@ func TestConnectNode(t *testing.T) {
 	}
 }
 
-func TestPingNode(t *testing.T) {
+func TestPing(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
-		RandSeed: 2,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	sendChanB := make(chan []byte)
@@ -126,6 +146,7 @@ func TestPingNode(t *testing.T) {
 	defer nodeB.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
+
 	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
@@ -144,14 +165,20 @@ func TestPingNode(t *testing.T) {
 
 func TestSendRequest(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
-		RandSeed: 2,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	sendChanB := make(chan []byte)
@@ -178,11 +205,13 @@ func TestSendRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Create end block hash (hex has no significance here)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
@@ -204,6 +233,7 @@ func TestSendRequest(t *testing.T) {
 
 	select {
 	case message := <-sendChanB:
+		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockRequest) {
 			t.Error("Did not receive the correct message.")
 		}
@@ -212,9 +242,12 @@ func TestSendRequest(t *testing.T) {
 	}
 }
 
-func TestGossip(t *testing.T) {
+func TestGossiping(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -223,10 +256,10 @@ func TestGossip(t *testing.T) {
 	addrA := nodeA.host.fullAddrs()[0]
 
 	configB := &Config{
-		BootstrapNodes: []string{
-			addrA.String(),
-		},
-		RandSeed: 2,
+		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	sendChanB := make(chan []byte)
@@ -234,13 +267,11 @@ func TestGossip(t *testing.T) {
 	nodeB := startNewService(t, configB, sendChanB, nil)
 	defer nodeB.Stop()
 
-	nodeBAddr := nodeB.host.fullAddrs()[0]
-
 	configC := &Config{
-		BootstrapNodes: []string{
-			nodeBAddr.String(),
-		},
-		RandSeed: 3,
+		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		Port:           7003,
+		RandSeed:       3,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	sendChanC := make(chan []byte)
@@ -248,11 +279,13 @@ func TestGossip(t *testing.T) {
 	nodeC := startNewService(t, configC, sendChanC, nil)
 	defer nodeC.Stop()
 
+	// Create end block hash (hex has no significance here)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
@@ -262,6 +295,7 @@ func TestGossip(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
+	// Broadcast block request message
 	err = nodeA.Broadcast(blockRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -274,6 +308,7 @@ func TestGossip(t *testing.T) {
 
 	select {
 	case message := <-sendChanB:
+		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockRequest) {
 			t.Error("Did not receive the correct message.")
 		}
@@ -283,6 +318,7 @@ func TestGossip(t *testing.T) {
 
 	select {
 	case message := <-sendChanC:
+		// Compare received message to original message
 		if !reflect.DeepEqual(encBlockRequest, message) {
 			t.Error("Did not receive the correct message.")
 		}
@@ -293,7 +329,10 @@ func TestGossip(t *testing.T) {
 
 func TestReceiveChannel(t *testing.T) {
 	configA := &Config{
-		RandSeed: 1,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	recChanA := make(chan BlockAnnounceMessage)
@@ -304,10 +343,10 @@ func TestReceiveChannel(t *testing.T) {
 	addrA := nodeA.host.fullAddrs()[0]
 
 	configB := &Config{
-		BootstrapNodes: []string{
-			addrA.String(),
-		},
-		RandSeed: 2,
+		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	sendChanB := make(chan []byte)
@@ -316,7 +355,7 @@ func TestReceiveChannel(t *testing.T) {
 	defer nodeB.Stop()
 
 	blockAnnounce := BlockAnnounceMessage{
-		Number: big.NewInt(10),
+		Number: big.NewInt(1),
 	}
 
 	recChanA <- blockAnnounce
@@ -328,6 +367,7 @@ func TestReceiveChannel(t *testing.T) {
 
 	select {
 	case message := <-sendChanB:
+		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockAnnounce) {
 			t.Error("Did not receive the correct message.")
 		}

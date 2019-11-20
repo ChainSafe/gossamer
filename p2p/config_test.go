@@ -1,13 +1,12 @@
 package p2p
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
 )
 
-var testDir = path.Join(os.TempDir(), "p2p-test")
+var testDir = path.Join(os.TempDir(), "gossamer-test")
 
 func TestBuildOptions(t *testing.T) {
 	configA := &Config{
@@ -38,21 +37,17 @@ func TestBuildOptions(t *testing.T) {
 }
 
 func TestSetupPrivKey(t *testing.T) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "gossamer-test")
-	if err != nil {
-		t.Fatal(err)
-	}
 	configA := &Config{
 		BootstrapNodes: nil,
 		Port:           0,
 		RandSeed:       0,
 		NoBootstrap:    true,
 		NoMdns:         true,
-		DataDir:        tmpDir,
+		DataDir:        testDir,
 		privateKey:     nil,
 	}
 
-	err = configA.setupPrivKey()
+	err := configA.setupPrivKey()
 	if err != nil {
 		t.Fatal(err)
 	}
