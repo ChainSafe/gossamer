@@ -40,10 +40,10 @@ type RuntimeCtx struct {
 }
 
 type Runtime struct {
-	vm    wasm.Instance
-	trie  *trie.Trie
-	keystore  *keystore.Keystore
-	mutex sync.Mutex
+	vm       wasm.Instance
+	trie     *trie.Trie
+	keystore *keystore.Keystore
+	mutex    sync.Mutex
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
@@ -99,9 +99,9 @@ func NewRuntime(code []byte, t *trie.Trie, ks *keystore.Keystore) (*Runtime, err
 	instance.SetContextData(data)
 
 	r := &Runtime{
-		vm:    instance,
-		trie:  t,
-		mutex: sync.Mutex{},
+		vm:       instance,
+		trie:     t,
+		mutex:    sync.Mutex{},
 		keystore: ks,
 	}
 

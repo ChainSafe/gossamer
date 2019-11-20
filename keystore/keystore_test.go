@@ -1,4 +1,4 @@
-package keystore 
+package keystore
 
 import (
 	"reflect"

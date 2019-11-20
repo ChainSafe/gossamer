@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"github.com/btcsuite/btcutil/base58"
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/btcsuite/btcutil/base58"
 )
 
 type Keypair interface {

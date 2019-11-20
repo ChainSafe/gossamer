@@ -3,8 +3,8 @@ package crypto
 import (
 	"errors"
 
-	"github.com/ChainSafe/gossamer/common"
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // SigningContext is the context for signatures used or created with substrate

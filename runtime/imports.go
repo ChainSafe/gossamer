@@ -475,7 +475,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 		log.Debug("ext_sr25519_generate cannot generate key", "error", err)
 	}
 
-	log.Debug("ext_sr25519_generate", "public_key", kp.Public().Encode())
+	log.Debug("ext_sr25519_generate", "address", kp.Public().Address())
 
 	runtimeCtx.keystore.Insert(kp)
 
@@ -551,7 +551,7 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 		log.Debug("ext_ed25519_generate cannot generate key", "error", err)
 	}
 
-	log.Debug("ext_ed25519_generate", "public_key", kp.Public().Encode())
+	log.Debug("ext_ed25519_generate", "address", kp.Public().Address())
 
 	runtimeCtx.keystore.Insert(kp)
 

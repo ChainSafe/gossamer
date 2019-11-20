@@ -1,9 +1,9 @@
 package crypto
 
 import (
+	ed25519 "crypto/ed25519"
 	"crypto/rand"
 	"fmt"
-	ed25519 "crypto/ed25519"
 
 	"github.com/ChainSafe/gossamer/common"
 )
