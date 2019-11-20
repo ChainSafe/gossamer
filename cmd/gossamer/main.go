@@ -84,12 +84,16 @@ var (
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
 	accountCommand = cli.Command{
-		Action:      handleAccounts,
-		Name:        "account",
-		Usage:       "manage gossamer keystore",
-		Flags:       append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
-		Category:    "KEYSTORE",
-		Description: "The account command is used to manage the gossamer keystore: Usage: gossamer account --generate --type sr25519",
+		Action:   handleAccounts,
+		Name:     "account",
+		Usage:    "manage gossamer keystore",
+		Flags:    append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
+		Category: "KEYSTORE",
+		Description: "The account command is used to manage the gossamer keystore.\n" +
+			"\tTo generate a new sr25519 account: gossamer account --generate\n" +
+			"\tTo generate a new ed25519 account: gossamer account --generate --ed25519\n" +
+			"\tTo import a keystore file: gossamer account --import=path/to/file\n" +
+			"\tTo list keys: gossamer account --list",
 	}
 )
 
