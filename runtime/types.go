@@ -23,3 +23,14 @@ type Version struct {
 	Spec_version      int32
 	Impl_version      int32
 }
+
+var (
+	CoreVersion                               = "Core_version"
+	CoreExecuteBlock                          = "Core_execute_block"
+	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
+	BabeApiConfiguration                      = "BabeApi_configuration"
+)
+
+func GetWASMConfiguration(rt *Runtime, configuration string, loc int32, data []byte) ([]byte, error) {
+	return rt.Exec(configuration, loc, data)
+}

@@ -18,11 +18,12 @@ package babe
 
 import (
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/runtime"
 )
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	ret, err := b.rt.Exec("BabeApi_configuration", 1, []byte{})
+	ret, err := runtime.GetWASMConfiguration(b.rt, runtime.BabeApiConfiguration, 1, []byte{})
 	if err != nil {
 		return err
 	}
