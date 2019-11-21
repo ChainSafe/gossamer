@@ -205,7 +205,7 @@ func TestSendRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create end block hash (hex has no significance here)
+	// Create end block hash (arbitrary block hash)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
@@ -279,7 +279,7 @@ func TestGossiping(t *testing.T) {
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
 
-	// Create end block hash (hex has no significance here)
+	// Create end block hash (arbitrary block hash)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
