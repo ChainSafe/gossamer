@@ -79,6 +79,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	password := []byte("noot")
 
 	file, fp := createTestFile(t)
+	defer os.Remove(fp)
 
 	kp, err := crypto.GenerateSr25519Keypair()
 	if err != nil {
@@ -95,8 +96,6 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer os.Remove(fp)
 
 	if !bytes.Equal(priv.Encode(), res.Encode()) {
 		t.Fatalf("Fail: got %v expected %v", res, priv)
@@ -106,6 +105,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	password := []byte("noot")
 	file, fp := createTestFile(t)
+	defer os.Remove(fp)
 
 	kp, err := crypto.GenerateSr25519Keypair()
 	if err != nil {
@@ -122,8 +122,6 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer os.Remove(fp)
 
 	if !bytes.Equal(priv.Encode(), res.Encode()) {
 		t.Fatalf("Fail: got %v expected %v", res, priv)

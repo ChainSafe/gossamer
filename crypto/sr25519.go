@@ -41,8 +41,6 @@ func NewSr25519Keypair(priv *sr25519.SecretKey) (*Sr25519Keypair, error) {
 // NewSr25519KeypairFromSeed returns a new Sr25519Keypair given a seed
 func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
 	buf := [32]byte{}
-	// ignore last 6 bytes otherwise the seed might be too large
-	copy(buf[:], seed[:26])
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
