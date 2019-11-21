@@ -78,7 +78,7 @@ func TestBootstrap(t *testing.T) {
 	peerCountA := nodeA.host.peerCount()
 
 	if peerCountA != 1 {
-		t.Errorf("Expected peer count: 1. Got peer count: %d.", peerCountA)
+		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountA)
 	}
 }
 
@@ -118,7 +118,7 @@ func TestConnect(t *testing.T) {
 	peerCountB := nodeB.host.peerCount()
 
 	if peerCountB != 1 {
-		t.Errorf("Expected peer count: 1. Got peer count: %d.", peerCountB)
+		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountB)
 	}
 }
 
@@ -235,10 +235,10 @@ func TestSendRequest(t *testing.T) {
 	case message := <-sendChanB:
 		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockRequest) {
-			t.Error("Did not receive the correct message.")
+			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s.", nodeA.host.hostAddr)
+		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
 	}
 }
 
@@ -310,20 +310,20 @@ func TestGossiping(t *testing.T) {
 	case message := <-sendChanB:
 		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockRequest) {
-			t.Error("Did not receive the correct message.")
+			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s.", nodeA.host.hostAddr)
+		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
 	}
 
 	select {
 	case message := <-sendChanC:
 		// Compare received message to original message
 		if !reflect.DeepEqual(encBlockRequest, message) {
-			t.Error("Did not receive the correct message.")
+			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s.", nodeB.host.hostAddr)
+		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
 	}
 }
 
@@ -369,9 +369,9 @@ func TestReceiveChannel(t *testing.T) {
 	case message := <-sendChanB:
 		// Compare received message to original message
 		if !reflect.DeepEqual(message, encBlockAnnounce) {
-			t.Error("Did not receive the correct message.")
+			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s.", nodeB.host.hostAddr)
+		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
 	}
 }

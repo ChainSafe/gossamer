@@ -3,12 +3,105 @@ package p2p
 import (
 	"os"
 	"path"
+	"reflect"
 	"testing"
 )
 
-var testDir = path.Join(os.TempDir(), "gossamer-test")
+func TestGenerateKey(t *testing.T) {
+	testDir := path.Join(os.TempDir(), "gossamer-test")
+
+	defer os.RemoveAll(testDir)
+
+	keyA, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyB, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(keyA, keyB) {
+		t.Error("Generated keys should not match")
+	}
+
+	keyC, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyD, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(keyC, keyD) {
+		t.Error("Generated keys should match")
+	}
+}
+
+func TestSetupPrivateKey(t *testing.T) {
+	testDir1 := path.Join(os.TempDir(), "gossamer-test-1")
+
+	defer os.RemoveAll(testDir1)
+
+	configA := &Config{
+		DataDir: testDir1,
+	}
+
+	err := configA.setupPrivKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configB := &Config{
+		DataDir: testDir1,
+	}
+
+	err = configB.setupPrivKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(configA.privateKey, configB.privateKey) {
+		t.Error("Private keys should match")
+	}
+
+	testDir2 := path.Join(os.TempDir(), "gossamer-test-2")
+
+	defer os.RemoveAll(testDir2)
+
+	configC := &Config{
+		DataDir:  testDir2,
+		RandSeed: 1,
+	}
+
+	err = configC.setupPrivKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configD := &Config{
+		DataDir:  testDir2,
+		RandSeed: 2,
+	}
+
+	err = configD.setupPrivKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(configC.privateKey, configD.privateKey) {
+		t.Error("Private keys should not match")
+	}
+}
 
 func TestBuildOptions(t *testing.T) {
+	testDir := path.Join(os.TempDir(), "gossamer-test")
+
+	defer os.RemoveAll(testDir)
+
 	configA := &Config{
 		DataDir: testDir,
 	}
@@ -18,8 +111,36 @@ func TestBuildOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if configA.BootstrapNodes != nil {
+		t.Error("BootstrapNodes should be nil")
+	}
+
+	if configA.ProtocolId != "" {
+		t.Error("ProtocolId should be an empty string")
+	}
+
+	if configA.Port != 0 {
+		t.Error("Port should be 0")
+	}
+
+	if configA.RandSeed != 0 {
+		t.Error("RandSeed should be 0")
+	}
+
+	if configA.NoBootstrap != false {
+		t.Error("NoBootstrap should be false")
+	}
+
+	if configA.NoMdns != false {
+		t.Error("NoMdns should be false")
+	}
+
+	if configA.DataDir != testDir {
+		t.Errorf("DataDir should be %s", testDir)
+	}
+
 	if configA.privateKey == nil {
-		t.Error("Private key was not set.")
+		t.Error("pivateKey should defined")
 	}
 
 	configB := &Config{
@@ -31,37 +152,7 @@ func TestBuildOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if configA.privateKey == configB.privateKey {
-		t.Error("Private keys should not match.")
-	}
-}
-
-func TestSetupPrivKey(t *testing.T) {
-	configA := &Config{
-		BootstrapNodes: nil,
-		Port:           0,
-		RandSeed:       0,
-		NoBootstrap:    true,
-		NoMdns:         true,
-		DataDir:        testDir,
-		privateKey:     nil,
-	}
-
-	err := configA.setupPrivKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Load private key
-	configB := &(*configA)
-	configB.privateKey = nil
-
-	err = configB.setupPrivKey()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !configA.privateKey.Equals(configB.privateKey) {
-		t.Errorf("keys don't match. publicA: %s publicB: %s", configA.privateKey.GetPublic(), configB.privateKey.GetPublic())
+	if !reflect.DeepEqual(configA.privateKey, configB.privateKey) {
+		t.Error("Private keys should match")
 	}
 }
