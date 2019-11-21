@@ -105,35 +105,23 @@ func TestBuildOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if configA.BootstrapNodes != nil {
-		t.Error("BootstrapNodes should be nil")
+	key, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if configA.ProtocolId != "" {
-		t.Error("ProtocolId should be an empty string")
+	configB := &Config{
+		BootstrapNodes: nil,
+		ProtocolId:     "",
+		Port:           0,
+		RandSeed:       0,
+		NoBootstrap:    false,
+		NoMdns:         false,
+		DataDir:        testDir,
+		privateKey:     key,
 	}
 
-	if configA.Port != 0 {
-		t.Error("Port should be 0")
-	}
-
-	if configA.RandSeed != 0 {
-		t.Error("RandSeed should be 0")
-	}
-
-	if configA.NoBootstrap != false {
-		t.Error("NoBootstrap should be false")
-	}
-
-	if configA.NoMdns != false {
-		t.Error("NoMdns should be false")
-	}
-
-	if configA.DataDir != testDir {
-		t.Errorf("DataDir should be %s", testDir)
-	}
-
-	if configA.privateKey == nil {
-		t.Error("pivateKey should defined")
+	if reflect.DeepEqual(configA, configB) {
+		t.Error("Configurations should the same")
 	}
 }
