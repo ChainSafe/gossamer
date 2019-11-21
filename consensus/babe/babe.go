@@ -201,7 +201,7 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 }
 
 // BuildBlock Builds the block
-func (s *Session) buildBlock(number *big.Int) (*types.Block, error) {
+func (b *Session) buildBlock(number *big.Int) (*types.Block, error) {
 	block := types.Block{
 		Header: types.BlockHeader{Number: number},
 		Body:   []byte{1, 2, 3, 4, 5},
