@@ -42,12 +42,12 @@ func TestGenerateKey(t *testing.T) {
 }
 
 func TestSetupPrivateKey(t *testing.T) {
-	testDir1 := path.Join(os.TempDir(), "gossamer-test-1")
+	testDir := path.Join(os.TempDir(), "gossamer-test")
 
-	defer os.RemoveAll(testDir1)
+	defer os.RemoveAll(testDir)
 
 	configA := &Config{
-		DataDir: testDir1,
+		DataDir: testDir,
 	}
 
 	err := configA.setupPrivKey()
@@ -56,7 +56,7 @@ func TestSetupPrivateKey(t *testing.T) {
 	}
 
 	configB := &Config{
-		DataDir: testDir1,
+		DataDir: testDir,
 	}
 
 	err = configB.setupPrivKey()
@@ -68,12 +68,7 @@ func TestSetupPrivateKey(t *testing.T) {
 		t.Error("Private keys should match")
 	}
 
-	testDir2 := path.Join(os.TempDir(), "gossamer-test-2")
-
-	defer os.RemoveAll(testDir2)
-
 	configC := &Config{
-		DataDir:  testDir2,
 		RandSeed: 1,
 	}
 
@@ -83,7 +78,6 @@ func TestSetupPrivateKey(t *testing.T) {
 	}
 
 	configD := &Config{
-		DataDir:  testDir2,
 		RandSeed: 2,
 	}
 
@@ -141,18 +135,5 @@ func TestBuildOptions(t *testing.T) {
 
 	if configA.privateKey == nil {
 		t.Error("pivateKey should defined")
-	}
-
-	configB := &Config{
-		DataDir: testDir,
-	}
-
-	_, err = configB.buildOpts()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(configA.privateKey, configB.privateKey) {
-		t.Error("Private keys should match")
 	}
 }
