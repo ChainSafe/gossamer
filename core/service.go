@@ -20,7 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
-	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -73,16 +72,11 @@ func (s *Service) start(e chan error) {
 		}
 
 		msgType := msg.GetType()
-		encMsg, err := msg.Encode()
-		if err != nil {
-			log.Error("encode message", "error", err)
-			e <- err
-		}
 
 		switch msgType {
 		case p2p.TransactionMsgType:
 			// process tx
-			err := s.ProcessTransaction(encMsg[1:])
+			err := s.ProcessTransactionMessage(msg)
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -93,7 +87,7 @@ func (s *Service) start(e chan error) {
 			// process block
 		case p2p.BlockResponseMsgType:
 			// process response
-			err := s.ProcessBlock(encMsg[1:])
+			err := s.ProcessBlock(msg)
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -121,22 +115,30 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 // ProcessTransaction attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
-func (s *Service) ProcessTransaction(e types.Extrinsic) error {
-	validity, err := s.validateTransaction(e)
-	if err != nil {
-		log.Error("ProcessTransaction", "error", err)
-		return err
-	}
+func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
+	extrinsics := msg.(*p2p.TransactionMessage).Extrinsics
 
-	vtx := tx.NewValidTransaction(&e, validity)
-	s.b.PushToTxQueue(vtx)
+	for _, e := range extrinsics {
+		validity, err := s.validateTransaction(e)
+		if err != nil {
+			log.Error("ProcessTransaction", "error", err)
+			return err
+		}
+
+		vtx := tx.NewValidTransaction(&e, validity)
+
+		s.b.PushToTxQueue(vtx)
+	}
 
 	return nil
 }
 
 // ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlock(b []byte) error {
-	err := s.validateBlock(b)
+func (s *Service) ProcessBlock(msg p2p.Message) error {
+	block := msg.(*p2p.BlockResponseMessage).Data
+
+	err := s.validateBlock(block)
+
 	return err
 }
