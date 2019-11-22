@@ -27,7 +27,7 @@ import (
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
-func startNewService(t *testing.T, cfg *Config, msgSend chan []byte, msgRec chan BlockAnnounceMessage) *Service {
+func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
 		t.Fatal(err)
@@ -140,7 +140,7 @@ func TestPing(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan []byte)
+	msgSendB := make(chan Message)
 
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
@@ -181,7 +181,7 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan []byte)
+	msgSendB := make(chan Message)
 
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
@@ -233,8 +233,12 @@ func TestSendRequest(t *testing.T) {
 
 	select {
 	case message := <-msgSendB:
+		encMessage, err := message.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
 		// Compare received message to original message
-		if !reflect.DeepEqual(message, encBlockRequest) {
+		if !reflect.DeepEqual(encMessage, encBlockRequest) {
 			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
@@ -262,7 +266,7 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan []byte)
+	msgSendB := make(chan Message)
 
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
@@ -274,7 +278,7 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendC := make(chan []byte)
+	msgSendC := make(chan Message)
 
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
@@ -308,8 +312,12 @@ func TestGossiping(t *testing.T) {
 
 	select {
 	case message := <-msgSendB:
+		encMessage, err := message.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
 		// Compare received message to original message
-		if !reflect.DeepEqual(message, encBlockRequest) {
+		if !reflect.DeepEqual(encMessage, encBlockRequest) {
 			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
@@ -318,8 +326,12 @@ func TestGossiping(t *testing.T) {
 
 	select {
 	case message := <-msgSendC:
+		encMessage, err := message.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
 		// Compare received message to original message
-		if !reflect.DeepEqual(encBlockRequest, message) {
+		if !reflect.DeepEqual(encMessage, encBlockRequest) {
 			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
@@ -335,7 +347,7 @@ func TestReceiveChannel(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgRecA := make(chan BlockAnnounceMessage)
+	msgRecA := make(chan Message)
 
 	nodeA := startNewService(t, configA, nil, msgRecA)
 	defer nodeA.Stop()
@@ -349,12 +361,12 @@ func TestReceiveChannel(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan []byte)
+	msgSendB := make(chan Message)
 
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	blockAnnounce := BlockAnnounceMessage{
+	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
 	}
 
@@ -367,8 +379,12 @@ func TestReceiveChannel(t *testing.T) {
 
 	select {
 	case message := <-msgSendB:
+		encMessage, err := message.Encode()
+		if err != nil {
+			t.Fatal(err)
+		}
 		// Compare received message to original message
-		if !reflect.DeepEqual(message, encBlockAnnounce) {
+		if !reflect.DeepEqual(encMessage, encBlockAnnounce) {
 			t.Error("Did not receive the correct message")
 		}
 	case <-time.After(30 * time.Second):
