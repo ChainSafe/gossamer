@@ -75,7 +75,6 @@ func (s *Service) start(e chan error) {
 
 		switch msgType {
 		case p2p.TransactionMsgType:
-			// process tx
 			err := s.ProcessTransactionMessage(msg)
 			if err != nil {
 				log.Error("core service", "error", err)
@@ -84,10 +83,9 @@ func (s *Service) start(e chan error) {
 			e <- nil
 		case p2p.BlockAnnounceMsgType:
 			// get extrinsics by sending BlockRequest message
-			// process block
+			// process block announce message
 		case p2p.BlockResponseMsgType:
-			// process response
-			err := s.ProcessBlock(msg)
+			err := s.ProcessBlockResponseMessage(msg)
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -113,19 +111,21 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.rt.StorageRoot()
 }
 
-// ProcessTransaction attempts to validates the transaction
+// ProcessTransactionMessage attempts to validates the transaction
 // if it is validated, it is added to the transaction pool of the BABE session
 func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 	extrinsics := msg.(*p2p.TransactionMessage).Extrinsics
 
-	for _, e := range extrinsics {
-		validity, err := s.validateTransaction(e)
+	for _, extrinsic := range extrinsics {
+		extrinsic := extrinsic // pin
+
+		validity, err := s.validateTransaction(extrinsic)
 		if err != nil {
 			log.Error("ProcessTransaction", "error", err)
 			return err
 		}
 
-		vtx := tx.NewValidTransaction(&e, validity)
+		vtx := tx.NewValidTransaction(&extrinsic, validity)
 
 		s.b.PushToTxQueue(vtx)
 	}
@@ -133,9 +133,9 @@ func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 	return nil
 }
 
-// ProcessBlock attempts to add a block to the chain by calling `core_execute_block`
+// ProcessBlockResponseMessage attempts to add a block to the chain by calling `core_execute_block`
 // if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlock(msg p2p.Message) error {
+func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	block := msg.(*p2p.BlockResponseMessage).Data
 
 	err := s.validateBlock(block)
