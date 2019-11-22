@@ -27,16 +27,16 @@ import (
 // The zero value is an empty trie with no database.
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
-	db   *Database
-	root node
+	db       *Database
+	root     node
 	children map[common.Hash]*Trie
 }
 
 // NewEmptyTrie creates a trie with a nil root and merkleRoot
 func NewEmptyTrie(db *Database) *Trie {
 	return &Trie{
-		db:   db,
-		root: nil,
+		db:       db,
+		root:     nil,
 		children: make(map[common.Hash]*Trie),
 	}
 }
@@ -44,8 +44,8 @@ func NewEmptyTrie(db *Database) *Trie {
 // NewTrie creates a trie with an existing root node from db
 func NewTrie(db *Database, root node) *Trie {
 	return &Trie{
-		db:   db,
-		root: root,
+		db:       db,
+		root:     root,
 		children: make(map[common.Hash]*Trie),
 	}
 }
