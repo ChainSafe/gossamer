@@ -80,14 +80,14 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
 	// TODO: BABE
-	coreToP2p := make(chan p2p.Message)
+	msgRec := make(chan p2p.Message)
 
 	// P2P
-	p2pSrvc, p2pToCore := createP2PService(fig, gendata)
+	p2pSrvc, msgSend := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
-	coreSrvc, err := core.NewService(r, p2pToCore, coreToP2p)
+	coreSrvc, err := core.NewService(r, msgSend, msgRec)
 	if err != nil {
 		return nil, nil, err
 	}
