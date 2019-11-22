@@ -8,7 +8,7 @@ import (
 
 var ChildStorageKeyPrefix = []byte(":child_storage:")
 
-func (t *Trie) PutChild(child *Trie, childKey []byte) error {
+func (t *Trie) PutChild(childKey []byte, child *Trie) error {
 	childHash, err := child.Hash()
 	if err != nil {
 		return err
@@ -25,20 +25,42 @@ func (t *Trie) PutChild(child *Trie, childKey []byte) error {
 	}
 
 	value := [32]byte(childHash)
-	return t.Put(key, value[:])
-}
-
-func (t *Trie) PutIntoChild(storageKey, key, value []byte) error {
-	childHash, err := t.Get(storageKey)
+	err = t.Put(key, value[:])
 	if err != nil {
 		return err
 	}
 
+	t.children[common.Hash(childHash)] = child
+	return nil
+}
+
+func (t *Trie) GetChild(storageKey []byte) (*Trie, error) {
+	childHash, err := t.Get(storageKey)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(childHash)
+
 	hash := [32]byte{}
 	copy(hash[:], childHash)
-	childTrie := t.children[common.Hash(hash)]
+	return t.children[common.Hash(hash)], nil
+}
+
+func (t *Trie) PutIntoChild(storageKey, key, value []byte) error {
+	childTrie, err := t.GetChild(storageKey)
+	if err != nil {
+		return err
+	}
 
 	return childTrie.Put(key, value)
 }
 
-//func (t *Trie)
+func (t *Trie) GetFromChild(storageKey, key []byte) ([]byte, error) {
+	childTrie, err := t.GetChild(storageKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return childTrie.Get(key)
+}

@@ -37,6 +37,7 @@ func NewEmptyTrie(db *Database) *Trie {
 	return &Trie{
 		db:   db,
 		root: nil,
+		children: make(map[common.Hash]*Trie),
 	}
 }
 
@@ -45,6 +46,7 @@ func NewTrie(db *Database, root node) *Trie {
 	return &Trie{
 		db:   db,
 		root: root,
+		children: make(map[common.Hash]*Trie),
 	}
 }
 
