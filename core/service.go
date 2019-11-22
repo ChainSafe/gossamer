@@ -17,15 +17,14 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/internal/services"
-	log "github.com/ChainSafe/log15"
-
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
+	log "github.com/ChainSafe/log15"
 )
 
 var _ services.Service = &Service{}
@@ -37,22 +36,22 @@ type Service struct {
 	rt *runtime.Runtime
 	b  *babe.Session
 
-	recChan  <-chan []byte
-	sendChan chan<- p2p.Message
+	msgRec  <-chan p2p.Message
+	msgSend chan<- p2p.Message
 }
 
 // NewService returns a Service that connects the runtime, BABE, and the p2p messages.
-func NewService(rt *runtime.Runtime, recChan <-chan []byte, sendChan chan<- p2p.Message) (*Service, error) {
-	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, sendChan)
+func NewService(rt *runtime.Runtime, msgRec <-chan p2p.Message, msgSend chan<- p2p.Message) (*Service, error) {
+	b, err := babe.NewSession([32]byte{}, [64]byte{}, rt, msgSend)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Service{
-		rt:       rt,
-		b:        b,
-		recChan:  recChan,
-		sendChan: sendChan,
+		rt:      rt,
+		b:       b,
+		msgRec:  msgRec,
+		msgSend: msgSend,
 	}, nil
 }
 
@@ -67,17 +66,23 @@ func (s *Service) start(e chan error) {
 	e <- nil
 
 	for {
-		msg, ok := <-s.recChan
+		msg, ok := <-s.msgRec
 		if !ok {
 			log.Warn("core service message watcher", "error", "channel closed")
 			break
 		}
 
-		msgType := msg[0]
+		msgType := msg.GetType()
+		encMsg, err := msg.Encode()
+		if err != nil {
+			log.Error("encode message", "error", err)
+			e <- err
+		}
+
 		switch msgType {
 		case p2p.TransactionMsgType:
 			// process tx
-			err := s.ProcessTransaction(msg[1:])
+			err := s.ProcessTransaction(encMsg[1:])
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -88,7 +93,7 @@ func (s *Service) start(e chan error) {
 			// process block
 		case p2p.BlockResponseMsgType:
 			// process response
-			err := s.ProcessBlock(msg[1:])
+			err := s.ProcessBlock(encMsg[1:])
 			if err != nil {
 				log.Error("core service", "error", err)
 				e <- err
@@ -104,8 +109,8 @@ func (s *Service) Stop() error {
 	if s.rt != nil {
 		s.rt.Stop()
 	}
-	if s.sendChan != nil {
-		close(s.sendChan)
+	if s.msgSend != nil {
+		close(s.msgSend)
 	}
 	return nil
 }
