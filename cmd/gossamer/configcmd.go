@@ -187,7 +187,7 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan []byte) {
+func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message) {
 	config := p2p.Config{
 		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
 		Port:           fig.P2p.Port,
@@ -198,13 +198,13 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		ProtocolId:     string(gendata.ProtocolId),
 	}
 
-	msgChan := make(chan []byte)
+	msgSend := make(chan p2p.Message)
 
-	srvc, err := p2p.NewService(&config, msgChan, nil)
+	srvc, err := p2p.NewService(&config, msgSend, nil)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srvc, msgChan
+	return srvc, msgSend
 }
 
 func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
