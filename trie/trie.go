@@ -151,10 +151,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
-		if bytes.Equal(p.key, key) && len(key) == length {
-			return true, value, nil
-		}
-
 		br.key = key[:length]
 		parentKey := p.key
 
