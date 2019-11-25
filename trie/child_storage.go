@@ -16,7 +16,7 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 		return err
 	}
 
-	key := append(ChildStorageKeyPrefix, keyToChild[:]...)
+	key := append(ChildStorageKeyPrefix, keyToChild...)
 	value := [32]byte(childHash)
 
 	err = t.Put(key, value[:])
@@ -30,7 +30,7 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
-	key := append(ChildStorageKeyPrefix, keyToChild[:]...)
+	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash, err := t.Get(key)
 	if err != nil {
 		return nil, err
