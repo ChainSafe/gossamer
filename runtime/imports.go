@@ -493,14 +493,15 @@ func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	mutex.RUnlock()
 
 	keys := runtimeCtx.keystore.Ed25519PublicKeys()
-	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys)*32))
+	// TODO: when do deallocate?
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
 		log.Error("[ext_sr25519_public_keys]", "error", err)
 		return -1
-	}	
+	}
 
-	for _, key := range keys {
-		copy(memory[offset:offset+32], key.Encode())
+	for i, key := range keys {
+		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
 	}
 
 	buf := make([]byte, 4)
@@ -519,16 +520,16 @@ func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.RUnlock()
 
-	keys := runtimeCtx.keystore.Ed25519PublicKeys()
+	keys := runtimeCtx.keystore.Sr25519PublicKeys()
 
-	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys)*32))
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
 		log.Error("[ext_sr25519_public_keys]", "error", err)
 		return -1
-	}	
+	}
 
-	for _, key := range keys {
-		copy(memory[offset:offset+32], key.Encode())
+	for i, key := range keys {
+		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
 	}
 
 	buf := make([]byte, 4)
