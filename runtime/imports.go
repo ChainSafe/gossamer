@@ -541,14 +541,72 @@ func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 //export ext_ed25519_sign
 func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
 	log.Debug("[ext_ed25519_sign] executing...")
-	log.Warn("[ext_ed25519_sign] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	mutex.RLock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.RUnlock()
+
+	keys := runtimeCtx.keystore.Ed25519Keypairs()
+
+	pubkey := memory[pubkeyData : pubkeyData+32]
+	var signingKey crypto.Keypair
+	for _, key := range keys {
+		if bytes.Equal(key.Public().Encode(), pubkey) {
+			signingKey = key
+		}
+	}
+
+	if signingKey == nil {
+		log.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
+		return 1
+	}
+
+	msg := memory[msgData : msgData+msgLen]
+	sig, err := signingKey.Sign(msg)
+	if err != nil {
+		log.Error("[ext_ed25519_sign] could not sign message")
+		return 1
+	}
+
+	copy(memory[out:out+64], sig)
 	return 0
 }
 
 //export ext_sr25519_sign
 func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
 	log.Debug("[ext_sr25519_sign] executing...")
-	log.Warn("[ext_sr25519_sign] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	mutex.RLock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.RUnlock()
+
+	keys := runtimeCtx.keystore.Sr25519Keypairs()
+
+	pubkey := memory[pubkeyData : pubkeyData+32]
+	var signingKey crypto.Keypair
+	for _, key := range keys {
+		if bytes.Equal(key.Public().Encode(), pubkey) {
+			signingKey = key
+		}
+	}
+
+	if signingKey == nil {
+		log.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
+		return 1
+	}
+
+	msg := memory[msgData : msgData+msgLen]
+	sig, err := signingKey.Sign(msg)
+	if err != nil {
+		log.Error("[ext_sr25519_sign] could not sign message")
+		return 1
+	}
+
+	copy(memory[out:out+64], sig)
 	return 0
 }
 

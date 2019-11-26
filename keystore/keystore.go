@@ -43,6 +43,16 @@ func (ks *Keystore) Ed25519PublicKeys() []crypto.PublicKey {
 	return edkeys
 }
 
+func (ks *Keystore) Ed25519Keypairs() []crypto.Keypair {
+	edkeys := []crypto.Keypair{}
+	for _, key := range ks.keys {
+		if _, ok := key.(*crypto.Ed25519Keypair); ok {
+			edkeys = append(edkeys, key)
+		}
+	}
+	return edkeys
+}
+
 func (ks *Keystore) Sr25519PublicKeys() []crypto.PublicKey {
 	srkeys := []crypto.PublicKey{}
 	for _, key := range ks.keys {
@@ -51,4 +61,14 @@ func (ks *Keystore) Sr25519PublicKeys() []crypto.PublicKey {
 		}
 	}
 	return srkeys
+}
+
+func (ks *Keystore) Sr25519Keypairs() []crypto.Keypair {
+	edkeys := []crypto.Keypair{}
+	for _, key := range ks.keys {
+		if _, ok := key.(*crypto.Sr25519Keypair); ok {
+			edkeys = append(edkeys, key)
+		}
+	}
+	return edkeys
 }
