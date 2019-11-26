@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
@@ -63,10 +64,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
+	// TODO: load all static keys from keystore directory
+	ks := keystore.NewKeystore()
+
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	db := trie.NewDatabase(dbSrv.StateDB.Db)
 	state := trie.NewEmptyTrie(db)
-	r, err := loadStateAndRuntime(state)
+	r, err := loadStateAndRuntime(state, ks)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
 	}
@@ -80,14 +84,17 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
 	// TODO: BABE
-	coreToP2p := make(chan []byte)
+	msgRec := make(chan p2p.Message)
 
 	// P2P
-	p2pSrvc, p2pToCore := createP2PService(fig, gendata)
+	p2pSrvc, msgSend := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
-	coreSrvc := core.NewService(r, nil, p2pToCore, coreToP2p)
+	coreSrvc, err := core.NewService(r, msgSend, msgRec)
+	if err != nil {
+		return nil, nil, err
+	}
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
@@ -100,7 +107,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
 
-func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
+func loadStateAndRuntime(t *trie.Trie, ks *keystore.Keystore) (*runtime.Runtime, error) {
 	latestState, err := t.LoadHash()
 	if err != nil {
 		return nil, fmt.Errorf("cannot load latest state root hash: %s", err)
@@ -116,14 +123,14 @@ func loadStateAndRuntime(t *trie.Trie) (*runtime.Runtime, error) {
 		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
 	}
 
-	return runtime.NewRuntime(code, t)
+	return runtime.NewRuntime(code, t, ks)
 }
 
 // getConfig checks for config.toml if --config flag is specified and sets CLI flags
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	fig := cfg.DefaultConfig()
 	// Load config file.
-	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
+	if file := ctx.GlobalString(utils.ConfigFileFlag.Name); file != "" {
 		err := loadConfig(file, fig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
@@ -184,7 +191,7 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 }
 
 // createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan []byte) {
+func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message) {
 	config := p2p.Config{
 		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
 		Port:           fig.P2p.Port,
@@ -195,13 +202,13 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		ProtocolId:     string(gendata.ProtocolId),
 	}
 
-	msgChan := make(chan []byte)
+	msgSend := make(chan p2p.Message)
 
-	srvc, err := p2p.NewService(&config, msgChan, nil)
+	srvc, err := p2p.NewService(&config, msgSend, nil)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srvc, msgChan
+	return srvc, msgSend
 }
 
 func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
