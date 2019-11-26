@@ -19,77 +19,96 @@ package p2p
 import (
 	"bufio"
 	"context"
-	"fmt"
+	"time"
 
-	module "github.com/ChainSafe/gossamer/internal/api/modules"
-	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 
+	"github.com/libp2p/go-libp2p-core/network"
 	net "github.com/libp2p/go-libp2p-core/network"
 )
 
-var _ services.Service = &Service{}
+// var _ module.P2pApi = &Service{}
+// var _ services.Service = &Service{}
 
-// Service describes a p2p service, including host and dht
+// `Service` describes a p2p service, which includes a host wrapper, message
+// channels, and message mappings used for tracking received messages.
 type Service struct {
 	ctx              context.Context
 	host             *host
-	msgSend          chan<- Message
 	msgRec           <-chan Message
+	msgSend          chan<- Message
+	blockAnnounceRec map[string]bool
 	blockReqRec      map[string]bool
 	blockRespRec     map[string]bool
-	blockAnnounceRec map[string]bool
 	txMessageRec     map[string]bool
 }
 
-// NewService creates a new p2p.Service using the service config. It initializes the host and dht
+// TODO: Use generated status message
+var statusMessage = &StatusMessage{
+	ProtocolVersion:     0,
+	MinSupportedVersion: 0,
+	Roles:               0,
+	BestBlockNumber:     0,
+	BestBlockHash:       common.Hash{0x00},
+	GenesisHash:         common.Hash{0x00},
+	ChainStatus:         []byte{0},
+}
+
+// `NewService` creates a new p2p service from the provided configuration and message channels
 func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
+
+	// Create background context
 	ctx := context.Background()
 
-	host, err := newHost(ctx, conf)
+	// Create new host instance
+	h, err := newHost(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 
+	// Set service
 	s := &Service{
-		ctx:     ctx,
-		host:    host,
-		msgSend: msgSend,
-		msgRec:  msgRec,
+		ctx:              ctx,
+		host:             h,
+		msgRec:           msgRec,
+		msgSend:          msgSend,
+		blockAnnounceRec: make(map[string]bool),
+		blockReqRec:      make(map[string]bool),
+		blockRespRec:     make(map[string]bool),
+		txMessageRec:     make(map[string]bool),
 	}
 
-	host.registerStreamHandler(s.handleStream)
-
-	s.blockReqRec = make(map[string]bool)
-	s.blockRespRec = make(map[string]bool)
-	s.blockAnnounceRec = make(map[string]bool)
-	s.txMessageRec = make(map[string]bool)
+	// Set stream handler on host instance
+	h.registerStreamHandler(s.handleStream)
 
 	return s, err
 }
 
-// Start begins the p2p Service, including discovery
+// `Start` starts the service
 func (s *Service) Start() error {
 	s.host.startMdns()
 	s.host.bootstrap()
 	s.host.logAddrs()
 
-	log.Info("Listening for connections...")
-
-	log.Debug("Starting Message Polling for Block Announce Messages from BABE")
-
+	// Create error channel. Errors from goroutines are received through an
+	// error channel at the network level and never returned.
 	e := make(chan error)
 
-	go s.MsgRecPoll(e)
+	// Start sending status messages to connected peers
+	go s.sendStatusMessages(e)
+
+	// Start broadcasting received messages to all peers
+	go s.broadcastReceivedMessages(e)
 
 	return nil
 }
 
-// Stop stops the p2p service
+// `Stop` stops the service
 func (s *Service) Stop() error {
 	err := s.host.close()
 	if err != nil {
-		log.Error("error closing host", "err", err)
+		log.Error("close host", "error", err)
 	}
 
 	if s.msgSend != nil {
@@ -99,14 +118,57 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// MsgRecPoll starts polling the msgRec channel for any blocks
-func (s *Service) MsgRecPoll(e chan error) {
+// `sendStatusMessages` starts a loop that sends the current network state as
+// a status message to each connected peer every 5 seconds.
+func (s *Service) sendStatusMessages(e chan error) {
 	for {
+
+		// TODO: Use generated status message
+		msg := statusMessage
+
+		// Loop through connected peers
+		for _, peer := range s.host.h.Network().Peers() {
+
+			// Write status message to data stream
+			err := s.host.send(peer, msg)
+			if err != nil {
+				e <- err
+				break
+			}
+
+			log.Debug(
+				"sending message",
+				"host", s.host.h.ID(),
+				"peer", peer,
+				"message", msg,
+			)
+
+			// Write status message to `msgSend` channel
+			s.msgSend <- msg
+		}
+
+		// Send status messages every 5 seconds
+		time.Sleep(5 * time.Second)
+	}
+}
+
+// `broadcastReceivedMessages` starts a loop that polls the `msgRec` channel,
+// checks whether the message is a status message or the message has already
+// been received, and then broadcasts new non-status messages to all peers.
+func (s *Service) broadcastReceivedMessages(e chan error) {
+	for {
+
+		// Receive message from babe
 		msg := <-s.msgRec
 
-		host := s.host.hostAddr
-		log.Info("received message", "host", host, "message", msg)
+		log.Debug(
+			"received message",
+			"host", s.host.id(),
+			"channel", "msgRec",
+			"message", msg,
+		)
 
+		// Broadcast new non-status messages
 		err := s.Broadcast(msg)
 		if err != nil {
 			e <- err
@@ -115,9 +177,17 @@ func (s *Service) MsgRecPoll(e chan error) {
 	}
 }
 
-// Broadcast sends a message to all peers
+// `Broadcast` checks whether a message has been added to the corresponding
+// list of received messages. If the host has not received the message, the
+// message will be saved to the list and then broadcasted to all peers.
 func (s *Service) Broadcast(msg Message) (err error) {
-	// If the node hasn't received the message yet, add it to a list of received messages & rebroadcast it
+
+	log.Debug(
+		"broadcast check",
+		"host", s.host.id(),
+		"message", msg,
+	)
+
 	msgType := msg.GetType()
 
 	switch msgType {
@@ -146,102 +216,192 @@ func (s *Service) Broadcast(msg Message) (err error) {
 		return nil
 	}
 
-	encodedMsg, err := msg.Encode()
-	if err != nil {
-		return err
-	}
+	log.Debug(
+		"broadcast message",
+		"host", s.host.id(),
+		"message", msg,
+	)
 
-	s.host.broadcast(encodedMsg)
+	s.host.broadcast(msg)
 
 	return err
 }
 
-// handleStream handles the stream, and rebroadcasts the message based on it's type
+// `handleStream` parses the message written to the data stream and calls the
+// associated message handler (status or non-status) based on message type.
 func (s *Service) handleStream(stream net.Stream) {
+
+	// Parse message and exit on error
 	msg, _, err := parseMessage(stream)
 	if err != nil {
+		log.Debug("parse message", "error", err)
 		return
 	}
 
-	// Write the message back to channel
-	s.msgSend <- msg
+	log.Debug(
+		"received message",
+		"host", stream.Conn().LocalPeer(),
+		"peer", stream.Conn().RemotePeer(),
+		"protocol", stream.Protocol(),
+		"message", msg,
+	)
 
-	// Rebroadcast all messages except for status messages
-	if msg.GetType() != StatusMsgType {
-		err = s.Broadcast(msg)
-		if err != nil {
-			log.Debug("failed to broadcast message: ", err)
-			return
-		}
+	if msg.GetType() == StatusMsgType {
+		// Handle status message
+		s.handleStreamStatus(stream, msg)
+	} else {
+		// Handle non-status message
+		s.handleStreamNonStatus(stream, msg)
 	}
+
 }
 
-var _ module.P2pApi = &Service{}
+// `handleStreamStatus` handles status messages written to the stream.
+func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 
-// ID returns the host's ID
+	// TODO: Use generated status message
+	hostStatus := statusMessage
+
+	switch {
+	case hostStatus.String() <= msg.String():
+		log.Debug(
+			"status match",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+		)
+
+		// TODO: Store peer status in peer metadata
+		s.host.peerStatus[stream.Conn().RemotePeer()] = true
+
+	default:
+		log.Debug(
+			"status mismatch",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+		)
+
+		// TODO: Store peer status in peer metadata
+		s.host.peerStatus[stream.Conn().RemotePeer()] = false
+
+		// TODO: Drop peer if status mismatch
+
+	}
+
+	// Write status message to `msgSend` channel
+	s.msgSend <- msg
+
+}
+
+// `handleStreamNonStatus` handles non-status messages written to the stream.
+func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
+
+	// TODO: Get peer status from peer metadata
+	status := s.host.peerStatus[stream.Conn().RemotePeer()]
+
+	log.Debug(
+		"status check",
+		"host", stream.Conn().LocalPeer(),
+		"peer", stream.Conn().RemotePeer(),
+		"status", status,
+	)
+
+	// Exit if status message has not been confirmed
+	if !status {
+		return
+	}
+
+	// Check if message has already been received and broadcast if new message
+	err := s.Broadcast(msg)
+	if err != nil {
+		log.Error(
+			"broadcast message",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"error", err,
+		)
+		return
+	}
+
+	// Write non-status message to `msgSend` channel
+	s.msgSend <- msg
+
+}
+
+// `ID` returns the host id
 func (s *Service) ID() string {
 	return s.host.id()
 }
 
-// Peers returns connected peers
+// `Peers` returns connected peers
 func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.h.Network().Peers())
 }
 
-// PeerCount returns the number of connected peers
+// `PeerCount` returns the number of connected peers
 func (s *Service) PeerCount() int {
 	return s.host.peerCount()
 }
 
-// NoBootstrapping returns true if bootstrapping is disabled, otherwise false
+// `NoBootstrapping` returns true if bootstrapping is disabled, otherwise false
 func (s *Service) NoBootstrapping() bool {
 	return s.host.noBootstrap
 }
 
-// parseMessage reads message length, message type, decodes message based on type, and returns the decoded message
+// `parseMessage` reads message length, message type, decodes message based on
+// type, and returns the decoded message
 func parseMessage(stream net.Stream) (Message, []byte, error) {
-	defer func() {
-		if err := stream.Close(); err != nil {
-			log.Error("fail to close stream", "error", err)
-		}
-	}()
-
-	log.Debug("got stream", "peer", stream.Conn().RemotePeer())
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
 	lengthByte, err := rw.Reader.ReadByte()
 	if err != nil {
-		log.Error("failed to read message length", "peer", stream.Conn().RemotePeer(), "error", err)
+		log.Error(
+			"failed to read message length",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"error", err,
+		)
 		return nil, nil, err
 	}
 
-	// decode message length using LEB128
+	// Decode message length using LEB128
 	length := LEB128ToUint64([]byte{lengthByte})
 
-	// read message type byte
-	msgType, err := rw.Reader.Peek(1)
+	// Read message type byte
+	_, err = rw.Reader.Peek(1)
 	if err != nil {
-		log.Error("failed to read message type", "err", err)
+		log.Error(
+			"failed to read message type",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"err", err,
+		)
 		return nil, nil, err
 	}
 
-	// read entire message
+	// Read entire message
 	rawMsg, err := rw.Reader.Peek(int(length))
 	if err != nil {
-		log.Error("failed to read message", "err", err)
+		log.Error(
+			"failed to read message",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"err", err,
+		)
 		return nil, nil, err
 	}
 
-	log.Debug("got stream", "peer", stream.Conn().RemotePeer(), "msg", fmt.Sprintf("0x%x", rawMsg))
-
-	// decode message
+	// Decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
-		log.Error("failed to decode message", "error", err)
+		log.Error(
+			"failed to decode message",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"error", err,
+		)
 		return nil, nil, err
 	}
-
-	log.Debug("got message", "peer", stream.Conn().RemotePeer(), "type", msgType, "msg", msg.String())
 
 	return msg, rawMsg, nil
 }
