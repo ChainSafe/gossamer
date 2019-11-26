@@ -32,3 +32,23 @@ func (ks *Keystore) Get(pub common.Address) crypto.Keypair {
 	defer ks.lock.RUnlock()
 	return ks.keys[pub]
 }
+
+func (ks *Keystore) Ed25519PublicKeys() []crypto.PublicKey {
+	edkeys := []crypto.PublicKey{}
+	for _, key := range ks.keys {
+		if _, ok := key.(*crypto.Ed25519Keypair); ok {
+			edkeys = append(edkeys, key.Public())
+		}
+	}
+	return edkeys
+}
+
+func (ks *Keystore) Sr25519PublicKeys() []crypto.PublicKey {
+	srkeys := []crypto.PublicKey{}
+	for _, key := range ks.keys {
+		if _, ok := key.(*crypto.Sr25519Keypair); ok {
+			srkeys = append(srkeys, key.Public())
+		}
+	}
+	return srkeys
+}

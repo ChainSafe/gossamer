@@ -133,7 +133,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/c0ff6e519676affd727a45fe605bc7c84a0a536d/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -1042,6 +1042,43 @@ func TestExt_ed25519_generate(t *testing.T) {
 	if kp == nil {
 		t.Fatal("Fail: keypair was not saved in keystore")
 	}
+}
+
+// test that TestExt_ed25519_public_keys confirms that we can retrieve our public keys from the keystore
+func TestExt_ed25519_public_keys(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kp, err := crypto.GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	runtime.keystore.Insert(kp)
+
+	mem := runtime.vm.Memory.Data()
+
+	idLoc := 0
+	resultLoc := 4
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_public_keys"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	out, err := testFunc(idLoc, resultLoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resultLen := mem[resultLoc]
+	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
+
+	t.Log(pubkeyData)
+
 }
 
 // test used for ensuring runtime Exec calls can me made conrurrently

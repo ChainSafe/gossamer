@@ -485,15 +485,56 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 //export ext_ed25519_public_keys
 func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Trace("[ext_ed25519_public_keys] executing...")
-	log.Warn("[ext_ed25519_public_keys] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	mutex.RLock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.RUnlock()
+
+	keys := runtimeCtx.keystore.Ed25519PublicKeys()
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys)*32))
+	if err != nil {
+		log.Error("[ext_sr25519_public_keys]", "error", err)
+		return -1
+	}	
+
+	for _, key := range keys {
+		copy(memory[offset:offset+32], key.Encode())
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
+	copy(memory[resultLen:resultLen+4], buf)
+	return int32(offset)
 }
 
 //export ext_sr25519_public_keys
 func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Trace("[ext_sr25519_public_keys] executing...")
-	log.Warn("[ext_sr25519_public_keys] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	mutex.RLock()
+	runtimeCtx := registry[*(*int)(instanceContext.Data())]
+	mutex.RUnlock()
+
+	keys := runtimeCtx.keystore.Ed25519PublicKeys()
+
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys)*32))
+	if err != nil {
+		log.Error("[ext_sr25519_public_keys]", "error", err)
+		return -1
+	}	
+
+	for _, key := range keys {
+		copy(memory[offset:offset+32], key.Encode())
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
+	copy(memory[resultLen:resultLen+4], buf)
+	return int32(offset)
 }
 
 //export ext_ed25519_sign
