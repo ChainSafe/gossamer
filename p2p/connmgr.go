@@ -19,12 +19,13 @@ package p2p
 import (
 	"context"
 
-	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
-	net "github.com/libp2p/go-libp2p-core/network"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // ConnManager implement connmgr.ConnManager
@@ -32,12 +33,16 @@ import (
 type ConnManager struct{}
 
 // Notifee is used to monitor changes to a connection
-func (cm ConnManager) Notifee() net.Notifiee {
-	nb := new(net.NotifyBundle)
+func (cm ConnManager) Notifee() network.Notifiee {
+	nb := new(network.NotifyBundle)
+
+	nb.ListenF = Listen
+	nb.ListenCloseF = ListenClose
 	nb.ConnectedF = Connected
+	nb.DisconnectedF = Disconnected
 	nb.OpenedStreamF = OpenedStream
 	nb.ClosedStreamF = ClosedStream
-	nb.DisconnectedF = Disconnected
+
 	return nb
 }
 
@@ -50,32 +55,66 @@ func (_ ConnManager) Protect(peer.ID, string)                  {}
 func (_ ConnManager) Unprotect(peer.ID, string) bool           { return false }
 func (_ ConnManager) Close() error                             { return nil }
 
-func Connected(n net.Network, c net.Conn) {
-	// TODO: replace dummy status message with current state
-	status := &StatusMessage{
-		ProtocolVersion:     0,
-		MinSupportedVersion: 0,
-		Roles:               0,
-		BestBlockNumber:     0,
-		BestBlockHash:       common.Hash{0x00},
-		GenesisHash:         common.Hash{0x00},
-		ChainStatus:         []byte{0},
-	}
-	log.Info("connected", "status", status)
+// Called when network starts listening on an address
+func Listen(n network.Network, address ma.Multiaddr) {
+	log.Debug(
+		"started listening",
+		"host", n.LocalPeer(),
+		"address", address,
+	)
 }
 
-func OpenedStream(n net.Network, s net.Stream) {
-	if s.Protocol() == DefaultProtocolId {
-		log.Info("opened stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
+// Called when network stops listening on an address
+func ListenClose(n network.Network, address ma.Multiaddr) {
+	log.Debug(
+		"stopped listening",
+		"host", n.LocalPeer(),
+		"address", address,
+	)
+}
+
+// Called when a connection opened
+func Connected(n network.Network, c network.Conn) {
+	log.Debug(
+		"connected",
+		"host", c.LocalPeer(),
+		"peer", c.RemotePeer(),
+	)
+}
+
+// Called when a connection closed
+func Disconnected(n network.Network, c network.Conn) {
+	log.Debug(
+		"disconnected",
+		"host", c.LocalPeer(),
+		"peer", c.RemotePeer(),
+	)
+}
+
+// Called when a stream opened
+func OpenedStream(n network.Network, s network.Stream) {
+	protocol := s.Protocol()
+
+	if protocol != "" {
+		log.Debug(
+			"opened stream",
+			"host", s.Conn().LocalPeer(),
+			"peer", s.Conn().RemotePeer(),
+			"protocol", protocol,
+		)
 	}
 }
 
-func ClosedStream(n net.Network, s net.Stream) {
-	if s.Protocol() == DefaultProtocolId {
-		log.Info("closed stream", "peer", s.Conn().RemotePeer(), "protocol", s.Protocol())
-	}
-}
+// Called when a stream closed
+func ClosedStream(n network.Network, s network.Stream) {
+	protocol := s.Protocol()
 
-func Disconnected(n net.Network, c net.Conn) {
-	log.Info("disconnected")
+	if protocol != "" {
+		log.Debug(
+			"closed stream",
+			"host", s.Conn().LocalPeer(),
+			"peer", s.Conn().RemotePeer(),
+			"protocol", protocol,
+		)
+	}
 }
