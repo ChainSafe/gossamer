@@ -2,9 +2,8 @@ package state
 
 type Service struct {
 	storage storageState
-	block blockState
-	net networkState
-
+	block   blockState
+	net     networkState
 }
 
 func NewService() *Service {
@@ -16,10 +15,9 @@ func NewService() *Service {
 }
 
 func (s *Service) Start() error {
-
+	return nil
 }
 
 func (s *Service) Stop() error {
-
+	return nil
 }
-

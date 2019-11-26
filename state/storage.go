@@ -8,7 +8,7 @@ import (
 
 type storageState struct {
 	trie trie.Trie
-	db polkadb.StateDB
+	db   polkadb.StateDB
 }
 
 func newStorageState() *storageState {
@@ -18,9 +18,9 @@ func newStorageState() *storageState {
 	}
 }
 
-
 func (s *storageState) ExistsStorage(key []byte) (bool, error) {
-	return s.trie.Exists(key)
+	val, err := s.trie.Get(key)
+	return (val != nil), err
 }
 
 func (s *storageState) GetStorage(key []byte) ([]byte, error) {
@@ -28,7 +28,8 @@ func (s *storageState) GetStorage(key []byte) ([]byte, error) {
 }
 
 func (s *storageState) StorageRoot() (common.Hash, error) {
-	return s.trie.Root()
+	// TODO: return the storage root
+	return common.Hash{}, nil
 }
 
 func (s *storageState) EnumeratedTrieRoot(values [][]byte) {
@@ -40,12 +41,11 @@ func (s *storageState) SetStorage(key []byte, value []byte) error {
 }
 
 func (s *storageState) ClearPrefix(prefix []byte) {
-
+	// Implemented in ext_clear_prefix
 }
 
 func (s *storageState) ClearStorage(key []byte) error {
 	return s.trie.Delete(key)
 }
-
 
 //TODO: add child storage funcs

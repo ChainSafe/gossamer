@@ -27,11 +27,11 @@ type StorageApi interface {
 
 // Read only
 type ROBlockApi interface {
-	GetHeader(hash common.Hash)
-	GetBlockData(hash common.Hash)
+	GetHeader(hash common.Hash) types.BlockHeader
+	GetBlockData(hash common.Hash) types.BlockData
 	GetLatestBlock() types.BlockHeader
-	GetBlockByHash(hash common.Hash)
-	GetBlockByNumber(n *big.Int)
+	GetBlockByHash(hash common.Hash) types.Block
+	GetBlockByNumber(n *big.Int) types.Block
 }
 
 type BlockApi interface {
@@ -46,13 +46,12 @@ type MessageApi interface {
 
 type PeerApi interface {
 	//GetEventStream() chan<- p2p.Event
-	//Peers() []PeerInfo
-	//State() NetworkState
+	Peers() []string
+	State() string
 }
 
 type NetworkApi interface {
 	// Network
-	//PeerCount() int
-	//Peers() []p2p.Peer
-	//Status() string
+	PeerCount() int
+	Status() string
 }
