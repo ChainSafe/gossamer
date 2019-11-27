@@ -262,45 +262,15 @@ func (h *host) send(pid peer.ID, msg Message) (err error) {
 	return nil
 }
 
-// `sendStatusMessage` sends a status message to a specific peer
-func (h *host) sendStatusMessage(pid peer.ID) (msg Message, err error) {
-
-	// Get or create stream
-	stream, err := h.getStream(pid)
-	if err != nil {
-		log.Error("get stream", "error", err)
-		return nil, err
-	}
-
-	// TODO: Use state status message
-	encMsg, err := statusMessage.Encode()
-	if err != nil {
-		log.Error("encode message", "error", err)
-		return nil, err
-	}
-
-	// Write message to data stream
-	_, err = stream.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
-	if err != nil {
-		log.Error("write message", "error", err)
-		return nil, err
-	}
-
-	// Write message to data stream
-	_, err = stream.Write(encMsg)
-	if err != nil {
-		log.Error("write message", "error", err)
-		return nil, err
-	}
-
-	return statusMessage, nil
-}
-
 // `broadcast` sends a message to all connected peers
 func (h *host) broadcast(msg Message) {
 	for _, pid := range h.h.Network().Peers() {
 		addrInfo := h.dht.FindLocal(pid)
-		_ = h.send(addrInfo.ID, msg)
+		err := h.send(addrInfo.ID, msg)
+		if err != nil {
+			log.Error("send message", "error", err)
+			return
+		}
 	}
 }
 

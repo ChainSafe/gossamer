@@ -93,13 +93,13 @@ func (s *Service) Start() error {
 
 	// Create error channel. Errors from goroutines are received through an
 	// error channel at the network level and never returned.
-	e := make(chan error)
+	// e := make(chan error)
 
 	// Start sending status messages to connected peers
-	go s.sendStatusMessages(e)
+	go s.sendStatusMessages()
 
 	// Start broadcasting received messages to all peers
-	go s.broadcastReceivedMessages(e)
+	go s.broadcastReceivedMessages()
 
 	return nil
 }
@@ -120,7 +120,7 @@ func (s *Service) Stop() error {
 
 // `sendStatusMessages` starts a loop that sends the current network state as
 // a status message to each connected peer every 5 seconds.
-func (s *Service) sendStatusMessages(e chan error) {
+func (s *Service) sendStatusMessages() {
 	for {
 
 		// TODO: Use generated status message
@@ -129,13 +129,6 @@ func (s *Service) sendStatusMessages(e chan error) {
 		// Loop through connected peers
 		for _, peer := range s.host.h.Network().Peers() {
 
-			// Write status message to data stream
-			err := s.host.send(peer, msg)
-			if err != nil {
-				e <- err
-				break
-			}
-
 			log.Debug(
 				"sending message",
 				"host", s.host.h.ID(),
@@ -143,8 +136,12 @@ func (s *Service) sendStatusMessages(e chan error) {
 				"message", msg,
 			)
 
-			// Write status message to `msgSend` channel
-			s.msgSend <- msg
+			// Write status message to data stream
+			err := s.host.send(peer, msg)
+			if err != nil {
+				log.Error("sending message", "error", err)
+				break
+			}
 		}
 
 		// Send status messages every 5 seconds
@@ -155,7 +152,7 @@ func (s *Service) sendStatusMessages(e chan error) {
 // `broadcastReceivedMessages` starts a loop that polls the `msgRec` channel,
 // checks whether the message is a status message or the message has already
 // been received, and then broadcasts new non-status messages to all peers.
-func (s *Service) broadcastReceivedMessages(e chan error) {
+func (s *Service) broadcastReceivedMessages() {
 	for {
 
 		// Receive message from babe
@@ -171,7 +168,7 @@ func (s *Service) broadcastReceivedMessages(e chan error) {
 		// Broadcast new non-status messages
 		err := s.Broadcast(msg)
 		if err != nil {
-			e <- err
+			log.Error("broadcast", "error", err)
 			break
 		}
 	}
@@ -181,12 +178,6 @@ func (s *Service) broadcastReceivedMessages(e chan error) {
 // list of received messages. If the host has not received the message, the
 // message will be saved to the list and then broadcasted to all peers.
 func (s *Service) Broadcast(msg Message) (err error) {
-
-	log.Debug(
-		"broadcast check",
-		"host", s.host.id(),
-		"message", msg,
-	)
 
 	msgType := msg.GetType()
 
@@ -217,7 +208,7 @@ func (s *Service) Broadcast(msg Message) (err error) {
 	}
 
 	log.Debug(
-		"broadcast message",
+		"broadcast",
 		"host", s.host.id(),
 		"message", msg,
 	)
@@ -230,6 +221,13 @@ func (s *Service) Broadcast(msg Message) (err error) {
 // `handleStream` parses the message written to the data stream and calls the
 // associated message handler (status or non-status) based on message type.
 func (s *Service) handleStream(stream net.Stream) {
+
+	log.Debug(
+		"handle stream",
+		"host", stream.Conn().LocalPeer(),
+		"peer", stream.Conn().RemotePeer(),
+		"protocol", stream.Protocol(),
+	)
 
 	// Parse message and exit on error
 	msg, _, err := parseMessage(stream)
@@ -286,10 +284,6 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 		// TODO: Drop peer if status mismatch
 
 	}
-
-	// Write status message to `msgSend` channel
-	s.msgSend <- msg
-
 }
 
 // `handleStreamNonStatus` handles non-status messages written to the stream.
@@ -298,15 +292,15 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	// TODO: Get peer status from peer metadata
 	status := s.host.peerStatus[stream.Conn().RemotePeer()]
 
-	log.Debug(
-		"status check",
-		"host", stream.Conn().LocalPeer(),
-		"peer", stream.Conn().RemotePeer(),
-		"status", status,
-	)
-
 	// Exit if status message has not been confirmed
 	if !status {
+		log.Debug(
+			"message blocked",
+			"host", stream.Conn().LocalPeer(),
+			"peer", stream.Conn().RemotePeer(),
+			"protocol", stream.Protocol(),
+			"message", msg,
+		)
 		return
 	}
 
@@ -317,14 +311,10 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 			"broadcast message",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
+			"protocol", stream.Protocol(),
 			"error", err,
 		)
-		return
 	}
-
-	// Write non-status message to `msgSend` channel
-	s.msgSend <- msg
-
 }
 
 // `ID` returns the host id

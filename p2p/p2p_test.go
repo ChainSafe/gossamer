@@ -18,13 +18,13 @@ package p2p
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
-	peer "github.com/libp2p/go-libp2p-core/peer"
+
+	libp2pPeer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
@@ -37,6 +37,8 @@ func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec cha
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	time.Sleep(200 * time.Millisecond)
 
 	return node
 }
@@ -78,7 +80,11 @@ func TestBootstrap(t *testing.T) {
 	peerCountA := nodeA.host.peerCount()
 
 	if peerCountA != 1 {
-		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountA)
+		t.Error(
+			"Did not send expected peer count",
+			"\nexpected:", 1,
+			"\nreceived:", peerCountA,
+		)
 	}
 }
 
@@ -104,8 +110,7 @@ func TestConnect(t *testing.T) {
 	defer nodeB.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
-
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
+	addrInfoA, err := libp2pPeer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +123,11 @@ func TestConnect(t *testing.T) {
 	peerCountB := nodeB.host.peerCount()
 
 	if peerCountB != 1 {
-		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountB)
+		t.Error(
+			"Did not send expected peer count",
+			"\nexpected:", 1,
+			"\nreceived:", peerCountB,
+		)
 	}
 }
 
@@ -140,19 +149,27 @@ func TestPing(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
-
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
+	addrInfoA, err := libp2pPeer.AddrInfoFromP2pAddr(addrA)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeB.host.connect(*addrInfoA)
+	addrB := nodeB.host.fullAddrs()[0]
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfoB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.ping(addrInfoB.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +180,7 @@ func TestPing(t *testing.T) {
 	}
 }
 
-func TestSendRequest(t *testing.T) {
+func TestExchangeStatus(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -171,7 +188,9 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -186,21 +205,77 @@ func TestSendRequest(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
+	addrB := nodeB.host.fullAddrs()[0]
 
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
+	// Get address info for node A (used for `host.connect`)
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeB.host.connect(*addrInfoA)
+	err = nodeA.host.connect(*addrInfoB)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Wait for status exchange
+	time.Sleep(10 * time.Second)
+
+	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
+	if statusB == false {
+		t.Error(
+			"node A did not receive status B",
+			"\nreceived:", statusB,
+			"\nexpected:", true,
+		)
+	}
+
+	statusA := nodeB.host.peerStatus[nodeA.host.h.ID()]
+	if statusA == false {
+		t.Error(
+			"node B did not receive status A",
+			"\nreceived:", statusA,
+			"\nexpected:", true,
+		)
+	}
+
+}
+
+func TestSendRequest(t *testing.T) {
+	configA := &Config{
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
+	}
+
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
+	defer nodeA.Stop()
+
+	configB := &Config{
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
+	}
+
+	msgSendB := make(chan Message)
+
+	nodeB := startNewService(t, configB, msgSendB, nil)
+	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
 
-	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
+	// Get address info for node B (used for `host.connect`)
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Connect node A to node B
+	err = nodeA.host.connect(*addrInfoB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,32 +290,33 @@ func TestSendRequest(t *testing.T) {
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
-		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	encBlockRequest, err := blockRequest.Encode()
+	// Wait for status exchange
+	time.Sleep(10 * time.Second)
+
+	// Send block request message from node A to node B
+	err = nodeA.host.send(addrInfoB.ID, blockRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.send(*addrInfoB, encBlockRequest)
-	if err != nil {
-		t.Fatal(err)
+	// Wait to receive message
+	time.Sleep(10 * time.Second)
+
+	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
+	if msgReceivedB == false {
+		t.Error(
+			"node B did not receive message from node A",
+			"\nreceived:", msgReceivedB,
+			"\nexpected:", true,
+		)
 	}
 
-	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
-	}
 }
 
 func TestGossiping(t *testing.T) {
@@ -251,7 +327,9 @@ func TestGossiping(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -290,12 +368,14 @@ func TestGossiping(t *testing.T) {
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
-		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
+
+	// Wait for status exchange
+	time.Sleep(10 * time.Second)
 
 	// Broadcast block request message
 	err = nodeA.Broadcast(blockRequest)
@@ -303,28 +383,30 @@ func TestGossiping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
+	// Wait to receive message
+	time.Sleep(10 * time.Second)
+
+	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
+	if msgReceivedB == false {
+		t.Error(
+			"node B did not receive message from node A",
+			"\nreceived:", msgReceivedB,
+			"\nexpected:", true,
+		)
 	}
 
-	select {
-	case message := <-msgSendC:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
+	msgReceivedC := nodeC.blockReqRec[blockRequest.Id()]
+	if msgReceivedC == false {
+		t.Error(
+			"node C did not receive message from node A",
+			"\nreceived:", msgReceivedC,
+			"\nexpected:", true,
+		)
 	}
+
 }
 
-func TestReceiveChannel(t *testing.T) {
+func TestBlockAnnounce(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -333,8 +415,9 @@ func TestReceiveChannel(t *testing.T) {
 	}
 
 	msgRecA := make(chan Message)
+	msgSendA := make(chan Message)
 
-	nodeA := startNewService(t, configA, nil, msgRecA)
+	nodeA := startNewService(t, configA, msgSendA, msgRecA)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -351,20 +434,26 @@ func TestReceiveChannel(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
+	// Create block announce message
 	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
 	}
 
+	// Wait for status exchange
+	time.Sleep(10 * time.Second)
+
 	msgRecA <- blockAnnounce
 
-	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		// TODO: investigate deep equal failing without stringification
-		if !reflect.DeepEqual(message.String(), blockAnnounce.String()) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
+	// Wait to receive message
+	time.Sleep(10 * time.Second)
+
+	msgReceivedB := nodeB.blockReqRec[blockAnnounce.Id()]
+	if msgReceivedB == false {
+		t.Error(
+			"node B did not receive message from node A",
+			"\nreceived:", msgReceivedB,
+			"\nexpected:", true,
+		)
 	}
+
 }
