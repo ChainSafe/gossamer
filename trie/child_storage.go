@@ -16,19 +16,7 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 		return err
 	}
 
-	key := append(ChildStorageKeyPrefix, keyToChild[:]...)
-	exists, err := t.Get(key)
-	if err != nil {
-		return err
-	}
-
-	if exists != nil {
-		err = t.Delete(key)
-		if err != nil {
-			return err
-		}
-	}
-
+	key := append(ChildStorageKeyPrefix, keyToChild...)
 	value := [32]byte(childHash)
 
 	err = t.Put(key, value[:])
@@ -36,13 +24,13 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 		return err
 	}
 
-	t.children[common.Hash(childHash)] = child
+	t.children[childHash] = child
 	return nil
 }
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
-	key := append(ChildStorageKeyPrefix, keyToChild[:]...)
+	key := append(ChildStorageKeyPrefix, keyToChild...)
 	childHash, err := t.Get(key)
 	if err != nil {
 		return nil, err
@@ -75,8 +63,8 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 		return err
 	}
 
-	t.children[common.Hash(origChildHash)] = nil
-	t.children[common.Hash(childHash)] = child
+	t.children[origChildHash] = nil
+	t.children[childHash] = child
 
 	return t.PutChild(keyToChild, child)
 }

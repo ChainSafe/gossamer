@@ -141,13 +141,15 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 			ok = true
 		}
 	case *leaf:
+		// if a value already exists in the trie at this key, overwrite it with the new value
+		if p.value != nil && bytes.Equal(p.key, key) {
+			p.value = value.(*leaf).value
+			return true, p, nil
+		}
+
 		// need to convert this leaf into a branch
 		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
-
-		if bytes.Equal(p.key, key) && len(key) == length {
-			return true, value, nil
-		}
 
 		br.key = key[:length]
 		parentKey := p.key
