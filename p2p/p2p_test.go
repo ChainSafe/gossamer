@@ -188,9 +188,7 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendA := make(chan Message)
-
-	nodeA := startNewService(t, configA, msgSendA, nil)
+	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -200,9 +198,7 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
@@ -249,9 +245,7 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendA := make(chan Message)
-
-	nodeA := startNewService(t, configA, msgSendA, nil)
+	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -261,9 +255,7 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
@@ -306,7 +298,7 @@ func TestSendRequest(t *testing.T) {
 	}
 
 	// Wait to receive message
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
@@ -327,9 +319,7 @@ func TestGossiping(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendA := make(chan Message)
-
-	nodeA := startNewService(t, configA, msgSendA, nil)
+	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -341,9 +331,7 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	configC := &Config{
@@ -353,9 +341,7 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendC := make(chan Message)
-
-	nodeC := startNewService(t, configC, msgSendC, nil)
+	nodeC := startNewService(t, configC, nil, nil)
 	defer nodeC.Stop()
 
 	// Create end block hash (arbitrary block hash)
@@ -415,9 +401,8 @@ func TestBlockAnnounce(t *testing.T) {
 	}
 
 	msgRecA := make(chan Message)
-	msgSendA := make(chan Message)
 
-	nodeA := startNewService(t, configA, msgSendA, msgRecA)
+	nodeA := startNewService(t, configA, nil, msgRecA)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -429,9 +414,9 @@ func TestBlockAnnounce(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	msgSendB := make(chan Message)
+	// msgSendB := make(chan Message)
 
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
 	// Create block announce message
@@ -445,7 +430,7 @@ func TestBlockAnnounce(t *testing.T) {
 	msgRecA <- blockAnnounce
 
 	// Wait to receive message
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockReqRec[blockAnnounce.Id()]
 	if msgReceivedB == false {

@@ -222,13 +222,6 @@ func (s *Service) Broadcast(msg Message) (err error) {
 // associated message handler (status or non-status) based on message type.
 func (s *Service) handleStream(stream net.Stream) {
 
-	log.Debug(
-		"handle stream",
-		"host", stream.Conn().LocalPeer(),
-		"peer", stream.Conn().RemotePeer(),
-		"protocol", stream.Protocol(),
-	)
-
 	// Parse message and exit on error
 	msg, _, err := parseMessage(stream)
 	if err != nil {
@@ -237,7 +230,7 @@ func (s *Service) handleStream(stream net.Stream) {
 	}
 
 	log.Debug(
-		"received message",
+		"handle stream",
 		"host", stream.Conn().LocalPeer(),
 		"peer", stream.Conn().RemotePeer(),
 		"protocol", stream.Protocol(),
@@ -261,7 +254,8 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 	hostStatus := statusMessage
 
 	switch {
-	case hostStatus.String() <= msg.String():
+
+	case hostStatus.String() == msg.String():
 		log.Debug(
 			"status match",
 			"host", stream.Conn().LocalPeer(),
