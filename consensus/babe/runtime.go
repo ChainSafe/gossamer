@@ -23,7 +23,7 @@ import (
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	ret, err := runtime.GetWASMConfiguration(b.rt, runtime.BabeApiConfiguration, 1, []byte{})
+	ret, err := b.rt.Exec(runtime.BabeApiConfiguration, 1, []byte{})
 	if err != nil {
 		return err
 	}

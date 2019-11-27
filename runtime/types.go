@@ -30,7 +30,3 @@ var (
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
 	BabeApiConfiguration                      = "BabeApi_configuration"
 )
-
-func GetWASMConfiguration(rt *Runtime, configuration string, loc int32, data []byte) ([]byte, error) {
-	return rt.Exec(configuration, loc, data)
-}
