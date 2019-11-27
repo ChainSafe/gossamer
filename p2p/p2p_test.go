@@ -38,8 +38,6 @@ func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec cha
 		t.Fatal(err)
 	}
 
-	time.Sleep(200 * time.Millisecond)
-
 	return node
 }
 
@@ -215,7 +213,7 @@ func TestExchangeStatus(t *testing.T) {
 	}
 
 	// Wait for status exchange
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
 	if statusB == false {
@@ -289,7 +287,7 @@ func TestSendRequest(t *testing.T) {
 	}
 
 	// Wait for status exchange
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Send block request message from node A to node B
 	err = nodeA.host.send(addrInfoB.ID, blockRequest)
@@ -361,7 +359,7 @@ func TestGossiping(t *testing.T) {
 	}
 
 	// Wait for status exchange
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Broadcast block request message
 	err = nodeA.Broadcast(blockRequest)
@@ -370,7 +368,7 @@ func TestGossiping(t *testing.T) {
 	}
 
 	// Wait to receive message
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
@@ -414,8 +412,6 @@ func TestBlockAnnounce(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	// msgSendB := make(chan Message)
-
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
@@ -425,14 +421,14 @@ func TestBlockAnnounce(t *testing.T) {
 	}
 
 	// Wait for status exchange
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	msgRecA <- blockAnnounce
 
 	// Wait to receive message
 	time.Sleep(5 * time.Second)
 
-	msgReceivedB := nodeB.blockReqRec[blockAnnounce.Id()]
+	msgReceivedB := nodeB.blockAnnounceRec[blockAnnounce.Id()]
 	if msgReceivedB == false {
 		t.Error(
 			"node B did not receive message from node A",

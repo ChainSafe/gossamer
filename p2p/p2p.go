@@ -123,6 +123,9 @@ func (s *Service) Stop() error {
 func (s *Service) sendStatusMessages() {
 	for {
 
+		// Send status messages every 5 seconds
+		time.Sleep(5 * time.Second)
+
 		// TODO: Use generated status message
 		msg := statusMessage
 
@@ -143,9 +146,6 @@ func (s *Service) sendStatusMessages() {
 				break
 			}
 		}
-
-		// Send status messages every 5 seconds
-		time.Sleep(5 * time.Second)
 	}
 }
 

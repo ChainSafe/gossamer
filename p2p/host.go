@@ -187,46 +187,46 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 // `getStream` attempts to get an existing stream (using `getExistingStream`)
 // and opens a new stream if an existing stream does not exist.
 func (h *host) getStream(p peer.ID) (stream net.Stream, err error) {
-	stream = h.getExistingStream(p)
+	// stream = h.getExistingStream(p)
 
-	if stream == nil {
-		stream, err = h.h.NewStream(h.ctx, p, h.protocolId)
-		if err != nil {
-			log.Error("new stream", "error", err)
-			return nil, err
-		}
-		log.Debug(
-			"opened stream",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"protocol", stream.Protocol(),
-		)
-	} else {
-		log.Debug(
-			"existing stream",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"protocol", stream.Protocol(),
-		)
+	// if stream == nil {
+	stream, err = h.h.NewStream(h.ctx, p, h.protocolId)
+	if err != nil {
+		log.Error("new stream", "error", err)
+		return nil, err
 	}
+	log.Debug(
+		"opened stream",
+		"host", stream.Conn().LocalPeer(),
+		"peer", stream.Conn().RemotePeer(),
+		"protocol", stream.Protocol(),
+	)
+	// } else {
+	// 	log.Debug(
+	// 		"existing stream",
+	// 		"host", stream.Conn().LocalPeer(),
+	// 		"peer", stream.Conn().RemotePeer(),
+	// 		"protocol", stream.Protocol(),
+	// 	)
+	// }
 
 	return stream, nil
 }
 
 // `getExistingStream` gets an existing stream (stream with matching protocol)
-func (h *host) getExistingStream(p peer.ID) net.Stream {
-	conns := h.h.Network().ConnsToPeer(p)
-	for _, conn := range conns {
-		streams := conn.GetStreams()
-		for _, stream := range streams {
-			if stream.Protocol() == h.protocolId {
-				return stream
-			}
-		}
-	}
-
-	return nil
-}
+// func (h *host) getExistingStream(p peer.ID) net.Stream {
+// 	conns := h.h.Network().ConnsToPeer(p)
+// 	for _, conn := range conns {
+// 		streams := conn.GetStreams()
+// 		for _, stream := range streams {
+// 			if stream.Protocol() == h.protocolId {
+// 				return stream
+// 			}
+// 		}
+// 	}
+//
+// 	return nil
+// }
 
 // `send` sends a non-status message to a specific peer
 func (h *host) send(pid peer.ID, msg Message) (err error) {
