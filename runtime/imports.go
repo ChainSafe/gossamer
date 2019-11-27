@@ -563,7 +563,9 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 		return 1
 	}
 
-	msg := memory[msgData : msgData+msgLen]
+	msgLenBytes := memory[msgLen : msgLen+4]
+	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
+	msg := memory[msgData : msgData+int32(msgLength)]
 	sig, err := signingKey.Sign(msg)
 	if err != nil {
 		log.Error("[ext_ed25519_sign] could not sign message")
@@ -599,7 +601,9 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 		return 1
 	}
 
-	msg := memory[msgData : msgData+msgLen]
+	msgLenBytes := memory[msgLen : msgLen+4]
+	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
+	msg := memory[msgData : msgData+int32(msgLength)]
 	sig, err := signingKey.Sign(msg)
 	if err != nil {
 		log.Error("[ext_sr25519_sign] could not sign message")

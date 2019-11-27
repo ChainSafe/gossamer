@@ -40,7 +40,7 @@ func NewSr25519Keypair(priv *sr25519.SecretKey) (*Sr25519Keypair, error) {
 
 // NewSr25519KeypairFromSeed returns a new Sr25519Keypair given a seed
 func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
-	buf := [32]byte{}
+	buf := [SeedLength]byte{}
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
 
 // NewSr25519PrivateKey creates a new private key using the input bytes
 func NewSr25519PrivateKey(in []byte) (*Sr25519PrivateKey, error) {
-	if len(in) != 32 {
+	if len(in) != Sr25519PrivateKeyLength {
 		return nil, errors.New("input to create sr25519 private key is not 32 bytes")
 	}
 	priv := new(Sr25519PrivateKey)
@@ -79,11 +79,11 @@ func GenerateSr25519Keypair() (*Sr25519Keypair, error) {
 }
 
 func NewSr25519PublicKey(in []byte) (*Sr25519PublicKey, error) {
-	if len(in) != 32 {
+	if len(in) != PublicKeyLength {
 		return nil, errors.New("cannot create public key: input is not 32 bytes")
 	}
 
-	buf := [32]byte{}
+	buf := [PublicKeyLength]byte{}
 	copy(buf[:], in)
 	return &Sr25519PublicKey{key: sr25519.NewPublicKey(buf)}, nil
 }
@@ -141,10 +141,10 @@ func (k *Sr25519PrivateKey) Encode() []byte {
 // Decode decodes the input bytes into a private key and sets the receiver the decoded key
 // Input must be 32 bytes, or else this function will error
 func (k *Sr25519PrivateKey) Decode(in []byte) error {
-	if len(in) != 32 {
+	if len(in) != Sr25519PrivateKeyLength {
 		return errors.New("input to sr25519 private key decode is not 32 bytes")
 	}
-	b := [32]byte{}
+	b := [Sr25519PrivateKeyLength]byte{}
 	copy(b[:], in)
 	k.key = &sr25519.SecretKey{}
 	return k.key.Decode(b)
@@ -158,7 +158,11 @@ func (k *Sr25519PublicKey) Verify(msg, sig []byte) bool {
 		return false
 	}
 
-	b := [64]byte{}
+	if len(sig) != SignatureLength {
+		return false
+	}
+
+	b := [SignatureLength]byte{}
 	copy(b[:], sig)
 
 	s := &sr25519.Signature{}
@@ -184,10 +188,10 @@ func (k *Sr25519PublicKey) Encode() []byte {
 // Decode decodes the input bytes into a public key and sets the receiver the decoded key
 // Input must be 32 bytes, or else this function will error
 func (k *Sr25519PublicKey) Decode(in []byte) error {
-	if len(in) != 32 {
+	if len(in) != PublicKeyLength {
 		return errors.New("input to sr25519 public key decode is not 32 bytes")
 	}
-	b := [32]byte{}
+	b := [PublicKeyLength]byte{}
 	copy(b[:], in)
 	k.key = &sr25519.PublicKey{}
 	return k.key.Decode(b)

@@ -134,7 +134,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/ef64f05602bc208d5defba1408eb26466fd3e48c/target/wasm32-unknown-unknown/release/deps/test_wasm.wasm?raw=true"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -1180,6 +1180,105 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 
 	if !reflect.DeepEqual(expectedPubkeys, pubkeys) {
 		t.Fatalf("Fail: got %x expected %x", pubkeys, expectedPubkeys)
+	}
+}
+
+// test that ext_ed25519_sign generates and saves a keypair in the keystore
+func TestExt_ed25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.SignatureLength]
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
+// test that ext_sr25519_sign generates and saves a keypair in the keystore
+func TestExt_sr25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.SignatureLength]
+	t.Log(sig)
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
 	}
 }
 
