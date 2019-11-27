@@ -33,7 +33,7 @@ RUN go mod download
 COPY . $GOPATH/src/github.com/ChainSafe/gossamer
 
 # Build
-RUN GOBIN=$GOPATH/src/github.com/ChainSafe/gossamer/build/bin go run build/ci.go install
+RUN GOBIN=$GOPATH/src/github.com/ChainSafe/gossamer/build/bin go run scripts/ci.go install
 
 # Create symlink
 RUN ln -s $GOPATH/src/github.com/ChainSafe/gossamer/build/bin/gossamer /usr/local/gossamer

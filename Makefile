@@ -26,7 +26,7 @@ lint: $(GOLANGCI)
 	golangci-lint run ./... -c .golangci.yml
 
 clean:
-	rm -fr ./build/bin
+	rm -fr ./build
 
 format:
 	./scripts/goimports.sh
@@ -44,12 +44,12 @@ install:
 ## build: Builds application binary and stores it in `./bin/gossamer`
 build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
-	GOBIN=$(PWD)/build/bin go run build/ci.go install
+	GOBIN=$(PWD)/build/bin go run scripts/ci.go install
 
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:
 	@echo "  >  \033[32mStarting server...\033[0m "
-	./bin/gossamer
+	./build/bin/gossamer
 
 $(ADDLICENSE):
 	go get -u github.com/google/addlicense
@@ -69,4 +69,4 @@ docker-build:
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
 
 gossamer: clean
-	GOBIN=$(PWD)/build/bin go run build/ci.go install
+	GOBIN=$(PWD)/build/bin go run scripts/ci.go install

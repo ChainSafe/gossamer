@@ -16,7 +16,7 @@ func main() {
 
 	log.SetFlags(log.Lshortfile)
 
-	if _, err := os.Stat(filepath.Join("build", "ci.go")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join("scripts", "ci.go")); os.IsNotExist(err) {
 		log.Fatal("should run build from root dir")
 	}
 	if len(os.Args) < 2 {
@@ -51,7 +51,7 @@ func install() {
 	cmd.Args = append(cmd.Args, "-v")
 	cmd.Args = append(cmd.Args, packages...)
 
-	fmt.Println("Build Gossamer", strings.Join(cmd.Args, " "))
+	fmt.Println("Build Gossamer", strings.Join(cmd.Args, " \\\n"))
 	cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
 
 	if err := cmd.Run(); err != nil {
