@@ -1055,8 +1055,10 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 	testKps := []crypto.Keypair{}
 	expectedPubkeys := [][]byte{}
 	numKps := 12
+
+	var kp crypto.Keypair
 	for i := 0; i < numKps; i++ {
-		kp, err := crypto.GenerateEd25519Keypair()
+		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1068,7 +1070,7 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 
 	// put some sr25519 keypairs in the keystore to make sure they don't get returned
 	for i := 0; i < numKps; i++ {
-		kp, err := crypto.GenerateSr25519Keypair()
+		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1123,8 +1125,10 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 	testKps := []crypto.Keypair{}
 	expectedPubkeys := [][]byte{}
 	numKps := 12
+
+	var kp crypto.Keypair
 	for i := 0; i < numKps; i++ {
-		kp, err := crypto.GenerateSr25519Keypair()
+		kp, err = crypto.GenerateSr25519Keypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1136,7 +1140,7 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 
 	// put some ed25519 keypairs in the keystore to make sure they don't get returned
 	for i := 0; i < numKps; i++ {
-		kp, err := crypto.GenerateEd25519Keypair()
+		kp, err = crypto.GenerateEd25519Keypair()
 		if err != nil {
 			t.Fatal(err)
 		}
