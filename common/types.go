@@ -18,9 +18,10 @@ package common
 
 import (
 	"fmt"
-
-	"math/big"
 )
+
+// Address represents a base58 encoded public key
+type Address string
 
 // Hash used to store a blake2b hash
 type Hash [32]byte
@@ -41,13 +42,4 @@ func NewHash(in []byte) (res Hash) {
 func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
-}
-
-// BlockHeader is a state block header
-type BlockHeader struct {
-	ParentHash     Hash
-	Number         *big.Int
-	StateRoot      Hash
-	ExtrinsicsRoot Hash
-	Digest         []byte // any additional block info eg. logs, seal
 }
