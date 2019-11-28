@@ -44,7 +44,7 @@ import (
 const DefaultProtocolId = protocol.ID("/gossamer/dot/0")
 const mdnsPeriod = time.Minute
 
-// `host` describes a wrapper for the libp2p host, dht, and mdns services
+// host describes a wrapper for a libp2p host with dht and mdns
 type host struct {
 	ctx         context.Context
 	h           libp2phost.Host
@@ -55,53 +55,51 @@ type host struct {
 	noMdns      bool
 	mdns        discovery.Service
 	protocolId  protocol.ID
-	// TODO: Store peer status in peer metadata
+	// TODO: store status in peer metadata
 	peerStatus map[peer.ID]bool
 }
 
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
-	// Build libp2p host options
 	opts, err := cfg.buildOpts()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new libp2p host instance
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	// Use default protocol if not provided
+	// use default protocol if not provided
 	protocolId := protocol.ID(cfg.ProtocolId)
 	if protocolId == "" {
 		protocolId = DefaultProtocolId
 	}
 
-	// Create datastore and dht service
+	// create datastore and dht service
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
 
-	// Wrap the host with routed host so we can look up peers in dht
+	// wrap the host with routed host so we can look up peers in dht
 	h = rhost.Wrap(h, dht)
 
-	// Use "p2p" for multiaddress format
+	// use "p2p" for multiaddress format
 	ma.SwapToP2pMultiaddrs()
 
-	// Create host multiaddress including host id
+	// create host multiaddress including host "p2p" id
 	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID()))
 	if err != nil {
 		return nil, err
 	}
 
-	// Format bootstrap nodes list
+	// format bootstrap nodes
 	bootstrapNodes, err := stringsToPeerInfos(cfg.BootstrapNodes)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Store peer status in peer metadata
+	// TODO: store status in peer metadata
 	peerStatus := make(map[peer.ID]bool)
 
 	return &host{
@@ -113,7 +111,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		protocolId:  protocolId,
 		noBootstrap: cfg.NoBootstrap,
 		noMdns:      cfg.NoMdns,
-		peerStatus:  peerStatus, // TODO: Store peer status in peer metadata
+		peerStatus:  peerStatus, // TODO: store status in peer metadata
 	}, nil
 
 }
@@ -126,22 +124,26 @@ func (h *host) bootstrap() {
 			"error", "NoBootrap must be true if no bootnodes are defined",
 		)
 	}
+	// loop through bootnodes
 	for _, peerInfo := range h.bootnodes {
 		log.Debug(
 			"bootstrap",
 			"host", h.h.ID(),
 			"peer", peerInfo.ID,
 		)
-		err := h.h.Connect(context.Background(), peerInfo)
+		// connect to each bootnode
+		err := h.h.Connect(h.ctx, peerInfo)
 		if err != nil {
 			log.Error("bootstrap", "error", err)
 		}
 	}
 }
 
-// `startMdns` starts the mdns service
+// startMdns starts a new discovery mdns service
 func (h *host) startMdns() {
 	if !h.noMdns {
+
+		// create new mdns service
 		mdns, err := discovery.NewMdnsService(
 			h.ctx,
 			h.h,
@@ -159,37 +161,46 @@ func (h *host) startMdns() {
 			"protocol", h.protocolId,
 		)
 
+		// register notifee on mdns service
 		mdns.RegisterNotifee(Notifee{ctx: h.ctx, host: h.h})
 
 		h.mdns = mdns
 	}
 }
 
-// `logAddrs` logs the listening addresses of the host
-func (h *host) logAddrs() {
+// printHostAddresses prints the multiaddresses of the host
+func (h *host) printHostAddresses() {
 	fmt.Println("Listening on the following addresses...")
 	for _, addr := range h.h.Addrs() {
 		fmt.Println(addr.Encapsulate(h.hostAddr).String())
 	}
 }
 
-// `registerStreamHandler` registers the stream handler (see `handleStream`)
+// registerStreamHandler registers the stream handler (see handleStream)
 func (h *host) registerStreamHandler(handler func(net.Stream)) {
 	h.h.SetStreamHandler(h.protocolId, handler)
 }
 
-// `connect` connects the host to a specific peer address
+// connect connects the host to a specific peer address
 func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 	err = h.h.Connect(h.ctx, addrInfo)
 	return err
 }
 
-// `getStream` attempts to get an existing stream (using `getExistingStream`)
-// and opens a new stream if an existing stream does not exist.
+// getStream attempts to get an existing stream
 func (h *host) getStream(p peer.ID) (stream net.Stream, err error) {
-	// stream = h.getExistingStream(p)
+	for _, conn := range h.h.Network().ConnsToPeer(p) {
+		for _, stream := range conn.GetStreams() {
+			if stream.Protocol() == h.protocolId {
+				return stream, nil
+			}
+		}
+	}
+	return nil, nil
+}
 
-	// if stream == nil {
+// openStream opens a new stream
+func (h *host) openStream(p peer.ID) (stream net.Stream, err error) {
 	stream, err = h.h.NewStream(h.ctx, p, h.protocolId)
 	if err != nil {
 		log.Error("new stream", "error", err)
@@ -201,58 +212,38 @@ func (h *host) getStream(p peer.ID) (stream net.Stream, err error) {
 		"peer", stream.Conn().RemotePeer(),
 		"protocol", stream.Protocol(),
 	)
-	// } else {
-	// 	log.Debug(
-	// 		"existing stream",
-	// 		"host", stream.Conn().LocalPeer(),
-	// 		"peer", stream.Conn().RemotePeer(),
-	// 		"protocol", stream.Protocol(),
-	// 	)
-	// }
-
 	return stream, nil
 }
 
-// `getExistingStream` gets an existing stream (stream with matching protocol)
-// func (h *host) getExistingStream(p peer.ID) net.Stream {
-// 	conns := h.h.Network().ConnsToPeer(p)
-// 	for _, conn := range conns {
-// 		streams := conn.GetStreams()
-// 		for _, stream := range streams {
-// 			if stream.Protocol() == h.protocolId {
-// 				return stream
-// 			}
-// 		}
-// 	}
-//
-// 	return nil
-// }
-
-// `send` sends a non-status message to a specific peer
+// send sends a non-status message to a specific peer
 func (h *host) send(pid peer.ID, msg Message) (err error) {
 
-	// Get or create stream
-	stream, err := h.getStream(pid)
+	// TODO: investigate existing stream breaking status exchange
+
+	// stream, err := h.getStream(pid)
+	// if err != nil {
+	// 	log.Error("get stream", "error", err)
+	// 	return err
+	// }
+
+	stream, err := h.openStream(pid)
 	if err != nil {
-		log.Error("get stream", "error", err)
+		log.Error("open stream", "error", err)
 		return err
 	}
 
-	// Encode message
 	encMsg, err := msg.Encode()
 	if err != nil {
 		log.Error("encode message", "error", err)
 		return err
 	}
 
-	// Write encoded message to data stream
 	_, err = stream.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
 	if err != nil {
 		log.Error("write message", "error", err)
 		return err
 	}
 
-	// Write encoded message to data stream
 	_, err = stream.Write(encMsg)
 	if err != nil {
 		log.Error("write message", "error", err)
@@ -262,71 +253,67 @@ func (h *host) send(pid peer.ID, msg Message) (err error) {
 	return nil
 }
 
-// `broadcast` sends a message to all connected peers
+// broadcast sends a message to each connected peer
 func (h *host) broadcast(msg Message) {
-	for _, pid := range h.h.Network().Peers() {
-		addrInfo := h.dht.FindLocal(pid)
-		err := h.send(addrInfo.ID, msg)
+	log.Debug(
+		"broadcasting",
+		"host", h.id(),
+	)
+
+	for _, peer := range h.h.Network().Peers() {
+		log.Debug(
+			"sending message",
+			"host", h.id(),
+			"peer", peer,
+			"message", msg,
+		)
+
+		err := h.send(peer, msg)
 		if err != nil {
-			log.Error("send message", "error", err)
-			return
+			log.Error("sending message", "error", err)
+			break
 		}
 	}
 }
 
-// `ping` finds, connects, and pings a specific peer
+// ping pings a peer using dht
 func (h *host) ping(peer peer.ID) error {
-	ps, err := h.dht.FindPeer(h.ctx, peer)
-	if err != nil {
-		return err
-	}
-
-	err = h.h.Connect(h.ctx, ps)
-	if err != nil {
-		return err
-	}
-
 	return h.dht.Ping(h.ctx, peer)
 }
 
-// `id` returns the host id
+// id returns the host id
 func (h *host) id() string {
 	return h.h.ID().String()
 }
 
-// `peerCount` returns the number of connected peers
+// peerCount returns the number of connected peers
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()
 	return len(peers)
 }
 
-// `close` shuts down the host and its components
+// close shuts down the host and all its components
 func (h *host) close() error {
 	err := h.h.Close()
 	if err != nil {
 		return err
 	}
-
 	err = h.dht.Close()
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
-// `fullAddrs` returns all host addresses including host id
+// fullAddrs returns the multiaddresses of the host
 func (h *host) fullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := h.h.Addrs()
-
 	for _, a := range addrs {
 		maddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", a, h.h.ID()))
 		if err != nil {
 			continue
 		}
-
 		maddrs = append(maddrs, maddr)
 	}
-
 	return maddrs
 }

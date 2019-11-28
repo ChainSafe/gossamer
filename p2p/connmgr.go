@@ -55,7 +55,7 @@ func (_ ConnManager) Protect(peer.ID, string)                  {}
 func (_ ConnManager) Unprotect(peer.ID, string) bool           { return false }
 func (_ ConnManager) Close() error                             { return nil }
 
-// Called when network starts listening on an address
+// Listen is called when network starts listening on an address
 func Listen(n network.Network, address ma.Multiaddr) {
 	log.Debug(
 		"started listening",
@@ -64,7 +64,7 @@ func Listen(n network.Network, address ma.Multiaddr) {
 	)
 }
 
-// Called when network stops listening on an address
+// ListenClose is called when network stops listening on an address
 func ListenClose(n network.Network, address ma.Multiaddr) {
 	log.Debug(
 		"stopped listening",
@@ -73,7 +73,7 @@ func ListenClose(n network.Network, address ma.Multiaddr) {
 	)
 }
 
-// Called when a connection opened
+// Connected is called when a connection opened
 func Connected(n network.Network, c network.Conn) {
 	log.Debug(
 		"connected",
@@ -82,7 +82,7 @@ func Connected(n network.Network, c network.Conn) {
 	)
 }
 
-// Called when a connection closed
+// Disconnected is called when a connection closed
 func Disconnected(n network.Network, c network.Conn) {
 	log.Debug(
 		"disconnected",
@@ -91,10 +91,9 @@ func Disconnected(n network.Network, c network.Conn) {
 	)
 }
 
-// Called when a stream opened
+// OpenedStream is called when a stream opened
 func OpenedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
-
 	if protocol != "" {
 		log.Debug(
 			"opened stream",
@@ -105,10 +104,9 @@ func OpenedStream(n network.Network, s network.Stream) {
 	}
 }
 
-// Called when a stream closed
+// ClosedStream is called when a stream closed
 func ClosedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
-
 	if protocol != "" {
 		log.Debug(
 			"closed stream",

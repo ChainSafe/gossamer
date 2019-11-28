@@ -45,7 +45,7 @@ func TestStartService(t *testing.T) {
 	config := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 	node := startNewService(t, config, nil, nil)
@@ -56,7 +56,7 @@ func TestBootstrap(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -90,7 +90,7 @@ func TestConnect(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -100,7 +100,7 @@ func TestConnect(t *testing.T) {
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -133,7 +133,7 @@ func TestPing(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -143,7 +143,7 @@ func TestPing(t *testing.T) {
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -182,7 +182,7 @@ func TestExchangeStatus(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -192,7 +192,7 @@ func TestExchangeStatus(t *testing.T) {
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -201,7 +201,6 @@ func TestExchangeStatus(t *testing.T) {
 
 	addrB := nodeB.host.fullAddrs()[0]
 
-	// Get address info for node A (used for `host.connect`)
 	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +211,7 @@ func TestExchangeStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Wait for status exchange
+	// wait for status exchange
 	time.Sleep(5 * time.Second)
 
 	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
@@ -239,7 +238,7 @@ func TestSendRequest(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -249,7 +248,7 @@ func TestSendRequest(t *testing.T) {
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -258,44 +257,42 @@ func TestSendRequest(t *testing.T) {
 
 	addrB := nodeB.host.fullAddrs()[0]
 
-	// Get address info for node B (used for `host.connect`)
 	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Connect node A to node B
 	err = nodeA.host.connect(*addrInfoB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create end block hash (arbitrary block hash)
+	// create end block hash (arbitrary block hash)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create block request message (RequestedData: 1 = request header)
+	// create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
+		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	// Wait for status exchange
+	// wait for status exchange
 	time.Sleep(5 * time.Second)
 
-	// Send block request message from node A to node B
 	err = nodeA.host.send(addrInfoB.ID, blockRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Wait to receive message
+	// wait to receive message
 	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
@@ -313,7 +310,7 @@ func TestGossiping(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -323,7 +320,7 @@ func TestGossiping(t *testing.T) {
 	addrA := nodeA.host.fullAddrs()[0]
 
 	configB := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
@@ -333,7 +330,7 @@ func TestGossiping(t *testing.T) {
 	defer nodeB.Stop()
 
 	configC := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		BootstrapNodes: []string{addrA.String()},
 		Port:           7003,
 		RandSeed:       3,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
@@ -342,32 +339,30 @@ func TestGossiping(t *testing.T) {
 	nodeC := startNewService(t, configC, nil, nil)
 	defer nodeC.Stop()
 
-	// Create end block hash (arbitrary block hash)
+	// create end block hash (arbitrary block hash)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create block request message (RequestedData: 1 = request header)
+	// create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
+		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
 		EndBlockHash:  optional.NewHash(true, endBlock),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	// Wait for status exchange
+	// wait for status exchange
 	time.Sleep(5 * time.Second)
 
-	// Broadcast block request message
-	err = nodeA.Broadcast(blockRequest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// broadcast block request message
+	nodeA.host.broadcast(blockRequest)
 
-	// Wait to receive message
+	// wait to receive message
 	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
@@ -394,7 +389,7 @@ func TestBlockAnnounce(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
+		NoBootstrap: true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -406,7 +401,7 @@ func TestBlockAnnounce(t *testing.T) {
 	addrA := nodeA.host.fullAddrs()[0]
 
 	configB := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
+		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
@@ -415,17 +410,16 @@ func TestBlockAnnounce(t *testing.T) {
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
-	// Create block announce message
 	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
 	}
 
-	// Wait for status exchange
+	// wait for status exchange
 	time.Sleep(5 * time.Second)
 
 	msgRecA <- blockAnnounce
 
-	// Wait to receive message
+	// wait to receive message
 	time.Sleep(5 * time.Second)
 
 	msgReceivedB := nodeB.blockAnnounceRec[blockAnnounce.Id()]
