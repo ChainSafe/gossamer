@@ -27,6 +27,8 @@ import (
 	libp2pPeer "github.com/libp2p/go-libp2p-core/peer"
 )
 
+var HandleStreamTimeout = 10 * time.Second
+
 func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
@@ -186,7 +188,9 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -196,7 +200,9 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	msgSendB := make(chan Message)
+
+	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
@@ -211,8 +217,17 @@ func TestExchangeStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// wait for status exchange
-	time.Sleep(5 * time.Second)
+	select {
+	case <-msgSendA:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node A failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
 
 	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
 	if statusB == false {
@@ -242,7 +257,9 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -252,7 +269,9 @@ func TestSendRequest(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	msgSendB := make(chan Message)
+
+	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
@@ -265,6 +284,18 @@ func TestSendRequest(t *testing.T) {
 	err = nodeA.host.connect(*addrInfoB)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-msgSendA:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node A failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
 	}
 
 	// create end block hash (arbitrary block hash)
@@ -284,16 +315,16 @@ func TestSendRequest(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	// wait for status exchange
-	time.Sleep(5 * time.Second)
-
 	err = nodeA.host.send(addrInfoB.ID, blockRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// wait to receive message
-	time.Sleep(5 * time.Second)
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
@@ -314,7 +345,9 @@ func TestGossiping(t *testing.T) {
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	msgSendA := make(chan Message)
+
+	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -326,7 +359,9 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	msgSendB := make(chan Message)
+
+	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
 	configC := &Config{
@@ -336,8 +371,46 @@ func TestGossiping(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeC := startNewService(t, configC, nil, nil)
+	msgSendC := make(chan Message)
+
+	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
+
+	select {
+	case <-msgSendA:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node A failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendC:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node C failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendA:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node A failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendC:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node C failed to send to core service in time")
+	}
 
 	// create end block hash (arbitrary block hash)
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
@@ -356,14 +429,20 @@ func TestGossiping(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	// wait for status exchange
-	time.Sleep(5 * time.Second)
-
 	// broadcast block request message
 	nodeA.host.broadcast(blockRequest)
 
-	// wait to receive message
-	time.Sleep(5 * time.Second)
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendC:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node C failed to send to core service in time")
+	}
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
@@ -394,8 +473,9 @@ func TestBlockAnnounce(t *testing.T) {
 	}
 
 	msgRecA := make(chan Message)
+	msgSendA := make(chan Message)
 
-	nodeA := startNewService(t, configA, nil, msgRecA)
+	nodeA := startNewService(t, configA, msgSendA, msgRecA)
 	defer nodeA.Stop()
 
 	addrA := nodeA.host.fullAddrs()[0]
@@ -407,20 +487,36 @@ func TestBlockAnnounce(t *testing.T) {
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	msgSendB := make(chan Message)
+
+	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
+	select {
+	case <-msgSendA:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node A failed to send to core service in time")
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
+
+	// create block announce message
 	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
 	}
 
-	// wait for status exchange
-	time.Sleep(5 * time.Second)
-
+	// simulate message from core service
 	msgRecA <- blockAnnounce
 
-	// wait to receive message
-	time.Sleep(5 * time.Second)
+	select {
+	case <-msgSendB:
+	case <-time.After(HandleStreamTimeout):
+		t.Error("node B failed to send to core service in time")
+	}
 
 	msgReceivedB := nodeB.blockAnnRec[blockAnnounce.Id()]
 	if msgReceivedB == false {

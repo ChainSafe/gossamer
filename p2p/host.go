@@ -207,7 +207,7 @@ func (h *host) openStream(p peer.ID) (stream net.Stream, err error) {
 		log.Error("new stream", "error", err)
 		return nil, err
 	}
-	log.Debug(
+	log.Trace(
 		"opened stream",
 		"host", stream.Conn().LocalPeer(),
 		"peer", stream.Conn().RemotePeer(),
@@ -256,18 +256,18 @@ func (h *host) send(pid peer.ID, msg Message) (err error) {
 
 // broadcast sends a message to each connected peer
 func (h *host) broadcast(msg Message) {
-	log.Debug(
-		"broadcasting",
+	log.Trace(
+		"broadcast message",
 		"host", h.id(),
-		"message", msg,
+		"type", msg.GetType(),
 	)
 
 	for _, peer := range h.h.Network().Peers() {
-		log.Debug(
+		log.Trace(
 			"sending message",
 			"host", h.id(),
 			"peer", peer,
-			"message", msg,
+			"type", msg.GetType(),
 		)
 
 		err := h.send(peer, msg)

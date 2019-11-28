@@ -95,7 +95,7 @@ func Disconnected(n network.Network, c network.Conn) {
 func OpenedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
 	if protocol != "" {
-		log.Debug(
+		log.Trace(
 			"opened stream",
 			"host", s.Conn().LocalPeer(),
 			"peer", s.Conn().RemotePeer(),
@@ -108,7 +108,7 @@ func OpenedStream(n network.Network, s network.Stream) {
 func ClosedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
 	if protocol != "" {
-		log.Debug(
+		log.Trace(
 			"closed stream",
 			"host", s.Conn().LocalPeer(),
 			"peer", s.Conn().RemotePeer(),

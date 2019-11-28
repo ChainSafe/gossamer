@@ -210,18 +210,17 @@ func (s *Service) verifyNewMessage(msg Message) bool {
 func (s *Service) handleStream(stream net.Stream) {
 
 	// parse message and return on error
-	msg, _, err := parseMessage(stream)
+	msg, err := parseMessage(stream)
 	if err != nil {
 		log.Debug("parse message", "error", err)
 		return
 	}
 
-	log.Debug(
+	log.Trace(
 		"handle stream",
 		"host", stream.Conn().LocalPeer(),
 		"peer", stream.Conn().RemotePeer(),
-		"protocol", stream.Protocol(),
-		"message", msg,
+		"type", msg.GetType(),
 	)
 
 	if msg.GetType() == StatusMsgType {
@@ -232,6 +231,8 @@ func (s *Service) handleStream(stream net.Stream) {
 		s.handleStreamNonStatus(stream, msg)
 	}
 
+	// Send message to core service
+	s.msgSend <- msg
 }
 
 // handleStreamStatus handles status messages written to the stream
@@ -243,7 +244,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 	switch {
 
 	case hostStatus.String() == msg.String():
-		log.Debug(
+		log.Trace(
 			"status match",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
@@ -297,7 +298,8 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	}
 
 	// send new message to each connected peer
-	s.host.broadcast(msg)
+	// TODO: investigate channel closed error if broadcast
+	// s.host.broadcast(msg)
 }
 
 // ID returns the host id
@@ -320,61 +322,28 @@ func (s *Service) NoBootstrapping() bool {
 	return s.host.noBootstrap
 }
 
-// ParseMessage reads message length, message type, decodes message based on
-// type, and returns the decoded message
-func parseMessage(stream net.Stream) (Message, []byte, error) {
+// parseMessage reads message from the provided stream
+func parseMessage(stream net.Stream) (Message, error) {
 
 	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
 
-	lengthByte, err := rw.Reader.ReadByte()
+	// check read byte
+	_, err := rw.Reader.ReadByte()
 	if err != nil {
-		log.Error(
-			"failed to read message length",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"error", err,
-		)
-		return nil, nil, err
+		return nil, err
 	}
 
-	// decode message length using LEB128
-	length := LEB128ToUint64([]byte{lengthByte})
-
-	// read message type byte
+	// check message type
 	_, err = rw.Reader.Peek(1)
 	if err != nil {
-		log.Error(
-			"failed to read message type",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"err", err,
-		)
-		return nil, nil, err
-	}
-
-	// read entire message
-	rawMsg, err := rw.Reader.Peek(int(length))
-	if err != nil {
-		log.Error(
-			"failed to read message",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"err", err,
-		)
-		return nil, nil, err
+		return nil, err
 	}
 
 	// decode message
 	msg, err := DecodeMessage(rw.Reader)
 	if err != nil {
-		log.Error(
-			"failed to decode message",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"error", err,
-		)
-		return nil, nil, err
+		return nil, err
 	}
 
-	return msg, rawMsg, nil
+	return msg, nil
 }
