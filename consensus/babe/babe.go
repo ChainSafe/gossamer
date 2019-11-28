@@ -27,15 +27,15 @@ import (
 
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
 // Session contains the VRF keys for the validator
 type Session struct {
-	vrfPublicKey  VrfPublicKey
-	vrfPrivateKey VrfPrivateKey
-	rt            *runtime.Runtime
+	keystore *keystore.Keystore
+	rt       *runtime.Runtime
 
 	config *BabeConfiguration
 
@@ -52,16 +52,22 @@ type Session struct {
 	blockAnnounce chan<- p2p.Message
 }
 
+type SessionConfig struct {
+	Keystore             *keystore.Keystore
+	Runtime              *runtime.Runtime
+	BlockAnnounceChannel chan<- p2p.Message
+}
+
 // NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.Message) (*Session, error) {
+func NewSession(cfg *SessionConfig) (*Session, error) {
 	babeSession := &Session{
-		vrfPublicKey:  pubkey,
-		vrfPrivateKey: privkey,
-		rt:            rt,
+		keystore:      cfg.Keystore,
+		rt:            cfg.Runtime,
 		txQueue:       new(tx.PriorityQueue),
 		isProducer:    make(map[uint64]bool),
-		blockAnnounce: blockAnnounceChannel,
+		blockAnnounce: cfg.BlockAnnounceChannel,
 	}
+
 	err := babeSession.configurationFromRuntime()
 	if err != nil {
 		return nil, err

@@ -29,9 +29,8 @@ func (b *Session) configurationFromRuntime() error {
 	}
 
 	bc := new(BabeConfiguration)
-	bc.GenesisAuthorities = []AuthorityData{}
+	//bc.GenesisAuthorities = []AuthorityData{}
 	_, err = scale.Decode(ret, bc)
-
 	if err != nil {
 		return err
 	}
