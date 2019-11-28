@@ -188,8 +188,8 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 	return err
 }
 
-// getStream attempts to get an existing stream
-func (h *host) getStream(p peer.ID) (stream net.Stream, err error) {
+// getExistingStream attempts to get an existing stream
+func (h *host) getExistingStream(p peer.ID) (stream net.Stream, err error) {
 	for _, conn := range h.h.Network().ConnsToPeer(p) {
 		for _, stream := range conn.GetStreams() {
 			if stream.Protocol() == h.protocolId {
@@ -221,7 +221,7 @@ func (h *host) send(pid peer.ID, msg Message) (err error) {
 
 	// TODO: investigate existing stream breaking status exchange
 
-	// stream, err := h.getStream(pid)
+	// stream, err := h.getExistingStream(pid)
 	// if err != nil {
 	// 	log.Error("get stream", "error", err)
 	// 	return err
