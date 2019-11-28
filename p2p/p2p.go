@@ -36,14 +36,14 @@ const SendStatusInterval = 5 * time.Minute
 
 // Service describes a p2p service
 type Service struct {
-	ctx              context.Context
-	host             *host
-	msgRec           <-chan Message
-	msgSend          chan<- Message
-	blockAnnounceRec map[string]bool
-	blockReqRec      map[string]bool
-	blockRespRec     map[string]bool
-	txMessageRec     map[string]bool
+	ctx          context.Context
+	host         *host
+	msgRec       <-chan Message
+	msgSend      chan<- Message
+	blockAnnRec  map[string]bool
+	blockReqRec  map[string]bool
+	blockRespRec map[string]bool
+	txMessageRec map[string]bool
 }
 
 // TODO: use generated status message
@@ -67,14 +67,14 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 	}
 
 	s := &Service{
-		ctx:              ctx,
-		host:             h,
-		msgRec:           msgRec,
-		msgSend:          msgSend,
-		blockAnnounceRec: make(map[string]bool),
-		blockReqRec:      make(map[string]bool),
-		blockRespRec:     make(map[string]bool),
-		txMessageRec:     make(map[string]bool),
+		ctx:          ctx,
+		host:         h,
+		msgRec:       msgRec,
+		msgSend:      msgSend,
+		blockAnnRec:  make(map[string]bool),
+		blockReqRec:  make(map[string]bool),
+		blockRespRec: make(map[string]bool),
+		txMessageRec: make(map[string]bool),
 	}
 
 	h.registerStreamHandler(s.handleStream)
@@ -155,7 +155,7 @@ func (s *Service) broadcastReceivedMessages() {
 		)
 
 		// check and store message, returns true if valid new message
-		if !s.checkAndStoreReceived(msg) {
+		if !s.verifyNewMessage(msg) {
 			log.Error(
 				"message ignored",
 				"host", s.host.id(),
@@ -170,9 +170,9 @@ func (s *Service) broadcastReceivedMessages() {
 	}
 }
 
-// checkAndStoreReceived checks if message is new with valid type, storing
+// verifyNewMessage checks if message is new with valid type, storing
 // the result and returning true if valid new message
-func (s *Service) checkAndStoreReceived(msg Message) bool {
+func (s *Service) verifyNewMessage(msg Message) bool {
 
 	msgType := msg.GetType()
 
@@ -188,17 +188,17 @@ func (s *Service) checkAndStoreReceived(msg Message) bool {
 		}
 		s.blockRespRec[msg.Id()] = true
 	case BlockAnnounceMsgType:
-		if s.blockAnnounceRec[msg.Id()] {
+		if s.blockAnnRec[msg.Id()] {
 			return false
 		}
-		s.blockAnnounceRec[msg.Id()] = true
+		s.blockAnnRec[msg.Id()] = true
 	case TransactionMsgType:
 		if s.txMessageRec[msg.Id()] {
 			return false
 		}
 		s.txMessageRec[msg.Id()] = true
 	default:
-		// do not broadcast status message type
+		// status message type not valid
 		return false
 	}
 
@@ -286,7 +286,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	}
 
 	// check and store message, returns true if valid new message
-	if !s.checkAndStoreReceived(msg) {
+	if !s.verifyNewMessage(msg) {
 		log.Debug(
 			"message ignored",
 			"host", s.host.id(),

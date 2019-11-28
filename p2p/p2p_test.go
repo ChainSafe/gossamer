@@ -422,7 +422,7 @@ func TestBlockAnnounce(t *testing.T) {
 	// wait to receive message
 	time.Sleep(5 * time.Second)
 
-	msgReceivedB := nodeB.blockAnnounceRec[blockAnnounce.Id()]
+	msgReceivedB := nodeB.blockAnnRec[blockAnnounce.Id()]
 	if msgReceivedB == false {
 		t.Error(
 			"node B did not receive message from node A",
