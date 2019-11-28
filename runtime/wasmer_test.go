@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -1050,12 +1051,19 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var wg sync.WaitGroup
 
 	// Execute 2 concurrent calls to the runtime
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
+
+	wg.Wait()
 }
