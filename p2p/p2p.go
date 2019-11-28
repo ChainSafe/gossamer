@@ -263,7 +263,8 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 		// TODO: store status in peer metadata
 		s.host.peerStatus[stream.Conn().RemotePeer()] = false
 
-		// TODO: drop peer if status mismatch
+		// drop peer if status mismatch
+		s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
 
 	}
 }
