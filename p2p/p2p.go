@@ -116,7 +116,18 @@ func (s *Service) Stop() error {
 
 // broadcastStatusMessages starts broadcasting status messages
 func (s *Service) broadcastStatusMessages() {
+
+	// Wait for node to finish starting
+	time.Sleep(time.Second)
+
+	// TODO: use generated message
+	msg := statusMessage
+
+	// send message to each connected peer
+	s.host.broadcast(msg)
+
 	for {
+
 		// wait between sending messages
 		time.Sleep(SendStatusInterval)
 
@@ -125,6 +136,7 @@ func (s *Service) broadcastStatusMessages() {
 
 		// send message to each connected peer
 		s.host.broadcast(msg)
+
 	}
 }
 
@@ -144,20 +156,21 @@ func (s *Service) broadcastReceivedMessages() {
 
 		// check and store message, returns true if valid new message
 		if !s.checkAndStoreReceived(msg) {
-			log.Debug(
-				"invalid message",
+			log.Error(
+				"message ignored",
 				"host", s.host.id(),
 				"channel", "msgRec",
 				"message", msg,
 			)
+			return
 		}
 
-		// send new message to each connected peer
+		// send message to each connected peer
 		s.host.broadcast(msg)
 	}
 }
 
-// `checkAndStoreReceived` checks if message is new with valid type, storing
+// checkAndStoreReceived checks if message is new with valid type, storing
 // the result and returning true if valid new message
 func (s *Service) checkAndStoreReceived(msg Message) bool {
 
@@ -193,7 +206,7 @@ func (s *Service) checkAndStoreReceived(msg Message) bool {
 }
 
 // handleStream parses the message written to the data stream and calls the
-// associated message handler (status or non-status) based on message type.
+// associated message handler (status or non-status) based on message type
 func (s *Service) handleStream(stream net.Stream) {
 
 	// parse message and return on error
@@ -260,10 +273,10 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	// TODO: get peer status from peer metadata
 	status := s.host.peerStatus[stream.Conn().RemotePeer()]
 
-	// exit if status message has not been confirmed
+	// return if status message has not been confirmed
 	if !status {
 		log.Debug(
-			"message blocked",
+			"message ignored",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
 			"protocol", stream.Protocol(),
@@ -275,11 +288,12 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	// check and store message, returns true if valid new message
 	if !s.checkAndStoreReceived(msg) {
 		log.Debug(
-			"invalid message",
+			"message ignored",
 			"host", s.host.id(),
 			"channel", "msgRec",
 			"message", msg,
 		)
+		return
 	}
 
 	// send new message to each connected peer
@@ -296,7 +310,7 @@ func (s *Service) Peers() []string {
 	return PeerIdToStringArray(s.host.h.Network().Peers())
 }
 
-// `eerCount returns the number of connected peers
+// PeerCount returns the number of connected peers
 func (s *Service) PeerCount() int {
 	return s.host.peerCount()
 }
@@ -306,7 +320,7 @@ func (s *Service) NoBootstrapping() bool {
 	return s.host.noBootstrap
 }
 
-// `arseMessage reads message length, message type, decodes message based on
+// ParseMessage reads message length, message type, decodes message based on
 // type, and returns the decoded message
 func parseMessage(stream net.Stream) (Message, []byte, error) {
 

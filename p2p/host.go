@@ -59,6 +59,7 @@ type host struct {
 	peerStatus map[peer.ID]bool
 }
 
+// newHost creates a host wrapper with an attached libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	opts, err := cfg.buildOpts()
@@ -71,7 +72,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// use default protocol if not provided
+	// use default protocol if none provided
 	protocolId := protocol.ID(cfg.ProtocolId)
 	if protocolId == "" {
 		protocolId = DefaultProtocolId
@@ -116,7 +117,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 }
 
-// `bootstrap` connects the host to the defined bootnodes
+// bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	if len(h.bootnodes) == 0 && !h.noBootstrap {
 		log.Error(
@@ -258,6 +259,7 @@ func (h *host) broadcast(msg Message) {
 	log.Debug(
 		"broadcasting",
 		"host", h.id(),
+		"message", msg,
 	)
 
 	for _, peer := range h.h.Network().Peers() {
@@ -271,7 +273,6 @@ func (h *host) broadcast(msg Message) {
 		err := h.send(peer, msg)
 		if err != nil {
 			log.Error("sending message", "error", err)
-			break
 		}
 	}
 }
