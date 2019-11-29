@@ -46,12 +46,13 @@ type MessageApi interface {
 
 type PeerApi interface {
 	//GetEventStream() chan<- p2p.Event
-	Peers() []string
+	// Peers() []PeerInfo
 	State() string
 }
 
 type NetworkApi interface {
 	// Network
 	PeerCount() int
+	Peers() []string
 	Status() string
 }

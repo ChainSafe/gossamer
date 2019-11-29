@@ -28,8 +28,7 @@ func (s *storageState) GetStorage(key []byte) ([]byte, error) {
 }
 
 func (s *storageState) StorageRoot() (common.Hash, error) {
-	// TODO: return the storage root
-	return common.Hash{}, nil
+	return s.trie.Hash()
 }
 
 func (s *storageState) EnumeratedTrieRoot(values [][]byte) {
