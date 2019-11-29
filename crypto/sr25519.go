@@ -8,6 +8,11 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+const Sr25519PublicKeyLength int = 32
+const Sr25519SeedLength int = 32
+const Sr25519PrivateKeyLength int = 32
+const Sr25519SignatureLength int = 64
+
 // SigningContext is the context for signatures used or created with substrate
 var SigningContext = []byte("substrate")
 
@@ -40,7 +45,7 @@ func NewSr25519Keypair(priv *sr25519.SecretKey) (*Sr25519Keypair, error) {
 
 // NewSr25519KeypairFromSeed returns a new Sr25519Keypair given a seed
 func NewSr25519KeypairFromSeed(seed []byte) (*Sr25519Keypair, error) {
-	buf := [SeedLength]byte{}
+	buf := [Sr25519SeedLength]byte{}
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
@@ -79,11 +84,11 @@ func GenerateSr25519Keypair() (*Sr25519Keypair, error) {
 }
 
 func NewSr25519PublicKey(in []byte) (*Sr25519PublicKey, error) {
-	if len(in) != PublicKeyLength {
+	if len(in) != Sr25519PublicKeyLength {
 		return nil, errors.New("cannot create public key: input is not 32 bytes")
 	}
 
-	buf := [PublicKeyLength]byte{}
+	buf := [Sr25519PublicKeyLength]byte{}
 	copy(buf[:], in)
 	return &Sr25519PublicKey{key: sr25519.NewPublicKey(buf)}, nil
 }
@@ -158,11 +163,11 @@ func (k *Sr25519PublicKey) Verify(msg, sig []byte) bool {
 		return false
 	}
 
-	if len(sig) != SignatureLength {
+	if len(sig) != Sr25519SignatureLength {
 		return false
 	}
 
-	b := [SignatureLength]byte{}
+	b := [Sr25519SignatureLength]byte{}
 	copy(b[:], sig)
 
 	s := &sr25519.Signature{}
@@ -188,10 +193,10 @@ func (k *Sr25519PublicKey) Encode() []byte {
 // Decode decodes the input bytes into a public key and sets the receiver the decoded key
 // Input must be 32 bytes, or else this function will error
 func (k *Sr25519PublicKey) Decode(in []byte) error {
-	if len(in) != PublicKeyLength {
+	if len(in) != Sr25519PublicKeyLength {
 		return errors.New("input to sr25519 public key decode is not 32 bytes")
 	}
-	b := [PublicKeyLength]byte{}
+	b := [Sr25519PublicKeyLength]byte{}
 	copy(b[:], in)
 	k.key = &sr25519.PublicKey{}
 	return k.key.Decode(b)

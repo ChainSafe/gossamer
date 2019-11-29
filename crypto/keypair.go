@@ -13,12 +13,6 @@ type KeyType = string
 const Ed25519Type KeyType = "ed25519"
 const Sr25519Type KeyType = "sr25519"
 
-const PublicKeyLength int = 32
-const SeedLength int = 32
-const Ed25519PrivateKeyLength int = 64
-const Sr25519PrivateKeyLength int = 32
-const SignatureLength int = 64
-
 type Keypair interface {
 	Sign(msg []byte) ([]byte, error)
 	Public() PublicKey
