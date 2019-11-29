@@ -199,7 +199,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 //export ext_set_child_storage
 func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
-	log.Debug("[ext_set_child_storage] executing...")
+	log.Trace("[ext_set_child_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
@@ -220,7 +220,7 @@ func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen
 
 //export ext_get_child_storage_into
 func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
-	log.Debug("[ext_get_child_storage_into] executing...")
+	log.Trace("[ext_get_child_storage_into] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
