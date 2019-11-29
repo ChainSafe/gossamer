@@ -1,6 +1,7 @@
 package keystore
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -71,4 +72,13 @@ func (ks *Keystore) Sr25519Keypairs() []crypto.Keypair {
 		}
 	}
 	return edkeys
+}
+
+func (ks *Keystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
+	for _, key := range ks.keys {
+		if bytes.Equal(key.Public().Encode(), pub.Encode()) {
+			return key
+		}
+	}
+	return nil
 }

@@ -127,9 +127,7 @@ func (r *Runtime) StorageRoot() (common.Hash, error) {
 }
 
 func (r *Runtime) Store(data []byte, location int32) {
-	r.mutex.Lock()
 	mem := r.vm.Memory.Data()
-	r.mutex.Unlock()
 	copy(mem[location:location+int32(len(data))], data)
 }
 

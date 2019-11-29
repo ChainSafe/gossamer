@@ -548,16 +548,14 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.RUnlock()
 
-	keys := runtimeCtx.keystore.Ed25519Keypairs()
-
-	pubkey := memory[pubkeyData : pubkeyData+32]
-	var signingKey crypto.Keypair
-	for _, key := range keys {
-		if bytes.Equal(key.Public().Encode(), pubkey) {
-			signingKey = key
-		}
+	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
+	pubkey, err := crypto.NewEd25519PublicKey(pubkeyBytes)
+	if err != nil {
+		log.Error("[ext_ed25519_sign]", "error", err)
+		return 1
 	}
 
+	signingKey := runtimeCtx.keystore.GetKeypair(pubkey)
 	if signingKey == nil {
 		log.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
 		return 1
@@ -586,15 +584,14 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 	runtimeCtx := registry[*(*int)(instanceContext.Data())]
 	mutex.RUnlock()
 
-	keys := runtimeCtx.keystore.Sr25519Keypairs()
-
-	pubkey := memory[pubkeyData : pubkeyData+32]
-	var signingKey crypto.Keypair
-	for _, key := range keys {
-		if bytes.Equal(key.Public().Encode(), pubkey) {
-			signingKey = key
-		}
+	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
+	pubkey, err := crypto.NewSr25519PublicKey(pubkeyBytes)
+	if err != nil {
+		log.Error("[ext_sr25519_sign]", "error", err)
+		return 1
 	}
+
+	signingKey := runtimeCtx.keystore.GetKeypair(pubkey)
 
 	if signingKey == nil {
 		log.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
