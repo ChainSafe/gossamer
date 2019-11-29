@@ -80,6 +80,9 @@ func DecodeMessage(r io.Reader) (m Message, err error) {
 	case TransactionMsgType:
 		m = new(TransactionMessage)
 		err = m.Decode(r)
+	case ConsensusMsgType:
+		m = new(ConsensusMessage)
+		err = m.Decode(r)
 	default:
 		return nil, errors.New("unsupported message type")
 	}
@@ -443,6 +446,64 @@ func (tm *TransactionMessage) Decode(r io.Reader) error {
 func (tm *TransactionMessage) Id() string {
 	// scale encode each extrinsic
 	encMsg, err := tm.Encode()
+	if err != nil {
+		return ""
+	}
+	hash, err := common.Blake2bHash(encMsg)
+	if err != nil {
+		return ""
+	}
+	return hash.String()
+}
+
+type ConsensusMessage struct {
+	ID   uint32
+	Data []byte
+}
+
+func (cm *ConsensusMessage) GetType() int {
+	return ConsensusMsgType
+}
+
+func (cm *ConsensusMessage) String() string {
+	return fmt.Sprintf("ConsensusMessage ID=%d, DATA=%x", cm.ID, cm.Data)
+}
+
+// Encode encodes a block response message using SCALE and appends the type byte to the start
+func (cm *ConsensusMessage) Encode() ([]byte, error) {
+	encMsg := []byte{BlockResponseMsgType}
+
+	encId := make([]byte, 8)
+	binary.LittleEndian.PutUint32(encId, cm.ID)
+	encMsg = append(encMsg, encId...)
+
+	return append(encMsg, cm.Data...), nil
+}
+
+// Decodes the message into a ConsensusMessage, it assumes the type byte has been removed
+func (cm *ConsensusMessage) Decode(r io.Reader) error {
+	var err error
+	cm.ID, err = readUint32(r)
+	if err != nil {
+		return err
+	}
+
+	for {
+		b, err := readByte(r)
+		if err != nil {
+			break
+		}
+
+		cm.Data = append(cm.Data, b)
+	}
+
+	return nil
+}
+
+// Id returns the Hash of ConsensusMessage
+func (cm *ConsensusMessage) Id() string {
+	// scale encode each extrinsic
+	encMsg, err := cm.Encode()
 	if err != nil {
 		return ""
 	}

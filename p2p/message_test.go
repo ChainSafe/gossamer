@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math/big"
 	"reflect"
 	"testing"
@@ -599,5 +600,33 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	expected := TransactionMessage{[]types.Extrinsic{extrinsic1, extrinsic2}}
 	if !reflect.DeepEqual(*decodedMessage, expected) {
 		t.Fatalf("Fail: got: %v expected %v", *decodedMessage, expected)
+	}
+}
+
+func TestDecodeConsensusMessage(t *testing.T) {
+	encMsg, err := common.HexToBytes("0x080000000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Write(encMsg)
+
+	m := new(ConsensusMessage)
+	err = m.Decode(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ID := uint32(8)
+	encId := make([]byte, 8)
+	binary.LittleEndian.PutUint32(encId, ID)
+	expected := &ConsensusMessage{
+		ID:   ID,
+		Data: []byte{0, 0, 0, 0, 0},
+	}
+
+	if !reflect.DeepEqual(m, expected) {
+		t.Fatalf("Fail: got %v expected %v", m, expected)
 	}
 }
