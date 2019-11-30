@@ -43,7 +43,7 @@ func NewEd25519KeypairFromSeed(seed []byte) (*Ed25519Keypair, error) {
 
 // GenerateEd25519Keypair returns a new ed25519 keypair
 func GenerateEd25519Keypair() (*Ed25519Keypair, error) {
-	buf := make([]byte, Sr25519SeedLength)
+	buf := make([]byte, Ed25519SeedLength)
 	_, err := rand.Read(buf)
 	if err != nil {
 		return nil, err

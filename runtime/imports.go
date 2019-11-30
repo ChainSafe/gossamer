@@ -496,7 +496,7 @@ func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	// TODO: when do deallocate?
 	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
-		log.Error("[ext_sr25519_public_keys]", "error", err)
+		log.Error("[ext_ed25519_public_keys]", "error", err)
 		return -1
 	}
 
