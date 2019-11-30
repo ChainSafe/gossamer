@@ -130,7 +130,10 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 		msg := statusMessage
 
 		// send status message to connected peer
-		s.host.send(peer, msg)
+		err := s.host.send(peer, msg)
+		if err != nil {
+			log.Error("send message", "error", err)
+		}
 
 		// wait between sending messages
 		time.Sleep(SendStatusInterval)
@@ -150,8 +153,8 @@ func (s *Service) broadcastReceivedMessages() {
 			"message", msg.GetType(),
 		)
 
-		// check and store message, returns true if valid new message
-		if !s.verifyNewMessage(msg) {
+		// check if message should be broadcasted
+		if !s.shouldBroadcast(msg) {
 			log.Error(
 				"message ignored",
 				"host", s.host.id(),
@@ -165,9 +168,9 @@ func (s *Service) broadcastReceivedMessages() {
 	}
 }
 
-// verifyNewMessage checks if message is new with valid type, storing
-// the result and returning true if valid new message
-func (s *Service) verifyNewMessage(msg Message) bool {
+// shouldBroadcast checks if message is new with a valid type, storing the
+// result for later checks and returning true if its a valid new message
+func (s *Service) shouldBroadcast(msg Message) bool {
 
 	msgType := msg.GetType()
 
@@ -259,7 +262,10 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 		s.host.peerStatus[stream.Conn().RemotePeer()] = false
 
 		// drop peer if status mismatch
-		s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
+		err := s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
+		if err != nil {
+			log.Error("close peer", "error", err)
+		}
 
 	}
 }
@@ -283,7 +289,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	}
 
 	// check and store message, returns true if valid new message
-	if !s.verifyNewMessage(msg) {
+	if !s.shouldBroadcast(msg) {
 		log.Debug(
 			"message ignored",
 			"host", s.host.id(),

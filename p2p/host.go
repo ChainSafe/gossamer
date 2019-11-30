@@ -28,12 +28,12 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -191,17 +191,17 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 	return err
 }
 
-// getExistingStream attempts to get an existing stream
-func (h *host) getExistingStream(p peer.ID) (stream net.Stream, err error) {
-	for _, conn := range h.h.Network().ConnsToPeer(p) {
-		for _, stream := range conn.GetStreams() {
-			if stream.Protocol() == h.protocolId {
-				return stream, nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("no existing stream")
-}
+// // getExistingStream attempts to get an existing stream
+// func (h *host) getExistingStream(p peer.ID) (stream net.Stream, err error) {
+// 	for _, conn := range h.h.Network().ConnsToPeer(p) {
+// 		for _, stream := range conn.GetStreams() {
+// 			if stream.Protocol() == h.protocolId {
+// 				return stream, nil
+// 			}
+// 		}
+// 	}
+// 	return nil, fmt.Errorf("no existing stream")
+// }
 
 // newStream opens a new stream with a specific peer using the host protocol
 func (h *host) newStream(p peer.ID) (net.Stream, error) {
