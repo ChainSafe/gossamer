@@ -54,6 +54,58 @@ func TestStartService(t *testing.T) {
 	node.Stop()
 }
 
+func TestConnect(t *testing.T) {
+	configA := &Config{
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
+	}
+
+	nodeA := startNewService(t, configA, nil, nil)
+	defer nodeA.Stop()
+
+	configB := &Config{
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
+	}
+
+	nodeB := startNewService(t, configB, nil, nil)
+	defer nodeB.Stop()
+
+	addrB := nodeB.host.fullAddrs()[0]
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfoB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	peerCountA := nodeA.host.peerCount()
+	peerCountB := nodeB.host.peerCount()
+
+	if peerCountA != 1 {
+		t.Error(
+			"node A does not have expected peer count",
+			"\nexpected:", 1,
+			"\nreceived:", peerCountA,
+		)
+	}
+
+	if peerCountB != 1 {
+		t.Error(
+			"node B does not have expected peer count",
+			"\nexpected:", 1,
+			"\nreceived:", peerCountB,
+		)
+	}
+}
+
 func TestBootstrap(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -78,53 +130,19 @@ func TestBootstrap(t *testing.T) {
 	defer nodeB.Stop()
 
 	peerCountA := nodeA.host.peerCount()
+	peerCountB := nodeB.host.peerCount()
 
 	if peerCountA != 1 {
 		t.Error(
-			"Did not send expected peer count",
+			"node A does not have expected peer count",
 			"\nexpected:", 1,
 			"\nreceived:", peerCountA,
 		)
 	}
-}
-
-func TestConnect(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeB := startNewService(t, configB, nil, nil)
-	defer nodeB.Stop()
-
-	addrA := nodeA.host.fullAddrs()[0]
-	addrInfoA, err := libp2pPeer.AddrInfoFromP2pAddr(addrA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.connect(*addrInfoA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	peerCountB := nodeB.host.peerCount()
 
 	if peerCountB != 1 {
 		t.Error(
-			"Did not send expected peer count",
+			"node B does not have expected peer count",
 			"\nexpected:", 1,
 			"\nreceived:", peerCountB,
 		)
@@ -152,12 +170,6 @@ func TestPing(t *testing.T) {
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
-	addrInfoA, err := libp2pPeer.AddrInfoFromP2pAddr(addrA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	addrB := nodeB.host.fullAddrs()[0]
 	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
@@ -170,11 +182,6 @@ func TestPing(t *testing.T) {
 	}
 
 	err = nodeA.host.ping(addrInfoB.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.ping(addrInfoA.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,11 +200,13 @@ func TestExchangeStatus(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
+	addrA := nodeA.host.fullAddrs()[0]
+
 	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		BootstrapNodes: []string{addrA.String()},
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
@@ -205,34 +214,22 @@ func TestExchangeStatus(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	addrB := nodeB.host.fullAddrs()[0]
-
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	select {
 	case <-msgSendA:
 	case <-time.After(TestMessageInterval):
-		t.Error("node A failed to send to core service in time")
+		t.Error("node A did not receive status message from node B in time")
 	}
 
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive status message from node A in time")
 	}
 
 	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
 	if statusB == false {
 		t.Error(
-			"node A did not receive status B",
+			"node A did not receive status message from node B",
 			"\nreceived:", statusB,
 			"\nexpected:", true,
 		)
@@ -241,12 +238,11 @@ func TestExchangeStatus(t *testing.T) {
 	statusA := nodeB.host.peerStatus[nodeA.host.h.ID()]
 	if statusA == false {
 		t.Error(
-			"node B did not receive status A",
+			"node B did not receive status message from node A",
 			"\nreceived:", statusA,
 			"\nexpected:", true,
 		)
 	}
-
 }
 
 func TestSendRequest(t *testing.T) {
@@ -262,11 +258,13 @@ func TestSendRequest(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
+	addrA := nodeA.host.fullAddrs()[0]
+
 	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		BootstrapNodes: []string{addrA.String()},
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
@@ -274,28 +272,16 @@ func TestSendRequest(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	addrB := nodeB.host.fullAddrs()[0]
-
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	select {
 	case <-msgSendA:
 	case <-time.After(TestMessageInterval):
-		t.Error("node A failed to send to core service in time")
+		t.Error("node A did not receive status message from node B in time")
 	}
 
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive status message from node A in time")
 	}
 
 	// create end block hash (arbitrary block hash)
@@ -315,6 +301,12 @@ func TestSendRequest(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
+	addrB := nodeB.host.fullAddrs()[0]
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = nodeA.host.send(addrInfoB.ID, blockRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -323,21 +315,20 @@ func TestSendRequest(t *testing.T) {
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive block request message from node A in time")
 	}
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
 		t.Error(
-			"node B did not receive message from node A",
+			"node B did not receive block request message from node A",
 			"\nreceived:", msgReceivedB,
 			"\nexpected:", true,
 		)
 	}
-
 }
 
-func TestGossiping(t *testing.T) {
+func TestBroadcastRequest(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -350,11 +341,13 @@ func TestGossiping(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
+	addrA := nodeA.host.fullAddrs()[0]
+
 	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		BootstrapNodes: []string{addrA.String()},
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
@@ -362,76 +355,39 @@ func TestGossiping(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	addrB := nodeB.host.fullAddrs()[0]
-
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	configC := &Config{
-		Port:        7003,
-		RandSeed:    3,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		BootstrapNodes: []string{addrA.String()},
+		Port:           7003,
+		RandSeed:       3,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendC := make(chan Message)
-
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
 
-	addrC := nodeC.host.fullAddrs()[0]
-
-	addrInfoC, err := libp2pPeer.AddrInfoFromP2pAddr(addrC)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoC)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	select {
 	case <-msgSendA:
 	case <-time.After(TestMessageInterval):
-		t.Error("node A failed to send to core service in time")
+		t.Error("node A did not receive status message from node B in time")
 	}
 
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
-	}
-
-	select {
-	case <-msgSendC:
-	case <-time.After(TestMessageInterval):
-		t.Error("node C failed to send to core service in time")
+		t.Error("node B did not receive status message from node A in time")
 	}
 
 	select {
 	case <-msgSendA:
 	case <-time.After(TestMessageInterval):
-		t.Error("node A failed to send to core service in time")
-	}
-
-	select {
-	case <-msgSendB:
-	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node A did not receive status message from node C in time")
 	}
 
 	select {
 	case <-msgSendC:
 	case <-time.After(TestMessageInterval):
-		t.Error("node C failed to send to core service in time")
+		t.Error("node C did not receive status message from node A in time")
 	}
 
 	// create end block hash (arbitrary block hash)
@@ -457,19 +413,19 @@ func TestGossiping(t *testing.T) {
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive block request message from node A in time")
 	}
 
 	select {
 	case <-msgSendC:
 	case <-time.After(TestMessageInterval):
-		t.Error("node C failed to send to core service in time")
+		t.Error("node C did not receive block request message from node A in time")
 	}
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
 	if msgReceivedB == false {
 		t.Error(
-			"node B did not receive message from node A",
+			"node B did not receive block request message from node A",
 			"\nreceived:", msgReceivedB,
 			"\nexpected:", true,
 		)
@@ -478,12 +434,11 @@ func TestGossiping(t *testing.T) {
 	msgReceivedC := nodeC.blockReqRec[blockRequest.Id()]
 	if msgReceivedC == false {
 		t.Error(
-			"node C did not receive message from node A",
+			"node C did not receive block request message from node A",
 			"\nreceived:", msgReceivedC,
 			"\nexpected:", true,
 		)
 	}
-
 }
 
 func TestBlockAnnounce(t *testing.T) {
@@ -500,11 +455,13 @@ func TestBlockAnnounce(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, msgRecA)
 	defer nodeA.Stop()
 
+	addrA := nodeA.host.fullAddrs()[0]
+
 	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		BootstrapNodes: []string{addrA.String()},
+		Port:           7002,
+		RandSeed:       2,
+		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
@@ -512,28 +469,16 @@ func TestBlockAnnounce(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	addrB := nodeB.host.fullAddrs()[0]
-
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	select {
 	case <-msgSendA:
 	case <-time.After(TestMessageInterval):
-		t.Error("node A failed to send to core service in time")
+		t.Error("node A did not receive message in time")
 	}
 
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive message in time")
 	}
 
 	// create block announce message
@@ -541,13 +486,13 @@ func TestBlockAnnounce(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	// simulate message from core service
+	// simulate message received from core service
 	msgRecA <- blockAnnounce
 
 	select {
 	case <-msgSendB:
 	case <-time.After(TestMessageInterval):
-		t.Error("node B failed to send to core service in time")
+		t.Error("node B did not receive message in time")
 	}
 
 	msgReceivedB := nodeB.blockAnnRec[blockAnnounce.Id()]
@@ -558,5 +503,4 @@ func TestBlockAnnounce(t *testing.T) {
 			"\nexpected:", true,
 		)
 	}
-
 }

@@ -84,15 +84,15 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 // Start starts the service
 func (s *Service) Start() error {
 
+	// set connection and stream handler
+	s.host.registerConnHandler(s.handleConn)
+	s.host.registerStreamHandler(s.handleStream)
+
 	s.host.startMdns()
 	s.host.bootstrap()
 	s.host.printHostAddresses()
 
-	// set connection and stream handlers
-	s.host.registerConnHandler(s.handleConn)
-	s.host.registerStreamHandler(s.handleStream)
-
-	// start broadcasting received messages to all connected peers
+	// start broadcasting messages from core service to all connected peers
 	go s.broadcastReceivedMessages()
 
 	return nil

@@ -129,11 +129,11 @@ func (h *host) bootstrap() {
 	for _, peerInfo := range h.bootnodes {
 		log.Trace(
 			"bootstrap",
-			"host", h.h.ID(),
+			"host", h.id(),
 			"peer", peerInfo.ID,
 		)
 		// connect to each peer
-		err := h.h.Connect(h.ctx, peerInfo)
+		err := h.connect(peerInfo)
 		if err != nil {
 			log.Error("connect", "error", err)
 		}
