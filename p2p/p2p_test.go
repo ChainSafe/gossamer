@@ -27,7 +27,7 @@ import (
 	libp2pPeer "github.com/libp2p/go-libp2p-core/peer"
 )
 
-var HandleStreamTimeout = 10 * time.Second
+var TestMessageInterval = 10 * time.Second
 
 func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
 	node, err := NewService(cfg, msgSend, msgRec)
@@ -219,13 +219,13 @@ func TestExchangeStatus(t *testing.T) {
 
 	select {
 	case <-msgSendA:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node A failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
@@ -288,13 +288,13 @@ func TestSendRequest(t *testing.T) {
 
 	select {
 	case <-msgSendA:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node A failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
@@ -322,7 +322,7 @@ func TestSendRequest(t *testing.T) {
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
@@ -378,37 +378,37 @@ func TestGossiping(t *testing.T) {
 
 	select {
 	case <-msgSendA:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node A failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendC:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node C failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendA:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node A failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendC:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node C failed to send to core service in time")
 	}
 
@@ -434,13 +434,13 @@ func TestGossiping(t *testing.T) {
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendC:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node C failed to send to core service in time")
 	}
 
@@ -494,13 +494,13 @@ func TestBlockAnnounce(t *testing.T) {
 
 	select {
 	case <-msgSendA:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node A failed to send to core service in time")
 	}
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 
@@ -514,7 +514,7 @@ func TestBlockAnnounce(t *testing.T) {
 
 	select {
 	case <-msgSendB:
-	case <-time.After(HandleStreamTimeout):
+	case <-time.After(TestMessageInterval):
 		t.Error("node B failed to send to core service in time")
 	}
 

@@ -28,35 +28,34 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// ConnManager implement connmgr.ConnManager
-// https://godoc.org/github.com/libp2p/go-libp2p-core/connmgr#ConnManager
+// ConnManager extends libp2p ConnManager
 type ConnManager struct{}
 
 // Notifee is used to monitor changes to a connection
-func (cm ConnManager) Notifee() network.Notifiee {
+func (cm *ConnManager) Notifee() network.Notifiee {
 	nb := new(network.NotifyBundle)
 
-	nb.ListenF = Listen
-	nb.ListenCloseF = ListenClose
-	nb.ConnectedF = Connected
-	nb.DisconnectedF = Disconnected
-	nb.OpenedStreamF = OpenedStream
-	nb.ClosedStreamF = ClosedStream
+	nb.ListenF = cm.Listen
+	nb.ListenCloseF = cm.ListenClose
+	nb.ConnectedF = cm.Connected
+	nb.DisconnectedF = cm.Disconnected
+	nb.OpenedStreamF = cm.OpenedStream
+	nb.ClosedStreamF = cm.ClosedStream
 
 	return nb
 }
 
-func (_ ConnManager) TagPeer(peer.ID, string, int)             {}
-func (_ ConnManager) UntagPeer(peer.ID, string)                {}
-func (_ ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
-func (_ ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo      { return &connmgr.TagInfo{} }
-func (_ ConnManager) TrimOpenConns(ctx context.Context)        {}
-func (_ ConnManager) Protect(peer.ID, string)                  {}
-func (_ ConnManager) Unprotect(peer.ID, string) bool           { return false }
-func (_ ConnManager) Close() error                             { return nil }
+func (_ *ConnManager) TagPeer(peer.ID, string, int)             {}
+func (_ *ConnManager) UntagPeer(peer.ID, string)                {}
+func (_ *ConnManager) UpsertTag(peer.ID, string, func(int) int) {}
+func (_ *ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo      { return &connmgr.TagInfo{} }
+func (_ *ConnManager) TrimOpenConns(ctx context.Context)        {}
+func (_ *ConnManager) Protect(peer.ID, string)                  {}
+func (_ *ConnManager) Unprotect(peer.ID, string) bool           { return false }
+func (_ *ConnManager) Close() error                             { return nil }
 
 // Listen is called when network starts listening on an address
-func Listen(n network.Network, address ma.Multiaddr) {
+func (cm *ConnManager) Listen(n network.Network, address ma.Multiaddr) {
 	log.Debug(
 		"started listening",
 		"host", n.LocalPeer(),
@@ -65,7 +64,7 @@ func Listen(n network.Network, address ma.Multiaddr) {
 }
 
 // ListenClose is called when network stops listening on an address
-func ListenClose(n network.Network, address ma.Multiaddr) {
+func (cm *ConnManager) ListenClose(n network.Network, address ma.Multiaddr) {
 	log.Debug(
 		"stopped listening",
 		"host", n.LocalPeer(),
@@ -74,7 +73,7 @@ func ListenClose(n network.Network, address ma.Multiaddr) {
 }
 
 // Connected is called when a connection opened
-func Connected(n network.Network, c network.Conn) {
+func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	log.Debug(
 		"connected",
 		"host", c.LocalPeer(),
@@ -83,7 +82,7 @@ func Connected(n network.Network, c network.Conn) {
 }
 
 // Disconnected is called when a connection closed
-func Disconnected(n network.Network, c network.Conn) {
+func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	log.Debug(
 		"disconnected",
 		"host", c.LocalPeer(),
@@ -92,7 +91,7 @@ func Disconnected(n network.Network, c network.Conn) {
 }
 
 // OpenedStream is called when a stream opened
-func OpenedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
 	if protocol != "" {
 		log.Trace(
@@ -105,7 +104,7 @@ func OpenedStream(n network.Network, s network.Stream) {
 }
 
 // ClosedStream is called when a stream closed
-func ClosedStream(n network.Network, s network.Stream) {
+func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 	protocol := s.Protocol()
 	if protocol != "" {
 		log.Trace(

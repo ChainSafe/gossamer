@@ -27,11 +27,12 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/network"
 	net "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var _ services.Service = &Service{}
 
-// SendStatusInterval is the time between broadcasting status messages
+// SendStatusInterval is the time between sending status messages
 const SendStatusInterval = 5 * time.Minute
 
 // Service describes a p2p service
@@ -57,18 +58,18 @@ var statusMessage = &StatusMessage{
 	ChainStatus:         []byte{0},
 }
 
-// NewService creates a new p2p service using the provided configuration and message channels
+// NewService creates a new p2p service from the configuration and message channels
 func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
 	ctx := context.Background()
 
-	h, err := newHost(ctx, conf)
+	host, err := newHost(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &Service{
+	p2p := &Service{
 		ctx:          ctx,
-		host:         h,
+		host:         host,
 		msgRec:       msgRec,
 		msgSend:      msgSend,
 		blockAnnRec:  make(map[string]bool),
@@ -77,36 +78,36 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 		txMessageRec: make(map[string]bool),
 	}
 
-	h.registerStreamHandler(s.handleStream)
-
-	return s, err
+	return p2p, err
 }
 
 // Start starts the service
 func (s *Service) Start() error {
+
 	s.host.startMdns()
 	s.host.bootstrap()
 	s.host.printHostAddresses()
 
-	// TODO: decide whether we need errors to surface here
-	// e := make(chan error)
+	// set connection and stream handlers
+	s.host.registerConnHandler(s.handleConn)
+	s.host.registerStreamHandler(s.handleStream)
 
-	// start sending status messages to each connected peer
-	go s.broadcastStatusMessages()
-
-	// start sending received messages to each connected peer
+	// start broadcasting received messages to all connected peers
 	go s.broadcastReceivedMessages()
 
 	return nil
 }
 
-// Stop shuts down the host and the message send channel
+// Stop shuts down the host and the msgSend channel
 func (s *Service) Stop() error {
+
+	// close host and host services
 	err := s.host.close()
 	if err != nil {
 		log.Error("close host", "error", err)
 	}
 
+	// close msgSend channel
 	if s.msgSend != nil {
 		close(s.msgSend)
 	}
@@ -114,29 +115,25 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// broadcastStatusMessages starts broadcasting status messages
-func (s *Service) broadcastStatusMessages() {
+// handleConn starts goroutines that manage each new connection
+func (s *Service) handleConn(conn network.Conn) {
 
-	// Wait for node to finish starting
-	time.Sleep(time.Second)
+	// starts sending status messages to connected peer
+	go s.sendStatusMessages(conn.RemotePeer())
 
-	// TODO: use generated message
-	msg := statusMessage
+}
 
-	// send message to each connected peer
-	s.host.broadcast(msg)
-
+// sendStatusMessages starts sending status messages to a peer
+func (s *Service) sendStatusMessages(peer peer.ID) {
 	for {
-
-		// wait between sending messages
-		time.Sleep(SendStatusInterval)
-
 		// TODO: use generated message
 		msg := statusMessage
 
-		// send message to each connected peer
-		s.host.broadcast(msg)
+		// send status message to connected peer
+		s.host.send(peer, msg)
 
+		// wait between sending messages
+		time.Sleep(SendStatusInterval)
 	}
 }
 
@@ -150,8 +147,7 @@ func (s *Service) broadcastReceivedMessages() {
 		log.Debug(
 			"received message",
 			"host", s.host.id(),
-			"channel", "msgRec",
-			"message", msg,
+			"message", msg.GetType(),
 		)
 
 		// check and store message, returns true if valid new message
@@ -159,8 +155,7 @@ func (s *Service) broadcastReceivedMessages() {
 			log.Error(
 				"message ignored",
 				"host", s.host.id(),
-				"channel", "msgRec",
-				"message", msg,
+				"message", msg.GetType(),
 			)
 			return
 		}
@@ -298,8 +293,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 		return
 	}
 
-	// send new message to each connected peer
-	// TODO: investigate channel closed error if broadcast
+	// TODO: gossip message to each connected peer
 	// s.host.broadcast(msg)
 }
 

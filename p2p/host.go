@@ -40,21 +40,21 @@ import (
 )
 
 const DefaultProtocolId = protocol.ID("/gossamer/dot/0")
+
 const mdnsPeriod = time.Minute
 
-// host describes a wrapper for a libp2p host with dht and mdns
+// host wraps a libp2p host host with host services and information
 type host struct {
 	ctx         context.Context
 	h           libp2phost.Host
-	hostAddr    ma.Multiaddr
 	dht         *kaddht.IpfsDHT
+	mdns        discovery.Service
 	bootnodes   []peer.AddrInfo
 	noBootstrap bool
 	noMdns      bool
-	mdns        discovery.Service
+	address     ma.Multiaddr
 	protocolId  protocol.ID
-	// TODO: store status in peer metadata
-	peerStatus map[peer.ID]bool
+	peerStatus  map[peer.ID]bool // TODO: store status in peer metadata
 }
 
 // newHost creates a host wrapper with an attached libp2p host instance
@@ -87,7 +87,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	ma.SwapToP2pMultiaddrs()
 
 	// create host multiaddress including host "p2p" id
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID()))
+	address, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID()))
 	if err != nil {
 		return nil, err
 	}
@@ -104,12 +104,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	return &host{
 		ctx:         ctx,
 		h:           h,
-		hostAddr:    hostAddr,
 		dht:         dht,
 		bootnodes:   bootstrapNodes,
-		protocolId:  protocolId,
 		noBootstrap: cfg.NoBootstrap,
 		noMdns:      cfg.NoMdns,
+		address:     address,
+		protocolId:  protocolId,
 		peerStatus:  peerStatus, // TODO: store status in peer metadata
 	}, nil
 
@@ -117,23 +117,23 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
-	if len(h.bootnodes) == 0 && !h.noBootstrap {
+	if len(h.bootnodes) < 0 && h.noBootstrap {
 		log.Error(
 			"bootstrap",
-			"error", "NoBootrap must be true if no bootnodes are defined",
+			"error", "no bootnodes defined with NoBootsrap enabled",
 		)
 	}
-	// loop through bootnodes
+	// loop through bootnode peers
 	for _, peerInfo := range h.bootnodes {
-		log.Debug(
+		log.Trace(
 			"bootstrap",
 			"host", h.h.ID(),
 			"peer", peerInfo.ID,
 		)
-		// connect to each bootnode
+		// connect to each peer
 		err := h.h.Connect(h.ctx, peerInfo)
 		if err != nil {
-			log.Error("bootstrap", "error", err)
+			log.Error("connect", "error", err)
 		}
 	}
 }
@@ -171,8 +171,13 @@ func (h *host) startMdns() {
 func (h *host) printHostAddresses() {
 	fmt.Println("Listening on the following addresses...")
 	for _, addr := range h.h.Addrs() {
-		fmt.Println(addr.Encapsulate(h.hostAddr).String())
+		fmt.Println(addr.Encapsulate(h.address).String())
 	}
+}
+
+// registerConnHandler registers the connection handler (see handleConn)
+func (h *host) registerConnHandler(handler func(net.Conn)) {
+	h.h.Network().SetConnHandler(handler)
 }
 
 // registerStreamHandler registers the stream handler (see handleStream)
@@ -195,39 +200,42 @@ func (h *host) getExistingStream(p peer.ID) (stream net.Stream, err error) {
 			}
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no existing stream")
 }
 
-// openStream opens a new stream
-func (h *host) openStream(p peer.ID) (stream net.Stream, err error) {
-	stream, err = h.h.NewStream(h.ctx, p, h.protocolId)
+// newStream opens a new stream with a specific peer using the host protocol
+func (h *host) newStream(p peer.ID) (net.Stream, error) {
+
+	// create new stream with host protocol id
+	stream, err := h.h.NewStream(h.ctx, p, h.protocolId)
 	if err != nil {
-		log.Error("new stream", "error", err)
 		return nil, err
 	}
+
 	log.Trace(
 		"opened stream",
 		"host", stream.Conn().LocalPeer(),
 		"peer", stream.Conn().RemotePeer(),
 		"protocol", stream.Protocol(),
 	)
+
 	return stream, nil
 }
 
 // send sends a non-status message to a specific peer
-func (h *host) send(pid peer.ID, msg Message) (err error) {
+func (h *host) send(p peer.ID, msg Message) (err error) {
 
-	// TODO: investigate existing stream breaking status exchange
+	// TODO: investigate get existing stream breaking tests
 
-	// stream, err := h.getExistingStream(pid)
+	// stream, err := h.getExistingStream(p)
 	// if err != nil {
 	// 	log.Error("get stream", "error", err)
 	// 	return err
 	// }
 
-	stream, err := h.openStream(pid)
+	stream, err := h.newStream(p)
 	if err != nil {
-		log.Error("open stream", "error", err)
+		log.Error("new stream", "error", err)
 		return err
 	}
 
@@ -249,6 +257,13 @@ func (h *host) send(pid peer.ID, msg Message) (err error) {
 		return err
 	}
 
+	log.Trace(
+		"message sent",
+		"host", h.id(),
+		"peer", p,
+		"type", msg.GetType(),
+	)
+
 	return nil
 }
 
@@ -261,13 +276,6 @@ func (h *host) broadcast(msg Message) {
 	)
 
 	for _, peer := range h.h.Network().Peers() {
-		log.Trace(
-			"sending message",
-			"host", h.id(),
-			"peer", peer,
-			"type", msg.GetType(),
-		)
-
 		err := h.send(peer, msg)
 		if err != nil {
 			log.Error("sending message", "error", err)

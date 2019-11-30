@@ -28,9 +28,12 @@ import (
 	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
-	libp2p "github.com/libp2p/go-libp2p"
+
+	"github.com/libp2p/go-libp2p"
+
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -78,16 +81,17 @@ func (c *Config) buildOpts() ([]libp2p.Option, error) {
 		return nil, err
 	}
 
-	connMgr := ConnManager{}
+	connmgr := &ConnManager{}
 
-	return []libp2p.Option{
-		libp2p.ListenAddrs(addr),
-		libp2p.DisableRelay(),
-		libp2p.Identity(c.privateKey),
+	options := []libp2p.Option{
 		libp2p.NATPortMap(),
-		libp2p.Ping(true),
-		libp2p.ConnectionManager(connMgr),
-	}, nil
+		libp2p.DisableRelay(),
+		libp2p.ListenAddrs(addr),
+		libp2p.Identity(c.privateKey),
+		libp2p.ConnectionManager(connmgr),
+	}
+
+	return options, nil
 }
 
 // setupPrivKey will attempt to load the nodes private key, if that fails it will create one
