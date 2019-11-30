@@ -27,9 +27,11 @@ import (
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
+
 	"github.com/libp2p/go-libp2p"
+
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
-	net "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -117,10 +119,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
-	if len(h.bootnodes) < 0 && h.noBootstrap {
+	if len(h.bootnodes) == 0 && !h.noBootstrap {
 		log.Error(
 			"bootstrap",
-			"error", "no bootnodes defined with NoBootsrap enabled",
+			"error", "no bootnodes defined and bootstrap enabled",
 		)
 	}
 	// loop through bootnode peers
@@ -176,12 +178,12 @@ func (h *host) printHostAddresses() {
 }
 
 // registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(net.Conn)) {
+func (h *host) registerConnHandler(handler func(network.Conn)) {
 	h.h.Network().SetConnHandler(handler)
 }
 
 // registerStreamHandler registers the stream handler (see handleStream)
-func (h *host) registerStreamHandler(handler func(net.Stream)) {
+func (h *host) registerStreamHandler(handler func(network.Stream)) {
 	h.h.SetStreamHandler(h.protocolId, handler)
 }
 
@@ -192,7 +194,7 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 }
 
 // // getExistingStream attempts to get an existing stream
-// func (h *host) getExistingStream(p peer.ID) (stream net.Stream, err error) {
+// func (h *host) getExistingStream(p peer.ID) (stream network.Stream, err error) {
 // 	for _, conn := range h.h.Network().ConnsToPeer(p) {
 // 		for _, stream := range conn.GetStreams() {
 // 			if stream.Protocol() == h.protocolId {
@@ -204,7 +206,7 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 // }
 
 // newStream opens a new stream with a specific peer using the host protocol
-func (h *host) newStream(p peer.ID) (net.Stream, error) {
+func (h *host) newStream(p peer.ID) (network.Stream, error) {
 
 	// create new stream with host protocol id
 	stream, err := h.h.NewStream(h.ctx, p, h.protocolId)

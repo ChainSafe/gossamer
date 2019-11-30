@@ -84,10 +84,11 @@ func (c *Config) buildOpts() ([]libp2p.Option, error) {
 	connmgr := &ConnManager{}
 
 	options := []libp2p.Option{
-		libp2p.NATPortMap(),
-		libp2p.DisableRelay(),
 		libp2p.ListenAddrs(addr),
+		libp2p.DisableRelay(),
 		libp2p.Identity(c.privateKey),
+		libp2p.NATPortMap(),
+		libp2p.Ping(true),
 		libp2p.ConnectionManager(connmgr),
 	}
 

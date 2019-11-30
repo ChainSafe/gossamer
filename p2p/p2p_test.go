@@ -350,13 +350,11 @@ func TestGossiping(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
-
 	configB := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7002,
-		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
@@ -364,17 +362,41 @@ func TestGossiping(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
+	addrB := nodeB.host.fullAddrs()[0]
+
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	configC := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7003,
-		RandSeed:       3,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendC := make(chan Message)
 
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
+
+	addrC := nodeC.host.fullAddrs()[0]
+
+	addrInfoC, err := libp2pPeer.AddrInfoFromP2pAddr(addrC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfoB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfoC)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case <-msgSendA:
@@ -478,19 +500,29 @@ func TestBlockAnnounce(t *testing.T) {
 	nodeA := startNewService(t, configA, msgSendA, msgRecA)
 	defer nodeA.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
-
 	configB := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7002,
-		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
 	msgSendB := make(chan Message)
 
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
+
+	addrB := nodeB.host.fullAddrs()[0]
+
+	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfoB)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	select {
 	case <-msgSendA:

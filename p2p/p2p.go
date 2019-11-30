@@ -115,7 +115,7 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// handleConn starts goroutines that manage each new connection
+// handleConn starts processes that manage each new connection
 func (s *Service) handleConn(conn network.Conn) {
 
 	// starts sending status messages to connected peer
@@ -123,7 +123,7 @@ func (s *Service) handleConn(conn network.Conn) {
 
 }
 
-// sendStatusMessages starts sending status messages to a peer
+// sendStatusMessages starts sending status messages to connected peer
 func (s *Service) sendStatusMessages(peer peer.ID) {
 	for {
 		// TODO: use generated message
