@@ -57,7 +57,7 @@ type host struct {
 	noMdns      bool
 	address     ma.Multiaddr
 	protocolId  protocol.ID
-	peerStatus  map[peer.ID]bool // TODO: store status in peer metadata
+	peerStatus  map[peer.ID]bool // TODO: investigate peer status storage options
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -101,7 +101,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// TODO: store status in peer metadata
+	// TODO: investigate peer status storage options
 	peerStatus := make(map[peer.ID]bool)
 
 	return &host{
@@ -114,7 +114,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		noMdns:      cfg.NoMdns,
 		address:     address,
 		protocolId:  protocolId,
-		peerStatus:  peerStatus, // TODO: store status in peer metadata
+		peerStatus:  peerStatus, // TODO: investigate peer status storage options
 	}, nil
 
 }

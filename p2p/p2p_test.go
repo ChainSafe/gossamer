@@ -761,11 +761,11 @@ func TestGossip(t *testing.T) {
 		t.Error("node A timeout waiting for message")
 	}
 
-	// expecting 3 messages in an unpredictable order
+	// expecting 3 messages in varying order
 	for i := 0; i < 3; i++ {
 		select {
 		case msg := <-msgSendA:
-			// node A block request message that was gossipped from node B back to node A
+			// node A block request message that was gossiped from node B back to node A
 			if !reflect.DeepEqual(msg, blockRequest) {
 				t.Error(
 					"node A received unexpected message from node B",
@@ -774,7 +774,7 @@ func TestGossip(t *testing.T) {
 				)
 			}
 		case msg := <-msgSendC:
-			// node A status message or block request message gossipped from node B to node C
+			// node A status message or block request message gossiped from node B to node C
 			if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
 				if msg.GetType() == 0 {
 					t.Error(

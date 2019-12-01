@@ -207,10 +207,11 @@ func (s *Service) shouldBroadcast(msg Message) bool {
 // associated message handler (status or non-status) based on message type
 func (s *Service) handleStream(stream net.Stream) {
 
-	// parse message and return on error
+	// parse message and exit on error
 	msg, err := parseMessage(stream)
 	if err != nil {
-		log.Debug("parse message", "error", err)
+		log.Error("parse message", "error", err)
+		// exit if message cannot be parsed
 		return
 	}
 
@@ -229,7 +230,7 @@ func (s *Service) handleStream(stream net.Stream) {
 		s.handleStreamNonStatus(stream, msg)
 	}
 
-	// Send message to core service
+	// send message to core service
 	s.msgSend <- msg
 }
 
@@ -241,6 +242,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 
 	switch {
 
+	// TODO: implement status message validation
 	case hostStatus.String() == msg.String():
 		log.Trace(
 			"status match",
@@ -248,7 +250,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		// TODO: store status in peer metadata
+		// TODO: investigate peer status storage options
 		s.host.peerStatus[stream.Conn().RemotePeer()] = true
 
 	default:
@@ -258,10 +260,10 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		// TODO: store status in peer metadata
+		// TODO: investigate peer status storage options
 		s.host.peerStatus[stream.Conn().RemotePeer()] = false
 
-		// drop peer if status mismatch
+		// close connection with peer if status message is not valid
 		err := s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
 		if err != nil {
 			log.Error("close peer", "error", err)
@@ -273,10 +275,10 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 // handleStreamNonStatus handles non-status messages written to the stream
 func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 
-	// TODO: get peer status from peer metadata
+	// TODO: investigate peer status storage options
 	status := s.host.peerStatus[stream.Conn().RemotePeer()]
 
-	// return if status message has not been confirmed
+	// ignore message if peer status message has not been confirmed
 	if !status {
 		log.Debug(
 			"message ignored",
@@ -287,7 +289,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 		return
 	}
 
-	// check and store message, returns true if valid new message
+	// check if message should be broadcasted
 	if !s.shouldBroadcast(msg) {
 		log.Debug(
 			"message ignored",
@@ -297,15 +299,16 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 		return
 	}
 
-	// broadcast message if gossip enabled
+	// broadcast to all connected peers if gossip enabled
 	if !s.host.noGossip {
 
 		log.Trace(
-			"gossip",
+			"gossiping",
 			"host", stream.Conn().LocalPeer(),
 			"type", msg.GetType(),
 		)
 
+		// send message to each connected peer
 		s.host.broadcast(msg)
 	}
 }
