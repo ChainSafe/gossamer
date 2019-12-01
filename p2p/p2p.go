@@ -81,7 +81,7 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 	return p2p, err
 }
 
-// Start starts the service
+// Start starts the p2p service
 func (s *Service) Start() error {
 
 	// set connection and stream handler
@@ -115,15 +115,15 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// handleConn starts processes that manage each new connection
+// handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn network.Conn) {
 
-	// starts sending status messages to connected peer
+	// starts sending status messages to the connected peer
 	go s.sendStatusMessages(conn.RemotePeer())
 
 }
 
-// sendStatusMessages starts sending status messages to connected peer
+// sendStatusMessages starts sending status messages to the connected peer
 func (s *Service) sendStatusMessages(peer peer.ID) {
 	for {
 		// TODO: use generated message
@@ -141,7 +141,7 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 }
 
 // broadcastReceivedMessages starts polling the msgRec channel for messages
-// from the core service and broadcasts new messages to connected peers
+// from the core service and broadcasts the new messages to connected peers
 func (s *Service) broadcastReceivedMessages() {
 	for {
 		// receive message from core service
@@ -150,7 +150,7 @@ func (s *Service) broadcastReceivedMessages() {
 		log.Debug(
 			"received message",
 			"host", s.host.id(),
-			"message", msg.GetType(),
+			"type", msg.GetType(),
 		)
 
 		// check if message should be broadcasted
@@ -158,7 +158,7 @@ func (s *Service) broadcastReceivedMessages() {
 			log.Error(
 				"message ignored",
 				"host", s.host.id(),
-				"message", msg.GetType(),
+				"type", msg.GetType(),
 			)
 			return
 		}
@@ -282,8 +282,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 			"message ignored",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
-			"protocol", stream.Protocol(),
-			"message", msg,
+			"type", msg.GetType(),
 		)
 		return
 	}
@@ -293,14 +292,22 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 		log.Debug(
 			"message ignored",
 			"host", s.host.id(),
-			"channel", "msgRec",
-			"message", msg,
+			"type", msg.GetType(),
 		)
 		return
 	}
 
-	// TODO: gossip message to each connected peer
-	// s.host.broadcast(msg)
+	// broadcast message if gossip enabled
+	if !s.host.noGossip {
+
+		log.Trace(
+			"gossip",
+			"host", stream.Conn().LocalPeer(),
+			"type", msg.GetType(),
+		)
+
+		s.host.broadcast(msg)
+	}
 }
 
 // ID returns the host id

@@ -45,7 +45,7 @@ const DefaultProtocolId = protocol.ID("/gossamer/dot/0")
 
 const mdnsPeriod = time.Minute
 
-// host wraps a libp2p host host with host services and information
+// host wraps libp2p host with host services and information
 type host struct {
 	ctx         context.Context
 	h           libp2phost.Host
@@ -53,13 +53,14 @@ type host struct {
 	mdns        discovery.Service
 	bootnodes   []peer.AddrInfo
 	noBootstrap bool
+	noGossip    bool
 	noMdns      bool
 	address     ma.Multiaddr
 	protocolId  protocol.ID
 	peerStatus  map[peer.ID]bool // TODO: store status in peer metadata
 }
 
-// newHost creates a host wrapper with an attached libp2p host instance
+// newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	opts, err := cfg.buildOpts()
@@ -88,13 +89,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// use "p2p" for multiaddress format
 	ma.SwapToP2pMultiaddrs()
 
-	// create host multiaddress including host "p2p" id
+	// create host multiaddress that includes host "p2p" id
 	address, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID()))
 	if err != nil {
 		return nil, err
 	}
 
-	// format bootstrap nodes
+	// format bootstrap nodes list
 	bootstrapNodes, err := stringsToPeerInfos(cfg.BootstrapNodes)
 	if err != nil {
 		return nil, err
@@ -109,12 +110,31 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		dht:         dht,
 		bootnodes:   bootstrapNodes,
 		noBootstrap: cfg.NoBootstrap,
+		noGossip:    cfg.NoGossip,
 		noMdns:      cfg.NoMdns,
 		address:     address,
 		protocolId:  protocolId,
 		peerStatus:  peerStatus, // TODO: store status in peer metadata
 	}, nil
 
+}
+
+// close shuts down the host
+func (h *host) close() error {
+
+	// close host instance
+	err := h.h.Close()
+	if err != nil {
+		return err
+	}
+
+	// close dht service
+	err = h.dht.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // bootstrap connects the host to the configured bootnodes
@@ -276,11 +296,12 @@ func (h *host) broadcast(msg Message) {
 		"host", h.id(),
 		"type", msg.GetType(),
 	)
-
+	// loop through connected peers
 	for _, peer := range h.h.Network().Peers() {
+		// send message to each connect peer
 		err := h.send(peer, msg)
 		if err != nil {
-			log.Error("sending message", "error", err)
+			log.Error("send message", "error", err)
 		}
 	}
 }
@@ -299,19 +320,6 @@ func (h *host) id() string {
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()
 	return len(peers)
-}
-
-// close shuts down the host and all its components
-func (h *host) close() error {
-	err := h.h.Close()
-	if err != nil {
-		return err
-	}
-	err = h.dht.Close()
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 // fullAddrs returns the multiaddresses of the host

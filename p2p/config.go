@@ -51,6 +51,8 @@ type Config struct {
 	RandSeed int64
 	// Disable bootstrapping altogether. BootstrapNodes has no effect over this.
 	NoBootstrap bool
+	// Disables gossiping
+	NoGossip bool
 	// Disables MDNS discovery
 	NoMdns bool
 	// Global data directory
