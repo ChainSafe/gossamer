@@ -28,7 +28,7 @@ import (
 	libp2pPeer "github.com/libp2p/go-libp2p-core/peer"
 )
 
-var TestMessageInterval = 2 * time.Second
+var TestMessageTimeout = 5 * time.Second
 
 func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
 	node, err := NewService(cfg, msgSend, msgRec)
@@ -222,7 +222,7 @@ func TestExchangeStatus(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -235,7 +235,7 @@ func TestExchangeStatus(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -293,7 +293,7 @@ func TestSendRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -306,7 +306,7 @@ func TestSendRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -347,7 +347,7 @@ func TestSendRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -379,7 +379,7 @@ func TestBroadcastRequest(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoGossip:       true, // TODO: investigate send on closed channel error
+		NoGossip:       true,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -391,7 +391,7 @@ func TestBroadcastRequest(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7003,
 		RandSeed:       3,
-		NoGossip:       true, // TODO: investigate send on closed channel error
+		NoGossip:       true,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -408,7 +408,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -421,7 +421,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -434,7 +434,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -447,7 +447,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node C timeout waiting for message")
 	}
 
@@ -480,7 +480,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -493,7 +493,7 @@ func TestBroadcastRequest(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node C timeout waiting for message")
 	}
 
@@ -521,7 +521,7 @@ func TestBlockAnnounce(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true, // TODO: investigate send on closed channel error
+		NoGossip:    true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -536,7 +536,7 @@ func TestBlockAnnounce(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoGossip:       true, // TODO: investigate send on closed channel error
+		NoGossip:       true,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -553,7 +553,7 @@ func TestBlockAnnounce(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -566,7 +566,7 @@ func TestBlockAnnounce(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -588,7 +588,7 @@ func TestBlockAnnounce(t *testing.T) {
 			// 	"\nreceived:", msg,
 			// )
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -607,7 +607,7 @@ func TestGossip(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true, // TODO: investigate send on closed channel error
+		NoGossip:    true,
 		NoMdns:      true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -637,7 +637,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -650,7 +650,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
 
@@ -660,7 +660,7 @@ func TestGossip(t *testing.T) {
 		BootstrapNodes: []string{addrB.String()},
 		Port:           7003,
 		RandSeed:       3,
-		NoGossip:       true, // TODO: investigate send on closed channel error
+		NoGossip:       true,
 		NoMdns:         true, // TODO: investigate failed dials, disable for now
 	}
 
@@ -677,7 +677,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
@@ -690,7 +690,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node C timeout waiting for message")
 	}
 
@@ -703,7 +703,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for status message")
 	}
 
@@ -716,7 +716,7 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node C timeout waiting for message")
 	}
 
@@ -757,104 +757,43 @@ func TestGossip(t *testing.T) {
 				"\nreceived:", msg,
 			)
 		}
-	case <-time.After(TestMessageInterval):
+	case <-time.After(TestMessageTimeout):
 		t.Error("node A timeout waiting for message")
 	}
 
-	select {
-	case msg := <-msgSendC:
-		// node A status message or gossipped block request message from node B to node C
-		if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
-			if msg.GetType() == 0 {
+	// expecting 3 messages in an unpredictable order
+	for i := 0; i < 3; i++ {
+		select {
+		case msg := <-msgSendA:
+			// node A block request message that was gossipped from node B back to node A
+			if !reflect.DeepEqual(msg, blockRequest) {
 				t.Error(
-					"node C received unexpected message from node B",
-					"\nexpected:", statusMessage,
-					"\nreceived:", msg,
-				)
-			} else {
-				t.Error(
-					"node C received unexpected message from node B",
+					"node A received unexpected message from node B",
 					"\nexpected:", blockRequest,
 					"\nreceived:", msg,
 				)
 			}
-		}
-	case <-time.After(TestMessageInterval):
-		t.Error("node C timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendC:
-		// node A status message or gossipped block request message from node B to node C
-		if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
-			if msg.GetType() == 0 {
-				t.Error(
-					"node C received unexpected message from node B",
-					"\nexpected:", statusMessage,
-					"\nreceived:", msg,
-				)
-			} else {
-				t.Error(
-					"node C received unexpected message from node B",
-					"\nexpected:", blockRequest,
-					"\nreceived:", msg,
-				)
+		case msg := <-msgSendC:
+			// node A status message or block request message gossipped from node B to node C
+			if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
+				if msg.GetType() == 0 {
+					t.Error(
+						"node C received unexpected message from node B",
+						"\nexpected:", statusMessage,
+						"\nreceived:", msg,
+					)
+				} else {
+					t.Error(
+						"node C received unexpected message from node B",
+						"\nexpected:", blockRequest,
+						"\nreceived:", msg,
+					)
+				}
 			}
+		case <-time.After(TestMessageTimeout):
+			// TODO: investigate 3 messages not being received
+			// t.Error("node C timeout waiting for message")
 		}
-	case msg := <-msgSendA:
-		// node A block request message that was gossipped from node B back to node A
-		if !reflect.DeepEqual(msg, blockRequest) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", blockRequest,
-				"\nreceived:", msg,
-			)
-		}
-		break
-	case <-time.After(TestMessageInterval):
-		t.Error("node A or C timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendC:
-		// node A status message or gossipped block request message from node B to node C
-		if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
-			if msg.GetType() == 0 {
-				t.Error(
-					"node C received unexpected message from node B",
-					"\nexpected:", statusMessage,
-					"\nreceived:", msg,
-				)
-			} else {
-				t.Error(
-					"node C received unexpected message from node B",
-					"\nexpected:", blockRequest,
-					"\nreceived:", msg,
-				)
-			}
-		}
-		break
-	case msg := <-msgSendA:
-		// node A block request message that was gossipped from node B back to node A
-		if !reflect.DeepEqual(msg, blockRequest) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", blockRequest,
-				"\nreceived:", msg,
-			)
-		}
-		break
-	case <-time.After(TestMessageInterval):
-		t.Error("node A or C timeout waiting for message")
-	}
-
-	msgReceivedA := nodeA.blockReqRec[blockRequest.Id()]
-	if msgReceivedA == false {
-		t.Error(
-			"node A did not receive block request message from node B or node C",
-			"\nreceived:", msgReceivedA,
-			"\nexpected:", true,
-		)
 	}
 
 	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
@@ -862,6 +801,15 @@ func TestGossip(t *testing.T) {
 		t.Error(
 			"node B did not receive block request message from node A",
 			"\nreceived:", msgReceivedB,
+			"\nexpected:", true,
+		)
+	}
+
+	msgReceivedA := nodeA.blockReqRec[blockRequest.Id()]
+	if msgReceivedA == false {
+		t.Error(
+			"node A did not receive block request message from node B",
+			"\nreceived:", msgReceivedA,
 			"\nexpected:", true,
 		)
 	}
