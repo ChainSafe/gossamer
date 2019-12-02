@@ -262,8 +262,9 @@ func TestHandleMsg_BlockResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = mgr.Start()
-	if err != nil {
+	e := make(chan error)
+	go mgr.start(e)
+	if err := <-e; err != nil {
 		t.Fatal(err)
 	}
 
@@ -274,9 +275,9 @@ func TestHandleMsg_BlockResponse(t *testing.T) {
 	msg := &p2p.BlockResponseMessage{Data: block}
 	msgSend <- msg
 
-	//wait for message to be handled
-	// time.Sleep(time.Second)
-	// if err := <-e; err != nil {
-	// 	t.Fatal(err)
-	// }
+	// wait for message to be handled
+	time.Sleep(time.Second)
+	if err := <-e; err != nil {
+		t.Fatal(err)
+	}
 }
