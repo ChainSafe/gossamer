@@ -164,7 +164,7 @@ func newTestRuntime() (*Runtime, error) {
 		return nil, err
 	}
 
-	t := &trie.Trie{}
+	t := trie.NewEmptyTrie(nil)
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
@@ -1228,7 +1228,7 @@ func TestExt_ed25519_sign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sig := mem[out : out+crypto.SignatureLength]
+	sig := mem[out : out+crypto.Ed25519SignatureLength]
 
 	ok = kp.Public().Verify(msgData, sig)
 	if !ok {
@@ -1277,12 +1277,112 @@ func TestExt_sr25519_sign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sig := mem[out : out+crypto.SignatureLength]
+	sig := mem[out : out+crypto.Sr25519SignatureLength]
 	t.Log(sig)
 
 	ok = kp.Public().Verify(msgData, sig)
 	if !ok {
 		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
+// test that ext_get_child_storage_into retrieves a value stored in a child trie
+func TestExt_get_child_storage_into(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runtime.trie.PutIntoChild(storageKey, key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+	valueOffset := 0
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_get_child_storage_into"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := mem[valueData : valueData+valueLen]
+	if !bytes.Equal(res, value[valueOffset:]) {
+		t.Fatalf("Fail: got %x expected %x", res, value[valueOffset:])
+	}
+}
+
+// test that ext_set_child_storage sets a value stored in a child trie
+func TestExt_set_child_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+	copy(mem[valueData:valueData+valueLen], value)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_set_child_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := runtime.trie.GetFromChild(storageKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(res, value) {
+		t.Fatalf("Fail: got %x expected %x", res, value)
 	}
 }
 
