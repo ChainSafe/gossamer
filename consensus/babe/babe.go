@@ -40,9 +40,7 @@ type Session struct {
 	config *BabeConfiguration
 
 	authorityIndex uint64
-
-	// authorities []VrfPublicKey
-	authorityWeights []uint64
+	authorityData  []AuthorityData
 
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
@@ -156,12 +154,20 @@ func (b *Session) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights())
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (b *Session) authorityWeights() []uint64 {
+	weights := make([]uint64, len(b.authorityData))
+	for i, auth := range b.authorityData {
+		weights[i] = auth.weight
+	}
+	return weights
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.

@@ -175,13 +175,15 @@ func TestRunLottery(t *testing.T) {
 	}
 
 	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1, 1, 1}
+	babesession.authorityData = []AuthorityData{
+		{nil, 1}, {nil, 1}, {nil, 1},
+	}
 	conf := &BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        6,
 		C1:                 3,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
+		GenesisAuthorities: []AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
@@ -227,7 +229,7 @@ func TestConfigurationFromRuntime(t *testing.T) {
 		EpochLength:        6,
 		C1:                 3,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
+		GenesisAuthorities: []AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
@@ -387,13 +389,13 @@ func TestStart(t *testing.T) {
 	}
 
 	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1}
+	babesession.authorityData = []AuthorityData{{nil, 1}}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
+		GenesisAuthorities: []AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
@@ -421,7 +423,9 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 
 	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1, 1, 1}
+	babesession.authorityData = []AuthorityData{
+		{nil, 1}, {nil, 1}, {nil, 1},
+	}
 
 	err = babesession.Start()
 	if err != nil {
