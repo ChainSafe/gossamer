@@ -56,7 +56,7 @@ func (_ *ConnManager) Close() error                             { return nil }
 
 // Listen is called when network starts listening on an address
 func (cm *ConnManager) Listen(n network.Network, address ma.Multiaddr) {
-	log.Debug(
+	log.Trace(
 		"started listening",
 		"host", n.LocalPeer(),
 		"address", address,
@@ -65,7 +65,7 @@ func (cm *ConnManager) Listen(n network.Network, address ma.Multiaddr) {
 
 // ListenClose is called when network stops listening on an address
 func (cm *ConnManager) ListenClose(n network.Network, address ma.Multiaddr) {
-	log.Debug(
+	log.Trace(
 		"stopped listening",
 		"host", n.LocalPeer(),
 		"address", address,
@@ -74,7 +74,7 @@ func (cm *ConnManager) ListenClose(n network.Network, address ma.Multiaddr) {
 
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
-	log.Debug(
+	log.Trace(
 		"connected",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
@@ -83,7 +83,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 
 // Disconnected is called when a connection closed
 func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
-	log.Debug(
+	log.Trace(
 		"disconnected",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
