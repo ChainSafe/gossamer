@@ -13,13 +13,13 @@ import (
 
 type blockState struct {
 	bt *blocktree.BlockTree
-	db polkadb.BlockDB
+	db *polkadb.BlockDB
 }
 
 func newBlockState() *blockState {
 	return &blockState{
 		bt: &blocktree.BlockTree{},
-		db: polkadb.BlockDB{},
+		db: &polkadb.BlockDB{},
 	}
 }
 

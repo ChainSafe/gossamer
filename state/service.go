@@ -1,20 +1,24 @@
 package state
 
 type Service struct {
-	storage storageState
-	block   blockState
-	net     networkState
+	Storage *storageState
+	Block   blockState
+	Net     networkState
 }
 
 func NewService() *Service {
 	return &Service{
-		storage: storageState{},
-		block:   blockState{},
-		net:     networkState{},
+		Storage: &storageState{},
+		Block:   blockState{},
+		Net:     networkState{},
 	}
 }
 
 func (s *Service) Start() error {
+	s.Storage = NewStorageState()
+	s.Block = *newBlockState()
+	s.Net = *newNetworkState()
+
 	return nil
 }
 

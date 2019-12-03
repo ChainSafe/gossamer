@@ -7,14 +7,14 @@ import (
 )
 
 type storageState struct {
-	trie trie.Trie
-	db   polkadb.StateDB
+	trie *trie.Trie
+	db   *polkadb.StateDB
 }
 
-func newStorageState() *storageState {
+func NewStorageState() *storageState {
 	return &storageState{
-		trie: trie.Trie{},
-		db:   polkadb.StateDB{},
+		trie: &trie.Trie{},
+		db:   &polkadb.StateDB{},
 	}
 }
 
@@ -41,6 +41,7 @@ func (s *storageState) SetStorage(key []byte, value []byte) error {
 
 func (s *storageState) ClearPrefix(prefix []byte) {
 	// Implemented in ext_clear_prefix
+	return
 }
 
 func (s *storageState) ClearStorage(key []byte) error {

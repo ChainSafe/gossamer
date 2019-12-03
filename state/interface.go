@@ -10,18 +10,18 @@ import (
 
 // Read only
 type ROStorageApi interface {
-	ExistsStorage(key []byte) bool
-	GetStorage(key []byte) []byte
-	StorageRoot() common.Hash
+	ExistsStorage(key []byte) (bool, error)
+	GetStorage(key []byte) ([]byte, error)
+	StorageRoot() (common.Hash, error)
 	EnumeratedTrieRoot(values [][]byte)
 	//TODO: add child storage funcs
 }
 
 type StorageApi interface {
 	ROStorageApi
-	SetStorage(key []byte, value []byte)
+	SetStorage(key []byte, value []byte) error
 	ClearPrefix(prefix []byte)
-	ClearStorage(key []byte)
+	ClearStorage(key []byte) error
 	// TODO: child storage funcs
 }
 

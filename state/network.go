@@ -3,7 +3,13 @@ package state
 import "github.com/ChainSafe/gossamer/p2p"
 
 type networkState struct {
-	peer p2p.Service
+	peer *p2p.Service
+}
+
+func newNetworkState() *networkState {
+	return &networkState{
+		peer: &p2p.Service{},
+	}
 }
 
 func (ns *networkState) Peers() []string {
