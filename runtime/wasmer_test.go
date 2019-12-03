@@ -22,11 +22,14 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/codec"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
@@ -644,14 +647,16 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	mem := runtime.vm.Memory.Data()
 
 	// construct expected trie
+	// test values used in paritytech substrate tests
+	//  https://github.com/paritytech/substrate/blob/6e242a5a9fcc5d5ea34386864ec064a01677efff/client/executor/src/integration_tests/mod.rs#L419
+	//  Expected value:  0x9243f4bb6fa633dce97247652479ed7e2e2995a5ea641fd9d1e1a046f7601da6
 	tests := []struct {
 		key   []byte
 		value []byte
 	}{
-		{key: []byte{0}, value: []byte("pen")},
-		{key: []byte{1}, value: []byte("penguin")},
-		{key: []byte{2}, value: []byte("feather")},
-		{key: []byte{3}, value: []byte("noot")},
+		{key: []byte{0}, value: []byte("zero")},
+		{key: []byte{1}, value: []byte("one")},
+		{key: []byte{2}, value: []byte("two")},
 	}
 
 	expectedTrie := &trie.Trie{}
@@ -659,7 +664,16 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	lensArray := []byte{}
 
 	for _, test := range tests {
-		e := expectedTrie.Put(test.key, test.value)
+		buffer := bytes.Buffer{}
+		scaleEncoder := codec.Encoder{&buffer}
+		keyBigInt := new(big.Int)
+		keyBigInt.SetBytes(test.key)
+		_, err = scaleEncoder.Encode(keyBigInt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		encodedKey := buffer.Bytes()
+		e := expectedTrie.Put(encodedKey, test.value)
 		if e != nil {
 			t.Fatal(e)
 		}
