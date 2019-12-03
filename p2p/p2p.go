@@ -104,7 +104,7 @@ func (s *Service) Stop() error {
 	// close host and host services
 	err := s.host.close()
 	if err != nil {
-		log.Error("close host", "error", err)
+		log.Debug("close host", "err", err)
 	}
 
 	// close msgSend channel
@@ -132,7 +132,7 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 		// send status message to connected peer
 		err := s.host.send(peer, msg)
 		if err != nil {
-			log.Error("send message", "error", err)
+			log.Error("failed to send status message", "err", err)
 		}
 
 		// wait between sending messages
@@ -147,7 +147,7 @@ func (s *Service) broadcastReceivedMessages() {
 		// receive message from core service
 		msg := <-s.msgRec
 
-		log.Debug(
+		log.Trace(
 			"received message",
 			"host", s.host.id(),
 			"type", msg.GetType(),
@@ -155,7 +155,7 @@ func (s *Service) broadcastReceivedMessages() {
 
 		// check if message should be broadcasted
 		if !s.shouldBroadcast(msg) {
-			log.Debug(
+			log.Trace(
 				"message ignored",
 				"host", s.host.id(),
 				"type", msg.GetType(),
@@ -280,7 +280,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 
 	// ignore message if peer status message has not been confirmed
 	if !status {
-		log.Debug(
+		log.Trace(
 			"message ignored",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
@@ -291,7 +291,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 
 	// check if message should be broadcasted
 	if !s.shouldBroadcast(msg) {
-		log.Debug(
+		log.Trace(
 			"message ignored",
 			"host", s.host.id(),
 			"type", msg.GetType(),

@@ -140,10 +140,7 @@ func (h *host) close() error {
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	if len(h.bootnodes) == 0 && !h.noBootstrap {
-		log.Error(
-			"bootstrap",
-			"error", "no bootnodes defined and bootstrap enabled",
-		)
+		log.Error("no bootnodes are defined and bootstrap is enabled")
 	}
 	// loop through bootnode peers
 	for _, peerInfo := range h.bootnodes {
@@ -155,7 +152,7 @@ func (h *host) bootstrap() {
 		// connect to each peer
 		err := h.connect(peerInfo)
 		if err != nil {
-			log.Error("connect", "error", err)
+			log.Error("failed to dial bootstrap peer", "err", err)
 		}
 	}
 }
@@ -172,10 +169,10 @@ func (h *host) startMdns() {
 			string(h.protocolId),
 		)
 		if err != nil {
-			log.Error("start mdns", "error", err)
+			log.Error("failed to start MDNS", "err", err)
 		}
 
-		log.Debug(
+		log.Trace(
 			"start mdns",
 			"host", h.id(),
 			"period", mdnsPeriod,
@@ -237,25 +234,25 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 
 	stream, err := h.newStream(p)
 	if err != nil {
-		log.Error("new stream", "error", err)
+		log.Debug("new stream", "err", err)
 		return err
 	}
 
 	encMsg, err := msg.Encode()
 	if err != nil {
-		log.Error("encode message", "error", err)
+		log.Debug("encode message", "err", err)
 		return err
 	}
 
 	_, err = stream.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
 	if err != nil {
-		log.Error("write message", "error", err)
+		log.Debug("write message", "err", err)
 		return err
 	}
 
 	_, err = stream.Write(encMsg)
 	if err != nil {
-		log.Error("write message", "error", err)
+		log.Debug("write message", "err", err)
 		return err
 	}
 
@@ -278,10 +275,9 @@ func (h *host) broadcast(msg Message) {
 	)
 	// loop through connected peers
 	for _, peer := range h.h.Network().Peers() {
-		// send message to each connect peer
 		err := h.send(peer, msg)
 		if err != nil {
-			log.Error("send message", "error", err)
+			log.Error("failed to send a message during broadcast", "err", err)
 		}
 	}
 }

@@ -92,26 +92,20 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 
 // OpenedStream is called when a stream opened
 func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
-	protocol := s.Protocol()
-	if protocol != "" {
-		log.Trace(
-			"opened stream",
-			"host", s.Conn().LocalPeer(),
-			"peer", s.Conn().RemotePeer(),
-			"protocol", protocol,
-		)
-	}
+	log.Trace(
+		"opened stream",
+		"host", s.Conn().LocalPeer(),
+		"peer", s.Conn().RemotePeer(),
+		"protocol", s.Protocol(),
+	)
 }
 
 // ClosedStream is called when a stream closed
 func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
-	protocol := s.Protocol()
-	if protocol != "" {
-		log.Trace(
-			"closed stream",
-			"host", s.Conn().LocalPeer(),
-			"peer", s.Conn().RemotePeer(),
-			"protocol", protocol,
-		)
-	}
+	log.Trace(
+		"closed stream",
+		"host", s.Conn().LocalPeer(),
+		"peer", s.Conn().RemotePeer(),
+		"protocol", s.Protocol(),
+	)
 }
