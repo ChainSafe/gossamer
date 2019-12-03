@@ -29,7 +29,7 @@ var (
 	app       = cli.NewApp()
 	nodeFlags = []cli.Flag{
 		utils.DataDirFlag,
-		configFileFlag,
+		utils.ConfigFileFlag,
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
@@ -49,6 +49,14 @@ var (
 	cliFlags = []cli.Flag{
 		utils.VerbosityFlag,
 	}
+	accountFlags = []cli.Flag{
+		utils.GenerateFlag,
+		utils.Sr25519Flag,
+		utils.Ed25519Flag,
+		utils.ImportFlag,
+		utils.ListFlag,
+		utils.PasswordFlag,
+	}
 )
 
 var (
@@ -62,7 +70,7 @@ var (
 		Description: `The dumpconfig command shows configuration values.`,
 	}
 	initCommand = cli.Command{
-		Action:    MigrateFlags(initNode),
+		Action:    initNode,
 		Name:      "init",
 		Usage:     "Initialize node genesis state",
 		ArgsUsage: "",
@@ -70,14 +78,22 @@ var (
 			utils.DataDirFlag,
 			utils.GenesisFlag,
 			utils.VerbosityFlag,
-			configFileFlag,
+			utils.ConfigFileFlag,
 		},
 		Category:    "INITIALIZATION",
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
-	configFileFlag = cli.StringFlag{
-		Name:  "config",
-		Usage: "TOML configuration file",
+	accountCommand = cli.Command{
+		Action:   handleAccounts,
+		Name:     "account",
+		Usage:    "manage gossamer keystore",
+		Flags:    append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
+		Category: "KEYSTORE",
+		Description: "The account command is used to manage the gossamer keystore.\n" +
+			"\tTo generate a new sr25519 account: gossamer account --generate\n" +
+			"\tTo generate a new ed25519 account: gossamer account --generate --ed25519\n" +
+			"\tTo import a keystore file: gossamer account --import=path/to/file\n" +
+			"\tTo list keys: gossamer account --list",
 	}
 )
 
@@ -92,6 +108,7 @@ func init() {
 	app.Commands = []cli.Command{
 		dumpConfigCommand,
 		initCommand,
+		accountCommand,
 	}
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, p2pFlags...)
@@ -136,21 +153,6 @@ func initNode(ctx *cli.Context) error {
 
 	log.Info("🕸\t Finished initializing node!")
 	return nil
-}
-
-// MigrateFlags sets the global flag from a local flag when it's set.
-func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error {
-	return func(ctx *cli.Context) error {
-		for _, name := range ctx.FlagNames() {
-			if ctx.IsSet(name) {
-				err := ctx.GlobalSet(name, ctx.String(name))
-				if err != nil {
-					return nil
-				}
-			}
-		}
-		return action(ctx)
-	}
 }
 
 // gossamer is the main entrypoint into the gossamer system

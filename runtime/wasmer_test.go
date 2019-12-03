@@ -29,6 +29,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/trie"
 	"golang.org/x/crypto/ed25519"
 )
@@ -81,7 +83,7 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 
 	tt := &trie.Trie{}
 
-	r, err := NewRuntimeFromFile(fp, tt)
+	r, err := NewRuntimeFromFile(fp, tt, keystore.NewKeystore())
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -106,7 +108,7 @@ func TestExecVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ret, err := r.Exec("Core_version", 1, []byte{})
+	ret, err := r.Exec(CoreVersion, 1, []byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +133,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/c0ff6e519676affd727a45fe605bc7c84a0a536d/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -161,12 +163,12 @@ func newTestRuntime() (*Runtime, error) {
 		return nil, err
 	}
 
-	t := &trie.Trie{}
+	t := trie.NewEmptyTrie(nil)
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewRuntimeFromFile(fp, t)
+	r, err := NewRuntimeFromFile(fp, t, keystore.NewKeystore())
 	if err != nil {
 		return nil, err
 	}
@@ -576,6 +578,61 @@ func TestExt_ed25519_verify(t *testing.T) {
 	}
 }
 
+// test that ext_sr25519_verify verifies a valid signature
+func TestExt_sr25519_verify(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	// copy message into memory
+	msg := []byte("helloworld")
+	msgData := 170
+	copy(mem[msgData:msgData+len(msg)], msg)
+
+	// create key
+	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// copy public key into memory
+	pubkeyData := 180
+	pub := kp.Public().Encode()
+	copy(mem[pubkeyData:pubkeyData+len(pub)], pub)
+
+	// sign message, copy signature into memory
+	sig, err := kp.Private().Sign(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sigData := pubkeyData + len(pub)
+	copy(mem[sigData:sigData+len(sig)], sig)
+
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_verify"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	verified, err := testFunc(msgData, len(msg), sigData, pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	} else if verified.ToI32() != 0 {
+		t.Error("did not verify sr25519 signature")
+	}
+
+	// verification should fail on wrong signature
+	sigData = 1
+	verified, err = testFunc(msgData, len(msg), sigData, pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	} else if verified.ToI32() != 1 {
+		t.Error("verified incorrect sr25519 signature")
+	}
+}
+
 // test that ext_blake2_256_enumerated_trie_root places values in an array into a trie
 // with the key being the index of the value and returns the hash
 func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
@@ -893,6 +950,200 @@ func TestExt_secp256k1_ecdsa_recover(t *testing.T) {
 	}
 }
 
+// test that TestExt_sr25519_generate generates and saves a keypair in the keystore
+func TestExt_sr25519_generate(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idData := []byte{1, 0, 0, 0}
+	seedLen := 32
+
+	seedData := make([]byte, seedLen)
+	_, err = rand.Read(seedData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idLoc := 1000
+	seedLoc := idLoc + len(idData)
+	out := seedLoc + seedLen
+	copy(mem[seedLoc:seedLoc+seedLen], seedData)
+	copy(mem[idLoc:idLoc+len(idData)], idData)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_generate"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, seedLoc, seedLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkeyData := mem[out : out+32]
+	pubkey, err := crypto.NewSr25519PublicKey(pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kp := runtime.keystore.Get(pubkey.Address())
+	if kp == nil {
+		t.Fatal("Fail: keypair was not saved in keystore")
+	}
+}
+
+// test that TestExt_ed25519_generate generates and saves a keypair in the keystore
+func TestExt_ed25519_generate(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idData := []byte{1, 0, 0, 0}
+	seedLen := 32
+
+	seedData := make([]byte, seedLen)
+	_, err = rand.Read(seedData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idLoc := 1000
+	seedLoc := idLoc + len(idData)
+	out := seedLoc + seedLen
+	copy(mem[seedLoc:seedLoc+seedLen], seedData)
+	copy(mem[idLoc:idLoc+len(idData)], idData)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_generate"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, seedLoc, seedLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkeyData := mem[out : out+32]
+	pubkey, err := crypto.NewEd25519PublicKey(pubkeyData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kp := runtime.keystore.Get(pubkey.Address())
+	if kp == nil {
+		t.Fatal("Fail: keypair was not saved in keystore")
+	}
+}
+
+// test that ext_get_child_storage_into retrieves a value stored in a child trie
+func TestExt_get_child_storage_into(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runtime.trie.PutIntoChild(storageKey, key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+	valueOffset := 0
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_get_child_storage_into"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := mem[valueData : valueData+valueLen]
+	if !bytes.Equal(res, value[valueOffset:]) {
+		t.Fatalf("Fail: got %x expected %x", res, value[valueOffset:])
+	}
+}
+
+// test that ext_set_child_storage sets a value stored in a child trie
+func TestExt_set_child_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+	copy(mem[valueData:valueData+valueLen], value)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_set_child_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := runtime.trie.GetFromChild(storageKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(res, value) {
+		t.Fatalf("Fail: got %x expected %x", res, value)
+	}
+}
+
 // test used for ensuring runtime Exec calls can me made conrurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	r, err := newRuntime(t)
@@ -902,9 +1153,9 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 
 	// Execute 2 concurrent calls to the runtime
 	go func() {
-		_, _ = r.Exec("Core_version", 1, []byte{})
+		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
 	go func() {
-		_, _ = r.Exec("Core_version", 1, []byte{})
+		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
 }
