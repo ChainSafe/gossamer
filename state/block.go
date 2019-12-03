@@ -46,28 +46,30 @@ func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
 }
 
-func (bs *blockState) GetHeader(hash common.Hash) types.BlockHeader {
+func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeader, error) {
 	var result types.BlockHeader
 
 	data, err := bs.bt.Db.Db.Get(headerKey(hash))
-	check(err)
+	if err != nil {
+		return types.BlockHeader{}, err
+	}
 
 	err = json.Unmarshal(data, &result)
-	check(err)
 
-	return result
+	return result, err
 }
 
-func (bs *blockState) GetBlockData(hash common.Hash) types.BlockData {
+func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	var result types.BlockData
 
 	data, err := bs.bt.Db.Db.Get(blockDataKey(hash))
-	check(err)
+	if err != nil {
+		return types.BlockData{}, err
+	}
 
 	err = json.Unmarshal(data, &result)
-	check(err)
 
-	return result
+	return result, err
 }
 
 func (bs *blockState) GetLatestBlock() types.BlockHeader {
@@ -76,11 +78,17 @@ func (bs *blockState) GetLatestBlock() types.BlockHeader {
 
 }
 
-func (bs *blockState) GetBlockByHash(hash common.Hash) types.Block {
-	header := bs.GetHeader(hash)
-	blockData := bs.GetBlockData(hash)
+func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return types.Block{}, nil
+	}
+	blockData, err := bs.GetBlockData(hash)
+	if err != nil {
+		return types.Block{}, nil
+	}
 	blockBody := blockData.Body
-	return types.Block{Header: header, Body: *blockBody}
+	return types.Block{Header: header, Body: *blockBody}, nil
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
