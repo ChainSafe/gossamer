@@ -49,7 +49,7 @@ type Config struct {
 	Port uint32
 	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced, keys will not be loaded from data dir
 	RandSeed int64
-	// Disable bootstrapping altogether. BootstrapNodes has no effect over this.
+	// Disables bootstrapping
 	NoBootstrap bool
 	// Disables gossiping
 	NoGossip bool

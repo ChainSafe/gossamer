@@ -79,11 +79,11 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		protocolId = DefaultProtocolId
 	}
 
-	// create datastore and dht service
+	// create new datastore and DHT
 	dstore := dsync.MutexWrap(ds.NewMapDatastore())
 	dht := kaddht.NewDHT(ctx, h, dstore)
 
-	// wrap the host with routed host so we can look up peers in dht
+	// wrap host and DHT with routed host so that we can look up peers in DHT
 	h = rhost.Wrap(h, dht)
 
 	// use "p2p" for multiaddress format
@@ -122,13 +122,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 // close shuts down the host
 func (h *host) close() error {
 
-	// close host instance
+	// shut down host
 	err := h.h.Close()
 	if err != nil {
 		return err
 	}
 
-	// close dht service
+	// close DHT process
 	err = h.dht.Close()
 	if err != nil {
 		return err
@@ -160,11 +160,11 @@ func (h *host) bootstrap() {
 	}
 }
 
-// startMdns starts a new discovery mdns service
+// startMdns starts a new MDNS discovery service
 func (h *host) startMdns() {
 	if !h.noMdns {
 
-		// create new mdns service
+		// create new MDNS service
 		mdns, err := discovery.NewMdnsService(
 			h.ctx,
 			h.h,
@@ -177,12 +177,12 @@ func (h *host) startMdns() {
 
 		log.Debug(
 			"start mdns",
-			"host", h.h.ID(),
+			"host", h.id(),
 			"period", mdnsPeriod,
 			"protocol", h.protocolId,
 		)
 
-		// register notifee on mdns service
+		// register notifee on MDNS service
 		mdns.RegisterNotifee(Notifee{ctx: h.ctx, host: h.h})
 
 		h.mdns = mdns
@@ -213,18 +213,6 @@ func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
 	return err
 }
 
-// // getExistingStream attempts to get an existing stream
-// func (h *host) getExistingStream(p peer.ID) (stream network.Stream, err error) {
-// 	for _, conn := range h.h.Network().ConnsToPeer(p) {
-// 		for _, stream := range conn.GetStreams() {
-// 			if stream.Protocol() == h.protocolId {
-// 				return stream, nil
-// 			}
-// 		}
-// 	}
-// 	return nil, fmt.Errorf("no existing stream")
-// }
-
 // newStream opens a new stream with a specific peer using the host protocol
 func (h *host) newStream(p peer.ID) (network.Stream, error) {
 
@@ -246,14 +234,6 @@ func (h *host) newStream(p peer.ID) (network.Stream, error) {
 
 // send sends a non-status message to a specific peer
 func (h *host) send(p peer.ID, msg Message) (err error) {
-
-	// TODO: investigate get existing stream breaking tests
-
-	// stream, err := h.getExistingStream(p)
-	// if err != nil {
-	// 	log.Error("get stream", "error", err)
-	// 	return err
-	// }
 
 	stream, err := h.newStream(p)
 	if err != nil {
@@ -306,7 +286,7 @@ func (h *host) broadcast(msg Message) {
 	}
 }
 
-// ping pings a peer using dht
+// ping pings a peer using DHT
 func (h *host) ping(peer peer.ID) error {
 	return h.dht.Ping(h.ctx, peer)
 }
@@ -322,7 +302,7 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
-// fullAddrs returns the multiaddresses of the host
+// fullAddrs returns the full multiaddresses of the host
 func (h *host) fullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := h.h.Addrs()
 	for _, a := range addrs {

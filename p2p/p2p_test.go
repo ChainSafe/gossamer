@@ -49,7 +49,7 @@ func TestStartService(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 	node := startNewService(t, config, nil, nil)
 	node.Stop()
@@ -60,7 +60,7 @@ func TestConnect(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -70,7 +70,7 @@ func TestConnect(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -112,7 +112,7 @@ func TestBootstrap(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -124,7 +124,7 @@ func TestBootstrap(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -155,7 +155,7 @@ func TestPing(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -165,7 +165,7 @@ func TestPing(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -193,7 +193,7 @@ func TestExchangeStatus(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	msgSendA := make(chan Message)
@@ -206,7 +206,7 @@ func TestExchangeStatus(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendB := make(chan Message)
@@ -263,7 +263,7 @@ func TestSendRequest(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	msgSendA := make(chan Message)
@@ -277,7 +277,7 @@ func TestSendRequest(t *testing.T) {
 		Port:           7002,
 		RandSeed:       2,
 		NoGossip:       true,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendB := make(chan Message)
@@ -366,7 +366,7 @@ func TestBroadcastRequest(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	msgSendA := make(chan Message)
@@ -380,7 +380,7 @@ func TestBroadcastRequest(t *testing.T) {
 		Port:           7002,
 		RandSeed:       2,
 		NoGossip:       true,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendB := make(chan Message)
@@ -392,7 +392,7 @@ func TestBroadcastRequest(t *testing.T) {
 		Port:           7003,
 		RandSeed:       3,
 		NoGossip:       true,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendC := make(chan Message)
@@ -522,7 +522,7 @@ func TestBlockAnnounce(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoGossip:    true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	msgRecA := make(chan Message)
@@ -537,7 +537,7 @@ func TestBlockAnnounce(t *testing.T) {
 		Port:           7002,
 		RandSeed:       2,
 		NoGossip:       true,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendB := make(chan Message)
@@ -608,7 +608,7 @@ func TestGossip(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoGossip:    true,
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoMdns:      true,
 	}
 
 	msgSendA := make(chan Message)
@@ -621,7 +621,7 @@ func TestGossip(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendB := make(chan Message)
@@ -661,7 +661,7 @@ func TestGossip(t *testing.T) {
 		Port:           7003,
 		RandSeed:       3,
 		NoGossip:       true,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
+		NoMdns:         true,
 	}
 
 	msgSendC := make(chan Message)
