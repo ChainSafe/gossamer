@@ -46,12 +46,12 @@ func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
 }
 
-func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeader, error) {
-	var result types.BlockHeader
+func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
+	var result types.BlockHeaderWithHash
 
 	data, err := bs.bt.Db.Db.Get(headerKey(hash))
 	if err != nil {
-		return types.BlockHeader{}, err
+		return types.BlockHeaderWithHash{}, err
 	}
 
 	err = json.Unmarshal(data, &result)
@@ -72,9 +72,9 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
-func (bs *blockState) GetLatestBlock() types.BlockHeader {
+func (bs *blockState) GetLatestBlock() types.BlockHeaderWithHash {
 	// Can't do yet
-	return types.BlockHeader{}
+	return types.BlockHeaderWithHash{}
 
 }
 
@@ -96,7 +96,7 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
 	return types.Block{}
 }
 
-func (bs *blockState) SetHeader(header types.BlockHeader) {
+func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) {
 	rawdb.SetHeader(bs.db.Db, &header)
 }
 
