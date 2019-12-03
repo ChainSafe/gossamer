@@ -665,7 +665,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 
 	for _, test := range tests {
 		buffer := bytes.Buffer{}
-		scaleEncoder := codec.Encoder{&buffer}
+		scaleEncoder := codec.Encoder{Writer: &buffer}
 		keyBigInt := new(big.Int)
 		keyBigInt.SetBytes(test.key)
 		_, err = scaleEncoder.Encode(keyBigInt)
