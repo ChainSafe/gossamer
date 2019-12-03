@@ -19,7 +19,6 @@ require (
 	github.com/libp2p/go-libp2p v0.4.1
 	github.com/libp2p/go-libp2p-core v0.2.5
 	github.com/libp2p/go-libp2p-kad-dht v0.3.0
-	github.com/libp2p/go-libp2p-peerstore v0.1.4
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/naoina/go-stringutil v0.1.0 // indirect

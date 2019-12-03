@@ -155,7 +155,7 @@ func (s *Service) broadcastReceivedMessages() {
 
 		// check if message should be broadcasted
 		if !s.shouldBroadcast(msg) {
-			log.Error(
+			log.Debug(
 				"message ignored",
 				"host", s.host.id(),
 				"type", msg.GetType(),
