@@ -20,9 +20,9 @@ import (
 	"errors"
 
 	scale "github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/runtime"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -47,27 +47,27 @@ func (b *Session) configurationFromRuntime() error {
 	return err
 }
 
-// gets the configuration data for Babe from the runtime
-func (b *Session) blockHashFromIdFromRuntime(blockId []byte) (*common.Hash, error) {
-	var loc int32 = 1000
-	b.rt.Store(blockId, loc)
+// // gets the configuration data for Babe from the runtime
+// func (b *Session) blockHashFromIdFromRuntime(blockId []byte) (*common.Hash, error) {
+// 	var loc int32 = 1000
+// 	b.rt.Store(blockId, loc)
 
-	ret, err := b.rt.Exec("BabeApi_block_hash_from_id", loc, int32(len(blockId)))
-	if err != nil {
-		return nil, err
-	}
+// 	ret, err := b.rt.Exec("BabeApi_block_hash_from_id", loc, blockId)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	bc := new(common.Hash)
-	_, err = scale.Decode(ret, bc)
-	return bc, err
-}
+// 	bc := new(common.Hash)
+// 	_, err = scale.Decode(ret, bc)
+// 	return bc, err
+// }
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 	var loc int32 = 1000
 	b.rt.Store(blockHeader, loc)
 
-	_, err := b.rt.Exec("Core_initialize_block", loc, int32(len(blockHeader)))
+	_, err := b.rt.Exec("Core_initialize_block", loc, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -79,14 +79,14 @@ func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]ty
 	var loc int32 = 1000
 	b.rt.Store(blockInherentData, loc)
 
-	ret, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, int32(len(blockInherentData)))
+	ret, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, blockInherentData)
 	if err != nil {
 		return nil, err
 	}
 
 	ea := new([]types.Extrinsic)
 	_, err = scale.Decode(ret, ea)
-	return ea, nil
+	return ea, err
 }
 
 // gets the configuration data for Babe from the runtime
@@ -95,7 +95,7 @@ func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
 
-	_, err := b.rt.Exec("BlockBuilder_apply_extrinsic", loc, int32(len(e)))
+	_, err := b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
 	if err != nil {
 		return err
 	}
@@ -103,16 +103,16 @@ func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeader, error) {
+func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeaderWithHash, error) {
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
 
-	ret, err := b.rt.Exec("BlockBuilder_finalize_block", loc, int32(len(e)))
+	ret, err := b.rt.Exec("BlockBuilder_finalize_block", loc, e)
 	if err != nil {
 		return nil, err
 	}
 
-	bh := new(types.BlockHeader)
+	bh := new(types.BlockHeaderWithHash)
 	_, err = scale.Decode(ret, bh)
 	return bh, err
 }
@@ -121,7 +121,7 @@ func (s *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	var loc int32 = 1000
 	s.rt.Store(e, loc)
 
-	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, int32(len(e)))
+	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
 	if err != nil {
 		return nil, err
 	}

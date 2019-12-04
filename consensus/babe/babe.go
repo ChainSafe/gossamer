@@ -109,19 +109,20 @@ func (b *Session) invokeBlockAuthoring() {
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
 		if b.isProducer[currentSlot] {
 			// TODO: implement build block
-			block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
-			if err != nil {
-				return
-			}
+			// block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
+			// if err != nil {
+			// 	return
+			// }
 
-			// Broadcast the block
-			blockAnnounceMsg := &p2p.BlockAnnounceMessage{
-				ParentHash:     block.Header.ParentHash,
-				Number:         block.Header.Number,
-				StateRoot:      block.Header.StateRoot,
-				ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-				Digest:         block.Header.Digest,
-			}
+			// // Broadcast the block
+			// blockAnnounceMsg := &p2p.BlockAnnounceMessage{
+			// 	ParentHash:     block.Header.ParentHash,
+			// 	Number:         block.Header.Number,
+			// 	StateRoot:      block.Header.StateRoot,
+			// 	ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+			// 	Digest:         block.Header.Digest,
+			// }
+			blockAnnounceMsg := &p2p.BlockAnnounceMessage{}
 			b.blockAnnounce <- blockAnnounceMsg
 		}
 
