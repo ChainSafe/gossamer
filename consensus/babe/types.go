@@ -37,10 +37,11 @@ type BabeConfiguration struct {
 }
 
 type AuthorityDataRaw struct {
-	id     [32]byte
-	weight uint64
+	Id     [32]byte
+	Weight uint64
 }
 
+//nolint:structcheck
 type AuthorityData struct {
 	id     *crypto.Sr25519PublicKey
 	weight uint64
