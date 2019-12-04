@@ -132,22 +132,20 @@ func (h *host) close() error {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
+	log.Trace(
+		"Starting bootstrap...",
+		"host", h.id(),
+	)
+
 	if len(h.bootnodes) == 0 && !h.noBootstrap {
-		log.Error("no bootnodes are defined and bootstrap is enabled")
+		log.Error("No bootnodes are defined and bootstrapping is enabled")
 	}
 
-	// loop through bootnode peers
+	// loop through bootnode peers and connect to each peer
 	for _, peerInfo := range h.bootnodes {
-		log.Trace(
-			"bootstrap",
-			"host", h.id(),
-			"peer", peerInfo.ID,
-		)
-
-		// connect to each peer
 		err := h.connect(peerInfo)
 		if err != nil {
-			log.Error("failed to connect to bootstrap peer", "err", err)
+			log.Error("Failed to bootstrap peer", "err", err)
 		}
 	}
 }
@@ -155,6 +153,13 @@ func (h *host) bootstrap() {
 // startMdns starts a new MDNS discovery service
 func (h *host) startMdns() {
 	if !h.noMdns {
+
+		log.Trace(
+			"Starting MDNS...",
+			"host", h.id(),
+			"period", mdnsPeriod,
+			"protocol", h.protocolId,
+		)
 
 		// create new MDNS service
 		mdns, err := discovery.NewMdnsService(
@@ -164,15 +169,8 @@ func (h *host) startMdns() {
 			string(h.protocolId),
 		)
 		if err != nil {
-			log.Error("failed to start MDNS", "err", err)
+			log.Error("Failed to start MDNS", "err", err)
 		}
-
-		log.Trace(
-			"start mdns",
-			"host", h.id(),
-			"period", mdnsPeriod,
-			"protocol", h.protocolId,
-		)
 
 		// register notifee on MDNS service
 		mdns.RegisterNotifee(Notifee{ctx: h.ctx, host: h.h})
@@ -215,7 +213,7 @@ func (h *host) newStream(p peer.ID) (network.Stream, error) {
 	}
 
 	log.Trace(
-		"opened stream",
+		"Opened stream",
 		"host", stream.Conn().LocalPeer(),
 		"peer", stream.Conn().RemotePeer(),
 		"protocol", stream.Protocol(),
@@ -251,7 +249,7 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 	}
 
 	log.Trace(
-		"message sent",
+		"Sent message",
 		"host", h.id(),
 		"peer", p,
 		"type", msg.GetType(),
@@ -263,7 +261,7 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 // broadcast sends a message to each connected peer
 func (h *host) broadcast(msg Message) {
 	log.Trace(
-		"broadcast message",
+		"Start broadcasting message...",
 		"host", h.id(),
 		"type", msg.GetType(),
 	)
@@ -272,7 +270,7 @@ func (h *host) broadcast(msg Message) {
 	for _, peer := range h.h.Network().Peers() {
 		err := h.send(peer, msg)
 		if err != nil {
-			log.Error("failed to send a message during broadcast", "err", err)
+			log.Error("Failed to send a message during broadcast", "err", err)
 		}
 	}
 }

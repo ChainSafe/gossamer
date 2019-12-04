@@ -28,7 +28,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// ConnManager extends libp2p ConnManager
+// ConnManager implement connmgr.ConnManager
 type ConnManager struct{}
 
 // Notifee is used to monitor changes to a connection
@@ -57,7 +57,7 @@ func (_ *ConnManager) Close() error                             { return nil }
 // Listen is called when network starts listening on an address
 func (cm *ConnManager) Listen(n network.Network, address ma.Multiaddr) {
 	log.Trace(
-		"started listening",
+		"Started listening",
 		"host", n.LocalPeer(),
 		"address", address,
 	)
@@ -66,7 +66,7 @@ func (cm *ConnManager) Listen(n network.Network, address ma.Multiaddr) {
 // ListenClose is called when network stops listening on an address
 func (cm *ConnManager) ListenClose(n network.Network, address ma.Multiaddr) {
 	log.Trace(
-		"stopped listening",
+		"Stopped listening",
 		"host", n.LocalPeer(),
 		"address", address,
 	)
@@ -75,7 +75,7 @@ func (cm *ConnManager) ListenClose(n network.Network, address ma.Multiaddr) {
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	log.Trace(
-		"connected",
+		"Connected to peer",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
@@ -84,7 +84,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 // Disconnected is called when a connection closed
 func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	log.Trace(
-		"disconnected",
+		"Disconnected from peer",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
@@ -93,7 +93,7 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 // OpenedStream is called when a stream opened
 func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	log.Trace(
-		"opened stream",
+		"Opened stream",
 		"host", s.Conn().LocalPeer(),
 		"peer", s.Conn().RemotePeer(),
 		"protocol", s.Protocol(),
@@ -103,7 +103,7 @@ func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 // ClosedStream is called when a stream closed
 func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 	log.Trace(
-		"closed stream",
+		"Closed stream",
 		"host", s.Conn().LocalPeer(),
 		"peer", s.Conn().RemotePeer(),
 		"protocol", s.Protocol(),

@@ -103,7 +103,7 @@ func (s *Service) Stop() error {
 	// close host and host services
 	err := s.host.close()
 	if err != nil {
-		log.Debug("close host", "err", err)
+		log.Error("Failed to close host", "err", err)
 	}
 
 	// close msgSend channel
@@ -131,7 +131,7 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 		// send status message to connected peer
 		err := s.host.send(peer, msg)
 		if err != nil {
-			log.Error("failed to send status message", "err", err)
+			log.Error("Failed to send status message", "err", err)
 		}
 
 		// wait between sending messages
@@ -143,19 +143,18 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 // from the core service and broadcasts the new messages to connected peers
 func (s *Service) broadcastReceivedMessages() {
 	for {
-		// receive message from core service
+		// receive message from core service (from BABE session)
 		msg := <-s.msgRec
 
 		log.Trace(
-			"received message",
+			"Received message",
 			"host", s.host.id(),
-			"type", msg.GetType(),
 		)
 
 		// check if message should be broadcasted
 		if !s.shouldBroadcast(msg) {
 			log.Trace(
-				"message ignored",
+				"Message ignored",
 				"host", s.host.id(),
 				"type", msg.GetType(),
 			)
@@ -205,19 +204,18 @@ func (s *Service) shouldBroadcast(msg Message) bool {
 // associated message handler (status or non-status) based on message type
 func (s *Service) handleStream(stream net.Stream) {
 
+	log.Trace(
+		"Received message",
+		"host", stream.Conn().LocalPeer(),
+		"peer", stream.Conn().RemotePeer(),
+	)
+
 	// parse message and exit on error
 	msg, err := parseMessage(stream)
 	if err != nil {
-		log.Debug("parse message", "err", err)
+		log.Error("Failed to parse message", "err", err)
 		return // exit on error
 	}
-
-	log.Trace(
-		"handle stream",
-		"host", stream.Conn().LocalPeer(),
-		"peer", stream.Conn().RemotePeer(),
-		"type", msg.GetType(),
-	)
 
 	if msg.GetType() == StatusMsgType {
 		// handle status message type
@@ -242,7 +240,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 	// TODO: implement status message validation
 	case hostStatus.String() == msg.String():
 		log.Trace(
-			"status match",
+			"Received valid status message",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
 		)
@@ -251,7 +249,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 
 	default:
 		log.Debug(
-			"status mismatch",
+			"Received invalid status message",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
 		)
@@ -275,7 +273,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	// ignore message if peer status message has not been confirmed
 	if !status {
 		log.Trace(
-			"message ignored",
+			"Message ignored",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
 			"type", msg.GetType(),
@@ -286,7 +284,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	// check if message should be broadcasted
 	if !s.shouldBroadcast(msg) {
 		log.Trace(
-			"message ignored",
+			"Message ignored",
 			"host", s.host.id(),
 			"type", msg.GetType(),
 		)
@@ -297,7 +295,7 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 	if !s.host.noGossip {
 
 		log.Trace(
-			"gossiping",
+			"Start gossiping...",
 			"host", stream.Conn().LocalPeer(),
 			"type", msg.GetType(),
 		)
