@@ -22,14 +22,10 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
-
 	log "github.com/ChainSafe/log15"
-
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
-
 	"github.com/libp2p/go-libp2p"
-
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -37,7 +33,6 @@ import (
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -57,12 +52,11 @@ type host struct {
 	noMdns      bool
 	address     ma.Multiaddr
 	protocolId  protocol.ID
-	peerStatus  map[peer.ID]bool // TODO: investigate peer status storage options
+	peerStatus  map[peer.ID]bool
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-
 	opts, err := cfg.buildOpts()
 	if err != nil {
 		return nil, err
@@ -101,7 +95,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// TODO: investigate peer status storage options
 	peerStatus := make(map[peer.ID]bool)
 
 	return &host{
@@ -114,7 +107,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		noMdns:      cfg.NoMdns,
 		address:     address,
 		protocolId:  protocolId,
-		peerStatus:  peerStatus, // TODO: investigate peer status storage options
+		peerStatus:  peerStatus,
 	}, nil
 
 }
@@ -142,6 +135,7 @@ func (h *host) bootstrap() {
 	if len(h.bootnodes) == 0 && !h.noBootstrap {
 		log.Error("no bootnodes are defined and bootstrap is enabled")
 	}
+
 	// loop through bootnode peers
 	for _, peerInfo := range h.bootnodes {
 		log.Trace(
@@ -149,10 +143,11 @@ func (h *host) bootstrap() {
 			"host", h.id(),
 			"peer", peerInfo.ID,
 		)
+
 		// connect to each peer
 		err := h.connect(peerInfo)
 		if err != nil {
-			log.Error("failed to dial bootstrap peer", "err", err)
+			log.Error("failed to connect to bootstrap peer", "err", err)
 		}
 	}
 }
@@ -231,7 +226,6 @@ func (h *host) newStream(p peer.ID) (network.Stream, error) {
 
 // send sends a non-status message to a specific peer
 func (h *host) send(p peer.ID, msg Message) (err error) {
-
 	stream, err := h.newStream(p)
 	if err != nil {
 		log.Debug("new stream", "err", err)
@@ -273,6 +267,7 @@ func (h *host) broadcast(msg Message) {
 		"host", h.id(),
 		"type", msg.GetType(),
 	)
+
 	// loop through connected peers
 	for _, peer := range h.h.Network().Peers() {
 		err := h.send(peer, msg)

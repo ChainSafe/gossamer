@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
-
 	"github.com/libp2p/go-libp2p-core/network"
 	net "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -171,7 +170,6 @@ func (s *Service) broadcastReceivedMessages() {
 // shouldBroadcast checks if message is new with a valid type, storing the
 // result for later checks and returning true if its a valid new message
 func (s *Service) shouldBroadcast(msg Message) bool {
-
 	msgType := msg.GetType()
 
 	switch msgType {
@@ -210,9 +208,8 @@ func (s *Service) handleStream(stream net.Stream) {
 	// parse message and exit on error
 	msg, err := parseMessage(stream)
 	if err != nil {
-		log.Error("parse message", "error", err)
-		// exit if message cannot be parsed
-		return
+		log.Debug("parse message", "err", err)
+		return // exit on error
 	}
 
 	log.Trace(
@@ -250,7 +247,6 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		// TODO: investigate peer status storage options
 		s.host.peerStatus[stream.Conn().RemotePeer()] = true
 
 	default:
@@ -260,13 +256,12 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		// TODO: investigate peer status storage options
 		s.host.peerStatus[stream.Conn().RemotePeer()] = false
 
 		// close connection with peer if status message is not valid
 		err := s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
 		if err != nil {
-			log.Error("close peer", "error", err)
+			log.Debug("close peer", "err", err)
 		}
 
 	}
@@ -275,7 +270,6 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 // handleStreamNonStatus handles non-status messages written to the stream
 func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 
-	// TODO: investigate peer status storage options
 	status := s.host.peerStatus[stream.Conn().RemotePeer()]
 
 	// ignore message if peer status message has not been confirmed
