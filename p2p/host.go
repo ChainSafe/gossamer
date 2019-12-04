@@ -226,25 +226,25 @@ func (h *host) newStream(p peer.ID) (network.Stream, error) {
 func (h *host) send(p peer.ID, msg Message) (err error) {
 	stream, err := h.newStream(p)
 	if err != nil {
-		log.Debug("new stream", "err", err)
+		log.Debug("Failed to create new stream", "err", err)
 		return err
 	}
 
 	encMsg, err := msg.Encode()
 	if err != nil {
-		log.Debug("encode message", "err", err)
+		log.Debug("Failed to encode message", "err", err)
 		return err
 	}
 
 	_, err = stream.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
 	if err != nil {
-		log.Debug("write message", "err", err)
+		log.Debug("Failed to write message", "err", err)
 		return err
 	}
 
 	_, err = stream.Write(encMsg)
 	if err != nil {
-		log.Debug("write message", "err", err)
+		log.Debug("Failed to write message", "err", err)
 		return err
 	}
 
@@ -270,7 +270,7 @@ func (h *host) broadcast(msg Message) {
 	for _, peer := range h.h.Network().Peers() {
 		err := h.send(peer, msg)
 		if err != nil {
-			log.Error("Failed to send a message during broadcast", "err", err)
+			log.Error("Failed to send message during broadcast", "err", err)
 		}
 	}
 }

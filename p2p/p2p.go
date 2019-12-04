@@ -248,7 +248,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 		s.host.peerStatus[stream.Conn().RemotePeer()] = true
 
 	default:
-		log.Debug(
+		log.Trace(
 			"Received invalid status message",
 			"host", stream.Conn().LocalPeer(),
 			"peer", stream.Conn().RemotePeer(),
@@ -259,7 +259,7 @@ func (s *Service) handleStreamStatus(stream network.Stream, msg Message) {
 		// close connection with peer if status message is not valid
 		err := s.host.h.Network().ClosePeer(stream.Conn().RemotePeer())
 		if err != nil {
-			log.Debug("close peer", "err", err)
+			log.Error("Failed to close peer", "err", err)
 		}
 
 	}
@@ -272,33 +272,16 @@ func (s *Service) handleStreamNonStatus(stream network.Stream, msg Message) {
 
 	// ignore message if peer status message has not been confirmed
 	if !status {
-		log.Trace(
-			"Message ignored",
-			"host", stream.Conn().LocalPeer(),
-			"peer", stream.Conn().RemotePeer(),
-			"type", msg.GetType(),
-		)
 		return
 	}
 
 	// check if message should be broadcasted
 	if !s.shouldBroadcast(msg) {
-		log.Trace(
-			"Message ignored",
-			"host", s.host.id(),
-			"type", msg.GetType(),
-		)
 		return
 	}
 
 	// broadcast to all connected peers if gossip enabled
 	if !s.host.noGossip {
-
-		log.Trace(
-			"Start gossiping...",
-			"host", stream.Conn().LocalPeer(),
-			"type", msg.GetType(),
-		)
 
 		// send message to each connected peer
 		s.host.broadcast(msg)
@@ -332,12 +315,6 @@ func parseMessage(stream net.Stream) (Message, error) {
 
 	// check read byte
 	_, err := rw.Reader.ReadByte()
-	if err != nil {
-		return nil, err
-	}
-
-	// check message type
-	_, err = rw.Reader.Peek(1)
 	if err != nil {
 		return nil, err
 	}
