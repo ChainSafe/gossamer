@@ -44,16 +44,16 @@ func newTrie() (*Trie, error) {
 			Db:     stateDB,
 			Hasher: hasher,
 		},
-		NodeRoot: nil,
+		root: nil,
 	}
 
-	trie.Database.Batch = trie.Database.Db.NewBatch()
+	trie.db.Batch = trie.db.Db.NewBatch()
 
 	return trie, nil
 }
 
 func (t *Trie) closeDb() {
-	t.Database.Db.Close()
+	t.db.Db.Close()
 	if err := os.RemoveAll("./test_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}

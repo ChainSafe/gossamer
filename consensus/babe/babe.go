@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
+	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator
@@ -265,7 +266,7 @@ func (b *Session) buildBlock(chainBest types.Block, slot Slot, hash common.Hash)
 		}
 
 		// Add the extrinsic to the blockbody
-		blockBody = append(blockBody, extrinsic)
+		blockBody = append(blockBody, extrinsic...)
 
 		if !blockIsFull(blockBody) {
 			// Drop first extrinsic in queue

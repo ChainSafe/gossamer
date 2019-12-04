@@ -52,7 +52,7 @@ func NewTrie(db *Database, root node) *Trie {
 
 // Root returns the root of the trie
 func (t *Trie) Root() node {
-	return t.NodeRoot
+	return t.root
 }
 
 // Db returns the trie's underlying database
@@ -77,7 +77,7 @@ func (t *Trie) Hash() (common.Hash, error) {
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 func (t *Trie) Entries() map[string][]byte {
-	return t.entries(t.NodeRoot, nil, make(map[string][]byte))
+	return t.entries(t.root, nil, make(map[string][]byte))
 }
 
 func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[string][]byte {
@@ -111,16 +111,16 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 	var n node
 
 	if len(value) > 0 {
-		_, n, err = t.insert(t.NodeRoot, k, &leaf{key: nil, value: value, dirty: true})
+		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
 	} else {
-		_, n, err = t.delete(t.NodeRoot, k)
+		_, n, err = t.delete(t.root, k)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	t.NodeRoot = n
+	t.root = n
 	return nil
 }
 
@@ -283,7 +283,7 @@ func (t *Trie) getLeaf(key []byte) (value *leaf, err error) {
 func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
 	k := keyToNibbles(key)
 
-	value, err = t.retrieve(t.NodeRoot, k)
+	value, err = t.retrieve(t.root, k)
 	return value, err
 }
 
@@ -318,11 +318,11 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
-	_, n, err := t.delete(t.NodeRoot, k)
+	_, n, err := t.delete(t.root, k)
 	if err != nil {
 		return err
 	}
-	t.NodeRoot = n
+	t.root = n
 	return nil
 }
 

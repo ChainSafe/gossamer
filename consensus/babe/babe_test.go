@@ -29,17 +29,16 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/p2p"
 	db "github.com/ChainSafe/gossamer/polkadb"
-	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/trie"
 )
 
 const POLKADOT_RUNTIME_FP string = "../../substrate_test_runtime.compact.wasm"
-const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/david/latest-blob/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 var zeroHash, _ = common.HexToHash("0x00")
 
@@ -75,32 +74,7 @@ func Exists(name string) bool {
 	return true
 }
 
-// func newTrie() (*trie.Trie, error) {
-// 	hasher, err := trie.NewHasher()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	stateDB, err := polkadb.NewBadgerDB("./test_data/state")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	trie := &trie.Trie{
-// 		Database: &trie.StateDB{
-// 			Db:     stateDB,
-// 			Hasher: hasher,
-// 		},
-// 		NodeRoot: nil,
-// 	}
-
-// 	trie.Database.Batch = trie.Database.Db.NewBatch()
-
-// 	return trie, nil
-// }
-
 func newRuntime(t *testing.T) *runtime.Runtime {
-	fmt.Println("CREATING NEW RUNTIMEBLOB")
 	_, err := getRuntimeBlob()
 	if err != nil {
 		t.Fatalf("Fail: could not get polkadot runtime")
@@ -110,11 +84,6 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 	if err != nil {
 		t.Fatal("could not create filepath")
 	}
-
-	// DB, err := polkadb.NewDatabaseService()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	r, err := runtime.NewRuntimeFromFile(fp, tt, nil)
 	if err != nil {
@@ -448,8 +417,11 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 func TestBuildBlock(t *testing.T) {
 	rt := newRuntime(t)
-	babesession := NewSession([32]byte{}, [64]byte{}, rt)
-	_, err := babesession.configurationFromRuntime()
+	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -472,7 +444,7 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	block := types.Block{
-		Header: types.BlockHeader{
+		Header: types.BlockHeaderWithHash{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
 		},
@@ -492,6 +464,4 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	t.Log("Got back block: ", resultBlock)
-}
-
 }

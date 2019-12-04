@@ -26,7 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sync"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -37,7 +37,7 @@ import (
 )
 
 const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
-const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/david/latest-blob/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
 func getRuntimeBlob() (n int64, err error) {
@@ -134,7 +134,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/raw/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -1045,6 +1045,247 @@ func TestExt_ed25519_generate(t *testing.T) {
 	}
 }
 
+// test that ext_ed25519_public_keys confirms that we can retrieve our public keys from the keystore
+func TestExt_ed25519_public_keys(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testKps := []crypto.Keypair{}
+	expectedPubkeys := [][]byte{}
+	numKps := 12
+
+	var kp crypto.Keypair
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateEd25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+		testKps = append(testKps, kp)
+		expected := testKps[i].Public().Encode()
+		expectedPubkeys = append(expectedPubkeys, expected)
+	}
+
+	// put some sr25519 keypairs in the keystore to make sure they don't get returned
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateSr25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idLoc := 0
+	resultLoc := 1 << 9
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_public_keys"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	out, err := testFunc(idLoc, resultLoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.ToI32() == -1 {
+		t.Fatal("call to test_ext_ed25519_public_keys failed")
+	}
+
+	resultLenBytes := mem[resultLoc : resultLoc+4]
+	resultLen := binary.LittleEndian.Uint32(resultLenBytes)
+	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
+
+	pubkeys := [][]byte{}
+	for i := 0; i < numKps; i++ {
+		kpData := pubkeyData[i*32 : i*32+32]
+		pubkeys = append(pubkeys, kpData)
+	}
+
+	sort.Slice(expectedPubkeys, func(i, j int) bool { return bytes.Compare(expectedPubkeys[i], expectedPubkeys[j]) < 0 })
+	sort.Slice(pubkeys, func(i, j int) bool { return bytes.Compare(pubkeys[i], pubkeys[j]) < 0 })
+
+	if !reflect.DeepEqual(expectedPubkeys, pubkeys) {
+		t.Fatalf("Fail: got %x expected %x", pubkeys, expectedPubkeys)
+	}
+}
+
+// test that ext_sr25519_public_keys confirms that we can retrieve our public keys from the keystore
+func TestExt_sr25519_public_keys(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testKps := []crypto.Keypair{}
+	expectedPubkeys := [][]byte{}
+	numKps := 12
+
+	var kp crypto.Keypair
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateSr25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+		testKps = append(testKps, kp)
+		expected := testKps[i].Public().Encode()
+		expectedPubkeys = append(expectedPubkeys, expected)
+	}
+
+	// put some ed25519 keypairs in the keystore to make sure they don't get returned
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateEd25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idLoc := 0
+	resultLoc := 1 << 9
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_public_keys"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	out, err := testFunc(idLoc, resultLoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.ToI32() == -1 {
+		t.Fatal("call to test_ext_sr25519_public_keys failed")
+	}
+
+	resultLenBytes := mem[resultLoc : resultLoc+4]
+	resultLen := binary.LittleEndian.Uint32(resultLenBytes)
+	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
+
+	t.Log(resultLen)
+
+	pubkeys := [][]byte{}
+	for i := 0; i < numKps; i++ {
+		kpData := pubkeyData[i*32 : i*32+32]
+		pubkeys = append(pubkeys, kpData)
+	}
+
+	sort.Slice(expectedPubkeys, func(i, j int) bool { return bytes.Compare(expectedPubkeys[i], expectedPubkeys[j]) < 0 })
+	sort.Slice(pubkeys, func(i, j int) bool { return bytes.Compare(pubkeys[i], pubkeys[j]) < 0 })
+
+	if !reflect.DeepEqual(expectedPubkeys, pubkeys) {
+		t.Fatalf("Fail: got %x expected %x", pubkeys, expectedPubkeys)
+	}
+}
+
+// test that ext_ed25519_sign generates and saves a keypair in the keystore
+func TestExt_ed25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.Ed25519SignatureLength]
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
+// test that ext_sr25519_sign generates and saves a keypair in the keystore
+func TestExt_sr25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.Sr25519SignatureLength]
+	t.Log(sig)
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
 // test that ext_get_child_storage_into retrieves a value stored in a child trie
 func TestExt_get_child_storage_into(t *testing.T) {
 	runtime, err := newTestRuntime()
@@ -1151,19 +1392,12 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wg sync.WaitGroup
 
 	// Execute 2 concurrent calls to the runtime
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
 		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
-
-	wg.Wait()
 }
