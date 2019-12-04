@@ -41,7 +41,6 @@ func (s *storageState) SetStorage(key []byte, value []byte) error {
 
 func (s *storageState) ClearPrefix(prefix []byte) {
 	// Implemented in ext_clear_prefix
-	return
 }
 
 func (s *storageState) ClearStorage(key []byte) error {

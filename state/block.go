@@ -23,13 +23,6 @@ func newBlockState() *blockState {
 	}
 }
 
-// check checks to see if there an error if so writes err + message to terminal
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 var (
 	// Data prefixes
 	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
