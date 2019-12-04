@@ -24,8 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
-
-	libp2pPeer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var TestMessageTimeout = 5 * time.Second
@@ -77,7 +76,7 @@ func TestConnect(t *testing.T) {
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -172,7 +171,7 @@ func TestPing(t *testing.T) {
 	defer nodeB.Stop()
 
 	addrB := nodeB.host.fullAddrs()[0]
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +327,7 @@ func TestSendRequest(t *testing.T) {
 	}
 
 	addrB := nodeB.host.fullAddrs()[0]
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -737,7 +736,7 @@ func TestGossip(t *testing.T) {
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	addrInfoB, err := libp2pPeer.AddrInfoFromP2pAddr(addrB)
+	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
 	if err != nil {
 		t.Fatal(err)
 	}
