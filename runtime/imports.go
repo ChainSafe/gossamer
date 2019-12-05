@@ -384,14 +384,11 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		pos += valueLen
 
 		// encode the key
-		buffer := bytes.Buffer{}
-		scaleEncoder := codec.Encoder{Writer: &buffer}
-		_, err := scaleEncoder.Encode(big.NewInt(int64(i)))
+		encodedOutput, err := codec.Encode(big.NewInt(int64(i)))
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return
 		}
-		encodedOutput := buffer.Bytes()
 		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
 		err = t.Put(encodedOutput, value)
 		if err != nil {
