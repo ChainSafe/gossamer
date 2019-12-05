@@ -47,9 +47,9 @@ type Service struct {
 type ServiceConfig struct {
 	Keystore *keystore.Keystore
 	Runtime  *runtime.Runtime
-	BsChan   chan types.Block   // send and receive blocks from BABE session
-	P2pRec   <-chan p2p.Message // receive messages from p2p service
-	P2pSend  chan<- p2p.Message // send messages to p2p service
+	BsChan   chan types.Block // send and receive blocks between core service and BABE session
+	P2pRec   <-chan p2p.Message
+	P2pSend  chan<- p2p.Message
 }
 
 // NewService returns a new core service that connects the runtime, BABE

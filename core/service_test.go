@@ -130,6 +130,7 @@ func TestValidateBlock(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
 
+	// `core_execute_block` will throw error, no expected result
 	err = s.validateBlock(data)
 	if err != nil {
 		t.Fatal(err)
@@ -179,12 +180,12 @@ func TestValidateTransaction(t *testing.T) {
 func TestAnnounceBlock(t *testing.T) {
 	rt := newRuntime(t)
 
-	bsChan := make(chan types.Block)
+	bsRec := make(chan types.Block)
 	p2pSend := make(chan p2p.Message)
 
 	cfg := &ServiceConfig{
 		Runtime: rt,
-		BsChan:  bsChan,
+		BsChan:  bsRec,
 		P2pSend: p2pSend,
 	}
 
@@ -200,9 +201,10 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	bsChan <- types.Block{}
+	bsRec <- types.Block{}
 
 	select {
+	// simulate message received in p2p service
 	case msg := <-p2pSend:
 		msgType := msg.GetType()
 		if !reflect.DeepEqual(msgType, p2p.BlockAnnounceMsgType) {
@@ -244,10 +246,11 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	// simulate block sent from p2p service
+	// simulate mssage sent from p2p service
 	p2pRec <- blockAnnounce
 
 	select {
+	// simulate message received in p2p service
 	case msg := <-p2pSend:
 		msgType := msg.GetType()
 		if msgType != p2p.BlockRequestMsgType {
@@ -279,9 +282,6 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Stop()
-
-	// wait for service to start
-	time.Sleep(time.Second)
 
 	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
