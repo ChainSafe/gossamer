@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -133,7 +134,7 @@ func TestExecVersion(t *testing.T) {
 }
 
 const TESTS_FP string = "./test_wasm.wasm"
-const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/c0ff6e519676affd727a45fe605bc7c84a0a536d/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
+const TEST_WASM_URL string = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 
 // getTestBlob checks if the test wasm file exists and if not, it fetches it from github
 func getTestBlob() (n int64, err error) {
@@ -163,7 +164,7 @@ func newTestRuntime() (*Runtime, error) {
 		return nil, err
 	}
 
-	t := &trie.Trie{}
+	t := trie.NewEmptyTrie(nil)
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
@@ -1041,6 +1042,347 @@ func TestExt_ed25519_generate(t *testing.T) {
 	kp := runtime.keystore.Get(pubkey.Address())
 	if kp == nil {
 		t.Fatal("Fail: keypair was not saved in keystore")
+	}
+}
+
+// test that ext_ed25519_public_keys confirms that we can retrieve our public keys from the keystore
+func TestExt_ed25519_public_keys(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testKps := []crypto.Keypair{}
+	expectedPubkeys := [][]byte{}
+	numKps := 12
+
+	var kp crypto.Keypair
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateEd25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+		testKps = append(testKps, kp)
+		expected := testKps[i].Public().Encode()
+		expectedPubkeys = append(expectedPubkeys, expected)
+	}
+
+	// put some sr25519 keypairs in the keystore to make sure they don't get returned
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateSr25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idLoc := 0
+	resultLoc := 1 << 9
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_public_keys"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	out, err := testFunc(idLoc, resultLoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.ToI32() == -1 {
+		t.Fatal("call to test_ext_ed25519_public_keys failed")
+	}
+
+	resultLenBytes := mem[resultLoc : resultLoc+4]
+	resultLen := binary.LittleEndian.Uint32(resultLenBytes)
+	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
+
+	pubkeys := [][]byte{}
+	for i := 0; i < numKps; i++ {
+		kpData := pubkeyData[i*32 : i*32+32]
+		pubkeys = append(pubkeys, kpData)
+	}
+
+	sort.Slice(expectedPubkeys, func(i, j int) bool { return bytes.Compare(expectedPubkeys[i], expectedPubkeys[j]) < 0 })
+	sort.Slice(pubkeys, func(i, j int) bool { return bytes.Compare(pubkeys[i], pubkeys[j]) < 0 })
+
+	if !reflect.DeepEqual(expectedPubkeys, pubkeys) {
+		t.Fatalf("Fail: got %x expected %x", pubkeys, expectedPubkeys)
+	}
+}
+
+// test that ext_sr25519_public_keys confirms that we can retrieve our public keys from the keystore
+func TestExt_sr25519_public_keys(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testKps := []crypto.Keypair{}
+	expectedPubkeys := [][]byte{}
+	numKps := 12
+
+	var kp crypto.Keypair
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateSr25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+		testKps = append(testKps, kp)
+		expected := testKps[i].Public().Encode()
+		expectedPubkeys = append(expectedPubkeys, expected)
+	}
+
+	// put some ed25519 keypairs in the keystore to make sure they don't get returned
+	for i := 0; i < numKps; i++ {
+		kp, err = crypto.GenerateEd25519Keypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		runtime.keystore.Insert(kp)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	idLoc := 0
+	resultLoc := 1 << 9
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_public_keys"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	out, err := testFunc(idLoc, resultLoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.ToI32() == -1 {
+		t.Fatal("call to test_ext_sr25519_public_keys failed")
+	}
+
+	resultLenBytes := mem[resultLoc : resultLoc+4]
+	resultLen := binary.LittleEndian.Uint32(resultLenBytes)
+	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
+
+	t.Log(resultLen)
+
+	pubkeys := [][]byte{}
+	for i := 0; i < numKps; i++ {
+		kpData := pubkeyData[i*32 : i*32+32]
+		pubkeys = append(pubkeys, kpData)
+	}
+
+	sort.Slice(expectedPubkeys, func(i, j int) bool { return bytes.Compare(expectedPubkeys[i], expectedPubkeys[j]) < 0 })
+	sort.Slice(pubkeys, func(i, j int) bool { return bytes.Compare(pubkeys[i], pubkeys[j]) < 0 })
+
+	if !reflect.DeepEqual(expectedPubkeys, pubkeys) {
+		t.Fatalf("Fail: got %x expected %x", pubkeys, expectedPubkeys)
+	}
+}
+
+// test that ext_ed25519_sign generates and saves a keypair in the keystore
+func TestExt_ed25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateEd25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.Ed25519SignatureLength]
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
+// test that ext_sr25519_sign generates and saves a keypair in the keystore
+func TestExt_sr25519_sign(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	kp, err := crypto.GenerateSr25519Keypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime.keystore.Insert(kp)
+
+	idLoc := 0
+	pubkeyLoc := 0
+	pubkeyData := kp.Public().Encode()
+	msgLoc := pubkeyLoc + len(pubkeyData)
+	msgData := []byte("helloworld")
+	msgLen := msgLoc + len(msgData)
+	out := msgLen + 4
+
+	msgLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
+
+	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
+	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
+	copy(mem[msgLen:msgLen+4], msgLenBytes)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_sign"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig := mem[out : out+crypto.Sr25519SignatureLength]
+	t.Log(sig)
+
+	ok = kp.Public().Verify(msgData, sig)
+	if !ok {
+		t.Fatalf("Fail: did not verify signature")
+	}
+}
+
+// test that ext_get_child_storage_into retrieves a value stored in a child trie
+func TestExt_get_child_storage_into(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runtime.trie.PutIntoChild(storageKey, key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+	valueOffset := 0
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_get_child_storage_into"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := mem[valueData : valueData+valueLen]
+	if !bytes.Equal(res, value[valueOffset:]) {
+		t.Fatalf("Fail: got %x expected %x", res, value[valueOffset:])
+	}
+}
+
+// test that ext_set_child_storage sets a value stored in a child trie
+func TestExt_set_child_storage(t *testing.T) {
+	runtime, err := newTestRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mem := runtime.vm.Memory.Data()
+
+	storageKey := []byte("default")
+	key := []byte("mykey")
+	value := []byte("myvalue")
+
+	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	storageKeyData := 0
+	storageKeyLen := len(storageKey)
+	keyData := storageKeyData + storageKeyLen
+	keyLen := len(key)
+	valueData := keyData + keyLen
+	valueLen := len(value)
+
+	copy(mem[storageKeyData:storageKeyData+storageKeyLen], storageKey)
+	copy(mem[keyData:keyData+keyLen], key)
+	copy(mem[valueData:valueData+valueLen], value)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_set_child_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	_, err = testFunc(storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := runtime.trie.GetFromChild(storageKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(res, value) {
+		t.Fatalf("Fail: got %x expected %x", res, value)
 	}
 }
 
