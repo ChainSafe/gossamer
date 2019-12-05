@@ -28,6 +28,7 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
@@ -83,19 +84,20 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
-	// TODO: BABE
-	msgRec := make(chan p2p.Message)
+	bsChan := make(chan types.Block)
+	p2pRec := make(chan p2p.Message)
 
 	// P2P
-	p2pSrvc, msgSend := createP2PService(fig, gendata)
+	p2pSrvc, p2pSend := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// core.Service
 	coreCfg := &core.ServiceConfig{
 		Keystore: ks,
 		Runtime:  r,
-		MsgRec:   msgRec,
-		MsgSend:  msgSend,
+		BsChan:   bsChan,
+		P2pRec:   p2pRec,
+		P2pSend:  p2pSend,
 	}
 
 	coreSrvc, err := core.NewService(coreCfg)
@@ -209,13 +211,14 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		ProtocolId:     string(gendata.ProtocolId),
 	}
 
-	msgSend := make(chan p2p.Message)
+	p2pRec := make(chan p2p.Message)
+	p2pSend := make(chan p2p.Message)
 
-	srvc, err := p2p.NewService(&config, msgSend, nil)
+	srvc, err := p2p.NewService(&config, p2pSend, p2pRec)
 	if err != nil {
 		log.Error("error starting p2p", "err", err.Error())
 	}
-	return srvc, msgSend
+	return srvc, p2pSend
 }
 
 func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
