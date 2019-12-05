@@ -666,9 +666,9 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 
 	for _, test := range tests {
 		keyBigInt := new(big.Int).SetBytes(test.key)
-		encodedKey, err := codec.Encode(keyBigInt)
-		if err != nil {
-			t.Fatal(err)
+		encodedKey, err2 := codec.Encode(keyBigInt)
+		if err2 != nil {
+			t.Fatal(err2)
 		}
 		e := expectedTrie.Put(encodedKey, test.value)
 		if e != nil {
