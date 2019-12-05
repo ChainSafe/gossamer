@@ -80,10 +80,10 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 func (s *Service) Start() error {
 
 	// start receiving blocks from BABE session
-	go s.startReceivingBlocks()
+	go s.receiveBlocks()
 
 	// start receiving messages from p2p service
-	go s.startReceivingMessages()
+	go s.receiveMessages()
 
 	return nil
 }
@@ -109,8 +109,8 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.rt.StorageRoot()
 }
 
-// startReceivingBlocks starts receiving blocks from the BABE session
-func (s *Service) startReceivingBlocks() {
+// receiveBlocks starts receiving blocks from the BABE session
+func (s *Service) receiveBlocks() {
 	for {
 		block, ok := <-s.bsRec
 		if !ok {
@@ -124,8 +124,8 @@ func (s *Service) startReceivingBlocks() {
 	}
 }
 
-// startReceivingMessages starts receiving messages from the p2p service
-func (s *Service) startReceivingMessages() {
+// receiveMessages starts receiving messages from the p2p service
+func (s *Service) receiveMessages() {
 	for {
 		msg, ok := <-s.p2pRec
 		if !ok {
