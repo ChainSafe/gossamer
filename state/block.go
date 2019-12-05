@@ -6,7 +6,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
-	"github.com/ChainSafe/gossamer/core/rawdb"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/polkadb"
 )
@@ -16,7 +15,7 @@ type blockState struct {
 	db *polkadb.BlockDB
 }
 
-func newBlockState() *blockState {
+func NewBlockState() *blockState {
 	return &blockState{
 		bt: &blocktree.BlockTree{},
 		db: &polkadb.BlockDB{},
@@ -89,10 +88,26 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
 	return types.Block{}
 }
 
-func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) {
-	rawdb.SetHeader(bs.db.Db, &header)
+func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
+	hash := header.Hash
+
+	// Write the encoded header
+	bh, err := json.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	err = bs.db.Db.Put(headerKey(hash), bh)
+	return err
 }
 
-func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) {
-	rawdb.SetBlockData(bs.db.Db, &blockData)
+func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) error {
+	// Write the encoded header
+	bh, err := json.Marshal(blockData)
+	if err != nil {
+		return err
+	}
+
+	err = bs.db.Db.Put(blockDataKey(hash), bh)
+	return err
 }

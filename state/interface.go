@@ -36,8 +36,8 @@ type ROBlockApi interface {
 
 type BlockApi interface {
 	ROBlockApi
-	SetHeader(header types.BlockHeaderWithHash)
-	SetBlockData(hash common.Hash, header types.BlockHeaderWithHash)
+	SetHeader(header types.BlockHeaderWithHash) error
+	SetBlockData(hash common.Hash, header types.BlockHeaderWithHash) error
 }
 
 type MessageApi interface {

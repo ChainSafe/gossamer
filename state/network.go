@@ -6,7 +6,7 @@ type networkState struct {
 	peer *p2p.Service
 }
 
-func newNetworkState() *networkState {
+func NewNetworkState() *networkState {
 	return &networkState{
 		peer: &p2p.Service{},
 	}
