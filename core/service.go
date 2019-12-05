@@ -17,9 +17,13 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/common"
-	tx "github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -29,130 +33,207 @@ import (
 
 var _ services.Service = &Service{}
 
-// Service is a overhead layer that allows for communication between the runtime, BABE, and the p2p layer.
-// It deals with the validation of transactions and blocks by calling their respective validation functions
-// in the runtime.
+// Service is an overhead layer that allows communication between the runtime,
+// BABE session, and p2p service. It deals with the validation of transactions
+// and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	rt *runtime.Runtime
-	b  *babe.Session
-
-	msgRec  <-chan p2p.Message
-	msgSend chan<- p2p.Message
+	rt      *runtime.Runtime
+	bs      *babe.Session
+	bsRec   <-chan types.Block // receive blocks from BABE session
+	p2pRec  <-chan p2p.Message // receive messages from p2p service
+	p2pSend chan<- p2p.Message // send messages to p2p service
 }
 
 type ServiceConfig struct {
 	Keystore *keystore.Keystore
 	Runtime  *runtime.Runtime
-	MsgRec   <-chan p2p.Message
-	MsgSend  chan<- p2p.Message
+	BsChan   chan types.Block   // send and receive blocks from BABE session
+	P2pRec   <-chan p2p.Message // receive messages from p2p service
+	P2pSend  chan<- p2p.Message // send messages to p2p service
 }
 
-// NewService returns a Service that connects the runtime, BABE, and the p2p messages.
+// NewService returns a new core service that connects the runtime, BABE
+// session, and p2p service.
 func NewService(cfg *ServiceConfig) (*Service, error) {
-	babeCfg := &babe.SessionConfig{
-		Keystore:             cfg.Keystore,
-		Runtime:              cfg.Runtime,
-		BlockAnnounceChannel: cfg.MsgSend,
+	bsConfig := &babe.SessionConfig{
+		Keystore:  cfg.Keystore,
+		Runtime:   cfg.Runtime,
+		BlockSend: cfg.BsChan, // BsChan becomes blockSend in BABE session
 	}
 
-	b, err := babe.NewSession(babeCfg)
+	// create a new BABE session
+	bs, err := babe.NewSession(bsConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Service{
 		rt:      cfg.Runtime,
-		b:       b,
-		msgRec:  cfg.MsgRec,
-		msgSend: cfg.MsgSend,
+		bs:      bs,
+		bsRec:   cfg.BsChan, // BsChan becomes bsRec in core service
+		p2pRec:  cfg.P2pRec,
+		p2pSend: cfg.P2pSend,
 	}, nil
 }
 
-// Start begins the service. This begins watching the message channel for new block or transaction messages.
+// Start starts the core service
 func (s *Service) Start() error {
-	e := make(chan error)
-	go s.start(e)
-	return <-e
-}
 
-func (s *Service) start(e chan error) {
-	e <- nil
+	// start receiving blocks from BABE session
+	go s.startReceivingBlocks()
 
-	for {
-		msg, ok := <-s.msgRec
-		if !ok {
-			log.Warn("core service message watcher", "error", "channel closed")
-			break
-		}
+	// start receiving messages from p2p service
+	go s.startReceivingMessages()
 
-		msgType := msg.GetType()
-
-		switch msgType {
-		case p2p.TransactionMsgType:
-			err := s.ProcessTransactionMessage(msg)
-			if err != nil {
-				log.Error("core service", "error", err)
-				e <- err
-			}
-			e <- nil
-		case p2p.BlockAnnounceMsgType:
-			// get extrinsics by sending BlockRequest message
-			// process block announce message
-		case p2p.BlockResponseMsgType:
-			err := s.ProcessBlockResponseMessage(msg)
-			if err != nil {
-				log.Error("core service", "error", err)
-				e <- err
-			}
-			e <- nil
-		default:
-			log.Error("core service", "error", "got unsupported message type")
-		}
-	}
-}
-
-func (s *Service) Stop() error {
-	if s.rt != nil {
-		s.rt.Stop()
-	}
-	if s.msgSend != nil {
-		close(s.msgSend)
-	}
 	return nil
 }
 
+// Stop stops the core service
+func (s *Service) Stop() error {
+
+	// stop runtime
+	if s.rt != nil {
+		s.rt.Stop()
+	}
+
+	// close p2pSend channel
+	if s.p2pSend != nil {
+		close(s.p2pSend)
+	}
+
+	return nil
+}
+
+// StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.rt.StorageRoot()
 }
 
-// ProcessTransactionMessage attempts to validates the transaction
-// if it is validated, it is added to the transaction pool of the BABE session
-func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
-	extrinsics := msg.(*p2p.TransactionMessage).Extrinsics
-
-	for _, extrinsic := range extrinsics {
-		extrinsic := extrinsic // pin
-
-		validity, err := s.validateTransaction(extrinsic)
-		if err != nil {
-			log.Error("ProcessTransaction", "error", err)
-			return err
+// startReceivingBlocks starts receiving blocks from the BABE session
+func (s *Service) startReceivingBlocks() {
+	for {
+		block, ok := <-s.bsRec
+		if !ok {
+			log.Error("Failed to receive block from BABE session")
+			return // exit
 		}
+		err := s.handleBlock(block)
+		if err != nil {
+			log.Error("Failed to handle block from BABE session", "err", err)
+		}
+	}
+}
 
-		vtx := tx.NewValidTransaction(&extrinsic, validity)
+// startReceivingMessages starts receiving messages from the p2p service
+func (s *Service) startReceivingMessages() {
+	for {
+		msg, ok := <-s.p2pRec
+		if !ok {
+			log.Error("Failed to receive message from p2p service")
+			return // exit
+		}
+		err := s.handleMessage(msg)
+		if err != nil {
+			log.Error("Failed to handle message from p2p service", "err", err)
+		}
+	}
+}
 
-		s.b.PushToTxQueue(vtx)
+// handleMessage handles blocks from the BABE session
+func (s *Service) handleBlock(block types.Block) (err error) {
+	msg := &p2p.BlockAnnounceMessage{
+		ParentHash:     block.Header.ParentHash,
+		Number:         block.Header.Number,
+		StateRoot:      block.Header.StateRoot,
+		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+		Digest:         block.Header.Digest,
+	}
+
+	// send block announce message to p2p service
+	s.p2pSend <- msg
+
+	return nil
+}
+
+// handleMessage handles messages from the p2p service
+func (s *Service) handleMessage(msg p2p.Message) (err error) {
+	msgType := msg.GetType()
+
+	switch msgType {
+	case p2p.BlockAnnounceMsgType:
+		err = s.ProcessBlockAnnounceMessage(msg)
+	case p2p.BlockResponseMsgType:
+		err = s.ProcessBlockResponseMessage(msg)
+	case p2p.TransactionMsgType:
+		err = s.ProcessTransactionMessage(msg)
+	default:
+		err = fmt.Errorf("Received unsupported message type")
+	}
+
+	return err
+}
+
+// ProcessBlockAnnounceMessage creates a block request message from the block
+// announce messages (block announce messages include the header but the full
+// block is required to execute `core_execute_block`).
+func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
+
+	// TODO: check if we need to send block request message
+
+	// TODO: update message properties and use generated id
+	blockRequest := &p2p.BlockRequestMessage{
+		ID:            1,
+		RequestedData: 2,
+		StartingBlock: []byte{},
+		EndBlockHash:  optional.NewHash(true, common.Hash{}),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	// send block request message to p2p service
+	s.p2pSend <- blockRequest
+
+	return nil
+}
+
+// ProcessBlockResponseMessage attempts to validate and add the block to the
+// chain by calling `core_execute_block`. Valid blocks are stored in the block
+// database to become part of the canonical chain.
+func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
+	block := msg.(*p2p.BlockResponseMessage).Data
+
+	err := s.validateBlock(block)
+	if err != nil {
+		log.Error("Failed to validate block", "err", err)
+		return err
 	}
 
 	return nil
 }
 
-// ProcessBlockResponseMessage attempts to add a block to the chain by calling `core_execute_block`
-// if the block is validated, it is stored in the block DB and becomes part of the canonical chain
-func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	block := msg.(*p2p.BlockResponseMessage).Data
+// ProcessTransactionMessage validates each transaction in the message and
+// adds valid transactions to the transaction queue of the BABE session
+func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 
-	err := s.validateBlock(block)
+	// get transactions from message extrinsics
+	txs := msg.(*p2p.TransactionMessage).Extrinsics
 
-	return err
+	for _, tx := range txs {
+		tx := tx // pin
+
+		// validate each transaction
+		val, err := s.validateTransaction(tx)
+		if err != nil {
+			log.Error("Failed to validate transaction", "err", err)
+			return err // exit
+		}
+
+		// create new valid transaction
+		vtx := transaction.NewValidTransaction(&tx, val)
+
+		// push to the transaction queue of BABE session
+		s.bs.PushToTxQueue(vtx)
+	}
+
+	return nil
 }
