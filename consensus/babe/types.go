@@ -17,7 +17,7 @@
 package babe
 
 import (
-	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
 // TODO: change to Schnorrkel keys
@@ -43,6 +43,6 @@ type AuthorityDataRaw struct {
 
 //nolint:structcheck
 type AuthorityData struct {
-	id     *crypto.Sr25519PublicKey
+	id     *sr25519.PublicKey
 	weight uint64
 }
