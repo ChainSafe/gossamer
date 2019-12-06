@@ -64,8 +64,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// TODO: load all static keys from keystore directory
+	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
+	// unlock keys, if specified
+	err := unlockKeys(ctx, ks)
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	db := trie.NewDatabase(dbSrv.StateDB.Db)
@@ -112,6 +117,10 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
+}
+
+func unlockKeys(ctx *cli.Context, ks *keystore.Keystore) error {
+
 }
 
 func loadStateAndRuntime(t *trie.Trie, ks *keystore.Keystore) (*runtime.Runtime, error) {

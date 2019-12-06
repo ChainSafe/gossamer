@@ -30,6 +30,8 @@ var (
 	nodeFlags = []cli.Flag{
 		utils.DataDirFlag,
 		utils.ConfigFileFlag,
+		utils.UnlockFlag,
+		utils.PasswordFlag,
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,

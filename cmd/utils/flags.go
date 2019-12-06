@@ -48,6 +48,11 @@ var (
 		Name:  "config",
 		Usage: "TOML configuration file",
 	}
+	// unlock keystore
+	UnlockFlag = cli.StringFlag{
+		Name:  "unlock",
+		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt",
+	}
 )
 
 // P2P flags
