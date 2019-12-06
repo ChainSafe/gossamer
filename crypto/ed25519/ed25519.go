@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/crypto"
 )
 
 const PublicKeyLength int = 32

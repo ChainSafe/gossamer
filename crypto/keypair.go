@@ -32,18 +32,6 @@ type PrivateKey interface {
 	Decode([]byte) error
 }
 
-// func DecodePrivateKey(in []byte, keytype KeyType) (priv PrivateKey, err error) {
-// 	if keytype == Ed25519Type {
-// 		priv, err = ed25519.NewEd25519PrivateKey(in)
-// 	} else if keytype == Sr25519Type {
-// 		priv, err = sr25519.NewSr25519PrivateKey(in)
-// 	} else {
-// 		return nil, errors.New("cannot decode key: invalid key type")
-// 	}
-
-// 	return priv, err
-// }
-
 var ss58Prefix = []byte("SS58PRE")
 
 // PublicKeyToAddress returns an ss58 address given a PublicKey
