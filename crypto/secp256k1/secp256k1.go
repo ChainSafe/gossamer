@@ -3,11 +3,14 @@ package secp256k1
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
+
+const SignatureLength = 65
 
 type Keypair struct {
 	public  *PublicKey
@@ -26,7 +29,7 @@ func NewKeypair(pk ecdsa.PrivateKey) *Keypair {
 	pub := pk.Public()
 
 	return &Keypair{
-		public:  &PublicKey{key: pub.(ecdsa.PublicKey)},
+		public:  &PublicKey{key: *pub.(*ecdsa.PublicKey)},
 		private: &PrivateKey{key: pk},
 	}
 }
@@ -41,8 +44,11 @@ func GenerateKeypair() (*Keypair, error) {
 }
 
 func (kp *Keypair) Sign(msg []byte) ([]byte, error) {
-	// TODO: hash input before signing
-	return secp256k1.Sign(msg, &kp.private.key)
+	hash, err := common.Blake2bHash(msg)
+	if err != nil {
+		return nil, err
+	}
+	return secp256k1.Sign(hash[:], &kp.private.key)
 }
 
 func (kp *Keypair) Public() crypto.PublicKey {
@@ -53,16 +59,25 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 func (k *PublicKey) Verify(msg, sig []byte) bool {
-	// TODO: hash input before verifying
-	return secp256k1.VerifySignature(k.Encode(), msg, sig)
+	if len(sig) != SignatureLength {
+		fmt.Println("wrong sig length")
+		return false
+	}
+
+	hash, err := common.Blake2bHash(msg)
+	if err != nil {
+		fmt.Println("could not hash")
+		return false
+	}
+	return secp256k1.VerifySignature(k.Encode(), hash[:], sig)
 }
 
 func (k *PublicKey) Encode() []byte {
-	return secp256k1.FromECDSAPub(&k.key)
+	return secp256k1.CompressPubkey(&k.key)
 }
 
 func (k *PublicKey) Decode(in []byte) error {
-	pub, err := secp256k1.UnmarshalPubkey(in)
+	pub, err := secp256k1.DecompressPubkey(in)
 	if err != nil {
 		return err
 	}
@@ -81,8 +96,11 @@ func (k *PublicKey) Hex() string {
 }
 
 func (pk *PrivateKey) Sign(msg []byte) ([]byte, error) {
-	// TODO: hash input before signing
-	return secp256k1.Sign(msg, &pk.key)
+	hash, err := common.Blake2bHash(msg)
+	if err != nil {
+		return nil, err
+	}
+	return secp256k1.Sign(hash[:], &pk.key)
 }
 
 func (pk *PrivateKey) Public() (crypto.PublicKey, error) {
