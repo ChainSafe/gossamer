@@ -2,7 +2,9 @@ package secp256k1
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
@@ -12,19 +14,21 @@ type Keypair struct {
 	private *PrivateKey
 }
 
-type PublicKey *ecdsa.PublicKey
-type PrivateKey *ecdsa.PrivateKey
+type PublicKey struct {
+	key ecdsa.PublicKey
+}
 
-func NewKeypair(pk PrivateKey) (*Keypair, error) {
-	pub, err := pk.Public()
-	if err != nil {
-		return nil, err
-	}
+type PrivateKey struct {
+	key ecdsa.PrivateKey
+}
+
+func NewKeypair(pk ecdsa.PrivateKey) *Keypair {
+	pub := pk.Public()
 
 	return &Keypair{
-		public: &pub,
-		private: &pk,
-	}, nil
+		public:  &PublicKey{key: pub.(ecdsa.PublicKey)},
+		private: &PrivateKey{key: pk},
+	}
 }
 
 func GenerateKeypair() (*Keypair, error) {
@@ -33,11 +37,12 @@ func GenerateKeypair() (*Keypair, error) {
 		return nil, err
 	}
 
-	return NewKeypair(PrivateKey(priv))
+	return NewKeypair(*priv), nil
 }
 
 func (kp *Keypair) Sign(msg []byte) ([]byte, error) {
-	return kp.private.Sign(msg)
+	// TODO: hash input before signing
+	return secp256k1.Sign(msg, &kp.private.key)
 }
 
 func (kp *Keypair) Public() crypto.PublicKey {
@@ -47,24 +52,49 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 	return kp.private
 }
 
-// PublicKey methods
 func (k *PublicKey) Verify(msg, sig []byte) bool {
-	return secp.VerifySignature(k, msg, sig)
+	// TODO: hash input before verifying
+	return secp256k1.VerifySignature(k.Encode(), msg, sig)
 }
 
-func (k *PublicKey) Encode() []byte {}
-func (k *PublicKey) Decode([]byte) error {}
-func (k *PublicKey) Address() common.Address {}
-func (k *PublicKey) Hex() string {}
+func (k *PublicKey) Encode() []byte {
+	return secp256k1.FromECDSAPub(&k.key)
+}
+
+func (k *PublicKey) Decode(in []byte) error {
+	pub, err := secp256k1.UnmarshalPubkey(in)
+	if err != nil {
+		return err
+	}
+	k.key = *pub
+	return nil
+}
+
+func (k *PublicKey) Address() common.Address {
+	return crypto.PublicKeyToAddress(k)
+}
+
+func (k *PublicKey) Hex() string {
+	enc := k.Encode()
+	h := hex.EncodeToString(enc)
+	return "0x" + h
+}
 
 func (pk *PrivateKey) Sign(msg []byte) ([]byte, error) {
-	return secp.Sign(msg, pk.private)
+	// TODO: hash input before signing
+	return secp256k1.Sign(msg, &pk.key)
 }
 
-func (pk *PrivateKey) Public() (PublicKey, error) {
-	kp := NewSecpKeypair(pk)
-	return kp.private, nil
+func (pk *PrivateKey) Public() (crypto.PublicKey, error) {
+	return pk.Public()
 }
 
-func (pk *PrivateKey) Encode() []byte {}
-func (pk *PrivateKey) Decode([]byte) error {} 
+func (pk *PrivateKey) Encode() []byte {
+	return secp256k1.FromECDSA(&pk.key)
+}
+
+func (pk *PrivateKey) Decode(in []byte) error {
+	key := secp256k1.ToECDSAUnsafe(in)
+	pk.key = *key
+	return nil
+}
