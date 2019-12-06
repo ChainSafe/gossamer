@@ -50,6 +50,7 @@ type host struct {
 	noBootstrap bool
 	noGossip    bool
 	noMdns      bool
+	noStatus    bool
 	address     ma.Multiaddr
 	protocolId  protocol.ID
 	peerStatus  map[peer.ID]bool
@@ -105,6 +106,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		noBootstrap: cfg.NoBootstrap,
 		noGossip:    cfg.NoGossip,
 		noMdns:      cfg.NoMdns,
+		noStatus:    cfg.NoStatus,
 		address:     address,
 		protocolId:  protocolId,
 		peerStatus:  peerStatus,
@@ -267,7 +269,7 @@ func (h *host) broadcast(msg Message) {
 	)
 
 	// loop through connected peers
-	for _, peer := range h.h.Network().Peers() {
+	for _, peer := range h.peers() {
 		err := h.send(peer, msg)
 		if err != nil {
 			log.Error("Failed to send message during broadcast", "err", err)
@@ -283,6 +285,11 @@ func (h *host) ping(peer peer.ID) error {
 // id returns the host id
 func (h *host) id() string {
 	return h.h.ID().String()
+}
+
+// Peers returns connected peers
+func (h *host) peers() []peer.ID {
+	return h.h.Network().Peers()
 }
 
 // peerCount returns the number of connected peers

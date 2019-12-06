@@ -27,7 +27,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// maximum wait time for non-status message to be handled
 var TestMessageTimeout = 10 * time.Second
+
+// wait time for status messages to be exchanged and handled
+var TestStatusTimeout = time.Second
 
 func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
 	node, err := NewService(cfg, msgSend, msgRec)
@@ -48,7 +52,9 @@ func TestStartService(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 	node := startNewService(t, config, nil, nil)
 	node.Stop()
@@ -59,7 +65,9 @@ func TestConnect(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -69,7 +77,9 @@ func TestConnect(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -111,7 +121,9 @@ func TestBootstrap(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -123,7 +135,9 @@ func TestBootstrap(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
+		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -154,7 +168,9 @@ func TestPing(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
@@ -164,7 +180,9 @@ func TestPing(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
@@ -192,6 +210,7 @@ func TestExchangeStatus(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
 	}
 
@@ -205,6 +224,7 @@ func TestExchangeStatus(t *testing.T) {
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
+		NoGossip:       true,
 		NoMdns:         true,
 	}
 
@@ -212,31 +232,7 @@ func TestExchangeStatus(t *testing.T) {
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
+	time.Sleep(TestStatusTimeout)
 
 	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
 	if statusB == false {
@@ -262,7 +258,9 @@ func TestSendRequest(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
@@ -277,51 +275,19 @@ func TestSendRequest(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
-
-	// create end block hash (arbitrary block hash)
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
 		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		EndBlockHash:  optional.NewHash(true, common.Hash{}),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
@@ -347,16 +313,7 @@ func TestSendRequest(t *testing.T) {
 			)
 		}
 	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
-	if msgReceivedB == false {
-		t.Error(
-			"node B did not receive block request message from node A",
-			"\nreceived:", msgReceivedB,
-			"\nexpected:", true,
-		)
+		t.Error("node B timeout waiting for message from node A")
 	}
 }
 
@@ -365,7 +322,9 @@ func TestBroadcastRequest(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
+		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
@@ -380,6 +339,7 @@ func TestBroadcastRequest(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
@@ -392,82 +352,23 @@ func TestBroadcastRequest(t *testing.T) {
 		RandSeed:       3,
 		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendC := make(chan Message)
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
 
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A should handle status message from node C",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendC:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node C should handle status message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node C timeout waiting for message")
-	}
-
-	// create end block hash (arbitrary block hash)
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
 		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		EndBlockHash:  optional.NewHash(true, common.Hash{}),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
 
-	// broadcast block request message
 	nodeA.host.broadcast(blockRequest)
 
 	select {
@@ -496,23 +397,6 @@ func TestBroadcastRequest(t *testing.T) {
 		t.Error("node C timeout waiting for message")
 	}
 
-	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
-	if msgReceivedB == false {
-		t.Error(
-			"node B did not receive block request message from node A",
-			"\nreceived:", msgReceivedB,
-			"\nexpected:", true,
-		)
-	}
-
-	msgReceivedC := nodeC.blockReqRec[blockRequest.Id()]
-	if msgReceivedC == false {
-		t.Error(
-			"node C did not receive block request message from node A",
-			"\nreceived:", msgReceivedC,
-			"\nexpected:", true,
-		)
-	}
 }
 
 func TestBlockAnnounce(t *testing.T) {
@@ -522,6 +406,7 @@ func TestBlockAnnounce(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	msgRecA := make(chan Message)
@@ -537,67 +422,32 @@ func TestBlockAnnounce(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
 
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
-
-	// create block announce message
 	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
 	}
 
-	// simulate message received from core service
+	// simulate block announce message received from core service
 	msgRecA <- blockAnnounce
 
 	select {
 	case msg := <-msgSendB:
 		// TODO: investigate error when using deep equal
-		if !reflect.DeepEqual(msg, blockAnnounce) {
-			// t.Error(
-			// 	"node B received unexpected message from node A",
-			// 	"\nexpected:", blockAnnounce,
-			// 	"\nreceived:", msg,
-			// )
+		if msg.String() != blockAnnounce.String() {
+			t.Error(
+				"node B received unexpected message from node A",
+				"\nexpected:", blockAnnounce,
+				"\nreceived:", msg,
+			)
 		}
 	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
-	}
-
-	msgReceivedB := nodeB.blockAnnRec[blockAnnounce.Id()]
-	if msgReceivedB == false {
-		t.Error(
-			"node B did not receive message from node A",
-			"\nreceived:", msgReceivedB,
-			"\nexpected:", true,
-		)
 	}
 }
 
@@ -606,8 +456,8 @@ func TestGossip(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
+		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
@@ -621,37 +471,12 @@ func TestGossip(t *testing.T) {
 		Port:           7002,
 		RandSeed:       2,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
-
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
 
 	addrB := nodeB.host.fullAddrs()[0]
 
@@ -659,79 +484,20 @@ func TestGossip(t *testing.T) {
 		BootstrapNodes: []string{addrB.String()},
 		Port:           7003,
 		RandSeed:       3,
-		NoGossip:       true,
 		NoMdns:         true,
+		NoStatus:       true,
 	}
 
 	msgSendC := make(chan Message)
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
 
-	select {
-	case msg := <-msgSendA:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node A received unexpected message from node C",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node A timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendC:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node C received unexpected message from node A",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node C timeout waiting for message")
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node B received unexpected message from node C",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for status message")
-	}
-
-	select {
-	case msg := <-msgSendC:
-		if !reflect.DeepEqual(msg, statusMessage) {
-			t.Error(
-				"node C received unexpected message from node B",
-				"\nexpected:", statusMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node C timeout waiting for message")
-	}
-
-	// create end block hash (arbitrary block hash)
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// create block request message (RequestedData: 1 = request header)
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
 		RequestedData: 1,
 		// TODO: investigate starting block mismatch with different slice length
 		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		EndBlockHash:  optional.NewHash(true, common.Hash{}),
 		Direction:     1,
 		Max:           optional.NewUint32(true, 1),
 	}
@@ -741,7 +507,6 @@ func TestGossip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// send block request from node A to node B
 	err = nodeA.host.send(addrInfoB.ID, blockRequest)
 	if err != nil {
 		t.Fatal(err)
@@ -760,11 +525,12 @@ func TestGossip(t *testing.T) {
 		t.Error("node A timeout waiting for message")
 	}
 
-	// expecting 3 messages in varying order
-	for i := 0; i < 3; i++ {
+	// Expecting 4 messages to be gossipped in an unpredictable order. We need
+	// to wait for all 4 messages to be sent to their respective core services
+	// or else send on closed channel error.
+	for i := 0; i < 4; i++ {
 		select {
 		case msg := <-msgSendA:
-			// node A block request message that was gossiped from node B back to node A
 			if !reflect.DeepEqual(msg, blockRequest) {
 				t.Error(
 					"node A received unexpected message from node B",
@@ -773,29 +539,27 @@ func TestGossip(t *testing.T) {
 				)
 			}
 		case msg := <-msgSendC:
-			// node A status message or block request message gossiped from node B to node C
-			if !reflect.DeepEqual(msg, statusMessage) && !reflect.DeepEqual(msg, blockRequest) {
-				if msg.GetType() == 0 {
-					t.Error(
-						"node C received unexpected message from node B",
-						"\nexpected:", statusMessage,
-						"\nreceived:", msg,
-					)
-				} else {
-					t.Error(
-						"node C received unexpected message from node B",
-						"\nexpected:", blockRequest,
-						"\nreceived:", msg,
-					)
-				}
+			if !reflect.DeepEqual(msg, blockRequest) {
+				t.Error(
+					"node C received unexpected message from node B",
+					"\nexpected:", blockRequest,
+					"\nreceived:", msg,
+				)
+			}
+		case msg := <-msgSendB:
+			if !reflect.DeepEqual(msg, blockRequest) {
+				t.Error(
+					"node B received unexpected message from node A or node C",
+					"\nexpected:", blockRequest,
+					"\nreceived:", msg,
+				)
 			}
 		case <-time.After(TestMessageTimeout):
-			// TODO: investigate 3 messages not being received
-			// t.Error("node C timeout waiting for message")
+			t.Error("timeout waiting for messages")
 		}
 	}
 
-	msgReceivedB := nodeB.blockReqRec[blockRequest.Id()]
+	msgReceivedB := nodeB.gossip.msgReceived[blockRequest.Id()]
 	if msgReceivedB == false {
 		t.Error(
 			"node B did not receive block request message from node A",
@@ -804,19 +568,19 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	msgReceivedA := nodeA.blockReqRec[blockRequest.Id()]
+	msgReceivedA := nodeA.gossip.msgReceived[blockRequest.Id()]
 	if msgReceivedA == false {
 		t.Error(
-			"node A did not receive block request message from node B",
+			"node A did not receive block request message from node B or node C",
 			"\nreceived:", msgReceivedA,
 			"\nexpected:", true,
 		)
 	}
 
-	msgReceivedC := nodeC.blockReqRec[blockRequest.Id()]
+	msgReceivedC := nodeC.gossip.msgReceived[blockRequest.Id()]
 	if msgReceivedC == false {
 		t.Error(
-			"node C did not receive block request message from node B",
+			"node C did not receive block request message from node A or node B",
 			"\nreceived:", msgReceivedC,
 			"\nexpected:", true,
 		)
