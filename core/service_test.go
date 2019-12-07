@@ -101,7 +101,7 @@ func TestStartService(t *testing.T) {
 		Runtime: rt,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestValidateBlock(t *testing.T) {
 		Runtime: rt,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestValidateTransaction(t *testing.T) {
 		Runtime: rt,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,16 +180,15 @@ func TestValidateTransaction(t *testing.T) {
 func TestAnnounceBlock(t *testing.T) {
 	rt := newRuntime(t)
 
-	bsRec := make(chan types.Block)
-	p2pSend := make(chan p2p.Message)
+	blkRec := make(chan types.Block)
+	msgSend := make(chan p2p.Message)
 
 	cfg := &ServiceConfig{
 		Runtime: rt,
-		BsChan:  bsRec,
-		P2pSend: p2pSend,
+		MsgSend: msgSend, // message channel from core service to p2p service
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, blkRec)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,11 +200,10 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	bsRec <- types.Block{}
+	blkRec <- types.Block{}
 
 	select {
-	// simulate message received in p2p service
-	case msg := <-p2pSend:
+	case msg := <-msgSend:
 		msgType := msg.GetType()
 		if !reflect.DeepEqual(msgType, p2p.BlockAnnounceMsgType) {
 			t.Error(
@@ -222,16 +220,16 @@ func TestAnnounceBlock(t *testing.T) {
 func TestProcessBlockAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	p2pRec := make(chan p2p.Message)
-	p2pSend := make(chan p2p.Message)
+	msgRec := make(chan p2p.Message)
+	msgSend := make(chan p2p.Message)
 
 	cfg := &ServiceConfig{
 		Runtime: rt,
-		P2pRec:  p2pRec,
-		P2pSend: p2pSend,
+		MsgRec:  msgRec,
+		MsgSend: msgSend,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,11 +245,10 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 	}
 
 	// simulate mssage sent from p2p service
-	p2pRec <- blockAnnounce
+	msgRec <- blockAnnounce
 
 	select {
-	// simulate message received in p2p service
-	case msg := <-p2pSend:
+	case msg := <-msgSend:
 		msgType := msg.GetType()
 		if msgType != p2p.BlockRequestMsgType {
 			t.Error(
@@ -272,7 +269,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		Runtime: rt,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +298,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		Runtime: rt,
 	}
 
-	s, err := NewService(cfg)
+	s, err := NewService(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -39,26 +39,27 @@ var _ services.Service = &Service{}
 type Service struct {
 	rt      *runtime.Runtime
 	bs      *babe.Session
-	bsRec   <-chan types.Block // receive blocks from BABE session
-	p2pRec  <-chan p2p.Message // receive messages from p2p service
-	p2pSend chan<- p2p.Message // send messages to p2p service
+	blkRec  <-chan types.Block // receive blocks from BABE session
+	msgRec  <-chan p2p.Message // receive messages from p2p service
+	msgSend chan<- p2p.Message // send messages to p2p service
 }
 
 type ServiceConfig struct {
 	Keystore *keystore.Keystore
 	Runtime  *runtime.Runtime
-	BsChan   chan types.Block // send and receive blocks between core service and BABE session
-	P2pRec   <-chan p2p.Message
-	P2pSend  chan<- p2p.Message
+	MsgRec   <-chan p2p.Message
+	MsgSend  chan<- p2p.Message
 }
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
-func NewService(cfg *ServiceConfig) (*Service, error) {
+func NewService(cfg *ServiceConfig, newBlocks chan types.Block) (*Service, error) {
+
+	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
 		Keystore:  cfg.Keystore,
 		Runtime:   cfg.Runtime,
-		BlockSend: cfg.BsChan, // BsChan becomes blockSend in BABE session
+		NewBlocks: newBlocks, // becomes block send channel in BABE session
 	}
 
 	// create a new BABE session
@@ -67,12 +68,13 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
+	// core service
 	return &Service{
 		rt:      cfg.Runtime,
 		bs:      bs,
-		bsRec:   cfg.BsChan, // BsChan becomes bsRec in core service
-		p2pRec:  cfg.P2pRec,
-		p2pSend: cfg.P2pSend,
+		blkRec:  newBlocks, // becomes block receive channel in core service
+		msgRec:  cfg.MsgRec,
+		msgSend: cfg.MsgSend,
 	}, nil
 }
 
@@ -96,9 +98,9 @@ func (s *Service) Stop() error {
 		s.rt.Stop()
 	}
 
-	// close p2pSend channel
-	if s.p2pSend != nil {
-		close(s.p2pSend)
+	// close message channel to p2p service
+	if s.msgSend != nil {
+		close(s.msgSend)
 	}
 
 	return nil
@@ -112,12 +114,13 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 // receiveBlocks starts receiving blocks from the BABE session
 func (s *Service) receiveBlocks() {
 	for {
-		block, ok := <-s.bsRec
+		// receive block from BABE session
+		block, ok := <-s.blkRec
 		if !ok {
 			log.Error("Failed to receive block from BABE session")
 			return // exit
 		}
-		err := s.handleBlock(block)
+		err := s.handleReceivedBlock(block)
 		if err != nil {
 			log.Error("Failed to handle block from BABE session", "err", err)
 		}
@@ -127,20 +130,21 @@ func (s *Service) receiveBlocks() {
 // receiveMessages starts receiving messages from the p2p service
 func (s *Service) receiveMessages() {
 	for {
-		msg, ok := <-s.p2pRec
+		// receive message from p2p service
+		msg, ok := <-s.msgRec
 		if !ok {
 			log.Error("Failed to receive message from p2p service")
 			return // exit
 		}
-		err := s.handleMessage(msg)
+		err := s.handleReceivedMessage(msg)
 		if err != nil {
 			log.Error("Failed to handle message from p2p service", "err", err)
 		}
 	}
 }
 
-// handleMessage handles blocks from the BABE session
-func (s *Service) handleBlock(block types.Block) (err error) {
+// handleReceivedBlock handles blocks from the BABE session
+func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 	msg := &p2p.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -150,13 +154,13 @@ func (s *Service) handleBlock(block types.Block) (err error) {
 	}
 
 	// send block announce message to p2p service
-	s.p2pSend <- msg
+	s.msgSend <- msg
 
 	return nil
 }
 
-// handleMessage handles messages from the p2p service
-func (s *Service) handleMessage(msg p2p.Message) (err error) {
+// handleReceivedMessage handles messages from the p2p service
+func (s *Service) handleReceivedMessage(msg p2p.Message) (err error) {
 	msgType := msg.GetType()
 
 	switch msgType {
@@ -178,7 +182,7 @@ func (s *Service) handleMessage(msg p2p.Message) (err error) {
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 
-	// TODO: check if we need to send block request message
+	// TODO: check if we should send block request message
 
 	// TODO: update message properties and use generated id
 	blockRequest := &p2p.BlockRequestMessage{
@@ -191,7 +195,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 	}
 
 	// send block request message to p2p service
-	s.p2pSend <- blockRequest
+	s.msgSend <- blockRequest
 
 	return nil
 }
