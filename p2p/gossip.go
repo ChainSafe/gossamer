@@ -18,58 +18,50 @@ package p2p
 
 import (
 	log "github.com/ChainSafe/log15"
+	"github.com/libp2p/go-libp2p-core/network"
 )
 
-// Gossip describes the gossip submodule
+// Gossip submodule
 type Gossip struct {
-	host        *host
-	msgReceived map[string]bool
+	host         *host
+	hasGossipped map[string]bool
 }
 
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) (gossip *Gossip, err error) {
 	gossip = &Gossip{
-		host:        host,
-		msgReceived: make(map[string]bool),
+		host:         host,
+		hasGossipped: make(map[string]bool),
 	}
 
 	return gossip, err
 }
 
-// gossip broadcasts the message to all connected peers if gossip is enabled,
-// message is valid message type, and message has not already been gossipped
-func (g *Gossip) handleMessage(msg Message) {
+// handleMessage gossips messages that have not already been gossipped
+func (g *Gossip) handleMessage(stream network.Stream, msg Message) {
 
-	// exit if gossip is disabled
-	if g.host.noGossip {
-		return // exit
-	}
+	// check if message has been gossipped
+	if !g.hasGossipped[msg.Id()] {
 
-	// check if valid message type and message has not already been gossipped
-	if g.shouldGossip(msg) {
+		// broadcast message to peers if message has not been gossipped
+		g.sendMessage(stream, msg)
 
-		// loop through connected peers
-		for _, peer := range g.host.peers() {
+		// update message to gossipped
+		g.hasGossipped[msg.Id()] = true
 
-			// send message to each connected peer
-			err := g.host.send(peer, msg)
-			if err != nil {
-				log.Error("Failed to send message during gossip", "err", err)
-			}
-		}
 	}
 }
 
-// shouldGossip checks if message has already been gossipped
-func (g *Gossip) shouldGossip(msg Message) bool {
+// sendMessage broadcasts the message to connected peers
+func (g *Gossip) sendMessage(stream network.Stream, msg Message) {
 
-	// check if message stored in received message mapping
-	if g.msgReceived[msg.Id()] {
-		return false
+	// loop through connected peers
+	for _, peer := range g.host.peers() {
+
+		// send message to each connected peer
+		err := g.host.send(peer, msg)
+		if err != nil {
+			log.Error("Failed to send message during gossip", "err", err)
+		}
 	}
-
-	// update message in received message mapping
-	g.msgReceived[msg.Id()] = true
-
-	return true
 }

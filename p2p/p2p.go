@@ -96,7 +96,7 @@ func (s *Service) Start() error {
 	return nil
 }
 
-// Stop shuts down the host and the msgSend channel
+// Stop shuts down the host and message channel to core service
 func (s *Service) Stop() error {
 
 	// close host and host services
@@ -128,7 +128,7 @@ func (s *Service) handleConn(conn network.Conn) {
 // sendStatusMessages starts sending status messages to the connected peer
 func (s *Service) sendStatusMessages(peer peer.ID) {
 	for {
-		// TODO: use generated message
+		// TODO: use generated status message
 		msg := statusMessage
 
 		// send status message to connected peer
@@ -188,15 +188,19 @@ func (s *Service) handleStream(stream net.Stream) {
 // handleMessage handles non-status messages written to the stream
 func (s *Service) handleMessage(stream network.Stream, msg Message) {
 
-	// check if status exchange disabled or if peer status confirmed
+	// check if status exchange is disabled or peer status is confirmed
 	if s.host.noStatus || s.host.peerStatus[stream.Conn().RemotePeer()] {
 
 		// send all non-status messages to core service
 		s.msgSend <- msg
 
-		// handle all non-status messages with gossip protocol
-		s.gossip.handleMessage(msg)
+		// check if gossip is enabled
+		if !s.host.noGossip {
 
+			// handle message with gossip if gossip is enabled
+			s.gossip.handleMessage(stream, msg)
+
+		}
 	}
 }
 

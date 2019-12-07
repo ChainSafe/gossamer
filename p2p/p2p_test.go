@@ -559,29 +559,29 @@ func TestGossip(t *testing.T) {
 		}
 	}
 
-	msgReceivedB := nodeB.gossip.msgReceived[blockRequest.Id()]
-	if msgReceivedB == false {
+	hasGossippedB := nodeB.gossip.hasGossipped[blockRequest.Id()]
+	if hasGossippedB == false {
 		t.Error(
 			"node B did not receive block request message from node A",
-			"\nreceived:", msgReceivedB,
+			"\nreceived:", hasGossippedB,
 			"\nexpected:", true,
 		)
 	}
 
-	msgReceivedA := nodeA.gossip.msgReceived[blockRequest.Id()]
-	if msgReceivedA == false {
+	hasGossippedA := nodeA.gossip.hasGossipped[blockRequest.Id()]
+	if hasGossippedA == false {
 		t.Error(
 			"node A did not receive block request message from node B or node C",
-			"\nreceived:", msgReceivedA,
+			"\nreceived:", hasGossippedA,
 			"\nexpected:", true,
 		)
 	}
 
-	msgReceivedC := nodeC.gossip.msgReceived[blockRequest.Id()]
-	if msgReceivedC == false {
+	hasGossippedC := nodeC.gossip.hasGossipped[blockRequest.Id()]
+	if hasGossippedC == false {
 		t.Error(
 			"node C did not receive block request message from node A or node B",
-			"\nreceived:", msgReceivedC,
+			"\nreceived:", hasGossippedC,
 			"\nexpected:", true,
 		)
 	}
