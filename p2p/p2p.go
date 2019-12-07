@@ -38,7 +38,7 @@ const SendStatusInterval = 5 * time.Minute
 type Service struct {
 	ctx     context.Context
 	host    *host
-	gossip  *Gossip
+	gossip  *gossip
 	msgRec  <-chan Message
 	msgSend chan<- Message
 }

@@ -21,24 +21,23 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 )
 
-// Gossip submodule
-type Gossip struct {
+// gossip submodule
+type gossip struct {
 	host         *host
 	hasGossipped map[string]bool
 }
 
 // newGossip creates a new gossip instance from the host
-func newGossip(host *host) (gossip *Gossip, err error) {
-	gossip = &Gossip{
+func newGossip(host *host) (g *gossip, err error) {
+	g = &gossip{
 		host:         host,
 		hasGossipped: make(map[string]bool),
 	}
-
-	return gossip, err
+	return g, err
 }
 
 // handleMessage gossips messages that have not already been gossipped
-func (g *Gossip) handleMessage(stream network.Stream, msg Message) {
+func (g *gossip) handleMessage(stream network.Stream, msg Message) {
 
 	// check if message has been gossipped
 	if !g.hasGossipped[msg.Id()] {
@@ -53,7 +52,7 @@ func (g *Gossip) handleMessage(stream network.Stream, msg Message) {
 }
 
 // sendMessage broadcasts the message to connected peers
-func (g *Gossip) sendMessage(stream network.Stream, msg Message) {
+func (g *gossip) sendMessage(stream network.Stream, msg Message) {
 
 	// loop through connected peers
 	for _, peer := range g.host.peers() {
