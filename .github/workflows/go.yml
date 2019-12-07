@@ -1,0 +1,48 @@
+name: Pull Requests
+on: [pull_request]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2-beta
+
+      - name: Cache Go modules
+        uses: actions/cache@v1
+        if: always()
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.OS }}-build-${{ env.cache-name }}-
+            ${{ runner.OS }}-build-
+            ${{ runner.OS }}-
+
+      - name: Prepare code coverage reporter
+        run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+          ./cc-test-reporter before-build
+
+      - name: Test
+        run: |
+          go test -short -coverprofile c.out ./...
+          ./cc-test-reporter after-build --exit-code $?
+
+  lint:
+    name: Lint
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Install linter
+        run: go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+
+      - name: Run linter
+        run: golangci-lint run ./... -c .golangci.yml
