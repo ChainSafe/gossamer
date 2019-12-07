@@ -14,37 +14,37 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-language: go
-
-go:
-  - 1.13.x
-
-env:
-  global:
-    - GO111MODULE=on
-    - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
-
-cache:
-  directories:
-    - $HOME/.cache/go-build
-    - $GOPATH/pkg/mod
-
-before_cache:
-  - rm -f ./trie/failing_test_data
-
-matrix:
-  include:
-    - name: "Unit Tests"
-      before_script:
-        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-        - chmod +x ./cc-test-reporter
-        - ./cc-test-reporter before-build
-      script: ./scripts/ci.sh
-      after_script:
-        - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
-    - name: "Golang-ci Linter"
-      before_script:
-        - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
-      script: golangci-lint run ./... -c .golangci.yml
-    - name: "Build docker image"
-      script: make docker-build
+#language: go
+#
+#go:
+#  - 1.13.x
+#
+#env:
+#  global:
+#    - GO111MODULE=on
+#    - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
+#
+#cache:
+#  directories:
+#    - $HOME/.cache/go-build
+#    - $GOPATH/pkg/mod
+#
+#before_cache:
+#  - rm -f ./trie/failing_test_data
+#
+#matrix:
+#  include:
+#    - name: "Unit Tests"
+#      before_script:
+#        - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+#        - chmod +x ./cc-test-reporter
+#        - ./cc-test-reporter before-build
+#      script: ./scripts/ci.sh
+#      after_script:
+#        - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+#    - name: "Golang-ci Linter"
+#      before_script:
+#        - go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+#      script: golangci-lint run ./... -c .golangci.yml
+#    - name: "Build docker image"
+#      script: make docker-build
