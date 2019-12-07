@@ -3,14 +3,14 @@ package secp256k1
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"fmt"
+	"errors"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
 
-const SignatureLength = 65
+const SignatureLength = 64
 
 type Keypair struct {
 	public  *PublicKey
@@ -58,18 +58,16 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 	return kp.private
 }
 
-func (k *PublicKey) Verify(msg, sig []byte) bool {
+func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	if len(sig) != SignatureLength {
-		fmt.Println("wrong sig length")
-		return false
+		return false, errors.New("invalid signature length")
 	}
 
 	hash, err := common.Blake2bHash(msg)
 	if err != nil {
-		fmt.Println("could not hash")
-		return false
+		return false, errors.New("could not hash message")
 	}
-	return secp256k1.VerifySignature(k.Encode(), hash[:], sig)
+	return secp256k1.VerifySignature(k.Encode(), hash[:], sig), nil
 }
 
 func (k *PublicKey) Encode() []byte {

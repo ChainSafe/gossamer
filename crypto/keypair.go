@@ -19,7 +19,7 @@ type Keypair interface {
 }
 
 type PublicKey interface {
-	Verify(msg, sig []byte) bool
+	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
 	Address() common.Address
