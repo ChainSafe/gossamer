@@ -410,11 +410,11 @@ func TestStart(t *testing.T) {
 func TestBabeAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	blockSend := make(chan types.Block)
+	newBlocks := make(chan types.Block)
 
 	cfg := &SessionConfig{
 		Runtime:   rt,
-		BlockSend: blockSend,
+		NewBlocks: newBlocks,
 	}
 
 	babesession, err := NewSession(cfg)
@@ -434,7 +434,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	time.Sleep(time.Duration(babesession.config.SlotDuration) * time.Duration(babesession.config.EpochLength) * time.Millisecond)
 
 	for i := 0; i < int(babesession.config.EpochLength); i++ {
-		block := <-blockSend
+		block := <-newBlocks
 		blockNumber := big.NewInt(int64(i))
 		if !reflect.DeepEqual(block.Header.Number, blockNumber) {
 			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)

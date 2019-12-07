@@ -41,13 +41,13 @@ type Session struct {
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
 	isProducer     map[uint64]bool    // whether we are a block producer at a slot
-	blockSend      chan<- types.Block // send blocks to core service
+	newBlocks      chan<- types.Block // send blocks to core service
 }
 
 type SessionConfig struct {
 	Keystore  *keystore.Keystore
 	Runtime   *runtime.Runtime
-	BlockSend chan<- types.Block
+	NewBlocks chan<- types.Block
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -57,7 +57,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		rt:         cfg.Runtime,
 		txQueue:    new(tx.PriorityQueue),
 		isProducer: make(map[uint64]bool),
-		blockSend:  cfg.BlockSend,
+		newBlocks:  cfg.NewBlocks,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -103,7 +103,7 @@ func (b *Session) invokeBlockAuthoring() {
 			if err != nil {
 				return
 			}
-			b.blockSend <- *block
+			b.newBlocks <- *block
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
