@@ -44,7 +44,7 @@ type Service struct {
 	msgSend chan<- p2p.Message // send messages to p2p service
 }
 
-type ServiceConfig struct {
+type Config struct {
 	Keystore *keystore.Keystore
 	Runtime  *runtime.Runtime
 	MsgRec   <-chan p2p.Message
@@ -53,7 +53,7 @@ type ServiceConfig struct {
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
-func NewService(cfg *ServiceConfig, newBlocks chan types.Block) (*Service, error) {
+func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{

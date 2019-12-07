@@ -97,7 +97,7 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 func TestStartService(t *testing.T) {
 	rt := newRuntime(t)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 	}
 
@@ -117,7 +117,7 @@ func TestStartService(t *testing.T) {
 func TestValidateBlock(t *testing.T) {
 	rt := newRuntime(t)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 	}
 
@@ -140,7 +140,7 @@ func TestValidateBlock(t *testing.T) {
 func TestValidateTransaction(t *testing.T) {
 	rt := newRuntime(t)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 	}
 
@@ -183,7 +183,7 @@ func TestAnnounceBlock(t *testing.T) {
 	blkRec := make(chan types.Block)
 	msgSend := make(chan p2p.Message)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 		MsgSend: msgSend, // message channel from core service to p2p service
 	}
@@ -223,7 +223,7 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 	msgRec := make(chan p2p.Message)
 	msgSend := make(chan p2p.Message)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 		MsgRec:  msgRec,
 		MsgSend: msgSend,
@@ -265,7 +265,7 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 func TestProcessBlockResponseMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 	}
 
@@ -294,7 +294,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 func TestProcessTransactionMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	cfg := &ServiceConfig{
+	cfg := &Config{
 		Runtime: rt,
 	}
 

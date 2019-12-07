@@ -89,7 +89,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, p2pSrvc)
 
 	// Core
-	coreConfig := &core.ServiceConfig{
+	coreConfig := &core.Config{
 		Keystore: ks,
 		Runtime:  r,
 		MsgRec:   p2pMsgSend, // message channel from p2p service to core service
@@ -217,7 +217,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 }
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(coreConfig *core.ServiceConfig) *core.Service {
+func createCoreService(coreConfig *core.Config) *core.Service {
 
 	coreBlkRec := make(chan types.Block)
 
