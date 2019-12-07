@@ -2,6 +2,7 @@ name: Pull Requests
 on: [pull_request]
 env:
   GO111MODULE: "on"
+  GOPATH: HOME
 jobs:
   build:
     name: Build
@@ -53,4 +54,4 @@ jobs:
         run: go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
 
       - name: Run linter
-        run: golangci-lint run ./... -c .golangci.yml
+        run: $GOPATH/bin/golangci-lint run ./... -c .golangci.yml
