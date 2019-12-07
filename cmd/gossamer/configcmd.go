@@ -84,26 +84,18 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
-	bsChan := make(chan types.Block)
-	p2pRec := make(chan p2p.Message)
-
 	// P2P
-	p2pSrvc, p2pSend := createP2PService(fig, gendata)
+	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
-	// core.Service
-	coreCfg := &core.ServiceConfig{
+	// Core
+	coreConfig := &core.ServiceConfig{
 		Keystore: ks,
 		Runtime:  r,
-		BsChan:   bsChan,
-		P2pRec:   p2pRec,
-		P2pSend:  p2pSend,
+		MsgRec:   p2pMsgSend, // message channel from p2p service to core service
+		MsgSend:  p2pMsgRec,  // message channel from core service to p2p service
 	}
-
-	coreSrvc, err := core.NewService(coreCfg)
-	if err != nil {
-		return nil, nil, err
-	}
+	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
@@ -199,9 +191,11 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 	}
 }
 
-// createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message) {
-	config := p2p.Config{
+// createP2PService creates a p2p service from the command configuration and genesis data
+func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
+
+	// p2p service configuation
+	p2pConfig := p2p.Config{
 		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
 		Port:           fig.P2p.Port,
 		RandSeed:       0,
@@ -211,14 +205,28 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		ProtocolId:     string(gendata.ProtocolId),
 	}
 
-	p2pRec := make(chan p2p.Message)
-	p2pSend := make(chan p2p.Message)
+	p2pMsgRec := make(chan p2p.Message)
+	p2pMsgSend := make(chan p2p.Message)
 
-	srvc, err := p2p.NewService(&config, p2pSend, p2pRec)
+	p2pService, err := p2p.NewService(&p2pConfig, p2pMsgSend, p2pMsgRec)
 	if err != nil {
-		log.Error("error starting p2p", "err", err.Error())
+		log.Error("Failed to create new p2p service", "err", err)
 	}
-	return srvc, p2pSend
+
+	return p2pService, p2pMsgSend, p2pMsgRec
+}
+
+// createCoreService creates the core service from the provided core configuration
+func createCoreService(coreConfig *core.ServiceConfig) *core.Service {
+
+	coreBlkRec := make(chan types.Block)
+
+	coreService, err := core.NewService(coreConfig, coreBlkRec)
+	if err != nil {
+		log.Error("Failed to create new core service", "err", err)
+	}
+
+	return coreService
 }
 
 func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
