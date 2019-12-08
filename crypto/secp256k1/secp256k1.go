@@ -102,7 +102,9 @@ func (pk *PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 func (pk *PrivateKey) Public() (crypto.PublicKey, error) {
-	return pk.Public()
+	return &PublicKey{
+		key: *(pk.key.Public().(*ecdsa.PublicKey)),
+	}, nil
 }
 
 func (pk *PrivateKey) Encode() []byte {

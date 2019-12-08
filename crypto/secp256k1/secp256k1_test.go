@@ -40,6 +40,14 @@ func TestPublicKeys(t *testing.T) {
 	if !reflect.DeepEqual(kp.Public(), kp2.Public()) {
 		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
 	}
+
+	pub, err := kp.private.Public()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(pub, kp.Public()) {
+		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
+	}
 }
 
 func TestEncodeAndDecodePriv(t *testing.T) {
