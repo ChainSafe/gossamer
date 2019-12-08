@@ -35,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/trie"
-	//"golang.org/x/crypto/ed25519"
 )
 
 const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
