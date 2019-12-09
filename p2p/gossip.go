@@ -23,14 +23,14 @@ import (
 
 // gossip submodule
 type gossip struct {
-	host         *host
+	host        *host
 	hasGossiped map[string]bool
 }
 
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) (g *gossip, err error) {
 	g = &gossip{
-		host:         host,
+		host:        host,
 		hasGossiped: make(map[string]bool),
 	}
 	return g, err
