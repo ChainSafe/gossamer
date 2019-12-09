@@ -45,7 +45,7 @@ func blockDataKey(hash common.Hash) []byte {
 func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
 	var result types.BlockHeaderWithHash
 
-	data, err := bs.bt.Db.Db.Get(headerKey(hash))
+	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
 		return types.BlockHeaderWithHash{}, err
 	}
@@ -58,7 +58,7 @@ func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, er
 func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	var result types.BlockData
 
-	data, err := bs.bt.Db.Db.Get(blockDataKey(hash))
+	data, err := bs.db.Db.Get(blockDataKey(hash))
 	if err != nil {
 		return types.BlockData{}, err
 	}
