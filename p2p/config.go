@@ -52,8 +52,6 @@ type Config struct {
 	NoGossip bool
 	// Disables MDNS discovery
 	NoMdns bool
-	// Disables status exchange
-	NoStatus bool
 	// Global data directory
 	DataDir string
 	// Identity key for node

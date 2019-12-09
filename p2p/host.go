@@ -106,7 +106,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		noBootstrap: cfg.NoBootstrap,
 		noGossip:    cfg.NoGossip,
 		noMdns:      cfg.NoMdns,
-		noStatus:    cfg.NoStatus,
 		address:     address,
 		protocolId:  protocolId,
 		peerStatus:  peerStatus,

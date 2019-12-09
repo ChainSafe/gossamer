@@ -54,9 +54,11 @@ func TestStartService(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 	node := startNewService(t, config, nil, nil)
+
+	node.host.noStatus = true
+
 	node.Stop()
 }
 
@@ -67,11 +69,12 @@ func TestConnect(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
@@ -79,11 +82,12 @@ func TestConnect(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	addrB := nodeB.host.fullAddrs()[0]
 	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
@@ -123,11 +127,12 @@ func TestBootstrap(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	addrA := nodeA.host.fullAddrs()[0]
 
@@ -137,11 +142,12 @@ func TestBootstrap(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
@@ -170,11 +176,12 @@ func TestPing(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	nodeA := startNewService(t, configA, nil, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
@@ -182,11 +189,12 @@ func TestPing(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	nodeB := startNewService(t, configB, nil, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	addrB := nodeB.host.fullAddrs()[0]
 	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
@@ -260,12 +268,13 @@ func TestSendRequest(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	addrA := nodeA.host.fullAddrs()[0]
 
@@ -275,12 +284,13 @@ func TestSendRequest(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
@@ -324,12 +334,13 @@ func TestBroadcastRequest(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	addrA := nodeA.host.fullAddrs()[0]
 
@@ -339,12 +350,13 @@ func TestBroadcastRequest(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	configC := &Config{
 		BootstrapNodes: []string{addrA.String()},
@@ -352,12 +364,13 @@ func TestBroadcastRequest(t *testing.T) {
 		RandSeed:       3,
 		NoGossip:       true,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendC := make(chan Message)
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
+
+	nodeC.host.noStatus = true
 
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
@@ -406,13 +419,14 @@ func TestBlockAnnounce(t *testing.T) {
 		NoBootstrap: true,
 		NoGossip:    true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	msgRecA := make(chan Message)
 	msgSendA := make(chan Message)
 	nodeA := startNewService(t, configA, msgSendA, msgRecA)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	addrA := nodeA.host.fullAddrs()[0]
 
@@ -422,12 +436,13 @@ func TestBlockAnnounce(t *testing.T) {
 		RandSeed:       2,
 		NoGossip:       true,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	blockAnnounce := &BlockAnnounceMessage{
 		Number: big.NewInt(1),
@@ -457,12 +472,13 @@ func TestGossip(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMdns:      true,
-		NoStatus:    true,
 	}
 
 	msgSendA := make(chan Message)
 	nodeA := startNewService(t, configA, msgSendA, nil)
 	defer nodeA.Stop()
+
+	nodeA.host.noStatus = true
 
 	addrA := nodeA.host.fullAddrs()[0]
 
@@ -471,12 +487,13 @@ func TestGossip(t *testing.T) {
 		Port:           7002,
 		RandSeed:       2,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendB := make(chan Message)
 	nodeB := startNewService(t, configB, msgSendB, nil)
 	defer nodeB.Stop()
+
+	nodeB.host.noStatus = true
 
 	addrB := nodeB.host.fullAddrs()[0]
 
@@ -485,12 +502,13 @@ func TestGossip(t *testing.T) {
 		Port:           7003,
 		RandSeed:       3,
 		NoMdns:         true,
-		NoStatus:       true,
 	}
 
 	msgSendC := make(chan Message)
 	nodeC := startNewService(t, configC, msgSendC, nil)
 	defer nodeC.Stop()
+
+	nodeC.host.noStatus = true
 
 	blockRequest := &BlockRequestMessage{
 		ID:            1,
