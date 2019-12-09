@@ -1,13 +1,15 @@
 package state
 
 type Service struct {
+	db_path string
 	Storage *storageState
 	Block   *blockState
 	Net     *networkState
 }
 
-func NewService() *Service {
+func NewService(path string) *Service {
 	return &Service{
+		db_path: path,
 		Storage: &storageState{},
 		Block:   &blockState{},
 		Net:     &networkState{},
