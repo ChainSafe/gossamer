@@ -525,7 +525,7 @@ func TestGossip(t *testing.T) {
 		t.Error("node A timeout waiting for message")
 	}
 
-	// Expecting 4 messages to be gossipped in an unpredictable order. We need
+	// Expecting 4 messages to be gossiped in an unpredictable order. We need
 	// to wait for all 4 messages to be sent to their respective core services
 	// or else send on closed channel error.
 	for i := 0; i < 4; i++ {
@@ -559,29 +559,29 @@ func TestGossip(t *testing.T) {
 		}
 	}
 
-	hasGossippedB := nodeB.gossip.hasGossipped[blockRequest.Id()]
-	if hasGossippedB == false {
+	hasGossipedB := nodeB.gossip.hasGossiped[blockRequest.Id()]
+	if hasGossipedB == false {
 		t.Error(
 			"node B did not receive block request message from node A",
-			"\nreceived:", hasGossippedB,
+			"\nreceived:", hasGossipedB,
 			"\nexpected:", true,
 		)
 	}
 
-	hasGossippedA := nodeA.gossip.hasGossipped[blockRequest.Id()]
-	if hasGossippedA == false {
+	hasGossipedA := nodeA.gossip.hasGossiped[blockRequest.Id()]
+	if hasGossipedA == false {
 		t.Error(
 			"node A did not receive block request message from node B or node C",
-			"\nreceived:", hasGossippedA,
+			"\nreceived:", hasGossipedA,
 			"\nexpected:", true,
 		)
 	}
 
-	hasGossippedC := nodeC.gossip.hasGossipped[blockRequest.Id()]
-	if hasGossippedC == false {
+	hasGossipedC := nodeC.gossip.hasGossiped[blockRequest.Id()]
+	if hasGossipedC == false {
 		t.Error(
 			"node C did not receive block request message from node A or node B",
-			"\nreceived:", hasGossippedC,
+			"\nreceived:", hasGossipedC,
 			"\nexpected:", true,
 		)
 	}

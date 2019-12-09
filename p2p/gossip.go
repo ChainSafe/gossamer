@@ -24,29 +24,29 @@ import (
 // gossip submodule
 type gossip struct {
 	host         *host
-	hasGossipped map[string]bool
+	hasGossiped map[string]bool
 }
 
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) (g *gossip, err error) {
 	g = &gossip{
 		host:         host,
-		hasGossipped: make(map[string]bool),
+		hasGossiped: make(map[string]bool),
 	}
 	return g, err
 }
 
-// handleMessage gossips messages that have not already been gossipped
+// handleMessage gossips messages that have not already been gossiped
 func (g *gossip) handleMessage(stream network.Stream, msg Message) {
 
-	// check if message has been gossipped
-	if !g.hasGossipped[msg.Id()] {
+	// check if message has been gossiped
+	if !g.hasGossiped[msg.Id()] {
 
-		// broadcast message to peers if message has not been gossipped
+		// broadcast message to peers if message has not been gossiped
 		g.sendMessage(stream, msg)
 
-		// update message to gossipped
-		g.hasGossipped[msg.Id()] = true
+		// update message to gossiped
+		g.hasGossiped[msg.Id()] = true
 
 	}
 }
