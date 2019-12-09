@@ -1,6 +1,5 @@
 package state
 
-
 import (
 	"path/filepath"
 )
@@ -57,6 +56,6 @@ func (s *Service) Stop() error {
 	if err != nil {
 		return err
 	}
-  
-  return nil
+
+	return nil
 }
