@@ -23,6 +23,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -33,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -52,11 +53,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// DB: Create database dir and initialize stateDB and blockDB
-	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
-	}
+	// DB: Create service, initialize stateDB and blockDB
+	dbSrv := state.NewService(fig.Global.DataDir)
 	srvcs = append(srvcs, dbSrv)
 
 	err = dbSrv.Start()
@@ -68,7 +66,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	ks := keystore.NewKeystore()
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
-	db := trie.NewDatabase(dbSrv.StateDB.Db)
+	db := trie.NewDatabase(dbSrv.Storage.Db.Db)
 	state := trie.NewEmptyTrie(db)
 	r, err := loadStateAndRuntime(state, ks)
 	if err != nil {

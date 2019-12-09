@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -30,11 +31,8 @@ func loadGenesis(ctx *cli.Context) error {
 
 	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
 
-	// DB: Create database dir and initialize stateDB and blockDB
-	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
-	if err != nil {
-		return err
-	}
+	// DB: Create service, initialize stateDB and blockDB
+	dbSrv := state.NewService(fig.Global.DataDir)
 
 	err = dbSrv.Start()
 	if err != nil {
@@ -49,7 +47,7 @@ func loadGenesis(ctx *cli.Context) error {
 	}()
 
 	tdb := &trie.Database{
-		Db: dbSrv.StateDB.Db,
+		Db: dbSrv.Storage.Db.Db,
 	}
 
 	// create and load storage trie with initial genesis state

@@ -1,9 +1,11 @@
 package state
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
 
 type Service struct {
-	dbPath string
+	dbPath  string
 	Storage *storageState
 	Block   *blockState
 	Net     *networkState
@@ -11,9 +13,9 @@ type Service struct {
 
 func NewService(path string) *Service {
 	return &Service{
-		dbPath: path,
-		Storage: &storageState{},
-		Block:   &blockState{},
+		dbPath:  path,
+		Storage: nil,
+		Block:   nil,
 		Net:     &networkState{},
 	}
 }
@@ -45,7 +47,7 @@ func (s *Service) Start() error {
 
 func (s *Service) Stop() error {
 	// Closing Badger Databases
-	err := s.Storage.db.Db.Close()
+	err := s.Storage.Db.Db.Close()
 	if err != nil {
 		return err
 	}

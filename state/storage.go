@@ -8,7 +8,7 @@ import (
 
 type storageState struct {
 	trie *trie.Trie
-	db   *polkadb.StateDB
+	Db   *polkadb.StateDB
 }
 
 func NewStorageState(dataDir string) (*storageState, error) {
@@ -18,7 +18,7 @@ func NewStorageState(dataDir string) (*storageState, error) {
 	}
 	return &storageState{
 		trie: &trie.Trie{},
-		db:   stateDb,
+		Db:   stateDb,
 	}, nil
 }
 
