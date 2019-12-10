@@ -105,3 +105,4 @@ func (ks *Keystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
 	}
 	return nil
 }
+
