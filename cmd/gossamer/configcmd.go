@@ -68,9 +68,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
 	// unlock keys, if specified
-	err = unlockKeys(ctx, fig.Global.DataDir, ks)
-	if err != nil {
-		return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+		err = unlockKeys(ctx, fig.Global.DataDir, ks)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+		}
 	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
