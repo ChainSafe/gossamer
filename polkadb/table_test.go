@@ -23,14 +23,14 @@ import (
 )
 
 func TestBadgerDB_TablePrefixOps(t *testing.T) {
-	db, remove := newTestStateDB(t)
+	db, remove := newTestBadgerDB(t)
 	defer remove()
 
-	testPutTablesWithPrefix(db.Db, t)
-	testHasTablesWithPrefix(db.Db, t)
-	testDelTablesWithPrefix(db.Db, t)
-	testTableClose(db.Db, t)
-	testNewTableBatch(db.Db, t)
+	testPutTablesWithPrefix(db, t)
+	testHasTablesWithPrefix(db, t)
+	testDelTablesWithPrefix(db, t)
+	testTableClose(db, t)
+	testNewTableBatch(db, t)
 }
 
 func testPutTablesWithPrefix(db Database, t *testing.T) {
@@ -109,9 +109,9 @@ func testNewTableBatch(db Database, t *testing.T) {
 }
 
 func TestBadgerDB_TableBatchWithPrefix(t *testing.T) {
-	db, remove := newTestStateDB(t)
+	db, remove := newTestBadgerDB(t)
 	defer remove()
-	testBatchTablePutWithPrefix(db.Db, t)
+	testBatchTablePutWithPrefix(db, t)
 }
 
 func batchTableWithPrefixTestSetup(db Database) (func(i int) []byte, func(i int) []byte, Batch) {
