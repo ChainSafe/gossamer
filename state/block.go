@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"math/big"
 
@@ -24,13 +25,26 @@ func NewBlockState() *blockState {
 
 var (
 	// Data prefixes
-	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
-	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
+	headerPrefix     = []byte("hdr") // headerPrefix + hash -> header
+	blockDataPrefix  = []byte("bld") // blockDataPrefix + hash -> blockData
+	headerHashPrefix = []byte("hsh")
 )
+
+// encodeBlockNumber encodes a block number as big endian uint64
+func encodeBlockNumber(number uint64) []byte {
+	enc := make([]byte, 8)
+	binary.BigEndian.PutUint64(enc, number)
+	return enc
+}
 
 // headerKey = headerPrefix + hash
 func headerKey(hash common.Hash) []byte {
 	return append(headerPrefix, hash.ToBytes()...)
+}
+
+// headerHashKey = headerHashPrefix + num (uint64 big endian)
+func headerHashKey(number uint64) []byte {
+	return append(headerHashPrefix, encodeBlockNumber(number)...)
 }
 
 // blockDataKey = blockDataPrefix + hash
@@ -73,19 +87,27 @@ func (bs *blockState) GetLatestBlock() types.BlockHeaderWithHash {
 func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		return types.Block{}, nil
+		return types.Block{}, err
 	}
 	blockData, err := bs.GetBlockData(hash)
 	if err != nil {
-		return types.Block{}, nil
+		return types.Block{}, err
 	}
 	blockBody := blockData.Body
 	return types.Block{Header: header, Body: *blockBody}, nil
 }
 
-func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
-	// Can't do yet
-	return types.Block{}
+func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
+	// First retrieve the block hash based on the block number from the database
+	hash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
+	if err != nil {
+		return types.Block{}, err
+	}
+
+	// Then find the block based on the hash
+	endHash := common.NewHash(hash)
+	block, err := bs.GetBlockByHash(endHash)
+	return block, err
 }
 
 func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
@@ -98,6 +120,12 @@ func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
 	}
 
 	err = bs.db.Db.Put(headerKey(hash), bh)
+	if err != nil {
+		return err
+	}
+
+	// Add a mapping of [blocknumber : hash] for retrieving the block by number
+	err = bs.db.Db.Put(headerHashKey(header.Number.Uint64()), header.Hash.ToBytes())
 	return err
 }
 
