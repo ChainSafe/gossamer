@@ -137,7 +137,12 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 
 	for i, idx := range indices {
 		keyfile := keyfiles[idx]
-		kp, err := keystore.ReadFromFileAndDecrypt(datadir+"/"+keyfile, []byte(passwords[i]))
+		priv, err := keystore.ReadFromFileAndDecrypt(datadir+"/"+keyfile, []byte(passwords[i]))
+		if err != nil {
+			return err
+		}
+
+		kp, err := keystore.PrivateKeyToKeypair(priv)
 		if err != nil {
 			return err
 		}
