@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -68,7 +69,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
 	// unlock keys, if specified
-	err := unlockKeys(ctx, ks)
+	err = unlockKeys(ctx, fig.Global.DataDir, ks)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
 	}
@@ -113,8 +114,61 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
 
-func unlockKeys(ctx *cli.Context, ks *keystore.Keystore) error {
+func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
+	var indices []int
+	var passwords []string
+	var err error
 
+	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+		indices, err = common.StringToInts(keyindices)
+		if err != nil {
+			return err
+		}
+	}
+
+	if passwordsStr := ctx.String(utils.PasswordFlag.Name); passwordsStr != "" {
+		passwords = strings.Split(passwordsStr, ",")
+	}
+
+	keyfiles, err := getKeyPaths(datadir)
+	if err != nil {
+		return err
+	}
+
+	for i, idx := range indices {
+		keyfile := keyfiles[idx]
+		kp, err := keystore.ReadFromFileAndDecrypt(datadir+"/"+keyfile, []byte(passwords[i]))
+		if err != nil {
+			return err
+		}
+
+		ks.Insert(kp)
+	}
+
+	return nil
+}
+
+func getKeyPaths(datadir string) ([]string, error) {
+	keystorepath, err := keystoreDir(datadir)
+	if err != nil {
+		return nil, fmt.Errorf("could not get keystore directory: %s", err)
+	}
+
+	files, err := ioutil.ReadDir(keystorepath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read keystore dir: %s", err)
+	}
+
+	keys := []string{}
+
+	for _, f := range files {
+		ext := filepath.Ext(f.Name())
+		if ext == ".key" {
+			keys = append(keys, f.Name())
+		}
+	}
+
+	return keys, nil
 }
 
 func loadStateAndRuntime(t *trie.Trie, ks *keystore.Keystore) (*runtime.Runtime, error) {

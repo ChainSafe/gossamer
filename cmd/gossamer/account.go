@@ -47,12 +47,14 @@ func handleAccounts(ctx *cli.Context) error {
 		log.Info("generating keypair...")
 
 		// check if --ed25519 or --sr25519 is set
-		keytype := utils.Sr25519KeyType
+		keytype := crypto.Sr25519Type
 		if flagtype := ctx.Bool(utils.Sr25519Flag.Name); flagtype {
-			keytype = utils.Sr25519KeyType
+			keytype = crypto.Sr25519Type
 		} else if flagtype := ctx.Bool(utils.Ed25519Flag.Name); flagtype {
-			keytype = utils.Ed25519KeyType
-		}
+			keytype = crypto.Ed25519Type
+		} /*else if flagtype := ctx.Bool(utils.Secp256k1Flag.Name); flagtype {
+			keytype = crypto.Secp256k1Type
+		}*/
 
 		// check if --password is set
 		var password []byte = nil
@@ -157,7 +159,7 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	}
 
 	if keytype == "" {
-		keytype = utils.Sr25519KeyType
+		keytype = crypto.Sr25519Type
 	}
 
 	var kp crypto.Keypair

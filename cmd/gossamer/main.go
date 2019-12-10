@@ -55,6 +55,7 @@ var (
 		utils.GenerateFlag,
 		utils.Sr25519Flag,
 		utils.Ed25519Flag,
+		//utils.Secp256k1Flag,
 		utils.ImportFlag,
 		utils.ListFlag,
 		utils.PasswordFlag,
