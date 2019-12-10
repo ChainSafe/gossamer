@@ -61,7 +61,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sync"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/codec"
@@ -76,13 +75,6 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-// registry stores the RuntimeCtx for Runtimes to work around the limitation of
-// CGo which prevents passing Go pointers that point to other Go pointers
-// across the FFI.
-var registry map[int]RuntimeCtx
-var handlers int
-var mutex = sync.RWMutex{}
-
 //export ext_print_num
 func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 	log.Trace("[ext_print_num] executing...")
@@ -93,9 +85,11 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Trace("[ext_malloc] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	data := instanceContext.Data()
+	runtimeCtx, ok := data.(*RuntimeCtx)
+	if !ok {
+		panic(fmt.Sprintf("%#v", data))
+	}
 
 	// Allocate memory
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
@@ -113,9 +107,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	log.Trace("[ext_free]", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// Deallocate memory
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
@@ -152,9 +144,7 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -186,10 +176,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -207,9 +194,7 @@ func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
@@ -228,9 +213,7 @@ func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageK
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
@@ -253,10 +236,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	root, err := t.Hash()
@@ -283,10 +263,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -328,10 +305,7 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -348,10 +322,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	prefix := memory[prefixData : prefixData+prefixLen]
@@ -504,9 +475,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
@@ -531,9 +500,7 @@ func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	keys := runtimeCtx.keystore.Ed25519PublicKeys()
 	// TODO: when do deallocate?
@@ -559,9 +526,7 @@ func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	keys := runtimeCtx.keystore.Sr25519PublicKeys()
 
@@ -587,9 +552,7 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
 	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
@@ -623,9 +586,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
 	pubkey, err := sr25519.NewPublicKey(pubkeyBytes)
@@ -681,9 +642,7 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
