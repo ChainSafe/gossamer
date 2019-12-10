@@ -127,8 +127,12 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 		keytype = crypto.Sr25519Type
 	}
 
+	if _, ok := pk.(*secp256k1.PrivateKey); ok {
+		keytype = crypto.Secp256k1Type
+	}
+
 	if keytype == "" {
-		return errors.New("cannot write key not of type sr25519, ed25519")
+		return errors.New("cannot write key not of type sr25519, ed25519, secp256k1")
 	}
 
 	keydata := &EncryptedKeystore{
