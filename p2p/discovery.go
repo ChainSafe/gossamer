@@ -55,7 +55,7 @@ func newDiscovery(ctx context.Context, host *host) (d *disc, err error) {
 func (d *disc) startMdns() {
 
 	log.Trace(
-		"Starting MDNS...",
+		"Starting mDNS discovery service...",
 		"host", d.host.id(),
 		"period", mdnsPeriod,
 		"protocol", d.host.protocolId,
