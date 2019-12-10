@@ -10,6 +10,7 @@ import (
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
 
+const PrivateKeyLength = 32
 const SignatureLength = 64
 
 type Keypair struct {
@@ -32,6 +33,15 @@ func NewKeypair(pk ecdsa.PrivateKey) *Keypair {
 		public:  &PublicKey{key: *pub.(*ecdsa.PublicKey)},
 		private: &PrivateKey{key: pk},
 	}
+}
+
+func NewPrivateKey(in []byte) (*PrivateKey, error) {
+	if len(in) != PrivateKeyLength {
+		return nil, errors.New("input to create secp256k1 private key is not 32 bytes")
+	}
+	priv := new(PrivateKey)
+	err := priv.Decode(in)
+	return priv, err
 }
 
 func GenerateKeypair() (*Keypair, error) {

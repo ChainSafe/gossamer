@@ -29,6 +29,24 @@ func TestSignAndVerify(t *testing.T) {
 	}
 }
 
+func TestPrivateKeys(t *testing.T) {
+	kp, err := GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	privbytes := kp.private.Encode()
+
+	priv, err := NewPrivateKey(privbytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(kp.private, priv) {
+		t.Fatalf("Fail: got %x expected %x", kp.private.Encode(), priv.Encode())
+	}
+}
+
 func TestPublicKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
 	if err != nil {
