@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
+// PrivateKeyToKeypair returns a public, private keypair given a private key
 func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) {
 	if key, ok := priv.(*sr25519.PrivateKey); ok {
 		kp, err = sr25519.NewKeypairFromPrivate(key)
@@ -20,6 +21,7 @@ func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) 
 	return kp, err
 }
 
+// DecodePrivateKey turns input bytes into a private key based on the specified key type
 func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey, err error) {
 	if keytype == crypto.Ed25519Type {
 		priv, err = ed25519.NewPrivateKey(in)

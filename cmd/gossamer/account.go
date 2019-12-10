@@ -129,6 +129,20 @@ func importKey(filename, datadir string) (string, error) {
 
 // listKeys lists all the keys in the datadir/keystore/ directory and returns them as a list of filepaths
 func listKeys(datadir string) ([]string, error) {
+	keys, err := getKeyFiles(datadir)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, key := range keys {
+		fmt.Printf("[%d] %s\n", i, key)
+	}
+
+	return keys, nil
+}
+
+// getKeyFiles returns the filenames of all the keys in the datadir's keystore
+func getKeyFiles(datadir string) ([]string, error) {
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
 		return nil, fmt.Errorf("could not get keystore directory: %s", err)
@@ -144,7 +158,6 @@ func listKeys(datadir string) ([]string, error) {
 	for _, f := range files {
 		ext := filepath.Ext(f.Name())
 		if ext == ".key" {
-			fmt.Println(f.Name())
 			keys = append(keys, f.Name())
 		}
 	}
