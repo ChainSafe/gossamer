@@ -163,3 +163,4 @@ func ReadFromFileAndDecrypt(filename string, password []byte) (crypto.PrivateKey
 
 	return DecryptPrivateKey(keydata.Ciphertext, password, keydata.Type)
 }
+
