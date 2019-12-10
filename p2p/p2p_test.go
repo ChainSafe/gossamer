@@ -46,7 +46,11 @@ var testMessage = &BlockRequestMessage{
 }
 
 // helper method to create and start a new p2p service
-func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
+func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan Message, msgRec chan Message) {
+
+	msgRec = make(chan Message)
+	msgSend = make(chan Message)
+
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
 		t.Fatal(err)
@@ -57,10 +61,10 @@ func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec cha
 		t.Fatal(err)
 	}
 
-	return node
+	return node, msgSend, msgRec
 }
 
-// tests p2p service starts
+// test p2p service starts
 func TestStartService(t *testing.T) {
 	config := &Config{
 		Port:        7001,
@@ -69,122 +73,11 @@ func TestStartService(t *testing.T) {
 		NoGossip:    true,
 		NoMdns:      true,
 	}
-	node := startNewService(t, config, nil, nil)
-
-	node.host.noStatus = true
-
+	node, _, _ := createTestService(t, config)
 	node.Stop()
 }
 
-// tests host connect method
-func TestConnect(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	nodeA.host.noStatus = true
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	nodeB := startNewService(t, configB, nil, nil)
-	defer nodeB.Stop()
-
-	nodeB.host.noStatus = true
-
-	addrInfoB, err := nodeB.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	peerCountA := nodeA.host.peerCount()
-	peerCountB := nodeB.host.peerCount()
-
-	if peerCountA != 1 {
-		t.Error(
-			"node A does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountA,
-		)
-	}
-
-	if peerCountB != 1 {
-		t.Error(
-			"node B does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountB,
-		)
-	}
-}
-
-// tests host bootstrap method on start
-func TestBootstrap(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	nodeA.host.noStatus = true
-
-	addrA := nodeA.host.fullAddr()
-
-	configB := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7002,
-		RandSeed:       2,
-		NoGossip:       true,
-		NoMdns:         true,
-	}
-
-	nodeB := startNewService(t, configB, nil, nil)
-	defer nodeB.Stop()
-
-	nodeB.host.noStatus = true
-
-	peerCountA := nodeA.host.peerCount()
-	peerCountB := nodeB.host.peerCount()
-
-	if peerCountA != 1 {
-		t.Error(
-			"node A does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountA,
-		)
-	}
-
-	if peerCountB != 1 {
-		t.Error(
-			"node B does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountB,
-		)
-	}
-}
-
-// tests mdns discovery service (discovers and connects)
+// test mdns discovery service (discovers and connects)
 func TestDiscovery(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -193,7 +86,7 @@ func TestDiscovery(t *testing.T) {
 		NoGossip:    true,
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.host.noStatus = true
@@ -205,12 +98,12 @@ func TestDiscovery(t *testing.T) {
 		NoGossip:    true,
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	time.Sleep(TestDiscoveryTimeout)
-
 	nodeB.host.noStatus = true
+
+	time.Sleep(TestDiscoveryTimeout)
 
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
@@ -232,7 +125,8 @@ func TestDiscovery(t *testing.T) {
 	}
 }
 
-func TestPing(t *testing.T) {
+// test broacast messages from core service
+func TestBroadcastMessages(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -241,7 +135,7 @@ func TestPing(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	nodeA, _, msgRecA := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.host.noStatus = true
@@ -254,7 +148,7 @@ func TestPing(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.host.noStatus = true
@@ -269,148 +163,8 @@ func TestPing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.ping(addrInfoB.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	addrInfoA, err := nodeA.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.ping(addrInfoA.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// tests the host send method
-func TestSend(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgSendA := make(chan Message)
-	nodeA := startNewService(t, configA, msgSendA, nil)
-	defer nodeA.Stop()
-
-	nodeA.host.noStatus = true
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgSendB := make(chan Message)
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	nodeB.host.noStatus = true
-
-	addrInfoB, err := nodeB.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.send(addrInfoB.ID, testMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, testMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", testMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message from node A")
-	}
-}
-
-// tests the host broadcast method
-func TestBroadcast(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgSendA := make(chan Message)
-	nodeA := startNewService(t, configA, msgSendA, nil)
-	defer nodeA.Stop()
-
-	nodeA.host.noStatus = true
-
-	addrA := nodeA.host.fullAddrs()[0]
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgSendB := make(chan Message)
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	nodeB.host.noStatus = true
-
-	addrInfoB, err := nodeB.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	configC := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7003,
-		RandSeed:       3,
-		NoGossip:       true,
-		NoMdns:         true,
-	}
-
-	msgSendC := make(chan Message)
-	nodeC := startNewService(t, configC, msgSendC, nil)
-	defer nodeC.Stop()
-
-	nodeC.host.noStatus = true
-
-	addrInfoC, err := nodeC.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoC)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nodeA.host.broadcast(testMessage)
+	// simulate message sent from core service
+	msgRecA <- testMessage
 
 	select {
 	case msg := <-msgSendB:
@@ -424,23 +178,10 @@ func TestBroadcast(t *testing.T) {
 	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message")
 	}
-
-	select {
-	case msg := <-msgSendC:
-		if !reflect.DeepEqual(msg, testMessage) {
-			t.Error(
-				"node C received unexpected message from node A",
-				"\nexpected:", testMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node C timeout waiting for message")
-	}
-
 }
 
-func TestExchangeStatus(t *testing.T) {
+// test exchange status messages after peer connected
+func TestExchangeStatusMessages(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -449,8 +190,7 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	msgSendA := make(chan Message)
-	nodeA := startNewService(t, configA, msgSendA, nil)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	configB := &Config{
@@ -461,8 +201,7 @@ func TestExchangeStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	msgSendB := make(chan Message)
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	addrInfoB, err := nodeB.host.addrInfo()
@@ -496,66 +235,8 @@ func TestExchangeStatus(t *testing.T) {
 	}
 }
 
-// tests broacast messages from core service
-func TestBroadcastMessages(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgRecA := make(chan Message)
-	msgSendA := make(chan Message)
-	nodeA := startNewService(t, configA, msgSendA, msgRecA)
-	defer nodeA.Stop()
-
-	nodeA.host.noStatus = true
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoGossip:    true,
-		NoMdns:      true,
-	}
-
-	msgSendB := make(chan Message)
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	nodeB.host.noStatus = true
-
-	addrInfoB, err := nodeB.host.addrInfo()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.connect(*addrInfoB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// simulate message sent from core service
-	msgRecA <- testMessage
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, testMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", testMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
-}
-
-// test gossip protocol
-func TestGossip(t *testing.T) {
+// test gossip messages to connected peers
+func TestGossipMessages(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
@@ -563,8 +244,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	msgSendA := make(chan Message)
-	nodeA := startNewService(t, configA, msgSendA, nil)
+	nodeA, msgSendA, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.host.noStatus = true
@@ -576,8 +256,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	msgSendB := make(chan Message)
-	nodeB := startNewService(t, configB, msgSendB, nil)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.host.noStatus = true
@@ -599,8 +278,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	msgSendC := make(chan Message)
-	nodeC := startNewService(t, configC, msgSendC, nil)
+	nodeC, msgSendC, _ := createTestService(t, configC)
 	defer nodeC.Stop()
 
 	nodeC.host.noStatus = true

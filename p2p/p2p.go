@@ -38,6 +38,7 @@ const SendStatusInterval = 5 * time.Minute
 type Service struct {
 	ctx     context.Context
 	host    *host
+	disc    *disc
 	gossip  *gossip
 	msgRec  <-chan Message
 	msgSend chan<- Message
@@ -63,6 +64,11 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 		return nil, err
 	}
 
+	disc, err := newDiscovery(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+
 	gossip, err := newGossip(host)
 	if err != nil {
 		return nil, err
@@ -71,6 +77,7 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 	p2p := &Service{
 		ctx:     ctx,
 		host:    host,
+		disc:    disc,
 		gossip:  gossip,
 		msgRec:  msgRec,
 		msgSend: msgSend,
@@ -86,9 +93,19 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(s.handleStream)
 
-	s.host.startMdns()
 	s.host.bootstrap()
 	s.host.printHostAddresses()
+
+	// TODO: wait for bootstrap to finish or else mDNS will discover and attempt
+	// to connect to peers already connected to resulting in failed mDNS dials
+
+	// check if mDNS is enabled
+	if !s.host.noMdns {
+
+		// start mDNS discovery service
+		s.disc.startMdns()
+
+	}
 
 	// receive messages from core service
 	go s.receiveCoreMessages()
@@ -103,6 +120,12 @@ func (s *Service) Stop() error {
 	err := s.host.close()
 	if err != nil {
 		log.Error("Failed to close host", "err", err)
+	}
+
+	// close mDNS discovery service if service exists
+	err = s.disc.closeMdns()
+	if err != nil {
+		log.Error("Failed to close discovery", "err", err)
 	}
 
 	// close channel to core service

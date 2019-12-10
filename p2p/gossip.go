@@ -42,6 +42,9 @@ func (g *gossip) handleMessage(stream network.Stream, msg Message) {
 	// check if message has not been seen
 	if !g.hasSeen[msg.Id()] {
 
+		// set message to has been seen
+		g.hasSeen[msg.Id()] = true
+
 		log.Trace(
 			"Gossiping message from peer",
 			"host", g.host.id(),
@@ -50,9 +53,5 @@ func (g *gossip) handleMessage(stream network.Stream, msg Message) {
 
 		// broadcast message to connected peers
 		g.host.broadcast(msg)
-
-		// set message to has been seen
-		g.hasSeen[msg.Id()] = true
-
 	}
 }
