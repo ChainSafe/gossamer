@@ -17,50 +17,35 @@
 package p2p
 
 import (
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/network"
 )
 
 // gossip submodule
 type gossip struct {
-	host        *host
-	hasGossiped map[string]bool
+	host    *host
+	hasSeen map[string]bool
 }
 
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) (g *gossip, err error) {
 	g = &gossip{
-		host:        host,
-		hasGossiped: make(map[string]bool),
+		host:    host,
+		hasSeen: make(map[string]bool),
 	}
 	return g, err
 }
 
-// handleMessage gossips messages that have not already been gossiped
+// handleMessage broadcasts messages that have not been seen
 func (g *gossip) handleMessage(stream network.Stream, msg Message) {
 
-	// check if message has been gossiped
-	if !g.hasGossiped[msg.Id()] {
+	// check if message has not been seen
+	if !g.hasSeen[msg.Id()] {
 
-		// broadcast message to peers if message has not been gossiped
-		g.sendMessage(stream, msg)
+		// broadcast message to connected peers
+		g.host.broadcast(msg)
 
-		// update message to gossiped
-		g.hasGossiped[msg.Id()] = true
+		// set message to has been seen
+		g.hasSeen[msg.Id()] = true
 
-	}
-}
-
-// sendMessage broadcasts the message to connected peers
-func (g *gossip) sendMessage(stream network.Stream, msg Message) {
-
-	// loop through connected peers
-	for _, peer := range g.host.peers() {
-
-		// send message to each connected peer
-		err := g.host.send(peer, msg)
-		if err != nil {
-			log.Error("Failed to send message during gossip", "err", err)
-		}
 	}
 }
