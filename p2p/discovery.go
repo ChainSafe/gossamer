@@ -24,7 +24,7 @@ import (
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
 const mdnsPeriod = time.Minute
@@ -36,23 +36,39 @@ type Notifee struct {
 }
 
 // discovery submodule
-type disc struct {
+type discovery struct {
 	ctx  context.Context
 	host *host
-	mdns discovery.Service
+	mdns libp2pdiscovery.Service
 }
 
 // newDiscovery creates a new discovery instance from the host
-func newDiscovery(ctx context.Context, host *host) (d *disc, err error) {
-	d = &disc{
+func newDiscovery(ctx context.Context, host *host) (d *discovery, err error) {
+	d = &discovery{
 		ctx:  ctx,
 		host: host,
 	}
 	return d, err
 }
 
+// close shuts down any discovery services that are running
+func (d *discovery) close() error {
+
+	// check if mdns service running
+	if d.mdns != nil {
+
+		// close mdns service
+		err := d.mdns.Close()
+		if err != nil {
+			log.Error("Failed to close mDNS discovery service", "err", err)
+		}
+	}
+
+	return nil
+}
+
 // startMdns starts a new mDNS discovery service
-func (d *disc) startMdns() {
+func (d *discovery) startMdns() {
 
 	log.Trace(
 		"Starting mDNS discovery service...",
@@ -62,7 +78,7 @@ func (d *disc) startMdns() {
 	)
 
 	// create and start mDNS discovery service
-	mdns, err := discovery.NewMdnsService(
+	mdns, err := libp2pdiscovery.NewMdnsService(
 		d.ctx,
 		d.host.h,
 		mdnsPeriod,
@@ -81,24 +97,7 @@ func (d *disc) startMdns() {
 	d.mdns = mdns
 }
 
-// close closes the mDNS discovery service
-func (d *disc) closeMdns() error {
-
-	// check if mDNS discovery service is running
-	if d.mdns != nil {
-
-		// close mDNS discovery service
-		err := d.mdns.Close()
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
-}
-
-// HandlePeerFound is invoked when a peer is found by the mDNS discovery service
+// HandlePeerFound is event handler called when a peer is found with discovery
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	log.Trace(
 		"Peer found using mDNS discovery service",
