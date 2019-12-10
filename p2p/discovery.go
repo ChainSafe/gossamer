@@ -72,7 +72,7 @@ func (d *disc) startMdns() {
 		log.Error("Failed to start mDNS discovery service", "err", err)
 	}
 
-	// register Notifee on MDNS service
+	// register Notifee on mDNS discovery service
 	mdns.RegisterNotifee(Notifee{
 		ctx:  d.ctx,
 		host: d.host.h,
@@ -84,7 +84,7 @@ func (d *disc) startMdns() {
 // close closes the mDNS discovery service
 func (d *disc) closeMdns() error {
 
-	// check if service is running
+	// check if mDNS discovery service is running
 	if d.mdns != nil {
 
 		// close mDNS discovery service
@@ -98,7 +98,7 @@ func (d *disc) closeMdns() error {
 	return nil
 }
 
-// HandlePeerFound is invoked when a peer in discovered by the mDNS service
+// HandlePeerFound is invoked when a peer is found by the mDNS discovery service
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	log.Trace(
 		"Peer found using mDNS discovery service",
