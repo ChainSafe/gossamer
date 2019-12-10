@@ -125,7 +125,7 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service if service exists
 	err = s.disc.closeMdns()
 	if err != nil {
-		log.Error("Failed to close discovery", "err", err)
+		log.Error("Failed to close mDNS discovery service", "err", err)
 	}
 
 	// close channel to core service
