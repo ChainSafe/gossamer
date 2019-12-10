@@ -96,10 +96,7 @@ func (s *Service) Start() error {
 	s.host.bootstrap()
 	s.host.printHostAddresses()
 
-	// TODO: wait for bootstrap to finish or else mDNS will discover and attempt
-	// to connect to peers already connected to resulting in failed mDNS dials
-
-	// check if mDNS is enabled
+	// check if mDNS discovery service is enabled
 	if !s.host.noMdns {
 
 		// start mDNS discovery service
@@ -190,7 +187,7 @@ func (s *Service) handleStream(stream net.Stream) {
 	msg, err := parseMessage(stream)
 	if err != nil {
 		log.Error("Failed to parse message from peer", "err", err)
-		return // exit on error
+		return // exit
 	}
 
 	log.Trace(
