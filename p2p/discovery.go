@@ -69,7 +69,6 @@ func (d *discovery) close() error {
 
 // startMdns starts a new mDNS discovery service
 func (d *discovery) startMdns() {
-
 	log.Trace(
 		"Starting mDNS discovery service...",
 		"host", d.host.id(),
