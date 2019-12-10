@@ -90,8 +90,8 @@ func (s *Service) Start() error {
 	s.host.bootstrap()
 	s.host.printHostAddresses()
 
-	// broadcast messages from core service
-	go s.broadcastMessages()
+	// receive messages from core service
+	go s.receiveCoreMessages()
 
 	return nil
 }
@@ -142,8 +142,8 @@ func (s *Service) sendStatusMessages(peer peer.ID) {
 	}
 }
 
-// broadcastMessages broadcasts messages from the core service
-func (s *Service) broadcastMessages() {
+// receiveCoreMessages broadcasts messages from the core service
+func (s *Service) receiveCoreMessages() {
 	for {
 		// receive message from core service
 		msg := <-s.msgRec
