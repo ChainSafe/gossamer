@@ -297,6 +297,11 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
+// fullAddr returns the first full multiaddress of the host
+func (h *host) fullAddr() (maddrs ma.Multiaddr) {
+	return h.fullAddrs()[0]
+}
+
 // fullAddrs returns the full multiaddresses of the host
 func (h *host) fullAddrs() (maddrs []ma.Multiaddr) {
 	addrs := h.h.Addrs()
@@ -308,4 +313,14 @@ func (h *host) fullAddrs() (maddrs []ma.Multiaddr) {
 		maddrs = append(maddrs, maddr)
 	}
 	return maddrs
+}
+
+// addrInfo returns the libp2p AddrInfo of the host
+func (h *host) addrInfo() (addrInfo *peer.AddrInfo, err error) {
+	addr := h.fullAddr()
+	addrInfo, err = peer.AddrInfoFromP2pAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+	return addrInfo, nil
 }
