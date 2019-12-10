@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// tests host connect method
+// test host connect method
 func TestConnect(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -80,7 +80,7 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-// tests host bootstrap method on start
+// test host bootstrap method on start
 func TestBootstrap(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -130,7 +130,7 @@ func TestBootstrap(t *testing.T) {
 	}
 }
 
-// tests host ping method
+// test host ping method
 func TestPing(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -184,7 +184,7 @@ func TestPing(t *testing.T) {
 	}
 }
 
-// tests host send method
+// test host send method
 func TestSend(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
@@ -241,7 +241,7 @@ func TestSend(t *testing.T) {
 	}
 }
 
-// tests host broadcast method
+// test host broadcast method
 func TestBroadcast(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
