@@ -194,13 +194,14 @@ func (s *Service) handleMessage(stream network.Stream, msg Message) {
 		// send all non-status messages to core service
 		s.msgSend <- msg
 
-		// check if gossip is enabled
-		if !s.host.noGossip {
+	}
 
-			// handle message with gossip if gossip is enabled
-			s.gossip.handleMessage(stream, msg)
+	// check if gossip is enabled
+	if !s.host.noGossip {
 
-		}
+		// broadcast message if message has not been seen
+		s.gossip.handleMessage(stream, msg)
+
 	}
 }
 
