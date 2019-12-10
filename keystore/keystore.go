@@ -78,23 +78,23 @@ func (ks *Keystore) Sr25519Keypairs() []crypto.Keypair {
 }
 
 func (ks *Keystore) Secp256k1PublicKeys() []crypto.PublicKey {
-	srkeys := []crypto.PublicKey{}
+	sckeys := []crypto.PublicKey{}
 	for _, key := range ks.keys {
 		if _, ok := key.(*secp256k1.Keypair); ok {
-			srkeys = append(srkeys, key.Public())
+			sckeys = append(sckeys, key.Public())
 		}
 	}
-	return srkeys
+	return sckeys
 }
 
 func (ks *Keystore) Secp256k1Keypairs() []crypto.Keypair {
-	edkeys := []crypto.Keypair{}
+	sckeys := []crypto.Keypair{}
 	for _, key := range ks.keys {
 		if _, ok := key.(*secp256k1.Keypair); ok {
-			edkeys = append(edkeys, key)
+			sckeys = append(sckeys, key)
 		}
 	}
-	return edkeys
+	return sckeys
 }
 
 func (ks *Keystore) GetKeypair(pub crypto.PublicKey) crypto.Keypair {
