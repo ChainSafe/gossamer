@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,11 +30,14 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/codec"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/trie"
-	"golang.org/x/crypto/ed25519"
 )
 
 const POLKADOT_RUNTIME_FP string = "../substrate_test_runtime.compact.wasm"
@@ -543,17 +547,24 @@ func TestExt_ed25519_verify(t *testing.T) {
 	copy(mem[msgData:msgData+len(msg)], msg)
 
 	// create key
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	kp, err := ed25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	priv := kp.Private()
+	pub := kp.Public()
+
 	// copy public key into memory
 	pubkeyData := 180
-	copy(mem[pubkeyData:pubkeyData+len(pub)], pub)
+	copy(mem[pubkeyData:pubkeyData+len(pub.Encode())], pub.Encode())
 
 	// sign message, copy signature into memory
-	sig := ed25519.Sign(priv, msg)
+	sig, err := priv.Sign(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	sigData := 222
 	copy(mem[sigData:sigData+len(sig)], sig)
 
@@ -594,7 +605,7 @@ func TestExt_sr25519_verify(t *testing.T) {
 	copy(mem[msgData:msgData+len(msg)], msg)
 
 	// create key
-	kp, err := crypto.GenerateSr25519Keypair()
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -645,14 +656,16 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	mem := runtime.vm.Memory.Data()
 
 	// construct expected trie
+	// test values used in paritytech substrate tests
+	//  https://github.com/paritytech/substrate/blob/6e242a5a9fcc5d5ea34386864ec064a01677efff/client/executor/src/integration_tests/mod.rs#L419
+	//  Expected value:  0x9243f4bb6fa633dce97247652479ed7e2e2995a5ea641fd9d1e1a046f7601da6
 	tests := []struct {
 		key   []byte
 		value []byte
 	}{
-		{key: []byte{0}, value: []byte("pen")},
-		{key: []byte{1}, value: []byte("penguin")},
-		{key: []byte{2}, value: []byte("feather")},
-		{key: []byte{3}, value: []byte("noot")},
+		{key: []byte{0}, value: []byte("zero")},
+		{key: []byte{1}, value: []byte("one")},
+		{key: []byte{2}, value: []byte("two")},
 	}
 
 	expectedTrie := &trie.Trie{}
@@ -660,7 +673,12 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 	lensArray := []byte{}
 
 	for _, test := range tests {
-		e := expectedTrie.Put(test.key, test.value)
+		keyBigInt := new(big.Int).SetBytes(test.key)
+		encodedKey, err2 := codec.Encode(keyBigInt)
+		if err2 != nil {
+			t.Fatal(err2)
+		}
+		e := expectedTrie.Put(encodedKey, test.value)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -987,7 +1005,7 @@ func TestExt_sr25519_generate(t *testing.T) {
 	}
 
 	pubkeyData := mem[out : out+32]
-	pubkey, err := crypto.NewSr25519PublicKey(pubkeyData)
+	pubkey, err := sr25519.NewPublicKey(pubkeyData)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1034,7 +1052,7 @@ func TestExt_ed25519_generate(t *testing.T) {
 	}
 
 	pubkeyData := mem[out : out+32]
-	pubkey, err := crypto.NewEd25519PublicKey(pubkeyData)
+	pubkey, err := ed25519.NewPublicKey(pubkeyData)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1058,7 +1076,7 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 
 	var kp crypto.Keypair
 	for i := 0; i < numKps; i++ {
-		kp, err = crypto.GenerateEd25519Keypair()
+		kp, err = ed25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1070,7 +1088,7 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 
 	// put some sr25519 keypairs in the keystore to make sure they don't get returned
 	for i := 0; i < numKps; i++ {
-		kp, err = crypto.GenerateSr25519Keypair()
+		kp, err = sr25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1128,7 +1146,7 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 
 	var kp crypto.Keypair
 	for i := 0; i < numKps; i++ {
-		kp, err = crypto.GenerateSr25519Keypair()
+		kp, err = sr25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1140,7 +1158,7 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 
 	// put some ed25519 keypairs in the keystore to make sure they don't get returned
 	for i := 0; i < numKps; i++ {
-		kp, err = crypto.GenerateEd25519Keypair()
+		kp, err = ed25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1196,7 +1214,7 @@ func TestExt_ed25519_sign(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
-	kp, err := crypto.GenerateEd25519Keypair()
+	kp, err := ed25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1228,7 +1246,7 @@ func TestExt_ed25519_sign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sig := mem[out : out+crypto.Ed25519SignatureLength]
+	sig := mem[out : out+ed25519.SignatureLength]
 
 	ok = kp.Public().Verify(msgData, sig)
 	if !ok {
@@ -1245,7 +1263,7 @@ func TestExt_sr25519_sign(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
-	kp, err := crypto.GenerateSr25519Keypair()
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1277,7 +1295,7 @@ func TestExt_sr25519_sign(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sig := mem[out : out+crypto.Sr25519SignatureLength]
+	sig := mem[out : out+sr25519.SignatureLength]
 	t.Log(sig)
 
 	ok = kp.Public().Verify(msgData, sig)
