@@ -170,7 +170,7 @@ func getKeyFiles(datadir string) ([]string, error) {
 // it returns the resulting filepath of the new key
 func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	if password == nil {
-		password = getPassword()
+		password = getPassword("Enter password to encrypt keystore file:")
 	}
 
 	if keytype == "" {
@@ -265,14 +265,15 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 }
 
 // prompt user to enter password for encrypted keystore
-func getPassword() []byte {
+func getPassword(msg string) []byte {
 	for {
-		fmt.Println("Enter password to encrypt keystore file:")
+		fmt.Println(msg)
 		fmt.Print("> ")
 		password, err := terminal.ReadPassword(int(syscall.Stdin))
 		if err != nil {
 			fmt.Printf("invalid input: %s\n", err)
 		} else {
+			fmt.Printf("\n")
 			return password
 		}
 	}

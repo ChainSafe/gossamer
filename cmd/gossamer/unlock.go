@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/keystore"
-	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -38,8 +37,6 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 		return err
 	}
 
-	log.Info("unlock", "keystoredir", keydir)
-
 	// indices of keys to unlock
 	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
 		indices, err = common.StringToInts(keyindices)
@@ -52,7 +49,12 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 	if passwordsStr := ctx.String(utils.PasswordFlag.Name); passwordsStr != "" {
 		passwords = strings.Split(passwordsStr, ",")
 	} else {
-		return fmt.Errorf("no passwords specified; use --password=[pwd]")
+		// no passwords specified, prompt user
+		passwords = []string{}
+		for _, idx := range indices {
+			pwd := getPassword(fmt.Sprintf("Enter password to decrypt keystore file [%d]:", idx))
+			passwords = append(passwords, string(pwd))
+		}
 	}
 
 	if len(passwords) != len(indices) {
