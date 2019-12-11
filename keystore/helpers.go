@@ -5,6 +5,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
@@ -14,6 +15,8 @@ func PrivateKeyToKeypair(priv crypto.PrivateKey) (kp crypto.Keypair, err error) 
 		kp, err = sr25519.NewKeypairFromPrivate(key)
 	} else if key, ok := priv.(*ed25519.PrivateKey); ok {
 		kp, err = ed25519.NewKeypairFromPrivate(key)
+	} else if key, ok := priv.(*secp256k1.PrivateKey); ok {
+		kp, err = secp256k1.NewKeypairFromPrivate(key)
 	} else {
 		return nil, errors.New("cannot decode key: invalid key type")
 	}
@@ -27,6 +30,8 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 		priv, err = ed25519.NewPrivateKey(in)
 	} else if keytype == crypto.Sr25519Type {
 		priv, err = sr25519.NewPrivateKey(in)
+	} else if keytype == crypto.Secp256k1Type {
+		priv, err = secp256k1.NewPrivateKey(in)
 	} else {
 		return nil, errors.New("cannot decode key: invalid key type")
 	}
