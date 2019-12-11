@@ -75,6 +75,9 @@ func TestUnlockFlag(t *testing.T) {
 		[]string{"datadir", "genesis"},
 		[]interface{}{testKeystoreDir, genesispath},
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	command := initCommand
 	err = command.Run(ctx)

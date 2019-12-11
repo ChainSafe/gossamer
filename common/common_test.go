@@ -46,7 +46,7 @@ func TestStringToInts(t *testing.T) {
 	}
 
 	in = "1,noot"
-	res, err = StringToInts(in)
+	_, err = StringToInts(in)
 	if err == nil {
 		t.Fatal("should fail")
 	}
