@@ -148,6 +148,8 @@ func getKeyFiles(datadir string) ([]string, error) {
 		return nil, fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
+	fmt.Printf("getKeyFiles datadir %s\n", keystorepath)
+
 	files, err := ioutil.ReadDir(keystorepath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read keystore dir: %s", err)
@@ -193,6 +195,10 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		}
 	}
 
+	// if !common.Exists(keystorepath) {
+	// 	os.Mkdir(keystorepath, os.ModePerm)
+	// }
+
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
@@ -229,9 +235,17 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 // by default, it is ~/.gossamer/keystore/
 // otherwise, it is datadir/keystore/
 func keystoreDir(datadir string) (keystorepath string, err error) {
+	// if datadir does not exist, create it
+	if _, err := os.Stat(datadir); os.IsNotExist(err) {
+		err = os.Mkdir(datadir, os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	// datadir specified, return datadir/keystore as absolute path
 	if datadir != "" {
-		keystorepath, err = filepath.Abs(datadir)
+		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {
 			return "", err
 		}
@@ -245,6 +259,7 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 		}
 	}
 
+	// if datadir/keystore does not exist, create it
 	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
 		err = os.Mkdir(keystorepath, os.ModePerm)
 		if err != nil {

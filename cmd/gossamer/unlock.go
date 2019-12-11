@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/keystore"
+	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -31,6 +32,13 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 	var indices []int
 	var passwords []string
 	var err error
+
+	keydir, err := keystoreDir(datadir)
+	if err != nil {
+		return err
+	}
+
+	log.Info("unlock", "keystoredir", keydir)
 
 	// indices of keys to unlock
 	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
@@ -66,14 +74,14 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 		}
 
 		keyfile := keyfiles[idx]
-		priv, err := keystore.ReadFromFileAndDecrypt(datadir+"/"+keyfile, []byte(passwords[i]))
+		priv, err := keystore.ReadFromFileAndDecrypt(keydir+"/"+keyfile, []byte(passwords[i]))
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot decrypt key file %s: %s", keyfile, err)
 		}
 
 		kp, err := keystore.PrivateKeyToKeypair(priv)
 		if err != nil {
-			return err
+			return fmt.Errorf("cannot create keypair from private key %d: %s", idx, err)
 		}
 
 		ks.Insert(kp)
