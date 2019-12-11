@@ -55,7 +55,7 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 		return err
 	}
 
-	if len(keyfiles) != len(indices) {
+	if len(keyfiles) < len(indices) {
 		return fmt.Errorf("number of accounts to unlock is greater than number of accounts in keystore")
 	}
 
