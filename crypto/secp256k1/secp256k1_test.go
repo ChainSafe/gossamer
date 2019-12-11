@@ -3,6 +3,8 @@ package secp256k1
 import (
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/common"
 )
 
 func TestSignAndVerify(t *testing.T) {
@@ -12,7 +14,12 @@ func TestSignAndVerify(t *testing.T) {
 	}
 
 	msg := []byte("borkbork")
-	sig, err := kp.private.Sign(msg)
+	hash, err := common.Blake2bHash(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig, err := kp.private.Sign(hash[:])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +27,7 @@ func TestSignAndVerify(t *testing.T) {
 	t.Log(sig)
 	t.Log(len(sig))
 
-	ok, err := kp.public.Verify(msg, sig[:64])
+	ok, err := kp.public.Verify(hash[:], sig[:64])
 	if err != nil {
 		t.Fatal(err)
 	}
