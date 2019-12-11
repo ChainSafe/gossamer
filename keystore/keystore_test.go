@@ -32,7 +32,6 @@ func TestKeystore(t *testing.T) {
 func TestGetSr25519PublicKeys(t *testing.T) {
 	ks := NewKeystore()
 
-	testKps := []crypto.Keypair{}
 	expectedPubkeys := []crypto.PublicKey{}
 	numKps := 12
 
@@ -42,7 +41,6 @@ func TestGetSr25519PublicKeys(t *testing.T) {
 			t.Fatal(err)
 		}
 		ks.Insert(kp)
-		testKps = append(testKps, kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
@@ -70,7 +68,6 @@ func TestGetSr25519PublicKeys(t *testing.T) {
 func TestGetEd25519PublicKeys(t *testing.T) {
 	ks := NewKeystore()
 
-	testKps := []crypto.Keypair{}
 	expectedPubkeys := []crypto.PublicKey{}
 	numKps := 10
 
@@ -80,7 +77,6 @@ func TestGetEd25519PublicKeys(t *testing.T) {
 			t.Fatal(err)
 		}
 		ks.Insert(kp)
-		testKps = append(testKps, kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
@@ -108,7 +104,6 @@ func TestGetEd25519PublicKeys(t *testing.T) {
 func TestGetSecp256k1PublicKeys(t *testing.T) {
 	ks := NewKeystore()
 
-	testKps := []crypto.Keypair{}
 	expectedPubkeys := []crypto.PublicKey{}
 	numKps := 10
 
@@ -118,7 +113,6 @@ func TestGetSecp256k1PublicKeys(t *testing.T) {
 			t.Fatal(err)
 		}
 		ks.Insert(kp)
-		testKps = append(testKps, kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
