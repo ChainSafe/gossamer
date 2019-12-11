@@ -31,23 +31,23 @@ func loadGenesis(ctx *cli.Context) error {
 
 	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
 
-	// DB: Create service, initialize stateDB and blockDB
-	dbSrv := state.NewService(fig.Global.DataDir)
+	// Create service, initialize stateDB and blockDB
+	stateSrv := state.NewService(fig.Global.DataDir)
 
-	err = dbSrv.Start()
+	err = stateSrv.Start()
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		err = dbSrv.Stop()
+		err = stateSrv.Stop()
 		if err != nil {
 			log.Error("error stopping database service")
 		}
 	}()
 
 	tdb := &trie.Database{
-		Db: dbSrv.Storage.Db.Db,
+		Db: stateSrv.Storage.Db.Db,
 	}
 
 	// create and load storage trie with initial genesis state
