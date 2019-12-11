@@ -27,12 +27,12 @@ var (
 	// Data prefixes
 	headerPrefix     = []byte("hdr") // headerPrefix + hash -> header
 	blockDataPrefix  = []byte("bld") // blockDataPrefix + hash -> blockData
-	headerHashPrefix = []byte("hsh")
+	headerHashPrefix = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
 )
 
 // encodeBlockNumber encodes a block number as big endian uint64
 func encodeBlockNumber(number uint64) []byte {
-	enc := make([]byte, 8)
+	enc := make([]byte, 8) // encoding results in 8 bytes
 	binary.BigEndian.PutUint64(enc, number)
 	return enc
 }
