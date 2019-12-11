@@ -236,7 +236,7 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 // otherwise, it is datadir/keystore/
 func keystoreDir(datadir string) (keystorepath string, err error) {
 	// if datadir does not exist, create it
-	if _, err := os.Stat(datadir); os.IsNotExist(err) {
+	if _, err = os.Stat(datadir); os.IsNotExist(err) {
 		err = os.Mkdir(datadir, os.ModePerm)
 		if err != nil {
 			return "", err
@@ -260,7 +260,7 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 	}
 
 	// if datadir/keystore does not exist, create it
-	if _, err := os.Stat(keystorepath); os.IsNotExist(err) {
+	if _, err = os.Stat(keystorepath); os.IsNotExist(err) {
 		err = os.Mkdir(keystorepath, os.ModePerm)
 		if err != nil {
 			return "", err
