@@ -148,8 +148,6 @@ func getKeyFiles(datadir string) ([]string, error) {
 		return nil, fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
-	fmt.Printf("getKeyFiles datadir %s\n", keystorepath)
-
 	files, err := ioutil.ReadDir(keystorepath)
 	if err != nil {
 		return nil, fmt.Errorf("could not read keystore dir: %s", err)
@@ -194,10 +192,6 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 			return "", fmt.Errorf("could not generate ed25519 keypair: %s", err)
 		}
 	}
-
-	// if !common.Exists(keystorepath) {
-	// 	os.Mkdir(keystorepath, os.ModePerm)
-	// }
 
 	keystorepath, err := keystoreDir(datadir)
 	if err != nil {
