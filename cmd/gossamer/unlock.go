@@ -51,6 +51,8 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 	// passwords corresponding to the keys
 	if passwordsStr := ctx.String(utils.PasswordFlag.Name); passwordsStr != "" {
 		passwords = strings.Split(passwordsStr, ",")
+	} else {
+		return fmt.Errorf("no passwords specified; use --password=[pwd]")
 	}
 
 	if len(passwords) != len(indices) {

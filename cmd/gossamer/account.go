@@ -229,14 +229,6 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 // by default, it is ~/.gossamer/keystore/
 // otherwise, it is datadir/keystore/
 func keystoreDir(datadir string) (keystorepath string, err error) {
-	// if datadir does not exist, create it
-	if _, err = os.Stat(datadir); os.IsNotExist(err) {
-		err = os.Mkdir(datadir, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-	}
-
 	// datadir specified, return datadir/keystore as absolute path
 	if datadir != "" {
 		keystorepath, err = filepath.Abs(datadir + "/keystore")
@@ -245,11 +237,19 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 		}
 	} else {
 		// datadir not specified, return ~/.gossamer/keystore as absolute path
-		home := cfg.DefaultDataDir()
+		datadir = cfg.DefaultDataDir()
 
-		keystorepath, err = filepath.Abs(home + "/keystore")
+		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {
 			return "", fmt.Errorf("could not create keystore file path: %s", err)
+		}
+	}
+
+	// if datadir does not exist, create it
+	if _, err = os.Stat(datadir); os.IsNotExist(err) {
+		err = os.Mkdir(datadir, os.ModePerm)
+		if err != nil {
+			return "", err
 		}
 	}
 
