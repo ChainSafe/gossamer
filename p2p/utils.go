@@ -17,18 +17,9 @@
 package p2p
 
 import (
-
-	// leb128 "github.com/filecoin-project/go-leb128"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
-
-// TODO: implement LEB128 variable-length encoding
-
-// Decodes a byte array to uint64 using LEB128 variable-length encoding
-// func leb128ToUint64(in []byte) uint64 {
-// 	return leb128.ToUInt64(in)
-// }
 
 func peerIdsToStrings(peers []peer.ID) []string {
 	stringPeers := make([]string, len(peers))
