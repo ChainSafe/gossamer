@@ -216,7 +216,7 @@ func TestExchangeStatusMessages(t *testing.T) {
 
 	time.Sleep(TestStatusTimeout)
 
-	statusB := nodeA.host.peerStatus[nodeB.host.h.ID()]
+	statusB := nodeA.status.peerConfirmed[nodeB.host.h.ID()]
 	if statusB == false {
 		t.Error(
 			"node A did not receive status message from node B",
@@ -225,7 +225,7 @@ func TestExchangeStatusMessages(t *testing.T) {
 		)
 	}
 
-	statusA := nodeB.host.peerStatus[nodeA.host.h.ID()]
+	statusA := nodeB.status.peerConfirmed[nodeA.host.h.ID()]
 	if statusA == false {
 		t.Error(
 			"node B did not receive status message from node A",

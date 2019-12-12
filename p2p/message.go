@@ -17,6 +17,7 @@
 package p2p
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 	"math/big"
 
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -56,8 +58,24 @@ type Message interface {
 	Id() string
 }
 
-// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
-func DecodeMessage(r io.Reader) (m Message, err error) {
+func parseMessage(stream network.Stream) (Message, error) {
+	rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))
+
+	_, err := rw.Reader.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+
+	msg, err := decodeMessage(rw.Reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg, nil
+}
+
+// decodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
+func decodeMessage(r io.Reader) (m Message, err error) {
 	msgType := make([]byte, 1)
 	_, err = r.Read(msgType)
 	if err != nil {

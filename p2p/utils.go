@@ -17,12 +17,29 @@
 package p2p
 
 import (
+
+	// leb128 "github.com/filecoin-project/go-leb128"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
-	maddr, err := ma.NewMultiaddr(peerString)
+// TODO: implement LEB128 variable-length encoding
+
+// Decodes a byte array to uint64 using LEB128 variable-length encoding
+// func leb128ToUint64(in []byte) uint64 {
+// 	return leb128.ToUInt64(in)
+// }
+
+func peerIdsToStrings(peers []peer.ID) []string {
+	stringPeers := make([]string, len(peers))
+	for i, peer := range peers {
+		stringPeers[i] = peer.String()
+	}
+	return stringPeers
+}
+
+func stringToAddrInfo(s string) (peer.AddrInfo, error) {
+	maddr, err := ma.NewMultiaddr(s)
 	if err != nil {
 		return peer.AddrInfo{}, err
 	}
@@ -33,26 +50,14 @@ func stringToPeerInfo(peerString string) (peer.AddrInfo, error) {
 	return *p, err
 }
 
-func stringsToPeerInfos(peers []string) ([]peer.AddrInfo, error) {
+func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
 	pinfos := make([]peer.AddrInfo, len(peers))
 	for i, p := range peers {
-		p, err := stringToPeerInfo(p)
+		p, err := stringToAddrInfo(p)
 		if err != nil {
 			return nil, err
 		}
 		pinfos[i] = p
 	}
 	return pinfos, nil
-}
-
-// PeerIdToStringArray Converts an array of Peer.ID into a string array
-func PeerIdToStringArray(peers []peer.ID) []string {
-	//Copy peer.ID array into a string array
-	stringPeers := make([]string, len(peers))
-
-	for i, peer := range peers {
-		stringPeers[i] = peer.String()
-	}
-
-	return stringPeers
 }
