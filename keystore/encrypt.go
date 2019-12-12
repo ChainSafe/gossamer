@@ -13,6 +13,9 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -20,6 +23,20 @@ type EncryptedKeystore struct {
 	Type       string
 	PublicKey  string
 	Ciphertext []byte
+}
+
+func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey, err error) {
+	if keytype == crypto.Ed25519Type {
+		priv, err = ed25519.NewPrivateKey(in)
+	} else if keytype == crypto.Sr25519Type {
+		priv, err = sr25519.NewPrivateKey(in)
+	} else if keytype == crypto.Secp256k1Type {
+		priv, err = secp256k1.NewPrivateKey(in)
+	} else {
+		return nil, errors.New("cannot decode key: invalid key type")
+	}
+
+	return priv, err
 }
 
 // gcmFromPassphrase creates a symmetric AES key given a password
@@ -86,7 +103,7 @@ func DecryptPrivateKey(data, password []byte, keytype string) (crypto.PrivateKey
 		return nil, err
 	}
 
-	return crypto.DecodePrivateKey(pk, keytype)
+	return DecodePrivateKey(pk, keytype)
 }
 
 // EncryptAndWriteToFile encrypts the `crypto.PrivateKey` using the password and saves it to the specified file
@@ -102,16 +119,20 @@ func EncryptAndWriteToFile(file *os.File, pk crypto.PrivateKey, password []byte)
 	}
 
 	keytype := ""
-	if _, ok := pk.(*crypto.Ed25519PrivateKey); ok {
+	if _, ok := pk.(*ed25519.PrivateKey); ok {
 		keytype = crypto.Ed25519Type
 	}
 
-	if _, ok := pk.(*crypto.Sr25519PrivateKey); ok {
+	if _, ok := pk.(*sr25519.PrivateKey); ok {
 		keytype = crypto.Sr25519Type
 	}
 
+	if _, ok := pk.(*secp256k1.PrivateKey); ok {
+		keytype = crypto.Secp256k1Type
+	}
+
 	if keytype == "" {
-		return errors.New("cannot write key not of type sr25519, ed25519")
+		return errors.New("cannot write key not of type sr25519, ed25519, secp256k1")
 	}
 
 	keydata := &EncryptedKeystore{
