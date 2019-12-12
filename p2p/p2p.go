@@ -218,6 +218,18 @@ func (s *Service) ID() string {
 	return s.host.id()
 }
 
+// NetworkState returns information about host needed for the rpc server
+func (s *Service) NetworkState() (ns NetworkState) {
+	return NetworkState{
+		PeerId: s.host.id(),
+	}
+}
+
+// NoBootstrapping returns true if bootstrapping is disabled, otherwise false
+func (s *Service) NoBootstrapping() bool {
+	return s.host.noBootstrap
+}
+
 // Peers returns connected peers
 func (s *Service) Peers() []string {
 	return peerIdsToStrings(s.host.peers())
@@ -235,16 +247,4 @@ func (s *Service) PeerInfo(peerId string) (peerInfo PeerInfo) {
 		peerInfo = s.status.peerInfo[p]
 	}
 	return peerInfo
-}
-
-// NetworkState returns information about host needed for the rpc server
-func (s *Service) NetworkState() (ns NetworkState) {
-	return NetworkState{
-		PeerId: s.host.id(),
-	}
-}
-
-// NoBootstrapping returns true if bootstrapping is disabled, otherwise false
-func (s *Service) NoBootstrapping() bool {
-	return s.host.noBootstrap
 }
