@@ -13,6 +13,7 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 
@@ -54,9 +55,9 @@ func handleAccounts(ctx *cli.Context) error {
 			keytype = crypto.Sr25519Type
 		} else if flagtype := ctx.Bool(utils.Ed25519Flag.Name); flagtype {
 			keytype = crypto.Ed25519Type
-		} /*else if flagtype := ctx.Bool(utils.Secp256k1Flag.Name); flagtype {
+		} else if flagtype := ctx.Bool(utils.Secp256k1Flag.Name); flagtype {
 			keytype = crypto.Secp256k1Type
-		}*/
+		}
 
 		// check if --password is set
 		var password []byte = nil
@@ -190,6 +191,12 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		kp, err = ed25519.GenerateKeypair()
 		if err != nil {
 			return "", fmt.Errorf("could not generate ed25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Secp256k1Type {
+		// generate secp256k1 keys
+		kp, err = secp256k1.GenerateKeypair()
+		if err != nil {
+			return "", fmt.Errorf("could not generate secp256k1 keypair: %s", err)
 		}
 	}
 

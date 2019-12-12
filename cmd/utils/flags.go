@@ -118,7 +118,7 @@ var (
 		Name:  "sr25519",
 		Usage: "Specify account type as sr25519",
 	}
-	Secp256k1 = cli.BoolFlag{
+	Secp256k1Flag = cli.BoolFlag{
 		Name:  "secp256k1",
 		Usage: "Specify account type as secp256k1",
 	}
