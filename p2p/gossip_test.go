@@ -22,7 +22,7 @@ import (
 )
 
 // test gossip messages to connected peers
-func TestGossipMessages(t *testing.T) {
+func TestGossip(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,

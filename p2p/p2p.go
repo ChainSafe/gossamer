@@ -228,15 +228,13 @@ func (s *Service) PeerCount() int {
 	return s.host.peerCount()
 }
 
-// PeerInfo returns information about peers needed for the rpc server
-func (s *Service) PeerInfo() (pis []PeerInfo) {
-	for _, p := range s.host.peers() {
-		if s.status.peerConfirmed[p] {
-			pi := s.status.peerInfo[p]
-			pis = append(pis, pi)
-		}
+// PeerInfo returns information about a peer needed for the rpc server
+func (s *Service) PeerInfo(peerId string) (peerInfo PeerInfo) {
+	p := stringToPeerId(peerId)
+	if s.status.peerConfirmed[p] {
+		peerInfo = s.status.peerInfo[p]
 	}
-	return pis
+	return peerInfo
 }
 
 // NetworkState returns information about host needed for the rpc server

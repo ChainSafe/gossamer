@@ -25,7 +25,7 @@ import (
 var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
-func TestExchangeStatusMessages(t *testing.T) {
+func TestStatus(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
