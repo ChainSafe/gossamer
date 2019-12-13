@@ -60,24 +60,20 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
+	"math/big"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/codec"
+
 	common "github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	xxhash "github.com/OneOfOne/xxhash"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
-
-// registry stores the RuntimeCtx for Runtimes to work around the limitation of
-// CGo which prevents passing Go pointers that point to other Go pointers
-// across the FFI.
-var registry map[int]RuntimeCtx
-var handlers int
-var mutex = sync.RWMutex{}
 
 //export ext_print_num
 func ext_print_num(context unsafe.Pointer, data C.int64_t) {
@@ -89,9 +85,11 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 func ext_malloc(context unsafe.Pointer, size int32) int32 {
 	log.Trace("[ext_malloc] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	data := instanceContext.Data()
+	runtimeCtx, ok := data.(*RuntimeCtx)
+	if !ok {
+		panic(fmt.Sprintf("%#v", data))
+	}
 
 	// Allocate memory
 	res, err := runtimeCtx.allocator.Allocate(uint32(size))
@@ -109,9 +107,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 	log.Trace("[ext_free]", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// Deallocate memory
 	err := runtimeCtx.allocator.Deallocate(uint32(addr))
@@ -148,9 +144,7 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -182,10 +176,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -203,9 +194,7 @@ func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
@@ -224,9 +213,7 @@ func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageK
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
@@ -249,10 +236,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	root, err := t.Hash()
@@ -279,10 +263,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -324,10 +305,7 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
@@ -344,10 +322,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	// lock access to registry to avoid possible concurrent access
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
 	prefix := memory[prefixData : prefixData+prefixLen]
@@ -377,10 +352,17 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
 		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
 		value := memory[valuesData+pos : valuesData+pos+valueLen]
-		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%x", value), "valueLen", valueLen)
+		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%d", value), "valueLen", valueLen)
 		pos += valueLen
 
-		err := t.Put([]byte{byte(i)}, value)
+		// encode the key
+		encodedOutput, err := codec.Encode(big.NewInt(int64(i)))
+		if err != nil {
+			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			return
+		}
+		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
+		err = t.Put(encodedOutput, value)
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return
@@ -388,11 +370,11 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	}
 
 	root, err := t.Hash()
+	log.Trace("[ext_blake2_256_enumerated_trie_root]", "root hash", fmt.Sprintf("0x%x", root))
 	if err != nil {
 		log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 		return
 	}
-
 	copy(memory[result:result+32], root[:])
 }
 
@@ -493,16 +475,14 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
 	seedBytes := memory[seed : seed+seedLen]
 
-	kp, err := crypto.NewSr25519KeypairFromSeed(seedBytes)
+	kp, err := sr25519.NewKeypairFromSeed(seedBytes)
 	if err != nil {
 		log.Debug("ext_sr25519_generate cannot generate key", "error", err)
 	}
@@ -517,28 +497,121 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 //export ext_ed25519_public_keys
 func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Trace("[ext_ed25519_public_keys] executing...")
-	log.Warn("[ext_ed25519_public_keys] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
+
+	keys := runtimeCtx.keystore.Ed25519PublicKeys()
+	// TODO: when do deallocate?
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys) * 32))
+	if err != nil {
+		log.Error("[ext_ed25519_public_keys]", "error", err)
+		return -1
+	}
+
+	for i, key := range keys {
+		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
+	copy(memory[resultLen:resultLen+4], buf)
+	return int32(offset)
 }
 
 //export ext_sr25519_public_keys
 func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
 	log.Trace("[ext_sr25519_public_keys] executing...")
-	log.Warn("[ext_sr25519_public_keys] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
+
+	keys := runtimeCtx.keystore.Sr25519PublicKeys()
+
+	offset, err := runtimeCtx.allocator.Allocate(uint32(len(keys) * 32))
+	if err != nil {
+		log.Error("[ext_sr25519_public_keys]", "error", err)
+		return -1
+	}
+
+	for i, key := range keys {
+		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
+	copy(memory[resultLen:resultLen+4], buf)
+	return int32(offset)
 }
 
 //export ext_ed25519_sign
 func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
 	log.Debug("[ext_ed25519_sign] executing...")
-	log.Warn("[ext_ed25519_sign] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
+
+	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
+	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
+	if err != nil {
+		log.Error("[ext_ed25519_sign]", "error", err)
+		return 1
+	}
+
+	signingKey := runtimeCtx.keystore.GetKeypair(pubkey)
+	if signingKey == nil {
+		log.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
+		return 1
+	}
+
+	msgLenBytes := memory[msgLen : msgLen+4]
+	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
+	msg := memory[msgData : msgData+int32(msgLength)]
+	sig, err := signingKey.Sign(msg)
+	if err != nil {
+		log.Error("[ext_ed25519_sign] could not sign message")
+		return 1
+	}
+
+	copy(memory[out:out+64], sig)
 	return 0
 }
 
 //export ext_sr25519_sign
 func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
 	log.Debug("[ext_sr25519_sign] executing...")
-	log.Warn("[ext_sr25519_sign] Not yet implemented.")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
+
+	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
+	pubkey, err := sr25519.NewPublicKey(pubkeyBytes)
+	if err != nil {
+		log.Error("[ext_sr25519_sign]", "error", err)
+		return 1
+	}
+
+	signingKey := runtimeCtx.keystore.GetKeypair(pubkey)
+
+	if signingKey == nil {
+		log.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
+		return 1
+	}
+
+	msgLenBytes := memory[msgLen : msgLen+4]
+	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
+	msg := memory[msgData : msgData+int32(msgLength)]
+	sig, err := signingKey.Sign(msg)
+	if err != nil {
+		log.Error("[ext_sr25519_sign] could not sign message")
+		return 1
+	}
+
+	copy(memory[out:out+64], sig)
 	return 0
 }
 
@@ -551,16 +624,16 @@ func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 	msg := memory[msgData : msgData+msgLen]
 	sig := memory[sigData : sigData+64]
 
-	pub, err := crypto.NewSr25519PublicKey(memory[pubkeyData : pubkeyData+32])
+	pub, err := sr25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
 	if err != nil {
 		return 1
 	}
 
-	if pub.Verify(msg, sig) {
-		return 0
+	if ok, err := pub.Verify(msg, sig); err != nil || !ok {
+		return 1
 	}
 
-	return 1
+	return 0
 }
 
 //export ext_ed25519_generate
@@ -569,16 +642,14 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	mutex.RLock()
-	runtimeCtx := registry[*(*int)(instanceContext.Data())]
-	mutex.RUnlock()
+	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
 	seedBytes := memory[seed : seed+seedLen]
 
-	kp, err := crypto.NewEd25519KeypairFromSeed(seedBytes)
+	kp, err := ed25519.NewKeypairFromSeed(seedBytes)
 	if err != nil {
 		log.Debug("ext_ed25519_generate cannot generate key", "error", err)
 	}
@@ -598,16 +669,16 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 
 	msg := memory[msgData : msgData+msgLen]
 	sig := memory[sigData : sigData+64]
-	pubkey, err := crypto.NewEd25519PublicKey(memory[pubkeyData : pubkeyData+32])
+	pubkey, err := ed25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
 	if err != nil {
 		return 1
 	}
 
-	if crypto.Ed25519Verify(pubkey, msg, sig) {
-		return 0
+	if ok, err := pubkey.Verify(msg, sig); err != nil || !ok {
+		return 1
 	}
 
-	return 1
+	return 0
 }
 
 //export ext_secp256k1_ecdsa_recover

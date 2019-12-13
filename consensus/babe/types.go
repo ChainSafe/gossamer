@@ -16,9 +16,9 @@
 
 package babe
 
-// TODO: change to Schnorrkel keys
-type VrfPublicKey [32]byte
-type VrfPrivateKey [64]byte
+import (
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
+)
 
 // BabeConfiguration contains the starting data needed for Babe
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
@@ -27,15 +27,20 @@ type BabeConfiguration struct {
 	EpochLength        uint64 // duration of epoch in slots
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
-	GenesisAuthorities []AuthorityData
+	GenesisAuthorities []AuthorityDataRaw
 	Randomness         byte
 	SecondarySlots     bool
 }
 
+type AuthorityDataRaw struct {
+	Id     [32]byte
+	Weight uint64
+}
+
+//nolint:structcheck
 type AuthorityData struct {
-	// TODO: change to Schnorrkel public key
-	AuthorityId     [32]byte
-	AuthorityWeight uint64
+	id     *sr25519.PublicKey
+	weight uint64
 }
 
 type BlockInherentsData struct {

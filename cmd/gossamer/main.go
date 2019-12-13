@@ -30,6 +30,8 @@ var (
 	nodeFlags = []cli.Flag{
 		utils.DataDirFlag,
 		utils.ConfigFileFlag,
+		utils.UnlockFlag,
+		utils.PasswordFlag,
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
@@ -53,6 +55,7 @@ var (
 		utils.GenerateFlag,
 		utils.Sr25519Flag,
 		utils.Ed25519Flag,
+		//utils.Secp256k1Flag,
 		utils.ImportFlag,
 		utils.ListFlag,
 		utils.PasswordFlag,
@@ -65,7 +68,7 @@ var (
 		Name:        "dumpconfig",
 		Usage:       "Show configuration values",
 		ArgsUsage:   "",
-		Flags:       append(append(nodeFlags, rpcFlags...)),
+		Flags:       append(nodeFlags, rpcFlags...),
 		Category:    "CONFIGURATION DEBUGGING",
 		Description: `The dumpconfig command shows configuration values.`,
 	}

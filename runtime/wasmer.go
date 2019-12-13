@@ -20,9 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"runtime"
 	"sync"
-	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
@@ -74,48 +72,25 @@ func NewRuntime(code []byte, t *trie.Trie, ks *keystore.Keystore) (*Runtime, err
 		return nil, err
 	}
 
-	memAllocator := allocator.NewAllocator(&instance.Memory, 0)
+	memAllocator := allocator.NewAllocator(instance.Memory, 0)
 
-	runtimeCtx := &RuntimeCtx{
+	runtimeCtx := RuntimeCtx{
 		trie:      t,
 		allocator: memAllocator,
 		keystore:  ks,
 	}
-	// add runtimeCtx to registry
-	// lock access to registry to avoid possible concurrent access
-	mutex.Lock()
-	index := handlers
-	handlers++
-	if registry == nil {
-		registry = make(map[int]RuntimeCtx)
-	}
-	registry[index] = *runtimeCtx
-	mutex.Unlock()
 
-	log.Debug("[NewRuntime]", "index", index)
 	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
-	//nolint:gosec
-	data := unsafe.Pointer(&index)
-	instance.SetContextData(data)
+	instance.SetContextData(&runtimeCtx)
 
-	r := &Runtime{
+	r := Runtime{
 		vm:       instance,
 		trie:     t,
 		mutex:    sync.Mutex{},
 		keystore: ks,
 	}
 
-	// Clean up the registry if r is GC'd
-	runtime.SetFinalizer(r, func(_ *Runtime) {
-		// Launch a goroutine to avoid blocking the GC...
-		go func() {
-			mutex.Lock()
-			delete(registry, index)
-			mutex.Unlock()
-		}()
-	})
-
-	return r, nil
+	return &r, nil
 }
 
 func (r *Runtime) Stop() {
@@ -138,6 +113,7 @@ func (r *Runtime) Load(location, length int32) []byte {
 
 func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) {
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	// Store the data into memory
 	r.Store(data, loc)
@@ -145,7 +121,7 @@ func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) 
 
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
-		return nil, errors.New("could not find exported function (" + function + ")")
+		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 	res, err := runtimeFunc(loc, leng)
 	if err != nil {
@@ -155,12 +131,8 @@ func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) 
 
 	length := int32(resi >> 32)
 	offset := int32(resi)
-	fmt.Printf("offset %d length %d\n", offset, length)
-	mem := r.vm.Memory.Data()
-	rawdata := make([]byte, length)
-	copy(rawdata, mem[offset:offset+length])
 
-	r.mutex.Unlock()
+	rawdata := r.Load(offset, length)
 
 	return rawdata, err
 }

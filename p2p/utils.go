@@ -17,27 +17,42 @@
 package p2p
 
 import (
-	"context"
-
-	log "github.com/ChainSafe/log15"
-	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	ps "github.com/libp2p/go-libp2p-core/peerstore"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
-// See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
-type Notifee struct {
-	ctx  context.Context
-	host libp2phost.Host
+func peerIdsToStrings(ids []peer.ID) []string {
+	strings := make([]string, len(ids))
+	for i, id := range ids {
+		strings[i] = id.String()
+	}
+	return strings
 }
 
-// HandlePeerFound is invoked when a peer in discovered via mDNS
-func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
-	log.Info("mdns", "peer found", p)
+func stringToPeerId(string string) peer.ID {
+	return peer.ID(string)
+}
 
-	n.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
-	err := n.host.Connect(n.ctx, p)
+func stringToAddrInfo(s string) (peer.AddrInfo, error) {
+	maddr, err := ma.NewMultiaddr(s)
 	if err != nil {
-		log.Error("mdns", "connect error", err)
+		return peer.AddrInfo{}, err
 	}
+	p, err := peer.AddrInfoFromP2pAddr(maddr)
+	if err != nil {
+		return peer.AddrInfo{}, err
+	}
+	return *p, err
+}
+
+func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
+	pinfos := make([]peer.AddrInfo, len(peers))
+	for i, p := range peers {
+		p, err := stringToAddrInfo(p)
+		if err != nil {
+			return nil, err
+		}
+		pinfos[i] = p
+	}
+	return pinfos, nil
 }

@@ -8,7 +8,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/crypto"
+	"github.com/ChainSafe/gossamer/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
 func TestEncryptAndDecrypt(t *testing.T) {
@@ -37,7 +39,7 @@ func TestEncryptAndDecryptPrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	priv, err := crypto.NewEd25519PrivateKey(buf)
+	priv, err := ed25519.NewPrivateKey(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +83,7 @@ func TestEncryptAndDecryptFromFile_Ed25519(t *testing.T) {
 	file, fp := createTestFile(t)
 	defer os.Remove(fp)
 
-	kp, err := crypto.GenerateSr25519Keypair()
+	kp, err := ed25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +109,33 @@ func TestEncryptAndDecryptFromFile_Sr25519(t *testing.T) {
 	file, fp := createTestFile(t)
 	defer os.Remove(fp)
 
-	kp, err := crypto.GenerateSr25519Keypair()
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	priv := kp.Private()
+
+	err = EncryptAndWriteToFile(file, priv, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := ReadFromFileAndDecrypt(fp, password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(priv.Encode(), res.Encode()) {
+		t.Fatalf("Fail: got %v expected %v", res, priv)
+	}
+}
+
+func TestEncryptAndDecryptFromFile_Secp256k1(t *testing.T) {
+	password := []byte("noot")
+	file, fp := createTestFile(t)
+	defer os.Remove(fp)
+
+	kp, err := secp256k1.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}

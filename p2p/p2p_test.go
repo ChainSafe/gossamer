@@ -17,17 +17,34 @@
 package p2p
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
-	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
-func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec chan Message) *Service {
+// arbitrary block request message
+var TestMessage = &BlockRequestMessage{
+	ID:            1,
+	RequestedData: 1,
+	// TODO: investigate starting block mismatch with different slice length
+	StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
+	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	Direction:     1,
+	Max:           optional.NewUint32(true, 1),
+}
+
+// maximum wait time for non-status message to be handled
+var TestMessageTimeout = 10 * time.Second
+
+// helper method to create and start a new p2p service
+func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan Message, msgRec chan Message) {
+
+	msgRec = make(chan Message)
+	msgSend = make(chan Message)
+
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
 		t.Fatal(err)
@@ -38,333 +55,73 @@ func startNewService(t *testing.T, cfg *Config, msgSend chan Message, msgRec cha
 		t.Fatal(err)
 	}
 
-	return node
+	return node, msgSend, msgRec
 }
 
+// test p2p service starts
 func TestStartService(t *testing.T) {
 	config := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoBootstrap: true,
+		NoGossip:    true,
+		NoMdns:      true,
 	}
-	node := startNewService(t, config, nil, nil)
+	node, _, _ := createTestService(t, config)
 	node.Stop()
 }
 
-func TestBootstrap(t *testing.T) {
+// test broacast messages from core service
+func TestBroadcastMessages(t *testing.T) {
 	configA := &Config{
 		Port:        7001,
 		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoBootstrap: true,
+		NoGossip:    true,
+		NoMdns:      true,
 	}
 
-	nodeA := startNewService(t, configA, nil, nil)
+	nodeA, _, msgRecA := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
-
-	configB := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7002,
-		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeB := startNewService(t, configB, nil, nil)
-	defer nodeB.Stop()
-
-	peerCountA := nodeA.host.peerCount()
-
-	if peerCountA != 1 {
-		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountA)
-	}
-}
-
-func TestConnect(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
+	nodeA.host.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
+		NoBootstrap: true,
+		NoGossip:    true,
+		NoMdns:      true,
 	}
 
-	nodeB := startNewService(t, configB, nil, nil)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	addrA := nodeA.host.fullAddrs()[0]
+	nodeB.host.noStatus = true
 
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
+	addrInfoB, err := nodeB.host.addrInfo()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeB.host.connect(*addrInfoA)
+	err = nodeA.host.connect(*addrInfoB)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	peerCountB := nodeB.host.peerCount()
-
-	if peerCountB != 1 {
-		t.Errorf("Expected peer count: 1, got peer count: %d", peerCountB)
-	}
-}
-
-func TestPing(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	addrA := nodeA.host.fullAddrs()[0]
-
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.connect(*addrInfoA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.ping(addrInfoA.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestSendRequest(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	configB := &Config{
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	addrA := nodeA.host.fullAddrs()[0]
-
-	addrInfoA, err := peer.AddrInfoFromP2pAddr(addrA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeB.host.connect(*addrInfoA)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	addrB := nodeB.host.fullAddrs()[0]
-
-	addrInfoB, err := peer.AddrInfoFromP2pAddr(addrB)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create end block hash (arbitrary block hash)
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create block request message (RequestedData: 1 = request header)
-	blockRequest := &BlockRequestMessage{
-		ID:            1,
-		RequestedData: 1,
-		// TODO: investigate starting block mismatch with different slice length
-		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
-		EndBlockHash:  optional.NewHash(true, endBlock),
-		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
-	}
-
-	encBlockRequest, err := blockRequest.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = nodeA.host.send(*addrInfoB, encBlockRequest)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// simulate message sent from core service
+	msgRecA <- TestMessage
 
 	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
+	case msg := <-msgSendB:
+		if !reflect.DeepEqual(msg, TestMessage) {
+			t.Error(
+				"node B received unexpected message from node A",
+				"\nexpected:", TestMessage,
+				"\nreceived:", msg,
+			)
 		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
-	}
-}
-
-func TestGossiping(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	nodeA := startNewService(t, configA, nil, nil)
-	defer nodeA.Stop()
-
-	addrA := nodeA.host.fullAddrs()[0]
-
-	configB := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
-		Port:           7002,
-		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	configC := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
-		Port:           7003,
-		RandSeed:       3,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgSendC := make(chan Message)
-
-	nodeC := startNewService(t, configC, msgSendC, nil)
-	defer nodeC.Stop()
-
-	// Create end block hash (arbitrary block hash)
-	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create block request message (RequestedData: 1 = request header)
-	blockRequest := &BlockRequestMessage{
-		ID:            1,
-		RequestedData: 1,
-		// TODO: investigate starting block mismatch with different slice length
-		StartingBlock: []byte{1, 1, 1, 1, 1, 1, 1, 1, 1},
-		EndBlockHash:  optional.NewHash(true, endBlock),
-		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
-	}
-
-	// Broadcast block request message
-	err = nodeA.Broadcast(blockRequest)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeA.host.hostAddr)
-	}
-
-	select {
-	case message := <-msgSendC:
-		// Compare received message to original message
-		if !reflect.DeepEqual(message, blockRequest) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
-	}
-}
-
-func TestReceiveChannel(t *testing.T) {
-	configA := &Config{
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true, // TODO: fix no bootstrap, this should be required
-		NoMdns:      true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgRecA := make(chan Message)
-
-	nodeA := startNewService(t, configA, nil, msgRecA)
-	defer nodeA.Stop()
-
-	addrA := nodeA.host.fullAddrs()[0]
-
-	configB := &Config{
-		BootstrapNodes: []string{addrA.String()}, // Bootstrap node with node A
-		Port:           7002,
-		RandSeed:       2,
-		NoMdns:         true, // TODO: investigate failed dials, disable for now
-	}
-
-	msgSendB := make(chan Message)
-
-	nodeB := startNewService(t, configB, msgSendB, nil)
-	defer nodeB.Stop()
-
-	blockAnnounce := &BlockAnnounceMessage{
-		Number: big.NewInt(1),
-	}
-
-	msgRecA <- blockAnnounce
-
-	select {
-	case message := <-msgSendB:
-		// Compare received message to original message
-		// TODO: investigate deep equal failing without stringification
-		if !reflect.DeepEqual(message.String(), blockAnnounce.String()) {
-			t.Error("Did not receive the correct message")
-		}
-	case <-time.After(30 * time.Second):
-		t.Errorf("Did not receive message from %s", nodeB.host.hostAddr)
+	case <-time.After(TestMessageTimeout):
+		t.Error("node B timeout waiting for message")
 	}
 }

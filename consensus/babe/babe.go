@@ -29,44 +29,42 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/runtime"
 	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator
 type Session struct {
-	vrfPublicKey  VrfPublicKey
-	vrfPrivateKey VrfPrivateKey
-	rt            *runtime.Runtime
-
-	config *BabeConfiguration
-
+	keystore       *keystore.Keystore
+	rt             *runtime.Runtime
+	config         *BabeConfiguration
 	authorityIndex uint64
-
-	// authorities []VrfPublicKey
-	authorityWeights []uint64
-
+	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	isProducer     map[uint64]bool // whether we are a block producer at a slot
+	isProducer     map[uint64]bool    // whether we are a block producer at a slot
+	newBlocks      chan<- types.Block // send blocks to core service
+}
 
-	// Block announce channel used every time a block is created
-	blockAnnounce chan<- p2p.Message
+type SessionConfig struct {
+	Keystore  *keystore.Keystore
+	Runtime   *runtime.Runtime
+	NewBlocks chan<- types.Block
 }
 
 const MAX_BLOCK_SIZE uint = 4*1024*1024 + 512
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(pubkey VrfPublicKey, privkey VrfPrivateKey, rt *runtime.Runtime, blockAnnounceChannel chan<- p2p.Message) (*Session, error) {
+func NewSession(cfg *SessionConfig) (*Session, error) {
 	babeSession := &Session{
-		vrfPublicKey:  pubkey,
-		vrfPrivateKey: privkey,
-		rt:            rt,
-		txQueue:       new(tx.PriorityQueue),
-		isProducer:    make(map[uint64]bool),
-		blockAnnounce: blockAnnounceChannel,
+		keystore:   cfg.Keystore,
+		rt:         cfg.Runtime,
+		txQueue:    new(tx.PriorityQueue),
+		isProducer: make(map[uint64]bool),
+		newBlocks:  cfg.NewBlocks,
 	}
+
 	err := babeSession.configurationFromRuntime()
 	if err != nil {
 		return nil, err
@@ -109,21 +107,11 @@ func (b *Session) invokeBlockAuthoring() {
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
 		if b.isProducer[currentSlot] {
 			// TODO: implement build block
-			// block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
-			// if err != nil {
-			// 	return
-			// }
-
-			// // Broadcast the block
-			// blockAnnounceMsg := &p2p.BlockAnnounceMessage{
-			// 	ParentHash:     block.Header.ParentHash,
-			// 	Number:         block.Header.Number,
-			// 	StateRoot:      block.Header.StateRoot,
-			// 	ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-			// 	Digest:         block.Header.Digest,
-			// }
-			blockAnnounceMsg := &p2p.BlockAnnounceMessage{}
-			b.blockAnnounce <- blockAnnounceMsg
+			block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
+			if err != nil {
+				return
+			}
+			b.newBlocks <- *block
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
@@ -159,12 +147,20 @@ func (b *Session) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights)
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights())
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (b *Session) authorityWeights() []uint64 {
+	weights := make([]uint64, len(b.authorityData))
+	for i, auth := range b.authorityData {
+		weights[i] = auth.weight
+	}
+	return weights
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
