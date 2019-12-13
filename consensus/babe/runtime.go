@@ -45,21 +45,6 @@ func (b *Session) configurationFromRuntime() error {
 	return err
 }
 
-// // gets the configuration data for Babe from the runtime
-// func (b *Session) blockHashFromIdFromRuntime(blockId []byte) (*common.Hash, error) {
-// 	var loc int32 = 1000
-// 	b.rt.Store(blockId, loc)
-
-// 	ret, err := b.rt.Exec("BabeApi_block_hash_from_id", loc, blockId)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	bc := new(common.Hash)
-// 	_, err = scale.Decode(ret, bc)
-// 	return bc, err
-// }
-
 // gets the configuration data for Babe from the runtime
 func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 	var loc int32 = 1000

@@ -411,7 +411,7 @@ func TestStart(t *testing.T) {
 func TestBabeAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	newBlocks := make(chan types.Block)
+	newBlocks := make(chan *types.Block)
 
 	cfg := &SessionConfig{
 		Runtime:   rt,
@@ -446,7 +446,11 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 func TestBuildBlock(t *testing.T) {
 	rt := newRuntime(t)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	cfg := &SessionConfig{
+		Runtime: rt,
+	}
+
+	babesession, err := NewSession(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -472,12 +476,9 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatalf("Can't convert hex 0x00 to hash")
 	}
 
-	block := types.Block{
-		Header: types.BlockHeaderWithHash{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-		},
-		Body: types.BlockBody{},
+	parentHeader := types.BlockHeaderWithHash{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
 	}
 
 	// Create slot for block
@@ -487,7 +488,7 @@ func TestBuildBlock(t *testing.T) {
 		number:   1,
 	}
 
-	resultBlock, err := babesession.buildBlock(block, slot, common.Hash{0x00})
+	resultBlock, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal("buildblock test failed: ", err)
 	}

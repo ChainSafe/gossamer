@@ -26,11 +26,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/common"
+	//"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -38,19 +39,20 @@ import (
 type Session struct {
 	keystore       *keystore.Keystore
 	rt             *runtime.Runtime
+	state          *state.Service
 	config         *BabeConfiguration
 	authorityIndex uint64
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	isProducer     map[uint64]bool    // whether we are a block producer at a slot
-	newBlocks      chan<- types.Block // send blocks to core service
+	isProducer     map[uint64]bool     // whether we are a block producer at a slot
+	newBlocks      chan<- *types.Block // send blocks to core service
 }
 
 type SessionConfig struct {
 	Keystore  *keystore.Keystore
 	Runtime   *runtime.Runtime
-	NewBlocks chan<- types.Block
+	NewBlocks chan<- *types.Block
 }
 
 const MAX_BLOCK_SIZE uint = 4*1024*1024 + 512
@@ -105,13 +107,21 @@ func (b *Session) invokeBlockAuthoring() {
 	var currentSlot uint64 = 0
 
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
+		startTime := uint64(time.Now().Unix())
+
 		if b.isProducer[currentSlot] {
 			// TODO: implement build block
-			block, err := b.buildBlock(big.NewInt(int64(currentSlot)))
+			parent := b.state.Block.GetLatestBlock()
+			slot := Slot{
+				start:    startTime,
+				duration: b.config.SlotDuration,
+				number:   currentSlot,
+			}
+			block, err := b.buildBlock(parent, slot)
 			if err != nil {
 				return
 			}
-			b.newBlocks <- *block
+			b.newBlocks <- block
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
@@ -210,17 +220,17 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 }
 
 // Block Build
-func (b *Session) buildBlock(chainBest types.Block, slot Slot, hash common.Hash) (*types.Block, error) {
+func (b *Session) buildBlock(parent types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
 	// Assign the parent block's hash
-	parentBlockHeader := chainBest.Header
+	//parentBlockHeader := chainBest.Header
 	// TODO: We're assuming parent already has hash as runtime call doesn't exist
 	// parentBlockHash, err := b.blockHashFromIdFromRuntime(parentBlockHeader.Number.Bytes())
 
 	var newBlock types.Block
 	// Assign values to headers of the new block
-	newBlock.Header.ParentHash = hash
+	newBlock.Header.ParentHash = parent.Hash
 	newBlockNum := big.NewInt(1)
-	newBlock.Header.Number = newBlockNum.Add(newBlockNum, parentBlockHeader.Number)
+	newBlock.Header.Number = newBlockNum.Add(newBlockNum, parent.Number)
 
 	// Initialize block through runtime
 	encodedHeader, err := codec.Encode(&newBlock.Header)

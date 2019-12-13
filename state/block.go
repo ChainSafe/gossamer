@@ -71,7 +71,6 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 
 func (bs *blockState) GetLatestBlock() types.BlockHeaderWithHash {
 	return bs.latestBlock
-
 }
 
 func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
