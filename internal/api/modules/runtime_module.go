@@ -21,30 +21,41 @@ import (
 )
 
 type RuntimeModule struct {
-	Rt RuntimeApi
+	RuntimeApi RuntimeApi
 }
 
-// RuntimeApi is the interface expected to implemented by `runtime` package
+// RuntimeApi is the interface for the runtime package
 type RuntimeApi interface {
-	// Chain() string  //Cannot implement yet
-	Name() string //Replace with dynamic name later
-	// properties() string //Cannot implement yet
+	Chain() string
+	Name() string
+	Properties() string
 	Version() string
 }
 
-func NewRuntimeModule(RTapi RuntimeApi) *RuntimeModule {
-	return &RuntimeModule{RTapi}
+func NewRuntimeModule(runtimeApi RuntimeApi) *RuntimeModule {
+	return &RuntimeModule{runtimeApi}
 }
 
-// Release version
-func (r *RuntimeModule) Version() string {
-	log.Debug("[rpc] Executing System.Version", "params", nil)
-	//TODO: Replace with dynamic version
-	return "0.0.1"
+func (r *RuntimeModule) Chain() string {
+	log.Debug("[rpc] Executing System.Chain", "params", nil)
+	// TODO: replace with dynamic chain
+	return "Chain"
 }
 
 func (r *RuntimeModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
-	//TODO: Replace with dynamic name
+	// TODO: replace with dynamic name
 	return "Gossamer"
+}
+
+func (r *RuntimeModule) Properties() string {
+	log.Debug("[rpc] Executing System.Properties", "params", nil)
+	// TODO: replace with dynamic properties
+	return "Properties"
+}
+
+func (r *RuntimeModule) Version() string {
+	log.Debug("[rpc] Executing System.Version", "params", nil)
+	// TODO: replace with dynamic version
+	return "0.0.1"
 }
