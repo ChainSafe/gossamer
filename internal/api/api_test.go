@@ -19,7 +19,6 @@ package api
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/p2p"
 )
 
@@ -28,15 +27,9 @@ var (
 	testName         = "Gossamer"
 	testProperties   = "Properties"
 	testVersion      = "0.0.1"
-	testHealth       = p2p.Health{Peers: 1, IsSyncing: false, ShouldHavePeers: false}
-	testNetworkState = p2p.NetworkState{PeerId: "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"}
-	testPeers        = append([]p2p.PeerInfo{}, p2p.PeerInfo{
-		PeerId:          "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh",
-		Roles:           0,
-		ProtocolVersion: 0,
-		BestHash:        common.Hash{},
-		BestNumber:      0,
-	})
+	testHealth       = p2p.Health{}
+	testNetworkState = p2p.NetworkState{}
+	testPeers        = append([]p2p.PeerInfo{}, p2p.PeerInfo{})
 )
 
 // Mock RuntimeApi
