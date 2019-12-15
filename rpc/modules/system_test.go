@@ -19,7 +19,6 @@ package modules
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/internal/api"
 	module "github.com/ChainSafe/gossamer/internal/api/modules"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -30,15 +29,9 @@ var (
 	testRuntimeName       = "Gossamer"
 	testRuntimeProperties = "Properties"
 	testRuntimeVersion    = "0.0.1"
-	testHealth            = p2p.Health{Peers: 1, IsSyncing: false, ShouldHavePeers: false}
-	testNetworkState      = p2p.NetworkState{PeerId: "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh"}
-	testPeers             = append([]p2p.PeerInfo{}, p2p.PeerInfo{
-		PeerId:          "Qmc85Ephxa3sR7xaTzTq2UpCJ4a4HWAfxxaV6TarXHWVVh",
-		Roles:           0,
-		ProtocolVersion: 0,
-		BestHash:        common.Hash{},
-		BestNumber:      0,
-	})
+	testHealth            = p2p.Health{}
+	testNetworkState      = p2p.NetworkState{}
+	testPeers             = append([]p2p.PeerInfo{}, p2p.PeerInfo{})
 )
 
 // Mock runtime API
@@ -89,11 +82,11 @@ func newMockApi() *api.Api {
 func TestSystemModule_Health(t *testing.T) {
 	sys := NewSystemModule(newMockApi())
 
-	netHealth := &SystemHealthResponse{}
-	sys.Health(nil, nil, netHealth)
+	res := &SystemHealthResponse{}
+	sys.Health(nil, nil, res)
 
-	if netHealth.Health != testHealth {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, netHealth.Health)
+	if res.Health != testHealth {
+		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
 	}
 }
 
@@ -101,11 +94,11 @@ func TestSystemModule_Health(t *testing.T) {
 func TestSystemModule_NetworkState(t *testing.T) {
 	sys := NewSystemModule(newMockApi())
 
-	netState := &SystemNetworkStateResponse{}
-	sys.NetworkState(nil, nil, netState)
+	res := &SystemNetworkStateResponse{}
+	sys.NetworkState(nil, nil, res)
 
-	if netState.NetworkState != testNetworkState {
-		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, netState.NetworkState)
+	if res.NetworkState != testNetworkState {
+		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, res.NetworkState)
 	}
 }
 
@@ -113,21 +106,10 @@ func TestSystemModule_NetworkState(t *testing.T) {
 func TestSystemModule_Peers(t *testing.T) {
 	sys := NewSystemModule(newMockApi())
 
-	peersRes := &SystemPeersResponse{}
-	sys.Peers(nil, nil, peersRes)
+	res := &SystemPeersResponse{}
+	sys.Peers(nil, nil, res)
 
-	equalPeers := true
-	for i, originalPeer := range testPeers {
-		if originalPeer != peersRes.Peers[i] {
-			equalPeers = false
-		}
-	}
-
-	if len(testPeers) != len(peersRes.Peers) {
-		equalPeers = false
-	}
-
-	if equalPeers == false {
-		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, *peersRes)
+	if len(res.Peers) != len(testPeers) {
+		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
 	}
 }
