@@ -32,30 +32,31 @@ type RuntimeApi interface {
 	Version() string
 }
 
+// RuntimeModule implements RuntimeApi
 func NewRuntimeModule(runtimeApi RuntimeApi) *RuntimeModule {
 	return &RuntimeModule{runtimeApi}
 }
 
-func (r *RuntimeModule) Chain() string {
+// Chain returns runtime Chain()
+func (m *RuntimeModule) Chain() string {
 	log.Debug("[rpc] Executing System.Chain", "params", nil)
-	// TODO: replace with dynamic chain
-	return "Chain"
+	return m.RuntimeApi.Chain()
 }
 
-func (r *RuntimeModule) Name() string {
+// Name returns runtime Name()
+func (m *RuntimeModule) Name() string {
 	log.Debug("[rpc] Executing System.Name", "params", nil)
-	// TODO: replace with dynamic name
-	return "Gossamer"
+	return m.RuntimeApi.Name()
 }
 
-func (r *RuntimeModule) Properties() string {
+// Properties returns runtime Properties()
+func (m *RuntimeModule) Properties() string {
 	log.Debug("[rpc] Executing System.Properties", "params", nil)
-	// TODO: replace with dynamic properties
-	return "Properties"
+	return m.RuntimeApi.Properties()
 }
 
-func (r *RuntimeModule) Version() string {
+// Version returns runtime Version()
+func (m *RuntimeModule) Version() string {
 	log.Debug("[rpc] Executing System.Version", "params", nil)
-	// TODO: replace with dynamic version
-	return "0.0.1"
+	return m.RuntimeApi.Version()
 }

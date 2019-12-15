@@ -31,7 +31,7 @@ type SystemModule struct {
 // EmptyRequest represents an RPC request with no fields
 type EmptyRequest struct{}
 
-type NotYetImplemented string
+type StringResponse string
 
 type SystemHealthResponse struct {
 	Health p2p.Health `json:"health"`
@@ -59,25 +59,25 @@ func NewSystemModule(api *api.Api) *SystemModule {
 }
 
 // Chain returns the runtime chain
-func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *NotYetImplemented) error {
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }
 
 // Name returns the runtime name
-func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *NotYetImplemented) error {
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }
 
 // Properties returns the runtime properties
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *NotYetImplemented) error {
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }
 
 // Version returns the runtime version
-func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *NotYetImplemented) error {
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
 	*res = "not yet implemented"
 	return nil
 }

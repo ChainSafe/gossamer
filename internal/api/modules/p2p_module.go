@@ -37,19 +37,19 @@ func NewP2pModule(p2pApi P2pApi) *P2pModule {
 	return &P2pModule{p2pApi}
 }
 
-// Health returns p2p service Health() (rpc specific)
+// Health returns p2p service Health()
 func (m *P2pModule) Health() p2p.Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
 	return m.P2pApi.Health()
 }
 
-// NetworkState returns p2p service NetworkState() (rpc specific)
+// NetworkState returns p2p service NetworkState()
 func (m *P2pModule) NetworkState() p2p.NetworkState {
 	log.Debug("[rpc] Executing System.NetworkState", "params", nil)
 	return m.P2pApi.NetworkState()
 }
 
-// Peers returns p2p service Peers() (rpc specific)
+// Peers returns p2p service Peers()
 func (m *P2pModule) Peers() []p2p.PeerInfo {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return m.P2pApi.Peers()
