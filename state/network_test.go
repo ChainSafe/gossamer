@@ -34,18 +34,18 @@ func TestNetworkState(t *testing.T) {
 	// test state.Network.Health()
 	health := state.Network.Health()
 	if health != testHealth {
-		t.Fatalf("System.Health - expected %+v got: %+v\n", testHealth, health)
+		t.Errorf("System.Health - expected %+v got: %+v\n", testHealth, health)
 	}
 
 	// test state.Network.NetworkState()
 	networkState := state.Network.NetworkState()
 	if networkState != testNetworkState {
-		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", testNetworkState, networkState)
+		t.Errorf("System.NetworkState - expected %+v got: %+v\n", testNetworkState, networkState)
 	}
 
 	// test state.Network.Peers()
 	peers := state.Network.Peers()
 	if len(peers) != len(testPeers) {
-		t.Fatalf("System.Peers - expected %+v got: %+v\n", testPeers, peers)
+		t.Errorf("System.Peers - expected %+v got: %+v\n", testPeers, peers)
 	}
 }
