@@ -106,8 +106,8 @@ func (status *status) sendMessages(ctx context.Context, peer peer.ID) {
 	}
 }
 
-// handleMessage checks if the peer status is compatibale with the host status,
-// then updates peer confirmation, then updates peer info or drops the peer
+// handleMessage checks if the peer status message is compatibale with the host
+// status message, then either manages peer status or closes peer connection
 func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 	ctx := context.Background()
 	peer := stream.Conn().RemotePeer()
@@ -118,7 +118,7 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 		// update peer confirmed status message time
 		status.peerConfirmed[peer] = time.Now()
 
-		// update peer status message
+		// update peer status message (StatusMessage stored to generate PeerInfo)
 		status.peerMessage[peer] = msg
 
 		// manage status message expiration
@@ -186,7 +186,7 @@ func (status *status) closePeer(ctx context.Context, peer peer.ID) error {
 	// cancel running processes
 	ctx.Done()
 
-	// update peer status information
+	// update peer status
 	status.peerConfirmed[peer] = time.Time{}
 	status.peerMessage[peer] = nil
 
