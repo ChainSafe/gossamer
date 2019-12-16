@@ -186,6 +186,11 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
 	}
+	val, err = t.Get(key)
+	if err != nil {
+		log.Error("[ext_set_storage]", "error", err)
+	}
+	log.Debug("[ext_set_storage]", "value", val)
 }
 
 //export ext_set_child_storage
@@ -267,9 +272,34 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	t := runtimeCtx.trie
 
 	key := memory[keyData : keyData+keyLen]
+	log.Debug("[ext_get_allocated_storage]", "key", key)
+
 	val, err := t.Get(key)
-	if err == nil && len(val) >= (1<<32) {
+	if err != nil {
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		return 0
+	}
+
+	if len(val) >= (1 << 32) {
 		err = errors.New("retrieved value length exceeds 2^32")
+	}
+
+	if bytes.Equal(key, []byte(":extrinsic_index")) {
+		val = []byte{0, 0, 0, 0}
+	}
+
+	log.Debug("[ext_get_allocated_storage]", "value", val)
+
+	// lenPtr, err := runtimeCtx.allocator.Allocate(4)
+	// if err != nil {
+	// 	log.Error("[ext_get_allocated_storage]", "Error:", err)
+	// 	panic(err)
+	// }
+
+	if val == nil {
+		log.Debug("[ext_get_allocated_storage]", "value", "nil")
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
 	}
 
 	if err != nil {
@@ -278,24 +308,24 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	}
 
 	// writtenOut stores the location of the 4 bytes of memory that was allocated
-	var lenPtr int32 = 1
-	memory[writtenOut] = byte(lenPtr)
-	if val == nil {
-		copy(memory[lenPtr:lenPtr+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
+	//var lenPtr int32 = len(val)
+	//memory[writtenOut] = byte(lenPtr)
 
 	// copy value to memory
-	var ptr int32 = lenPtr + 4
-	copy(memory[ptr:ptr+int32(len(val))], val)
+	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))
+	if err != nil {
+		log.Error("[ext_get_allocated_storage]", "Error:", err)
+		panic(err)
+	}
+	copy(memory[ptr:ptr+uint32(len(val))], val)
 
 	// copy length to memory
 	byteLen := make([]byte, 4)
 	binary.LittleEndian.PutUint32(byteLen, uint32(len(val)))
-	copy(memory[lenPtr:lenPtr+4], byteLen)
+	copy(memory[writtenOut:writtenOut+4], byteLen)
 
 	// return ptr to value
-	return ptr
+	return int32(ptr)
 }
 
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`

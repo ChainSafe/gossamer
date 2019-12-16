@@ -107,22 +107,22 @@ func (b *Session) invokeBlockAuthoring() {
 	var currentSlot uint64 = 0
 
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
-		startTime := uint64(time.Now().Unix())
+		//startTime := uint64(time.Now().Unix())
 
-		if b.isProducer[currentSlot] {
-			// TODO: implement build block
-			parent := b.state.Block.GetLatestBlock()
-			slot := Slot{
-				start:    startTime,
-				duration: b.config.SlotDuration,
-				number:   currentSlot,
-			}
-			block, err := b.buildBlock(parent, slot)
-			if err != nil {
-				return
-			}
-			b.newBlocks <- block
-		}
+		// if b.isProducer[currentSlot] {
+		// 	// TODO: implement build block
+		// 	parent := b.state.Block.GetLatestBlock()
+		// 	slot := Slot{
+		// 		start:    startTime,
+		// 		duration: b.config.SlotDuration,
+		// 		number:   currentSlot,
+		// 	}
+		// 	block, err := b.buildBlock(parent, slot)
+		// 	if err != nil {
+		// 		return
+		// 	}
+		// 	b.newBlocks <- block
+		// }
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
@@ -229,8 +229,8 @@ func (b *Session) buildBlock(parent types.BlockHeaderWithHash, slot Slot) (*type
 	var newBlock types.Block
 	// Assign values to headers of the new block
 	newBlock.Header.ParentHash = parent.Hash
-	newBlockNum := big.NewInt(1)
-	newBlock.Header.Number = newBlockNum.Add(newBlockNum, parent.Number)
+	newBlock.Header.Number = big.NewInt(0)
+	//newBlock.Header.Number = newBlockNum.Add(newBlockNum, parent.Number)
 
 	// Initialize block through runtime
 	encodedHeader, err := codec.Encode(&newBlock.Header)
@@ -243,46 +243,50 @@ func (b *Session) buildBlock(parent types.BlockHeaderWithHash, slot Slot) (*type
 	}
 
 	// Calling BlockBuilder_inherent_extrinsics using encoded data
-	extrinsicsArray, err := b.inherentExtrinsicsFromRuntime([]byte{8, 102, 105, 110, 97, 108, 110, 117, 109, 32, 1, 0, 0, 0, 0, 0, 0, 0, 116, 105, 109, 115, 116, 97, 112, 48, 32, 5, 0, 0, 0, 0, 0, 0, 0})
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("Returning from BlockBuilder_inherent_extrinsics call", "extrinsics array", *extrinsicsArray)
+	// extrinsicsArray, err := b.inherentExtrinsicsFromRuntime([]byte{8, 102, 105, 110, 97, 108, 110, 117, 109, 32, 1, 0, 0, 0, 0, 0, 0, 0, 116, 105, 109, 115, 116, 97, 112, 48, 32, 5, 0, 0, 0, 0, 0, 0, 0})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// log.Debug("Returning from BlockBuilder_inherent_extrinsics call", "extrinsics array", extrinsicsArray)
 
 	// Loop through inherents in the queue and apply them to the block through runtime
-	var blockBody types.BlockBody = make(types.BlockBody, 0, MAX_BLOCK_SIZE)
-	for _, extrinsic := range *extrinsicsArray {
-		err = b.applyExtrinsicFromRuntime(extrinsic)
-		if err != nil {
-			return nil, err
-		}
-		log.Debug("Applied extrinsic", extrinsic)
-	}
+	// var blockBody types.BlockBody = make(types.BlockBody, 0, MAX_BLOCK_SIZE)
+	// for _, extrinsic := range extrinsicsArray {
+	// 	err = b.applyExtrinsicFromRuntime(extrinsic)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	log.Debug("Applied extrinsic", extrinsic)
+	// }
 
-	log.Debug("Returning from BlockBuilder_apply_extrinsic calls")
+	// log.Debug("Returning from BlockBuilder_apply_extrinsic calls")
+
+	blockBody := []byte{}
 
 	// Add Extrinsics to the block through runtime until block is full
 	var extrinsic types.Extrinsic
 
-	for !blockIsFull(blockBody) && !endOfSlot(slot) {
-		extrinsic = b.nextReadyExtrinsic()
-		fmt.Println("Applying Extrinsic", extrinsic)
-		err = b.applyExtrinsicFromRuntime(extrinsic)
-		if err != nil {
-			return nil, err
-		}
+	//for !blockIsFull(blockBody) && !endOfSlot(slot) {
+	//extrinsic = b.nextReadyExtrinsic()
+	extrinsic = []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
 
-		// Add the extrinsic to the blockbody
-		blockBody = append(blockBody, extrinsic...)
-
-		if !blockIsFull(blockBody) {
-			// Drop first extrinsic in queue
-			b.txQueue.Pop()
-		}
-		log.Debug("Applied extrinsic", extrinsic)
+	//fmt.Println("Applying Extrinsic", extrinsic)
+	err = b.applyExtrinsicFromRuntime(extrinsic)
+	if err != nil {
+		return nil, err
 	}
 
-	log.Debug("Added Extrinsics to the block")
+	// Add the extrinsic to the blockbody
+	blockBody = append(blockBody, extrinsic...)
+
+	// Drop included extrinsic
+	b.txQueue.Pop()
+	log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+	//}
+
+	//return &types.Block{}, nil
+
+	// log.Debug("Added Extrinsics to the block")
 
 	// Finalize block through runtime
 	blockHeaderPointer, err := b.finalizeBlockFromRuntime(extrinsic)

@@ -459,21 +459,39 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Push an extrinsic to the r
-	e1 := types.Extrinsic([]byte{1, 1, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 144, 113, 116, 62, 181, 98, 184, 56, 117, 228, 121, 88, 45, 21, 26, 200, 248, 62, 155, 0, 183, 222, 15, 145, 160, 249, 135, 252, 180, 226, 194, 88, 48, 123, 247, 162, 47, 213, 161, 96, 27, 77, 76, 159, 198, 1, 62, 132, 58, 140, 191, 96, 198, 4, 32, 138, 215, 61, 78, 143, 18, 32, 207, 140})
-	v1 := tx.Validity{Priority: 1}
-	tx1 := tx.NewValidTransaction(&e1, &v1)
-	babesession.PushToTxQueue(tx1)
+	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
+	txb := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
 
-	_, err = babesession.validateTransaction(e1)
-	if err != nil {
-		t.Fatal(err)
+	// validity, err := babesession.validateTransaction(txb)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
+	expected := &tx.Validity{
+		Priority: 69,
+		Requires: [][]byte{{}},
+		// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
+		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
+		Longevity: 64,
+		Propagate: true,
 	}
+
+	// if !reflect.DeepEqual(expected, validity) {
+	// 	t.Error(
+	// 		"received unexpected validity",
+	// 		"\nexpected:", expected,
+	// 		"\nreceived:", validity,
+	// 	)
+	// }
+
+	vtx := tx.NewValidTransaction(types.Extrinsic(txb), expected)
+	babesession.PushToTxQueue(vtx)
 
 	// Create a block to put the transactions
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
-		t.Fatalf("Can't convert hex 0x00 to hash")
+		t.Fatal(err)
 	}
 
 	parentHeader := types.BlockHeaderWithHash{

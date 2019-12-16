@@ -47,7 +47,8 @@ func (b *Session) configurationFromRuntime() error {
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
-	var loc int32 = 1000
+	log.Debug("BABE", "calling", "Core_initialize_block")
+	var loc int32 = 1
 	b.rt.Store(blockHeader, loc)
 
 	_, err := b.rt.Exec("Core_initialize_block", loc, blockHeader)
@@ -58,8 +59,8 @@ func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]types.Extrinsic, error) {
-	var loc int32 = 1000
+func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) ([]byte, error) {
+	var loc int32 = 1
 	b.rt.Store(blockInherentData, loc)
 
 	ret, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, blockInherentData)
@@ -67,15 +68,16 @@ func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) (*[]ty
 		return nil, err
 	}
 
-	ea := new([]types.Extrinsic)
-	_, err = scale.Decode(ret, ea)
-	return ea, err
+	log.Debug("inherent_extrinsics", "val", ret)
+	// ea := new([]types.Extrinsic)
+	// _, err = scale.Decode(ret, ea)
+	return ret, err
 }
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 	log.Debug("Executing BlockBuilder_apply_extrinsic")
-	var loc int32 = 1000
+	var loc int32 = 8
 	b.rt.Store(e, loc)
 
 	_, err := b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
@@ -87,7 +89,9 @@ func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeaderWithHash, error) {
-	var loc int32 = 1000
+	log.Debug("BABE", "calling", "BlockBuilder_finalize_block")
+
+	var loc int32 = 8
 	b.rt.Store(e, loc)
 
 	ret, err := b.rt.Exec("BlockBuilder_finalize_block", loc, e)
