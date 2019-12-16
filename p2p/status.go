@@ -17,61 +17,82 @@
 package p2p
 
 import (
+	"context"
 	"time"
 
-	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// ExpireStatusInterval is the time between checking if status expired
+const ExpireStatusInterval = 20 * time.Minute
+
 // SendStatusInterval is the time between sending status messages
 const SendStatusInterval = 5 * time.Minute
-
-// TODO: generate host status message
-var hostStatusMessage = &StatusMessage{
-	ProtocolVersion:     0,
-	MinSupportedVersion: 0,
-	Roles:               0,
-	BestBlockNumber:     0,
-	BestBlockHash:       common.Hash{0x00},
-	GenesisHash:         common.Hash{0x00},
-	ChainStatus:         []byte{0},
-}
 
 // status submodule
 type status struct {
 	host          *host
-	peerConfirmed map[peer.ID]bool
-	peerInfo      map[peer.ID]PeerInfo
+	hostMessage   *StatusMessage
+	peerConfirmed map[peer.ID]time.Time
+	peerMessage   map[peer.ID]*StatusMessage
 }
 
-// newStatus creates a new status submodule
+// newStatus creates a new status instance from host
 func newStatus(host *host) (s *status, err error) {
 	s = &status{
 		host:          host,
-		peerConfirmed: make(map[peer.ID]bool),
-		peerInfo:      make(map[peer.ID]PeerInfo),
+		peerConfirmed: make(map[peer.ID]time.Time),
+		peerMessage:   make(map[peer.ID]*StatusMessage),
 	}
 	return s, err
 }
 
+// confirmed returns true if peer is confirmed
+func (status *status) confirmed(peer peer.ID) bool {
+	return !status.peerConfirmed[peer].IsZero()
+}
+
+// setHostMessage sets the host status message
+func (status *status) setHostMessage(msg Message) {
+	status.hostMessage = msg.(*StatusMessage)
+}
+
 // handleConn starts status processes upon connection
-func (s *status) handleConn(conn network.Conn) {
+func (status *status) handleConn(conn network.Conn) {
+	ctx := context.Background()
+	peer := conn.RemotePeer()
 
-	// starts sending status messages to connected peer
-	go s.sendMessages(conn.RemotePeer())
+	// check if host message set
+	if status.hostMessage != nil {
 
+		// start sending status messages to connected peer
+		go status.sendMessages(ctx, peer)
+
+	} else {
+		log.Error(
+			"Failed to start sending status messages to peer",
+			"peer", peer,
+			"err", "host status message not set",
+		)
+	}
 }
 
 // sendMessages sends status messages to the connected peer
-func (status *status) sendMessages(peer peer.ID) {
+func (status *status) sendMessages(ctx context.Context, peer peer.ID) {
 	for {
-		// TODO: use generated status message
-		msg := hostStatusMessage
+		// ensure peer is still connected
+		connected := status.isConnected(peer)
+
+		// cancel running processes and exit loop if peer is no longer connected
+		if !connected {
+			ctx.Done()
+			return
+		}
 
 		// send host status message to peer
-		err := status.host.send(peer, msg)
+		err := status.host.send(peer, status.hostMessage)
 		if err != nil {
 			log.Error(
 				"Failed to send status message to peer",
@@ -88,32 +109,25 @@ func (status *status) sendMessages(peer peer.ID) {
 // handleMessage checks if the peer status is compatibale with the host status,
 // then updates peer confirmation, then updates peer info or drops the peer
 func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
+	ctx := context.Background()
 	peer := stream.Conn().RemotePeer()
 
 	// check if valid status message
 	if status.validMessage(msg) {
 
-		// update peer confirmed to true
-		status.peerConfirmed[peer] = true
+		// update peer confirmed status message time
+		status.peerConfirmed[peer] = time.Now()
 
-		// update peer network information
-		status.peerInfo[peer] = PeerInfo{
-			PeerId:          peer.String(),
-			Roles:           msg.Roles,
-			ProtocolVersion: msg.ProtocolVersion,
-			BestHash:        msg.BestBlockHash,
-			BestNumber:      msg.BestBlockNumber,
-		}
+		// update peer status message
+		status.peerMessage[peer] = msg
 
-		// TODO: unset peer confirmed after some time
+		// manage status message expiration
+		go status.manageExpiration(ctx, peer)
 
 	} else {
 
-		// ensure peer confirmed is false
-		status.peerConfirmed[peer] = false
-
 		// close connection with peer if status message is not valid
-		err := stream.Conn().Close()
+		err := status.closePeer(ctx, peer)
 		if err != nil {
 			log.Error("Failed to close peer with invalid status message", "err", err)
 		}
@@ -122,10 +136,62 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 
 // validMessage confirms the status message is valid
 func (status *status) validMessage(msg *StatusMessage) bool {
+	switch {
+	case msg.GenesisHash != status.hostMessage.GenesisHash:
+		log.Debug("Failed to validate status message", "err", "genesis hash")
+		return false
+	case msg.ProtocolVersion < status.hostMessage.MinSupportedVersion:
+		log.Debug("Failed to validate status message", "err", "protocol version")
+		return false
+	case msg.MinSupportedVersion > status.hostMessage.ProtocolVersion:
+		log.Debug("Failed to validate status message", "err", "protocol version")
+		return false
+	}
+	return true
+}
 
-	// TODO: generate host status message
-	hostStatusMessage := hostStatusMessage
+// manageExpiration closes peer connection if status message has exipred
+func (status *status) manageExpiration(ctx context.Context, peer peer.ID) {
 
-	// TODO: implement status message confirmation
-	return hostStatusMessage.String() == msg.String()
+	// wait to check status message
+	time.Sleep(ExpireStatusInterval)
+
+	// get time of last confirmed status message
+	lastConfirmed := status.peerConfirmed[peer]
+
+	// check if status message has expired
+	if time.Since(lastConfirmed) > ExpireStatusInterval {
+
+		// update peer information and close connection
+		err := status.closePeer(ctx, peer)
+		if err != nil {
+			log.Error("Failed to close peer with expired status message", "err", err)
+		}
+	}
+}
+
+// isConnected checks to make sure peer is still connected
+func (status *status) isConnected(peer peer.ID) (connected bool) {
+	for _, p := range status.host.peers() {
+		if p == peer {
+			connected = true
+		}
+	}
+	return connected
+}
+
+// closePeer updates status state and closes the connection
+func (status *status) closePeer(ctx context.Context, peer peer.ID) error {
+
+	// cancel running processes
+	ctx.Done()
+
+	// update peer status information
+	status.peerConfirmed[peer] = time.Time{}
+	status.peerMessage[peer] = nil
+
+	// close connection with peer
+	err := status.host.closePeer(peer)
+
+	return err
 }

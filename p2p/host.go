@@ -238,6 +238,12 @@ func (h *host) broadcast(msg Message) {
 	}
 }
 
+// closePeer closes the peer
+func (h *host) closePeer(peer peer.ID) error {
+	err := h.h.Network().ClosePeer(peer)
+	return err
+}
+
 // ping pings a peer using DHT
 func (h *host) ping(peer peer.ID) error {
 	return h.dht.Ping(h.ctx, peer)
