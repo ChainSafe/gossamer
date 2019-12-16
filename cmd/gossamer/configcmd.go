@@ -62,8 +62,15 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// TODO: load all static keys from keystore directory
+	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
+	// unlock keys, if specified
+	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+		err = unlockKeys(ctx, fig.Global.DataDir, ks)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+		}
+	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	r, err := loadStateAndRuntime(stateSrv.Storage, ks)
@@ -188,10 +195,17 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 
 // createP2PService creates a p2p service from the command configuration and genesis data
 func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
+	// Default bootnodes are from genesis
+	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
+
+	// If bootnodes flag has more than 1 bootnode, overwrite
+	if len(fig.P2p.BootstrapNodes) > 0 {
+		boostrapNodes = fig.P2p.BootstrapNodes
+	}
 
 	// p2p service configuation
 	p2pConfig := p2p.Config{
-		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
+		BootstrapNodes: boostrapNodes,
 		Port:           fig.P2p.Port,
 		RandSeed:       0,
 		NoBootstrap:    fig.P2p.NoBootstrap,
