@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -16,10 +17,18 @@ func NewStorageState(dataDir string) (*StorageState, error) {
 	if err != nil {
 		return nil, err
 	}
+	db := trie.NewDatabase(stateDb.Db)
 	return &StorageState{
-		trie: &trie.Trie{},
+		trie: trie.NewEmptyTrie(db),
 		Db:   stateDb,
 	}, nil
+}
+
+func NewStorageStateNilDb() *StorageState {
+	return &StorageState{
+		trie: trie.NewEmptyTrie(nil),
+		Db:   nil,
+	}
 }
 
 func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
@@ -51,4 +60,34 @@ func (s *StorageState) ClearStorage(key []byte) error {
 	return s.trie.Delete(key)
 }
 
-//TODO: add child storage funcs
+func (s *StorageState) LoadHash() (common.Hash, error) {
+	return s.trie.LoadHash()
+}
+
+func (s *StorageState) LoadFromDB(root common.Hash) error {
+	return s.trie.LoadFromDB(root)
+}
+
+func (s *StorageState) Entries() map[string][]byte {
+	return s.trie.Entries()
+}
+
+func (s *StorageState) LoadGenesisData() (*genesis.GenesisData, error) {
+	return s.trie.Db().LoadGenesisData()
+}
+
+func (s *StorageState) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
+	return s.trie.PutChild(keyToChild, child)
+}
+
+func (s *StorageState) GetStorageChild(keyToChild []byte) (*trie.Trie, error) {
+	return s.trie.GetChild(keyToChild)
+}
+
+func (s *StorageState) SetStorageIntoChild(keyToChild, key, value []byte) error {
+	return s.trie.PutIntoChild(keyToChild, key, value)
+}
+
+func (s *StorageState) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
+	return s.trie.GetFromChild(keyToChild, key)
+}

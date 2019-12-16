@@ -30,6 +30,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/codec"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -86,9 +88,10 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := &trie.Trie{}
+	//tt := &trie.Trie{}
+	ss := state.NewStorageStateNilDb()
 
-	r, err := NewRuntimeFromFile(fp, tt, keystore.NewKeystore())
+	r, err := NewRuntimeFromFile(fp, ss, keystore.NewKeystore())
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -167,13 +170,12 @@ func newTestRuntime() (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	t := trie.NewEmptyTrie(nil)
+	ss := state.NewStorageStateNilDb()
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewRuntimeFromFile(fp, t, keystore.NewKeystore())
+	r, err := NewRuntimeFromFile(fp, ss, keystore.NewKeystore())
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +196,7 @@ func TestExt_get_storage_into(t *testing.T) {
 	// store kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err = runtime.trie.Put(key, value)
+	err = runtime.storage.SetStorage(key, value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +264,7 @@ func TestExt_set_storage(t *testing.T) {
 	}
 
 	// make sure we can get the value from the trie
-	trieValue, err := runtime.trie.Get(key)
+	trieValue, err := runtime.storage.GetStorage(key)
 	if err != nil {
 		t.Fatal(err)
 	} else if !bytes.Equal(value, trieValue) {
@@ -282,7 +284,7 @@ func TestExt_storage_root(t *testing.T) {
 	mem := runtime.vm.Memory.Data()
 	// save result at `resultPtr` in memory
 	resultPtr := 170
-	hash, err := runtime.trie.Hash()
+	hash, err := runtime.storage.StorageRoot()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +314,7 @@ func TestExt_get_allocated_storage(t *testing.T) {
 	// put kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err = runtime.trie.Put(key, value)
+	err = runtime.storage.SetStorage(key, value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -364,7 +366,7 @@ func TestExt_clear_storage(t *testing.T) {
 	// save kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err = runtime.trie.Put(key, value)
+	err = runtime.storage.SetStorage(key, value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +386,7 @@ func TestExt_clear_storage(t *testing.T) {
 	}
 
 	// make sure value is deleted
-	ret, err := runtime.trie.Get(key)
+	ret, err := runtime.storage.GetStorage(key)
 	if err != nil {
 		t.Fatal(err)
 	} else if ret != nil {
@@ -413,7 +415,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		e := runtime.trie.Put(test.key, test.value)
+		e := runtime.storage.SetStorage(test.key, test.value)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -453,7 +455,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 
 	// make sure entries with that prefix were deleted
-	runtimeTrieHash, err := runtime.trie.Hash()
+	runtimeTrieHash, err := runtime.storage.StorageRoot()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1323,12 +1325,12 @@ func TestExt_get_child_storage_into(t *testing.T) {
 	key := []byte("mykey")
 	value := []byte("myvalue")
 
-	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	err = runtime.storage.SetStorageChild(storageKey, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = runtime.trie.PutIntoChild(storageKey, key, value)
+	err = runtime.storage.SetStorageIntoChild(storageKey, key, value)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1374,7 +1376,7 @@ func TestExt_set_child_storage(t *testing.T) {
 	key := []byte("mykey")
 	value := []byte("myvalue")
 
-	err = runtime.trie.PutChild(storageKey, trie.NewEmptyTrie(nil))
+	err = runtime.storage.SetStorageChild(storageKey, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1401,7 +1403,7 @@ func TestExt_set_child_storage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := runtime.trie.GetFromChild(storageKey, key)
+	res, err := runtime.storage.GetStorageFromChild(storageKey, key)
 	if err != nil {
 		t.Fatal(err)
 	}

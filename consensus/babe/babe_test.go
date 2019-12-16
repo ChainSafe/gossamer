@@ -28,12 +28,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	db "github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/trie"
 )
 
 const POLKADOT_RUNTIME_FP string = "../../substrate_test_runtime.compact.wasm"
@@ -84,9 +85,9 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := &trie.Trie{}
+	ss := state.NewStorageStateNilDb()
 
-	r, err := runtime.NewRuntimeFromFile(fp, tt, nil)
+	r, err := runtime.NewRuntimeFromFile(fp, ss, nil)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
