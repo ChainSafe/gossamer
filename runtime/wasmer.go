@@ -26,38 +26,37 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/keystore"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 type RuntimeCtx struct {
-	storage   *state.StorageState
+	storage   RuntimeStorage
 	allocator *allocator.FreeingBumpHeapAllocator
 	keystore  *keystore.Keystore
 }
 
 type Runtime struct {
 	vm       wasm.Instance
-	storage  *state.StorageState
+	storage  RuntimeStorage
 	keystore *keystore.Keystore
 	mutex    sync.Mutex
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, ss *state.StorageState, ks *keystore.Keystore) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, ss, ks)
+	return NewRuntime(bytes, rs, ks)
 }
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, ss *state.StorageState, ks *keystore.Keystore) (*Runtime, error) {
-	if ss == nil {
+func NewRuntime(code []byte, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime, error) {
+	if rs == nil {
 		return nil, errors.New("runtime does not have storage trie")
 	}
 
@@ -75,7 +74,7 @@ func NewRuntime(code []byte, ss *state.StorageState, ks *keystore.Keystore) (*Ru
 	memAllocator := allocator.NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := RuntimeCtx{
-		storage:   ss,
+		storage:   rs,
 		allocator: memAllocator,
 		keystore:  ks,
 	}
@@ -85,7 +84,7 @@ func NewRuntime(code []byte, ss *state.StorageState, ks *keystore.Keystore) (*Ru
 
 	r := Runtime{
 		vm:       instance,
-		storage:  ss,
+		storage:  rs,
 		mutex:    sync.Mutex{},
 		keystore: ks,
 	}
@@ -97,6 +96,7 @@ func (r *Runtime) Stop() {
 	r.vm.Close()
 }
 
+// TODO, this should be removed once core is refactored
 func (r *Runtime) StorageRoot() (common.Hash, error) {
 	return r.storage.StorageRoot()
 }

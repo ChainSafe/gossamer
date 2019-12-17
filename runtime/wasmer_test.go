@@ -30,10 +30,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/state"
-
 	"github.com/ChainSafe/gossamer/codec"
-
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/crypto/ed25519"
@@ -88,10 +85,9 @@ func newRuntime(t *testing.T) (*Runtime, error) {
 		t.Fatal("could not create filepath")
 	}
 
-	//tt := &trie.Trie{}
-	ss := state.NewStorageStateNilDb()
+	rs := NewTestRuntimeStorage()
 
-	r, err := NewRuntimeFromFile(fp, ss, keystore.NewKeystore())
+	r, err := NewRuntimeFromFile(fp, rs, keystore.NewKeystore())
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -170,12 +166,13 @@ func newTestRuntime() (*Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	ss := state.NewStorageStateNilDb()
+
+	rs := NewTestRuntimeStorage()
 	fp, err := filepath.Abs(TESTS_FP)
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewRuntimeFromFile(fp, ss, keystore.NewKeystore())
+	r, err := NewRuntimeFromFile(fp, rs, keystore.NewKeystore())
 	if err != nil {
 		return nil, err
 	}
@@ -1426,4 +1423,39 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	go func() {
 		_, _ = r.Exec(CoreVersion, 1, []byte{})
 	}()
+}
+
+func NewTestRuntimeStorage() *TestRuntimeStorage {
+	return &TestRuntimeStorage{
+		trie: trie.NewEmptyTrie(nil),
+	}
+}
+
+type TestRuntimeStorage struct {
+	trie *trie.Trie
+}
+
+func (trs TestRuntimeStorage) SetStorage(key []byte, value []byte) error {
+	return trs.trie.Put(key, value)
+}
+func (trs TestRuntimeStorage) GetStorage(key []byte) ([]byte, error) {
+	return trs.trie.Get(key)
+}
+func (trs TestRuntimeStorage) StorageRoot() (common.Hash, error) {
+	return trs.trie.Hash()
+}
+func (trs TestRuntimeStorage) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
+	return trs.trie.PutChild(keyToChild, child)
+}
+func (trs TestRuntimeStorage) SetStorageIntoChild(keyToChild, key, value []byte) error {
+	return trs.trie.PutIntoChild(keyToChild, key, value)
+}
+func (trs TestRuntimeStorage) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
+	return trs.trie.GetFromChild(keyToChild, key)
+}
+func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
+	return trs.trie.Delete(key)
+}
+func (trs TestRuntimeStorage) Entries() map[string][]byte {
+	return trs.trie.Entries()
 }

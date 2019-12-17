@@ -24,13 +24,6 @@ func NewStorageState(dataDir string) (*StorageState, error) {
 	}, nil
 }
 
-func NewStorageStateNilDb() *StorageState {
-	return &StorageState{
-		trie: trie.NewEmptyTrie(nil),
-		Db:   nil,
-	}
-}
-
 func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
 	val, err := s.trie.Get(key)
 	return (val != nil), err
@@ -46,6 +39,7 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 
 func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	//TODO
+	panic("not implemented")
 }
 
 func (s *StorageState) SetStorage(key []byte, value []byte) error {
@@ -54,6 +48,7 @@ func (s *StorageState) SetStorage(key []byte, value []byte) error {
 
 func (s *StorageState) ClearPrefix(prefix []byte) {
 	// Implemented in ext_clear_prefix
+	panic("not implemented")
 }
 
 func (s *StorageState) ClearStorage(key []byte) error {
