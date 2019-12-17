@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"github.com/ChainSafe/gossamer/consensus/babe"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -31,6 +32,7 @@ var (
 	// Data prefixes
 	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
 	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
+	babeHeaderPrefix = []byte("hba") // babeHeaderPrefix + hash -> babeHeader
 )
 
 // headerKey = headerPrefix + hash
@@ -41,6 +43,11 @@ func headerKey(hash common.Hash) []byte {
 // blockDataKey = blockDataPrefix + hash
 func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
+}
+
+// babeHeaderKey = babeHeaderPrefix + hash
+func babeHeaderKey(hash common.Hash) []byte {
+	return append(babeHeaderPrefix, hash.ToBytes()...)
 }
 
 func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
@@ -62,6 +69,19 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	data, err := bs.db.Db.Get(blockDataKey(hash))
 	if err != nil {
 		return types.BlockData{}, err
+	}
+
+	err = json.Unmarshal(data, &result)
+
+	return result, err
+}
+
+func (bs *blockState) GetBabeHeader(hash common.Hash) (babe.BabeHeader, error) {
+	var result babe.BabeHeader
+
+	data, err := bs.db.Db.Get(babeHeaderKey(hash))
+	if err != nil {
+		return babe.BabeHeader{}, err
 	}
 
 	err = json.Unmarshal(data, &result)
@@ -113,6 +133,17 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	}
 
 	err = bs.db.Db.Put(blockDataKey(hash), bh)
+	return err
+}
+
+func (bs *blockState) SetBabeHeader(hash common.Hash, blockData babe.BabeHeader) error {
+	// Write the encoded header
+	bh, err := json.Marshal(blockData)
+	if err != nil {
+		return err
+	}
+
+	err = bs.db.Db.Put(babeHeaderKey(hash), bh)
 	return err
 }
 

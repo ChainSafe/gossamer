@@ -65,3 +65,4 @@ type BlockData struct {
 	// MessageQueue
 	// Justification
 }
+
