@@ -499,10 +499,9 @@ func TestBuildBlock(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
-	// Create slot for block
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		duration: uint64(10),
 		number:   1,
 	}
 
@@ -511,9 +510,20 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal("buildblock test failed: ", err)
 	}
 
-	// expected = &types.Block{
+	emptyRootHash, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// }
+	expectedBlock := &types.BlockHeader{
+		ParentHash:     zeroHash,
+		Number:         big.NewInt(1),
+		StateRoot:      emptyRootHash,
+		ExtrinsicsRoot: emptyRootHash,
+		Digest:         []byte{},
+	}
 
-	t.Log(block0)
+	if !reflect.DeepEqual(block0, expectedBlock) {
+		t.Fatalf("Fail: got %x expected %x", block0, expectedBlock)
+	}
 }

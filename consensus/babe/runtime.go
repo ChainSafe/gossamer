@@ -59,32 +59,25 @@ func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) inherentExtrinsicsFromRuntime(blockInherentData []byte) ([]byte, error) {
+func (b *Session) runtimeInherentExtrinsics(blockInherentData []byte) error {
 	var loc int32 = 1
 	b.rt.Store(blockInherentData, loc)
 
-	ret, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, blockInherentData)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("inherent_extrinsics", "val", ret)
-	// ea := new([]types.Extrinsic)
-	// _, err = scale.Decode(ret, ea)
-	return ret, err
-}
-
-// gets the configuration data for Babe from the runtime
-func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
-	log.Debug("Executing BlockBuilder_apply_extrinsic")
-	var loc int32 = 8
-	b.rt.Store(e, loc)
-
-	_, err := b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
+	_, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, blockInherentData)
 	if err != nil {
 		return err
 	}
+
 	return err
+}
+
+// gets the configuration data for Babe from the runtime
+func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) ([]byte, error) {
+	log.Debug("Executing BlockBuilder_apply_extrinsic")
+	var loc int32 = 1
+	b.rt.Store(e, loc)
+
+	return b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
 }
 
 // gets the configuration data for Babe from the runtime
