@@ -259,6 +259,16 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// peerConnected checks to if given peer is connected
+func (h *host) peerConnected(peer peer.ID) (connected bool) {
+	for _, p := range h.peers() {
+		if p == peer {
+			connected = true
+		}
+	}
+	return connected
+}
+
 // peerCount returns the number of connected peers
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()

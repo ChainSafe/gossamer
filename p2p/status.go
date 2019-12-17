@@ -82,13 +82,10 @@ func (status *status) handleConn(conn network.Conn) {
 // sendMessages sends status messages to the connected peer
 func (status *status) sendMessages(ctx context.Context, peer peer.ID) {
 	for {
-		// ensure peer is still connected
-		connected := status.isConnected(peer)
-
-		// cancel running processes and exit loop if peer is no longer connected
-		if !connected {
-			ctx.Done()
-			return
+		// check if peer is still connected
+		if !status.host.peerConnected(peer) {
+			ctx.Done() // cancel running processes
+			return     // exit
 		}
 
 		// send host status message to peer
@@ -168,16 +165,6 @@ func (status *status) manageExpiration(ctx context.Context, peer peer.ID) {
 			log.Error("Failed to close peer with expired status message", "err", err)
 		}
 	}
-}
-
-// isConnected checks to make sure peer is still connected
-func (status *status) isConnected(peer peer.ID) (connected bool) {
-	for _, p := range status.host.peers() {
-		if p == peer {
-			connected = true
-		}
-	}
-	return connected
 }
 
 // closePeer updates status state and closes the connection
