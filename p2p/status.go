@@ -67,7 +67,7 @@ func (status *status) handleConn(conn network.Conn) {
 	// check if host message set
 	if status.hostMessage != nil {
 
-		// start sending status messages to connected peer
+		// handle sending status messages to connected peer
 		go status.sendMessages(ctx, peer)
 
 	} else {
