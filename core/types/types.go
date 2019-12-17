@@ -19,6 +19,7 @@ package types
 import (
 	"math/big"
 
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 )
 
@@ -27,8 +28,8 @@ type Extrinsic []byte
 
 // Block defines a state block
 type Block struct {
-	Header      BlockHeaderWithHash
-	Body        BlockBody
+	Header      *BlockHeaderWithHash
+	Body        *BlockBody
 	arrivalTime uint64 // arrival time of this block
 }
 
@@ -40,6 +41,45 @@ func (b *Block) GetBlockArrivalTime() uint64 {
 // SetBlockArrivalTime sets the arrival time for a block
 func (b *Block) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
+}
+
+// BlockHeader is a state block header
+type BlockHeader struct {
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         *big.Int    `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
+}
+
+func (bh *BlockHeader) Hash() (common.Hash, error) {
+	enc, err := scale.Encode(bh)
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	return common.Blake2bHash(enc)
+}
+
+func (bh *BlockHeader) BlockHeaderWithHash() (*BlockHeaderWithHash, error) {
+	enc, err := scale.Encode(bh)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := common.Blake2bHash(enc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BlockHeaderWithHash{
+		ParentHash:     bh.ParentHash,
+		Number:         bh.Number,
+		StateRoot:      bh.StateRoot,
+		ExtrinsicsRoot: bh.ExtrinsicsRoot,
+		Digest:         bh.Digest,
+		Hash:           hash,
+	}, nil
 }
 
 // BlockHeaderWithHash is a state block header

@@ -88,18 +88,15 @@ func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) error {
 }
 
 // gets the configuration data for Babe from the runtime
-func (b *Session) finalizeBlockFromRuntime(e types.Extrinsic) (*types.BlockHeaderWithHash, error) {
+func (b *Session) finalizeBlockFromRuntime() (*types.BlockHeader, error) {
 	log.Debug("BABE", "calling", "BlockBuilder_finalize_block")
 
-	var loc int32 = 8
-	b.rt.Store(e, loc)
-
-	ret, err := b.rt.Exec("BlockBuilder_finalize_block", loc, e)
+	ret, err := b.rt.Exec("BlockBuilder_finalize_block", 0, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	bh := new(types.BlockHeaderWithHash)
+	bh := new(types.BlockHeader)
 	_, err = scale.Decode(ret, bh)
 	return bh, err
 }

@@ -83,7 +83,7 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 		return types.Block{}, nil
 	}
 	blockBody := blockData.Body
-	return types.Block{Header: header, Body: *blockBody}, nil
+	return types.Block{Header: &header, Body: blockBody}, nil
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {

@@ -171,7 +171,7 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 // with length `valueLen` into the storage trie
 //export ext_set_storage
 func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
-	log.Trace("[ext_set_storage] executing...")
+	log.Trace("[ext_set_storage] executing...", "context", context)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
@@ -184,12 +184,17 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	err := t.Put(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
+		return
 	}
-	val, err = t.Get(key)
+
+	roothash, err := t.Hash()
 	if err != nil {
-		log.Error("[ext_set_storage]", "error", err)
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		return
 	}
-	log.Debug("[ext_set_storage]", "value", val)
+	log.Debug("[ext_set_storage]", "storage root", roothash)
+	log.Trace("[ext_set_storage] executing...", "trie", t)
+
 }
 
 //export ext_set_child_storage
@@ -263,12 +268,22 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 // in memory where it's stored and stores its length in `writtenOut`
 //export ext_get_allocated_storage
 func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
-	log.Trace("[ext_get_allocated_storage] executing...")
+	log.Trace("[ext_get_allocated_storage] executing...", "context", context)
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
+
+	log.Trace("[ext_get_allocated_storage] executing...", "trie", t)
+
+	roothash, err := t.Hash()
+	if err != nil {
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
+	}
+	log.Debug("[ext_get_allocated_storage]", "storage root", roothash)
 
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
@@ -276,6 +291,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	val, err := t.Get(key)
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
 
