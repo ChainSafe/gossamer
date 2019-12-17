@@ -118,8 +118,8 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 		// update peer status message (StatusMessage stored to generate PeerInfo)
 		status.peerMessage[peer] = msg
 
-		// manage status message expiration
-		go status.manageExpiration(ctx, peer)
+		// handle status message expiration
+		go status.expireStatus(ctx, peer)
 
 	} else {
 
@@ -147,8 +147,8 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 	return true
 }
 
-// manageExpiration closes peer connection if status message has exipred
-func (status *status) manageExpiration(ctx context.Context, peer peer.ID) {
+// expireStatus closes peer connection if status message has exipred
+func (status *status) expireStatus(ctx context.Context, peer peer.ID) {
 
 	// wait to check status message
 	time.Sleep(ExpireStatusInterval)
