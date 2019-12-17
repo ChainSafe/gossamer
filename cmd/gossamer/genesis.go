@@ -75,8 +75,11 @@ func loadGenesis(ctx *cli.Context) error {
 
 // getGenesisPath gets the path to the genesis file
 func getGenesisPath(ctx *cli.Context) string {
-	if file := ctx.String(utils.GenesisFlag.Name); file != "" {
-		return file
+	// Check local string genesis flags first
+	if ctx.String(utils.GenesisFlag.Name) != "" {
+		return ctx.String(utils.GenesisFlag.Name)
+	} else if ctx.GlobalString(utils.GenesisFlag.Name) != "" {
+		return ctx.GlobalString(utils.GenesisFlag.Name)
 	} else {
 		return cfg.DefaultGenesisPath
 	}
