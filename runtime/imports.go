@@ -58,7 +58,6 @@ import "C"
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 	"unsafe"
@@ -281,20 +280,10 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	}
 
 	if len(val) >= (1 << 32) {
-		err = errors.New("retrieved value length exceeds 2^32")
+		log.Error("[ext_get_allocated_storage]", "error", "retrieved value length exceeds 2^32")
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
 	}
-
-	if bytes.Equal(key, []byte(":extrinsic_index")) {
-		val = []byte{0, 0, 0, 0}
-	}
-
-	log.Debug("[ext_get_allocated_storage]", "value", val)
-
-	// lenPtr, err := runtimeCtx.allocator.Allocate(4)
-	// if err != nil {
-	// 	log.Error("[ext_get_allocated_storage]", "Error:", err)
-	// 	panic(err)
-	// }
 
 	if val == nil {
 		log.Debug("[ext_get_allocated_storage]", "value", "nil")
@@ -302,26 +291,21 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		return 0
 	}
 
-	if err != nil {
-		log.Error("[ext_get_allocated_storage]", "error", err)
-		return 0
-	}
+	log.Debug("[ext_get_allocated_storage]", "value", val)
 
-	// writtenOut stores the location of the 4 bytes of memory that was allocated
-	//var lenPtr int32 = len(val)
-	//memory[writtenOut] = byte(lenPtr)
-
-	// copy value to memory
+	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))
 	if err != nil {
-		log.Error("[ext_get_allocated_storage]", "Error:", err)
-		panic(err)
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
 	}
 	copy(memory[ptr:ptr+uint32(len(val))], val)
 
 	// copy length to memory
 	byteLen := make([]byte, 4)
 	binary.LittleEndian.PutUint32(byteLen, uint32(len(val)))
+	// writtenOut stores the location of the memory that was allocated
 	copy(memory[writtenOut:writtenOut+4], byteLen)
 
 	// return ptr to value
