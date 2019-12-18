@@ -28,6 +28,7 @@ import (
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
@@ -161,8 +162,12 @@ func (h *host) registerStreamHandler(handler func(network.Stream)) {
 }
 
 // connect connects the host to a specific peer address
-func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
-	err = h.h.Connect(h.ctx, addrInfo)
+func (h *host) connect(p peer.AddrInfo) (err error) {
+
+	// add peer address to peerstore
+	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+
+	err = h.h.Connect(h.ctx, p)
 	return err
 }
 
