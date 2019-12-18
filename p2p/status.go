@@ -28,7 +28,7 @@ import (
 // SendStatusInterval is the time between sending status messages
 const SendStatusInterval = 5 * time.Minute
 
-// ExpireStatusInterval is the time between sending status messages
+// ExpireStatusInterval is the time between expiring status messages
 const ExpireStatusInterval = SendStatusInterval + time.Minute
 
 // status submodule
@@ -151,6 +151,9 @@ func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 				"err", err,
 			)
 		}
+
+		// handle status message expiration
+		go status.expireStatus(ctx, peer)
 
 	} else {
 
