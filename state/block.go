@@ -3,8 +3,9 @@ package state
 import (
 	"encoding/binary"
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/consensus/babe"
 	"math/big"
+
+	"github.com/ChainSafe/gossamer/consensus/babe"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
@@ -31,8 +32,8 @@ func NewBlockState(dataDir string) (*blockState, error) {
 
 var (
 	// Data prefixes
-	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
-	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
+	headerPrefix     = []byte("hdr") // headerPrefix + hash -> header
+	blockDataPrefix  = []byte("hsh") // blockDataPrefix + hash -> blockData
 	babeHeaderPrefix = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
 )
 
@@ -143,14 +144,14 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
-func (bs *blockState) SetBabeHeader(hash common.Hash, blockData babe.BabeHeader) error {
+func (bs *blockState) SetBabeHeader(epoch uint64, slice uint64, blockData babe.BabeHeader) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
 		return err
 	}
 
-	err = bs.db.Db.Put(babeHeaderKey(hash), bh)
+	err = bs.db.Db.Put(babeHeaderKey(epoch, slice), bh)
 	return err
 }
 
