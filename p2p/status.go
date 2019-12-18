@@ -28,6 +28,9 @@ import (
 // SendStatusInterval is the time between sending status messages
 const SendStatusInterval = 5 * time.Minute
 
+// ExpireStatusInterval is the time between sending status messages
+const ExpireStatusInterval = SendStatusInterval + time.Minute
+
 // status submodule
 type status struct {
 	host          *host
@@ -118,13 +121,13 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 func (status *status) validMessage(msg *StatusMessage) bool {
 	switch {
 	case msg.GenesisHash != status.hostMessage.GenesisHash:
-		log.Debug("Failed to validate status message", "err", "genesis hash")
+		log.Error("Failed to validate status message", "err", "genesis hash")
 		return false
 	case msg.ProtocolVersion < status.hostMessage.MinSupportedVersion:
-		log.Debug("Failed to validate status message", "err", "protocol version")
+		log.Error("Failed to validate status message", "err", "protocol version")
 		return false
 	case msg.MinSupportedVersion > status.hostMessage.ProtocolVersion:
-		log.Debug("Failed to validate status message", "err", "protocol version")
+		log.Error("Failed to validate status message", "err", "protocol version")
 		return false
 	}
 	return true
@@ -163,8 +166,8 @@ func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 // expireStatus closes peer connection if status message has exipred
 func (status *status) expireStatus(ctx context.Context, peer peer.ID) {
 
-	// wait to check status message
-	time.Sleep(SendStatusInterval)
+	// wait to check for expired status message
+	time.Sleep(ExpireStatusInterval)
 
 	// get time of last confirmed status message
 	lastConfirmed := status.peerConfirmed[peer]
