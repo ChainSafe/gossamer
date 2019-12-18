@@ -195,9 +195,9 @@ func (status *status) closePeer(ctx context.Context, peer peer.ID) error {
 	// cancel running processes
 	ctx.Done()
 
-	// update peer status
-	status.peerConfirmed[peer] = time.Time{}
-	status.peerMessage[peer] = nil
+	// delete peer mappings
+	delete(status.peerConfirmed, peer)
+	delete(status.peerMessage, peer)
 
 	// close connection with peer
 	err := status.host.closePeer(peer)
