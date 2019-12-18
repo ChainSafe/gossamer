@@ -4,6 +4,7 @@ import (
 	ed25519 "crypto/ed25519"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -32,6 +33,18 @@ func NewKeypair(priv ed25519.PrivateKey) *Keypair {
 		public:  &pubkey,
 		private: &privkey,
 	}
+}
+
+// NewKeypairFromPrivate returns a ed25519 Keypair given a *ed25519.PrivateKey
+func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
+	pub, err := priv.Public()
+	if err != nil {
+		return nil, err
+	}
+	return &Keypair{
+		public:  pub.(*PublicKey),
+		private: priv,
+	}, nil
 }
 
 // NewKeypairFromSeed generates a new ed25519 keypair from a 32 byte seed
@@ -79,12 +92,12 @@ func NewPrivateKey(in []byte) (*PrivateKey, error) {
 }
 
 // Verify returns true if the signature is valid for the given message and public key, false otherwise
-func Verify(pub *PublicKey, msg, sig []byte) bool {
+func Verify(pub *PublicKey, msg, sig []byte) (bool, error) {
 	if len(sig) != SignatureLength {
-		return false
+		return false, errors.New("invalid signature length")
 	}
 
-	return ed25519.Verify(ed25519.PublicKey(*pub), msg, sig)
+	return ed25519.Verify(ed25519.PublicKey(*pub), msg, sig), nil
 }
 
 // Sign uses the keypair to sign the message using the ed25519 signature algorithm
@@ -130,11 +143,11 @@ func (k *PrivateKey) Decode(in []byte) error {
 }
 
 // Verify checks that Ed25519PublicKey was used to create the signature for the message
-func (k *PublicKey) Verify(msg, sig []byte) bool {
+func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	if len(sig) != SignatureLength {
-		return false
+		return false, errors.New("invalid signature length")
 	}
-	return ed25519.Verify(ed25519.PublicKey(*k), msg, sig)
+	return ed25519.Verify(ed25519.PublicKey(*k), msg, sig), nil
 }
 
 // Encode returns the encoding of the ed25519 PublicKey

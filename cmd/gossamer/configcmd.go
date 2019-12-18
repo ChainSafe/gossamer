@@ -23,6 +23,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -34,7 +36,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -53,23 +54,27 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// DB: Create database dir and initialize stateDB and blockDB
-	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
-	}
-	srvcs = append(srvcs, dbSrv)
+	// Create service, initialize stateDB and blockDB
+	stateSrv := state.NewService(fig.Global.DataDir)
+	srvcs = append(srvcs, stateSrv)
 
-	err = dbSrv.Start()
+	err = stateSrv.Start()
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// TODO: load all static keys from keystore directory
+	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
+	// unlock keys, if specified
+	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+		err = unlockKeys(ctx, fig.Global.DataDir, ks)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+		}
+	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
-	db := trie.NewDatabase(dbSrv.StateDB.Db)
+	db := trie.NewDatabase(stateSrv.Storage.Db.Db)
 	state := trie.NewEmptyTrie(db)
 	r, err := loadStateAndRuntime(state, ks)
 	if err != nil {
@@ -193,10 +198,17 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 
 // createP2PService creates a p2p service from the command configuration and genesis data
 func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
+	// Default bootnodes are from genesis
+	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
+
+	// If bootnodes flag has more than 1 bootnode, overwrite
+	if len(fig.P2p.BootstrapNodes) > 0 {
+		boostrapNodes = fig.P2p.BootstrapNodes
+	}
 
 	// p2p service configuation
 	p2pConfig := p2p.Config{
-		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
+		BootstrapNodes: boostrapNodes,
 		Port:           fig.P2p.Port,
 		RandSeed:       0,
 		NoBootstrap:    fig.P2p.NoBootstrap,

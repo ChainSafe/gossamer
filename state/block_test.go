@@ -4,30 +4,24 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/polkadb"
 )
 
 func TestGetBlockByNumber(t *testing.T) {
-	// Create a new BlockDB
-	dataDir := "../test_data"
-	blockDataDir := filepath.Join(dataDir, "block")
-	blockDB, err := polkadb.NewBlockDB(blockDataDir)
+	dataDir := "../test_data/block"
+
+	//Create a new blockState
+	blockState, err := NewBlockState(dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	//Create a new blockState & set the blockDB
-	blockState := NewBlockState()
-	blockState.Db = blockDB
-
+	//Close DB & erase data dir contents
 	defer func() {
-		err = blockDB.Db.Close()
+		err = blockState.Db.Db.Close()
 		if err != nil {
 			t.Fatal("BlockDB close err: ", err)
 		}

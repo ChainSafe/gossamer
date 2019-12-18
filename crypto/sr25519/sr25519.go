@@ -44,6 +44,19 @@ func NewKeypair(priv *sr25519.SecretKey) (*Keypair, error) {
 	}, nil
 }
 
+// NewKeypairFromPrivate returns a sr25519 Keypair given a *sr25519.PrivateKey
+func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
+	pub, err := priv.Public()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Keypair{
+		public:  pub.(*PublicKey),
+		private: priv,
+	}, nil
+}
+
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
 func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
 	buf := [SeedLength]byte{}
@@ -160,13 +173,13 @@ func (k *PrivateKey) Decode(in []byte) error {
 // Verify uses the sr25519 signature algorithm to verify that the message was signed by
 // this public key; it returns true if this key created the signature for the message,
 // false otherwise
-func (k *PublicKey) Verify(msg, sig []byte) bool {
+func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	if k.key == nil {
-		return false
+		return false, errors.New("nil public key")
 	}
 
 	if len(sig) != SignatureLength {
-		return false
+		return false, errors.New("invalid signature length")
 	}
 
 	b := [SignatureLength]byte{}
@@ -175,11 +188,11 @@ func (k *PublicKey) Verify(msg, sig []byte) bool {
 	s := &sr25519.Signature{}
 	err := s.Decode(b)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
-	return k.key.Verify(s, t)
+	return k.key.Verify(s, t), nil
 }
 
 // Encode returns the 32-byte encoding of the public key
