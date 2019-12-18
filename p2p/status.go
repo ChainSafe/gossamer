@@ -58,57 +58,31 @@ func (status *status) setHostMessage(msg Message) {
 
 // handleConn starts status processes upon connection
 func (status *status) handleConn(conn network.Conn) {
+	ctx := context.Background()
 	peer := conn.RemotePeer()
 
 	// check if host message set
 	if status.hostMessage != nil {
 
-		// send initial host status message to peer
+		// send initial host status message to peer upon connection
 		err := status.host.send(peer, status.hostMessage)
 		if err != nil {
 			log.Error(
-				"Failed to send status message to peer",
+				"Failed to send host status message to peer",
 				"peer", peer,
 				"err", err,
 			)
 		}
+
+		// handle status message expiration
+		go status.expireStatus(ctx, peer)
 
 	} else {
 		log.Error(
-			"Failed to send status message to peer",
+			"Failed to send host status message to peer",
 			"peer", peer,
 			"err", "host status message not set",
 		)
-	}
-}
-
-// sendNextMessage sends status messages to the connected peer
-func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
-
-	// wait between sending status messages
-	time.Sleep(SendStatusInterval)
-
-	// check if peer is still connected
-	if status.host.peerConnected(peer) {
-
-		// send host status message to peer
-		err := status.host.send(peer, status.hostMessage)
-		if err != nil {
-			log.Error(
-				"Failed to send status message to peer",
-				"peer", peer,
-				"err", err,
-			)
-		}
-
-	} else {
-
-		// update peer status
-		status.peerConfirmed[peer] = time.Time{}
-		status.peerMessage[peer] = nil
-
-		ctx.Done() // cancel running processes
-
 	}
 }
 
@@ -124,14 +98,11 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 		// update peer confirmed status message time
 		status.peerConfirmed[peer] = time.Now()
 
-		// update peer status message (StatusMessage stored to generate PeerInfo)
+		// update peer status message
 		status.peerMessage[peer] = msg
 
-		// prepare to send next host status message to peer
+		// wait to check connection and send next host status message
 		go status.sendNextMessage(ctx, peer)
-
-		// handle status message expiration
-		go status.expireStatus(ctx, peer)
 
 	} else {
 
@@ -157,6 +128,36 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 		return false
 	}
 	return true
+}
+
+// sendNextMessage sends status messages to the connected peer
+func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
+
+	// wait between sending status messages
+	time.Sleep(SendStatusInterval)
+
+	// check if peer is still connected
+	if status.host.peerConnected(peer) {
+
+		// send host status message to peer
+		err := status.host.send(peer, status.hostMessage)
+		if err != nil {
+			log.Error(
+				"Failed to send host status message to peer",
+				"peer", peer,
+				"err", err,
+			)
+		}
+
+	} else {
+
+		// update peer status
+		status.peerConfirmed[peer] = time.Time{}
+		status.peerMessage[peer] = nil
+
+		ctx.Done() // cancel running processes
+
+	}
 }
 
 // expireStatus closes peer connection if status message has exipred

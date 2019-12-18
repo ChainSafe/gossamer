@@ -97,7 +97,7 @@ func (d *discovery) startMdns() {
 // HandlePeerFound is event handler called when a peer is found with discovery
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	log.Trace(
-		"Peer found",
+		"Peer found using mDNS discovery service",
 		"host", n.host.id(),
 		"peer", p.ID,
 	)
@@ -105,6 +105,6 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	// connect to found peer
 	err := n.host.connect(p)
 	if err != nil {
-		log.Error("Failed to connect to peer using discovery", "err", err)
+		log.Error("Failed to connect to peer using mDNS discovery service", "err", err)
 	}
 }
