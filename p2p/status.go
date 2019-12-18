@@ -104,7 +104,7 @@ func (status *status) handleMessage(stream network.Stream, msg *StatusMessage) {
 		// update peer status message
 		status.peerMessage[peer] = msg
 
-		// wait to check connection and send next host status message
+		// wait then send next host status message
 		go status.sendNextMessage(ctx, peer)
 
 	} else {
@@ -133,7 +133,10 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 	return true
 }
 
-// sendNextMessage sends status messages to the connected peer
+// sendNextMessage waits a set time between receiving a valid peer message and
+// sending the next host message ("next" is after the initial host message and
+// all expected peer status messages returned at the set time). If the peer is
+// still connected after the set time, send the next host message.
 func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 
 	// wait between sending status messages
@@ -157,9 +160,9 @@ func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 
 	} else {
 
-		// update peer status
-		status.peerConfirmed[peer] = time.Time{}
-		status.peerMessage[peer] = nil
+		// delete peer mappings
+		delete(status.peerConfirmed, peer)
+		delete(status.peerMessage, peer)
 
 		ctx.Done() // cancel running processes
 
