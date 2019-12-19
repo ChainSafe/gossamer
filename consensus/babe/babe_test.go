@@ -380,7 +380,8 @@ func TestSlotTime(t *testing.T) {
 func TestStart(t *testing.T) {
 	rt := newRuntime(t)
 	cfg := &SessionConfig{
-		Runtime: rt,
+		Runtime:   rt,
+		NewBlocks: make(chan types.Block),
 	}
 
 	babesession, err := NewSession(cfg)
@@ -411,7 +412,7 @@ func TestStart(t *testing.T) {
 func TestBabeAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
 
-	newBlocks := make(chan *types.Block)
+	newBlocks := make(chan types.Block)
 
 	cfg := &SessionConfig{
 		Runtime:   rt,
@@ -488,7 +489,6 @@ func TestBuildBlock(t *testing.T) {
 	vtx := tx.NewValidTransaction(types.Extrinsic(txb), expected)
 	babesession.PushToTxQueue(vtx)
 
-	// Create a block to put the transactions
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
 		t.Fatal(err)
@@ -507,15 +507,16 @@ func TestBuildBlock(t *testing.T) {
 
 	block0, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
-		t.Fatal("buildblock test failed: ", err)
+		t.Fatal(err)
 	}
 
+	// the hash of an empty trie
 	emptyRootHash, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedBlock := &types.BlockHeader{
+	expectedBlockHeader := &types.BlockHeader{
 		ParentHash:     zeroHash,
 		Number:         big.NewInt(1),
 		StateRoot:      emptyRootHash,
@@ -523,7 +524,12 @@ func TestBuildBlock(t *testing.T) {
 		Digest:         []byte{},
 	}
 
-	if !reflect.DeepEqual(block0, expectedBlock) {
-		t.Fatalf("Fail: got %x expected %x", block0, expectedBlock)
+	expectedWithHash, err := expectedBlockHeader.BlockHeaderWithHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(block0.Header, expectedWithHash) {
+		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedWithHash)
 	}
 }

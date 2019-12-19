@@ -44,8 +44,8 @@ type AuthorityData struct {
 }
 
 type BlockInherentsData struct {
-	Timstap0 int64
-	Babeslot int64
+	timestamp0 int64
+	babeslot   int64
 }
 
 type Slot struct {

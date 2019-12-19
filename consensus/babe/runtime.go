@@ -23,7 +23,6 @@ import (
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/runtime"
-	log "github.com/ChainSafe/log15"
 )
 
 // gets the configuration data for Babe from the runtime
@@ -45,9 +44,8 @@ func (b *Session) configurationFromRuntime() error {
 	return err
 }
 
-// gets the configuration data for Babe from the runtime
-func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
-	log.Debug("BABE", "calling", "Core_initialize_block")
+// calls runtime API function Core_initialize_block
+func (b *Session) initializeBlock(blockHeader []byte) error {
 	var loc int32 = 1
 	b.rt.Store(blockHeader, loc)
 
@@ -55,11 +53,12 @@ func (b *Session) initializeBlockFromRuntime(blockHeader []byte) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// gets the configuration data for Babe from the runtime
-func (b *Session) runtimeInherentExtrinsics(blockInherentData []byte) error {
+// calls runtime API function BlockBuilder_inherent_extrinsics
+func (b *Session) inherentExtrinsics(blockInherentData []byte) error {
 	var loc int32 = 1
 	b.rt.Store(blockInherentData, loc)
 
@@ -71,19 +70,16 @@ func (b *Session) runtimeInherentExtrinsics(blockInherentData []byte) error {
 	return err
 }
 
-// gets the configuration data for Babe from the runtime
+// calls runtime API function BlockBuilder_apply_extrinsic
 func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) ([]byte, error) {
-	log.Debug("Executing BlockBuilder_apply_extrinsic")
 	var loc int32 = 1
 	b.rt.Store(e, loc)
 
 	return b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
 }
 
-// gets the configuration data for Babe from the runtime
-func (b *Session) finalizeBlockFromRuntime() (*types.BlockHeader, error) {
-	log.Debug("BABE", "calling", "BlockBuilder_finalize_block")
-
+// calls runtime API function BlockBuilder_finalize_block
+func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
 	ret, err := b.rt.Exec("BlockBuilder_finalize_block", 0, []byte{})
 	if err != nil {
 		return nil, err
@@ -94,11 +90,11 @@ func (b *Session) finalizeBlockFromRuntime() (*types.BlockHeader, error) {
 	return bh, err
 }
 
-func (s *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
+func (b *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	var loc int32 = 1000
-	s.rt.Store(e, loc)
+	b.rt.Store(e, loc)
 
-	ret, err := s.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
+	ret, err := b.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
 	if err != nil {
 		return nil, err
 	}

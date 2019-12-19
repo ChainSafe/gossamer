@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/codec"
-	//"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
@@ -45,17 +44,17 @@ type Session struct {
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	isProducer     map[uint64]bool     // whether we are a block producer at a slot
-	newBlocks      chan<- *types.Block // send blocks to core service
+	isProducer     map[uint64]bool    // whether we are a block producer at a slot
+	newBlocks      chan<- types.Block // send blocks to core service
 }
 
 type SessionConfig struct {
 	Keystore  *keystore.Keystore
 	Runtime   *runtime.Runtime
-	NewBlocks chan<- *types.Block
+	NewBlocks chan<- types.Block
 }
 
-const MAX_BLOCK_SIZE uint = 4*1024*1024 + 512
+const MaxBlockSize uint = 4*1024*1024 + 512
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
 func NewSession(cfg *SessionConfig) (*Session, error) {
@@ -92,9 +91,6 @@ func (b *Session) Start() error {
 
 // PushToTxQueue adds a ValidTransaction to BABE's transaction queue
 func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
-	n := vt != nil
-	fmt.Println("vt != nil: ", n)
-	fmt.Println("vt: ", vt)
 	b.txQueue.Insert(vt)
 }
 
@@ -107,22 +103,22 @@ func (b *Session) invokeBlockAuthoring() {
 	var currentSlot uint64 = 0
 
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
-		//startTime := uint64(time.Now().Unix())
+		startTime := uint64(time.Now().Unix())
 
-		// if b.isProducer[currentSlot] {
-		// 	// TODO: implement build block
-		// 	parent := b.state.Block.GetLatestBlock()
-		// 	slot := Slot{
-		// 		start:    startTime,
-		// 		duration: b.config.SlotDuration,
-		// 		number:   currentSlot,
-		// 	}
-		// 	block, err := b.buildBlock(parent, slot)
-		// 	if err != nil {
-		// 		return
-		// 	}
-		// 	b.newBlocks <- block
-		// }
+		if b.isProducer[currentSlot] {
+			//TODO: implement build block
+			parent := b.state.Block.GetLatestBlock()
+			slot := Slot{
+				start:    startTime,
+				duration: b.config.SlotDuration,
+				number:   currentSlot,
+			}
+			block, err := b.buildBlock(&parent, slot)
+			if err != nil {
+				return
+			}
+			b.newBlocks <- *block
+		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
@@ -220,7 +216,7 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 }
 
 // Block Build
-func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.BlockHeader, error) {
+func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
 	// Initialize block
@@ -228,7 +224,7 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	if err != nil {
 		return nil, err
 	}
-	err = b.initializeBlockFromRuntime(encodedHeader)
+	err = b.initializeBlock(encodedHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +241,7 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// var inherentsArray [][]byte = [][]byte{{}}
 	// var ret []byte
 	// for _, inherent := range inherentsArray {
-	// 	ret, err = b.applyExtrinsicFromRuntime(inherent)
+	// 	ret, err = b.applyExtrinsic(inherent)
 	// 	if err != nil {
 	// 		return nil, err
 	// 	}
@@ -259,7 +255,7 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// 	extrinsic = b.nextReadyExtrinsic()
 
 	// 	log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
-	// 	ret, err = b.applyExtrinsicFromRuntime(extrinsic)
+	// 	ret, err = b.applyExtrinsic(extrinsic)
 	// 	if err != nil {
 	// 		return nil, err
 	// 	}
@@ -269,25 +265,34 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// 	log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
 	// }
 
-	// Finalize block through runtime
-	rawblock, err := b.finalizeBlockFromRuntime()
+	// Finalize block
+	rawblock, err := b.finalizeBlock()
 	if err != nil {
 		return nil, err
 	}
 
 	rawblock.Number.Add(parent.Number, big.NewInt(1))
-	return rawblock, nil
+
+	withHash, err := rawblock.BlockHeaderWithHash()
+	if err != nil {
+		return nil, err
+	}
+
+	block := &types.Block{
+		Header: withHash,
+	}
+	return block, nil
 }
 
-func (b *Session) nextReadyExtrinsic() types.Extrinsic {
-	transaction := b.txQueue.Peek()
-	return *transaction.Extrinsic
-}
+// func (b *Session) nextReadyExtrinsic() types.Extrinsic {
+// 	transaction := b.txQueue.Peek()
+// 	return *transaction.Extrinsic
+// }
 
-func blockIsFull(blockBody types.BlockBody) bool {
-	return uint(len(blockBody)) == MAX_BLOCK_SIZE
-}
+// func blockIsFull(blockBody types.BlockBody) bool {
+// 	return uint(len(blockBody)) == MaxBlockSize
+// }
 
-func endOfSlot(slot Slot) bool {
-	return uint64(time.Now().Unix()) > slot.start+slot.duration
-}
+// func endOfSlot(slot Slot) bool {
+// 	return uint64(time.Now().Unix()) > slot.start+slot.duration
+// }
