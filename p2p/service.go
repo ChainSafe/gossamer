@@ -46,7 +46,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 	ctx := context.Background()
 
 	// build configuration
-	err := cfg.buildConfig()
+	err := cfg.build()
 	if err != nil {
 		return nil, err
 	}
@@ -118,19 +118,21 @@ func (s *Service) Start() error {
 	return nil
 }
 
-// Stop shuts down the host and message channel to core service
+// Stop closes running instances of the host and network services as well as
+// the message channel from the p2p service to the core service (services that
+// are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
 
-	// close host and host services
-	err := s.host.close()
-	if err != nil {
-		log.Error("Failed to close host", "err", err)
-	}
-
 	// close mDNS discovery service
-	err = s.mdns.close()
+	err := s.mdns.close()
 	if err != nil {
 		log.Error("Failed to close mDNS discovery service", "err", err)
+	}
+
+	// close host and host services
+	err = s.host.close()
+	if err != nil {
+		log.Error("Failed to close host", "err", err)
 	}
 
 	// close channel to core service
@@ -151,7 +153,7 @@ func (s *Service) receiveCoreMessages() {
 		if msg.GetType() != StatusMsgType {
 
 			log.Trace(
-				"Broadcasting message from core service",
+				"Broadcasting message to connected peers from core service",
 				"host", s.host.id(),
 				"type", msg.GetType(),
 			)
@@ -161,7 +163,7 @@ func (s *Service) receiveCoreMessages() {
 
 		} else {
 
-			// check if status exchange is enabled
+			// check if status is enabled
 			if !s.noStatus {
 
 				// update host status message
@@ -174,7 +176,7 @@ func (s *Service) receiveCoreMessages() {
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn network.Conn) {
 
-	// check if status exchange is enabled
+	// check if status is enabled
 	if !s.noStatus {
 
 		// manage status messages for new connection
@@ -206,14 +208,14 @@ func (s *Service) handleStream(stream network.Stream) {
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
 
-			// send all non-status messages to core service
+			// send non-status message from confirmed peer to core service
 			s.msgSend <- msg
 		}
 
 		// check if gossip is enabled
 		if !s.noGossip {
 
-			// broadcast all non-status messages that have not been seen
+			// handle non-status message from peer with gossip submodule
 			s.gossip.handleMessage(stream, msg)
 		}
 
@@ -222,7 +224,7 @@ func (s *Service) handleStream(stream network.Stream) {
 		// check if status is enabled
 		if !s.noStatus {
 
-			// handle status message with status submodule
+			// handle status message from peer with status submodule
 			s.status.handleMessage(stream, msg.(*StatusMessage))
 		}
 
