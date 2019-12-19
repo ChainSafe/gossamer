@@ -54,7 +54,6 @@ func babeHeaderKey(epoch uint64, slice uint64) []byte {
 	sliceBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(sliceBytes, slice)
 	combined := append(epochBytes, sliceBytes...)
-	binary.LittleEndian.PutUint64(sliceBytes, slice)
 	return append(babeHeaderPrefix, combined...)
 }
 
