@@ -19,7 +19,6 @@ package p2p
 import (
 	crand "crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
@@ -28,13 +27,14 @@ import (
 	"path/filepath"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const KeyFile = "node.key"
+
+const DefaultProtocolId = "/gossamer/dot/0"
 
 // Config is used to configure a p2p service
 type Config struct {
@@ -48,8 +48,6 @@ type Config struct {
 	RandSeed int64
 	// Disables bootstrapping
 	NoBootstrap bool
-	// Disables gossiping
-	NoGossip bool
 	// Disables MDNS discovery
 	NoMdns bool
 	// Global data directory
@@ -58,40 +56,42 @@ type Config struct {
 	privateKey crypto.PrivKey
 }
 
-func (c *Config) buildOpts() ([]libp2p.Option, error) {
-	ip := "0.0.0.0"
+func (c *Config) bootnodes() (peer []peer.AddrInfo, err error) {
+	bootnodes, err := stringsToAddrInfos(c.BootstrapNodes)
+	if err != nil {
+		return nil, err
+	}
+	return bootnodes, nil
+}
+
+func (c *Config) protocolId() protocol.ID {
+	return protocol.ID(c.ProtocolId)
+}
+
+func (c *Config) buildConfig() error {
+	if c.ProtocolId == "" {
+		c.ProtocolId = DefaultProtocolId
+	}
+
+	if !c.NoBootstrap && len(c.BootstrapNodes) == 0 {
+		log.Warn("Bootstrap is enabled and no bootstrap nodes are defined")
+	}
 
 	if c.RandSeed == 0 {
 		err := c.setupPrivKey()
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		log.Debug("Generating temporary deterministic p2p identity")
 		key, err := generateKey(c.RandSeed, c.DataDir)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		c.privateKey = key
 	}
 
-	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, c.Port))
-	if err != nil {
-		return nil, err
-	}
-
-	connmgr := &ConnManager{}
-
-	options := []libp2p.Option{
-		libp2p.ListenAddrs(addr),
-		libp2p.DisableRelay(),
-		libp2p.Identity(c.privateKey),
-		libp2p.NATPortMap(),
-		libp2p.Ping(true),
-		libp2p.ConnectionManager(connmgr),
-	}
-
-	return options, nil
+	return nil
 }
 
 // setupPrivKey will attempt to load the nodes private key, if that fails it will create one

@@ -91,16 +91,17 @@ func TestSetupPrivateKey(t *testing.T) {
 	}
 }
 
-func TestBuildOptions(t *testing.T) {
+func TestBuildConfig(t *testing.T) {
 	testDir := path.Join(os.TempDir(), "gossamer-test")
 
 	defer os.RemoveAll(testDir)
 
 	configA := &Config{
-		DataDir: testDir,
+		DataDir:     testDir,
+		NoBootstrap: true,
 	}
 
-	_, err := configA.buildOpts()
+	err := configA.buildConfig()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,33 +28,43 @@ var _ services.Service = &Service{}
 
 // Service describes a p2p service
 type Service struct {
-	ctx       context.Context
-	host      *host
-	status    *status
-	discovery *discovery
-	gossip    *gossip
-	msgRec    <-chan Message
-	msgSend   chan<- Message
+	ctx         context.Context
+	host        *host
+	mdns        *mdns
+	status      *status
+	gossip      *gossip
+	msgRec      <-chan Message
+	msgSend     chan<- Message
+	noBootstrap bool
+	noMdns      bool
+	noStatus    bool // internal option
+	noGossip    bool // internal option
 }
 
 // NewService creates a new p2p service from the configuration and message channels
-func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
+func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
 	ctx := context.Background()
 
-	// create a new host wrapper
-	host, err := newHost(ctx, conf)
+	// build configuration
+	err := cfg.buildConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// create a new host instance
+	host, err := newHost(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// create a new mdns instance
+	mdns, err := newMdns(host)
 	if err != nil {
 		return nil, err
 	}
 
 	// create a new status instance
 	status, err := newStatus(host)
-	if err != nil {
-		return nil, err
-	}
-
-	// create a new discovery instance
-	discovery, err := newDiscovery(ctx, host)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +76,15 @@ func NewService(conf *Config, msgSend chan<- Message, msgRec <-chan Message) (*S
 	}
 
 	p2p := &Service{
-		ctx:       ctx,
-		host:      host,
-		status:    status,
-		discovery: discovery,
-		gossip:    gossip,
-		msgRec:    msgRec,
-		msgSend:   msgSend,
+		ctx:         ctx,
+		host:        host,
+		mdns:        mdns,
+		status:      status,
+		gossip:      gossip,
+		msgRec:      msgRec,
+		msgSend:     msgSend,
+		noBootstrap: cfg.NoBootstrap,
+		noMdns:      cfg.NoMdns,
 	}
 
 	return p2p, err
@@ -87,21 +99,20 @@ func (s *Service) Start() error {
 	// TODO: ensure core service generates host status message and sends to p2p
 	// service before connecting and exchanging status messages with peers
 
-	// set connection and stream handler
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(s.handleStream)
+
 	s.host.printHostAddresses()
 
-	s.host.bootstrap()
+	if !s.noBootstrap {
+		s.host.bootstrap()
+	}
 
 	// TODO: ensure bootstrap has connected to bootnodes and addresses have been
-	// registered by the host before discovery attempts to connect to bootnodes
+	// registered by the host before mDNS attempts to connect to bootnodes
 
-	// check if mDNS is enabled
-	if !s.host.noMdns {
-
-		// start mDNS discovery service
-		s.discovery.startMdns()
+	if !s.noMdns {
+		s.mdns.start()
 	}
 
 	return nil
@@ -116,10 +127,10 @@ func (s *Service) Stop() error {
 		log.Error("Failed to close host", "err", err)
 	}
 
-	// close discovery and discovery services
-	err = s.discovery.close()
+	// close mDNS discovery service
+	err = s.mdns.close()
 	if err != nil {
-		log.Error("Failed to close discovery", "err", err)
+		log.Error("Failed to close mDNS discovery service", "err", err)
 	}
 
 	// close channel to core service
@@ -151,7 +162,7 @@ func (s *Service) receiveCoreMessages() {
 		} else {
 
 			// check if status exchange is enabled
-			if !s.host.noStatus {
+			if !s.noStatus {
 
 				// update host status message
 				s.status.setHostMessage(msg)
@@ -164,7 +175,7 @@ func (s *Service) receiveCoreMessages() {
 func (s *Service) handleConn(conn network.Conn) {
 
 	// check if status exchange is enabled
-	if !s.host.noStatus {
+	if !s.noStatus {
 
 		// manage status messages for new connection
 		s.status.handleConn(conn)
@@ -174,6 +185,7 @@ func (s *Service) handleConn(conn network.Conn) {
 // handleStream parses the message written to the data stream and calls the
 // associated message handler (non-status or status) based on message type
 func (s *Service) handleStream(stream network.Stream) {
+	peer := stream.Conn().RemotePeer()
 
 	// parse message and exit on error
 	msg, err := parseMessage(stream)
@@ -184,35 +196,36 @@ func (s *Service) handleStream(stream network.Stream) {
 
 	log.Trace(
 		"Received message from peer",
-		"host", stream.Conn().LocalPeer(),
-		"peer", stream.Conn().RemotePeer(),
+		"host", s.host.id(),
+		"peer", peer,
 		"type", msg.GetType(),
 	)
 
 	if msg.GetType() != StatusMsgType {
-		s.handleMessage(stream, msg)
+
+		// check if status is disabled or peer status is confirmed
+		if s.noStatus || s.status.confirmed(peer) {
+
+			// send all non-status messages to core service
+			s.msgSend <- msg
+		}
+
+		// check if gossip is enabled
+		if !s.noGossip {
+
+			// broadcast all non-status messages that have not been seen
+			s.gossip.handleMessage(stream, msg)
+		}
+
 	} else {
-		// handle status message with status submodule
-		s.status.handleMessage(stream, msg.(*StatusMessage))
-	}
-}
 
-// handleMessage handles non-status messages written to the stream
-func (s *Service) handleMessage(stream network.Stream, msg Message) {
-	peer := stream.Conn().RemotePeer()
+		// check if status is enabled
+		if !s.noStatus {
 
-	// check if status is disabled or peer status is confirmed
-	if s.host.noStatus || s.status.confirmed(peer) {
+			// handle status message with status submodule
+			s.status.handleMessage(stream, msg.(*StatusMessage))
+		}
 
-		// send all non-status messages to core service
-		s.msgSend <- msg
-	}
-
-	// check if gossip is enabled
-	if !s.host.noGossip {
-
-		// broadcast all non-status messages that have not been seen
-		s.gossip.handleMessage(stream, msg)
 	}
 }
 
@@ -221,14 +234,14 @@ func (s *Service) Health() Health {
 	return Health{
 		Peers:           s.host.peerCount(),
 		IsSyncing:       false, // TODO
-		ShouldHavePeers: !s.host.noBootstrap,
+		ShouldHavePeers: !s.noBootstrap,
 	}
 }
 
-// NetworkState returns information about host needed for the rpc server
+// NetworkState returns information about host needed for the rpc server and the runtime
 func (s *Service) NetworkState() NetworkState {
 	return NetworkState{
-		PeerId: s.host.id(),
+		PeerId: s.host.id().String(),
 	}
 }
 
