@@ -85,9 +85,9 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := &trie.Trie{}
+	ss := NewTestRuntimeStorage()
 
-	r, err := runtime.NewRuntimeFromFile(fp, tt, nil)
+	r, err := runtime.NewRuntimeFromFile(fp, ss, nil)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -442,7 +442,6 @@ func TestBabeAnnounceMessage(t *testing.T) {
 			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
 		}
 	}
-
 }
 
 func TestBuildBlock(t *testing.T) {
@@ -516,11 +515,16 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	extrinsicsHash, err := common.HexToHash("0xad07a4b35c5e14f1e555ab965258cc2679eafcb48d142e378815edc7e6ecfc53")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	expectedBlockHeader := &types.BlockHeader{
 		ParentHash:     zeroHash,
 		Number:         big.NewInt(1),
 		StateRoot:      emptyRootHash,
-		ExtrinsicsRoot: emptyRootHash,
+		ExtrinsicsRoot: extrinsicsHash,
 		Digest:         []byte{},
 	}
 
@@ -532,4 +536,39 @@ func TestBuildBlock(t *testing.T) {
 	if !reflect.DeepEqual(block0.Header, expectedWithHash) {
 		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedWithHash)
 	}
+}
+
+func NewTestRuntimeStorage() *TestRuntimeStorage {
+	return &TestRuntimeStorage{
+		trie: trie.NewEmptyTrie(nil),
+	}
+}
+
+type TestRuntimeStorage struct {
+	trie *trie.Trie
+}
+
+func (trs TestRuntimeStorage) SetStorage(key []byte, value []byte) error {
+	return trs.trie.Put(key, value)
+}
+func (trs TestRuntimeStorage) GetStorage(key []byte) ([]byte, error) {
+	return trs.trie.Get(key)
+}
+func (trs TestRuntimeStorage) StorageRoot() (common.Hash, error) {
+	return trs.trie.Hash()
+}
+func (trs TestRuntimeStorage) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
+	return trs.trie.PutChild(keyToChild, child)
+}
+func (trs TestRuntimeStorage) SetStorageIntoChild(keyToChild, key, value []byte) error {
+	return trs.trie.PutIntoChild(keyToChild, key, value)
+}
+func (trs TestRuntimeStorage) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
+	return trs.trie.GetFromChild(keyToChild, key)
+}
+func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
+	return trs.trie.Delete(key)
+}
+func (trs TestRuntimeStorage) Entries() map[string][]byte {
+	return trs.trie.Entries()
 }

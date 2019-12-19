@@ -229,6 +229,8 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
+	// TODO: inherents and extrinsics
+
 	// Finalize block
 	rawblock, err := b.finalizeBlock()
 	if err != nil {

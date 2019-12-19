@@ -17,30 +17,26 @@
 package p2p
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
+	"github.com/ChainSafe/gossamer/common"
 )
 
-func stringToAddrInfo(s string) (peer.AddrInfo, error) {
-	maddr, err := ma.NewMultiaddr(s)
-	if err != nil {
-		return peer.AddrInfo{}, err
-	}
-	p, err := peer.AddrInfoFromP2pAddr(maddr)
-	if err != nil {
-		return peer.AddrInfo{}, err
-	}
-	return *p, err
+// Health is network information about host needed for the rpc server
+type Health struct {
+	Peers           int
+	IsSyncing       bool
+	ShouldHavePeers bool
 }
 
-func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
-	pinfos := make([]peer.AddrInfo, len(peers))
-	for i, p := range peers {
-		p, err := stringToAddrInfo(p)
-		if err != nil {
-			return nil, err
-		}
-		pinfos[i] = p
-	}
-	return pinfos, nil
+// NetworkState is network information about host needed for the rpc server
+type NetworkState struct {
+	PeerId string
+}
+
+// PeerInfo is network information about peers needed for the rpc server
+type PeerInfo struct {
+	PeerId          string
+	Roles           byte
+	ProtocolVersion uint32
+	BestHash        common.Hash
+	BestNumber      uint64
 }

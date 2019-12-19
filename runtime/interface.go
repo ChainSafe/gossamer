@@ -13,34 +13,20 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
-package p2p
+package runtime
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
-	ma "github.com/multiformats/go-multiaddr"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
-func stringToAddrInfo(s string) (peer.AddrInfo, error) {
-	maddr, err := ma.NewMultiaddr(s)
-	if err != nil {
-		return peer.AddrInfo{}, err
-	}
-	p, err := peer.AddrInfoFromP2pAddr(maddr)
-	if err != nil {
-		return peer.AddrInfo{}, err
-	}
-	return *p, err
-}
-
-func stringsToAddrInfos(peers []string) ([]peer.AddrInfo, error) {
-	pinfos := make([]peer.AddrInfo, len(peers))
-	for i, p := range peers {
-		p, err := stringToAddrInfo(p)
-		if err != nil {
-			return nil, err
-		}
-		pinfos[i] = p
-	}
-	return pinfos, nil
+type Storage interface {
+	SetStorage(key []byte, value []byte) error
+	GetStorage(key []byte) ([]byte, error)
+	StorageRoot() (common.Hash, error)
+	SetStorageChild(keyToChild []byte, child *trie.Trie) error
+	SetStorageIntoChild(keyToChild, key, value []byte) error
+	GetStorageFromChild(keyToChild, key []byte) ([]byte, error)
+	ClearStorage(key []byte) error
+	Entries() map[string][]byte
 }
