@@ -31,32 +31,32 @@ import (
 )
 
 type RuntimeCtx struct {
-	storage   RuntimeStorage
+	storage   Storage
 	allocator *allocator.FreeingBumpHeapAllocator
 	keystore  *keystore.Keystore
 }
 
 type Runtime struct {
 	vm       wasm.Instance
-	storage  RuntimeStorage
+	storage  Storage
 	keystore *keystore.Keystore
 	mutex    sync.Mutex
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, s Storage, ks *keystore.Keystore) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, rs, ks)
+	return NewRuntime(bytes, s, ks)
 }
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime, error) {
-	if rs == nil {
+func NewRuntime(code []byte, s Storage, ks *keystore.Keystore) (*Runtime, error) {
+	if s == nil {
 		return nil, errors.New("runtime does not have storage trie")
 	}
 
@@ -74,7 +74,7 @@ func NewRuntime(code []byte, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime
 	memAllocator := allocator.NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := RuntimeCtx{
-		storage:   rs,
+		storage:   s,
 		allocator: memAllocator,
 		keystore:  ks,
 	}
@@ -84,7 +84,7 @@ func NewRuntime(code []byte, rs RuntimeStorage, ks *keystore.Keystore) (*Runtime
 
 	r := Runtime{
 		vm:       instance,
-		storage:  rs,
+		storage:  s,
 		mutex:    sync.Mutex{},
 		keystore: ks,
 	}

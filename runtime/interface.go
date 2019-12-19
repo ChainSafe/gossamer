@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-type RuntimeStorage interface {
+type Storage interface {
 	SetStorage(key []byte, value []byte) error
 	GetStorage(key []byte) ([]byte, error)
 	StorageRoot() (common.Hash, error)
