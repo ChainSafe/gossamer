@@ -192,9 +192,6 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		return
 	}
-	log.Debug("[ext_set_storage]", "storage root", roothash)
-	log.Trace("[ext_set_storage] executing...", "trie", t)
-
 }
 
 //export ext_set_child_storage
@@ -275,15 +272,12 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	t := runtimeCtx.trie
 
-	log.Trace("[ext_get_allocated_storage] executing...", "trie", t)
-
 	roothash, err := t.Hash()
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
-	log.Debug("[ext_get_allocated_storage]", "storage root", roothash)
 
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
@@ -306,8 +300,6 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
-
-	log.Debug("[ext_get_allocated_storage]", "value", val)
 
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))

@@ -43,6 +43,7 @@ type AuthorityData struct {
 	weight uint64
 }
 
+//nolint:structcheck
 type BlockInherentsData struct {
 	timestamp0 int64
 	babeslot   int64

@@ -90,6 +90,7 @@ func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
 	return bh, err
 }
 
+// calls runtime API function TaggedTransactionQueue_validate_transaction
 func (b *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
