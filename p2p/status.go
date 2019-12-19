@@ -136,8 +136,10 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 // sendNextMessage waits a set time between receiving a valid peer message and
 // sending the next host message. The "next" host message is after the initial
 // host message sent on connection and all host messages sent through the same
-// process; this event should occur at approximately every set time interval).
-// After set time, if the peer is still connected, send the host message.
+// process; this event should occur at every set time for every connected peer
+// using the same 'send on connect' and 'send on receive' protocol). After set
+// time, if the peer is still connected, sendNextMessage sends the next host
+// message and starts a process that will manage expiratation.
 func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 
 	// wait between sending status messages
