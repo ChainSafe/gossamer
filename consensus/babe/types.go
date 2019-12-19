@@ -45,8 +45,8 @@ type AuthorityData struct {
 
 //nolint:structcheck
 type BlockInherentsData struct {
-	timestamp0 int64
-	babeslot   int64
+	timestamp0 int64 //nolint:unused
+	babeslot   int64 //nolint:unused
 }
 
 type Slot struct {

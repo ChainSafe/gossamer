@@ -71,7 +71,8 @@ func (b *Session) inherentExtrinsics(blockInherentData []byte) error {
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
-func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) ([]byte, error) {
+//nolint:typecheck
+func (b *Session) applyExtrinsic(e types.Extrinsic) ([]byte, error) {
 	var loc int32 = 1
 	b.rt.Store(e, loc)
 
@@ -79,6 +80,7 @@ func (b *Session) applyExtrinsicFromRuntime(e types.Extrinsic) ([]byte, error) {
 }
 
 // calls runtime API function BlockBuilder_finalize_block
+//nolint:typecheck
 func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
 	ret, err := b.rt.Exec("BlockBuilder_finalize_block", 0, []byte{})
 	if err != nil {
