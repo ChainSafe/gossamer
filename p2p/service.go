@@ -58,22 +58,13 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 	}
 
 	// create a new mdns instance
-	mdns, err := newMdns(host)
-	if err != nil {
-		return nil, err
-	}
+	mdns := newMdns(host)
 
 	// create a new status instance
-	status, err := newStatus(host)
-	if err != nil {
-		return nil, err
-	}
+	status := newStatus(host)
 
 	// create a new gossip instance
-	gossip, err := newGossip(host)
-	if err != nil {
-		return nil, err
-	}
+	gossip := newGossip(host)
 
 	p2p := &Service{
 		ctx:         ctx,

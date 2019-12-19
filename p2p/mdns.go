@@ -40,11 +40,10 @@ type mdns struct {
 }
 
 // newMdns creates a new mDNS instance from the host
-func newMdns(host *host) (m *mdns, err error) {
-	m = &mdns{
+func newMdns(host *host) *mdns {
+	return &mdns{
 		host: host,
 	}
-	return m, err
 }
 
 // startMdns starts a new mDNS discovery service
