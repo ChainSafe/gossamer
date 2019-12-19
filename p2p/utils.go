@@ -72,6 +72,9 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 	if seed == 0 {
+		if err = makeDir(fp); err != nil {
+			return nil, err
+		}
 		if err = saveKey(key, fp); err != nil {
 			return nil, err
 		}
@@ -97,12 +100,20 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 	return crypto.UnmarshalECDSAPrivateKey(dec)
 }
 
-// saveKey attempts to save a private key to the provided filepath
-func saveKey(priv crypto.PrivKey, fp string) error {
-	err := makeDir(fp)
-	if err != nil {
-		return err
+// makeDir creates `.gossamer` if directory does not already exist
+func makeDir(fp string) error {
+	_, e := os.Stat(fp)
+	if os.IsNotExist(e) {
+		e = os.Mkdir(fp, os.ModePerm)
+		if e != nil {
+			return e
+		}
 	}
+	return e
+}
+
+// saveKey attempts to save a private key to the provided filepath
+func saveKey(priv crypto.PrivKey, fp string) (err error) {
 	pth := path.Join(filepath.Clean(fp), KeyFile)
 	f, err := os.Create(pth)
 	if err != nil {
@@ -118,16 +129,4 @@ func saveKey(priv crypto.PrivKey, fp string) error {
 		return err
 	}
 	return f.Close()
-}
-
-// makeDir creates `.gossamer` if directory does not already exist
-func makeDir(fp string) error {
-	_, e := os.Stat(fp)
-	if os.IsNotExist(e) {
-		e = os.Mkdir(fp, os.ModePerm)
-		if e != nil {
-			return e
-		}
-	}
-	return e
 }
