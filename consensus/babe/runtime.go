@@ -46,10 +46,11 @@ func (b *Session) configurationFromRuntime() error {
 
 // calls runtime API function Core_initialize_block
 func (b *Session) initializeBlock(blockHeader []byte) error {
+	// TODO: use allocator to store block header
 	var loc int32 = 1
 	b.rt.Store(blockHeader, loc)
 
-	_, err := b.rt.Exec("Core_initialize_block", loc, blockHeader)
+	_, err := b.rt.Exec(runtime.CoreInitializeBlock, loc, blockHeader)
 	if err != nil {
 		return err
 	}
@@ -58,31 +59,28 @@ func (b *Session) initializeBlock(blockHeader []byte) error {
 }
 
 // calls runtime API function BlockBuilder_inherent_extrinsics
-func (b *Session) inherentExtrinsics(blockInherentData []byte) error {
+func (b *Session) inherentExtrinsics(blockInherentData []byte) ([]byte, error) {
+	// TODO: use allocator to store inherents data
 	var loc int32 = 1
 	b.rt.Store(blockInherentData, loc)
 
-	_, err := b.rt.Exec("BlockBuilder_inherent_extrinsics", loc, blockInherentData)
-	if err != nil {
-		return err
-	}
-
-	return err
+	return b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, loc, blockInherentData)
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
 //nolint:typecheck
 func (b *Session) applyExtrinsic(e types.Extrinsic) ([]byte, error) {
+	// TODO: use allocator to store extrinsic
 	var loc int32 = 1
 	b.rt.Store(e, loc)
 
-	return b.rt.Exec("BlockBuilder_apply_extrinsic", loc, e)
+	return b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, loc, e)
 }
 
 // calls runtime API function BlockBuilder_finalize_block
 //nolint:typecheck
 func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
-	ret, err := b.rt.Exec("BlockBuilder_finalize_block", 0, []byte{})
+	ret, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, 0, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +92,11 @@ func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
 
 // calls runtime API function TaggedTransactionQueue_validate_transaction
 func (b *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
+	// TODO: use allocator to store extrinsic
 	var loc int32 = 1000
 	b.rt.Store(e, loc)
 
-	ret, err := b.rt.Exec("TaggedTransactionQueue_validate_transaction", loc, e)
+	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, loc, e)
 	if err != nil {
 		return nil, err
 	}
