@@ -84,6 +84,7 @@ func (b *Session) Start() error {
 		}
 	}
 
+	//TODO: finish implementation of build block
 	go b.invokeBlockAuthoring()
 
 	return nil
@@ -103,23 +104,12 @@ func (b *Session) invokeBlockAuthoring() {
 	var currentSlot uint64 = 0
 
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
-		startTime := uint64(time.Now().Unix())
-
-		if b.isProducer[currentSlot] {
-			//TODO: implement build block
-			parent := b.state.Block.GetLatestBlock()
-			slot := Slot{
-				start:    startTime,
-				duration: b.config.SlotDuration,
-				number:   currentSlot,
-			}
-			block, err := b.buildBlock(&parent, slot)
-			if err != nil {
-				return
-			}
-			b.newBlocks <- *block
+		// TODO: call buildBlock
+		b.newBlocks <- types.Block{
+			Header: &types.BlockHeade1rWithHash{
+				Number: big.NewInt(0),
+			},
 		}
-
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
 }
