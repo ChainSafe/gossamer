@@ -99,12 +99,9 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 
 // saveKey attempts to save a private key to the provided filepath
 func saveKey(priv crypto.PrivKey, fp string) error {
-	if _, e := os.Stat(fp); os.IsNotExist(e) {
-		if e = os.Mkdir(fp, os.ModePerm); e != nil {
-			return e
-		}
-	} else if e != nil {
-		return e
+	err := makeDir(fp)
+	if err != nil {
+		return err
 	}
 	pth := path.Join(filepath.Clean(fp), KeyFile)
 	f, err := os.Create(pth)
@@ -121,4 +118,16 @@ func saveKey(priv crypto.PrivKey, fp string) error {
 		return err
 	}
 	return f.Close()
+}
+
+// makeDir creates `.gossamer` if directory does not already exist
+func makeDir(fp string) error {
+	_, e := os.Stat(fp)
+	if os.IsNotExist(e) {
+		e = os.Mkdir(fp, os.ModePerm)
+		if e != nil {
+			return e
+		}
+	}
+	return e
 }

@@ -82,13 +82,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	h = rhost.Wrap(h, dht)
 
 	// format bootnodes
-	bns, err := stringsToAddrInfos(cfg.BootstrapNodes)
+	bns, err := cfg.bootnodes()
 	if err != nil {
 		return nil, err
 	}
 
 	// format protocol id
-	pid := protocol.ID(cfg.ProtocolId)
+	pid := cfg.protocolId()
 
 	return &host{
 		ctx:        ctx,

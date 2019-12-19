@@ -20,6 +20,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 const KeyFile = "node.key"
@@ -44,6 +45,20 @@ type Config struct {
 	DataDir string
 	// Identity key for node
 	privateKey crypto.PrivKey
+}
+
+// bootnodes formats the configuration bootnodes
+func (c *Config) bootnodes() (peer []peer.AddrInfo, err error) {
+	bootnodes, err := stringsToAddrInfos(c.BootstrapNodes)
+	if err != nil {
+		return nil, err
+	}
+	return bootnodes, nil
+}
+
+// protocolId formats the configuration protocol id
+func (c *Config) protocolId() protocol.ID {
+	return protocol.ID(c.ProtocolId)
 }
 
 // build checks the configuration, sets up the private key for the p2p service,
