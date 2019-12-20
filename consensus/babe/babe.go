@@ -240,30 +240,22 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// TODO: Loop through inherents in the queue and apply them to the block through runtime
-	// var inherentsArray [][]byte = [][]byte{{}}
-	// var ret []byte
-	// for _, inherent := range inherentsArray {
-	// 	ret, err = b.applyExtrinsic(inherent)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	log.Debug("Applied inherent", inherent)
-	// }
-	// log.Debug("Returning from BlockBuilder_apply_extrinsic calls")
 	// TODO: Add Extrinsics to the block until block is full or slot ends
-	// var extrinsic types.Extrinsic
-	// for !blockIsFull(ret) && !endOfSlot(slot) {
-	// 	extrinsic = b.nextReadyExtrinsic()
-	// 	log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
-	// 	ret, err = b.applyExtrinsic(extrinsic)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	// Drop included extrinsic
-	// 	b.txQueue.Pop()
-	// 	log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
-	// }
+	var extrinsic types.Extrinsic
+	//for !blockIsFull(ret) && !endOfSlot(slot) {
+		extrinsic = b.nextReadyExtrinsic()
+		if extrinsic != nil {
+			log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
+			_, err = b.applyExtrinsic(extrinsic)
+			if err != nil {
+				return nil, err
+			}
+			// Drop included extrinsic
+			b.txQueue.Pop()
+			log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)			
+		}
+
+	//}
 
 	// Finalize block
 	block, err := b.finalizeBlock()
@@ -273,4 +265,9 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
 	return block, nil
+}
+
+func (b *Session) nextReadyExtrinsic() types.Extrinsic {
+	transaction := b.txQueue.Peek()
+	return *transaction.Extrinsic
 }
