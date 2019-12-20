@@ -30,7 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -38,7 +38,7 @@ import (
 type Session struct {
 	keystore       *keystore.Keystore
 	rt             *runtime.Runtime
-	state          *state.Service
+	//state          *state.Service //nolint:unused
 	config         *BabeConfiguration
 	authorityIndex uint64
 	authorityData  []AuthorityData
