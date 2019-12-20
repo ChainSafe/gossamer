@@ -30,16 +30,13 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator
-//nolint:structcheck
 type Session struct {
 	keystore       *keystore.Keystore
 	rt             *runtime.Runtime
-	state          *state.Service //nolint:unused
 	config         *BabeConfiguration
 	authorityIndex uint64
 	authorityData  []AuthorityData
