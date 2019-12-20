@@ -35,6 +35,7 @@ import (
 )
 
 // Session contains the VRF keys for the validator
+//nolint:structcheck
 type Session struct {
 	keystore       *keystore.Keystore
 	rt             *runtime.Runtime
