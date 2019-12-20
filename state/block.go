@@ -139,5 +139,5 @@ func (bs *blockState) AddBlock(block types.Block) error {
 
 	//Add the block to the DB
 	err = bs.db.Db.Put(blockKey(blockHeader.Hash), bl)
-	return nil
+	return err
 }
