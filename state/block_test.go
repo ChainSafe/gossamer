@@ -1,9 +1,7 @@
 package state
 
 import (
-	"fmt"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 
@@ -14,25 +12,16 @@ import (
 func TestGetBlockByNumber(t *testing.T) {
 	dataDir := "../test_data/block"
 
-	//Create a new blockState
-	blockState, err := NewBlockState(dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	//Close DB & erase data dir contents
-	defer func() {
-		err = blockState.Db.Db.Close()
-		if err != nil {
-			t.Fatal("BlockDB close err: ", err)
-		}
-		if err = os.RemoveAll(dataDir); err != nil {
-			fmt.Println("removal of temp directory test_data failed")
-		}
-	}()
+	// Create & start a new State service
+	stateService := NewService(dataDir)
+	stateService.Start()
+
+	// Close the service, and remove dataDir once test is done
+	defer stateService.Stop()
 
 	// Create a header & blockdata
 	blockHash := common.NewHash([]byte{0, 1, 2})
-	header := types.BlockHeaderWithHash{
+	blockHeader := types.BlockHeaderWithHash{
 		Number: big.NewInt(1),
 		Hash:   blockHash,
 	}
@@ -43,27 +32,27 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	blockData := types.BlockData{
 		Hash:   blockHash,
-		Header: &header,
+		Header: &blockHeader,
 		Body:   &blockBody,
 	}
 
 	// Set the block's header & blockData in the blockState
-	err = blockState.SetHeader(header)
+	err := stateService.Block.SetHeader(blockHeader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = blockState.SetBlockData(blockHash, blockData)
+	err = stateService.Block.SetBlockData(blockHash, blockData)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Get block & check if it's the same as the expectedBlock
 	expectedBlock := types.Block{
-		Header: header,
+		Header: blockHeader,
 		Body:   blockBody,
 	}
-	retBlock, err := blockState.GetBlockByNumber(big.NewInt(1))
+	retBlock, err := stateService.Block.GetBlockByNumber(big.NewInt(1))
 	if err != nil {
 		t.Fatal(err)
 	}

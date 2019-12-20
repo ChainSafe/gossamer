@@ -12,8 +12,8 @@ import (
 )
 
 type blockState struct {
-	Bt          *blocktree.BlockTree
-	Db          *polkadb.BlockDB
+	bt          *blocktree.BlockTree
+	db          *polkadb.BlockDB
 	latestBlock types.BlockHeaderWithHash
 }
 
@@ -23,8 +23,8 @@ func NewBlockState(dataDir string) (*blockState, error) {
 		return nil, err
 	}
 	return &blockState{
-		Bt: &blocktree.BlockTree{},
-		Db: blockDb,
+		bt: &blocktree.BlockTree{},
+		db: blockDb,
 	}, nil
 }
 
@@ -60,7 +60,7 @@ func blockDataKey(hash common.Hash) []byte {
 func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
 	var result types.BlockHeaderWithHash
 
-	data, err := bs.Db.Db.Get(headerKey(hash))
+	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
 		return types.BlockHeaderWithHash{}, err
 	}
@@ -73,7 +73,7 @@ func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, er
 func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	var result types.BlockData
 
-	data, err := bs.Db.Db.Get(blockDataKey(hash))
+	data, err := bs.db.Db.Get(blockDataKey(hash))
 	if err != nil {
 		return types.BlockData{}, err
 	}
@@ -103,7 +103,7 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
 	// First retrieve the block hash based on the block number from the database
-	hash, err := bs.Db.Db.Get(headerHashKey(n.Uint64()))
+	hash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
 	if err != nil {
 		return types.Block{}, err
 	}
@@ -123,13 +123,13 @@ func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
 		return err
 	}
 
-	err = bs.Db.Db.Put(headerKey(hash), bh)
+	err = bs.db.Db.Put(headerKey(hash), bh)
 	if err != nil {
 		return err
 	}
 
 	// Add a mapping of [blocknumber : hash] for retrieving the block by number
-	err = bs.Db.Db.Put(headerHashKey(header.Number.Uint64()), header.Hash.ToBytes())
+	err = bs.db.Db.Put(headerHashKey(header.Number.Uint64()), header.Hash.ToBytes())
 	return err
 }
 
@@ -140,7 +140,7 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 		return err
 	}
 
-	err = bs.Db.Db.Put(blockDataKey(hash), bh)
+	err = bs.db.Db.Put(blockDataKey(hash), bh)
 	return err
 }
 

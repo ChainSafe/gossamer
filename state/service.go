@@ -1,6 +1,8 @@
 package state
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
 )
 
@@ -52,9 +54,13 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	err = s.Block.Db.Db.Close()
+	err = s.Block.db.Db.Close()
 	if err != nil {
 		return err
+	}
+
+	if err := os.RemoveAll(s.dbPath); err != nil {
+		fmt.Println("removal of temp directory failed")
 	}
 
 	return nil
