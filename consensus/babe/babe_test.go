@@ -406,7 +406,6 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
@@ -504,7 +503,7 @@ func TestBuildBlock(t *testing.T) {
 		number:   1,
 	}
 
-	block0, err := babesession.buildBlock(parentHeader, slot)
+	block, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,8 +527,8 @@ func TestBuildBlock(t *testing.T) {
 		Digest:         []byte{},
 	}
 
-	if !reflect.DeepEqual(block0.Header, expectedBlockHeader) {
-		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedBlockHeader)
+	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }
 
