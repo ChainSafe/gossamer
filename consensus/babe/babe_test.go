@@ -529,7 +529,6 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(block0.Header, expectedBlockHeader) {
-		//t.Logf("%x", block0.Header.ExtrinsicsRoot)
 		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedBlockHeader)
 	}
 }
