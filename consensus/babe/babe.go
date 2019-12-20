@@ -106,7 +106,7 @@ func (b *Session) invokeBlockAuthoring() {
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
 		// TODO: call buildBlock
 		b.newBlocks <- types.Block{
-			Header: &types.BlockHeade1rWithHash{
+			Header: &types.BlockHeaderWithHash{
 				Number: big.NewInt(0),
 			},
 		}
