@@ -79,13 +79,17 @@ func (b *Session) applyExtrinsic(e types.Extrinsic) ([]byte, error) { //nolint:u
 
 // calls runtime API function BlockBuilder_finalize_block
 //nolint:typecheck
-func (b *Session) finalizeBlock() (*types.BlockHeader, error) {
+func (b *Session) finalizeBlock() (*types.Block, error) {
 	ret, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, 0, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	bh := new(types.BlockHeader)
+	bh := &types.Block{
+		Header: new(types.BlockHeader),
+		Body:   new(types.BlockBody),
+	}
+
 	_, err = scale.Decode(ret, bh)
 	return bh, err
 }

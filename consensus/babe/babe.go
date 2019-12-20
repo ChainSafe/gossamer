@@ -107,7 +107,7 @@ func (b *Session) invokeBlockAuthoring() {
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
 		// TODO: call buildBlock
 		b.newBlocks <- types.Block{
-			Header: &types.BlockHeaderWithHash{
+			Header: &types.BlockHeader{
 				Number: big.NewInt(0),
 			},
 		}
@@ -223,20 +223,11 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// TODO: inherents and extrinsics
 
 	// Finalize block
-	rawblock, err := b.finalizeBlock()
+	block, err := b.finalizeBlock()
 	if err != nil {
 		return nil, err
 	}
 
-	rawblock.Number.Add(parent.Number, big.NewInt(1))
-
-	withHash, err := rawblock.BlockHeaderWithHash()
-	if err != nil {
-		return nil, err
-	}
-
-	block := &types.Block{
-		Header: withHash,
-	}
+	block.Header.Number.Add(parent.Number, big.NewInt(1))
 	return block, nil
 }

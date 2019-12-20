@@ -299,7 +299,7 @@ func TestSlotOffset(t *testing.T) {
 
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 
-	genesisBlock := types.Block{
+	genesisBlock := types.BlockWithHash{
 		Header: &types.BlockHeaderWithHash{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
@@ -327,7 +327,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 			t.Error(err)
 		}
 
-		block := types.Block{
+		block := types.BlockWithHash{
 			Header: &types.BlockHeaderWithHash{
 				ParentHash: previousHash,
 				Hash:       hash,
@@ -528,13 +528,8 @@ func TestBuildBlock(t *testing.T) {
 		Digest:         []byte{},
 	}
 
-	expectedWithHash, err := expectedBlockHeader.BlockHeaderWithHash()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(block0.Header, expectedWithHash) {
-		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedWithHash)
+	if !reflect.DeepEqual(block0.Header, expectedBlockHeader) {
+		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedBlockHeader)
 	}
 }
 

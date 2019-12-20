@@ -201,7 +201,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 	// simulate block sent from BABE session
 	blkRec <- types.Block{
-		Header: &types.BlockHeaderWithHash{
+		Header: &types.BlockHeader{
 			Number: big.NewInt(0),
 		},
 	}

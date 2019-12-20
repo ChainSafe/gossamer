@@ -28,18 +28,24 @@ type Extrinsic []byte
 
 // Block defines a state block
 type Block struct {
+	Header *BlockHeader
+	Body   *BlockBody
+}
+
+// Block defines a state block
+type BlockWithHash struct {
 	Header      *BlockHeaderWithHash
 	Body        *BlockBody
 	arrivalTime uint64 // arrival time of this block
 }
 
 // GetBlockArrivalTime returns the arrival time for a block
-func (b *Block) GetBlockArrivalTime() uint64 {
+func (b *BlockWithHash) GetBlockArrivalTime() uint64 {
 	return b.arrivalTime
 }
 
 // SetBlockArrivalTime sets the arrival time for a block
-func (b *Block) SetBlockArrivalTime(t uint64) {
+func (b *BlockWithHash) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
 }
 
@@ -61,7 +67,7 @@ func (bh *BlockHeader) Hash() (common.Hash, error) {
 	return common.Blake2bHash(enc)
 }
 
-func (bh *BlockHeader) BlockHeaderWithHash() (*BlockHeaderWithHash, error) {
+func (bh *BlockHeader) WithHash() (*BlockHeaderWithHash, error) {
 	enc, err := scale.Encode(bh)
 	if err != nil {
 		return nil, err
@@ -80,6 +86,16 @@ func (bh *BlockHeader) BlockHeaderWithHash() (*BlockHeaderWithHash, error) {
 		Digest:         bh.Digest,
 		Hash:           hash,
 	}, nil
+}
+
+func (bh *BlockHeaderWithHash) WithoutHash() *BlockHeader {
+	return &BlockHeader{
+		ParentHash:     bh.ParentHash,
+		Number:         bh.Number,
+		StateRoot:      bh.StateRoot,
+		ExtrinsicsRoot: bh.ExtrinsicsRoot,
+		Digest:         bh.Digest,
+	}
 }
 
 // BlockHeaderWithHash is a state block header
