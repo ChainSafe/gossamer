@@ -217,7 +217,53 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// TODO: inherents and extrinsics
+	// Setup inherents: add timstap0 and babeslot
+	idata := NewInherentsData()
+	err = idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
+	if err != nil {
+		return nil, err
+	}
+
+	err = idata.SetInt64Inherent(Babeslot, slot.number)
+	if err != nil {
+		return nil, err
+	}
+
+	ienc, err := idata.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	// Call BlockBuilder_inherent_extrinsics
+	_, err = b.inherentExtrinsics(ienc)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Loop through inherents in the queue and apply them to the block through runtime
+	// var inherentsArray [][]byte = [][]byte{{}}
+	// var ret []byte
+	// for _, inherent := range inherentsArray {
+	// 	ret, err = b.applyExtrinsic(inherent)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	log.Debug("Applied inherent", inherent)
+	// }
+	// log.Debug("Returning from BlockBuilder_apply_extrinsic calls")
+	// TODO: Add Extrinsics to the block until block is full or slot ends
+	// var extrinsic types.Extrinsic
+	// for !blockIsFull(ret) && !endOfSlot(slot) {
+	// 	extrinsic = b.nextReadyExtrinsic()
+	// 	log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
+	// 	ret, err = b.applyExtrinsic(extrinsic)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	// Drop included extrinsic
+	// 	b.txQueue.Pop()
+	// 	log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+	// }
 
 	// Finalize block
 	block, err := b.finalizeBlock()

@@ -515,7 +515,7 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	extrinsicsHash, err := common.HexToHash("0xad07a4b35c5e14f1e555ab965258cc2679eafcb48d142e378815edc7e6ecfc53")
+	extrinsicsHash, err := common.HexToHash("0x4f4c5f3ebd6112b5c4ec8c354712978db0b0465b30ef06bb46f528802b04407c")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -529,6 +529,7 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(block0.Header, expectedBlockHeader) {
+		//t.Logf("%x", block0.Header.ExtrinsicsRoot)
 		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedBlockHeader)
 	}
 }
