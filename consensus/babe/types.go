@@ -88,7 +88,7 @@ func (d *InherentsData) Encode() ([]byte, error) {
 	length := big.NewInt(int64(len(d.data)))
 
 	buffer := bytes.Buffer{}
-	se := scale.Encoder{&buffer}
+	se := scale.Encoder{Writer: &buffer}
 
 	_, err := se.Encode(length)
 	if err != nil {
