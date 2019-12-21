@@ -235,12 +235,6 @@ func (h *host) getStream(p peer.ID) (stream network.Stream) {
 
 			// only use streams with matching host protocol id and stream direction is outbound
 			if stream.Protocol() == h.protocolId && stream.Stat().Direction == network.DirOutbound {
-				log.Trace(
-					"Existing stream",
-					"host", h.id(),
-					"peer", p,
-					"protocol", stream.Protocol(),
-				)
 				return stream
 			}
 		}
