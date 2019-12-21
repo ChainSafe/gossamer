@@ -160,8 +160,7 @@ func (h *host) ping(peer peer.ID) error {
 }
 
 // send writes the given message to the outbound message stream for the given
-// peer (gets the already opened stream or opens a new stream). Each host uses
-// the same outbound message stream until otherwise closed or reset.
+// peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, msg Message) (err error) {
 
 	// get outbound stream for given peer
@@ -219,10 +218,9 @@ func (h *host) broadcast(msg Message) {
 	}
 }
 
-// getStream returns the outbound message stream for the given peer. Each p2p
-// service messsage is being written to the outbound message stream that uses
-// the same protocol id and that each host opens for each peer. Each host uses
-// the same outbound message stream until otherwise closed or reset.
+// getStream returns the outbound message stream for the given peer or returns
+// nil if no outbound message stream exists. For each peer, each host opens an
+// outbound message stream and writes to the same stream until closed or reset.
 func (h *host) getStream(p peer.ID) (stream network.Stream) {
 	conns := h.h.Network().ConnsToPeer(p)
 

@@ -170,7 +170,7 @@ func (s *Service) handleConn(conn network.Conn) {
 
 // handleStream starts reading from the inbound message stream (substream with
 // a matching protocol id that was opened by the connected peer) and continues
-// reading until the inbound message stream is closed or reset.
+// reading until the inbound message stream is either closed or reset.
 func (s *Service) handleStream(stream network.Stream) {
 	ctx := context.Background()
 
@@ -181,7 +181,7 @@ func (s *Service) handleStream(stream network.Stream) {
 }
 
 // readStream reads messages written to the inbound message stream until the
-// inbound message stream is otherwise closed or reset.
+// inbound message stream is either closed or reset.
 func (s *Service) readStream(ctx context.Context, stream network.Stream) {
 	peer := stream.Conn().RemotePeer()
 
@@ -209,7 +209,7 @@ func (s *Service) readStream(ctx context.Context, stream network.Stream) {
 	}
 }
 
-// handleMessage handles the message based on type and status
+// handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	log.Trace(
 		"Received message from peer",
