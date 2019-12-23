@@ -52,8 +52,6 @@ type SessionConfig struct {
 	NewBlocks chan<- types.Block
 }
 
-const MaxBlockSize uint = 4*1024*1024 + 512
-
 // NewSession returns a new Babe session using the provided VRF keys and runtime
 func NewSession(cfg *SessionConfig) (*Session, error) {
 	babeSession := &Session{
