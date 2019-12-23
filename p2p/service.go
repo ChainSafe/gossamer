@@ -182,7 +182,7 @@ func (s *Service) handleStream(stream network.Stream) {
 		msg, err := decodeMessage(r)
 		if err != nil {
 
-			// exit loop if nothing to read
+			// exit loop if last received byte was nil (stream closed or reset)
 			ub := r.UnreadByte()
 			if ub == nil {
 				return // exit
