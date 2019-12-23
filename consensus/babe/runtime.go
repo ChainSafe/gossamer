@@ -59,7 +59,6 @@ func (b *Session) initializeBlock(blockHeader []byte) error {
 }
 
 // calls runtime API function BlockBuilder_inherent_extrinsics
-//nolint:typecheck
 func (b *Session) inherentExtrinsics(blockInherentData []byte) ([]byte, error) { //nolint:unused
 	// TODO: use allocator to store inherents data
 	var loc int32 = 1
@@ -69,7 +68,6 @@ func (b *Session) inherentExtrinsics(blockInherentData []byte) ([]byte, error) {
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
-//nolint:typecheck
 func (b *Session) applyExtrinsic(e types.Extrinsic) ([]byte, error) { //nolint:unused
 	// TODO: use allocator to store extrinsic
 	var loc int32 = 1
