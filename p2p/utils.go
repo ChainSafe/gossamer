@@ -144,12 +144,6 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 
 // decodeMessage decodes the message based on message type
 func decodeMessage(r io.Reader) (m Message, err error) {
-
-	// _, err := readByte(r)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	msgType, err := readByte(r)
 	if err != nil {
 		return nil, err

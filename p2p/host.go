@@ -188,11 +188,6 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 		return err
 	}
 
-	// _, err = s.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
-	// if err != nil {
-	// 	return err
-	// }
-
 	_, err = s.Write(encMsg)
 	if err != nil {
 		return err
@@ -231,7 +226,7 @@ func (h *host) getStream(p peer.ID) (stream network.Stream) {
 		// loop through connection streams (unassigned streams and ipfs dht streams included)
 		for _, stream := range streams {
 
-			// only use streams with matching host protocol id and stream direction is outbound
+			// return stream with matching host protocol id and stream direction outbound
 			if stream.Protocol() == h.protocolId && stream.Stat().Direction == network.DirOutbound {
 				return stream
 			}
