@@ -172,15 +172,6 @@ func (s *Service) handleConn(conn network.Conn) {
 // a matching protocol id that was opened by the connected peer) and continues
 // reading until the inbound message stream is closed or reset.
 func (s *Service) handleStream(stream network.Stream) {
-
-	// read from the inbound message stream
-	s.readStream(stream)
-
-	// the stream stays open until closed or reset
-}
-
-// readStream reads messages written to the inbound message stream.
-func (s *Service) readStream(stream network.Stream) {
 	peer := stream.Conn().RemotePeer()
 
 	// create buffer stream for non-blocking read
@@ -204,6 +195,8 @@ func (s *Service) readStream(stream network.Stream) {
 		// handle message based on peer status and message type
 		s.handleMessage(peer, msg)
 	}
+
+	// the stream stays open until closed or reset
 }
 
 // handleMessage handles the message based on peer status and message type
