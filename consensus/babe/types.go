@@ -49,6 +49,13 @@ type AuthorityData struct {
 	weight uint64
 }
 
+// Slot represents a BABE slot
+type Slot struct {
+	start    uint64
+	duration uint64
+	number   uint64
+}
+
 var Timstap0 = []byte("timstap0")
 var Babeslot = []byte("babeslot")
 
@@ -106,10 +113,4 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		}
 	}
 	return buffer.Bytes(), nil
-}
-
-type Slot struct {
-	start    uint64
-	duration uint64
-	number   uint64
 }
