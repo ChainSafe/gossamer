@@ -95,13 +95,14 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	listIndex := bits.TrailingZeros32(itemSize) - 3
 
 	var ptr uint32
-	if item := fbha.heads[listIndex]; item != 0 && item < uint32(len(fbha.heap.Data())) {
+	if item := fbha.heads[listIndex]; item != 0 /* && item < uint32(len(fbha.heap.Data()))*/ {
 		// Something from the free list
 		//item := fbha.heads[listIndex]
 		log.Trace("[Allocate]", "size", size, "item", item, "listIndex", listIndex)
 
 		fourBytes := fbha.getHeap4bytes(item)
 		fbha.heads[listIndex] = binary.LittleEndian.Uint32(fourBytes)
+		log.Trace("[Allocate] setting head", "listIndex", listIndex, "value", fbha.heads[listIndex])
 		ptr = item + 8
 	} else {
 		// Nothing te be freed. Bump.
