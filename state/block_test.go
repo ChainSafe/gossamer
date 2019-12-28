@@ -2,6 +2,7 @@ package state
 
 import (
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 
@@ -18,6 +19,11 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	// Close the service, and remove dataDir once test is done
 	defer stateService.Stop()
+	defer func() {
+		if err := os.RemoveAll("../test_data"); err != nil {
+			t.Fatalf("removal of temp directory failed")
+		}
+	}()
 
 	// Create a header & blockdata
 	blockHash := common.NewHash([]byte{0, 1, 2})
