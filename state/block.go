@@ -85,7 +85,6 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 
 func (bs *blockState) GetLatestBlock() types.BlockHeaderWithHash {
 	return bs.latestBlock
-
 }
 
 func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
@@ -98,7 +97,8 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 		return types.Block{}, err
 	}
 	blockBody := blockData.Body
-	return types.Block{Header: header, Body: *blockBody}, nil
+	blockHeader := header.WithoutHash()
+	return types.Block{Header: blockHeader, Body: blockBody}, nil
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
