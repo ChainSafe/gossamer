@@ -175,26 +175,25 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
-	//s := myStorage
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
 	log.Trace("[ext_set_storage]", "key", key, "val", val)
 	err := s.SetStorage(key, val)
-	//err := myTrie.Put(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
 		return
 	}
 
+	// begin: can remove; for debugging
 	root, err := s.StorageRoot()
-	//root, err := myTrie.Hash()
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
 		return
 	}
 
 	log.Debug("[ext_set_storage]", "root", root)
+	// end
 }
 
 //export ext_set_child_storage
@@ -274,22 +273,21 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
-	//s := myStorage
 
+	// begin: can remove; for debugging
 	root, err := s.StorageRoot()
-	//root, err := myTrie.Hash()
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		return 0
 	}
 
 	log.Debug("[ext_get_allocated_storage]", "root", root)
+	// end
 
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
 
 	val, err := s.GetStorage(key)
-	//val, err := myTrie.Get(key)
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})

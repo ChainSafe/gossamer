@@ -407,7 +407,6 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
