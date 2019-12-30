@@ -241,17 +241,17 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// TODO: Add Extrinsics to the block until block is full or slot ends
 	var extrinsic types.Extrinsic
 	//for !blockIsFull(ret) && !endOfSlot(slot) {
-		extrinsic = b.nextReadyExtrinsic()
-		if extrinsic != nil {
-			log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
-			_, err = b.applyExtrinsic(extrinsic)
-			if err != nil {
-				return nil, err
-			}
-			// Drop included extrinsic
-			b.txQueue.Pop()
-			log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)			
+	extrinsic = b.nextReadyExtrinsic()
+	if extrinsic != nil {
+		log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
+		_, err = b.applyExtrinsic(extrinsic)
+		if err != nil {
+			return nil, err
 		}
+		// Drop included extrinsic
+		b.txQueue.Pop()
+		log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+	}
 
 	//}
 

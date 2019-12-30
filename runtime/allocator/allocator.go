@@ -115,7 +115,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	}
 	fbha.setHeap(ptr-8, uint8(listIndex))
 	fbha.TotalSize = fbha.TotalSize + itemSize + 8
-	log.Trace("[Allocate]", "heap_size after allocation", fbha.TotalSize, "ptr", fbha.ptrOffset + ptr)
+	log.Trace("[Allocate]", "heap_size after allocation", fbha.TotalSize, "ptr", fbha.ptrOffset+ptr)
 	return fbha.ptrOffset + ptr, nil
 }
 

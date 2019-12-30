@@ -37,10 +37,11 @@ type RuntimeCtx struct {
 }
 
 type Runtime struct {
-	vm       wasm.Instance
-	storage  Storage
-	keystore *keystore.Keystore
-	mutex    sync.Mutex
+	vm        wasm.Instance
+	storage   Storage
+	keystore  *keystore.Keystore
+	mutex     sync.Mutex
+	allocator *allocator.FreeingBumpHeapAllocator
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
@@ -83,10 +84,11 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore) (*Runtime, error)
 	instance.SetContextData(&runtimeCtx)
 
 	r := Runtime{
-		vm:       instance,
-		storage:  s,
-		mutex:    sync.Mutex{},
-		keystore: ks,
+		vm:        instance,
+		storage:   s,
+		mutex:     sync.Mutex{},
+		keystore:  ks,
+		allocator: memAllocator,
 	}
 
 	return &r, nil
@@ -109,6 +111,14 @@ func (r *Runtime) Store(data []byte, location int32) {
 func (r *Runtime) Load(location, length int32) []byte {
 	mem := r.vm.Memory.Data()
 	return mem[location : location+length]
+}
+
+func (r *Runtime) Malloc(size uint32) (uint32, error) {
+	return r.allocator.Allocate(size)
+}
+
+func (r *Runtime) Free(ptr uint32) error {
+	return r.allocator.Deallocate(ptr)
 }
 
 func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) {

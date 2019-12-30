@@ -46,36 +46,55 @@ func (b *Session) configurationFromRuntime() error {
 
 // calls runtime API function Core_initialize_block
 func (b *Session) initializeBlock(blockHeader []byte) error {
-	// TODO: use allocator to store block header
-	var loc int32 = 1
-	b.rt.Store(blockHeader, loc)
-
-	_, err := b.rt.Exec(runtime.CoreInitializeBlock, loc, blockHeader)
+	ptr, err := b.rt.Malloc(uint32(len(blockHeader)))
 	if err != nil {
 		return err
 	}
 
-	return nil
+	b.rt.Store(blockHeader, int32(ptr))
+
+	_, err = b.rt.Exec(runtime.CoreInitializeBlock, int32(ptr), blockHeader)
+	if err != nil {
+		return err
+	}
+
+	return b.rt.Free(ptr)
 }
 
 // calls runtime API function BlockBuilder_inherent_extrinsics
-//nolint:typecheck
-func (b *Session) inherentExtrinsics(blockInherentData []byte) ([]byte, error) { //nolint:unused
-	// TODO: use allocator to store inherents data
-	var loc int32 = 1
-	b.rt.Store(blockInherentData, loc)
+func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) { //nolint:unused
+	ptr, err := b.rt.Malloc(uint32(len(data)))
+	if err != nil {
+		return nil, err
+	}
 
-	return b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, loc, blockInherentData)
+	b.rt.Store(data, int32(ptr))
+
+	ret, err := b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, int32(ptr), data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.rt.Free(ptr)
+	return ret, err
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
-//nolint:typecheck
-func (b *Session) applyExtrinsic(e types.Extrinsic) ([]byte, error) { //nolint:unused
-	// TODO: use allocator to store extrinsic
-	var loc int32 = 1
-	b.rt.Store(e, loc)
+func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) { //nolint:unused
+	ptr, err := b.rt.Malloc(uint32(len(data)))
+	if err != nil {
+		return nil, err
+	}
 
-	return b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, loc, e)
+	b.rt.Store(data, int32(ptr))
+
+	ret, err := b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, int32(ptr), data)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.rt.Free(ptr)
+	return ret, err
 }
 
 // calls runtime API function BlockBuilder_finalize_block
@@ -95,12 +114,15 @@ func (b *Session) finalizeBlock() (*types.Block, error) {
 }
 
 // calls runtime API function TaggedTransactionQueue_validate_transaction
-func (b *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
-	// TODO: use allocator to store extrinsic
-	var loc int32 = 1000
-	b.rt.Store(e, loc)
+func (b *Session) validateTransaction(data types.Extrinsic) (*tx.Validity, error) {
+	ptr, err := b.rt.Malloc(uint32(len(data)))
+	if err != nil {
+		return nil, err
+	}
 
-	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, loc, e)
+	b.rt.Store(data, int32(ptr))
+
+	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, int32(ptr), data)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +133,10 @@ func (b *Session) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 
 	v := tx.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	_, err = scale.Decode(ret[1:], v)
+	if err != nil {
+		return nil, err
+	}
 
+	err = b.rt.Free(ptr)
 	return v, err
 }
