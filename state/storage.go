@@ -7,6 +7,18 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
+type Storage interface {
+	TrieAsString() string
+	SetStorage(key []byte, value []byte) error
+	GetStorage(key []byte) ([]byte, error)
+	StorageRoot() (common.Hash, error)
+	SetStorageChild(keyToChild []byte, child *trie.Trie) error
+	SetStorageIntoChild(keyToChild, key, value []byte) error
+	GetStorageFromChild(keyToChild, key []byte) ([]byte, error)
+	ClearStorage(key []byte) error
+	Entries() map[string][]byte
+}
+
 type StorageState struct {
 	trie *trie.Trie
 	Db   *polkadb.StateDB
@@ -22,6 +34,10 @@ func NewStorageState(dataDir string) (*StorageState, error) {
 		trie: trie.NewEmptyTrie(db),
 		Db:   stateDb,
 	}, nil
+}
+
+func (s *StorageState) TrieAsString() string {
+	return s.trie.String()
 }
 
 func (s *StorageState) ExistsStorage(key []byte) (bool, error) {

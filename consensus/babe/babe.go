@@ -232,30 +232,28 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// Call BlockBuilder_inherent_extrinsics
 	_, err = b.inherentExtrinsics(ienc)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Add Extrinsics to the block until block is full or slot ends
-	var extrinsic types.Extrinsic
-	//for !blockIsFull(ret) && !endOfSlot(slot) {
-	extrinsic = b.nextReadyExtrinsic()
-	if extrinsic != nil {
-		log.Debug("buildBlock", "Applying Extrinsic", extrinsic)
-		_, err = b.applyExtrinsic(extrinsic)
+	// for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
+	// TODO: check when block is full
+	extrinsic := b.nextReadyExtrinsic()
+	for !endOfSlot(slot) && extrinsic != nil {
+		log.Debug("build_block", "applying extrinsic", extrinsic)
+		_, err = b.applyExtrinsic(*extrinsic)
 		if err != nil {
 			return nil, err
 		}
-		// Drop included extrinsic
 		b.txQueue.Pop()
 		log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+
+		extrinsic = b.nextReadyExtrinsic()
 	}
 
-	//}
-
-	// Finalize block
+	// finalize the block
+	log.Debug("build_block finalize block")
 	block, err := b.finalizeBlock()
 	if err != nil {
 		return nil, err
@@ -265,7 +263,14 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	return block, nil
 }
 
-func (b *Session) nextReadyExtrinsic() types.Extrinsic {
+func (b *Session) nextReadyExtrinsic() *types.Extrinsic {
 	transaction := b.txQueue.Peek()
-	return *transaction.Extrinsic
+	if transaction == nil {
+		return nil
+	}
+	return transaction.Extrinsic
+}
+
+func endOfSlot(slot Slot) bool {
+	return slot.start+slot.duration < uint64(time.Now().Unix())
 }

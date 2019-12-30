@@ -85,7 +85,8 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		t.Fatal("could not create filepath")
 	}
 
-	ss := NewTestRuntimeStorage()
+	tr := trie.NewEmptyTrie(nil)
+	ss := NewTestRuntimeStorage(tr)
 
 	r, err := runtime.NewRuntimeFromFile(fp, ss, nil)
 	if err != nil {
@@ -500,43 +501,47 @@ func TestBuildBlock(t *testing.T) {
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
-		duration: uint64(10),
+		duration: uint64(10000000),
 		number:   1,
 	}
 
-	block0, err := babesession.buildBlock(parentHeader, slot)
+	block, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// the hash of an empty trie
-	emptyRootHash, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	// hash of parent header
+	parentHash, err := common.HexToHash("0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	extrinsicsHash, err := common.HexToHash("0x4f4c5f3ebd6112b5c4ec8c354712978db0b0465b30ef06bb46f528802b04407c")
+	stateRoot, err := common.HexToHash("0x6279dc099b24c97889c3e7b01b01e399d12677b8ab6567780499fcc483470113")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extrinsicsRoot, err := common.HexToHash("0x5001c7b54696a0c6e236e7000ac5cb7b6a1983c37cd6e90a8805efc559cc7217")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expectedBlockHeader := &types.BlockHeader{
-		ParentHash:     zeroHash,
+		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
-		StateRoot:      emptyRootHash,
-		ExtrinsicsRoot: extrinsicsHash,
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         []byte{},
 	}
 
-	if !reflect.DeepEqual(block0.Header, expectedBlockHeader) {
-		//t.Logf("%x", block0.Header.ExtrinsicsRoot)
-		t.Fatalf("Fail: got %v expected %v", block0.Header, expectedBlockHeader)
+	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }
 
-func NewTestRuntimeStorage() *TestRuntimeStorage {
+func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
 	return &TestRuntimeStorage{
-		trie: trie.NewEmptyTrie(nil),
+		trie: tr,
 	}
 }
 
@@ -567,4 +572,7 @@ func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
 }
 func (trs TestRuntimeStorage) Entries() map[string][]byte {
 	return trs.trie.Entries()
+}
+func (trs TestRuntimeStorage) TrieAsString() string {
+	return trs.trie.String()
 }

@@ -21,6 +21,7 @@ import (
 )
 
 type Storage interface {
+	TrieAsString() string
 	SetStorage(key []byte, value []byte) error
 	GetStorage(key []byte) ([]byte, error)
 	StorageRoot() (common.Hash, error)

@@ -175,15 +175,26 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
+	//s := myStorage
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
 	log.Trace("[ext_set_storage]", "key", key, "val", val)
 	err := s.SetStorage(key, val)
+	//err := myTrie.Put(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
 		return
 	}
+
+	root, err := s.StorageRoot()
+	//root, err := myTrie.Hash()
+	if err != nil {
+		log.Error("[ext_set_storage]", "error", err)
+		return
+	}
+
+	log.Debug("[ext_set_storage]", "root", root)
 }
 
 //export ext_set_child_storage
@@ -263,11 +274,22 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
+	//s := myStorage
+
+	root, err := s.StorageRoot()
+	//root, err := myTrie.Hash()
+	if err != nil {
+		log.Error("[ext_get_allocated_storage]", "error", err)
+		return 0
+	}
+
+	log.Debug("[ext_get_allocated_storage]", "root", root)
 
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
 
 	val, err := s.GetStorage(key)
+	//val, err := myTrie.Get(key)
 	if err != nil {
 		log.Error("[ext_get_allocated_storage]", "error", err)
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
@@ -286,7 +308,19 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		return 0
 	}
 
-	log.Debug("[ext_get_allocated_storage]", "key", key, "value", val)
+	log.Debug("[ext_get_allocated_storage] before", "key", key, "value", val)
+	actual := make([]byte, len(val))
+	copy(actual, val)
+
+	if bytes.Equal(key, []byte(":extrinsic_index")) {
+		val[0] &= 0
+		val[1] &= 0
+		val[2] &= 0
+		val[3] &= 0
+	}
+
+	log.Debug("[ext_get_allocated_storage] after", "key", key, "value", val)
+	log.Debug("[ext_get_allocated_storage] actual", "key", key, "value", actual)
 
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))
