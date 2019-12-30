@@ -123,6 +123,16 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 	return kp.private
 }
 
+func (kp *Keypair) VrfSign(msg []byte) (*sr25519.VrfOutput, *sr25519.VrfProof, error) {
+	t := sr25519.NewSigningContext(SigningContext, msg)
+	inout, proof, err := kp.private.key.VrfSign(t)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := inout.Output()
+	return out, proof, nil
+}
+
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
 func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	if k.key == nil {
@@ -193,6 +203,12 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
 	return k.key.Verify(s, t), nil
+}
+
+func (k *PublicKey) VrfVerify(msg []byte, out *sr25519.VrfOutput, proof *sr25519.VrfProof) (bool, error) {
+	t := sr25519.NewSigningContext(SigningContext, msg)
+	inout := out.AttachInput(k.key, t)
+	return k.key.VrfVerify(t, inout, proof)
 }
 
 // Encode returns the 32-byte encoding of the public key

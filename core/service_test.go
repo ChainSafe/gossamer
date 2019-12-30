@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
@@ -98,7 +99,8 @@ func TestStartService(t *testing.T) {
 	rt := newRuntime(t)
 
 	cfg := &Config{
-		Runtime: rt,
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)

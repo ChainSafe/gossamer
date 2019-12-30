@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -25,40 +24,45 @@ import (
 	"math/big"
 	"time"
 
+	schnorrkel "github.com/ChainSafe/go-schnorrkel"
 	"github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/runtime"
 	log "github.com/ChainSafe/log15"
 )
 
-// Session contains the VRF keys for the validator
+// Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
-	keystore       *keystore.Keystore
+	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
 	authorityIndex uint64
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	isProducer     map[uint64]bool    // whether we are a block producer at a slot
+	isProducer     map[uint64][]byte  // whether we are a block producer at a slot
 	newBlocks      chan<- types.Block // send blocks to core service
 }
 
 type SessionConfig struct {
-	Keystore  *keystore.Keystore
+	Keypair   *sr25519.Keypair
 	Runtime   *runtime.Runtime
 	NewBlocks chan<- types.Block
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
 func NewSession(cfg *SessionConfig) (*Session, error) {
+	if cfg.Keypair == nil {
+		return nil, errors.New("cannot start BABE session; no keypair provided")
+	}
+
 	babeSession := &Session{
-		keystore:   cfg.Keystore,
+		keypair:    cfg.Keypair,
 		rt:         cfg.Runtime,
 		txQueue:    new(tx.PriorityQueue),
-		isProducer: make(map[uint64]bool),
+		isProducer: make(map[uint64][]byte),
 		newBlocks:  cfg.NewBlocks,
 	}
 
@@ -110,26 +114,37 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 }
 
-// runs the slot lottery for a specific slot
-// returns true if validator is authorized to produce a block for that slot, false otherwise
-func (b *Session) runLottery(slot uint64) (bool, error) {
+// runs the slot lottery for a specific slot number
+// returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
+func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
-	output, err := b.vrfSign(vrfInput)
+
+	output, proof, err := b.vrfSign(vrfInput)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	output_int := new(big.Int).SetBytes(output)
+	outbytes := output.Encode()
+	output_int := big.NewInt(0).SetBytes(outbytes[:])
 	if b.epochThreshold == nil {
 		err = b.setEpochThreshold()
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 	}
 
-	return output_int.Cmp(b.epochThreshold) > 0, nil
+	if output_int.Cmp(b.epochThreshold) > 0 {
+		proofbytes := proof.Encode()
+		return append(outbytes[:], proofbytes...), nil
+	}
+
+	return nil, nil
+}
+
+func (b *Session) vrfSign(input []byte) (*schnorrkel.VrfOutput, *schnorrkel.VrfProof, error) {
+	return b.keypair.VrfSign(input)
 }
 
 // sets the slot lottery threshold for the current epoch
@@ -192,13 +207,6 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
-}
-
-func (b *Session) vrfSign(input []byte) ([]byte, error) {
-	// TOOD: return VRF output and proof
-	out := make([]byte, 32)
-	_, err := rand.Read(out)
-	return out, err
 }
 
 // Block Build
