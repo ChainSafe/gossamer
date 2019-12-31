@@ -298,12 +298,10 @@ func TestSlotOffset(t *testing.T) {
 }
 
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
-
 	genesisBlock := types.Block{
 		Header: &types.BlockHeader{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
-			//Hash:       ,
 		},
 		Body: &types.BlockBody{},
 	}

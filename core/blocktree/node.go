@@ -90,7 +90,6 @@ func (n *node) getBlockFromNode() *types.Block {
 	bh := types.BlockHeader{
 		ParentHash: n.parent.hash,
 		Number:     n.number,
-		//Hash:       n.hash,
 	}
 
 	bh.SetHash(n.hash)

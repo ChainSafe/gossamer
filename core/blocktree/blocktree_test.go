@@ -167,7 +167,6 @@ func TestBlockTree_LongestPath(t *testing.T) {
 		Header: &types.BlockHeader{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(1),
-			//Hash:       common.Hash{0xAB},
 		},
 		Body: &types.BlockBody{},
 	}

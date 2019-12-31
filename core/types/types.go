@@ -33,13 +33,6 @@ type Block struct {
 	arrivalTime uint64 // arrival time of this block
 }
 
-// // Block defines a state block
-// type BlockWithHash struct {
-// 	Header      *BlockHeaderWithHash
-// 	Body        *BlockBody
-// 	arrivalTime uint64 // arrival time of this block
-// }
-
 // GetBlockArrivalTime returns the arrival time for a block
 func (b *Block) GetBlockArrivalTime() uint64 {
 	return b.arrivalTime
