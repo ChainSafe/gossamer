@@ -28,24 +28,25 @@ type Extrinsic []byte
 
 // Block defines a state block
 type Block struct {
-	Header *BlockHeader
-	Body   *BlockBody
-}
-
-// Block defines a state block
-type BlockWithHash struct {
-	Header      *BlockHeaderWithHash
+	Header      *BlockHeader
 	Body        *BlockBody
 	arrivalTime uint64 // arrival time of this block
 }
 
+// // Block defines a state block
+// type BlockWithHash struct {
+// 	Header      *BlockHeaderWithHash
+// 	Body        *BlockBody
+// 	arrivalTime uint64 // arrival time of this block
+// }
+
 // GetBlockArrivalTime returns the arrival time for a block
-func (b *BlockWithHash) GetBlockArrivalTime() uint64 {
+func (b *Block) GetBlockArrivalTime() uint64 {
 	return b.arrivalTime
 }
 
 // SetBlockArrivalTime sets the arrival time for a block
-func (b *BlockWithHash) SetBlockArrivalTime(t uint64) {
+func (b *Block) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
 }
 
@@ -56,6 +57,15 @@ type BlockHeader struct {
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
 	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
+	hash           common.Hash
+}
+
+func (bh *BlockHeader) SetHash(h common.Hash) {
+	bh.hash = h
+}
+
+func (bh *BlockHeader) GetHash() common.Hash {
+	return bh.hash
 }
 
 func (bh *BlockHeader) Hash() (common.Hash, error) {
@@ -64,49 +74,13 @@ func (bh *BlockHeader) Hash() (common.Hash, error) {
 		return [32]byte{}, err
 	}
 
-	return common.Blake2bHash(enc)
-}
-
-func (bh *BlockHeader) WithHash() (*BlockHeaderWithHash, error) {
-	enc, err := scale.Encode(bh)
-	if err != nil {
-		return nil, err
-	}
-
 	hash, err := common.Blake2bHash(enc)
 	if err != nil {
-		return nil, err
+		return [32]byte{}, err
 	}
 
-	return &BlockHeaderWithHash{
-		ParentHash:     bh.ParentHash,
-		Number:         bh.Number,
-		StateRoot:      bh.StateRoot,
-		ExtrinsicsRoot: bh.ExtrinsicsRoot,
-		Digest:         bh.Digest,
-		Hash:           hash,
-	}, nil
-}
-
-func (bh *BlockHeaderWithHash) WithoutHash() *BlockHeader {
-	return &BlockHeader{
-		ParentHash:     bh.ParentHash,
-		Number:         bh.Number,
-		StateRoot:      bh.StateRoot,
-		ExtrinsicsRoot: bh.ExtrinsicsRoot,
-		Digest:         bh.Digest,
-	}
-}
-
-// BlockHeaderWithHash is a state block header
-type BlockHeaderWithHash struct {
-	ParentHash     common.Hash `json:"parentHash"`
-	Number         *big.Int    `json:"number"`
-	StateRoot      common.Hash `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
-	// TODO: Not part of spec, can potentially remove
-	Hash common.Hash `json:"hash"`
+	bh.hash = hash
+	return hash, err
 }
 
 // BlockBody is the extrinsics inside a state block
@@ -115,7 +89,7 @@ type BlockBody []byte
 /// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash   common.Hash
-	Header *BlockHeaderWithHash
+	Header *BlockHeader
 	Body   *BlockBody
 	// Receipt
 	// MessageQueue

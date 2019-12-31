@@ -202,7 +202,7 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 }
 
 // Block Build
-func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
+func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
 	// Initialize block

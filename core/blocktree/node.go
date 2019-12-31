@@ -86,14 +86,16 @@ func (n *node) getNodeFromBlockNumber(b *big.Int) *node {
 	return nil
 }
 
-func (n *node) getBlockFromNode() *types.BlockWithHash {
-	bh := types.BlockHeaderWithHash{
+func (n *node) getBlockFromNode() *types.Block {
+	bh := types.BlockHeader{
 		ParentHash: n.parent.hash,
 		Number:     n.number,
-		Hash:       n.hash,
+		//Hash:       n.hash,
 	}
 
-	b := &types.BlockWithHash{
+	bh.SetHash(n.hash)
+
+	b := &types.Block{
 		Header: &bh,
 		Body:   &types.BlockBody{},
 	}
