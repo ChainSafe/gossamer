@@ -123,14 +123,14 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 	return kp.private
 }
 
+// VrfSign creates a VRF output and proof from a message and private key
 func (kp *Keypair) VrfSign(msg []byte) (*sr25519.VrfOutput, *sr25519.VrfProof, error) {
-	t := sr25519.NewSigningContext(SigningContext, msg)
-	inout, proof, err := kp.private.key.VrfSign(t)
-	if err != nil {
-		return nil, nil, err
-	}
-	out := inout.Output()
-	return out, proof, nil
+	return kp.private.VrfSign(msg)
+}
+
+// VrfVerify confirms that the output and proof are valid given a message and public key
+func (kp *Keypair) VrfVerify(msg []byte, output *sr25519.VrfOutput, proof *sr25519.VrfProof) (bool, error) {
+	return kp.public.VrfVerify(msg, output, proof)
 }
 
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
@@ -145,6 +145,17 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	}
 	enc := sig.Encode()
 	return enc[:], nil
+}
+
+// VrfSign creates a VRF output and proof from a message and private key
+func (k *PrivateKey) VrfSign(msg []byte) (*sr25519.VrfOutput, *sr25519.VrfProof, error) {
+	t := sr25519.NewSigningContext(SigningContext, msg)
+	inout, proof, err := k.key.VrfSign(t)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := inout.Output()
+	return out, proof, nil
 }
 
 // Public returns the public key corresponding to this private key
@@ -205,6 +216,7 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	return k.key.Verify(s, t), nil
 }
 
+// VrfVerify confirms that the output and proof are valid given a message and public key
 func (k *PublicKey) VrfVerify(msg []byte, out *sr25519.VrfOutput, proof *sr25519.VrfProof) (bool, error) {
 	t := sr25519.NewSigningContext(SigningContext, msg)
 	inout := out.AttachInput(k.key, t)
