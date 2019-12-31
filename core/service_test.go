@@ -120,7 +120,8 @@ func TestValidateBlock(t *testing.T) {
 	rt := newRuntime(t)
 
 	cfg := &Config{
-		Runtime: rt,
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)
@@ -143,7 +144,8 @@ func TestValidateTransaction(t *testing.T) {
 	rt := newRuntime(t)
 
 	cfg := &Config{
-		Runtime: rt,
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)
@@ -186,8 +188,9 @@ func TestAnnounceBlock(t *testing.T) {
 	msgSend := make(chan p2p.Message)
 
 	cfg := &Config{
-		Runtime: rt,
-		MsgSend: msgSend, // message channel from core service to p2p service
+		Runtime:  rt,
+		MsgSend:  msgSend, // message channel from core service to p2p service
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, blkRec)
@@ -230,9 +233,10 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 	msgSend := make(chan p2p.Message)
 
 	cfg := &Config{
-		Runtime: rt,
-		MsgRec:  msgRec,
-		MsgSend: msgSend,
+		Runtime:  rt,
+		MsgRec:   msgRec,
+		MsgSend:  msgSend,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)
@@ -272,7 +276,8 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	rt := newRuntime(t)
 
 	cfg := &Config{
-		Runtime: rt,
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)
@@ -301,7 +306,8 @@ func TestProcessTransactionMessage(t *testing.T) {
 	rt := newRuntime(t)
 
 	cfg := &Config{
-		Runtime: rt,
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
 	}
 
 	s, err := NewService(cfg, nil)
