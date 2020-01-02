@@ -490,12 +490,12 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stateRoot, err := common.HexToHash("0x974cac4d582813f9f50cebdece1170a77258a0e084ce27c32fbf4acf277ab827")
+	stateRoot, err := common.HexToHash("0xc3b2fab1ee625ff74298f5c94dd02cc2842ad51fa4f0d1f380ea0078422c6684")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	extrinsicsRoot, err := common.HexToHash("0x1c95c41eaf9d2fbc7d84f20018be686e81e9dc06cab746fc48cf62bfee3ea329")
+	extrinsicsRoot, err := common.HexToHash("0xb6a727c5b74a783258aece82a354416955d0b1e526005ad2a5cb767f1cd69549")
 	if err != nil {
 		t.Fatal(err)
 	}

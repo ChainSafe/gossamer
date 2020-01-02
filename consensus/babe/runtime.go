@@ -27,7 +27,7 @@ import (
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	ret, err := b.rt.Exec(runtime.BabeApiConfiguration, 1, []byte{})
+	ret, err := b.rt.Exec(runtime.BabeApiConfiguration, []byte{})
 	if err != nil {
 		return err
 	}
@@ -46,60 +46,23 @@ func (b *Session) configurationFromRuntime() error {
 
 // calls runtime API function Core_initialize_block
 func (b *Session) initializeBlock(blockHeader []byte) error {
-	ptr, err := b.rt.Malloc(uint32(len(blockHeader)))
-	if err != nil {
-		return err
-	}
-
-	b.rt.Store(blockHeader, int32(ptr))
-
-	_, err = b.rt.Exec(runtime.CoreInitializeBlock, int32(ptr), blockHeader)
-	if err != nil {
-		return err
-	}
-
-	return b.rt.Free(ptr)
+	_, err := b.rt.Exec(runtime.CoreInitializeBlock, blockHeader)
+	return err
 }
 
 // calls runtime API function BlockBuilder_inherent_extrinsics
 func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) {
-	ptr, err := b.rt.Malloc(uint32(len(data)))
-	if err != nil {
-		return nil, err
-	}
-
-	b.rt.Store(data, int32(ptr))
-
-	ret, err := b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, int32(ptr), data)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.rt.Free(ptr)
-	return ret, err
+	return b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, data)
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
 func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) {
-	ptr, err := b.rt.Malloc(uint32(len(data)))
-	if err != nil {
-		return nil, err
-	}
-
-	b.rt.Store(data, int32(ptr))
-
-	ret, err := b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, int32(ptr), data)
-	if err != nil {
-		return nil, err
-	}
-
-	err = b.rt.Free(ptr)
-	return ret, err
+	return b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
 // calls runtime API function BlockBuilder_finalize_block
 func (b *Session) finalizeBlock() (*types.Block, error) {
-	ret, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, 0, []byte{})
+	ret, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -115,14 +78,7 @@ func (b *Session) finalizeBlock() (*types.Block, error) {
 
 // calls runtime API function TaggedTransactionQueue_validate_transaction
 func (b *Session) validateTransaction(data types.Extrinsic) (*tx.Validity, error) {
-	ptr, err := b.rt.Malloc(uint32(len(data)))
-	if err != nil {
-		return nil, err
-	}
-
-	b.rt.Store(data, int32(ptr))
-
-	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, int32(ptr), data)
+	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, data)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +93,5 @@ func (b *Session) validateTransaction(data types.Extrinsic) (*tx.Validity, error
 		return nil, err
 	}
 
-	err = b.rt.Free(ptr)
-	return v, err
+	return v, nil
 }

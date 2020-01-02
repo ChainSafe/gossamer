@@ -263,7 +263,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
-	
+
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
 

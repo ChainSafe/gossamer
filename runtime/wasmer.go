@@ -113,27 +113,26 @@ func (r *Runtime) Load(location, length int32) []byte {
 	return mem[location : location+length]
 }
 
-func (r *Runtime) Malloc(size uint32) (uint32, error) {
-	return r.allocator.Allocate(size)
-}
+func (r *Runtime) Exec(function string /*loc int32, */, data []byte) ([]byte, error) {
+	ptr, err := r.malloc(uint32(len(data)))
+	if err != nil {
+		return nil, err
+	}
 
-func (r *Runtime) Free(ptr uint32) error {
-	return r.allocator.Deallocate(ptr)
-}
+	defer r.free(ptr)
 
-func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	// Store the data into memory
-	r.Store(data, loc)
-	leng := int32(len(data))
+	r.Store(data, int32(ptr))
+	datalen := int32(len(data))
 
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
 		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
-	res, err := runtimeFunc(loc, leng)
+	res, err := runtimeFunc(int32(ptr), datalen)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +144,14 @@ func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) 
 	rawdata := r.Load(offset, length)
 
 	return rawdata, err
+}
+
+func (r *Runtime) malloc(size uint32) (uint32, error) {
+	return r.allocator.Allocate(size)
+}
+
+func (r *Runtime) free(ptr uint32) error {
+	return r.allocator.Deallocate(ptr)
 }
 
 func decodeToInterface(in []byte, t interface{}) (interface{}, error) {
