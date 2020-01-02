@@ -356,8 +356,6 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	//runtimeCtx := instanceContext.Data().(*RuntimeCtx)
-	//s := runtimeCtx.storage
 	t := &trie.Trie{}
 	var i int32
 	var pos int32 = 0
