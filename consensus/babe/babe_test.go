@@ -299,7 +299,6 @@ func TestSlotOffset(t *testing.T) {
 }
 
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
-
 	genesisBlock := types.BlockWithHash{
 		Header: &types.BlockHeaderWithHash{
 			ParentHash: zeroHash,
@@ -459,33 +458,9 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-	txb := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
-
-	validity, err := babesession.validateTransaction(txb)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
-	expected := &tx.Validity{
-		Priority: 69,
-		Requires: [][]byte{{}},
-		// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
-		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
-		Longevity: 64,
-		Propagate: true,
-	}
-
-	if !reflect.DeepEqual(expected, validity) {
-		t.Error(
-			"received unexpected validity",
-			"\nexpected:", expected,
-			"\nreceived:", validity,
-		)
-	}
-
-	vtx := tx.NewValidTransaction(types.Extrinsic(txb), expected)
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+	vtx := tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
 	babesession.PushToTxQueue(vtx)
 
 	zeroHash, err := common.HexToHash("0x00")
@@ -534,6 +509,9 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Logf("%x", block.Header.ParentHash)
+		t.Logf("%x", block.Header.StateRoot)
+		t.Logf("%x", block.Header.ExtrinsicsRoot)
 		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }

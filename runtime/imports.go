@@ -307,18 +307,18 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	}
 
 	log.Debug("[ext_get_allocated_storage] before", "key", key, "value", val)
-	actual := make([]byte, len(val))
-	copy(actual, val)
+	// actual := make([]byte, len(val))
+	// copy(actual, val)
 
-	if bytes.Equal(key, []byte(":extrinsic_index")) {
-		val[0] &= 0
-		val[1] &= 0
-		val[2] &= 0
-		val[3] &= 0
-	}
+	// if bytes.Equal(key, []byte(":extrinsic_index")) {
+	// 	val[0] &= 0
+	// 	val[1] &= 0
+	// 	val[2] &= 0
+	// 	val[3] &= 0
+	// }
 
-	log.Debug("[ext_get_allocated_storage] after", "key", key, "value", val)
-	log.Debug("[ext_get_allocated_storage] actual", "key", key, "value", actual)
+	// log.Debug("[ext_get_allocated_storage] after", "key", key, "value", val)
+	// log.Debug("[ext_get_allocated_storage] actual", "key", key, "value", actual)
 
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))

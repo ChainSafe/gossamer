@@ -62,7 +62,7 @@ func (b *Session) initializeBlock(blockHeader []byte) error {
 }
 
 // calls runtime API function BlockBuilder_inherent_extrinsics
-func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) { //nolint:unused
+func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) {
 	ptr, err := b.rt.Malloc(uint32(len(data)))
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) { //nolint:unu
 }
 
 // calls runtime API function BlockBuilder_apply_extrinsic
-func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) { //nolint:unused
+func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	ptr, err := b.rt.Malloc(uint32(len(data)))
 	if err != nil {
 		return nil, err

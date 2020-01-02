@@ -242,13 +242,19 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	extrinsic := b.nextReadyExtrinsic()
 	for !endOfSlot(slot) && extrinsic != nil {
 		log.Debug("build_block", "applying extrinsic", extrinsic)
-		_, err = b.applyExtrinsic(*extrinsic)
+		ret, err := b.applyExtrinsic(*extrinsic)
 		if err != nil {
 			return nil, err
 		}
-		b.txQueue.Pop()
-		log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
 
+		if len(ret) != 0 {
+			log.Error("build_block apply extrinsic", "error", ret, "extrinsic", extrinsic)
+			return nil, errors.New("could not apply extrinsic")
+		} else {
+			log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+		}
+
+		b.txQueue.Pop()
 		extrinsic = b.nextReadyExtrinsic()
 	}
 
