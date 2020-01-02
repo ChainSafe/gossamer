@@ -240,9 +240,11 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	// for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 	// TODO: check when block is full
 	extrinsic := b.nextReadyExtrinsic()
+	ret := []byte{}
+
 	for !endOfSlot(slot) && extrinsic != nil {
 		log.Debug("build_block", "applying extrinsic", extrinsic)
-		ret, err := b.applyExtrinsic(*extrinsic)
+		ret, err = b.applyExtrinsic(*extrinsic)
 		if err != nil {
 			return nil, err
 		}

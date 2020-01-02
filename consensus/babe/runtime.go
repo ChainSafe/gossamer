@@ -75,23 +75,3 @@ func (b *Session) finalizeBlock() (*types.Block, error) {
 	_, err = scale.Decode(ret, bh)
 	return bh, err
 }
-
-// calls runtime API function TaggedTransactionQueue_validate_transaction
-func (b *Session) validateTransaction(data types.Extrinsic) (*tx.Validity, error) {
-	ret, err := b.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, data)
-	if err != nil {
-		return nil, err
-	}
-
-	if ret[0] != 0 {
-		return nil, errors.New("could not validate transaction")
-	}
-
-	v := tx.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	_, err = scale.Decode(ret[1:], v)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}

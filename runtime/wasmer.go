@@ -119,7 +119,12 @@ func (r *Runtime) Exec(function string /*loc int32, */, data []byte) ([]byte, er
 		return nil, err
 	}
 
-	defer r.free(ptr)
+	defer func() {
+		err = r.free(ptr)
+		if err != nil {
+			log.Error("exec: could not free ptr", "error", err)
+		}
+	}()
 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
