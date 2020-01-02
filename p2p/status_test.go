@@ -19,10 +19,23 @@ package p2p
 import (
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/common"
 )
 
 // wait time for status messages to be exchanged and handled
 var TestStatusTimeout = time.Second
+
+// test status message
+var TestStatusMessage = &StatusMessage{
+	ProtocolVersion:     0,
+	MinSupportedVersion: 0,
+	Roles:               0,
+	BestBlockNumber:     0,
+	BestBlockHash:       common.Hash{0x00},
+	GenesisHash:         common.Hash{0x00},
+	ChainStatus:         []byte{0},
+}
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
@@ -30,51 +43,49 @@ func TestStatus(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
-	nodeA, _, _ := createTestService(t, configA)
+	nodeA, _, msgRecA := createTestService(t, configA)
 	defer nodeA.Stop()
+
+	nodeA.noGossip = true
+
+	// simulate host status message sent from core service on startup
+	msgRecA <- TestStatusMessage
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
-	nodeB, _, _ := createTestService(t, configB)
+	nodeB, _, msgRecB := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	addrInfoB, err := nodeB.host.addrInfo()
+	nodeB.noGossip = true
+
+	// simulate host status message sent from core service on startup
+	msgRecB <- TestStatusMessage
+
+	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoB)
+	err = nodeA.host.connect(*addrInfosB[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	time.Sleep(TestStatusTimeout)
 
-	statusB := nodeA.status.peerConfirmed[nodeB.host.h.ID()]
-	if statusB == false {
-		t.Error(
-			"node A did not receive status message from node B",
-			"\nreceived:", statusB,
-			"\nexpected:", true,
-		)
+	if !nodeA.status.confirmed(nodeB.host.h.ID()) {
+		t.Error("node A did not confirm status of node B")
 	}
 
-	statusA := nodeB.status.peerConfirmed[nodeA.host.h.ID()]
-	if statusA == false {
-		t.Error(
-			"node B did not receive status message from node A",
-			"\nreceived:", statusA,
-			"\nexpected:", true,
-		)
+	if !nodeB.status.confirmed(nodeA.host.h.ID()) {
+		t.Error("node B did not confirm status of node A")
 	}
 }

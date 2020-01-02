@@ -28,34 +28,34 @@ func TestConnect(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.host.noStatus = true
+	nodeA.noGossip = true
+	nodeA.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	nodeB.host.noStatus = true
+	nodeB.noGossip = true
+	nodeB.noStatus = true
 
-	addrInfoB, err := nodeB.host.addrInfo()
+	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoB)
+	err = nodeA.host.connect(*addrInfosB[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,29 +86,29 @@ func TestBootstrap(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.host.noStatus = true
+	nodeA.noGossip = true
+	nodeA.noStatus = true
 
-	addrA := nodeA.host.fullAddr()
+	addrA := nodeA.host.multiaddrs()[0]
 
 	configB := &Config{
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
 		RandSeed:       2,
-		NoGossip:       true,
 		NoMdns:         true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	nodeB.host.noStatus = true
+	nodeB.noGossip = true
+	nodeB.noStatus = true
 
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
@@ -136,49 +136,49 @@ func TestPing(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.host.noStatus = true
+	nodeA.noGossip = true
+	nodeA.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	nodeB.host.noStatus = true
+	nodeB.noGossip = true
+	nodeB.noStatus = true
 
-	addrInfoB, err := nodeB.host.addrInfo()
+	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoB)
+	err = nodeA.host.connect(*addrInfosB[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.ping(addrInfoB.ID)
+	err = nodeA.host.ping(addrInfosB[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	addrInfoA, err := nodeA.host.addrInfo()
+	addrInfosA, err := nodeA.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeB.host.ping(addrInfoA.ID)
+	err = nodeB.host.ping(addrInfosA[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,39 +190,39 @@ func TestSend(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.host.noStatus = true
+	nodeA.noGossip = true
+	nodeA.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	nodeB.host.noStatus = true
+	nodeB.noGossip = true
+	nodeB.noStatus = true
 
-	addrInfoB, err := nodeB.host.addrInfo()
+	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoB)
+	err = nodeA.host.connect(*addrInfosB[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.send(addrInfoB.ID, TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,59 +247,57 @@ func TestBroadcast(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.host.noStatus = true
-
-	addrA := nodeA.host.fullAddrs()[0]
+	nodeA.noGossip = true
+	nodeA.noStatus = true
 
 	configB := &Config{
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoGossip:    true,
 		NoMdns:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
-	nodeB.host.noStatus = true
+	nodeB.noGossip = true
+	nodeB.noStatus = true
 
-	addrInfoB, err := nodeB.host.addrInfo()
+	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoB)
+	err = nodeA.host.connect(*addrInfosB[0])
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	configC := &Config{
-		BootstrapNodes: []string{addrA.String()},
-		Port:           7003,
-		RandSeed:       3,
-		NoGossip:       true,
-		NoMdns:         true,
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMdns:      true,
 	}
 
 	nodeC, msgSendC, _ := createTestService(t, configC)
 	defer nodeC.Stop()
 
-	nodeC.host.noStatus = true
+	nodeC.noGossip = true
+	nodeC.noStatus = true
 
-	addrInfoC, err := nodeC.host.addrInfo()
+	addrInfosC, err := nodeC.host.addrInfos()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = nodeA.host.connect(*addrInfoC)
+	err = nodeA.host.connect(*addrInfosC[0])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,4 +330,126 @@ func TestBroadcast(t *testing.T) {
 		t.Error("node C timeout waiting for message")
 	}
 
+}
+
+// test host send method with existing stream
+func TestExistingStream(t *testing.T) {
+	configA := &Config{
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMdns:      true,
+	}
+
+	nodeA, msgSendA, _ := createTestService(t, configA)
+	defer nodeA.Stop()
+
+	nodeA.noGossip = true
+	nodeA.noStatus = true
+
+	addrInfosA, err := nodeA.host.addrInfos()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configB := &Config{
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMdns:      true,
+	}
+
+	nodeB, msgSendB, _ := createTestService(t, configB)
+	defer nodeB.Stop()
+
+	nodeB.noGossip = true
+	nodeB.noStatus = true
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stream := nodeA.host.getStream(nodeB.host.id())
+	if stream != nil {
+		t.Error("node A should not have an outbound stream")
+	}
+
+	// node A opens the stream to send the first message
+	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node B timeout waiting for message from node A")
+	}
+
+	stream = nodeA.host.getStream(nodeB.host.id())
+	if stream == nil {
+		t.Error("node A should have an outbound stream")
+	}
+
+	// node A uses the stream to send a second message
+	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-msgSendB:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node B timeout waiting for message from node A")
+	}
+
+	stream = nodeA.host.getStream(nodeB.host.id())
+	if stream == nil {
+		t.Error("node A should have an outbound stream")
+	}
+
+	stream = nodeB.host.getStream(nodeA.host.id())
+	if stream != nil {
+		t.Error("node B should not have an outbound stream")
+	}
+
+	// node B opens the stream to send the first message
+	err = nodeB.host.send(addrInfosA[0].ID, TestMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-msgSendA:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node A timeout waiting for message from node B")
+	}
+
+	stream = nodeB.host.getStream(nodeA.host.id())
+	if stream == nil {
+		t.Error("node B should have an outbound stream")
+	}
+
+	// node B uses the stream to send a second message
+	err = nodeB.host.send(addrInfosA[0].ID, TestMessage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-msgSendA:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node A timeout waiting for message from node B")
+	}
+
+	stream = nodeB.host.getStream(nodeA.host.id())
+	if stream == nil {
+		t.Error("node B should have an outbound stream")
+	}
 }

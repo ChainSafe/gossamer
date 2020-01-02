@@ -14,23 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package p2p
 
-type Version struct {
-	Spec_name         []byte
-	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+import (
+	"github.com/ChainSafe/gossamer/common"
+)
+
+// Health is network information about host needed for the rpc server
+type Health struct {
+	Peers           int
+	IsSyncing       bool
+	ShouldHavePeers bool
 }
 
-var (
-	CoreVersion                               = "Core_version"
-	CoreInitializeBlock                       = "Core_initialize_block"
-	CoreExecuteBlock                          = "Core_execute_block"
-	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
-	BabeApiConfiguration                      = "BabeApi_configuration"
-	BlockBuilderInherentExtrinsics            = "BlockBuilder_inherent_extrinsics"
-	BlockBuilderApplyExtrinsic                = "BlockBuilder_apply_extrinsic"
-	BlockBuilderFinalizeBlock                 = "BlockBuilder_finalize_block"
-)
+// NetworkState is network information about host needed for the rpc server and the runtime
+type NetworkState struct {
+	PeerId string
+}
+
+// PeerInfo is network information about peers needed for the rpc server
+type PeerInfo struct {
+	PeerId          string
+	Roles           byte
+	ProtocolVersion uint32
+	BestHash        common.Hash
+	BestNumber      uint64
+}

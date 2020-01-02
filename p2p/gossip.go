@@ -18,7 +18,6 @@ package p2p
 
 import (
 	log "github.com/ChainSafe/log15"
-	"github.com/libp2p/go-libp2p-core/network"
 )
 
 // gossip submodule
@@ -28,16 +27,15 @@ type gossip struct {
 }
 
 // newGossip creates a new gossip instance from the host
-func newGossip(host *host) (g *gossip, err error) {
-	g = &gossip{
+func newGossip(host *host) *gossip {
+	return &gossip{
 		host:    host,
 		hasSeen: make(map[string]bool),
 	}
-	return g, err
 }
 
 // handleMessage broadcasts messages that have not been seen
-func (g *gossip) handleMessage(stream network.Stream, msg Message) {
+func (g *gossip) handleMessage(msg Message) {
 
 	// check if message has not been seen
 	if !g.hasSeen[msg.Id()] {

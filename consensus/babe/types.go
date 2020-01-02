@@ -50,3 +50,15 @@ type BabeHeader struct {
 	BlockProducerIndex uint64
 	Slot               uint64
 }
+
+//nolint:structcheck
+type BlockInherentsData struct {
+	timstap0 int64 //nolint:unused
+	babeslot int64 //nolint:unused
+}
+
+type Slot struct {
+	start    uint64
+	duration uint64
+	number   uint64
+}
