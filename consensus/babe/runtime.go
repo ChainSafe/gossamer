@@ -24,13 +24,13 @@ import (
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	ret, err := b.rt.Exec(runtime.BabeApiConfiguration, []byte{})
+	data, err := b.rt.Exec(runtime.BabeApiConfiguration, []byte{})
 	if err != nil {
 		return err
 	}
 
 	bc := new(BabeConfiguration)
-	_, err = scale.Decode(ret, bc)
+	_, err = scale.Decode(data, bc)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) {
 
 // calls runtime API function BlockBuilder_finalize_block
 func (b *Session) finalizeBlock() (*types.Block, error) {
-	ret, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	data, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +69,6 @@ func (b *Session) finalizeBlock() (*types.Block, error) {
 		Body:   new(types.BlockBody),
 	}
 
-	_, err = scale.Decode(ret, bh)
+	_, err = scale.Decode(data, bh)
 	return bh, err
 }
