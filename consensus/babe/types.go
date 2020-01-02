@@ -49,6 +49,20 @@ type AuthorityData struct {
 	weight uint64
 }
 
+// BabeHeader as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
+type BabeHeader struct {
+	VRFOutput          [32]byte
+	VRFProof           [32]byte
+	BlockProducerIndex uint64
+	Slot               uint64
+}
+
+type Slot struct {
+	start    uint64
+	duration uint64
+	number   uint64
+}
+
 var Timstap0 = []byte("timstap0")
 var Babeslot = []byte("babeslot")
 
@@ -106,10 +120,4 @@ func (d *InherentsData) Encode() ([]byte, error) {
 		}
 	}
 	return buffer.Bytes(), nil
-}
-
-type Slot struct {
-	start    uint64
-	duration uint64
-	number   uint64
 }
