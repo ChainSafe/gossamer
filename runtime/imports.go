@@ -184,16 +184,6 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 		log.Error("[ext_set_storage]", "error", err)
 		return
 	}
-
-	// begin: can remove; for debugging
-	root, err := s.StorageRoot()
-	if err != nil {
-		log.Error("[ext_set_storage]", "error", err)
-		return
-	}
-
-	log.Debug("[ext_set_storage]", "root", root)
-	// end
 }
 
 //export ext_set_child_storage
@@ -273,17 +263,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 	s := runtimeCtx.storage
-
-	// begin: can remove; for debugging
-	root, err := s.StorageRoot()
-	if err != nil {
-		log.Error("[ext_get_allocated_storage]", "error", err)
-		return 0
-	}
-
-	log.Debug("[ext_get_allocated_storage]", "root", root)
-	// end
-
+	
 	key := memory[keyData : keyData+keyLen]
 	log.Debug("[ext_get_allocated_storage]", "key", key)
 
@@ -305,20 +285,6 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
-
-	log.Debug("[ext_get_allocated_storage] before", "key", key, "value", val)
-	// actual := make([]byte, len(val))
-	// copy(actual, val)
-
-	// if bytes.Equal(key, []byte(":extrinsic_index")) {
-	// 	val[0] &= 0
-	// 	val[1] &= 0
-	// 	val[2] &= 0
-	// 	val[3] &= 0
-	// }
-
-	// log.Debug("[ext_get_allocated_storage] after", "key", key, "value", val)
-	// log.Debug("[ext_get_allocated_storage] actual", "key", key, "value", actual)
 
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.allocator.Allocate(uint32(len(val)))

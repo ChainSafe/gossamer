@@ -485,17 +485,17 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	// hash of parent header
-	parentHash, err := common.HexToHash("0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2")
+	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	stateRoot, err := common.HexToHash("0x6279dc099b24c97889c3e7b01b01e399d12677b8ab6567780499fcc483470113")
+	stateRoot, err := common.HexToHash("0x974cac4d582813f9f50cebdece1170a77258a0e084ce27c32fbf4acf277ab827")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	extrinsicsRoot, err := common.HexToHash("0x5001c7b54696a0c6e236e7000ac5cb7b6a1983c37cd6e90a8805efc559cc7217")
+	extrinsicsRoot, err := common.HexToHash("0x1c95c41eaf9d2fbc7d84f20018be686e81e9dc06cab746fc48cf62bfee3ea329")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -509,9 +509,6 @@ func TestBuildBlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
-		t.Logf("%x", block.Header.ParentHash)
-		t.Logf("%x", block.Header.StateRoot)
-		t.Logf("%x", block.Header.ExtrinsicsRoot)
 		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }

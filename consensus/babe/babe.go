@@ -247,7 +247,7 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 			return nil, err
 		}
 
-		if len(ret) != 0 {
+		if len(ret) != 0 && ret[0] == 1 {
 			log.Error("build_block apply extrinsic", "error", ret, "extrinsic", extrinsic)
 			return nil, errors.New("could not apply extrinsic")
 		} else {
