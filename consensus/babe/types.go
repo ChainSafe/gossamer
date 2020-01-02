@@ -57,6 +57,7 @@ type BabeHeader struct {
 	Slot               uint64
 }
 
+// Slot represents a BABE slot
 type Slot struct {
 	start    uint64
 	duration uint64

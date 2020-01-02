@@ -547,6 +547,3 @@ func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
 func (trs TestRuntimeStorage) Entries() map[string][]byte {
 	return trs.trie.Entries()
 }
-func (trs TestRuntimeStorage) TrieAsString() string {
-	return trs.trie.String()
-}

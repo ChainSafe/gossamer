@@ -24,10 +24,6 @@ func NewStorageState(dataDir string) (*StorageState, error) {
 	}, nil
 }
 
-func (s *StorageState) TrieAsString() string {
-	return s.trie.String()
-}
-
 func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
 	val, err := s.trie.Get(key)
 	return (val != nil), err

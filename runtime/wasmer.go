@@ -113,7 +113,7 @@ func (r *Runtime) Load(location, length int32) []byte {
 	return mem[location : location+length]
 }
 
-func (r *Runtime) Exec(function string /*loc int32, */, data []byte) ([]byte, error) {
+func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
 	ptr, err := r.malloc(uint32(len(data)))
 	if err != nil {
 		return nil, err
