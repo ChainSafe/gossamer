@@ -305,7 +305,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		Body: &types.BlockBody{},
 	}
 
-	hash, err := genesisBlock.Header.Hash()
+	_, err := genesisBlock.Header.Hash()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +328,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 			Body: &types.BlockBody{},
 		}
 
-		hash, err = block.Header.Hash()
+		hash, err := block.Header.Hash()
 		if err != nil {
 			t.Fatal(err)
 		}

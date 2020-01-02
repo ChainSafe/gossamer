@@ -18,7 +18,6 @@ package blocktree
 
 import (
 	"math/big"
-	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/core/types"
@@ -42,18 +41,6 @@ func createGenesisBlock() types.Block {
 	return b
 }
 
-func intToHashable(in int) string {
-	if in < 0 {
-		return ""
-	}
-
-	out := strconv.Itoa(in)
-	if len(out)%2 != 0 {
-		out = "0" + out
-	}
-	return "0x" + out
-}
-
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 	d := &db.BlockDB{
 		Db: db.NewMemDatabase(),
@@ -69,8 +56,7 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 		block := types.Block{
 			Header: &types.BlockHeader{
 				ParentHash: previousHash,
-				//Hash:       hash,
-				Number: big.NewInt(int64(i)),
+				Number:     big.NewInt(int64(i)),
 			},
 			Body: &types.BlockBody{},
 		}
