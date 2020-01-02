@@ -92,7 +92,10 @@ func (n *node) getBlockFromNode() *types.Block {
 		Number:     n.number,
 	}
 
-	bh.SetHash(n.hash)
+	_, err := bh.Hash()
+	if err != nil {
+		return nil
+	}
 
 	b := &types.Block{
 		Header: &bh,

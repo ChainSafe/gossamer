@@ -53,32 +53,39 @@ type BlockHeader struct {
 	hash           common.Hash
 }
 
-// SetHash sets a block header's hash. Note, you would probably want to use Hash() instead,
-// unless you know the hash has already been set
-func (bh *BlockHeader) SetHash(h common.Hash) {
-	bh.hash = h
+func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []byte) *BlockHeader {
+	return &BlockHeader{
+		ParentHash:     parentHash,
+		Number:         number,
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         digest,
+	}
 }
 
 // GetHash retrieves the header's hash. Since it may be empty if not set, you probably want
-// to use Hash() instead.
+// to use Hash() instead, unless you know Hash() has already been called.
 func (bh *BlockHeader) GetHash() common.Hash {
 	return bh.hash
 }
 
 // Hash hashes the block header, sets the header's internal hash field, and returns it
 func (bh *BlockHeader) Hash() (common.Hash, error) {
-	enc, err := scale.Encode(bh)
-	if err != nil {
-		return [32]byte{}, err
+	if bh.hash == [32]byte{} {
+		enc, err := scale.Encode(bh)
+		if err != nil {
+			return [32]byte{}, err
+		}
+
+		hash, err := common.Blake2bHash(enc)
+		if err != nil {
+			return [32]byte{}, err
+		}
+
+		bh.hash = hash
 	}
 
-	hash, err := common.Blake2bHash(enc)
-	if err != nil {
-		return [32]byte{}, err
-	}
-
-	bh.hash = hash
-	return hash, err
+	return bh.hash, nil
 }
 
 // BlockBody is the extrinsics inside a state block
