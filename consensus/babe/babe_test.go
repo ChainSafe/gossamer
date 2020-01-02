@@ -316,7 +316,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
-	previousHash := genesisBlock.Header.GetHash()
+	previousHash := genesisBlock.Header.MustHash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
 	for i := 1; i <= depth; i++ {

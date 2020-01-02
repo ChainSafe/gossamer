@@ -53,23 +53,48 @@ type BlockHeader struct {
 	hash           common.Hash
 }
 
-func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []byte) *BlockHeader {
-	return &BlockHeader{
+// NewBlockHeader creates a new block header and sets its hash field
+func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []byte) (*BlockHeader, error) {
+	bh := &BlockHeader{
 		ParentHash:     parentHash,
 		Number:         number,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         digest,
 	}
+
+	hash, err := bh.Hash()
+	if err != nil {
+		return nil, err
+	}
+
+	bh.hash = hash
+	return bh, nil
 }
 
-// GetHash retrieves the header's hash. Since it may be empty if not set, you probably want
-// to use Hash() instead, unless you know Hash() has already been called.
-func (bh *BlockHeader) GetHash() common.Hash {
+// MustHash returns the hash of the block header
+// If the internal hash field is nil, it hashes the block and sets the hash field.
+// If hashing the header errors, this will panic.
+func (bh *BlockHeader) MustHash() common.Hash {
+	if bh.hash == [32]byte{} {
+		enc, err := scale.Encode(bh)
+		if err != nil {
+			panic(err)
+		}
+
+		hash, err := common.Blake2bHash(enc)
+		if err != nil {
+			panic(err)
+		}
+
+		bh.hash = hash
+	}
+
 	return bh.hash
 }
 
-// Hash hashes the block header, sets the header's internal hash field, and returns it
+// Hash returns the hash of the block header
+// If the internal hash field is nil, it hashes the block and sets the hash field.
 func (bh *BlockHeader) Hash() (common.Hash, error) {
 	if bh.hash == [32]byte{} {
 		enc, err := scale.Encode(bh)
