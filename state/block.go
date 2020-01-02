@@ -48,11 +48,11 @@ func blockDataKey(hash common.Hash) []byte {
 }
 
 // babeHeaderKey = babeHeaderPrefix || epoch || slice
-func babeHeaderKey(epoch uint64, slice uint64) []byte {
+func babeHeaderKey(epoch uint64, slot uint64) []byte {
 	epochBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(epochBytes, epoch)
 	sliceBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(sliceBytes, slice)
+	binary.LittleEndian.PutUint64(sliceBytes, slot)
 	combined := append(epochBytes, sliceBytes...)
 	return append(babeHeaderPrefix, combined...)
 }
@@ -83,10 +83,10 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
-func (bs *blockState) GetBabeHeader(epoch uint64, slice uint64) (babe.BabeHeader, error) {
+func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader, error) {
 	var result babe.BabeHeader
 
-	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slice))
+	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
 	if err != nil {
 		return babe.BabeHeader{}, err
 	}
@@ -143,14 +143,14 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
-func (bs *blockState) SetBabeHeader(epoch uint64, slice uint64, blockData babe.BabeHeader) error {
+func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
 		return err
 	}
 
-	err = bs.db.Db.Put(babeHeaderKey(epoch, slice), bh)
+	err = bs.db.Db.Put(babeHeaderKey(epoch, slot), bh)
 	return err
 }
 
