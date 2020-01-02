@@ -42,7 +42,7 @@ type Session struct {
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	isProducer     map[uint64][]byte  // whether we are a block producer at a slot
+	slotToProof    map[uint64][]byte  // for slots where we are a producer, store the vrf output+proof
 	newBlocks      chan<- types.Block // send blocks to core service
 }
 
@@ -59,11 +59,11 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	}
 
 	babeSession := &Session{
-		keypair:    cfg.Keypair,
-		rt:         cfg.Runtime,
-		txQueue:    new(tx.PriorityQueue),
-		isProducer: make(map[uint64][]byte),
-		newBlocks:  cfg.NewBlocks,
+		keypair:     cfg.Keypair,
+		rt:          cfg.Runtime,
+		txQueue:     new(tx.PriorityQueue),
+		slotToProof: make(map[uint64][]byte),
+		newBlocks:   cfg.NewBlocks,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -78,7 +78,7 @@ func (b *Session) Start() error {
 	var i uint64 = 0
 	var err error
 	for ; i < b.config.EpochLength; i++ {
-		b.isProducer[i], err = b.runLottery(i)
+		b.slotToProof[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("BABE: error running slot lottery at slot %d: error %s", i, err)
 		}
