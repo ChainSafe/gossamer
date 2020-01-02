@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
@@ -249,7 +250,9 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 			return nil, err
 		}
 
-		if len(ret) != 0 && ret[0] == 1 {
+		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
+		if len(ret) != 0 && (ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1})) {
+			// TODO: specific error code checking
 			log.Error("build_block apply extrinsic", "error", ret, "extrinsic", extrinsic)
 			return nil, errors.New("could not apply extrinsic")
 		} else {
