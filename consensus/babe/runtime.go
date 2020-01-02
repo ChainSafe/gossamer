@@ -17,10 +17,7 @@
 package babe
 
 import (
-	"errors"
-
 	scale "github.com/ChainSafe/gossamer/codec"
-	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/runtime"
 )
