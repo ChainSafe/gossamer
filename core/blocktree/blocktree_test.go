@@ -75,7 +75,6 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 			Body: &types.BlockBody{},
 		}
 
-		//block.Header.SetHash(hash)
 		hash, err := block.Header.Hash()
 		if err != nil {
 			t.Fatal(err)
