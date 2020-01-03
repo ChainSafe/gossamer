@@ -209,11 +209,11 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
 }
 
-// Block Build
+// construct a block for this slot with the given parent
 func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
-	log.Debug("build-block", "parent", parent, "slot", slot)
+	log.Trace("build-block", "parent", parent, "slot", slot)
 
-	// Initialize block
+	// initialize block
 	encodedHeader, err := codec.Encode(parent)
 	if err != nil {
 		return nil, err
@@ -223,9 +223,13 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// TODO: inherents and extrinsics
+	// add block inherents
+	err = b.buildBlockInherents(slot)
+	if err != nil {
+		return nil, err
+	}
 
-	// Finalize block
+	// finalize block
 	block, err := b.finalizeBlock()
 	if err != nil {
 		return nil, err
@@ -233,4 +237,32 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
 	return block, nil
+}
+
+// buildBlockInherents applies the inherents for a block
+func (b *Session) buildBlockInherents(slot Slot) error {
+	// Setup inherents: add timstap0 and babeslot
+	idata := NewInherentsData()
+	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
+	if err != nil {
+		return err
+	}
+
+	err = idata.SetInt64Inherent(Babeslot, slot.number)
+	if err != nil {
+		return err
+	}
+
+	ienc, err := idata.Encode()
+	if err != nil {
+		return err
+	}
+
+	// Call BlockBuilder_inherent_extrinsics
+	_, err = b.inherentExtrinsics(ienc)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
