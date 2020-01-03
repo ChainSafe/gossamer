@@ -202,11 +202,11 @@ func (b *Session) vrfSign(input []byte) ([]byte, error) {
 	return out, err
 }
 
-// Block Build
+// construct a block for this slot with the given parent
 func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
-	log.Debug("build-block", "parent", parent, "slot", slot)
+	log.Trace("build-block", "parent", parent, "slot", slot)
 
-	// Initialize block
+	// initialize block
 	encodedHeader, err := codec.Encode(parent)
 	if err != nil {
 		return nil, err
@@ -216,36 +216,43 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// Setup inherents: add timstap0 and babeslot
-	idata := NewInherentsData()
-	err = idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
+	// add block inherents
+	err = b.buildBlockInherents(slot)
 	if err != nil {
 		return nil, err
 	}
 
-	err = idata.SetInt64Inherent(Babeslot, slot.number)
+	// add block extrinsics
+	included, err := b.buildBlockExtrinsics(slot)
 	if err != nil {
 		return nil, err
 	}
 
-	ienc, err := idata.Encode()
+	// finalize the block
+	log.Debug("build_block finalize block")
+
+	// finalize block
+	block, err := b.finalizeBlock()
 	if err != nil {
+		b.addToQueue(included)
 		return nil, err
 	}
 
-	_, err = b.inherentExtrinsics(ienc)
-	if err != nil {
-		return nil, err
-	}
+	block.Header.Number.Add(parent.Number, big.NewInt(1))
+	return block, nil
+}
 
-	// for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
-	// TODO: check when block is full
+// buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
+// for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
+// if any extrinsic fails, it returns an empty array and an error.
+func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error) {
 	extrinsic := b.nextReadyExtrinsic()
-	var ret []byte
+	included := []*tx.ValidTransaction{}
 
-	for !endOfSlot(slot) && extrinsic != nil {
+	// TODO: check when block is full
+	for !hasSlotEnded(slot) && extrinsic != nil {
 		log.Debug("build_block", "applying extrinsic", extrinsic)
-		ret, err = b.applyExtrinsic(*extrinsic)
+		ret, err := b.applyExtrinsic(*extrinsic)
 		if err != nil {
 			return nil, err
 		}
@@ -254,26 +261,62 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		if len(ret) != 0 && (ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1})) {
 			// TODO: specific error code checking
 			log.Error("build_block apply extrinsic", "error", ret, "extrinsic", extrinsic)
+
+			// remove invalid extrinsic from queue
+			b.txQueue.Pop()
+
+			// readd previously popped extrinsics back to queue
+			b.addToQueue(included)
+
 			return nil, errors.New("could not apply extrinsic")
 		} else {
 			log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
 		}
 
-		b.txQueue.Pop()
+		// keep track of included transactions; re-add them to queue later if block building fails
+		t := b.txQueue.Pop()
+		included = append(included, t)
 		extrinsic = b.nextReadyExtrinsic()
 	}
 
-	// finalize the block
-	log.Debug("build_block finalize block")
-	block, err := b.finalizeBlock()
-	if err != nil {
-		return nil, err
-	}
-
-	block.Header.Number.Add(parent.Number, big.NewInt(1))
-	return block, nil
+	return included, nil
 }
 
+// buildBlockInherents applies the inherents for a block
+func (b *Session) buildBlockInherents(slot Slot) error {
+	// Setup inherents: add timstap0 and babeslot
+	idata := NewInherentsData()
+	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
+	if err != nil {
+		return err
+	}
+
+	err = idata.SetInt64Inherent(Babeslot, slot.number)
+	if err != nil {
+		return err
+	}
+
+	ienc, err := idata.Encode()
+	if err != nil {
+		return err
+	}
+
+	// Call BlockBuilder_inherent_extrinsics
+	_, err = b.inherentExtrinsics(ienc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Session) addToQueue(txs []*tx.ValidTransaction) {
+	for _, t := range txs {
+		b.txQueue.Insert(t)
+	}
+}
+
+// nextReadyExtrinsic peeks from the transaction queue. it does not remove any transactions from the queue
 func (b *Session) nextReadyExtrinsic() *types.Extrinsic {
 	transaction := b.txQueue.Peek()
 	if transaction == nil {
@@ -282,6 +325,6 @@ func (b *Session) nextReadyExtrinsic() *types.Extrinsic {
 	return transaction.Extrinsic
 }
 
-func endOfSlot(slot Slot) bool {
+func hasSlotEnded(slot Slot) bool {
 	return slot.start+slot.duration < uint64(time.Now().Unix())
 }
