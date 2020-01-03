@@ -91,11 +91,7 @@ func (n *node) getBlockFromNode() *types.Block {
 		ParentHash: n.parent.hash,
 		Number:     n.number,
 	}
-
-	_, err := bh.Hash()
-	if err != nil {
-		return nil
-	}
+	bh.Hash()
 
 	b := &types.Block{
 		Header: &bh,

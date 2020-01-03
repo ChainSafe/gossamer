@@ -304,11 +304,6 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		},
 		Body: &types.BlockBody{},
 	}
-
-	_, err := genesisBlock.Header.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
 	d := &db.BlockDB{
@@ -316,7 +311,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
-	previousHash := genesisBlock.Header.MustHash()
+	previousHash := genesisBlock.Header.Hash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
 	for i := 1; i <= depth; i++ {
@@ -328,10 +323,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 			Body: &types.BlockBody{},
 		}
 
-		hash, err := block.Header.Hash()
-		if err != nil {
-			t.Fatal(err)
-		}
+		hash := block.Header.Hash()
 		block.SetBlockArrivalTime(previousAT + uint64(1000))
 
 		bt.AddBlock(block)

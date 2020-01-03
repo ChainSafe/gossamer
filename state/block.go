@@ -118,10 +118,7 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
 }
 
 func (bs *blockState) SetHeader(header types.BlockHeader) error {
-	hash, err := header.Hash()
-	if err != nil {
-		return err
-	}
+	hash := header.Hash()
 
 	// Write the encoded header
 	bh, err := json.Marshal(header)

@@ -17,8 +17,7 @@ func check(e error) {
 
 // SetHeader stores a block header into the KV-store; key is headerPrefix + hash
 func SetHeader(db polkadb.Writer, header *types.BlockHeader) {
-	hash, err := header.Hash()
-	check(err)
+	hash := header.Hash()
 
 	// Write the encoded header
 	bh, err := json.Marshal(header)

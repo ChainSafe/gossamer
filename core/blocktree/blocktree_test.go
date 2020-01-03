@@ -36,7 +36,7 @@ func createGenesisBlock() types.Block {
 		},
 		Body: &types.BlockBody{},
 	}
-	_, _ = b.Header.Hash()
+	b.Header.Hash()
 	b.SetBlockArrivalTime(uint64(0))
 	return b
 }
@@ -61,10 +61,7 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 			Body: &types.BlockBody{},
 		}
 
-		hash, err := block.Header.Hash()
-		if err != nil {
-			t.Fatal(err)
-		}
+		hash := block.Header.Hash()
 		hashes = append(hashes, hash)
 		block.SetBlockArrivalTime(previousAT + uint64(1000))
 
@@ -102,10 +99,7 @@ func TestBlockTree_AddBlock(t *testing.T) {
 		Body: &types.BlockBody{},
 	}
 
-	hash, err := block.Header.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	hash := block.Header.Hash()
 	bt.AddBlock(block)
 
 	n := bt.GetNode(hash)
@@ -150,10 +144,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 		Body: &types.BlockBody{},
 	}
 
-	_, err := extraBlock.Header.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	extraBlock.Header.Hash()
 	bt.AddBlock(extraBlock)
 
 	longestPath := bt.LongestPath()
@@ -178,10 +169,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 		Body: &types.BlockBody{},
 	}
 
-	_, err := extraBlock.Header.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	extraBlock.Header.Hash()
 	bt.AddBlock(extraBlock)
 
 	subChain := bt.SubChain(hashes[1], hashes[3])

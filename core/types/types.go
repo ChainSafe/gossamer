@@ -17,6 +17,7 @@
 package types
 
 import (
+	"errors"
 	"math/big"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -55,6 +56,11 @@ type BlockHeader struct {
 
 // NewBlockHeader creates a new block header and sets its hash field
 func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []byte) (*BlockHeader, error) {
+	if number == nil {
+		// Hash() will panic if number is nil
+		return nil, errors.New("cannot have nil block number")
+	}
+
 	bh := &BlockHeader{
 		ParentHash:     parentHash,
 		Number:         number,
@@ -63,19 +69,14 @@ func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Ha
 		Digest:         digest,
 	}
 
-	hash, err := bh.Hash()
-	if err != nil {
-		return nil, err
-	}
-
-	bh.hash = hash
+	bh.Hash()
 	return bh, nil
 }
 
-// MustHash returns the hash of the block header
+// Hash returns the hash of the block header
 // If the internal hash field is nil, it hashes the block and sets the hash field.
 // If hashing the header errors, this will panic.
-func (bh *BlockHeader) MustHash() common.Hash {
+func (bh *BlockHeader) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
 		enc, err := scale.Encode(bh)
 		if err != nil {
@@ -91,26 +92,6 @@ func (bh *BlockHeader) MustHash() common.Hash {
 	}
 
 	return bh.hash
-}
-
-// Hash returns the hash of the block header
-// If the internal hash field is nil, it hashes the block and sets the hash field.
-func (bh *BlockHeader) Hash() (common.Hash, error) {
-	if bh.hash == [32]byte{} {
-		enc, err := scale.Encode(bh)
-		if err != nil {
-			return [32]byte{}, err
-		}
-
-		hash, err := common.Blake2bHash(enc)
-		if err != nil {
-			return [32]byte{}, err
-		}
-
-		bh.hash = hash
-	}
-
-	return bh.hash, nil
 }
 
 // BlockBody is the extrinsics inside a state block
