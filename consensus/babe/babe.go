@@ -231,6 +231,7 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	return block, nil
 }
 
+// buildBlockInherents applies the inherents for a block
 func (b *Session) buildBlockInherents(slot Slot) error {
 	// Setup inherents: add timstap0 and babeslot
 	idata := NewInherentsData()
