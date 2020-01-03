@@ -114,7 +114,7 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 }
 
-// runs the slot lottery for a specific slot number
+// runLottery runs the lottery for a specific slot number
 // returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
 func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	slotBytes := make([]byte, 8)
@@ -127,7 +127,7 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	}
 
 	outbytes := output.Encode()
-	output_int := big.NewInt(0).SetBytes(outbytes[:])
+	outputInt := big.NewInt(0).SetBytes(outbytes[:])
 	if b.epochThreshold == nil {
 		err = b.setEpochThreshold()
 		if err != nil {
@@ -135,7 +135,7 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 		}
 	}
 
-	if output_int.Cmp(b.epochThreshold) > 0 {
+	if outputInt.Cmp(b.epochThreshold) > 0 {
 		proofbytes := proof.Encode()
 		return append(outbytes[:], proofbytes...), nil
 	}

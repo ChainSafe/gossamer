@@ -128,11 +128,6 @@ func (kp *Keypair) VrfSign(msg []byte) (*sr25519.VrfOutput, *sr25519.VrfProof, e
 	return kp.private.VrfSign(msg)
 }
 
-// VrfVerify confirms that the output and proof are valid given a message and public key
-func (kp *Keypair) VrfVerify(msg []byte, output *sr25519.VrfOutput, proof *sr25519.VrfProof) (bool, error) {
-	return kp.public.VrfVerify(msg, output, proof)
-}
-
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
 func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 	if k.key == nil {
