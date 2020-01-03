@@ -228,10 +228,8 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 		return nil, err
 	}
 
-	// finalize the block
-	log.Debug("build_block finalize block")
-
 	// finalize block
+	log.Trace("build_block finalize block")
 	block, err := b.finalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
@@ -251,14 +249,14 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 
 	// TODO: check when block is full
 	for !hasSlotEnded(slot) && extrinsic != nil {
-		log.Debug("build_block", "applying extrinsic", extrinsic)
+		log.Trace("build_block", "applying extrinsic", extrinsic)
 		ret, err := b.applyExtrinsic(*extrinsic)
 		if err != nil {
 			return nil, err
 		}
 
 		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
-		if len(ret) != 0 && (ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1})) {
+		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
 			// TODO: specific error code checking
 			log.Error("build_block apply extrinsic", "error", ret, "extrinsic", extrinsic)
 
@@ -270,7 +268,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 
 			return nil, errors.New("could not apply extrinsic")
 		} else {
-			log.Debug("build_block applied extrinsic", "extrinsic", extrinsic)
+			log.Trace("build_block applied extrinsic", "extrinsic", extrinsic)
 		}
 
 		// keep track of included transactions; re-add them to queue later if block building fails

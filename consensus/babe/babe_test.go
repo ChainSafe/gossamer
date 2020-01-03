@@ -296,7 +296,6 @@ func TestSlotOffset(t *testing.T) {
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
-
 }
 
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
@@ -345,7 +344,6 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	return bt
-
 }
 
 func TestSlotTime(t *testing.T) {
@@ -375,7 +373,6 @@ func TestSlotTime(t *testing.T) {
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
-
 }
 
 func TestStart(t *testing.T) {
