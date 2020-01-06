@@ -32,6 +32,7 @@ var SealDigestType = byte(4)
 // DigestItem can be of one of four types of digest: ChangesTrieRootDigest, PreRuntimeDigest, ConsensusDigest, or SealDigest.
 // see https://github.com/paritytech/substrate/blob/f548309478da3935f72567c2abc2eceec3978e9f/primitives/runtime/src/generic/digest.rs#L77
 type DigestItem interface {
+	Type() byte
 	Encode() []byte
 	Decode([]byte)
 }
@@ -43,7 +44,7 @@ type ChangesTrieRootDigest struct {
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
 type PreRuntimeDigest struct {
-	ConsensusEngineId [4]byte
+	ConsensusEngineId ConsensusEngineId
 	Data              []byte
 }
 
@@ -55,12 +56,18 @@ func (d *PreRuntimeDigest) Encode() []byte {
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
 type ConsensusDigest struct {
-	ConsensusEngineId uint64
+	ConsensusEngineId ConsensusEngineId
 	Data              []byte
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
 type SealDigest struct {
-	ConsensusEngineId uint64
+	ConsensusEngineId ConsensusEngineId
 	Data              []byte
+}
+
+func (d *SealDigest) Encode() []byte {
+	enc := []byte{SealDigestType}
+	enc = append(enc, d.ConsensusEngineId[:]...)
+	return append(enc, d.Data...)
 }

@@ -26,7 +26,7 @@ import (
 	"time"
 
 	schnorrkel "github.com/ChainSafe/go-schnorrkel"
-	"github.com/ChainSafe/gossamer/codec"
+	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
@@ -215,14 +215,14 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
-	// try to create pre-digest
+	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
 	if err != nil {
 		return nil, err
 	}
 
 	// initialize block
-	encodedHeader, err := codec.Encode(parent)
+	encodedHeader, err := scale.Encode(parent)
 	if err != nil {
 		return nil, err
 	}
@@ -256,9 +256,32 @@ func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block
 	// add BABE header to digest
 	block.Header.Digest = append(block.Header.Digest, preDigest.Encode())
 
-	// add seal to digest
+	// create seal and add to digest
+	seal, err := b.buildBlockSeal(block.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	block.Header.Digest = append(block.Header.Digest, seal.Encode())
 
 	return block, nil
+}
+
+func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, error) {
+	encHeader, err := scale.Encode(header)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := b.keypair.Sign(encHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.SealDigest{
+		ConsensusEngineId: types.BabeEngineId,
+		Data:              sig,
+	}, nil
 }
 
 func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
@@ -268,12 +291,10 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 	}
 	encBabeHeader := babeHeader.Encode()
 
-	preDigest := &types.PreRuntimeDigest{
+	return &types.PreRuntimeDigest{
 		ConsensusEngineId: types.BabeEngineId,
 		Data:              encBabeHeader,
-	}
-
-	return preDigest, nil
+	}, nil
 }
 
 func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
