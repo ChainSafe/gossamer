@@ -338,11 +338,14 @@ func TestReadByte(t *testing.T) {
 
 func TestDecodeFixedWidthInts(t *testing.T) {
 	for _, test := range decodeFixedWidthIntTestsInt8 {
-		output, err := Decode(test.val, int8(0))
+		//output, err := Decode(test.val, int8(0))
+		res := int8(0)
+		err := DecodePtr(test.val, &res)
+		t.Logf("decoded: %x", res)
 		if err != nil {
 			t.Error(err)
-		} else if output.(int8) != test.output {
-			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
 		}
 	}
 
@@ -476,13 +479,29 @@ func TestDecodeTuples(t *testing.T) {
 	}
 }
 
-func TestDecodeArrays(t *testing.T) {
-	for _, test := range decodeArrayTests {
-		output, err := Decode(test.val, test.t)
+func TestDecodePtrTuples(t *testing.T) {
+	for _, test := range decodeTupleTests {
+		t.Logf("before decoding: %x", test.t)
+		err := DecodePtr(test.val, test.t)
 		if err != nil {
 			t.Error(err)
-		} else if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
+		} else if !reflect.DeepEqual(test.t, test.output) {
+			t.Errorf("Fail: got %d expected %d", test.val, test.output)
 		}
+		t.Logf("decoded: %x", test.t)
+	}
+}
+
+func TestDecodeArrays(t *testing.T) {
+	for _, test := range decodeArrayTests {
+		//output, err := Decode(test.val, test.t)
+		t.Logf("before decoding: %x", test.t)
+		err := DecodePtr(test.val, test.t)
+		if err != nil {
+			t.Error(err)
+		} else if !reflect.DeepEqual(test.t, test.output) {
+			t.Errorf("Fail: got %d expected %d", test.t, test.output)
+		}
+		t.Logf("decoded: %x", test.t)
 	}
 }
