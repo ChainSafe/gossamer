@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+// ConsensusEngineId is a 4-character identifier of the consensus engine that produced the digest.
 type ConsensusEngineId [4]byte
 
 var BabeEngineId = ConsensusEngineId{'B', 'A', 'B', 'E'}
