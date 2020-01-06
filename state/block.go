@@ -16,7 +16,7 @@ import (
 type blockState struct {
 	bt          *blocktree.BlockTree
 	db          *polkadb.BlockDB
-	latestBlock types.BlockHeaderWithHash
+	latestBlock types.BlockHeader
 }
 
 func NewBlockState(dataDir string) (*blockState, error) {
@@ -70,16 +70,15 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 	return append(babeHeaderPrefix, combined...)
 }
 
-func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
-	var result types.BlockHeaderWithHash
+func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
+	var result *types.BlockHeader
 
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
-		return types.BlockHeaderWithHash{}, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(data, &result)
-
+	err = json.Unmarshal(data, result)
 	return result, err
 }
 
@@ -109,7 +108,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 	return result, err
 }
 
-func (bs *blockState) GetLatestBlock() types.BlockHeaderWithHash {
+func (bs *blockState) GetLatestBlock() types.BlockHeader {
 	return bs.latestBlock
 }
 
@@ -123,8 +122,7 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 		return types.Block{}, err
 	}
 	blockBody := blockData.Body
-	blockHeader := header.WithoutHash()
-	return types.Block{Header: blockHeader, Body: blockBody}, nil
+	return types.Block{Header: header, Body: blockBody}, nil
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
@@ -140,8 +138,8 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
 	return block, err
 }
 
-func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
-	hash := header.Hash
+func (bs *blockState) SetHeader(header types.BlockHeader) error {
+	hash := header.Hash()
 
 	// Write the encoded header
 	bh, err := json.Marshal(header)
@@ -181,7 +179,7 @@ func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.Ba
 	return err
 }
 
-func (bs *blockState) AddBlock(block types.BlockHeaderWithHash) error {
+func (bs *blockState) AddBlock(block types.BlockHeader) error {
 	// Set the latest block
 	if block.Number.Cmp(bs.latestBlock.Number) == 1 {
 		bs.latestBlock = block
