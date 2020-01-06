@@ -55,7 +55,7 @@ type BlockHeader struct {
 	Number         *big.Int    `json:"number"`
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
+	Digest         [][]byte    `json:"digest"`
 }
 
 func (bh *BlockHeader) Hash() (common.Hash, error) {
@@ -104,7 +104,7 @@ type BlockHeaderWithHash struct {
 	Number         *big.Int    `json:"number"`
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
+	Digest         [][]byte    `json:"digest"` // any additional block info eg. logs, seal
 	// TODO: Not part of spec, can potentially remove
 	Hash common.Hash `json:"hash"`
 }
