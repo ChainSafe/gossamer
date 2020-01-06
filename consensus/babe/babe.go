@@ -267,8 +267,10 @@ func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block
 	return block, nil
 }
 
+// buildBlockSeal creates the seal for the block header.
+// the seal consists of the ConsensusEngineId and a signature of the encoded block header.
 func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, error) {
-	encHeader, err := scale.Encode(header)
+	encHeader, err := header.Encode()
 	if err != nil {
 		return nil, err
 	}
@@ -284,6 +286,8 @@ func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, 
 	}, nil
 }
 
+// buildBlockPreDigest creates the pre-digest for the slot.
+// the pre-digest consists of the ConsensusEngineId and the encoded BABE header for the slot.
 func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
 	babeHeader, err := b.buildBlockBabeHeader(slot)
 	if err != nil {
@@ -297,6 +301,8 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 	}, nil
 }
 
+// buildBlockBabeHeader creates the BABE header for the slot.
+// the BABE header includes the proof of authorship right for this slot.
 func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
 		return nil, errors.New("not authorized to produce block")

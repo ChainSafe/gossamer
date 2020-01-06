@@ -483,7 +483,58 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 }
 
-func TestBuildBlock(t *testing.T) {
+func TestSeal(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header, err := types.NewBlockHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encHeader, err := header.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seal, err := babesession.buildBlockSeal(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := kp.Public().Verify(encHeader, seal.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("could not verify seal")
+	}
+}
+
+func TestBuildBlock_ok(t *testing.T) {
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -552,12 +603,6 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// create seal
-	seal, err := babesession.buildBlockSeal(block.Header)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// hash of parent header
 	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")
 	if err != nil {
@@ -579,13 +624,14 @@ func TestBuildBlock(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{preDigest.Encode(), seal.Encode()},
+		Digest:         [][]byte{preDigest.Encode()},
 	}
 
-	if !reflect.DeepEqual(block.Header.Digest, expectedBlockHeader.Digest) {
-		// t.Logf("%x", block.Header.StateRoot)
-		// t.Logf("%x", block.Header.ExtrinsicsRoot)
-		t.Fatalf("Fail: got %v expected %v", block.Header.Digest, expectedBlockHeader.Digest)
+	// remove seal from built block, since we can't predict the signature
+	block.Header.Digest = block.Header.Digest[:1]
+
+	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }
 

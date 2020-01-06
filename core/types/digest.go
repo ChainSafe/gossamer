@@ -34,7 +34,7 @@ var SealDigestType = byte(4)
 type DigestItem interface {
 	Type() byte
 	Encode() []byte
-	Decode([]byte)
+	//Decode([]byte)
 }
 
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
@@ -42,10 +42,22 @@ type ChangesTrieRootDigest struct {
 	Hash common.Hash
 }
 
+func (d *ChangesTrieRootDigest) Type() byte {
+	return ChangesTrieRootDigestType
+}
+
+func (d *ChangesTrieRootDigest) Encode() []byte {
+	return d.Hash[:]
+}
+
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
 type PreRuntimeDigest struct {
 	ConsensusEngineId ConsensusEngineId
 	Data              []byte
+}
+
+func (d *PreRuntimeDigest) Type() byte {
+	return PreRuntimeDigestType
 }
 
 func (d *PreRuntimeDigest) Encode() []byte {
@@ -60,10 +72,24 @@ type ConsensusDigest struct {
 	Data              []byte
 }
 
+func (d *ConsensusDigest) Type() byte {
+	return ConsensusDigestType
+}
+
+func (d *ConsensusDigest) Encode() []byte {
+	enc := []byte{ConsensusDigestType}
+	enc = append(enc, d.ConsensusEngineId[:]...)
+	return append(enc, d.Data...)
+}
+
 // SealDigest contains the seal or signature. This is only used by native code.
 type SealDigest struct {
 	ConsensusEngineId ConsensusEngineId
 	Data              []byte
+}
+
+func (d *SealDigest) Type() byte {
+	return SealDigestType
 }
 
 func (d *SealDigest) Encode() []byte {

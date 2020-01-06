@@ -94,6 +94,10 @@ func (bh *BlockHeader) Hash() common.Hash {
 	return bh.hash
 }
 
+func (bh *BlockHeader) Encode() ([]byte, error) {
+	return scale.Encode(bh)
+}
+
 // BlockBody is the extrinsics inside a state block
 type BlockBody []byte
 
