@@ -212,8 +212,19 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 }
 
 // construct a block for this slot with the given parent
-func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*types.Block, error) {
-	log.Trace("build-block", "parent", parent, "slot", slot)
+func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
+	log.Debug("build-block", "parent", parent, "slot", slot)
+
+	// try to create pre-digets
+	babeHeader, err := b.buildBlockBabeHeader(slot)
+	if err != nil {
+		return nil, err
+	}
+	encBabeHeader := babeHeader.Encode()
+	digest := types.PreRuntimeDigest{
+		ConsensusEngineId: 0,
+		Data:              encBabeHeader,
+	}
 
 	// initialize block
 	encodedHeader, err := codec.Encode(parent)
@@ -248,18 +259,15 @@ func (b *Session) buildBlock(parent *types.BlockHeaderWithHash, slot Slot) (*typ
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
 
 	// add BABE header to digest
-	babeHeader := b.buildBlockBabeHeader(slot)
-	encBabeHeader := babeHeader.Encode()
-	digest := types.PreRuntimeDigest{
-		ConsensusEngineId: 0,
-		Data:              encBabeHeader,
-	}
 	block.Header.Digest = append(block.Header.Digest, digest.Encode())
 
 	return block, nil
 }
 
-func (b *Session) buildBlockBabeHeader(slot Slot) *BabeHeader {
+func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
+	if b.slotToProof[slot.number] == nil {
+		return nil, errors.New("not authorized to produce block")
+	}
 	outAndProof := b.slotToProof[slot.number]
 	output := [32]byte{}
 	copy(output[:], outAndProof[:32])
@@ -270,7 +278,7 @@ func (b *Session) buildBlockBabeHeader(slot Slot) *BabeHeader {
 		VrfProof:           proof,
 		BlockProducerIndex: b.authorityIndex,
 		SlotNumber:         slot.number,
-	}
+	}, nil
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.

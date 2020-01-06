@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"math"
 	"math/big"
@@ -336,15 +335,13 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		t.Fatal(err)
 	}
 
-	genesisBlock := types.BlockWithHash{
-		Header: &types.BlockHeaderWithHash{
+	genesisBlock := types.Block{
+		Header: &types.BlockHeader{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
-			Hash:       common.Hash{0x00},
 		},
 		Body: &types.BlockBody{},
 	}
-
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
 	d := &db.BlockDB{
@@ -352,27 +349,19 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
-	previousHash := genesisBlock.Header.Hash
+	previousHash := genesisBlock.Header.Hash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
 	for i := 1; i <= depth; i++ {
-		hex := fmt.Sprintf("%06x", i)
-
-		hash, err := common.HexToHash("0x" + hex)
-
-		if err != nil {
-			t.Error(err)
-		}
-
-		block := types.BlockWithHash{
-			Header: &types.BlockHeaderWithHash{
+		block := types.Block{
+			Header: &types.BlockHeader{
 				ParentHash: previousHash,
-				Hash:       hash,
 				Number:     big.NewInt(int64(i)),
 			},
 			Body: &types.BlockBody{},
 		}
 
+		hash := block.Header.Hash()
 		block.SetBlockArrivalTime(previousAT + uint64(1000))
 
 		bt.AddBlock(block)
@@ -515,6 +504,21 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// create proof that we can authorize this block
+	babesession.epochThreshold = big.NewInt(0)
+	var slotNumber uint64 = 1
+
+	outAndProof, err := babesession.runLottery(slotNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+
+	babesession.slotToProof[slotNumber] = outAndProof
+
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	vtx := tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
@@ -525,7 +529,7 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parentHeader := &types.BlockHeaderWithHash{
+	parentHeader := &types.BlockHeader{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
 	}
@@ -533,7 +537,7 @@ func TestBuildBlock(t *testing.T) {
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
 		duration: uint64(10000000),
-		number:   1,
+		number:   slotNumber,
 	}
 
 	block, err := babesession.buildBlock(parentHeader, slot)
@@ -547,12 +551,12 @@ func TestBuildBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stateRoot, err := common.HexToHash("0xc3b2fab1ee625ff74298f5c94dd02cc2842ad51fa4f0d1f380ea0078422c6684")
+	stateRoot, err := common.HexToHash("0xe2eeb08c34f76ff7df3b40aa372c52cda3d6757e859665b3ada3d767f9bd5d20")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	extrinsicsRoot, err := common.HexToHash("0xb6a727c5b74a783258aece82a354416955d0b1e526005ad2a5cb767f1cd69549")
+	extrinsicsRoot, err := common.HexToHash("0xb19f2bc54b6e2d2a61e089068d47fe49c246bf16203f35221aefd8cf2fade6bf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -562,10 +566,13 @@ func TestBuildBlock(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         nil,
+		Digest:         [][]byte{{}},
 	}
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Logf("%x", block.Header.StateRoot)
+		t.Logf("%x", block.Header.ExtrinsicsRoot)
+
 		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 }
@@ -591,6 +598,21 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// create proof that we can authorize this block
+	babesession.epochThreshold = big.NewInt(0)
+	var slotNumber uint64 = 1
+
+	outAndProof, err := babesession.runLottery(slotNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+
+	babesession.slotToProof[slotNumber] = outAndProof
+
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
 	txa := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
@@ -608,7 +630,7 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parentHeader := &types.BlockHeaderWithHash{
+	parentHeader := &types.BlockHeader{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
 	}
@@ -616,7 +638,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
 		duration: uint64(10000000),
-		number:   1,
+		number:   slotNumber,
 	}
 
 	_, err = babesession.buildBlock(parentHeader, slot)
