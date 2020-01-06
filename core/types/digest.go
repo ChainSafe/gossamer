@@ -20,6 +20,15 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+type ConsensusEngineId [4]byte
+
+var BabeEngineId = ConsensusEngineId{'B', 'A', 'B', 'E'}
+
+var ChangesTrieRootDigestType = byte(0)
+var PreRuntimeDigestType = byte(1)
+var ConsensusDigestType = byte(2)
+var SealDigestType = byte(4)
+
 // DigestItem can be of one of four types of digest: ChangesTrieRootDigest, PreRuntimeDigest, ConsensusDigest, or SealDigest.
 // see https://github.com/paritytech/substrate/blob/f548309478da3935f72567c2abc2eceec3978e9f/primitives/runtime/src/generic/digest.rs#L77
 type DigestItem interface {
@@ -34,12 +43,14 @@ type ChangesTrieRootDigest struct {
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
 type PreRuntimeDigest struct {
-	ConsensusEngineId uint64
+	ConsensusEngineId [4]byte
 	Data              []byte
 }
 
 func (d *PreRuntimeDigest) Encode() []byte {
-	return []byte{}
+	enc := []byte{PreRuntimeDigestType}
+	enc = append(enc, d.ConsensusEngineId[:]...)
+	return append(enc, d.Data...)
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.

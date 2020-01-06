@@ -540,10 +540,16 @@ func TestBuildBlock(t *testing.T) {
 		number:   slotNumber,
 	}
 
+	// create pre-digest
+	preDigest := babesession.buildBlockPreDigest(slot)
+
+	// build block
 	block, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// create seal
 
 	// hash of parent header
 	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")
@@ -566,7 +572,7 @@ func TestBuildBlock(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{{}},
+		Digest:         [][]byte{preDigest.Encode()},
 	}
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {

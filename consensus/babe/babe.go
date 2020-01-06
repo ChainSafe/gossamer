@@ -215,15 +215,10 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
-	// try to create pre-digets
-	babeHeader, err := b.buildBlockBabeHeader(slot)
+	// try to create pre-digest
+	preDigest, err := b.buildBlockPreDigest(slot)
 	if err != nil {
 		return nil, err
-	}
-	encBabeHeader := babeHeader.Encode()
-	digest := types.PreRuntimeDigest{
-		ConsensusEngineId: 0,
-		Data:              encBabeHeader,
 	}
 
 	// initialize block
@@ -259,9 +254,26 @@ func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
 
 	// add BABE header to digest
-	block.Header.Digest = append(block.Header.Digest, digest.Encode())
+	block.Header.Digest = append(block.Header.Digest, preDigest.Encode())
+
+	// add seal to digest
 
 	return block, nil
+}
+
+func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
+	babeHeader, err := b.buildBlockBabeHeader(slot)
+	if err != nil {
+		return nil, err
+	}
+	encBabeHeader := babeHeader.Encode()
+
+	preDigest := &types.PreRuntimeDigest{
+		ConsensusEngineId: types.BabeEngineId,
+		Data:              encBabeHeader,
+	}
+
+	return preDigest, nil
 }
 
 func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
