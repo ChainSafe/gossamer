@@ -62,16 +62,16 @@ func DecodePtr(in []byte, t interface{}) ( error) {
 func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
-		out, err = sd.DecodeBigInt()
+		//out, err = sd.DecodeBigInt()
+		err = sd.DecodeBigIntPtr(t.(* big.Int))
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
-		err = sd.DecodeFixedWidthIntPtr(t)
+		out, err = sd.DecodeFixedWidthInt(t)
 	case []byte, string:
 		out, err = sd.DecodeByteArray()
 	case bool:
 		out, err = sd.DecodeBool()
 	case []int:
-		//out, err = sd.DecodeIntArray()
-		err = sd.DecodeIntArrayPtr(t)
+		out, err = sd.DecodeIntArray()
 	case []bool:
 		out, err = sd.DecodeBoolArray()
 	case []*big.Int:
@@ -183,70 +183,6 @@ func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o interface{}, err error)
 	return o, err
 }
 
-// DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
-func (sd *Decoder) DecodeFixedWidthIntPtr(t interface{}) ( err error) {
-	switch t.(type) {
-	case int8:
-		var b byte
-		b, err = sd.ReadByte()
-		t = int8(b)
-	case uint8:
-		var b byte
-		b, err = sd.ReadByte()
-		t = b
-	case int16:
-		buf := make([]byte, 2)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = int16(binary.LittleEndian.Uint16(buf))
-		}
-	case uint16:
-		buf := make([]byte, 2)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = binary.LittleEndian.Uint16(buf)
-		}
-	case int32:
-		buf := make([]byte, 4)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = int32(binary.LittleEndian.Uint32(buf))
-		}
-	case uint32:
-		buf := make([]byte, 4)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = binary.LittleEndian.Uint32(buf)
-		}
-	case int64:
-		buf := make([]byte, 8)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = int64(binary.LittleEndian.Uint64(buf))
-		}
-	case uint64:
-		buf := make([]byte, 8)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = binary.LittleEndian.Uint64(buf)
-		}
-	case int:
-		buf := make([]byte, 8)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = int(binary.LittleEndian.Uint64(buf))
-		}
-	case uint:
-		buf := make([]byte, 8)
-		_, err = sd.Reader.Read(buf)
-		if err == nil {
-			t = uint(binary.LittleEndian.Uint64(buf))
-		}
-	}
-
-	return err
-}
-
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
 // number of input bytes decoded, and err is nil
@@ -326,6 +262,42 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 	}
 
 	return output, err
+}
+
+// DecodeBigInt decodes a SCALE encoded byte array into a *big.Int
+// Works for all integers, including ints > 2**64
+func (sd *Decoder) DecodeBigIntPtr(output *big.Int) ( err error) {
+	b, err := sd.ReadByte()
+	if err != nil {
+		return  err
+	}
+
+	// check mode of encoding, stored at 2 least significant bits
+	mode := b & 0x03
+	if mode <= 2 {
+		var tmp int64
+		tmp, err = sd.decodeSmallInt(b, mode)
+		output.SetInt64(tmp)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// >4 byte mode
+	topSixBits := b >> 2
+	byteLen := uint(topSixBits) + 4
+
+	buf := make([]byte, byteLen)
+	_, err = sd.Reader.Read(buf)
+	if err == nil {
+		o := reverseBytes(buf)
+		output.SetBytes(o)
+	} else {
+		err = errors.New("could not decode invalid big.Int: reached early EOF")
+	}
+
+	return err
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding

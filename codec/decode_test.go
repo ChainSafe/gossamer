@@ -338,14 +338,11 @@ func TestReadByte(t *testing.T) {
 
 func TestDecodeFixedWidthInts(t *testing.T) {
 	for _, test := range decodeFixedWidthIntTestsInt8 {
-		//output, err := Decode(test.val, int8(0))
-		res := int8(0)
-		err := DecodePtr(test.val, &res)
-		t.Logf("decoded: %x", res)
+		output, err := Decode(test.val, int8(0))
 		if err != nil {
 			t.Error(err)
-		} else if res != test.output {
-			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		} else if output.(int8) != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
 
@@ -424,6 +421,20 @@ func TestDecodeBigInts(t *testing.T) {
 	}
 }
 
+func TestDecodePtrBigInts(t *testing.T) {
+	for _, test := range decodeBigIntTests {
+		t.Logf("before decoding: %x", test.output)
+		res := big.NewInt(0)
+		err := DecodePtr(test.val, res)
+		if err != nil {
+			t.Error(err)
+		} else if res.Cmp(test.output) != 0 {
+			t.Errorf("Fail: got %s expected %s", res.String(), test.output.String())
+		}
+		t.Logf("decoded: %x", test.output)
+	}
+}
+
 func TestLargeDecodeByteArrays(t *testing.T) {
 	if testing.Short() {
 		t.Skip("\033[33mSkipping memory intesive test for TestDecodeByteArrays in short mode\033[0m")
@@ -494,14 +505,11 @@ func TestDecodePtrTuples(t *testing.T) {
 
 func TestDecodeArrays(t *testing.T) {
 	for _, test := range decodeArrayTests {
-		//output, err := Decode(test.val, test.t)
-		t.Logf("before decoding: %x", test.t)
-		err := DecodePtr(test.val, test.t)
+		output, err := Decode(test.val, test.t)
 		if err != nil {
 			t.Error(err)
-		} else if !reflect.DeepEqual(test.t, test.output) {
-			t.Errorf("Fail: got %d expected %d", test.t, test.output)
+		} else if !reflect.DeepEqual(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
 		}
-		t.Logf("decoded: %x", test.t)
 	}
 }
