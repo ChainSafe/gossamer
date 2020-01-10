@@ -53,8 +53,7 @@ func DecodePtr(in []byte, t interface{}) ( error) {
 		return err
 	}
 
-	_, err = sd.Decode(t)
-
+	err = sd.DecodePtr(t)
 	return err
 }
 
@@ -62,8 +61,7 @@ func DecodePtr(in []byte, t interface{}) ( error) {
 func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
-		//out, err = sd.DecodeBigInt()
-		err = sd.DecodeBigIntPtr(t.(* big.Int))
+		out, err = sd.DecodeBigInt()
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		out, err = sd.DecodeFixedWidthInt(t)
 	case []byte, string:
@@ -86,6 +84,30 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		return nil, errors.New("decode error: unsupported type")
 	}
 	return out, err
+}
+
+// DecodePtr is the high level function wrapping the specific type decoding functions
+// The results of decode are written to t interface by reference (instead of returning
+//  value as Decode does)
+func (sd *Decoder) DecodePtr(t interface{}) (err error) {
+	switch t.(type) {
+	case *big.Int:
+		err = sd.DecodePtrBigInt(t.(* big.Int))
+	case []byte, string:
+		err = sd.DecodePtrByteArray(t)
+	case []int:
+		err = sd.DecodePtrIntArray(t)
+	case []bool:
+		err = sd.DecodePtrBoolArray(t)
+	case []*big.Int:
+		err = sd.DecodePtrBigIntArray(t)
+  // TODO common.Hash, [32]byte
+	case interface{}:
+		_, err = sd.DecodeInterface(t)
+	default:
+		return errors.New("decode error: unsupported type")
+	}
+	return err
 }
 
 // ReadByte reads the one byte from the buffer
@@ -264,9 +286,10 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 	return output, err
 }
 
-// DecodeBigInt decodes a SCALE encoded byte array into a *big.Int
+// DecodePtrBigInt decodes a SCALE encoded byte array into a *big.Int
+//  Changes the value of output to decoded value
 // Works for all integers, including ints > 2**64
-func (sd *Decoder) DecodeBigIntPtr(output *big.Int) ( err error) {
+func (sd *Decoder) DecodePtrBigInt(output *big.Int) ( err error) {
 	b, err := sd.ReadByte()
 	if err != nil {
 		return  err
@@ -317,6 +340,23 @@ func (sd *Decoder) DecodeByteArray() (o []byte, err error) {
 	}
 
 	return b, nil
+}
+
+// DecodePtrByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
+// of the byte array
+func (sd *Decoder) DecodePtrByteArray(output interface{}) error {
+	_, err := sd.DecodeInteger()
+	if err != nil {
+		return err
+	}
+
+	//b := make([]byte, length)
+	_, err = sd.Reader.Read(output.([]byte))
+	if err != nil {
+		return errors.New("could not decode invalid byte array: reached early EOF")
+	}
+
+	return nil
 }
 
 // DecodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
@@ -592,17 +632,17 @@ func (sd *Decoder) DecodeIntArray() ([]int, error) {
 }
 
 // DecodeIntArray decodes a byte array to an array of ints
-func (sd *Decoder) DecodeIntArrayPtr(t interface{}) (error) {
-	length, err := sd.DecodeInteger()
+func (sd *Decoder) DecodePtrIntArray(t interface{}) (error) {
+	_, err := sd.DecodeInteger()
 	if err != nil {
 		return err
 	}
 
-	o := make([]int, length)
-	for i := range o {
-		var temp int64
-		temp, err = sd.DecodeInteger()
-		o[i] = int(temp)
+	for i := range t.([]int) {
+		//var temp int64
+		//var err error
+		temp, err := sd.DecodeInteger()
+		t.([]int)[i] = int(temp)
 		if err != nil {
 			break
 		}
@@ -629,6 +669,25 @@ func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	return o, nil
 }
 
+// DecodePtrBigIntArray decodes a byte array to an array of *big.Ints
+//  writes value to output by reference
+func (sd *Decoder) DecodePtrBigIntArray(output interface{}) error {
+	_, err := sd.DecodeInteger()
+	if err != nil {
+		return err
+	}
+
+	for i := range output.([]*big.Int) {
+		var t *big.Int
+		t, err = sd.DecodeBigInt()
+		output.([]*big.Int)[i] = t
+		if err != nil {
+			break
+		}
+	}
+	return nil
+}
+
 // DecodeBoolArray decodes a byte array to an array of bools
 func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 	length, err := sd.DecodeInteger()
@@ -644,4 +703,22 @@ func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 		}
 	}
 	return o, nil
+}
+
+// DecodePtrBoolArray decodes a byte array to an array of bools
+// that is written to output by reference
+func (sd *Decoder) DecodePtrBoolArray(output interface{}) error {
+	_, err := sd.DecodeInteger()
+	if err != nil {
+		return err
+	}
+
+	for i := range output.([]bool) {
+		var err error
+		output.([]bool)[i], err = sd.DecodeBool()
+		if err != nil {
+			break
+		}
+	}
+	return nil
 }

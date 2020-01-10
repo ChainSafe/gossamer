@@ -423,7 +423,6 @@ func TestDecodeBigInts(t *testing.T) {
 
 func TestDecodePtrBigInts(t *testing.T) {
 	for _, test := range decodeBigIntTests {
-		t.Logf("before decoding: %x", test.output)
 		res := big.NewInt(0)
 		err := DecodePtr(test.val, res)
 		if err != nil {
@@ -431,7 +430,6 @@ func TestDecodePtrBigInts(t *testing.T) {
 		} else if res.Cmp(test.output) != 0 {
 			t.Errorf("Fail: got %s expected %s", res.String(), test.output.String())
 		}
-		t.Logf("decoded: %x", test.output)
 	}
 }
 
@@ -457,6 +455,18 @@ func TestDecodeByteArrays(t *testing.T) {
 			t.Error(err)
 		} else if !bytes.Equal(output.([]byte), test.output) {
 			t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
+		}
+	}
+}
+
+func TestDecodePtrByteArrays(t *testing.T) {
+	for _, test := range decodeByteArrayTests {
+		var result = make([]byte, len(test.output))
+		err := DecodePtr(test.val, result)
+		if err != nil {
+			t.Error(err)
+		} else if !bytes.Equal(result, test.output) {
+			t.Errorf("Fail: got %d expected %d", len(result), len(test.output))
 		}
 	}
 }
@@ -492,14 +502,12 @@ func TestDecodeTuples(t *testing.T) {
 
 func TestDecodePtrTuples(t *testing.T) {
 	for _, test := range decodeTupleTests {
-		t.Logf("before decoding: %x", test.t)
 		err := DecodePtr(test.val, test.t)
 		if err != nil {
 			t.Error(err)
 		} else if !reflect.DeepEqual(test.t, test.output) {
 			t.Errorf("Fail: got %d expected %d", test.val, test.output)
 		}
-		t.Logf("decoded: %x", test.t)
 	}
 }
 
@@ -510,6 +518,17 @@ func TestDecodeArrays(t *testing.T) {
 			t.Error(err)
 		} else if !reflect.DeepEqual(output, test.output) {
 			t.Errorf("Fail: got %d expected %d", output, test.output)
+		}
+	}
+}
+
+func TestDecodePtrArrays(t *testing.T) {
+	for _, test := range decodeArrayTests {
+		err := DecodePtr(test.val, test.t)
+		if err != nil {
+			t.Error(err)
+		} else if !reflect.DeepEqual(test.t, test.output) {
+			t.Errorf("Fail: got %d expected %d", test.t, test.output)
 		}
 	}
 }
