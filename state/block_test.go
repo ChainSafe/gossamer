@@ -35,10 +35,7 @@ func TestAddBlock(t *testing.T) {
 	header0 := &types.BlockHeader{
 		Number: big.NewInt(0),
 	}
-	blockHash0, err := header0.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	blockHash0 := header0.Hash()
 
 	// BlockBody with fake extrinsics
 	blockBody0 := types.BlockBody{}
@@ -57,10 +54,7 @@ func TestAddBlock(t *testing.T) {
 	header1 := &types.BlockHeader{
 		Number: big.NewInt(1),
 	}
-	blockHash1, err := header1.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	blockHash1 := header1.Hash()
 
 	// BlockBody with fake extrinsics
 	blockBody1 := types.BlockBody{}
@@ -90,6 +84,8 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	retBlock.Header.Hash()
 
 	if !reflect.DeepEqual(block1, retBlock) {
 		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block1)
