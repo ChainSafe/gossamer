@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
@@ -19,6 +18,7 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	//Close DB & erase data dir contents
 	defer func() {
 		err = blockState.db.Db.Close()
@@ -31,11 +31,13 @@ func TestAddBlock(t *testing.T) {
 	}()
 
 	// Create block0 & call AddBlock
-	// Create a header & blockdata
-	blockHash0 := common.NewHash([]byte{0, 1, 2})
-	header0 := types.BlockHeaderWithHash{
+	// Create header & blockBody for block0
+	header0 := &types.BlockHeader{
 		Number: big.NewInt(0),
-		Hash:   blockHash0,
+	}
+	blockHash0, err := header0.Hash()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// BlockBody with fake extrinsics
@@ -44,18 +46,20 @@ func TestAddBlock(t *testing.T) {
 
 	block0 := types.Block{
 		Header: header0,
-		Body:   blockBody0,
+		Body:   &blockBody0,
 	}
 
 	// Add the block0 to the DB
 	blockState.AddBlock(block0)
 
 	// Create block1 & call AddBlock
-	// Create a header & blockdata
-	blockHash1 := common.NewHash([]byte{1, 2, 3})
-	header1 := types.BlockHeaderWithHash{
+	// Create header & blockdata for block 1
+	header1 := &types.BlockHeader{
 		Number: big.NewInt(1),
-		Hash:   blockHash1,
+	}
+	blockHash1, err := header1.Hash()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// BlockBody with fake extrinsics
@@ -64,7 +68,7 @@ func TestAddBlock(t *testing.T) {
 
 	block1 := types.Block{
 		Header: header1,
-		Body:   blockBody1,
+		Body:   &blockBody1,
 	}
 
 	// Add the block1 to the DB
@@ -75,6 +79,8 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	retBlock.Header.Hash()
 
 	if !reflect.DeepEqual(block0, retBlock) {
 		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block0)
@@ -90,7 +96,7 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Check if latestBlock is set correctly
-	if !reflect.DeepEqual(block1, blockState.latestBlock) {
+	if !reflect.DeepEqual(*block1.Header, blockState.latestBlock) {
 		t.Fatalf("LatestBlock Fail: got %+v\nexpected %+v", blockState.latestBlock, block1)
 	}
 

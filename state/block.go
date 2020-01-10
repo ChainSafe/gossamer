@@ -14,7 +14,7 @@ import (
 type blockState struct {
 	bt          *blocktree.BlockTree
 	db          *polkadb.BlockDB
-	latestBlock types.Block
+	latestBlock types.BlockHeader
 }
 
 func NewBlockState(dataDir string) (*blockState, error) {
@@ -50,16 +50,15 @@ func blockKey(hash common.Hash) []byte {
 	return append(blockPrefix, hash.ToBytes()...)
 }
 
-func (bs *blockState) GetHeader(hash common.Hash) (types.BlockHeaderWithHash, error) {
-	var result types.BlockHeaderWithHash
+func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
+	result := new(types.BlockHeader)
 
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
-		return types.BlockHeaderWithHash{}, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(data, &result)
-
+	err = json.Unmarshal(data, result)
 	return result, err
 }
 
@@ -76,21 +75,17 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
-func (bs *blockState) GetLatestBlock() types.Block {
-	return bs.latestBlock
-}
-
 func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
-	var result types.Block
-
-	data, err := bs.db.Db.Get(blockKey(hash))
+	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return types.Block{}, err
 	}
-
-	err = json.Unmarshal(data, &result)
-
-	return result, err
+	blockData, err := bs.GetBlockData(hash)
+	if err != nil {
+		return types.Block{}, err
+	}
+	blockBody := blockData.Body
+	return types.Block{Header: header, Body: blockBody}, nil
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
@@ -98,8 +93,11 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) types.Block {
 	return types.Block{}
 }
 
-func (bs *blockState) SetHeader(header types.BlockHeaderWithHash) error {
-	hash := header.Hash
+func (bs *blockState) SetHeader(header types.BlockHeader) error {
+	hash, err := header.Hash()
+	if err != nil {
+		return err
+	}
 
 	// Write the encoded header
 	bh, err := json.Marshal(header)
@@ -122,21 +120,36 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
+// Set the latestBlock in blockState
+// Set the Header & BlockData in the DB
 func (bs *blockState) AddBlock(block types.Block) error {
-	blockHeader := block.Header
+	blockHeader := *block.Header
 
 	// Set the latest block
-	if reflect.DeepEqual(bs.latestBlock, types.Block{}) || blockHeader.Number.Cmp(bs.latestBlock.Header.Number) == 1 {
-		bs.latestBlock = block
+	if reflect.DeepEqual(bs.latestBlock, types.BlockHeader{}) {
+		bs.latestBlock = blockHeader
+	} else if blockHeader.Number != nil && blockHeader.Number.Cmp(bs.latestBlock.Number) == 1 { // If the new block has a number greater than current latestBlock
+		bs.latestBlock = blockHeader
 	}
 
-	// Write the encoded block
-	bl, err := json.Marshal(block)
+	//Add the blockHeader to the DB
+	bs.SetHeader(blockHeader)
+	hash, err := blockHeader.Hash()
 	if err != nil {
 		return err
 	}
 
-	//Add the block to the DB
-	err = bs.db.Db.Put(blockKey(blockHeader.Hash), bl)
+	blockHeaderWithHash, err := block.Header.WithHash()
+	if err != nil {
+		return err
+	}
+
+	// Create BlockData
+	bd := types.BlockData{
+		Hash:   hash,
+		Header: blockHeaderWithHash,
+		Body:   block.Body,
+	}
+	err = bs.SetBlockData(hash, bd)
 	return err
 }
