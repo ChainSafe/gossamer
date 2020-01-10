@@ -1,9 +1,12 @@
 package state
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"math/big"
 	"reflect"
+
+	"github.com/ChainSafe/gossamer/consensus/babe"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
@@ -30,8 +33,9 @@ func NewBlockState(dataDir string) (*blockState, error) {
 
 var (
 	// Data prefixes
-	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
-	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
+	headerPrefix     = []byte("hdr") // headerPrefix + hash -> header
+	blockDataPrefix  = []byte("hsh") // blockDataPrefix + hash -> blockData
+	babeHeaderPrefix = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
 	blockPrefix     = []byte("blk") // blockPrefix + hash -> block
 )
 
@@ -45,13 +49,28 @@ func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
 }
 
+// babeHeaderKey = babeHeaderPrefix || epoch || slice
+func babeHeaderKey(epoch uint64, slot uint64) []byte {
+	epochBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(epochBytes, epoch)
+	sliceBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(sliceBytes, slot)
+	combined := append(epochBytes, sliceBytes...)
+	return append(babeHeaderPrefix, combined...)
+}
 // blockKey = blockDataPrefix + hash
 func blockKey(hash common.Hash) []byte {
 	return append(blockPrefix, hash.ToBytes()...)
 }
 
+<<<<<<< HEAD
 func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
 	result := new(types.BlockHeader)
+=======
+
+func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
+	var result *types.BlockHeader
+>>>>>>> e764b8ad41b47330db26fa04a1d2f2188dab9700
 
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
