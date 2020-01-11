@@ -32,7 +32,6 @@ var (
 	// Data prefixes
 	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
 	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
-	blockPrefix     = []byte("blk") // blockPrefix + hash -> block
 )
 
 // headerKey = headerPrefix + hash
@@ -43,11 +42,6 @@ func headerKey(hash common.Hash) []byte {
 // blockDataKey = blockDataPrefix + hash
 func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
-}
-
-// blockKey = blockDataPrefix + hash
-func blockKey(hash common.Hash) []byte {
-	return append(blockPrefix, hash.ToBytes()...)
 }
 
 func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
@@ -130,7 +124,10 @@ func (bs *blockState) AddBlock(block types.Block) error {
 	}
 
 	//Add the blockHeader to the DB
-	bs.SetHeader(blockHeader)
+	err := bs.SetHeader(blockHeader)
+	if err != nil {
+		return err
+	}
 	hash := blockHeader.Hash()
 
 	// Create BlockData
@@ -139,6 +136,6 @@ func (bs *blockState) AddBlock(block types.Block) error {
 		Header: block.Header,
 		Body:   block.Body,
 	}
-	err := bs.SetBlockData(hash, bd)
+	err = bs.SetBlockData(hash, bd)
 	return err
 }
