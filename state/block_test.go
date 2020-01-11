@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
@@ -26,29 +25,29 @@ func TestGetBlockByNumber(t *testing.T) {
 	}()
 
 	// Create a header & blockdata
-	blockHash := common.NewHash([]byte{0, 1, 2})
-	blockHeader := types.BlockHeaderWithHash{
+	blockHeader := &types.BlockHeader{
 		Number: big.NewInt(1),
-		Hash:   blockHash,
 	}
+	hash := blockHeader.Hash()
 
 	// BlockBody with fake extrinsics
-	blockBody := types.BlockBody{}
-	blockBody = append(blockBody, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
+	blockBody := &types.BlockBody{}
+	*blockBody = append(*blockBody, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
 
 	blockData := types.BlockData{
-		Hash:   blockHash,
-		Header: &blockHeader,
-		Body:   &blockBody,
+		Hash:   hash,
+		Header: blockHeader,
+		Body:   blockBody,
 	}
 
 	// Set the block's header & blockData in the blockState
-	err := stateService.Block.SetHeader(blockHeader)
+	// SetHeader also sets mapping [blockNubmer : hash] in DB
+	err := stateService.Block.SetHeader(*blockHeader)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = stateService.Block.SetBlockData(blockHash, blockData)
+	err = stateService.Block.SetBlockData(hash, blockData)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,10 +57,11 @@ func TestGetBlockByNumber(t *testing.T) {
 		Header: blockHeader,
 		Body:   blockBody,
 	}
-	retBlock, err := stateService.Block.GetBlockByNumber(big.NewInt(1))
+	retBlock, err := stateService.Block.GetBlockByNumber(blockHeader.Number)
 	if err != nil {
 		t.Fatal(err)
 	}
+	retBlock.Header.Hash()
 
 	if !reflect.DeepEqual(expectedBlock, retBlock) {
 		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, expectedBlock)

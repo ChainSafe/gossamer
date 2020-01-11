@@ -78,7 +78,7 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, result)
+	err = json.Unmarshal(data, &result)
 	return result, err
 }
 
@@ -128,6 +128,7 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
 	// First retrieve the block hash based on the block number from the database
 	hash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
+
 	if err != nil {
 		return types.Block{}, err
 	}
@@ -153,7 +154,7 @@ func (bs *blockState) SetHeader(header types.BlockHeader) error {
 	}
 
 	// Add a mapping of [blocknumber : hash] for retrieving the block by number
-	err = bs.db.Db.Put(headerHashKey(header.Number.Uint64()), header.Hash.ToBytes())
+	err = bs.db.Db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes())
 	return err
 }
 
