@@ -25,8 +25,7 @@ import (
 	"math/big"
 	"time"
 
-	schnorrkel "github.com/ChainSafe/go-schnorrkel"
-	"github.com/ChainSafe/gossamer/codec"
+	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
@@ -43,7 +42,7 @@ type Session struct {
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	slotToProof    map[uint64][]byte  // for slots where we are a producer, store the vrf output+proof
+	slotToProof    map[uint64][]byte  // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	newBlocks      chan<- types.Block // send blocks to core service
 }
 
@@ -117,6 +116,7 @@ func (b *Session) invokeBlockAuthoring() {
 
 // runLottery runs the lottery for a specific slot number
 // returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
+// output = return[0:32]; proof = return[32:96]
 func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
@@ -127,8 +127,7 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	outbytes := output.Encode()
-	outputInt := big.NewInt(0).SetBytes(outbytes[:])
+	outputInt := big.NewInt(0).SetBytes(output[:])
 	if b.epochThreshold == nil {
 		err = b.setEpochThreshold()
 		if err != nil {
@@ -137,14 +136,27 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	}
 
 	if outputInt.Cmp(b.epochThreshold) > 0 {
-		proofbytes := proof.Encode()
-		return append(outbytes[:], proofbytes...), nil
+		return append(output[:], proof...), nil
 	}
 
 	return nil, nil
 }
 
-func (b *Session) vrfSign(input []byte) (*schnorrkel.VrfOutput, *schnorrkel.VrfProof, error) {
+func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader) (bool, error) {
+	if len(b.authorityData) <= int(header.BlockProducerIndex) {
+		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
+	}
+
+	pub := b.authorityData[header.BlockProducerIndex].id
+
+	slotBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(slotBytes, slot)
+	vrfInput := append(slotBytes, b.config.Randomness)
+
+	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
+}
+
+func (b *Session) vrfSign(input []byte) (out []byte, proof []byte, err error) {
 	return b.keypair.VrfSign(input)
 }
 
@@ -214,8 +226,14 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
+	// create pre-digest
+	preDigest, err := b.buildBlockPreDigest(slot)
+	if err != nil {
+		return nil, err
+	}
+
 	// initialize block
-	encodedHeader, err := codec.Encode(parent)
+	encodedHeader, err := scale.Encode(parent)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +263,72 @@ func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block
 	}
 
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
+
+	// add BABE header to digest
+	block.Header.Digest = append(block.Header.Digest, preDigest.Encode())
+
+	// create seal and add to digest
+	seal, err := b.buildBlockSeal(block.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	block.Header.Digest = append(block.Header.Digest, seal.Encode())
+
 	return block, nil
+}
+
+// buildBlockSeal creates the seal for the block header.
+// the seal consists of the ConsensusEngineId and a signature of the encoded block header.
+func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, error) {
+	encHeader, err := header.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := b.keypair.Sign(encHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.SealDigest{
+		ConsensusEngineId: types.BabeEngineId,
+		Data:              sig,
+	}, nil
+}
+
+// buildBlockPreDigest creates the pre-digest for the slot.
+// the pre-digest consists of the ConsensusEngineId and the encoded BABE header for the slot.
+func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
+	babeHeader, err := b.buildBlockBabeHeader(slot)
+	if err != nil {
+		return nil, err
+	}
+	encBabeHeader := babeHeader.Encode()
+
+	return &types.PreRuntimeDigest{
+		ConsensusEngineId: types.BabeEngineId,
+		Data:              encBabeHeader,
+	}, nil
+}
+
+// buildBlockBabeHeader creates the BABE header for the slot.
+// the BABE header includes the proof of authorship right for this slot.
+func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
+	if b.slotToProof[slot.number] == nil {
+		return nil, errors.New("not authorized to produce block")
+	}
+	outAndProof := b.slotToProof[slot.number]
+	output := [32]byte{}
+	copy(output[:], outAndProof[:32])
+	proof := [64]byte{}
+	copy(proof[:], outAndProof[:64])
+	return &BabeHeader{
+		VrfOutput:          output,
+		VrfProof:           proof,
+		BlockProducerIndex: b.authorityIndex,
+		SlotNumber:         slot.number,
+	}, nil
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
