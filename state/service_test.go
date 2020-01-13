@@ -13,46 +13,30 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
-package polkadb
+package state
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
-// Returns started dbService
-func newTestDBService(t *testing.T) (*DbService, func()) {
+// helper method to create and start test state service
+func newTestService(t *testing.T) (state *Service) {
 	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
 	if err != nil {
 		t.Fatal("failed to create temp dir: " + err.Error())
 	}
-	db, err := NewDbService(dir)
-	if err != nil {
-		t.Fatal("failed to create test dbService: " + err.Error())
-	}
-	db.Start()
-	return db, func() {
-		db.Stop()
-		if err := os.RemoveAll(dir); err != nil {
-			fmt.Println("removal of temp directory test_data failed")
-		}
-	}
+
+	state = NewService(dir)
+
+	return state
 }
 
-func TestDbService_Start(t *testing.T) {
-	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
-	if err != nil {
-		t.Fatal("failed to create temp dir: " + err.Error())
-	}
-	db, err := NewDbService(dir)
-	if err != nil {
-		t.Fatal("failed to create test dbService: " + err.Error())
-	}
+func TestService_Start(t *testing.T) {
+	state := newTestService(t)
 
-	err = db.Start()
+	err := state.Start()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -23,21 +23,22 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/ChainSafe/gossamer/state"
+
 	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
@@ -52,49 +53,51 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	// DB: Create database dir and initialize stateDB and blockDB
-	dbSrv, err := polkadb.NewDbService(fig.Global.DataDir)
-	if err != nil {
-		return nil, nil, fmt.Errorf("cannot create db service: %s", err)
-	}
-	srvcs = append(srvcs, dbSrv)
+	// Create service, initialize stateDB and blockDB
+	stateSrv := state.NewService(fig.Global.DataDir)
+	srvcs = append(srvcs, stateSrv)
 
-	err = dbSrv.Start()
+	err = stateSrv.Start()
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// TODO: load all static keys from keystore directory
+	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
+	// unlock keys, if specified
+	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+		err = unlockKeys(ctx, fig.Global.DataDir, ks)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+		}
+	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
-	db := trie.NewDatabase(dbSrv.StateDB.Db)
-	state := trie.NewEmptyTrie(db)
-	r, err := loadStateAndRuntime(state, ks)
+	r, err := loadStateAndRuntime(stateSrv.Storage, ks)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
 	}
 
 	// load extra genesis data from DB
-	gendata, err := state.Db().LoadGenesisData()
+	gendata, err := stateSrv.Storage.LoadGenesisData()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocolID", string(gendata.ProtocolId), "bootnodes", fig.P2p.BootstrapNodes)
 
-	// TODO: BABE
-	msgRec := make(chan p2p.Message)
-
 	// P2P
-	p2pSrvc, msgSend := createP2PService(fig, gendata)
+	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(fig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
-	// core.Service
-	coreSrvc, err := core.NewService(r, msgSend, msgRec)
-	if err != nil {
-		return nil, nil, err
+	// Core
+	coreConfig := &core.Config{
+		Keystore: ks,
+		Runtime:  r,
+		MsgRec:   p2pMsgSend, // message channel from p2p service to core service
+		MsgSend:  p2pMsgRec,  // message channel from core service to p2p service
 	}
+	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
@@ -107,23 +110,23 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
 }
 
-func loadStateAndRuntime(t *trie.Trie, ks *keystore.Keystore) (*runtime.Runtime, error) {
-	latestState, err := t.LoadHash()
+func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
+	latestState, err := ss.LoadHash()
 	if err != nil {
 		return nil, fmt.Errorf("cannot load latest state root hash: %s", err)
 	}
 
-	err = t.LoadFromDB(latestState)
+	err = ss.LoadFromDB(latestState)
 	if err != nil {
 		return nil, fmt.Errorf("cannot load latest state: %s", err)
 	}
 
-	code, err := t.Get([]byte(":code"))
+	code, err := ss.GetStorage([]byte(":code"))
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
 	}
 
-	return runtime.NewRuntime(code, t, ks)
+	return runtime.NewRuntime(code, ss, ks)
 }
 
 // getConfig checks for config.toml if --config flag is specified and sets CLI flags
@@ -190,10 +193,19 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 	}
 }
 
-// createP2PService starts a p2p network layer from provided config
-func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message) {
-	config := p2p.Config{
-		BootstrapNodes: append(fig.P2p.BootstrapNodes, common.BytesToStringArray(gendata.Bootnodes)...),
+// createP2PService creates a p2p service from the command configuration and genesis data
+func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
+	// Default bootnodes are from genesis
+	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
+
+	// If bootnodes flag has more than 1 bootnode, overwrite
+	if len(fig.P2p.BootstrapNodes) > 0 {
+		boostrapNodes = fig.P2p.BootstrapNodes
+	}
+
+	// p2p service configuation
+	p2pConfig := p2p.Config{
+		BootstrapNodes: boostrapNodes,
 		Port:           fig.P2p.Port,
 		RandSeed:       0,
 		NoBootstrap:    fig.P2p.NoBootstrap,
@@ -202,13 +214,28 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		ProtocolId:     string(gendata.ProtocolId),
 	}
 
-	msgSend := make(chan p2p.Message)
+	p2pMsgRec := make(chan p2p.Message)
+	p2pMsgSend := make(chan p2p.Message)
 
-	srvc, err := p2p.NewService(&config, msgSend, nil)
+	p2pService, err := p2p.NewService(&p2pConfig, p2pMsgSend, p2pMsgRec)
 	if err != nil {
-		log.Error("error starting p2p", "err", err.Error())
+		log.Error("Failed to create new p2p service", "err", err)
 	}
-	return srvc, msgSend
+
+	return p2pService, p2pMsgSend, p2pMsgRec
+}
+
+// createCoreService creates the core service from the provided core configuration
+func createCoreService(coreConfig *core.Config) *core.Service {
+
+	coreBlkRec := make(chan types.Block)
+
+	coreService, err := core.NewService(coreConfig, coreBlkRec)
+	if err != nil {
+		log.Error("Failed to create new core service", "err", err)
+	}
+
+	return coreService
 }
 
 func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {

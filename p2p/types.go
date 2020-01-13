@@ -17,10 +17,26 @@
 package p2p
 
 import (
-	leb128 "github.com/filecoin-project/go-leb128"
+	"github.com/ChainSafe/gossamer/common"
 )
 
-// Decodes a byte array to uint64 using LEB128 variable-length encoding
-func LEB128ToUint64(in []byte) uint64 {
-	return leb128.ToUInt64(in)
+// Health is network information about host needed for the rpc server
+type Health struct {
+	Peers           int
+	IsSyncing       bool
+	ShouldHavePeers bool
+}
+
+// NetworkState is network information about host needed for the rpc server and the runtime
+type NetworkState struct {
+	PeerId string
+}
+
+// PeerInfo is network information about peers needed for the rpc server
+type PeerInfo struct {
+	PeerId          string
+	Roles           byte
+	ProtocolVersion uint32
+	BestHash        common.Hash
+	BestNumber      uint64
 }

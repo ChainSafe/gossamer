@@ -17,8 +17,10 @@
 package types
 
 import (
+	"errors"
 	"math/big"
 
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 )
 
@@ -27,8 +29,8 @@ type Extrinsic []byte
 
 // Block defines a state block
 type Block struct {
-	Header      BlockHeaderWithHash
-	Body        BlockBody
+	Header      *BlockHeader
+	Body        *BlockBody
 	arrivalTime uint64 // arrival time of this block
 }
 
@@ -42,15 +44,54 @@ func (b *Block) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
 }
 
-// BlockHeaderWithHash is a state block header
-type BlockHeaderWithHash struct {
+// BlockHeader is a state block header
+type BlockHeader struct {
 	ParentHash     common.Hash `json:"parentHash"`
 	Number         *big.Int    `json:"number"`
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
 	Digest         []byte      `json:"digest"` // any additional block info eg. logs, seal
-	// TODO: Not part of spec, can potentially remove
-	Hash common.Hash `json:"hash"`
+	hash           common.Hash
+}
+
+// NewBlockHeader creates a new block header and sets its hash field
+func NewBlockHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []byte) (*BlockHeader, error) {
+	if number == nil {
+		// Hash() will panic if number is nil
+		return nil, errors.New("cannot have nil block number")
+	}
+
+	bh := &BlockHeader{
+		ParentHash:     parentHash,
+		Number:         number,
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         digest,
+	}
+
+	bh.Hash()
+	return bh, nil
+}
+
+// Hash returns the hash of the block header
+// If the internal hash field is nil, it hashes the block and sets the hash field.
+// If hashing the header errors, this will panic.
+func (bh *BlockHeader) Hash() common.Hash {
+	if bh.hash == [32]byte{} {
+		enc, err := scale.Encode(bh)
+		if err != nil {
+			panic(err)
+		}
+
+		hash, err := common.Blake2bHash(enc)
+		if err != nil {
+			panic(err)
+		}
+
+		bh.hash = hash
+	}
+
+	return bh.hash
 }
 
 // BlockBody is the extrinsics inside a state block
@@ -59,7 +100,7 @@ type BlockBody []byte
 /// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash   common.Hash
-	Header *BlockHeaderWithHash
+	Header *BlockHeader
 	Body   *BlockBody
 	// Receipt
 	// MessageQueue

@@ -1,6 +1,9 @@
 package p2p
 
 import (
+	"os"
+	"path"
+	"reflect"
 	"testing"
 )
 
@@ -17,9 +20,9 @@ var TestPeers = []string{
 	"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
 }
 
-func TestStringToPeerInfo(t *testing.T) {
+func TestStringToAddrInfo(t *testing.T) {
 	for _, str := range TestPeers {
-		pi, err := stringToPeerInfo(str)
+		pi, err := stringToAddrInfo(str)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -30,8 +33,8 @@ func TestStringToPeerInfo(t *testing.T) {
 	}
 }
 
-func TestStringsToPeerInfos(t *testing.T) {
-	pi, err := stringsToPeerInfos(TestPeers)
+func TestStringsToAddrInfos(t *testing.T) {
+	pi, err := stringsToAddrInfos(TestPeers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,5 +42,39 @@ func TestStringsToPeerInfos(t *testing.T) {
 		if pi.ID.Pretty() != TestPeers[k][len(TestPeers[k])-46:] {
 			t.Errorf("got %s expected %s", pi.ID.Pretty(), TestPeers[k])
 		}
+	}
+}
+
+func TestGenerateKey(t *testing.T) {
+	testDir := path.Join(os.TempDir(), "gossamer-test")
+
+	defer os.RemoveAll(testDir)
+
+	keyA, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyB, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if reflect.DeepEqual(keyA, keyB) {
+		t.Error("Generated keys should not match")
+	}
+
+	keyC, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyD, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(keyC, keyD) {
+		t.Error("Generated keys should match")
 	}
 }

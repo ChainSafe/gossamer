@@ -18,20 +18,19 @@ package babe
 
 import (
 	scale "github.com/ChainSafe/gossamer/codec"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	ret, err := b.rt.Exec(runtime.BabeApiConfiguration, 1, []byte{})
+	data, err := b.rt.Exec(runtime.BabeApiConfiguration, []byte{})
 	if err != nil {
 		return err
 	}
 
 	bc := new(BabeConfiguration)
-	bc.GenesisAuthorities = []AuthorityData{}
-	_, err = scale.Decode(ret, bc)
-
+	_, err = scale.Decode(data, bc)
 	if err != nil {
 		return err
 	}
@@ -40,4 +39,36 @@ func (b *Session) configurationFromRuntime() error {
 	b.config = bc
 
 	return err
+}
+
+// calls runtime API function Core_initialize_block
+func (b *Session) initializeBlock(blockHeader []byte) error {
+	_, err := b.rt.Exec(runtime.CoreInitializeBlock, blockHeader)
+	return err
+}
+
+// calls runtime API function BlockBuilder_inherent_extrinsics
+func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) {
+	return b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, data)
+}
+
+// calls runtime API function BlockBuilder_apply_extrinsic
+func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) {
+	return b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, data)
+}
+
+// calls runtime API function BlockBuilder_finalize_block
+func (b *Session) finalizeBlock() (*types.Block, error) {
+	data, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	bh := &types.Block{
+		Header: new(types.BlockHeader),
+		Body:   new(types.BlockBody),
+	}
+
+	_, err = scale.Decode(data, bh)
+	return bh, err
 }

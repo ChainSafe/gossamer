@@ -13,31 +13,20 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
-package p2p
+package runtime
 
 import (
-	"context"
-
-	log "github.com/ChainSafe/log15"
-	libp2phost "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	ps "github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
-// See https://godoc.org/github.com/libp2p/go-libp2p/p2p/discovery#Notifee
-type Notifee struct {
-	ctx  context.Context
-	host libp2phost.Host
-}
-
-// HandlePeerFound is invoked when a peer in discovered via mDNS
-func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
-	log.Info("mdns", "peer found", p)
-
-	n.host.Peerstore().AddAddrs(p.ID, p.Addrs, ps.PermanentAddrTTL)
-	err := n.host.Connect(n.ctx, p)
-	if err != nil {
-		log.Error("mdns", "connect error", err)
-	}
+type Storage interface {
+	SetStorage(key []byte, value []byte) error
+	GetStorage(key []byte) ([]byte, error)
+	StorageRoot() (common.Hash, error)
+	SetStorageChild(keyToChild []byte, child *trie.Trie) error
+	SetStorageIntoChild(keyToChild, key, value []byte) error
+	GetStorageFromChild(keyToChild, key []byte) ([]byte, error)
+	ClearStorage(key []byte) error
+	Entries() map[string][]byte
 }

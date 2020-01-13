@@ -20,46 +20,44 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"runtime"
 	"sync"
-	"unsafe"
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/keystore"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
-	trie "github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 type RuntimeCtx struct {
-	trie      *trie.Trie
+	storage   Storage
 	allocator *allocator.FreeingBumpHeapAllocator
 	keystore  *keystore.Keystore
 }
 
 type Runtime struct {
-	vm       wasm.Instance
-	trie     *trie.Trie
-	keystore *keystore.Keystore
-	mutex    sync.Mutex
+	vm        wasm.Instance
+	storage   Storage
+	keystore  *keystore.Keystore
+	mutex     sync.Mutex
+	allocator *allocator.FreeingBumpHeapAllocator
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, t *trie.Trie, ks *keystore.Keystore) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, s Storage, ks *keystore.Keystore) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, t, ks)
+	return NewRuntime(bytes, s, ks)
 }
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, t *trie.Trie, ks *keystore.Keystore) (*Runtime, error) {
-	if t == nil {
+func NewRuntime(code []byte, s Storage, ks *keystore.Keystore) (*Runtime, error) {
+	if s == nil {
 		return nil, errors.New("runtime does not have storage trie")
 	}
 
@@ -74,56 +72,35 @@ func NewRuntime(code []byte, t *trie.Trie, ks *keystore.Keystore) (*Runtime, err
 		return nil, err
 	}
 
-	memAllocator := allocator.NewAllocator(&instance.Memory, 0)
+	memAllocator := allocator.NewAllocator(instance.Memory, 0)
 
-	runtimeCtx := &RuntimeCtx{
-		trie:      t,
+	runtimeCtx := RuntimeCtx{
+		storage:   s,
 		allocator: memAllocator,
 		keystore:  ks,
 	}
-	// add runtimeCtx to registry
-	// lock access to registry to avoid possible concurrent access
-	mutex.Lock()
-	index := handlers
-	handlers++
-	if registry == nil {
-		registry = make(map[int]RuntimeCtx)
-	}
-	registry[index] = *runtimeCtx
-	mutex.Unlock()
 
-	log.Debug("[NewRuntime]", "index", index)
 	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
-	//nolint:gosec
-	data := unsafe.Pointer(&index)
-	instance.SetContextData(data)
+	instance.SetContextData(&runtimeCtx)
 
-	r := &Runtime{
-		vm:       instance,
-		trie:     t,
-		mutex:    sync.Mutex{},
-		keystore: ks,
+	r := Runtime{
+		vm:        instance,
+		storage:   s,
+		mutex:     sync.Mutex{},
+		keystore:  ks,
+		allocator: memAllocator,
 	}
 
-	// Clean up the registry if r is GC'd
-	runtime.SetFinalizer(r, func(_ *Runtime) {
-		// Launch a goroutine to avoid blocking the GC...
-		go func() {
-			mutex.Lock()
-			delete(registry, index)
-			mutex.Unlock()
-		}()
-	})
-
-	return r, nil
+	return &r, nil
 }
 
 func (r *Runtime) Stop() {
 	r.vm.Close()
 }
 
+// TODO, this should be removed once core is refactored
 func (r *Runtime) StorageRoot() (common.Hash, error) {
-	return r.trie.Hash()
+	return r.storage.StorageRoot()
 }
 
 func (r *Runtime) Store(data []byte, location int32) {
@@ -136,18 +113,31 @@ func (r *Runtime) Load(location, length int32) []byte {
 	return mem[location : location+length]
 }
 
-func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) {
+func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
+	ptr, err := r.malloc(uint32(len(data)))
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		err = r.free(ptr)
+		if err != nil {
+			log.Error("exec: could not free ptr", "error", err)
+		}
+	}()
+
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	// Store the data into memory
-	r.Store(data, loc)
-	leng := int32(len(data))
+	r.Store(data, int32(ptr))
+	datalen := int32(len(data))
 
 	runtimeFunc, ok := r.vm.Exports[function]
 	if !ok {
 		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
-	res, err := runtimeFunc(loc, leng)
+	res, err := runtimeFunc(int32(ptr), datalen)
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +145,18 @@ func (r *Runtime) Exec(function string, loc int32, data []byte) ([]byte, error) 
 
 	length := int32(resi >> 32)
 	offset := int32(resi)
-	fmt.Printf("offset %d length %d\n", offset, length)
-	mem := r.vm.Memory.Data()
-	rawdata := make([]byte, length)
-	copy(rawdata, mem[offset:offset+length])
 
-	r.mutex.Unlock()
+	rawdata := r.Load(offset, length)
 
 	return rawdata, err
+}
+
+func (r *Runtime) malloc(size uint32) (uint32, error) {
+	return r.allocator.Allocate(size)
+}
+
+func (r *Runtime) free(ptr uint32) error {
+	return r.allocator.Deallocate(ptr)
 }
 
 func decodeToInterface(in []byte, t interface{}) (interface{}, error) {

@@ -17,7 +17,7 @@
 package babe
 
 import (
-	"fmt"
+	"bytes"
 	"io"
 	"math"
 	"math/big"
@@ -29,9 +29,10 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/common"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	db "github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/trie"
@@ -39,8 +40,6 @@ import (
 
 const POLKADOT_RUNTIME_FP string = "../../substrate_test_runtime.compact.wasm"
 const POLKADOT_RUNTIME_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
-
-var zeroHash, _ = common.HexToHash("0x00")
 
 // getRuntimeBlob checks if the polkadot runtime wasm file exists and if not, it fetches it from github
 func getRuntimeBlob() (n int64, err error) {
@@ -85,9 +84,10 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 		t.Fatal("could not create filepath")
 	}
 
-	tt := &trie.Trie{}
+	tr := trie.NewEmptyTrie(nil)
+	ss := NewTestRuntimeStorage(tr)
 
-	r, err := runtime.NewRuntimeFromFile(fp, tt, nil)
+	r, err := runtime.NewRuntimeFromFile(fp, ss, nil)
 	if err != nil {
 		t.Fatal(err)
 	} else if r == nil {
@@ -164,26 +164,61 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	rt := newRuntime(t)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1, 1, 1}
-	conf := &BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        6,
-		C1:                 3,
-		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
-		Randomness:         0,
-		SecondarySlots:     false,
-	}
-	babesession.config = conf
 
-	_, err = babesession.runLottery(0)
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	babesession.epochThreshold = big.NewInt(0)
+
+	outAndProof, err := babesession.runLottery(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+}
+
+func TestRunLottery_False(t *testing.T) {
+	rt := newRuntime(t)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	babesession.epochThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+
+	outAndProof, err := babesession.runLottery(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof != nil {
+		t.Fatal("proof was not nil when under threshold")
 	}
 }
 
@@ -201,10 +236,21 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestConfigurationFromRuntime(t *testing.T) {
 	rt := newRuntime(t)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -216,7 +262,7 @@ func TestConfigurationFromRuntime(t *testing.T) {
 		EpochLength:        6,
 		C1:                 3,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
+		GenesisAuthorities: []AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
@@ -281,20 +327,21 @@ func TestSlotOffset(t *testing.T) {
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
-
 }
 
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
-
-	genesisBlock := types.Block{
-		Header: types.BlockHeaderWithHash{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-			Hash:       common.Hash{0x00},
-		},
-		Body: types.BlockBody{},
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	genesisBlock := types.Block{
+		Header: &types.BlockHeader{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+		},
+		Body: &types.BlockBody{},
+	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
 	d := &db.BlockDB{
@@ -302,27 +349,19 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
-	previousHash := genesisBlock.Header.Hash
+	previousHash := genesisBlock.Header.Hash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
 	for i := 1; i <= depth; i++ {
-		hex := fmt.Sprintf("%06x", i)
-
-		hash, err := common.HexToHash("0x" + hex)
-
-		if err != nil {
-			t.Error(err)
-		}
-
 		block := types.Block{
-			Header: types.BlockHeaderWithHash{
+			Header: &types.BlockHeader{
 				ParentHash: previousHash,
-				Hash:       hash,
 				Number:     big.NewInt(int64(i)),
 			},
-			Body: types.BlockBody{},
+			Body: &types.BlockBody{},
 		}
 
+		hash := block.Header.Hash()
 		block.SetBlockArrivalTime(previousAT + uint64(1000))
 
 		bt.AddBlock(block)
@@ -331,16 +370,26 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	return bt
-
 }
 
 func TestSlotTime(t *testing.T) {
 	rt := newRuntime(t)
 	bt := createFlatBlockTree(t, 100)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -356,23 +405,34 @@ func TestSlotTime(t *testing.T) {
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
-
 }
 
 func TestStart(t *testing.T) {
 	rt := newRuntime(t)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, nil)
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	cfg := &SessionConfig{
+		Runtime:   rt,
+		Keypair:   kp,
+		NewBlocks: make(chan types.Block),
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1}
+	babesession.authorityData = []AuthorityData{{nil, 1}}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityData{},
+		GenesisAuthorities: []AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}
@@ -382,20 +442,31 @@ func TestStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Duration(conf.SlotDuration) * time.Duration(conf.EpochLength) * time.Millisecond)
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
 	rt := newRuntime(t)
-
-	// Block Announce Channel called when Build-Block Creates a block
-	blockAnnounceChan := make(chan p2p.Message)
-	babesession, err := NewSession([32]byte{}, [64]byte{}, rt, blockAnnounceChan)
+	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
+	newBlocks := make(chan types.Block)
+
+	cfg := &SessionConfig{
+		Runtime:   rt,
+		Keypair:   kp,
+		NewBlocks: newBlocks,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	babesession.authorityIndex = 0
-	babesession.authorityWeights = []uint64{1, 1, 1}
+	babesession.authorityData = []AuthorityData{
+		{nil, 1}, {nil, 1}, {nil, 1},
+	}
 
 	err = babesession.Start()
 	if err != nil {
@@ -404,15 +475,181 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	time.Sleep(time.Duration(babesession.config.SlotDuration) * time.Duration(babesession.config.EpochLength) * time.Millisecond)
 
 	for i := 0; i < int(babesession.config.EpochLength); i++ {
-		blk := <-blockAnnounceChan
-
-		expectedBlockAnnounceMsg := &p2p.BlockAnnounceMessage{
-			Number: big.NewInt(int64(i)),
-		}
-
-		if !reflect.DeepEqual(blk, expectedBlockAnnounceMsg) {
-			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", blk, expectedBlockAnnounceMsg)
+		block := <-newBlocks
+		blockNumber := big.NewInt(int64(0))
+		if !reflect.DeepEqual(block.Header.Number, blockNumber) {
+			t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
 		}
 	}
+}
 
+func TestBuildBlock(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+	vtx := tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
+	babesession.PushToTxQueue(vtx)
+
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parentHeader := &types.BlockHeader{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	slot := Slot{
+		start:    uint64(time.Now().Unix()),
+		duration: uint64(10000000),
+		number:   1,
+	}
+
+	block, err := babesession.buildBlock(parentHeader, slot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// hash of parent header
+	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stateRoot, err := common.HexToHash("0x31ce5e74d7141520abc11b8a68f884cb1d01b5476a6376a659d93a199c4884e0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extrinsicsRoot, err := common.HexToHash("0xd88e048eda17aaefc427c832ea1208508d67a3e96527be0995db742b5cd91a61")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedBlockHeader := &types.BlockHeader{
+		ParentHash:     parentHash,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         []byte{},
+	}
+
+	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
+		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
+	}
+}
+
+func TestBuildBlock_failing(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	// add a valid transaction
+	txa := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+	vtx := tx.NewValidTransaction(types.Extrinsic(txa), &tx.Validity{})
+	babesession.PushToTxQueue(vtx)
+
+	// add a transaction that can't be included (transfer from account with no balance)
+	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
+	txb := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
+	vtx = tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
+	babesession.PushToTxQueue(vtx)
+
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parentHeader := &types.BlockHeader{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	slot := Slot{
+		start:    uint64(time.Now().Unix()),
+		duration: uint64(10000000),
+		number:   1,
+	}
+
+	_, err = babesession.buildBlock(parentHeader, slot)
+	if err == nil {
+		t.Fatal("should error when attempting to include invalid tx")
+	}
+
+	txc := babesession.txQueue.Peek()
+	if !bytes.Equal(*txc.Extrinsic, txa) {
+		t.Fatal("did not readd valid transaction to queue")
+	}
+}
+
+func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
+	return &TestRuntimeStorage{
+		trie: tr,
+	}
+}
+
+type TestRuntimeStorage struct {
+	trie *trie.Trie
+}
+
+func (trs TestRuntimeStorage) SetStorage(key []byte, value []byte) error {
+	return trs.trie.Put(key, value)
+}
+func (trs TestRuntimeStorage) GetStorage(key []byte) ([]byte, error) {
+	return trs.trie.Get(key)
+}
+func (trs TestRuntimeStorage) StorageRoot() (common.Hash, error) {
+	return trs.trie.Hash()
+}
+func (trs TestRuntimeStorage) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
+	return trs.trie.PutChild(keyToChild, child)
+}
+func (trs TestRuntimeStorage) SetStorageIntoChild(keyToChild, key, value []byte) error {
+	return trs.trie.PutIntoChild(keyToChild, key, value)
+}
+func (trs TestRuntimeStorage) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
+	return trs.trie.GetFromChild(keyToChild, key)
+}
+func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
+	return trs.trie.Delete(key)
+}
+func (trs TestRuntimeStorage) Entries() map[string][]byte {
+	return trs.trie.Entries()
 }

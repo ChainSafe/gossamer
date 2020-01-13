@@ -46,7 +46,7 @@ func TestDecodeMessageStatus(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
-	m, err := DecodeMessage(buf)
+	m, err := decodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestDecodeMessageBlockRequest(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
-	m, err := DecodeMessage(buf)
+	m, err := decodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestDecodeMessageBlockResponse(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
-	m, err := DecodeMessage(buf)
+	m, err := decodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +278,7 @@ func TestDecodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
-	m, err := DecodeMessage(buf)
+	m, err := decodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -351,7 +351,7 @@ func TestDecodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)
 
-	m, err := DecodeMessage(buf)
+	m, err := decodeMessage(buf)
 	if err != nil {
 		t.Fatal(err)
 	}

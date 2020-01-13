@@ -1,206 +1,264 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package p2p
 
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ethereum/go-ethereum/log"
+	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-datastore/sync"
+	"github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
-	net "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
-
 	ma "github.com/multiformats/go-multiaddr"
-
-	"github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
-const DefaultProtocolId = protocol.ID("/gossamer/dot/0")
-const mdnsPeriod = time.Minute
-
-// host is a wrapper around libp2p's host.host
+// host wraps libp2p host with host services and information
 type host struct {
-	ctx         context.Context
-	h           libp2phost.Host
-	hostAddr    ma.Multiaddr
-	dht         *kaddht.IpfsDHT
-	bootnodes   []peer.AddrInfo
-	noBootstrap bool
-	noMdns      bool
-	mdns        discovery.Service
-	protocolId  protocol.ID
+	ctx        context.Context
+	h          libp2phost.Host
+	dht        *kaddht.IpfsDHT
+	bootnodes  []peer.AddrInfo
+	protocolId protocol.ID
 }
 
+// newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	opts, err := cfg.buildOpts()
+
+	// use "p2p" for multiaddress format
+	ma.SwapToP2pMultiaddrs()
+
+	// create multiaddress (without p2p identity)
+	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
 		return nil, err
 	}
 
+	// set connection manager
+	cm := &ConnManager{}
+
+	// set libp2p host options
+	opts := []libp2p.Option{
+		libp2p.ListenAddrs(addr),
+		libp2p.DisableRelay(),
+		libp2p.Identity(cfg.privateKey),
+		libp2p.NATPortMap(),
+		libp2p.Ping(true),
+		libp2p.ConnectionManager(cm),
+	}
+
+	// create libp2p host instance
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	protocolId := protocol.ID(cfg.ProtocolId)
-	if protocolId == "" {
-		protocolId = DefaultProtocolId
-	}
+	// create DHT service
+	dht := kaddht.NewDHT(ctx, h, sync.MutexWrap(ds.NewMapDatastore()))
 
-	dstore := dsync.MutexWrap(ds.NewMapDatastore())
-	dht := kaddht.NewDHT(ctx, h, dstore)
-
-	// wrap the host with routed host so we can look up peers in DHT
+	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
-	// build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/p2p/%s", h.ID().Pretty()))
+	// format bootnodes
+	bns, err := cfg.bootnodes()
 	if err != nil {
 		return nil, err
 	}
 
-	bootstrapNodes, err := stringsToPeerInfos(cfg.BootstrapNodes)
-	if err != nil {
-		return nil, err
-	}
+	// format protocol id
+	pid := cfg.protocolId()
 
 	return &host{
-		ctx:         ctx,
-		h:           h,
-		hostAddr:    hostAddr,
-		dht:         dht,
-		bootnodes:   bootstrapNodes,
-		protocolId:  protocolId,
-		noBootstrap: cfg.NoBootstrap,
-		noMdns:      cfg.NoMdns,
+		ctx:        ctx,
+		h:          h,
+		dht:        dht,
+		bootnodes:  bns,
+		protocolId: pid,
 	}, nil
 
 }
 
-// bootstrap connects to all provided bootnodes unless noBootstrap is true
-func (h *host) bootstrap() {
-	if len(h.bootnodes) == 0 && !h.noBootstrap {
-		log.Debug("no peers to bootstrap to")
+// close closes host services and the libp2p host (host services first)
+func (h *host) close() error {
+
+	// close DHT service
+	err := h.dht.Close()
+	if err != nil {
+		log.Error("Failed to close DHT service", "err", err)
+		return err
 	}
 
-	for _, peerInfo := range h.bootnodes {
-		log.Debug("Attempting to dial peer", "id", peerInfo.ID, "addrs", peerInfo.Addrs)
-		err := h.h.Connect(context.Background(), peerInfo)
-		if err != nil {
-			log.Debug("failed to dial bootstrap peer", "err", err)
-		}
+	// close libp2p host
+	err = h.h.Close()
+	if err != nil {
+		log.Error("Failed to close libp2p host", "err", err)
+		return err
 	}
+
+	return nil
 }
 
-func (h *host) startMdns() {
-	if !h.noMdns {
-		mdns, err := discovery.NewMdnsService(h.ctx, h.h, mdnsPeriod, string(h.protocolId))
-		if err != nil {
-			log.Error("error starting MDNS", "err", err)
-		}
-
-		mdns.RegisterNotifee(Notifee{ctx: h.ctx, host: h.h})
-
-		h.mdns = mdns
-	}
+// registerConnHandler registers the connection handler (see handleConn)
+func (h *host) registerConnHandler(handler func(network.Conn)) {
+	h.h.Network().SetConnHandler(handler)
 }
 
-func (h *host) logAddrs() {
-	addrs := h.h.Addrs()
-	log.Info("You can be reached on the following addresses:")
-	for _, addr := range addrs {
-		fmt.Println("\t" + addr.Encapsulate(h.hostAddr).String())
-	}
-}
-
-func (h *host) registerStreamHandler(handler func(net.Stream)) {
+// registerStreamHandler registers the stream handler (see handleStream)
+func (h *host) registerStreamHandler(handler func(network.Stream)) {
 	h.h.SetStreamHandler(h.protocolId, handler)
 }
 
-func (h *host) connect(addrInfo peer.AddrInfo) (err error) {
-	err = h.h.Connect(h.ctx, addrInfo)
+// printHostAddresses prints host multiaddresses to console
+func (h *host) printHostAddresses() {
+	fmt.Println("Listening on the following addresses...")
+	for _, addr := range h.multiaddrs() {
+		fmt.Println(addr)
+	}
+}
+
+// connect connects the host to a specific peer address
+func (h *host) connect(p peer.AddrInfo) (err error) {
+	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+	err = h.h.Connect(h.ctx, p)
 	return err
 }
 
-// getExistingStream gets an existing stream for a peer that uses the host's protocolId
-func (h *host) getExistingStream(p peer.ID) net.Stream {
+// bootstrap connects the host to the configured bootnodes
+func (h *host) bootstrap() {
+	for _, addrInfo := range h.bootnodes {
+		err := h.connect(addrInfo)
+		if err != nil {
+			log.Error("Failed to bootstrap peer", "err", err)
+		}
+	}
+}
+
+// ping pings a peer using DHT
+func (h *host) ping(peer peer.ID) error {
+	return h.dht.Ping(h.ctx, peer)
+}
+
+// send writes the given message to the outbound message stream for the given
+// peer (gets the already opened outbound message stream or opens a new one).
+func (h *host) send(p peer.ID, msg Message) (err error) {
+
+	// get outbound stream for given peer
+	s := h.getStream(p)
+
+	// check if stream needs to be opened
+	if s == nil {
+
+		// open outbound stream with host protocol id
+		s, err = h.h.NewStream(h.ctx, p, h.protocolId)
+		if err != nil {
+			return err
+		}
+
+		log.Trace(
+			"Opened stream",
+			"host", h.id(),
+			"peer", p,
+			"protocol", s.Protocol(),
+		)
+	}
+
+	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}
+
+	_, err = s.Write(encMsg)
+	if err != nil {
+		return err
+	}
+
+	log.Trace(
+		"Sent message",
+		"host", h.id(),
+		"peer", p,
+		"type", msg.GetType(),
+	)
+
+	return nil
+}
+
+// broadcast sends a message to each connected peer
+func (h *host) broadcast(msg Message) {
+	for _, p := range h.peers() {
+		err := h.send(p, msg)
+		if err != nil {
+			log.Error("Failed to send message during broadcast", "peer", p, "err", err)
+		}
+	}
+}
+
+// getStream returns the outbound message stream for the given peer or returns
+// nil if no outbound message stream exists. For each peer, each host opens an
+// outbound message stream and writes to the same stream until closed or reset.
+func (h *host) getStream(p peer.ID) (stream network.Stream) {
 	conns := h.h.Network().ConnsToPeer(p)
+
+	// loop through connections (only one for now)
 	for _, conn := range conns {
 		streams := conn.GetStreams()
+
+		// loop through connection streams (unassigned streams and ipfs dht streams included)
 		for _, stream := range streams {
-			if stream.Protocol() == h.protocolId {
+
+			// return stream with matching host protocol id and stream direction outbound
+			if stream.Protocol() == h.protocolId && stream.Stat().Direction == network.DirOutbound {
 				return stream
 			}
 		}
 	}
-
 	return nil
 }
 
-// send propagates a message to a specific peer
-func (h *host) send(peer core.PeerAddrInfo, msg []byte) (err error) {
-	log.Debug("sending message", "to", peer.ID)
+// closePeer closes the peer connection
+func (h *host) closePeer(peer peer.ID) error {
+	err := h.h.Network().ClosePeer(peer)
+	return err
+}
 
-	stream := h.getExistingStream(peer.ID)
-	if stream == nil {
-		stream, err = h.h.NewStream(h.ctx, peer.ID, h.protocolId)
-		log.Debug("opening new stream ", "to", peer.ID)
-		if err != nil {
-			log.Error("failed to open stream", "error", err)
-			return err
+// id returns the host id
+func (h *host) id() peer.ID {
+	return h.h.ID()
+}
+
+// Peers returns connected peers
+func (h *host) peers() []peer.ID {
+	return h.h.Network().Peers()
+}
+
+// peerConnected checks if peer is connected
+func (h *host) peerConnected(peer peer.ID) bool {
+	for _, p := range h.peers() {
+		if p == peer {
+			return true
 		}
-	} else {
-		log.Debug("using existing stream", "to", peer.ID)
 	}
-
-	// Write length of message, and then message
-	_, err = stream.Write(common.Uint16ToBytes(uint16(len(msg)))[0:1])
-	if err != nil {
-		log.Error("fail to send message", "error", err)
-		return err
-	}
-	_, err = stream.Write(msg)
-	if err != nil {
-		log.Error("fail to send message", "error", err)
-		return err
-	}
-
-	return nil
-}
-
-func (h *host) broadcast(msg []byte) {
-	for _, peers := range h.h.Network().Peers() {
-		addrInfo := h.dht.FindLocal(peers)
-		_ = h.send(addrInfo, msg)
-	}
-}
-
-func (h *host) ping(peer core.PeerID) error {
-	ps, err := h.dht.FindPeer(h.ctx, peer)
-	if err != nil {
-		return fmt.Errorf("could not find peer: %s", err)
-	}
-
-	err = h.h.Connect(h.ctx, ps)
-	if err != nil {
-		return err
-	}
-
-	return h.dht.Ping(h.ctx, peer)
-}
-
-// id returns the ID of the node
-func (h *host) id() string {
-	return h.h.ID().String()
+	return false
 }
 
 // peerCount returns the number of connected peers
@@ -209,35 +267,27 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
-// close shuts down the host and its components
-func (h *host) close() error {
-	//Stop the host & IpfsDHT
-	err := h.h.Close()
-	if err != nil {
-		return err
+// addrInfos returns the libp2p AddrInfos of the host
+func (h *host) addrInfos() (addrInfos []*peer.AddrInfo, err error) {
+	for _, multiaddr := range h.multiaddrs() {
+		addrInfo, err := peer.AddrInfoFromP2pAddr(multiaddr)
+		if err != nil {
+			return nil, err
+		}
+		addrInfos = append(addrInfos, addrInfo)
 	}
-
-	err = h.dht.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return addrInfos, nil
 }
 
-// fullAddrs returns all the hosts addresses with their ID append as multiaddrs
-func (h *host) fullAddrs() (maddrs []ma.Multiaddr) {
+// multiaddrs returns the multiaddresses of the host
+func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 	addrs := h.h.Addrs()
-
-	// use "p2p" instead of "ipfs" when creating a multiaddress
-	ma.SwapToP2pMultiaddrs()
-
-	for _, a := range addrs {
-		maddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", a, h.h.ID().Pretty()))
+	for _, addr := range addrs {
+		multiaddr, err := ma.NewMultiaddr(fmt.Sprintf("%s/p2p/%s", addr, h.id()))
 		if err != nil {
 			continue
 		}
-		maddrs = append(maddrs, maddr)
+		multiaddrs = append(multiaddrs, multiaddr)
 	}
-	return maddrs
+	return multiaddrs
 }

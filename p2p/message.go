@@ -24,7 +24,6 @@ import (
 	"math/big"
 
 	scale "github.com/ChainSafe/gossamer/codec"
-
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -512,43 +511,4 @@ func (cm *ConsensusMessage) Id() string {
 		return ""
 	}
 	return hash.String()
-}
-
-func readByte(r io.Reader) (byte, error) {
-	buf := make([]byte, 1)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return buf[0], nil
-}
-
-func readUint32(r io.Reader) (uint32, error) {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint32(buf), nil
-}
-
-func readUint64(r io.Reader) (uint64, error) {
-	buf := make([]byte, 8)
-	_, err := r.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-	return binary.LittleEndian.Uint64(buf), nil
-}
-
-func readHash(r io.Reader) (common.Hash, error) {
-	buf := make([]byte, 32)
-	_, err := r.Read(buf)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	h := [32]byte{}
-	copy(h[:], buf)
-	return common.Hash(h), nil
-
 }

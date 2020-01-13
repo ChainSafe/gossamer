@@ -43,7 +43,7 @@ type BlockTree struct {
 // Currently passes in arrival time as a parameter instead of setting it as time of instanciation
 func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTree {
 	head := &node{
-		hash:        genesis.Header.Hash,
+		hash:        genesis.Header.Hash(),
 		number:      genesis.Header.Number,
 		parent:      nil,
 		children:    []*node{},
@@ -67,7 +67,7 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	// TODO: Write blockData to db
 	// TODO: Create getter functions to check if blockNum is greater than best block stored
 
-	n := bt.GetNode(block.Header.Hash)
+	n := bt.GetNode(block.Header.Hash())
 	if n != nil {
 		log.Debug("Attempted to add block to tree that already exists", "Hash", n.hash)
 		return
@@ -77,7 +77,7 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:        block.Header.Hash,
+		hash:        block.Header.Hash(),
 		number:      block.Header.Number,
 		parent:      parent,
 		children:    []*node{},

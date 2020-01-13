@@ -1,8 +1,6 @@
 package crypto
 
 import (
-	"errors"
-
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/btcsuite/btcutil/base58"
 	"golang.org/x/crypto/blake2b"
@@ -12,6 +10,7 @@ type KeyType = string
 
 const Ed25519Type KeyType = "ed25519"
 const Sr25519Type KeyType = "sr25519"
+const Secp256k1Type KeyType = "secp256k1"
 
 type Keypair interface {
 	Sign(msg []byte) ([]byte, error)
@@ -20,7 +19,7 @@ type Keypair interface {
 }
 
 type PublicKey interface {
-	Verify(msg, sig []byte) bool
+	Verify(msg, sig []byte) (bool, error)
 	Encode() []byte
 	Decode([]byte) error
 	Address() common.Address
@@ -32,18 +31,6 @@ type PrivateKey interface {
 	Public() (PublicKey, error)
 	Encode() []byte
 	Decode([]byte) error
-}
-
-func DecodePrivateKey(in []byte, keytype KeyType) (priv PrivateKey, err error) {
-	if keytype == Ed25519Type {
-		priv, err = NewEd25519PrivateKey(in)
-	} else if keytype == Sr25519Type {
-		priv, err = NewSr25519PrivateKey(in)
-	} else {
-		return nil, errors.New("cannot decode key: invalid key type")
-	}
-
-	return priv, err
 }
 
 var ss58Prefix = []byte("SS58PRE")
