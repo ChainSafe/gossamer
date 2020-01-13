@@ -57,22 +57,12 @@ func TestVerifySlotWinner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// from another BABE session, verify that the output+proof are valid
-	verifysession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	verifysession.authorityData = make([]AuthorityData, 1)
-	verifysession.authorityData[0] = AuthorityData{
+	babesession.authorityData = make([]AuthorityData, 1)
+	babesession.authorityData[0] = AuthorityData{
 		id: kp.Public().(*sr25519.PublicKey),
 	}
 
-	ok, err := verifysession.verifySlotWinner(slot.number, babeHeader)
+	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
 	if err != nil {
 		t.Fatal(err)
 	}

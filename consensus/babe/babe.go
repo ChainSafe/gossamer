@@ -122,6 +122,8 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
 
+	fmt.Printf("vrfInput %x\n", vrfInput)
+
 	output, proof, err := b.vrfSign(vrfInput)
 	if err != nil {
 		return nil, err
@@ -308,7 +310,7 @@ func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
 	output := [32]byte{}
 	copy(output[:], outAndProof[:32])
 	proof := [64]byte{}
-	copy(proof[:], outAndProof[:64])
+	copy(proof[:], outAndProof[32:])
 	return &BabeHeader{
 		VrfOutput:          output,
 		VrfProof:           proof,
