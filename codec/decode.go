@@ -93,6 +93,8 @@ func (sd *Decoder) DecodePtr(t interface{}) (err error) {
 	switch t.(type) {
 	case *big.Int:
 		err = sd.DecodePtrBigInt(t.(* big.Int))
+	case *int8, *uint8, *int16, *uint16, *int32, *uint32, *int64, *uint64, *int,  *uint:
+		err = sd.DecodePtrFixedWidthInt(t)
 	case []byte, string:
 		err = sd.DecodePtrByteArray(t)
 	case []int:
@@ -203,6 +205,73 @@ func (sd *Decoder) DecodeFixedWidthInt(t interface{}) (o interface{}, err error)
 	}
 
 	return o, err
+}
+
+// DecodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
+//  and writes results by reference t
+func (sd *Decoder) DecodePtrFixedWidthInt(t interface{}) (err error) {
+	switch t.(type) {
+	case *int8:
+		var b byte
+		b, err = sd.ReadByte()
+		*t.(*int8) = int8(b)
+	case *uint8:
+		var b byte
+		b, err = sd.ReadByte()
+		*t.(*uint8) = b
+	case *int16:
+		buf := make([]byte, 2)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*int16) = int16(binary.LittleEndian.Uint16(buf))
+		}
+	case *uint16:
+		buf := make([]byte, 2)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*uint16) = binary.LittleEndian.Uint16(buf)
+		}
+	case *int32:
+		buf := make([]byte, 4)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*int32) = int32(binary.LittleEndian.Uint32(buf))
+		}
+	case *uint32:
+		buf := make([]byte, 4)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*uint32) = binary.LittleEndian.Uint32(buf)
+		}
+	case *int64:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*int64) = int64(binary.LittleEndian.Uint64(buf))
+		}
+	case *uint64:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*uint64) = binary.LittleEndian.Uint64(buf)
+		}
+	case *int:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*int) = int(binary.LittleEndian.Uint64(buf))
+		}
+	case *uint:
+		buf := make([]byte, 8)
+		_, err = sd.Reader.Read(buf)
+		if err == nil {
+			*t.(*uint) = uint(binary.LittleEndian.Uint64(buf))
+		}
+	default:
+		return fmt.Errorf("unexpected type: %s", reflect.TypeOf(t))
+	}
+
+	return err
 }
 
 // DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int

@@ -58,6 +58,28 @@ type decodeArrayTest struct {
 	output interface{}
 }
 
+var decodeFixedWidthIntTestsInt = []struct {
+	val    []byte
+	output int
+}{
+	{val: []byte{0x00}, output: int(0)},
+	{val: []byte{0x01}, output: int(1)},
+	{val: []byte{0x2a}, output: int(42)},
+	{val: []byte{0x40}, output: int(64)},
+	{val: []byte{0x45}, output: int(69)},
+}
+
+var decodeFixedWidthIntTestsUint = []struct {
+	val    []byte
+	output uint
+}{
+	{val: []byte{0x00}, output: uint(0)},
+	{val: []byte{0x01}, output: uint(1)},
+	{val: []byte{0x2a}, output: uint(42)},
+	{val: []byte{0x40}, output: uint(64)},
+	{val: []byte{0x45}, output: uint(69)},
+}
+
 var decodeFixedWidthIntTestsInt8 = []struct {
 	val    []byte
 	output int8
@@ -406,6 +428,109 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 			t.Error(err)
 		} else if output.(uint64) != test.output {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
+		}
+	}
+}
+
+func TestDecodePtrFixedWidthInts(t *testing.T) {
+	for _, test := range decodeFixedWidthIntTestsInt8 {
+		var res int8
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint8 {
+		var res uint8
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsInt16 {
+		var res int16
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint16 {
+		var res uint16
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsInt32 {
+		var res int32
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint32 {
+		var res uint32
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsInt64 {
+		var res int64
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint64 {
+		var res uint64
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsInt {
+		var res int
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint {
+		var res uint
+		err := DecodePtr(test.val, &res)
+		if err != nil {
+			t.Error(err)
+		} else if res != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, res, test.output)
 		}
 	}
 }
