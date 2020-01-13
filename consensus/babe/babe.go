@@ -311,7 +311,7 @@ func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
 	output := [32]byte{}
 	copy(output[:], outAndProof[:32])
 	proof := [64]byte{}
-	copy(proof[:], outAndProof[:64])
+	copy(proof[:], outAndProof[32:])
 	return &BabeHeader{
 		VrfOutput:          output,
 		VrfProof:           proof,
