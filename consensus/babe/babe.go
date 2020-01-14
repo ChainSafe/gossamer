@@ -105,11 +105,11 @@ func (b *Session) invokeBlockAuthoring() {
 	var currentSlot uint64 = 0
 
 	for ; currentSlot < b.config.EpochLength; currentSlot++ {
-		// TODO: call buildBlock
-		b.newBlocks <- types.Block{
-			Header: &types.BlockHeader{
-				Number: big.NewInt(0),
-			},
+		block, err := b.buildBlock(parentHeader, currentSlot)
+		if err != nil {
+			log.Error("BABE build block", "error", err)
+		} else {
+			b.newBlocks <- block
 		}
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
