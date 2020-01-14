@@ -473,7 +473,7 @@ func (cm *ConsensusMessage) String() string {
 
 // Encode encodes a block response message using SCALE and appends the type byte to the start
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
-	encMsg := []byte{BlockResponseMsgType}
+	encMsg := []byte{ConsensusMsgType}
 
 	encId := make([]byte, 4)
 	binary.LittleEndian.PutUint32(encId, cm.ID)

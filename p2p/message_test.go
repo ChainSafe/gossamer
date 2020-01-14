@@ -642,4 +642,14 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	if !reflect.DeepEqual(m, expected) {
 		t.Fatalf("Fail: got %v expected %v", m, expected)
 	}
+
+	encodedMessage, err := expected.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(encodedMessage[1:], encMsg) {
+		t.Fatalf("Fail: got %v expected %v", encodedMessage[1:], encMsg)
+	}
+
 }
