@@ -41,8 +41,15 @@ func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) err
 		return err
 	}
 
+	fmt.Println("StateRoot: ", genesisHeader.StateRoot)
+
 	hash := genesisHeader.Hash()
 	err = storageDb.Db.Db.Put(common.LatestHeaderHashKey, hash[:])
+	if err != nil {
+		return err
+	}
+
+	err = storageDb.StoreInDB()
 	if err != nil {
 		return err
 	}
@@ -86,6 +93,8 @@ func (s *Service) Start() error {
 	if err != nil {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
+
+	fmt.Println("StateRoot: ", blockDb.latestBlock.StateRoot)
 
 	err = storageDb.LoadFromDB(blockDb.latestBlock.StateRoot)
 	if err != nil {

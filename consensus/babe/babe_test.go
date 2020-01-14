@@ -35,6 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	db "github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
@@ -414,10 +415,27 @@ func TestStart(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	dataDir := "./test_data"
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.BlockHeader{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll("../test_data"); err != nil {
+			t.Log("removal of temp directory test_data failed", "error", err)
+		}
+	}()
+
 	cfg := &SessionConfig{
-		Runtime:   rt,
-		Keypair:   kp,
-		NewBlocks: make(chan types.Block),
+		Runtime:    rt,
+		Keypair:    kp,
+		NewBlocks:  make(chan types.Block),
+		BlockState: dbSrv.Block,
 	}
 
 	babesession, err := NewSession(cfg)
@@ -444,59 +462,59 @@ func TestStart(t *testing.T) {
 	}
 }
 
-func TestBabeAnnounceMessage(t *testing.T) {
-	t.Skip()
-	// TODO: building a block depends on
-	rt := newRuntime(t)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-	newBlocks := make(chan types.Block)
+// func TestBabeAnnounceMessage(t *testing.T) {
+// 	t.Skip()
+// 	// TODO: building a block depends on
+// 	rt := newRuntime(t)
+// 	kp, err := sr25519.GenerateKeypair()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	newBlocks := make(chan types.Block)
 
-	cfg := &SessionConfig{
-		//Blocks:
-		Runtime:   rt,
-		Keypair:   kp,
-		NewBlocks: newBlocks,
-	}
+// 	cfg := &SessionConfig{
+// 		//Blocks:
+// 		Runtime:   rt,
+// 		Keypair:   kp,
+// 		NewBlocks: newBlocks,
+// 	}
 
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	babesession, err := NewSession(cfg)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	babesession.config = &BabeConfiguration{
-		SlotDuration:       1,
-		EpochLength:        6,
-		C1:                 1,
-		C2:                 10,
-		GenesisAuthorities: []AuthorityDataRaw{},
-		Randomness:         0,
-		SecondarySlots:     false,
-	}
+// 	babesession.config = &BabeConfiguration{
+// 		SlotDuration:       1,
+// 		EpochLength:        6,
+// 		C1:                 1,
+// 		C2:                 10,
+// 		GenesisAuthorities: []AuthorityDataRaw{},
+// 		Randomness:         0,
+// 		SecondarySlots:     false,
+// 	}
 
-	babesession.authorityIndex = 0
-	babesession.authorityData = []AuthorityData{
-		{nil, 1}, {nil, 1}, {nil, 1},
-	}
+// 	babesession.authorityIndex = 0
+// 	babesession.authorityData = []AuthorityData{
+// 		{nil, 1}, {nil, 1}, {nil, 1},
+// 	}
 
-	err = babesession.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-	time.Sleep(time.Duration(babesession.config.SlotDuration))
+// 	err = babesession.Start()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	time.Sleep(time.Duration(babesession.config.SlotDuration))
 
-	//for i := 0; i < int(babesession.config.EpochLength); i++ {
-	block := <-newBlocks
-	blockNumber := big.NewInt(int64(0))
-	if !reflect.DeepEqual(block.Header.Number, blockNumber) {
-		t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
-	}
-	//}
-}
+// 	//for i := 0; i < int(babesession.config.EpochLength); i++ {
+// 	block := <-newBlocks
+// 	blockNumber := big.NewInt(int64(0))
+// 	if !reflect.DeepEqual(block.Header.Number, blockNumber) {
+// 		t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
+// 	}
+// 	//}
+// }
 
-func TestBuildBlock(t *testing.T) {
+func TestBuildBlock_ok(t *testing.T) {
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {

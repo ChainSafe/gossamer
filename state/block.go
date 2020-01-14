@@ -149,10 +149,10 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockHeader
 	return err
 }
 
-func (bs *blockState) AddBlock(block *types.BlockHeader) error {
+func (bs *blockState) AddBlock(block types.BlockHeader) error {
 	// Set the latest block
 	if block.Number.Cmp(bs.latestBlock.Number) == 1 {
-		bs.latestBlock = block
+		bs.latestBlock = &block
 	}
 
 	//TODO: Implement Add Block

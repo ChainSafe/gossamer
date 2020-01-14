@@ -39,7 +39,7 @@ type BlockApi interface {
 	ROBlockApi
 	SetHeader(header types.BlockHeader) error
 	SetBlockData(hash common.Hash, header types.BlockHeader) error
-	AddBlock(*types.BlockHeader) error
+	AddBlock(types.BlockHeader) error
 }
 
 type MessageApi interface {

@@ -59,7 +59,7 @@ type SessionConfig struct {
 // NewSession returns a new Babe session using the provided VRF keys and runtime
 func NewSession(cfg *SessionConfig) (*Session, error) {
 	if cfg.Keypair == nil {
-		return nil, errors.New("cannot start BABE session; no keypair provided")
+		return nil, errors.New("cannot create BABE session; no keypair provided")
 	}
 
 	babeSession := &Session{
@@ -80,6 +80,10 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 }
 
 func (b *Session) Start() error {
+	if b.blockState == nil {
+		return errors.New("cannot start BABE session; no blockState provided")
+	}
+
 	var i uint64 = 0
 	var err error
 	for ; i < b.config.EpochLength; i++ {
@@ -89,7 +93,6 @@ func (b *Session) Start() error {
 		}
 	}
 
-	//TODO: finish implementation of build block
 	go b.invokeBlockAuthoring()
 
 	return nil
@@ -108,11 +111,24 @@ func (b *Session) invokeBlockAuthoring() {
 	// TODO: we might not actually be starting at slot 0, need to run median algorithm here
 	var slotNum uint64 = 0
 
+	if b.config == nil {
+		log.Error("BABE block authoring", "error", "config is nil")
+		return
+	}
+
+	if b.blockState == nil {
+		log.Error("BABE block authoring", "error", "blockState is nil")
+		return
+	}
+
 	for ; slotNum < b.config.EpochLength; slotNum++ {
 		parentHeader := b.blockState.GetLatestBlockHeader()
 		if parentHeader == nil {
 			log.Error("BABE build block", "error", "parent header is nil")
 		} else {
+			// parentHeader := &types.BlockHeader{
+			// 	Number: big.NewInt(0),
+			// }
 
 			currentSlot := Slot{
 				start:    uint64(time.Now().Unix()),
@@ -126,7 +142,6 @@ func (b *Session) invokeBlockAuthoring() {
 			} else {
 				b.newBlocks <- *block
 			}
-
 		}
 
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))

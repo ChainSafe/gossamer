@@ -52,7 +52,8 @@ func createTestDot(t *testing.T) *Dot {
 	dataDir := "../test_data"
 	dbSrv := state.NewService(dataDir)
 	err = dbSrv.Initialize(&types.BlockHeader{
-		Number: big.NewInt(0),
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
 	}, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
