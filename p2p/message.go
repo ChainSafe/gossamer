@@ -455,8 +455,11 @@ func (tm *TransactionMessage) Id() string {
 	return hash.String()
 }
 
+// ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
-	ID   uint32
+	// Identifies consensus engine.
+	ID uint32
+	// Message payload.
 	Data []byte
 }
 
@@ -472,7 +475,7 @@ func (cm *ConsensusMessage) String() string {
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
 	encMsg := []byte{BlockResponseMsgType}
 
-	encId := make([]byte, 8)
+	encId := make([]byte, 4)
 	binary.LittleEndian.PutUint32(encId, cm.ID)
 	encMsg = append(encMsg, encId...)
 
