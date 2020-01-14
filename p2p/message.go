@@ -18,7 +18,6 @@ package p2p
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -53,40 +52,6 @@ type Message interface {
 	String() string
 	GetType() int
 	Id() string
-}
-
-// DecodeMessage accepts a raw message including the type indicator byte and decodes it to its specific message type
-func DecodeMessage(r io.Reader) (m Message, err error) {
-	msgType := make([]byte, 1)
-	_, err = r.Read(msgType)
-	if err != nil {
-		return nil, err
-	}
-
-	switch msgType[0] {
-	case StatusMsgType:
-		m = new(StatusMessage)
-		err = m.Decode(r)
-	case BlockRequestMsgType:
-		m = new(BlockRequestMessage)
-		err = m.Decode(r)
-	case BlockResponseMsgType:
-		m = new(BlockResponseMessage)
-		err = m.Decode(r)
-	case BlockAnnounceMsgType:
-		m = new(BlockAnnounceMessage)
-		err = m.Decode(r)
-	case TransactionMsgType:
-		m = new(TransactionMessage)
-		err = m.Decode(r)
-	case ConsensusMsgType:
-		m = new(ConsensusMessage)
-		err = m.Decode(r)
-	default:
-		return nil, errors.New("unsupported message type")
-	}
-
-	return m, err
 }
 
 type StatusMessage struct {
