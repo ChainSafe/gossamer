@@ -45,7 +45,7 @@ func Decode(in []byte, t interface{}) (interface{}, error) {
 	return output, err
 }
 
-func DecodePtr(in []byte, t interface{}) ( error) {
+func DecodePtr(in []byte, t interface{}) error {
 	buf := &bytes.Buffer{}
 	sd := Decoder{Reader: buf}
 	_, err := buf.Write(in)
@@ -92,18 +92,19 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 func (sd *Decoder) DecodePtr(t interface{}) (err error) {
 	switch t.(type) {
 	case *big.Int:
-		err = sd.DecodePtrBigInt(t.(* big.Int))
-	case *int8, *uint8, *int16, *uint16, *int32, *uint32, *int64, *uint64, *int,  *uint:
+		err = sd.DecodePtrBigInt(t.(*big.Int))
+	case *int8, *uint8, *int16, *uint16, *int32, *uint32, *int64, *uint64, *int, *uint:
 		err = sd.DecodePtrFixedWidthInt(t)
 	case []byte, string:
 		err = sd.DecodePtrByteArray(t)
+	case *bool:
+		err = sd.DecodePtrBool(t)
 	case []int:
 		err = sd.DecodePtrIntArray(t)
 	case []bool:
 		err = sd.DecodePtrBoolArray(t)
 	case []*big.Int:
 		err = sd.DecodePtrBigIntArray(t)
-  // TODO common.Hash, [32]byte
 	case interface{}:
 		_, err = sd.DecodeInterface(t)
 	default:
@@ -358,10 +359,10 @@ func (sd *Decoder) DecodeBigInt() (output *big.Int, err error) {
 // DecodePtrBigInt decodes a SCALE encoded byte array into a *big.Int
 //  Changes the value of output to decoded value
 // Works for all integers, including ints > 2**64
-func (sd *Decoder) DecodePtrBigInt(output *big.Int) ( err error) {
+func (sd *Decoder) DecodePtrBigInt(output *big.Int) (err error) {
 	b, err := sd.ReadByte()
 	if err != nil {
-		return  err
+		return err
 	}
 
 	// check mode of encoding, stored at 2 least significant bits
@@ -419,7 +420,6 @@ func (sd *Decoder) DecodePtrByteArray(output interface{}) error {
 		return err
 	}
 
-	//b := make([]byte, length)
 	_, err = sd.Reader.Read(output.([]byte))
 	if err != nil {
 		return errors.New("could not decode invalid byte array: reached early EOF")
@@ -443,6 +443,27 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 	}
 
 	return false, errors.New("cannot decode invalid boolean")
+}
+
+// DecodePtrBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
+// of the bool then writes the result to output via reference. if invalid, false and an error
+func (sd *Decoder) DecodePtrBool(output interface{}) error {
+	b, err := sd.ReadByte()
+	if err != nil {
+		return err
+	}
+
+	if b == 1 {
+		*output.(*bool) = true
+		return nil
+	} else if b == 0 {
+		*output.(*bool) = false
+		return nil
+	}
+
+	// if we got here, something went wrong, so set result to false
+	*output.(*bool) = false
+	return errors.New("cannot decode invalid boolean")
 }
 
 func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
@@ -701,7 +722,7 @@ func (sd *Decoder) DecodeIntArray() ([]int, error) {
 }
 
 // DecodeIntArray decodes a byte array to an array of ints
-func (sd *Decoder) DecodePtrIntArray(t interface{}) (error) {
+func (sd *Decoder) DecodePtrIntArray(t interface{}) error {
 	_, err := sd.DecodeInteger()
 	if err != nil {
 		return err

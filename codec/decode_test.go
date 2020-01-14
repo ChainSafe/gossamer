@@ -432,6 +432,83 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 	}
 }
 
+func TestDecodeBigInts(t *testing.T) {
+	for _, test := range decodeBigIntTests {
+		output, err := Decode(test.val, big.NewInt(0))
+		if err != nil {
+			t.Error(err)
+		} else if output.(*big.Int).Cmp(test.output) != 0 {
+			t.Errorf("Fail: got %s expected %s", output.(*big.Int).String(), test.output.String())
+		}
+	}
+}
+
+func TestLargeDecodeByteArrays(t *testing.T) {
+	if testing.Short() {
+		t.Skip("\033[33mSkipping memory intesive test for TestDecodeByteArrays in short mode\033[0m")
+	} else {
+		for _, test := range largeDecodeByteArrayTests {
+			output, err := Decode(test.val, []byte{})
+			if err != nil {
+				t.Error(err)
+			} else if !bytes.Equal(output.([]byte), test.output) {
+				t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
+			}
+		}
+	}
+}
+
+func TestDecodeByteArrays(t *testing.T) {
+	for _, test := range decodeByteArrayTests {
+		output, err := Decode(test.val, []byte{})
+		if err != nil {
+			t.Error(err)
+		} else if !bytes.Equal(output.([]byte), test.output) {
+			t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
+		}
+	}
+}
+
+func TestDecodeBool(t *testing.T) {
+	for _, test := range decodeBoolTests {
+		output, err := Decode([]byte{test.val}, true)
+		if err != nil {
+			t.Error(err)
+		} else if output != test.output {
+			t.Errorf("Fail: got %t expected %t", output, test.output)
+		}
+	}
+
+	output, err := Decode([]byte{0xff}, true)
+	if err == nil {
+		t.Error("did not error for invalid bool")
+	} else if output.(bool) {
+		t.Errorf("Fail: got %t expected false", output)
+	}
+}
+
+func TestDecodeTuples(t *testing.T) {
+	for _, test := range decodeTupleTests {
+		output, err := Decode(test.val, test.t)
+		if err != nil {
+			t.Error(err)
+		} else if !reflect.DeepEqual(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		}
+	}
+}
+
+func TestDecodeArrays(t *testing.T) {
+	for _, test := range decodeArrayTests {
+		output, err := Decode(test.val, test.t)
+		if err != nil {
+			t.Error(err)
+		} else if !reflect.DeepEqual(output, test.output) {
+			t.Errorf("Fail: got %d expected %d", output, test.output)
+		}
+	}
+}
+
 func TestDecodePtrFixedWidthInts(t *testing.T) {
 	for _, test := range decodeFixedWidthIntTestsInt8 {
 		var res int8
@@ -535,17 +612,6 @@ func TestDecodePtrFixedWidthInts(t *testing.T) {
 	}
 }
 
-func TestDecodeBigInts(t *testing.T) {
-	for _, test := range decodeBigIntTests {
-		output, err := Decode(test.val, big.NewInt(0))
-		if err != nil {
-			t.Error(err)
-		} else if output.(*big.Int).Cmp(test.output) != 0 {
-			t.Errorf("Fail: got %s expected %s", output.(*big.Int).String(), test.output.String())
-		}
-	}
-}
-
 func TestDecodePtrBigInts(t *testing.T) {
 	for _, test := range decodeBigIntTests {
 		res := big.NewInt(0)
@@ -558,28 +624,18 @@ func TestDecodePtrBigInts(t *testing.T) {
 	}
 }
 
-func TestLargeDecodeByteArrays(t *testing.T) {
+func TestLargeDecodePtrByteArrays(t *testing.T) {
 	if testing.Short() {
-		t.Skip("\033[33mSkipping memory intesive test for TestDecodeByteArrays in short mode\033[0m")
+		t.Skip("\033[33mSkipping memory intesive test for TestDecodePtrByteArrays in short mode\033[0m")
 	} else {
 		for _, test := range largeDecodeByteArrayTests {
-			output, err := Decode(test.val, []byte{})
+			var result = make([]byte, len(test.output))
+			err := DecodePtr(test.val, result)
 			if err != nil {
 				t.Error(err)
-			} else if !bytes.Equal(output.([]byte), test.output) {
-				t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
+			} else if !bytes.Equal(result, test.output) {
+				t.Errorf("Fail: got %d expected %d", len(result), len(test.output))
 			}
-		}
-	}
-}
-
-func TestDecodeByteArrays(t *testing.T) {
-	for _, test := range decodeByteArrayTests {
-		output, err := Decode(test.val, []byte{})
-		if err != nil {
-			t.Error(err)
-		} else if !bytes.Equal(output.([]byte), test.output) {
-			t.Errorf("Fail: got %d expected %d", len(output.([]byte)), len(test.output))
 		}
 	}
 }
@@ -596,32 +652,23 @@ func TestDecodePtrByteArrays(t *testing.T) {
 	}
 }
 
-func TestDecodeBool(t *testing.T) {
+func TestDecodePtrBool(t *testing.T) {
 	for _, test := range decodeBoolTests {
-		output, err := Decode([]byte{test.val}, true)
+		var result bool
+		err := DecodePtr([]byte{test.val}, &result)
 		if err != nil {
 			t.Error(err)
-		} else if output != test.output {
-			t.Errorf("Fail: got %t expected %t", output, test.output)
+		} else if result != test.output {
+			t.Errorf("Fail: got %t expected %t", result, test.output)
 		}
 	}
 
-	output, err := Decode([]byte{0xff}, true)
+	var result bool = true
+	err := DecodePtr([]byte{0xff}, &result)
 	if err == nil {
 		t.Error("did not error for invalid bool")
-	} else if output.(bool) {
-		t.Errorf("Fail: got %t expected false", output)
-	}
-}
-
-func TestDecodeTuples(t *testing.T) {
-	for _, test := range decodeTupleTests {
-		output, err := Decode(test.val, test.t)
-		if err != nil {
-			t.Error(err)
-		} else if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
-		}
+	} else if result {
+		t.Errorf("Fail: got %t expected false", result)
 	}
 }
 
@@ -632,17 +679,6 @@ func TestDecodePtrTuples(t *testing.T) {
 			t.Error(err)
 		} else if !reflect.DeepEqual(test.t, test.output) {
 			t.Errorf("Fail: got %d expected %d", test.val, test.output)
-		}
-	}
-}
-
-func TestDecodeArrays(t *testing.T) {
-	for _, test := range decodeArrayTests {
-		output, err := Decode(test.val, test.t)
-		if err != nil {
-			t.Error(err)
-		} else if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
 		}
 	}
 }
