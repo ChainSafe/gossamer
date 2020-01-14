@@ -18,6 +18,7 @@ package core
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -49,6 +50,7 @@ type Service struct {
 
 type Config struct {
 	BlockState state.BlockApi
+	State      *state.Service
 	Keystore   *keystore.Keystore
 	Runtime    *runtime.Runtime
 	MsgRec     <-chan p2p.Message
@@ -78,9 +80,11 @@ func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
 		NewBlocks:      newBlocks, // becomes block send channel in BABE session
+		State:          cfg.State,
 		BlockState:     cfg.BlockState,
 		AuthorityIndex: 0,
 		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
+		EpochThreshold: big.NewInt(0),
 	}
 
 	// create a new BABE session

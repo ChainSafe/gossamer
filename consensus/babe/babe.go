@@ -37,7 +37,8 @@ import (
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
-	blockState     state.BlockApi
+	blockState     state.BlockApi // TODO: we should use blockState, not state; however, using it causes babe.Start to fail during tests.
+	state          *state.Service
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -51,11 +52,13 @@ type Session struct {
 
 type SessionConfig struct {
 	BlockState     state.BlockApi
+	State          *state.Service
 	Keypair        *sr25519.Keypair
 	Runtime        *runtime.Runtime
 	NewBlocks      chan<- types.Block
 	AuthorityIndex uint64
 	AuthData       []*AuthorityData
+	EpochThreshold *big.Int // should only be used for testing
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -66,6 +69,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	babeSession := &Session{
 		blockState:     cfg.BlockState,
+		state:          cfg.State,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
 		txQueue:        new(tx.PriorityQueue),
@@ -73,6 +77,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		newBlocks:      cfg.NewBlocks,
 		authorityIndex: cfg.AuthorityIndex,
 		authorityData:  cfg.AuthData,
+		epochThreshold: cfg.EpochThreshold,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -80,12 +85,21 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
+	log.Info("BABE config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength", babeSession.config.EpochLength)
+
 	return babeSession, nil
 }
 
 func (b *Session) Start() error {
-	if b.blockState == nil {
-		return errors.New("cannot start BABE session; no blockState provided")
+	// if b.blockState == nil {
+	// 	return errors.New("cannot start BABE session; no blockState provided")
+	// }
+
+	if b.epochThreshold == nil {
+		err := b.setEpochThreshold()
+		if err != nil {
+			return err
+		}
 	}
 
 	var i uint64 = 0
@@ -125,8 +139,18 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
+	if b.state == nil {
+		log.Error("BABE block authoring", "error", "state is nil")
+		return
+	}
+
+	if b.state.Block == nil {
+		log.Error("BABE block authoring", "error", "state.Block is nil")
+		return
+	}
+
 	for ; slotNum < b.config.EpochLength; slotNum++ {
-		parentHeader := b.blockState.GetLatestBlockHeader()
+		parentHeader := b.state.Block.GetLatestBlockHeader()
 		if parentHeader == nil {
 			log.Error("BABE build block", "error", "parent header is nil")
 		} else {
@@ -144,7 +168,9 @@ func (b *Session) invokeBlockAuthoring() {
 			if err != nil {
 				log.Error("BABE build block", "error", err)
 			} else {
+				log.Info("BABE", "")
 				b.newBlocks <- *block
+				b.blockState.AddBlock(*block.Header)
 			}
 		}
 

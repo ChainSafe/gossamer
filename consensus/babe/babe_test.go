@@ -436,6 +436,7 @@ func TestStart(t *testing.T) {
 		Keypair:    kp,
 		NewBlocks:  make(chan types.Block),
 		BlockState: dbSrv.Block,
+		State:      dbSrv,
 	}
 
 	babesession, err := NewSession(cfg)
@@ -444,7 +445,7 @@ func TestStart(t *testing.T) {
 	}
 
 	babesession.authorityIndex = 0
-	babesession.authorityData = []AuthorityData{{nil, 1}}
+	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
@@ -535,6 +536,8 @@ func TestBuildBlock_ok(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
+
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	vtx := tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
@@ -610,6 +613,8 @@ func TestBuildBlock_failing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
