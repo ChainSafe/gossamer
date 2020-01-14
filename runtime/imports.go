@@ -62,6 +62,8 @@ import (
 	"math/big"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/trie"
+
 	"github.com/ChainSafe/gossamer/codec"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -82,7 +84,7 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 
 //export ext_malloc
 func ext_malloc(context unsafe.Pointer, size int32) int32 {
-	log.Trace("[ext_malloc] executing...")
+	log.Trace("[ext_malloc] executing...", "size", size)
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := instanceContext.Data()
 	runtimeCtx, ok := data.(*RuntimeCtx)
@@ -102,10 +104,8 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 
 //export ext_free
 func ext_free(context unsafe.Pointer, addr int32) {
-	log.Trace("[ext_free] executing...")
-	log.Trace("[ext_free]", "addr", addr)
+	log.Trace("[ext_free] executing...", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
-
 	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
 
 	// Deallocate memory
@@ -354,8 +354,7 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
-	runtimeCtx := instanceContext.Data().(*RuntimeCtx)
-	s := runtimeCtx.storage
+	t := &trie.Trie{}
 	var i int32
 	var pos int32 = 0
 	for i = 0; i < lensLen; i++ {
@@ -372,13 +371,13 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 			return
 		}
 		log.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
-		err = s.SetStorage(encodedOutput, value)
+		err = t.Put(encodedOutput, value)
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return
 		}
 	}
-	root, err := s.StorageRoot()
+	root, err := t.Hash()
 	log.Trace("[ext_blake2_256_enumerated_trie_root]", "root hash", fmt.Sprintf("0x%x", root))
 	if err != nil {
 		log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
