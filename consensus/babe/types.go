@@ -43,6 +43,13 @@ type AuthorityData struct {
 	weight uint64
 }
 
+func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
+	return &AuthorityData{
+		id:     pub,
+		weight: weight,
+	}
+}
+
 // BabeHeader as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
 type BabeHeader struct {
 	VRFOutput          [32]byte

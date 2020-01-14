@@ -42,7 +42,7 @@ type Session struct {
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
 	authorityIndex uint64
-	authorityData  []AuthorityData
+	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
 	slotToProof    map[uint64][]byte  // for slots where we are a producer, store the vrf output+proof
@@ -50,10 +50,12 @@ type Session struct {
 }
 
 type SessionConfig struct {
-	BlockState state.BlockApi
-	Keypair    *sr25519.Keypair
-	Runtime    *runtime.Runtime
-	NewBlocks  chan<- types.Block
+	BlockState     state.BlockApi
+	Keypair        *sr25519.Keypair
+	Runtime        *runtime.Runtime
+	NewBlocks      chan<- types.Block
+	AuthorityIndex uint64
+	AuthData       []*AuthorityData
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -63,12 +65,14 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	}
 
 	babeSession := &Session{
-		blockState:  cfg.BlockState,
-		keypair:     cfg.Keypair,
-		rt:          cfg.Runtime,
-		txQueue:     new(tx.PriorityQueue),
-		slotToProof: make(map[uint64][]byte),
-		newBlocks:   cfg.NewBlocks,
+		blockState:     cfg.BlockState,
+		keypair:        cfg.Keypair,
+		rt:             cfg.Runtime,
+		txQueue:        new(tx.PriorityQueue),
+		slotToProof:    make(map[uint64][]byte),
+		newBlocks:      cfg.NewBlocks,
+		authorityIndex: cfg.AuthorityIndex,
+		authorityData:  cfg.AuthData,
 	}
 
 	err := babeSession.configurationFromRuntime()

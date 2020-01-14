@@ -48,11 +48,11 @@ type Service struct {
 }
 
 type Config struct {
-	Blocks   state.BlockApi
-	Keystore *keystore.Keystore
-	Runtime  *runtime.Runtime
-	MsgRec   <-chan p2p.Message
-	MsgSend  chan<- p2p.Message
+	BlockState state.BlockApi
+	Keystore   *keystore.Keystore
+	Runtime    *runtime.Runtime
+	MsgRec     <-chan p2p.Message
+	MsgSend    chan<- p2p.Message
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -75,9 +75,12 @@ func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
-		Keypair:   keys[0].(*sr25519.Keypair),
-		Runtime:   cfg.Runtime,
-		NewBlocks: newBlocks, // becomes block send channel in BABE session
+		Keypair:        keys[0].(*sr25519.Keypair),
+		Runtime:        cfg.Runtime,
+		NewBlocks:      newBlocks, // becomes block send channel in BABE session
+		BlockState:     cfg.BlockState,
+		AuthorityIndex: 0,
+		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
 	}
 
 	// create a new BABE session
@@ -108,7 +111,12 @@ func (s *Service) Start() error {
 	// start receiving messages from p2p service
 	go s.receiveMessages()
 
-	return nil
+	err := s.bs.Start()
+	if err != nil {
+		log.Error("CORE could not start BABE", "error", err)
+	}
+
+	return err
 }
 
 // Stop stops the core service
