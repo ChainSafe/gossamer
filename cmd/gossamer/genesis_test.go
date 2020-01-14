@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"math/big"
 	"os"
 	"reflect"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/urfave/cli"
@@ -67,6 +69,17 @@ func TestStoreGenesisInfo(t *testing.T) {
 
 	if !reflect.DeepEqual(gendata, expected) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
+	}
+
+	stateRoot := dbSrv.Block.GetLatestBlockHeader().StateRoot
+	expectedHeader, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, []byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHeader := dbSrv.Block.GetLatestBlockHeader()
+	if !reflect.DeepEqual(genesisHeader, expectedHeader) {
+		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
 	}
 }
 

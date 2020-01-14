@@ -12,14 +12,15 @@ type StorageState struct {
 	Db   *polkadb.StateDB
 }
 
-func NewStorageState(dataDir string) (*StorageState, error) {
+func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
 	stateDb, err := polkadb.NewStateDB(dataDir)
 	if err != nil {
 		return nil, err
 	}
 	db := trie.NewDatabase(stateDb.Db)
+	t.SetDb(db)
 	return &StorageState{
-		trie: trie.NewEmptyTrie(db),
+		trie: t,
 		Db:   stateDb,
 	}, nil
 }
@@ -61,6 +62,10 @@ func (s *StorageState) LoadHash() (common.Hash, error) {
 
 func (s *StorageState) LoadFromDB(root common.Hash) error {
 	return s.trie.LoadFromDB(root)
+}
+
+func (s *StorageState) StoreInDB() error {
+	return s.trie.StoreInDB()
 }
 
 func (s *StorageState) Entries() map[string][]byte {

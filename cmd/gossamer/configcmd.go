@@ -92,6 +92,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// Core
 	coreConfig := &core.Config{
+		Blocks:   stateSrv.Block,
 		Keystore: ks,
 		Runtime:  r,
 		MsgRec:   p2pMsgSend, // message channel from p2p service to core service

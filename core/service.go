@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -38,6 +39,7 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
+	blocks  state.BlockApi
 	rt      *runtime.Runtime
 	bs      *babe.Session
 	blkRec  <-chan types.Block // receive blocks from BABE session
@@ -46,6 +48,7 @@ type Service struct {
 }
 
 type Config struct {
+	Blocks   state.BlockApi
 	Keystore *keystore.Keystore
 	Runtime  *runtime.Runtime
 	MsgRec   <-chan p2p.Message

@@ -27,11 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
-var (
-	LatestHashKey  = []byte("latest_hash")
-	GenesisDataKey = []byte("genesis_data")
-)
-
 // Database is a wrapper around a polkadb
 type Database struct {
 	Db     polkadb.Database
@@ -56,12 +51,25 @@ func (db *Database) Load(key []byte) ([]byte, error) {
 	return db.Db.Get(key)
 }
 
-func (db *Database) StoreLatestHash(hash []byte) error {
-	return db.Db.Put(LatestHashKey, hash)
+func (db *Database) StoreLatestStorageHash(hash []byte) error {
+	return db.Db.Put(common.LatestStorageHashKey, hash)
 }
 
-func (db *Database) LoadLatestHash() (common.Hash, error) {
-	hashbytes, err := db.Db.Get(LatestHashKey)
+func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
+	hashbytes, err := db.Db.Get(common.LatestStorageHashKey)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHash(hashbytes), nil
+}
+
+func (db *Database) StoreGenesisHash(hash common.Hash) error {
+	return db.Db.Put(common.GenesisHeaderHashKey, hash[:])
+}
+
+func (db *Database) LoadGenesisHash() (common.Hash, error) {
+	hashbytes, err := db.Db.Get(common.GenesisHeaderHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -75,11 +83,11 @@ func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
 
-	return db.Store(GenesisDataKey, enc)
+	return db.Store(common.GenesisDataKey, enc)
 }
 
 func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
-	enc, err := db.Load(GenesisDataKey)
+	enc, err := db.Load(common.GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
@@ -100,6 +108,10 @@ func (t *Trie) Encode() ([]byte, error) {
 }
 
 func encode(n node, enc []byte) ([]byte, error) {
+	if n == nil {
+		return []byte{}, nil
+	}
+
 	nenc, err := n.Encode()
 	if err != nil {
 		return enc, err
@@ -130,6 +142,10 @@ func encode(n node, enc []byte) ([]byte, error) {
 // Decode decodes a trie from the DB and sets the receiver to it
 // The encoded trie must have been encoded with t.Encode
 func (t *Trie) Decode(enc []byte) error {
+	if bytes.Equal(enc, []byte{}) {
+		return nil
+	}
+
 	r := &bytes.Buffer{}
 	_, err := r.Write(enc)
 	if err != nil {
@@ -227,10 +243,10 @@ func (t *Trie) StoreHash() error {
 		return err
 	}
 
-	return t.db.StoreLatestHash(hash[:])
+	return t.db.StoreLatestStorageHash(hash[:])
 }
 
 // LoadHash retrieves the hash stored at `LatestHashKey` from the DB
 func (t *Trie) LoadHash() (common.Hash, error) {
-	return t.db.LoadLatestHash()
+	return t.db.LoadLatestStorageHash()
 }

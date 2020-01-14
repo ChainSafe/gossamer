@@ -27,9 +27,10 @@ type StorageApi interface {
 
 // Read only
 type ROBlockApi interface {
-	GetHeader(hash common.Hash) (types.BlockHeader, error)
+	GetHeader(hash common.Hash) (*types.BlockHeader, error)
 	GetBlockData(hash common.Hash) (types.BlockData, error)
-	GetLatestBlock() types.BlockHeader
+	//GetLatestBlock() types.BlockHeader
+	GetLatestBlockHeader() *types.BlockHeader
 	GetBlockByHash(hash common.Hash) (types.Block, error)
 	GetBlockByNumber(n *big.Int) types.Block
 }
@@ -38,6 +39,7 @@ type BlockApi interface {
 	ROBlockApi
 	SetHeader(header types.BlockHeader) error
 	SetBlockData(hash common.Hash, header types.BlockHeader) error
+	AddBlock(*types.BlockHeader) error
 }
 
 type MessageApi interface {

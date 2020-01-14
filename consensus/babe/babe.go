@@ -31,11 +31,13 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
+	blockState     state.BlockApi
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -48,9 +50,10 @@ type Session struct {
 }
 
 type SessionConfig struct {
-	Keypair   *sr25519.Keypair
-	Runtime   *runtime.Runtime
-	NewBlocks chan<- types.Block
+	BlockState state.BlockApi
+	Keypair    *sr25519.Keypair
+	Runtime    *runtime.Runtime
+	NewBlocks  chan<- types.Block
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -60,6 +63,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	}
 
 	babeSession := &Session{
+		blockState:  cfg.BlockState,
 		keypair:     cfg.Keypair,
 		rt:          cfg.Runtime,
 		txQueue:     new(tx.PriorityQueue),
@@ -102,15 +106,29 @@ func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 
 func (b *Session) invokeBlockAuthoring() {
 	// TODO: we might not actually be starting at slot 0, need to run median algorithm here
-	var currentSlot uint64 = 0
+	var slotNum uint64 = 0
 
-	for ; currentSlot < b.config.EpochLength; currentSlot++ {
-		block, err := b.buildBlock(parentHeader, currentSlot)
-		if err != nil {
-			log.Error("BABE build block", "error", err)
+	for ; slotNum < b.config.EpochLength; slotNum++ {
+		parentHeader := b.blockState.GetLatestBlockHeader()
+		if parentHeader == nil {
+			log.Error("BABE build block", "error", "parent header is nil")
 		} else {
-			b.newBlocks <- block
+
+			currentSlot := Slot{
+				start:    uint64(time.Now().Unix()),
+				duration: b.config.SlotDuration,
+				number:   slotNum,
+			}
+
+			block, err := b.buildBlock(parentHeader, currentSlot)
+			if err != nil {
+				log.Error("BABE build block", "error", err)
+			} else {
+				b.newBlocks <- *block
+			}
+
 		}
+
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
 }

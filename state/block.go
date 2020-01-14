@@ -1,11 +1,12 @@
 package state
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/consensus/babe"
+	//"github.com/ChainSafe/gossamer/consensus/babe"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/blocktree"
@@ -16,25 +17,54 @@ import (
 type blockState struct {
 	bt          *blocktree.BlockTree
 	db          *polkadb.BlockDB
-	latestBlock types.BlockHeader
+	latestBlock *types.BlockHeader
 }
 
-func NewBlockState(dataDir string) (*blockState, error) {
+func NewBlockState(dataDir string, latestHash common.Hash) (*blockState, error) {
 	blockDb, err := polkadb.NewBlockDB(dataDir)
 	if err != nil {
 		return nil, err
 	}
-	return &blockState{
+
+	bs := &blockState{
 		bt: &blocktree.BlockTree{},
 		db: blockDb,
-	}, nil
+	}
+
+	latestBlock, err := bs.GetHeader(latestHash)
+	if err != nil {
+		return bs, fmt.Errorf("NewBlockState latestBlock err: %s", err)
+	}
+
+	bs.latestBlock = latestBlock
+	return bs, nil
+}
+
+func NewBlockStateFromGenesis(dataDir string, header *types.BlockHeader) (*blockState, error) {
+	blockDb, err := polkadb.NewBlockDB(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	bs := &blockState{
+		bt: &blocktree.BlockTree{},
+		db: blockDb,
+	}
+
+	err = bs.SetHeader(*header)
+	if err != nil {
+		return nil, err
+	}
+
+	bs.latestBlock = header
+	return bs, nil
 }
 
 var (
 	// Data prefixes
-	headerPrefix     = []byte("hdr") // headerPrefix + hash -> header
-	blockDataPrefix  = []byte("hsh") // blockDataPrefix + hash -> blockData
-	babeHeaderPrefix = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
+	headerPrefix    = []byte("hdr") // headerPrefix + hash -> header
+	blockDataPrefix = []byte("hsh") // blockDataPrefix + hash -> blockData
+	//babeHeaderPrefix = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
 )
 
 // headerKey = headerPrefix + hash
@@ -47,18 +77,8 @@ func blockDataKey(hash common.Hash) []byte {
 	return append(blockDataPrefix, hash.ToBytes()...)
 }
 
-// babeHeaderKey = babeHeaderPrefix || epoch || slice
-func babeHeaderKey(epoch uint64, slot uint64) []byte {
-	epochBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(epochBytes, epoch)
-	sliceBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(sliceBytes, slot)
-	combined := append(epochBytes, sliceBytes...)
-	return append(babeHeaderPrefix, combined...)
-}
-
 func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
-	var result *types.BlockHeader
+	result := new(types.BlockHeader)
 
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
@@ -66,6 +86,7 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
 	}
 
 	err = json.Unmarshal(data, result)
+	result.Hash()
 	return result, err
 }
 
@@ -82,20 +103,7 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
-func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader, error) {
-	var result babe.BabeHeader
-
-	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
-	if err != nil {
-		return babe.BabeHeader{}, err
-	}
-
-	err = json.Unmarshal(data, &result)
-
-	return result, err
-}
-
-func (bs *blockState) GetLatestBlock() types.BlockHeader {
+func (bs *blockState) GetLatestBlockHeader() *types.BlockHeader {
 	return bs.latestBlock
 }
 
@@ -130,7 +138,7 @@ func (bs *blockState) SetHeader(header types.BlockHeader) error {
 	return err
 }
 
-func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) error {
+func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockHeader) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
@@ -141,18 +149,7 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
-func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
-	// Write the encoded header
-	bh, err := json.Marshal(blockData)
-	if err != nil {
-		return err
-	}
-
-	err = bs.db.Db.Put(babeHeaderKey(epoch, slot), bh)
-	return err
-}
-
-func (bs *blockState) AddBlock(block types.BlockHeader) error {
+func (bs *blockState) AddBlock(block *types.BlockHeader) error {
 	// Set the latest block
 	if block.Number.Cmp(bs.latestBlock.Number) == 1 {
 		bs.latestBlock = block
@@ -161,3 +158,40 @@ func (bs *blockState) AddBlock(block types.BlockHeader) error {
 	//TODO: Implement Add Block
 	return nil
 }
+
+// TODO: this causes a circular dependency since BABE imports state.
+// need to refactor, perhaps by putting babe types in a subpackage.
+
+// // babeHeaderKey = babeHeaderPrefix || epoch || slice
+// func babeHeaderKey(epoch uint64, slot uint64) []byte {
+// 	epochBytes := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(epochBytes, epoch)
+// 	sliceBytes := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(sliceBytes, slot)
+// 	combined := append(epochBytes, sliceBytes...)
+// 	return append(babeHeaderPrefix, combined...)
+// }
+
+// func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader, error) {
+// 	var result babe.BabeHeader
+
+// 	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
+// 	if err != nil {
+// 		return babe.BabeHeader{}, err
+// 	}
+
+// 	err = json.Unmarshal(data, &result)
+
+// 	return result, err
+// }
+
+// func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
+// 	// Write the encoded header
+// 	bh, err := json.Marshal(blockData)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	err = bs.db.Db.Put(babeHeaderKey(epoch, slot), bh)
+// 	return err
+// }
