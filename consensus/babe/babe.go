@@ -139,9 +139,9 @@ func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	}
 
 	if outputInt.Cmp(b.epochThreshold) > 0 {
-		outbytes := [32]byte{}
+		outbytes := [sr25519.VrfOutputLength]byte{}
 		copy(outbytes[:], output)
-		proofbytes := [64]byte{}
+		proofbytes := [sr25519.VrfProofLength]byte{}
 		copy(proofbytes[:], proof)
 		return &VrfOutputAndProof{
 			output: outbytes,
