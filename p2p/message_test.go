@@ -18,7 +18,6 @@ package p2p
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"math/big"
 	"reflect"
@@ -605,14 +604,12 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 }
 
 func TestDecodeConsensusMessage(t *testing.T) {
-	ID := binary.BigEndian.Uint32([]byte("BABE")) // 1111573061
-	encId := make([]byte, 4)
-	binary.LittleEndian.PutUint32(encId, ID)
+	ConsensusEngineID := types.BabeEngineID
 
-	testID := hex.EncodeToString(encId)
-
+	testID := hex.EncodeToString(types.BabeEngineID.ToBytes())
 	testData := "03100405"
-	msg := "0x" + testID + testData // 0x240c010203100405
+
+	msg := "0x" + testID + testData // 0x4241424503100405
 
 	encMsg, err := common.HexToBytes(msg)
 
@@ -635,8 +632,8 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	}
 
 	expected := &ConsensusMessage{
-		ID:   ID,
-		Data: out,
+		ConsensusEngineID: ConsensusEngineID,
+		Data:              out,
 	}
 
 	if !reflect.DeepEqual(m, expected) {

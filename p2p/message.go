@@ -423,38 +423,38 @@ func (tm *TransactionMessage) Id() string {
 // ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
 	// Identifies consensus engine.
-	ID uint32
+	ConsensusEngineID types.ConsensusEngineID
 	// Message payload.
 	Data []byte
 }
 
+// GetType returns the type
 func (cm *ConsensusMessage) GetType() int {
 	return ConsensusMsgType
 }
 
+// String is the string
 func (cm *ConsensusMessage) String() string {
-	return fmt.Sprintf("ConsensusMessage ID=%d, DATA=%x", cm.ID, cm.Data)
+	return fmt.Sprintf("ConsensusMessage ConsensusEngineID=%d, DATA=%x", cm.ConsensusEngineID, cm.Data)
 }
 
 // Encode encodes a block response message using SCALE and appends the type byte to the start
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
 	encMsg := []byte{ConsensusMsgType}
 
-	encId := make([]byte, 4)
-	binary.LittleEndian.PutUint32(encId, cm.ID)
-	encMsg = append(encMsg, encId...)
+	encMsg = append(encMsg, cm.ConsensusEngineID.ToBytes()...)
 
 	return append(encMsg, cm.Data...), nil
 }
 
 // Decodes the message into a ConsensusMessage, it assumes the type byte has been removed
 func (cm *ConsensusMessage) Decode(r io.Reader) error {
-	var err error
-	cm.ID, err = readUint32(r)
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
 	if err != nil {
 		return err
 	}
-
+	cm.ConsensusEngineID = types.NewConsensusEngineID(buf)
 	for {
 		b, err := readByte(r)
 		if err != nil {
