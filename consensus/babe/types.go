@@ -65,6 +65,11 @@ func (bh *BabeHeader) Encode() []byte {
 	return enc
 }
 
+type VrfOutputAndProof struct {
+	output [32]byte
+	proof  [64]byte
+}
+
 // Slot represents a BABE slot
 type Slot struct {
 	start    uint64

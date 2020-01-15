@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"time"
 
+	//schnorrkel "github.com/ChainSafe/go-schnorrkel"
 	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -42,8 +43,8 @@ type Session struct {
 	authorityData  []AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	txQueue        *tx.PriorityQueue
-	slotToProof    map[uint64][]byte  // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	newBlocks      chan<- types.Block // send blocks to core service
+	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	newBlocks      chan<- types.Block            // send blocks to core service
 }
 
 type SessionConfig struct {
@@ -62,7 +63,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		keypair:     cfg.Keypair,
 		rt:          cfg.Runtime,
 		txQueue:     new(tx.PriorityQueue),
-		slotToProof: make(map[uint64][]byte),
+		slotToProof: make(map[uint64]*VrfOutputAndProof),
 		newBlocks:   cfg.NewBlocks,
 	}
 
@@ -117,7 +118,7 @@ func (b *Session) invokeBlockAuthoring() {
 // runLottery runs the lottery for a specific slot number
 // returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
 // output = return[0:32]; proof = return[32:96]
-func (b *Session) runLottery(slot uint64) ([]byte, error) {
+func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
@@ -138,7 +139,14 @@ func (b *Session) runLottery(slot uint64) ([]byte, error) {
 	}
 
 	if outputInt.Cmp(b.epochThreshold) > 0 {
-		return append(output[:], proof...), nil
+		outbytes := [32]byte{}
+		copy(outbytes[:], output)
+		proofbytes := [64]byte{}
+		copy(proofbytes[:], proof)
+		return &VrfOutputAndProof{
+			output: outbytes,
+			proof:  proofbytes,
+		}, nil
 	}
 
 	return nil, nil
@@ -307,13 +315,9 @@ func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
 		return nil, errors.New("not authorized to produce block")
 	}
 	outAndProof := b.slotToProof[slot.number]
-	output := [32]byte{}
-	copy(output[:], outAndProof[:32])
-	proof := [64]byte{}
-	copy(proof[:], outAndProof[32:])
 	return &BabeHeader{
-		VrfOutput:          output,
-		VrfProof:           proof,
+		VrfOutput:          outAndProof.output,
+		VrfProof:           outAndProof.proof,
 		BlockProducerIndex: b.authorityIndex,
 		SlotNumber:         slot.number,
 	}, nil
