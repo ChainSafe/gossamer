@@ -231,9 +231,17 @@ func (k *PublicKey) VrfVerify(msg []byte, out []byte, proof []byte) (bool, error
 
 	t := sr25519.NewSigningContext(SigningContext, msg)
 	o := new(sr25519.VrfOutput)
-	o.Decode(outb)
+	err := o.Decode(outb)
+	if err != nil {
+		return false, err
+	}
+
 	p := new(sr25519.VrfProof)
-	p.Decode(proofb)
+	err = p.Decode(proofb)
+	if err != nil {
+		return false, err
+	}
+
 	inout := o.AttachInput(k.key, t)
 	return k.key.VrfVerify(t, inout, p)
 }
