@@ -75,13 +75,12 @@ func (bh *BabeHeader) Decode(in []byte) error {
 	copy(bh.VrfProof[:], in[sr25519.VrfOutputLength:sr25519.VrfOutputLength+sr25519.VrfProofLength])
 	bh.BlockProducerIndex = binary.LittleEndian.Uint64(in[sr25519.VrfOutputLength+sr25519.VrfProofLength : sr25519.VrfOutputLength+sr25519.VrfProofLength+8])
 	bh.SlotNumber = binary.LittleEndian.Uint64(in[sr25519.VrfOutputLength+sr25519.VrfProofLength+8 : sr25519.VrfOutputLength+sr25519.VrfProofLength+16])
-
 	return nil
 }
 
 type VrfOutputAndProof struct {
-	output [32]byte
-	proof  [64]byte
+	output [sr25519.VrfOutputLength]byte
+	proof  [sr25519.VrfProofLength]byte
 }
 
 // Slot represents a BABE slot
