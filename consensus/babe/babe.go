@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"time"
 
-	//schnorrkel "github.com/ChainSafe/go-schnorrkel"
 	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -122,8 +121,6 @@ func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
-
-	fmt.Printf("vrfInput %x\n", vrfInput)
 
 	output, proof, err := b.vrfSign(vrfInput)
 	if err != nil {
