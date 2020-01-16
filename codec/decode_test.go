@@ -508,4 +508,3 @@ func TestDecodeArrays(t *testing.T) {
 		}
 	}
 }
-
