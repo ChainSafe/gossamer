@@ -344,7 +344,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 			// remove invalid extrinsic from queue
 			b.txQueue.Pop()
 
-			// read previously popped extrinsics back to queue
+			// re-add previously popped extrinsics back to queue
 			b.addToQueue(included)
 
 			return nil, errors.New("could not apply extrinsic")
