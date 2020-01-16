@@ -27,6 +27,7 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
+	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -84,7 +85,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
-	log.Info("BABE config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength", babeSession.config.EpochLength)
+	log.Info("BABE config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength (slots)", babeSession.config.EpochLength)
 
 	return babeSession, nil
 }
@@ -159,7 +160,7 @@ func (b *Session) invokeBlockAuthoring() {
 			if err != nil {
 				log.Error("BABE block authoring", "error", err)
 			} else {
-				log.Info("BABE", "")
+				log.Info("BABE", "built block", block.Header.Hash(), "number", block.Header.Number)
 				b.newBlocks <- *block
 				err = b.blockState.AddBlock(*block.Header)
 				if err != nil {
@@ -365,12 +366,12 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 
 // buildBlockBabeHeader creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *Session) buildBlockBabeHeader(slot Slot) (*BabeHeader, error) {
+func (b *Session) buildBlockBabeHeader(slot Slot) (*babetypes.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
 		return nil, errors.New("not authorized to produce block")
 	}
 	outAndProof := b.slotToProof[slot.number]
-	return &BabeHeader{
+	return &babetypes.BabeHeader{
 		VrfOutput:          outAndProof.output,
 		VrfProof:           outAndProof.proof,
 		BlockProducerIndex: b.authorityIndex,

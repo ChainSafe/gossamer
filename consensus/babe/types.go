@@ -17,8 +17,6 @@
 package babe
 
 import (
-	"encoding/binary"
-
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
@@ -50,26 +48,6 @@ func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 		id:     pub,
 		weight: weight,
 	}
-}
-
-// BabeHeader as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
-type BabeHeader struct {
-	VrfOutput          [sr25519.VrfOutputLength]byte
-	VrfProof           [sr25519.VrfProofLength]byte
-	BlockProducerIndex uint64
-	SlotNumber         uint64
-}
-
-func (bh *BabeHeader) Encode() []byte {
-	enc := []byte{}
-	enc = append(enc, bh.VrfOutput[:]...)
-	enc = append(enc, bh.VrfProof[:]...)
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, bh.BlockProducerIndex)
-	enc = append(enc, buf...)
-	binary.LittleEndian.PutUint64(buf, bh.SlotNumber)
-	enc = append(enc, buf...)
-	return enc
 }
 
 type VrfOutputAndProof struct {

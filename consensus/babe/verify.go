@@ -3,9 +3,11 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
+
+	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
 )
 
-func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader) (bool, error) {
+func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
