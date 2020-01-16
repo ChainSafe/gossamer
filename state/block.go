@@ -195,8 +195,7 @@ func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.Ba
 	return err
 }
 
-// AddBlock will set the latestBlock in blockState
-// Set the Header & BlockData in the DB
+// AddBlock will set the latestBlock in blockState DB
 func (bs *blockState) AddBlock(block types.Block) error {
 	blockHeader := *block.Header
 
@@ -207,7 +206,7 @@ func (bs *blockState) AddBlock(block types.Block) error {
 		bs.latestBlock = blockHeader
 	}
 
-	//Add the blockHeader to the DB
+	// Add the blockHeader to the DB
 	err := bs.SetHeader(blockHeader)
 	if err != nil {
 		return err

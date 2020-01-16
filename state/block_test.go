@@ -6,15 +6,17 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/common"
+
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
 func TestGetBlockByNumber(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
 	if err != nil {
-		t.Error("Failed to create temp folder for TestGetBlockByNumber test", "err", err)
-		return
+		t.Fatal("Failed to create temp folder for TestGetBlockByNumber test", "err", err)
 	}
+
 	// Create & start a new State service
 	stateService := NewService(dataDir)
 	err = stateService.Start()
@@ -68,10 +70,9 @@ func TestGetBlockByNumber(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
+	dataDir, err := ioutil.TempDir("", "TestAddBlock")
 	if err != nil {
-		t.Error("Failed to create temp folder for TestGetBlockByNumber test", "err", err)
-		return
+		t.Fatal("Failed to create temp folder for TestAddBlock test", "err", err)
 	}
 
 	//Create a new blockState
@@ -80,7 +81,7 @@ func TestAddBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//Close DB & erase data dir contents
+	//Close DB
 	defer func() {
 		err = blockState.db.Db.Close()
 		if err != nil {
@@ -88,11 +89,11 @@ func TestAddBlock(t *testing.T) {
 		}
 	}()
 
-	// Create block0 & call AddBlock
-	// Create header & blockBody for block0
+	// Create header
 	header0 := &types.BlockHeader{
 		Number: big.NewInt(0),
 	}
+	// Create blockHash
 	blockHash0 := header0.Hash()
 
 	// BlockBody with fake extrinsics
@@ -110,14 +111,13 @@ func TestAddBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create block1 & call AddBlock
-	// Create header & blockdata for block 1
+	// Create header & blockData for block 1
 	header1 := &types.BlockHeader{
 		Number: big.NewInt(1),
 	}
 	blockHash1 := header1.Hash()
 
-	// BlockBody with fake extrinsics
+	// Create Block with fake extrinsics
 	blockBody1 := types.BlockBody{}
 	blockBody1 = append(blockBody1, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
 
@@ -138,7 +138,18 @@ func TestAddBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retBlock.Header.Hash()
+	// this will panic if not successful, so catch and fail it so
+	func() {
+		hash := retBlock.Header.Hash()
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
+			}
+		}()
+		if hash == (common.Hash{}) {
+			t.Fatal(err)
+		}
+	}()
 
 	if !reflect.DeepEqual(block0, retBlock) {
 		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block0)
@@ -149,7 +160,18 @@ func TestAddBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	retBlock.Header.Hash()
+	// this will panic if not successful, so catch and fail it so
+	func() {
+		hash := retBlock.Header.Hash()
+		defer func() {
+			if r := recover(); r != nil {
+				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
+			}
+		}()
+		if hash == (common.Hash{}) {
+			t.Fatal(err)
+		}
+	}()
 
 	if !reflect.DeepEqual(block1, retBlock) {
 		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block1)
