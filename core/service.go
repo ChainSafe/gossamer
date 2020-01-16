@@ -40,7 +40,6 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blocks  state.BlockApi
 	rt      *runtime.Runtime
 	bs      *babe.Session
 	blkRec  <-chan types.Block // receive blocks from BABE session

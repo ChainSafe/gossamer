@@ -147,7 +147,7 @@ func (b *Session) invokeBlockAuthoring() {
 	for ; slotNum < b.config.EpochLength; slotNum++ {
 		parentHeader := b.state.Block.GetLatestBlockHeader()
 		if parentHeader == nil {
-			log.Error("BABE build block", "error", "parent header is nil")
+			log.Error("BABE block authoring", "error", "parent header is nil")
 		} else {
 			currentSlot := Slot{
 				start:    uint64(time.Now().Unix()),
@@ -157,11 +157,14 @@ func (b *Session) invokeBlockAuthoring() {
 
 			block, err := b.buildBlock(parentHeader, currentSlot)
 			if err != nil {
-				log.Error("BABE build block", "error", err)
+				log.Error("BABE block authoring", "error", err)
 			} else {
 				log.Info("BABE", "")
 				b.newBlocks <- *block
-				b.blockState.AddBlock(*block.Header)
+				err = b.blockState.AddBlock(*block.Header)
+				if err != nil {
+					log.Error("BABE block authoring", "error", err)
+				}
 			}
 		}
 

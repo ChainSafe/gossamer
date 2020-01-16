@@ -110,7 +110,7 @@ func TestStartService(t *testing.T) {
 	}
 
 	defer func() {
-		if err := os.RemoveAll("../test_data"); err != nil {
+		if err = os.RemoveAll("../test_data"); err != nil {
 			t.Log("removal of temp directory test_data failed", "error", err)
 		}
 	}()

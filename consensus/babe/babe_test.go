@@ -426,7 +426,7 @@ func TestStart(t *testing.T) {
 	}
 
 	defer func() {
-		if err := os.RemoveAll("../test_data"); err != nil {
+		if err = os.RemoveAll("../test_data"); err != nil {
 			t.Log("removal of temp directory test_data failed", "error", err)
 		}
 	}()
@@ -445,7 +445,7 @@ func TestStart(t *testing.T) {
 	}
 
 	babesession.authorityIndex = 0
-	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
+	babesession.authorityData = []*AuthorityData{{nil, 1}}
 	conf := &BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
@@ -484,7 +484,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 
 	defer func() {
-		if err := os.RemoveAll("../test_data"); err != nil {
+		if err = os.RemoveAll("../test_data"); err != nil {
 			t.Log("removal of temp directory test_data failed", "error", err)
 		}
 	}()

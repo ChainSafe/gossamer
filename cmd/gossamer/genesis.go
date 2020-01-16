@@ -41,28 +41,15 @@ func loadGenesis(ctx *cli.Context) error {
 	// initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
 
-	// create and load storage trie with initial genesis state
-	t := trie.NewEmptyTrie(nil)
-
-	err = t.Load(gen.GenesisFields().Raw)
+	t, header, err := initializeGenesisState(gen.GenesisFields())
 	if err != nil {
-		return fmt.Errorf("cannot load trie with initial state: %s", err)
-	}
-
-	stateRoot, err := t.Hash()
-	if err != nil {
-		return fmt.Errorf("cannot create state root: %s", err)
-	}
-
-	header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		return fmt.Errorf("cannot create genesis header: %s", err)
+		return err
 	}
 
 	// initialize DB with genesis header
 	err = stateSrv.Initialize(header, t)
 	if err != nil {
-		return fmt.Errorf("cannot initialize state: %s", err)
+		return fmt.Errorf("cannot initialize state service: %s", err)
 	}
 
 	stateDataDir := filepath.Join(dataDir, "state")
@@ -71,7 +58,12 @@ func loadGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("cannot create state db: %s", err)
 	}
 
-	defer stateDb.Db.Db.Close()
+	defer func() {
+		err = stateDb.Db.Db.Close()
+		if err != nil {
+			log.Error("Loading genesis: cannot close stateDB", "error", err)
+		}
+	}()
 
 	// setup trie database
 	t.SetDb(&trie.Database{
@@ -91,6 +83,27 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// store node name, ID, p2p protocol, bootnodes in DB
 	return t.Db().StoreGenesisData(gen)
+}
+
+// given raw genesis state data, return the initialized state trie and genesis block header.
+func initializeGenesisState(gen genesis.GenesisFields) (*trie.Trie, *types.BlockHeader, error) {
+	t := trie.NewEmptyTrie(nil)
+	err := t.Load(gen.Raw)
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot load trie with initial state: %s", err)
+	}
+
+	stateRoot, err := t.Hash()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create state root: %s", err)
+	}
+
+	header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot create genesis header: %s", err)
+	}
+
+	return t, header, nil
 }
 
 // getGenesisPath gets the path to the genesis file
