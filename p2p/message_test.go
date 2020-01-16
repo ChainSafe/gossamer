@@ -18,6 +18,7 @@ package p2p
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math/big"
 	"reflect"
 	"testing"
@@ -432,7 +433,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 	//	Digest: []byte
 
 	//                                        mtparenthash                                                      bnstateroot                                                       extrinsicsroot                                                  di
-	expected, err := common.HexToBytes("0x03454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400")
+	expected, err := common.HexToBytes("0x03454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140400")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +456,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         []byte{},
+		Digest:         [][]byte{{}},
 	}
 	encMsg, err := bhm.Encode()
 	if err != nil {
@@ -498,7 +499,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         []byte{},
+		Digest:         nil,
 	}
 
 	if !reflect.DeepEqual(bhm, expected) {
@@ -600,4 +601,52 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	if !reflect.DeepEqual(*decodedMessage, expected) {
 		t.Fatalf("Fail: got: %v expected %v", *decodedMessage, expected)
 	}
+}
+
+func TestDecodeConsensusMessage(t *testing.T) {
+	ConsensusEngineID := types.BabeEngineID
+
+	testID := hex.EncodeToString(types.BabeEngineID.ToBytes())
+	testData := "03100405"
+
+	msg := "0x" + testID + testData // 0x4241424503100405
+
+	encMsg, err := common.HexToBytes(msg)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Write(encMsg)
+
+	m := new(ConsensusMessage)
+	err = m.Decode(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := hex.DecodeString(testData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ConsensusMessage{
+		ConsensusEngineID: ConsensusEngineID,
+		Data:              out,
+	}
+
+	if !reflect.DeepEqual(m, expected) {
+		t.Fatalf("Fail: got %v expected %v", m, expected)
+	}
+
+	encodedMessage, err := expected.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(encodedMessage[1:], encMsg) {
+		t.Fatalf("Fail: got %v expected %v", encodedMessage[1:], encMsg)
+	}
+
 }
