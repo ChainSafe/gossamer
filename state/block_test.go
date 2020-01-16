@@ -10,7 +10,7 @@ import (
 )
 
 func TestGetBlockByNumber(t *testing.T) {
-	dataDir := "../test_data/block"
+	dataDir := "../test_data"
 
 	// Create & start a new State service
 	stateService := NewService(dataDir)
@@ -19,7 +19,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	// Close the service, and remove dataDir once test is done
 	defer stateService.Stop()
 	defer func() {
-		if err := os.RemoveAll("../test_data"); err != nil {
+		if err := os.RemoveAll(dataDir); err != nil {
 			t.Fatalf("removal of temp directory failed")
 		}
 	}()
