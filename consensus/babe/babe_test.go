@@ -464,8 +464,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	t.Skip()
-
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -482,6 +480,18 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err = dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	defer func() {
 		if err = os.RemoveAll("../test_data"); err != nil {
@@ -521,7 +531,6 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Duration(babesession.config.SlotDuration))
 
 	block := <-newBlocks
 	blockNumber := big.NewInt(int64(1))
