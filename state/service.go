@@ -42,8 +42,6 @@ func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) err
 		return err
 	}
 
-	//fmt.Println("StateRoot: ", genesisHeader.StateRoot)
-
 	hash := genesisHeader.Hash()
 	err = storageDb.Db.Db.Put(common.LatestHeaderHashKey, hash[:])
 	if err != nil {
@@ -54,8 +52,6 @@ func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) err
 	if err != nil {
 		return err
 	}
-
-	fmt.Println("genesisHash: ", hash[:])
 
 	blockDb, err := NewBlockStateFromGenesis(blockDataDir, genesisHeader)
 	if err != nil {
@@ -88,14 +84,10 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cnanot get latest hash: %s", err)
 	}
 
-	fmt.Println("latestHeaderHash: ", latestHeaderHash)
-
 	blockDb, err := NewBlockState(blockDataDir, common.BytesToHash(latestHeaderHash))
 	if err != nil {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
-
-	fmt.Println("StateRoot: ", blockDb.latestBlock.StateRoot)
 
 	err = storageDb.LoadFromDB(blockDb.latestBlock.StateRoot)
 	if err != nil {

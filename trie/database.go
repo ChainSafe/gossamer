@@ -64,19 +64,6 @@ func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-func (db *Database) StoreGenesisHash(hash common.Hash) error {
-	return db.Db.Put(common.GenesisHeaderHashKey, hash[:])
-}
-
-func (db *Database) LoadGenesisHash() (common.Hash, error) {
-	hashbytes, err := db.Db.Get(common.GenesisHeaderHashKey)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(hashbytes), nil
-}
-
 func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	enc, err := scale.Encode(gen)
 	if err != nil {

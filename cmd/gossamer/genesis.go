@@ -40,9 +40,6 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
-	// tdb := &trie.Database{
-	// 	Db: stateSrv.Storage.Db.Db,
-	// }
 
 	// create and load storage trie with initial genesis state
 	t := trie.NewEmptyTrie(nil)
@@ -68,12 +65,6 @@ func loadGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("cannot initialize state: %s", err)
 	}
 
-	// err = stateSrv.Start()
-	// if err != nil {
-	// 	return fmt.Errorf("cannot start state: %s", err)
-	// }
-
-	// defer stateSrv.Stop()
 	stateDataDir := filepath.Join(dataDir, "state")
 	stateDb, err := state.NewStorageState(stateDataDir, t)
 	if err != nil {
@@ -96,22 +87,6 @@ func loadGenesis(ctx *cli.Context) error {
 	err = t.StoreHash()
 	if err != nil {
 		return fmt.Errorf("cannot store genesis hash in db: %s", err)
-	}
-
-	// stateRoot, err := t.Hash()
-	// if err != nil {
-	// 	return fmt.Errorf("cannot create state root: %s", err)
-	// }
-
-	// create and store genesis hash and header
-	// header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, []byte{})
-	// if err != nil {
-	// 	return fmt.Errorf("cannot create genesis header: %s", err)
-	// }
-
-	err = t.Db().StoreGenesisHash(header.Hash())
-	if err != nil {
-		return fmt.Errorf("cannot store genesis hash: %s", err)
 	}
 
 	// store node name, ID, p2p protocol, bootnodes in DB

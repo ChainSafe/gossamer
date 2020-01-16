@@ -29,7 +29,6 @@ type StorageApi interface {
 type ROBlockApi interface {
 	GetHeader(hash common.Hash) (*types.BlockHeader, error)
 	GetBlockData(hash common.Hash) (types.BlockData, error)
-	//GetLatestBlock() types.BlockHeader
 	GetLatestBlockHeader() *types.BlockHeader
 	GetBlockByHash(hash common.Hash) (types.Block, error)
 	GetBlockByNumber(n *big.Int) (types.Block, error)

@@ -465,7 +465,7 @@ func TestStart(t *testing.T) {
 
 func TestBabeAnnounceMessage(t *testing.T) {
 	t.Skip()
-	// TODO: building a block depends on
+
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -473,11 +473,28 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 	newBlocks := make(chan types.Block)
 
+	dataDir := "./test_data"
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.BlockHeader{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := os.RemoveAll("../test_data"); err != nil {
+			t.Log("removal of temp directory test_data failed", "error", err)
+		}
+	}()
+
 	cfg := &SessionConfig{
-		//Blocks:
-		Runtime:   rt,
-		Keypair:   kp,
-		NewBlocks: newBlocks,
+		Runtime:    rt,
+		Keypair:    kp,
+		NewBlocks:  newBlocks,
+		BlockState: dbSrv.Block,
+		State:      dbSrv,
 	}
 
 	babesession, err := NewSession(cfg)
@@ -506,13 +523,11 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 	time.Sleep(time.Duration(babesession.config.SlotDuration))
 
-	//for i := 0; i < int(babesession.config.EpochLength); i++ {
 	block := <-newBlocks
-	blockNumber := big.NewInt(int64(0))
+	blockNumber := big.NewInt(int64(1))
 	if !reflect.DeepEqual(block.Header.Number, blockNumber) {
 		t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
 	}
-	//}
 }
 
 func TestSeal(t *testing.T) {

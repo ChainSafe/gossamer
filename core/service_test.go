@@ -119,9 +119,8 @@ func TestStartService(t *testing.T) {
 		Runtime:    rt,
 		Keystore:   keystore.NewKeystore(),
 		BlockState: dbSrv.Block,
-		//State:
-		MsgRec:  make(chan p2p.Message),
-		MsgSend: make(chan p2p.Message),
+		MsgRec:     make(chan p2p.Message),
+		MsgSend:    make(chan p2p.Message),
 	}
 
 	s, err := NewService(cfg, nil)

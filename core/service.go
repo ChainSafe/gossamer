@@ -82,7 +82,7 @@ func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 		NewBlocks:      newBlocks, // becomes block send channel in BABE session
 		State:          cfg.State,
 		BlockState:     cfg.BlockState,
-		AuthorityIndex: 0,
+		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
 		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
 		EpochThreshold: big.NewInt(0),
 	}
