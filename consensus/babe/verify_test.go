@@ -1,6 +1,7 @@
 package babe
 
 import (
+	"encoding/binary"
 	"math/big"
 	"testing"
 	"time"
@@ -70,5 +71,53 @@ func TestVerifySlotWinner(t *testing.T) {
 	if !ok {
 		t.Fatal("did not verify slot winner")
 	}
+}
 
+func TestVerifyAuthorshipRight(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	babesession.authorityData = make([]AuthorityData, 1)
+	babesession.authorityData[0] = AuthorityData{
+		id: kp.Public().(*sr25519.PublicKey),
+	}
+
+	block, slot, outAndProof := createTestBlock(babesession, t)
+
+	slotBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(slotBytes, slot.number)
+	vrfInput := append(slotBytes, babesession.config.Randomness)
+
+	ver, err := kp.Public().(*sr25519.PublicKey).VrfVerify(vrfInput, outAndProof.output[:], outAndProof.proof[:])
+	if !ver {
+		t.Fatal("did not verify")
+	}
+
+	t.Log(kp.Public().(*sr25519.PublicKey), vrfInput, outAndProof.output, outAndProof.proof)
+
+	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("did not verify authorship right")
+	}
 }

@@ -18,6 +18,8 @@ func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader) (bool, error
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
 
+	fmt.Println(pub, vrfInput, header.VrfOutput, header.VrfProof)
+
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
@@ -58,6 +60,10 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.BlockHeader) 
 		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
+	if len(b.authorityData) <= int(babeHeader.BlockProducerIndex) {
+		return false, fmt.Errorf("no authority data for index %d", babeHeader.BlockProducerIndex)
+	}
+
 	authorPub := b.authorityData[babeHeader.BlockProducerIndex].id
 	// remove seal before verifying
 	header.Digest = header.Digest[:len(header.Digest)-1]
@@ -72,7 +78,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.BlockHeader) 
 	}
 
 	if !ok {
-		return false, nil
+		return false, fmt.Errorf("could not verify signature")//nil
 	}
 
 	// TODO: check if the producer has equivocated, ie. have they produced a conflicting block?
