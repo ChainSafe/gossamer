@@ -551,7 +551,7 @@ func TestSeal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
+	babesession.authorityData = []*AuthorityData{{nil, 1}}
 
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
@@ -705,7 +705,7 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
+	babesession.authorityData = []*AuthorityData{{nil, 1}}
 
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
