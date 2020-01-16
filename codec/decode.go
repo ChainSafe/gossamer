@@ -569,7 +569,6 @@ func (sd *Decoder) DecodeIntArray() ([]int, error) {
 	return o, nil
 }
 
-
 // DecodeBigIntArray decodes a byte array to an array of *big.Ints
 func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	length, err := sd.DecodeInteger()
@@ -589,7 +588,6 @@ func (sd *Decoder) DecodeBigIntArray() ([]*big.Int, error) {
 	return o, nil
 }
 
-
 // DecodeBoolArray decodes a byte array to an array of bools
 func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 	length, err := sd.DecodeInteger()
@@ -606,4 +604,3 @@ func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 	}
 	return o, nil
 }
-
