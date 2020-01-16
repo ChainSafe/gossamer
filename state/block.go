@@ -126,16 +126,16 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 }
 
 func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
-	// First retrieve the block hash based on the block number from the database
-	hash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
+	// First retrieve the block hash in a byte array based on the block number from the database
+	byteHash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
 
 	if err != nil {
 		return types.Block{}, err
 	}
 
 	// Then find the block based on the hash
-	endHash := common.NewHash(hash)
-	block, err := bs.GetBlockByHash(endHash)
+	hash := common.NewHash(byteHash)
+	block, err := bs.GetBlockByHash(hash)
 	return block, err
 }
 
