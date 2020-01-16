@@ -67,7 +67,6 @@ func TestGetBlockByNumber(t *testing.T) {
 
 }
 
-
 func TestAddBlock(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
 	if err != nil {
@@ -106,7 +105,10 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block0 to the DB
-	blockState.AddBlock(block0)
+	err = blockState.AddBlock(block0)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create block1 & call AddBlock
 	// Create header & blockdata for block 1
@@ -125,7 +127,10 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block1 to the DB
-	blockState.AddBlock(block1)
+	err = blockState.AddBlock(block1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Get the blocks & check if it's the same as the added blocks
 	retBlock, err := blockState.GetBlockByHash(blockHash0)
