@@ -54,16 +54,18 @@ type Config struct {
 	Runtime    *runtime.Runtime
 	MsgRec     <-chan p2p.Message
 	MsgSend    chan<- p2p.Message
+	NewBlocks  chan types.Block
 }
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
-func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
+func NewService(cfg *Config) (*Service, error) {
 	if cfg.Keystore == nil {
 		return nil, fmt.Errorf("no keystore provided")
 	}
 
 	keys := cfg.Keystore.Sr25519Keypairs()
+
 	// no validator keypair found, generate a new one
 	if len(keys) == 0 {
 		kp, err := sr25519.GenerateKeypair()
@@ -74,11 +76,15 @@ func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 		keys = cfg.Keystore.Sr25519Keypairs()
 	}
 
+	if cfg.NewBlocks == nil {
+		cfg.NewBlocks = make(chan types.Block)
+	}
+
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
-		NewBlocks:      newBlocks, // becomes block send channel in BABE session
+		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
 		State:          cfg.State,
 		BlockState:     cfg.BlockState,
 		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
@@ -96,7 +102,7 @@ func NewService(cfg *Config, newBlocks chan types.Block) (*Service, error) {
 	return &Service{
 		rt:      cfg.Runtime,
 		bs:      bs,
-		blkRec:  newBlocks, // becomes block receive channel in core service
+		blkRec:  cfg.NewBlocks, // becomes block receive channel in core service
 		msgRec:  cfg.MsgRec,
 		msgSend: cfg.MsgSend,
 	}, nil

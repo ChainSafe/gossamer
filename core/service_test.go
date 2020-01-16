@@ -123,7 +123,7 @@ func TestStartService(t *testing.T) {
 		MsgSend:    make(chan p2p.Message),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestValidateBlock(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +168,7 @@ func TestValidateTransaction(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,16 +204,17 @@ func TestValidateTransaction(t *testing.T) {
 func TestAnnounceBlock(t *testing.T) {
 	rt := newRuntime(t)
 
-	blkRec := make(chan types.Block)
 	msgSend := make(chan p2p.Message)
+	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		Runtime:  rt,
-		MsgSend:  msgSend, // message channel from core service to p2p service
-		Keystore: keystore.NewKeystore(),
+		Runtime:   rt,
+		MsgSend:   msgSend, // message channel from core service to p2p service
+		Keystore:  keystore.NewKeystore(),
+		NewBlocks: newBlocks,
 	}
 
-	s, err := NewService(cfg, blkRec)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +226,7 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	blkRec <- types.Block{
+	newBlocks <- types.Block{
 		Header: &types.BlockHeader{
 			Number: big.NewInt(0),
 		},
@@ -259,7 +260,7 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +301,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +331,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
