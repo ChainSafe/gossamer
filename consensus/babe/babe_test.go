@@ -463,59 +463,59 @@ func TestStart(t *testing.T) {
 	}
 }
 
-// func TestBabeAnnounceMessage(t *testing.T) {
-// 	t.Skip()
-// 	// TODO: building a block depends on
-// 	rt := newRuntime(t)
-// 	kp, err := sr25519.GenerateKeypair()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	newBlocks := make(chan types.Block)
+func TestBabeAnnounceMessage(t *testing.T) {
+	t.Skip()
+	// TODO: building a block depends on
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	newBlocks := make(chan types.Block)
 
-// 	cfg := &SessionConfig{
-// 		//Blocks:
-// 		Runtime:   rt,
-// 		Keypair:   kp,
-// 		NewBlocks: newBlocks,
-// 	}
+	cfg := &SessionConfig{
+		//Blocks:
+		Runtime:   rt,
+		Keypair:   kp,
+		NewBlocks: newBlocks,
+	}
 
-// 	babesession, err := NewSession(cfg)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// 	babesession.config = &BabeConfiguration{
-// 		SlotDuration:       1,
-// 		EpochLength:        6,
-// 		C1:                 1,
-// 		C2:                 10,
-// 		GenesisAuthorities: []AuthorityDataRaw{},
-// 		Randomness:         0,
-// 		SecondarySlots:     false,
-// 	}
+	babesession.config = &BabeConfiguration{
+		SlotDuration:       1,
+		EpochLength:        6,
+		C1:                 1,
+		C2:                 10,
+		GenesisAuthorities: []AuthorityDataRaw{},
+		Randomness:         0,
+		SecondarySlots:     false,
+	}
 
-// 	babesession.authorityIndex = 0
-// 	babesession.authorityData = []AuthorityData{
-// 		{nil, 1}, {nil, 1}, {nil, 1},
-// 	}
+	babesession.authorityIndex = 0
+	babesession.authorityData = []*AuthorityData{
+		{nil, 1}, {nil, 1}, {nil, 1},
+	}
 
-// 	err = babesession.Start()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	time.Sleep(time.Duration(babesession.config.SlotDuration))
+	err = babesession.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Duration(babesession.config.SlotDuration))
 
-// 	//for i := 0; i < int(babesession.config.EpochLength); i++ {
-// 	block := <-newBlocks
-// 	blockNumber := big.NewInt(int64(0))
-// 	if !reflect.DeepEqual(block.Header.Number, blockNumber) {
-// 		t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
-// 	}
-// 	//}
-// }
+	//for i := 0; i < int(babesession.config.EpochLength); i++ {
+	block := <-newBlocks
+	blockNumber := big.NewInt(int64(0))
+	if !reflect.DeepEqual(block.Header.Number, blockNumber) {
+		t.Fatalf("Didn't receive the correct block: %+v\nExpected block: %+v", block.Header.Number, blockNumber)
+	}
+	//}
+}
 
-func TestBuildBlock_ok(t *testing.T) {
+func TestSeal(t *testing.T) {
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -538,6 +538,72 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
 
+	zeroHash, err := common.HexToHash("0x00")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header, err := types.NewBlockHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	encHeader, err := header.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seal, err := babesession.buildBlockSeal(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := kp.Public().Verify(encHeader, seal.Data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ok {
+		t.Fatal("could not verify seal")
+	}
+}
+
+func TestBuildBlock_ok(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create proof that we can authorize this block
+	babesession.epochThreshold = big.NewInt(0)
+	var slotNumber uint64 = 1
+
+	outAndProof, err := babesession.runLottery(slotNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+
+	babesession.slotToProof[slotNumber] = outAndProof
+
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	vtx := tx.NewValidTransaction(types.Extrinsic(txb), &tx.Validity{})
@@ -556,9 +622,16 @@ func TestBuildBlock_ok(t *testing.T) {
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
 		duration: uint64(10000000),
-		number:   1,
+		number:   slotNumber,
 	}
 
+	// create pre-digest
+	preDigest, err := babesession.buildBlockPreDigest(slot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// build block
 	block, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal(err)
@@ -585,8 +658,11 @@ func TestBuildBlock_ok(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         []byte{},
+		Digest:         [][]byte{preDigest.Encode()},
 	}
+
+	// remove seal from built block, since we can't predict the signature
+	block.Header.Digest = block.Header.Digest[:1]
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
 		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
@@ -616,6 +692,21 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	babesession.authorityData = []*AuthorityData{&AuthorityData{nil, 1}}
 
+	// create proof that we can authorize this block
+	babesession.epochThreshold = big.NewInt(0)
+	var slotNumber uint64 = 1
+
+	outAndProof, err := babesession.runLottery(slotNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+
+	babesession.slotToProof[slotNumber] = outAndProof
+
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	// add a valid transaction
 	txa := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
@@ -641,7 +732,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
 		duration: uint64(10000000),
-		number:   1,
+		number:   slotNumber,
 	}
 
 	_, err = babesession.buildBlock(parentHeader, slot)

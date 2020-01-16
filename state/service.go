@@ -25,7 +25,8 @@ func NewService(path string) *Service {
 	}
 }
 
-// Initialize initializes the genesis state of the DB.
+// Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
+// The trie does not need a backing DB, since the DB will be created during Service.Start().
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) error {
 	stateDataDir := filepath.Join(s.dbPath, "state")
@@ -41,7 +42,7 @@ func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) err
 		return err
 	}
 
-	fmt.Println("StateRoot: ", genesisHeader.StateRoot)
+	//fmt.Println("StateRoot: ", genesisHeader.StateRoot)
 
 	hash := genesisHeader.Hash()
 	err = storageDb.Db.Db.Put(common.LatestHeaderHashKey, hash[:])
@@ -119,6 +120,5 @@ func (s *Service) Stop() error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

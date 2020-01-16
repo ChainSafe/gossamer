@@ -32,13 +32,13 @@ type ROBlockApi interface {
 	//GetLatestBlock() types.BlockHeader
 	GetLatestBlockHeader() *types.BlockHeader
 	GetBlockByHash(hash common.Hash) (types.Block, error)
-	GetBlockByNumber(n *big.Int) types.Block
+	GetBlockByNumber(n *big.Int) (types.Block, error)
 }
 
 type BlockApi interface {
 	ROBlockApi
 	SetHeader(header types.BlockHeader) error
-	SetBlockData(hash common.Hash, header types.BlockHeader) error
+	SetBlockData(hash common.Hash, header types.BlockData) error
 	AddBlock(types.BlockHeader) error
 }
 

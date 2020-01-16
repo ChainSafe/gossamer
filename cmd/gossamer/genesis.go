@@ -57,7 +57,7 @@ func loadGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("cannot create state root: %s", err)
 	}
 
-	header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, []byte{})
+	header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		return fmt.Errorf("cannot create genesis header: %s", err)
 	}

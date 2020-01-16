@@ -72,7 +72,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 	}
 
 	stateRoot := dbSrv.Block.GetLatestBlockHeader().StateRoot
-	expectedHeader, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, []byte{})
+	expectedHeader, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		t.Fatal(err)
 	}

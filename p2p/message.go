@@ -258,7 +258,7 @@ type BlockAnnounceMessage struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         []byte // any additional block info eg. logs, seal
+	Digest         [][]byte // any additional block info eg. logs, seal
 }
 
 func (bm *BlockAnnounceMessage) GetType() int {
@@ -410,6 +410,67 @@ func (tm *TransactionMessage) Decode(r io.Reader) error {
 func (tm *TransactionMessage) Id() string {
 	// scale encode each extrinsic
 	encMsg, err := tm.Encode()
+	if err != nil {
+		return ""
+	}
+	hash, err := common.Blake2bHash(encMsg)
+	if err != nil {
+		return ""
+	}
+	return hash.String()
+}
+
+// ConsensusMessage is mostly opaque to us
+type ConsensusMessage struct {
+	// Identifies consensus engine.
+	ConsensusEngineID types.ConsensusEngineID
+	// Message payload.
+	Data []byte
+}
+
+// GetType returns the type
+func (cm *ConsensusMessage) GetType() int {
+	return ConsensusMsgType
+}
+
+// String is the string
+func (cm *ConsensusMessage) String() string {
+	return fmt.Sprintf("ConsensusMessage ConsensusEngineID=%d, DATA=%x", cm.ConsensusEngineID, cm.Data)
+}
+
+// Encode encodes a block response message using SCALE and appends the type byte to the start
+func (cm *ConsensusMessage) Encode() ([]byte, error) {
+	encMsg := []byte{ConsensusMsgType}
+
+	encMsg = append(encMsg, cm.ConsensusEngineID.ToBytes()...)
+
+	return append(encMsg, cm.Data...), nil
+}
+
+// Decodes the message into a ConsensusMessage, it assumes the type byte has been removed
+func (cm *ConsensusMessage) Decode(r io.Reader) error {
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		return err
+	}
+	cm.ConsensusEngineID = types.NewConsensusEngineID(buf)
+	for {
+		b, err := readByte(r)
+		if err != nil {
+			break
+		}
+
+		cm.Data = append(cm.Data, b)
+	}
+
+	return nil
+}
+
+// Id returns the Hash of ConsensusMessage
+func (cm *ConsensusMessage) Id() string {
+	// scale encode each extrinsic
+	encMsg, err := cm.Encode()
 	if err != nil {
 		return ""
 	}

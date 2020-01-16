@@ -41,7 +41,7 @@ func newTestService(t *testing.T) (state *Service) {
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
-	genesisHeader, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, []byte{})
+	genesisHeader, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
