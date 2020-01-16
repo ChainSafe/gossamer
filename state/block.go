@@ -19,6 +19,7 @@ type blockState struct {
 	latestBlock types.BlockHeader
 }
 
+// NewBlockState will create a new blockState struct using dataDir
 func NewBlockState(dataDir string) (*blockState, error) {
 	blockDb, err := polkadb.NewBlockDB(dataDir)
 	if err != nil {
@@ -70,6 +71,7 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 	return append(babeHeaderPrefix, combined...)
 }
 
+// GetHeader returns a BlockHeader for a given hash
 func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
 	var result *types.BlockHeader
 
@@ -82,6 +84,7 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
 	return result, err
 }
 
+// GetBlockData returns a BlockData for a given hash
 func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	var result types.BlockData
 
@@ -95,6 +98,7 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
+// GetBabeHeader returns a BabeHeader for a given epoch and slot
 func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader, error) {
 	var result babe.BabeHeader
 
@@ -108,27 +112,30 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 	return result, err
 }
 
+// GetLatestBlock returns the latest block available on blockState
 func (bs *blockState) GetLatestBlock() types.BlockHeader {
 	return bs.latestBlock
 }
 
+// GetBlockByHash returns a block for a given hash
 func (bs *blockState) GetBlockByHash(hash common.Hash) (types.Block, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return types.Block{}, err
 	}
+
 	blockData, err := bs.GetBlockData(hash)
 	if err != nil {
 		return types.Block{}, err
 	}
-	blockBody := blockData.Body
-	return types.Block{Header: header, Body: blockBody}, nil
+
+	return types.Block{Header: header, Body: blockData.Body}, nil
 }
 
-func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
+// GetBlockByNumber returns a block for a given blockNumber
+func (bs *blockState) GetBlockByNumber(blockNumber *big.Int) (types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
-	byteHash, err := bs.db.Db.Get(headerHashKey(n.Uint64()))
-
+	byteHash, err := bs.db.Db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
 		return types.Block{}, err
 	}
@@ -136,9 +143,14 @@ func (bs *blockState) GetBlockByNumber(n *big.Int) (types.Block, error) {
 	// Then find the block based on the hash
 	hash := common.NewHash(byteHash)
 	block, err := bs.GetBlockByHash(hash)
-	return block, err
+	if err != nil {
+		return types.Block{}, err
+	}
+
+	return block, nil
 }
 
+// SetHeader will set the header into DB
 func (bs *blockState) SetHeader(header types.BlockHeader) error {
 	hash := header.Hash()
 
@@ -158,6 +170,7 @@ func (bs *blockState) SetHeader(header types.BlockHeader) error {
 	return err
 }
 
+// SetBlockData will set the block data using given hash and blockData into DB
 func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
@@ -169,6 +182,7 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
+// SetBabeHeader will set epoch, slot and blockData into DB
 func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
@@ -180,6 +194,7 @@ func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.Ba
 	return err
 }
 
+// AddBlock will add a block into the DB
 func (bs *blockState) AddBlock(block types.BlockHeader) error {
 	// Set the latest block
 	if block.Number.Cmp(bs.latestBlock.Number) == 1 {

@@ -1,8 +1,8 @@
 package state
 
 import (
+	"io/ioutil"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 
@@ -10,21 +10,19 @@ import (
 )
 
 func TestGetBlockByNumber(t *testing.T) {
-	dataDir := "../test_data"
-
+	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
+	if err != nil {
+		t.Error("Failed to create temp folder for TestGetBlockByNumber test", "err", err)
+		return
+	}
 	// Create & start a new State service
 	stateService := NewService(dataDir)
-	stateService.Start()
+	err = stateService.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// Close the service, and remove dataDir once test is done
-	defer stateService.Stop()
-	defer func() {
-		if err := os.RemoveAll(dataDir); err != nil {
-			t.Fatalf("removal of temp directory failed")
-		}
-	}()
-
-	// Create a header & blockdata
+	// Create a header & blockData
 	blockHeader := &types.BlockHeader{
 		Number: big.NewInt(1),
 	}
@@ -41,8 +39,8 @@ func TestGetBlockByNumber(t *testing.T) {
 	}
 
 	// Set the block's header & blockData in the blockState
-	// SetHeader also sets mapping [blockNubmer : hash] in DB
-	err := stateService.Block.SetHeader(*blockHeader)
+	// SetHeader also sets mapping [blockNumber : hash] in DB
+	err = stateService.Block.SetHeader(*blockHeader)
 	if err != nil {
 		t.Fatal(err)
 	}
