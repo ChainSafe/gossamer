@@ -534,7 +534,7 @@ func TestSeal(t *testing.T) {
 	}
 }
 
-func createTestBlock(babesession *Session, t *testing.T) (*types.Block, Slot, *VrfOutputAndProof) {
+func createTestBlock(babesession *Session, t *testing.T) (*types.Block, Slot) {
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
 	babesession.authorityIndex = 0
@@ -578,7 +578,7 @@ func createTestBlock(babesession *Session, t *testing.T) (*types.Block, Slot, *V
 		t.Fatal(err)
 	}
 
-	return block, slot, outAndProof
+	return block, slot
 }
 func TestBuildBlock_ok(t *testing.T) {
 	rt := newRuntime(t)
@@ -601,7 +601,7 @@ func TestBuildBlock_ok(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	block, slot, _ := createTestBlock(babesession, t)
+	block, slot := createTestBlock(babesession, t)
 
 	// hash of parent header
 	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")

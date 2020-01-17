@@ -1,12 +1,13 @@
 package babe
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
+	//"github.com/ChainSafe/gossamer/core/types"
 )
 
 func TestVerifySlotWinner(t *testing.T) {
@@ -63,7 +64,7 @@ func TestVerifySlotWinner(t *testing.T) {
 		id: kp.Public().(*sr25519.PublicKey),
 	}
 
-	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
+	ok, err := babesession.verifySlotWinner(slot.number, babeHeader, babesession.authorityData[0].id)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,20 +98,23 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	babesession.authorityData = make([]AuthorityData, 1)
 	babesession.authorityData[0] = AuthorityData{
 		id: kp.Public().(*sr25519.PublicKey),
+		weight: 1,
 	}
 
-	block, slot, outAndProof := createTestBlock(babesession, t)
+	block, slot := createTestBlock(babesession, t)
 
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot.number)
-	vrfInput := append(slotBytes, babesession.config.Randomness)
+	// slotBytes := make([]byte, 8)
+	// binary.LittleEndian.PutUint64(slotBytes, slot.number)
+	// vrfInput := append(slotBytes, babesession.config.Randomness)
 
-	ver, err := kp.Public().(*sr25519.PublicKey).VrfVerify(vrfInput, outAndProof.output[:], outAndProof.proof[:])
-	if !ver {
-		t.Fatal("did not verify")
-	}
+	// ver, err := kp.Public().(*sr25519.PublicKey).VrfVerify(vrfInput, outAndProof.output[:], outAndProof.proof[:])
+	// if !ver {
+	// 	t.Fatal("did not verify")
+	// }
 
-	t.Log(kp.Public().(*sr25519.PublicKey), vrfInput, outAndProof.output, outAndProof.proof)
+
+	t.Log(babesession.authorityData[0].id.Encode())
+	t.Log(kp.Public().(*sr25519.PublicKey).Encode())
 
 	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
 	if err != nil {

@@ -279,6 +279,8 @@ func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, 
 		return nil, err
 	}
 
+	fmt.Println(b.keypair.Public().Encode())
+	
 	sig, err := b.keypair.Sign(encHeader)
 	if err != nil {
 		return nil, err
