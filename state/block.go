@@ -112,7 +112,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 }
 
 // Header returns the latest block available on blockState
-func (bs *blockState) Header() *types.Header {
+func (bs *blockState) LatestHeader() *types.Header {
 	return types.SafeCopyHeader(bs.header)
 }
 
