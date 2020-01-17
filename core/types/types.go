@@ -18,9 +18,10 @@ package types
 
 import (
 	"errors"
+	"math/big"
+
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
-	"math/big"
 )
 
 // Extrinsic is a generic transaction whose format is verified in the runtime

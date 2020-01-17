@@ -3,12 +3,13 @@ package state
 import (
 	"encoding/binary"
 	"encoding/json"
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/polkadb"
-	"math/big"
 )
 
 // blockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
@@ -111,7 +112,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 	return result, err
 }
 
-// Header returns the latest block available on blockState
+// LatestHeader returns the latest block available on blockState
 func (bs *blockState) LatestHeader() *types.Header {
 	return types.SafeCopyHeader(bs.header)
 }

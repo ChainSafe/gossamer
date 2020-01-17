@@ -1,10 +1,11 @@
 package state
 
 import (
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/common"
 
