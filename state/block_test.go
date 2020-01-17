@@ -1,9 +1,9 @@
 package state
 
 import (
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
@@ -13,26 +13,21 @@ import (
 
 func TestGetBlockByNumber(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
-	if err != nil {
-		t.Fatal("Failed to create temp folder for TestGetBlockByNumber test", "err", err)
-	}
+	require.Nil(t, err)
 
 	// Create & start a new State service
 	stateService := NewService(dataDir)
 	err = stateService.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Create a header & blockData
-	blockHeader := &types.BlockHeader{
+	blockHeader := &types.Header{
 		Number: big.NewInt(1),
 	}
 	hash := blockHeader.Hash()
 
 	// BlockBody with fake extrinsics
-	blockBody := &types.BlockBody{}
-	*blockBody = append(*blockBody, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
+	blockBody := &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	blockData := types.BlockData{
 		Hash:   hash,
@@ -42,15 +37,11 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	// Set the block's header & blockData in the blockState
 	// SetHeader also sets mapping [blockNumber : hash] in DB
-	err = stateService.Block.SetHeader(*blockHeader)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = stateService.Block.SetHeader(blockHeader)
+	require.Nil(t, err)
 
 	err = stateService.Block.SetBlockData(hash, blockData)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Get block & check if it's the same as the expectedBlock
 	expectedBlock := types.Block{
@@ -58,47 +49,37 @@ func TestGetBlockByNumber(t *testing.T) {
 		Body:   blockBody,
 	}
 	retBlock, err := stateService.Block.GetBlockByNumber(blockHeader.Number)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	retBlock.Header.Hash()
 
-	if !reflect.DeepEqual(expectedBlock, retBlock) {
-		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, expectedBlock)
-	}
+	require.Equal(t, expectedBlock, retBlock, "Could not validate returned retBlock as expected")
 
 }
 
 func TestAddBlock(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestAddBlock")
-	if err != nil {
-		t.Fatal("Failed to create temp folder for TestAddBlock test", "err", err)
-	}
+	require.Nil(t, err)
 
 	//Create a new blockState
 	blockState, err := NewBlockState(dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	//Close DB
 	defer func() {
 		err = blockState.db.Db.Close()
-		if err != nil {
-			t.Fatal("BlockDB close err: ", err)
-		}
+		require.Nil(t, err, "BlockDB close err: ", err)
 	}()
 
 	// Create header
-	header0 := &types.BlockHeader{
+	header0 := &types.Header{
 		Number: big.NewInt(0),
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
 
 	// BlockBody with fake extrinsics
-	blockBody0 := types.BlockBody{}
-	blockBody0 = append(blockBody0, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
+	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block0 := types.Block{
 		Header: header0,
@@ -107,19 +88,16 @@ func TestAddBlock(t *testing.T) {
 
 	// Add the block0 to the DB
 	err = blockState.AddBlock(block0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Create header & blockData for block 1
-	header1 := &types.BlockHeader{
+	header1 := &types.Header{
 		Number: big.NewInt(1),
 	}
 	blockHash1 := header1.Hash()
 
 	// Create Block with fake extrinsics
-	blockBody1 := types.BlockBody{}
-	blockBody1 = append(blockBody1, []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}...)
+	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	block1 := types.Block{
 		Header: header1,
@@ -128,15 +106,11 @@ func TestAddBlock(t *testing.T) {
 
 	// Add the block1 to the DB
 	err = blockState.AddBlock(block1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
 	retBlock, err := blockState.GetBlockByHash(blockHash0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// this will panic if not successful, so catch and fail it so
 	func() {
@@ -146,19 +120,13 @@ func TestAddBlock(t *testing.T) {
 				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
 			}
 		}()
-		if hash == (common.Hash{}) {
-			t.Fatal(err)
-		}
+		require.NotEqual(t, hash, common.Hash{})
 	}()
 
-	if !reflect.DeepEqual(block0, retBlock) {
-		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block0)
-	}
+	require.Equal(t, block0, retBlock, "Could not validate returned block0 as expected")
 
 	retBlock, err = blockState.GetBlockByHash(blockHash1)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// this will panic if not successful, so catch and fail it so
 	func() {
@@ -168,18 +136,12 @@ func TestAddBlock(t *testing.T) {
 				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
 			}
 		}()
-		if hash == (common.Hash{}) {
-			t.Fatal(err)
-		}
+		require.NotEqual(t, hash, common.Hash{})
 	}()
 
-	if !reflect.DeepEqual(block1, retBlock) {
-		t.Fatalf("Fail: got %+v\nexpected %+v", retBlock, block1)
-	}
+	require.Equal(t, block1, retBlock, "Could not validate returned block1 as expected")
 
 	// Check if latestBlock is set correctly
-	if !reflect.DeepEqual(*block1.Header, blockState.latestBlock) {
-		t.Fatalf("LatestBlock Fail: got %+v\nexpected %+v", blockState.latestBlock, block1)
-	}
+	require.Equal(t, block1.Header, blockState.header, "Latest Header Block Check Fail")
 
 }
