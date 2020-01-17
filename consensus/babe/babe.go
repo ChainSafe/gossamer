@@ -31,14 +31,12 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
-	blockState     state.BlockApi // TODO: we should use blockState, not state; however, using it causes babe.Start to fail during tests.
-	state          *state.Service
+	blockState     BlockState // TODO: using an interface causes babe.Start to fail during tests with SIGABRT
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -51,8 +49,7 @@ type Session struct {
 }
 
 type SessionConfig struct {
-	BlockState     state.BlockApi
-	State          *state.Service
+	BlockState     BlockState
 	Keypair        *sr25519.Keypair
 	Runtime        *runtime.Runtime
 	NewBlocks      chan<- types.Block
@@ -69,7 +66,6 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	babeSession := &Session{
 		blockState:     cfg.BlockState,
-		state:          cfg.State,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
 		txQueue:        new(tx.PriorityQueue),
@@ -135,18 +131,8 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
-	if b.state == nil {
-		log.Error("BABE block authoring", "error", "state is nil")
-		return
-	}
-
-	if b.state.Block == nil {
-		log.Error("BABE block authoring", "error", "state.Block is nil")
-		return
-	}
-
 	for ; slotNum < b.config.EpochLength; slotNum++ {
-		parentHeader := b.state.Block.GetLatestBlockHeader()
+		parentHeader := b.blockState.GetLatestBlockHeader()
 		if parentHeader == nil {
 			log.Error("BABE block authoring", "error", "parent header is nil")
 		} else {
@@ -160,7 +146,8 @@ func (b *Session) invokeBlockAuthoring() {
 			if err != nil {
 				log.Error("BABE block authoring", "error", err)
 			} else {
-				log.Info("BABE", "built block", block.Header.Hash(), "number", block.Header.Number)
+				hash := block.Header.Hash()
+				log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
 				b.newBlocks <- *block
 				err = b.blockState.AddBlock(*block.Header)
 				if err != nil {

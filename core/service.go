@@ -30,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -48,8 +47,7 @@ type Service struct {
 }
 
 type Config struct {
-	BlockState state.BlockApi
-	State      *state.Service
+	BlockState BlockState
 	Keystore   *keystore.Keystore
 	Runtime    *runtime.Runtime
 	MsgRec     <-chan p2p.Message
@@ -85,7 +83,6 @@ func NewService(cfg *Config) (*Service, error) {
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
 		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
-		State:          cfg.State,
 		BlockState:     cfg.BlockState,
 		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
 		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
