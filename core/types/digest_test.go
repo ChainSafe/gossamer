@@ -25,7 +25,7 @@ func TestChangesTrieRootDigest(t *testing.T) {
 
 func TestPreRuntimeDigest(t *testing.T) {
 	d := &PreRuntimeDigest{
-		ConsensusEngineId: BabeEngineId,
+		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 3, 5, 7},
 	}
 
@@ -42,7 +42,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 
 func TestConsensusDigest(t *testing.T) {
 	d := &ConsensusDigest{
-		ConsensusEngineId: BabeEngineId,
+		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 3, 5, 7},
 	}
 
@@ -59,7 +59,7 @@ func TestConsensusDigest(t *testing.T) {
 
 func TestSealDigest(t *testing.T) {
 	d := &SealDigest{
-		ConsensusEngineId: BabeEngineId,
+		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 3, 5, 7},
 	}
 

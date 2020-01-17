@@ -125,7 +125,7 @@ func (d *PreRuntimeDigest) Decode(in []byte) error {
 		return errors.New("input is too short: need at least 4 bytes")
 	}
 
-	copy(d.ConsensusEngineId[:], in[:4])
+	copy(d.ConsensusEngineID[:], in[:4])
 	d.Data = in[4:]
 	return nil
 }
@@ -151,7 +151,7 @@ func (d *ConsensusDigest) Decode(in []byte) error {
 		return errors.New("input is too short: need at least 4 bytes")
 	}
 
-	copy(d.ConsensusEngineId[:], in[:4])
+	copy(d.ConsensusEngineID[:], in[:4])
 	d.Data = in[4:]
 	return nil
 }
@@ -177,7 +177,7 @@ func (d *SealDigest) Decode(in []byte) error {
 		return errors.New("input is too short: need at least 4 bytes")
 	}
 
-	copy(d.ConsensusEngineId[:], in[:4])
+	copy(d.ConsensusEngineID[:], in[:4])
 	d.Data = in[4:]
 	return nil
 }
