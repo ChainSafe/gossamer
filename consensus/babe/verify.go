@@ -5,18 +5,14 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
-func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader, pub *sr25519.PublicKey) (bool, error) {
+func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
 
-	//pub := b.authorityData[header.BlockProducerIndex].id
-
-	//fmt.Println(b.authorityData[0].id.Encode())
-	fmt.Println(pub.Encode())
+	pub := b.authorityData[header.BlockProducerIndex].id
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
@@ -74,8 +70,17 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.BlockHeader) 
 		return false, err
 	}
 
-	fmt.Println(authorPub.Encode())
+	// verify that they are the slot winner
+	ok, err = b.verifySlotWinner(slot, babeHeader)
+	if err != nil {
+		return false, err
+	}
 
+	if !ok {
+		return false, fmt.Errorf("could not verify slot claim")
+	}
+
+	// verify the seal is valid
 	ok, err = authorPub.Verify(encHeader, seal.Data)
 	if err != nil {
 		return false, err
@@ -86,7 +91,5 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.BlockHeader) 
 	}
 
 	// TODO: check if the producer has equivocated, ie. have they produced a conflicting block?
-
-	// verify that they are the slot winner
-	return b.verifySlotWinner(slot, babeHeader, authorPub)
+	return true, nil
 }
