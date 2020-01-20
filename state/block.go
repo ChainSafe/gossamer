@@ -14,9 +14,9 @@ import (
 
 // blockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type blockState struct {
-	bt     *blocktree.BlockTree
-	db     *polkadb.BlockDB
-	header *types.Header
+	bt           *blocktree.BlockTree
+	db           *polkadb.BlockDB
+	latestHeader *types.Header
 }
 
 // NewBlockState will create a new blockState struct using dataDir
@@ -114,7 +114,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 
 // LatestHeader returns the latest block available on blockState
 func (bs *blockState) LatestHeader() *types.Header {
-	return types.SafeCopyHeader(bs.header)
+	return types.SafeCopyHeader(bs.latestHeader)
 }
 
 // GetBlockByHash returns a block for a given hash
@@ -198,14 +198,14 @@ func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.Ba
 func (bs *blockState) AddBlock(block types.Block) error {
 
 	// Set the latest block
-	if bs.header == nil {
-		bs.header = types.SafeCopyHeader(block.Header)
-	} else if block.Header.Number != nil && block.Header.Number.Cmp(bs.header.Number) == 1 { // If the new block has a number greater than current latestBlock
-		bs.header = types.SafeCopyHeader(block.Header)
+	if bs.latestHeader == nil {
+		bs.latestHeader = types.SafeCopyHeader(block.Header)
+	} else if block.Header.Number != nil && block.Header.Number.Cmp(bs.latestHeader.Number) == 1 { // If the new block has a number greater than current latestBlock
+		bs.latestHeader = types.SafeCopyHeader(block.Header)
 	}
 
 	// Add the blockHeader to the DB
-	err := bs.SetHeader(bs.header)
+	err := bs.SetHeader(bs.latestHeader)
 	if err != nil {
 		return err
 	}

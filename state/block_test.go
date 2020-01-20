@@ -143,6 +143,6 @@ func TestAddBlock(t *testing.T) {
 	require.Equal(t, block1, retBlock, "Could not validate returned block1 as expected")
 
 	// Check if latestBlock is set correctly
-	require.Equal(t, block1.Header, blockState.header, "Latest Header Block Check Fail")
+	require.Equal(t, block1.Header, blockState.latestHeader, "Latest Header Block Check Fail")
 
 }
