@@ -65,7 +65,7 @@ var (
 
 var (
 	dumpConfigCommand = cli.Command{
-		Action:      utils.FixFlagsOder(dumpConfig),
+		Action:      utils.FixFlagOrder(dumpConfig),
 		Name:        "dumpconfig",
 		Usage:       "Show configuration values",
 		ArgsUsage:   "",
@@ -74,7 +74,7 @@ var (
 		Description: `The dumpconfig command shows configuration values.`,
 	}
 	initCommand = cli.Command{
-		Action:    utils.FixFlagsOder(initNode),
+		Action:    utils.FixFlagOrder(initNode),
 		Name:      "init",
 		Usage:     "Initialize node genesis state",
 		ArgsUsage: "",
@@ -88,7 +88,7 @@ var (
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
 	accountCommand = cli.Command{
-		Action:   utils.FixFlagsOder(handleAccounts),
+		Action:   utils.FixFlagOrder(handleAccounts),
 		Name:     "account",
 		Usage:    "manage gossamer keystore",
 		Flags:    append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
