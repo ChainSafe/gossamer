@@ -32,7 +32,7 @@ const (
 	// P2P
 	DefaultP2PPort = 7001
 
-	DefaultGenesisPath = "./genesis.json"
+	DefaultGenesisPath = "config/gssmr0.json"
 )
 
 var (
