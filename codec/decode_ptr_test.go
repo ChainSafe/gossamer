@@ -156,12 +156,14 @@ func TestLargeDecodePtrByteArrays(t *testing.T) {
 func TestDecodePtrByteArrays(t *testing.T) {
 	for _, test := range decodeByteArrayTests {
 		var result = make([]byte, len(test.output))
+		t.Logf("before %v", result)
 		err := DecodePtr(test.val, result)
 		if err != nil {
 			t.Error(err)
 		} else if !bytes.Equal(result, test.output) {
 			t.Errorf("Fail: got %d expected %d", len(result), len(test.output))
 		}
+		t.Logf("after %v", result)
 	}
 }
 

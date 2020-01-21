@@ -190,3 +190,54 @@ func TestEncodeAndDecodeStringInStruct(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", dec, test)
 	}
 }
+
+func TestEncodeString(t *testing.T) {
+	//var test = []string{"test"}
+	//var test = "test"
+	var test = &struct {
+		Foo []byte
+		Bar []byte
+	}{[]byte{0x01}, []byte{0xff, 0xff, 0x02}}
+
+	enc, err := Encode(test)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("encoded %v", enc)
+
+	dec, err := Decode(enc, &struct{Foo []byte; Bar []byte}{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("decoded: %v", dec)
+}
+
+func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
+	test := &struct{
+		A []string
+	} {
+		A: []string{"noot", "noot2"},
+	}
+
+	enc, err := Encode(test)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(enc) == 0 {
+		t.Fatal("fail to encode StringArrayInStruct")
+	}
+
+	t.Logf("encoded %v", enc)
+
+	//dec, err := Decode(enc, &struct{A []string}{})
+	var ts = &struct {A []string	}{}
+	err = DecodePtr(enc, ts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("decoded %v", ts)
+	if !reflect.DeepEqual(test, ts) {
+		t.Fatalf("Fail: got %v expected %v", ts, test)
+	}
+}

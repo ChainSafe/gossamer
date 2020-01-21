@@ -534,6 +534,14 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				// get the pointer to the value and set the value
 				ptr := fieldValue.(*string)
 				*ptr = string(o.([]byte))
+			case []string:
+				// todo ed, find way to split array before calling decode byte array
+				o, err = sd.DecodeByteArray()
+				if err != nil {
+					break
+				}
+				ptr := fieldValue.(*[]string)
+				*ptr = []string{"hello"}
 			default:
 				_, err = sd.Decode(v.Field(i).Interface())
 				if err != nil {
