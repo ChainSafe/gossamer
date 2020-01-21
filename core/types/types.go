@@ -73,18 +73,18 @@ func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, e
 	return bh, nil
 }
 
-// SafeCopyHeader returns a deep copy of the header to prevent side effects down the road
-func SafeCopyHeader(header *Header) *Header {
+// DeepCopy returns a deep copy of the header to prevent side effects down the road
+func (bh *Header) DeepCopy() *Header {
 	//copy everything but pointers / array
-	safeCopyHeader := *header
+	safeCopyHeader := *bh
 	//copy number ptr
-	if header.Number != nil {
-		safeCopyHeader.Number = new(big.Int).Set(header.Number)
+	if bh.Number != nil {
+		safeCopyHeader.Number = new(big.Int).Set(bh.Number)
 	}
 	//copy digest byte array
-	if len(header.Digest) > 0 {
-		safeCopyHeader.Digest = make([][]byte, len(header.Digest))
-		copy(safeCopyHeader.Digest, header.Digest)
+	if len(bh.Digest) > 0 {
+		safeCopyHeader.Digest = make([][]byte, len(bh.Digest))
+		copy(safeCopyHeader.Digest, bh.Digest)
 	}
 
 	return &safeCopyHeader

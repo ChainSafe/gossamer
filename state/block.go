@@ -114,7 +114,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader,
 
 // LatestHeader returns the latest block available on blockState
 func (bs *blockState) LatestHeader() *types.Header {
-	return types.SafeCopyHeader(bs.latestHeader)
+	return bs.latestHeader.DeepCopy()
 }
 
 // GetBlockByHash returns a block for a given hash
@@ -195,13 +195,12 @@ func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.Ba
 }
 
 // AddBlock will set the latestBlock in blockState DB
-func (bs *blockState) AddBlock(block types.Block) error {
+func (bs *blockState) AddBlock(newBlock types.Block) error {
 
 	// Set the latest block
-	if bs.latestHeader == nil {
-		bs.latestHeader = types.SafeCopyHeader(block.Header)
-	} else if block.Header.Number != nil && block.Header.Number.Cmp(bs.latestHeader.Number) == 1 { // If the new block has a number greater than current latestBlock
-		bs.latestHeader = types.SafeCopyHeader(block.Header)
+	// If latestHeader is nil OR the new block number is greater than current block number
+	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
+		bs.latestHeader = newBlock.Header.DeepCopy()
 	}
 
 	// Add the blockHeader to the DB
@@ -209,13 +208,13 @@ func (bs *blockState) AddBlock(block types.Block) error {
 	if err != nil {
 		return err
 	}
-	hash := block.Header.Hash()
+	hash := newBlock.Header.Hash()
 
 	// Create BlockData
 	bd := types.BlockData{
 		Hash:   hash,
-		Header: block.Header,
-		Body:   block.Body,
+		Header: newBlock.Header,
+		Body:   newBlock.Body,
 	}
 	err = bs.SetBlockData(hash, bd)
 	return err
