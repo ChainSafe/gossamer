@@ -5,6 +5,6 @@ import (
 )
 
 type BlockState interface {
-	GetLatestBlockHeader() *types.Header
-	AddBlock(types.Header) error
+	LatestHeader() *types.Header
+	AddBlock(types.Block) error
 }
