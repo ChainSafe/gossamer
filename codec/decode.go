@@ -378,7 +378,13 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
 			*ptr = arr
+		case []string:
+			o, err = sd.DecodeByteArray()
+			if err != nil {
+				break
+			}
 		default:
+			fmt.Errorf("unexpected type: %s", reflect.TypeOf(t))
 			err = errors.New("could not decode invalid slice or array")
 		}
 
@@ -535,8 +541,12 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				ptr := fieldValue.(*string)
 				*ptr = string(o.([]byte))
 			case []string:
+				//sd.DecodePtrByteArray(v.Field(i).Interface())
 				// todo ed, find way to split array before calling decode byte array
-				o, err = sd.DecodeByteArray()
+				//var qty int8
+				//o, err = sd.DecodeFixedWidthInt(qty)
+				var res = []string{""}
+				o, err = sd.DecodeArray(res)
 				if err != nil {
 					break
 				}
