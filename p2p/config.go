@@ -32,7 +32,7 @@ type Config struct {
 	// Peers used for bootstrapping
 	BootstrapNodes []string
 	// Protocol ID for network messages
-	ProtocolId string
+	ProtocolID string
 	// Listening port
 	Port uint32
 	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced, keys will not be loaded from data dir
@@ -58,14 +58,14 @@ func (c *Config) bootnodes() (peer []peer.AddrInfo, err error) {
 
 // protocolId formats the configuration protocol id
 func (c *Config) protocolId() protocol.ID {
-	return protocol.ID(c.ProtocolId)
+	return protocol.ID(c.ProtocolID)
 }
 
 // build checks the configuration, sets up the private key for the p2p service,
 // and applies default values where appropriate
 func (c *Config) build() error {
-	if c.ProtocolId == "" {
-		c.ProtocolId = DefaultProtocolId
+	if c.ProtocolID == "" {
+		c.ProtocolID = DefaultProtocolId
 	}
 
 	if !c.NoBootstrap && len(c.BootstrapNodes) == 0 {

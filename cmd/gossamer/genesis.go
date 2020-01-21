@@ -15,25 +15,25 @@ import (
 )
 
 func loadGenesis(ctx *cli.Context) error {
-	fig, err := getConfig(ctx)
+	defaultConfig, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
 
 	// read genesis file
-	fp := getGenesisPath(ctx)
-	dataDir := fig.Global.DataDir
+	genesisPath := getGenesisPath(ctx)
+	dataDir := tilde(defaultConfig.Global.DataDir)
 	if ctx.String(utils.DataDirFlag.Name) != "" {
-		dataDir = ctx.String(utils.DataDirFlag.Name)
+		dataDir = tilde(ctx.String(utils.DataDirFlag.Name))
 	}
-	log.Debug("Loading genesis", "genesisfile", fp, "datadir", dataDir)
+	log.Debug("Loading genesis", "genesisPath", genesisPath, "dataDir", dataDir)
 
-	gen, err := genesis.LoadGenesisData(fp)
+	gen, err := genesis.LoadGenesisData(genesisPath)
 	if err != nil {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.Id, "protocolID", gen.ProtocolId, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
+	log.Info("🕸\t Initializing node", "Name", gen.Name, "ID", gen.ID, "protocolID", gen.ProtocolID, "Bootnodes", common.BytesToStringArray(gen.Bootnodes))
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)

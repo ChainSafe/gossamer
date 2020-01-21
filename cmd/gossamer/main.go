@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -64,7 +65,7 @@ var (
 
 var (
 	dumpConfigCommand = cli.Command{
-		Action:      dumpConfig,
+		Action:      utils.FixFlagsOder(dumpConfig),
 		Name:        "dumpconfig",
 		Usage:       "Show configuration values",
 		ArgsUsage:   "",
@@ -73,7 +74,7 @@ var (
 		Description: `The dumpconfig command shows configuration values.`,
 	}
 	initCommand = cli.Command{
-		Action:    initNode,
+		Action:    utils.FixFlagsOder(initNode),
 		Name:      "init",
 		Usage:     "Initialize node genesis state",
 		ArgsUsage: "",
@@ -87,7 +88,7 @@ var (
 		Description: `The init command initializes the node with a genesis state. Usage: gossamer init --genesis genesis.json`,
 	}
 	accountCommand = cli.Command{
-		Action:   handleAccounts,
+		Action:   utils.FixFlagsOder(handleAccounts),
 		Name:     "account",
 		Usage:    "manage gossamer keystore",
 		Flags:    append(append(accountFlags, utils.DataDirFlag), utils.VerbosityFlag),
@@ -123,6 +124,8 @@ func init() {
 
 func main() {
 	if err := app.Run(os.Args); err != nil {
+		//log err
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
