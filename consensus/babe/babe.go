@@ -47,8 +47,9 @@ type Session struct {
 	newBlocks      chan<- types.Block            // send blocks to core service
 }
 
+//nolint:structcheck
 type SessionConfig struct {
-	BlockState BlockState
+	BlockState BlockState //nolint:unused
 	Keypair    *sr25519.Keypair
 	Runtime    *runtime.Runtime
 	NewBlocks  chan<- types.Block
