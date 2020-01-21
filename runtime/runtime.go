@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	scale "github.com/ChainSafe/gossamer/codec"
-	//"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/keystore"
 	allocator "github.com/ChainSafe/gossamer/runtime/allocator"
 	log "github.com/ChainSafe/log15"
