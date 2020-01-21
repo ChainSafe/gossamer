@@ -21,7 +21,7 @@ func (b *Session) verifySlotWinner(slot uint64, header *BabeHeader) (bool, error
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
-func (b *Session) verifyAuthorshipRight(slot uint64, header *types.BlockHeader) (bool, error) {
+func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool, error) {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {
