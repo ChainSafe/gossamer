@@ -35,6 +35,7 @@ import (
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
+	blockState     BlockState
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -47,9 +48,10 @@ type Session struct {
 }
 
 type SessionConfig struct {
-	Keypair   *sr25519.Keypair
-	Runtime   *runtime.Runtime
-	NewBlocks chan<- types.Block
+	BlockState BlockState
+	Keypair    *sr25519.Keypair
+	Runtime    *runtime.Runtime
+	NewBlocks  chan<- types.Block
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
