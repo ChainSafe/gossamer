@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
@@ -64,7 +65,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
-		libp2p.Ping(true),
 		libp2p.ConnectionManager(cm),
 	}
 
@@ -81,13 +81,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	h = rhost.Wrap(h, dht)
 
 	// format bootnodes
-	bns, err := cfg.bootnodes()
+	bns, err := stringsToAddrInfos(cfg.BootstrapNodes)
 	if err != nil {
 		return nil, err
 	}
 
 	// format protocol id
-	pid := cfg.protocolId()
+	pid := protocol.ID(cfg.ProtocolId)
 
 	return &host{
 		ctx:        ctx,
@@ -184,6 +184,12 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 	}
 
 	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}
+
+	// variable length encoding
+	_, err = s.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
 	if err != nil {
 		return err
 	}
