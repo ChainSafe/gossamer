@@ -527,7 +527,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 				for i := 0; i < int(length); i++ {
 					o, err = sd.DecodeByteArray()
-					s[i] = string(o.([]byte)[:])  // cast []byte into string
+					s[i] = string(o.([]byte)[:]) // cast []byte into string
 					if err != nil {
 						break
 					}

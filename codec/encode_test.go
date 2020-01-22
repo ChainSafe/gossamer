@@ -18,11 +18,12 @@ package codec
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type encodeTest struct {
@@ -193,9 +194,9 @@ func TestEncodeAndDecodeStringInStruct(t *testing.T) {
 }
 
 func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
-	test := &struct{
+	test := &struct {
 		A []string
-	} {
+	}{
 		A: []string{"noot", "noot2"},
 	}
 
@@ -203,7 +204,7 @@ func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 	require.Nil(t, err)
 	require.NotEqual(t, 0, len(enc), "Failed to encode StringArrayInStruct")
 
-	var result = &struct {A []string	}{}
+	var result = &struct{ A []string }{}
 
 	err = DecodePtr(enc, result)
 	require.Nil(t, err)
