@@ -529,7 +529,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 					o, err = sd.DecodeByteArray()
 					s[i] = string(o.([]byte)[:]) // cast []byte into string
 					if err != nil {
-						break
+						return nil, err
 					}
 				}
 				// get the pointer to the value and set the value
