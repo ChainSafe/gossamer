@@ -519,23 +519,12 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				ptr := fieldValue.(*string)
 				*ptr = string(o.([]byte))
 			case []string:
-				length, err := sd.DecodeInteger()
+				o, err = sd.DecodeStringArray()
 				if err != nil {
-					return nil, err
+					break
 				}
-				s := make([]string, length)
-
-				for i := 0; i < int(length); i++ {
-					o, err = sd.DecodeByteArray()
-					if err != nil {
-						return nil, err
-					}
-					s[i] = string(o.([]byte)[:]) // cast []byte into string
-
-				}
-				// get the pointer to the value and set the value
 				ptr := fieldValue.(*[]string)
-				*ptr = s
+				*ptr = o.([]string)
 			default:
 				_, err = sd.Decode(v.Field(i).Interface())
 				if err != nil {
@@ -605,4 +594,21 @@ func (sd *Decoder) DecodeBoolArray() ([]bool, error) {
 		}
 	}
 	return o, nil
+}
+
+func (sd *Decoder) DecodeStringArray() ([]string, error) {
+	length, err := sd.DecodeInteger()
+	if err != nil {
+		return nil, err
+	}
+	s := make([]string, length)
+
+	for i := 0; i < int(length); i++ {
+		o, err := sd.DecodeByteArray()
+		if err != nil {
+			return nil, err
+		}
+		s[i] = string(o[:]) // cast []byte into string
+	}
+	return s, nil
 }
