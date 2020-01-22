@@ -64,19 +64,17 @@ func TestGenerateKey(t *testing.T) {
 		t.Error("Generated keys should not match")
 	}
 
-	// TODO: investigate math random key generation using secp256k1
+	keyC, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// keyC, err := generateKey(1, testDir)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	//
-	// keyD, err := generateKey(1, testDir)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	//
-	// if !reflect.DeepEqual(keyC, keyD) {
-	// 	t.Error("Generated keys should match")
-	// }
+	keyD, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(keyC, keyD) {
+		t.Error("Generated keys should match")
+	}
 }

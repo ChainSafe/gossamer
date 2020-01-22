@@ -70,8 +70,7 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 	} else {
 		r = mrand.New(mrand.NewSource(seed))
 	}
-	// TODO: secp256k1 in polkadot / ed25519 in specification
-	key, _, err := crypto.GenerateSecp256k1Key(r)
+	key, _, err := crypto.GenerateEd25519Key(r)
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +100,7 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: secp256k1 in polkadot / ed25519 in specification
-	return crypto.UnmarshalSecp256k1PrivateKey(dec)
+	return crypto.UnmarshalEd25519PrivateKey(dec)
 }
 
 // makeDir creates `.gossamer` if directory does not already exist
