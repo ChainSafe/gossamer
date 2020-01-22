@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/tests"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/state"
 

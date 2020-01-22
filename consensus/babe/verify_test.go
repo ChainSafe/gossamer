@@ -1,11 +1,12 @@
 package babe
 
 import (
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/tests"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )

@@ -18,13 +18,14 @@ package babe
 
 import (
 	"bytes"
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/tests"
 	"math"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"

@@ -18,11 +18,12 @@ package runtime
 
 import (
 	"encoding/binary"
-	"github.com/ChainSafe/gossamer/tests"
-	"github.com/stretchr/testify/require"
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/tests"
+	"github.com/stretchr/testify/require"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )

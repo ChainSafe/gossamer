@@ -1,12 +1,13 @@
 package tests
 
 import (
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/trie"
 	"io"
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
 const (
@@ -32,6 +33,16 @@ func GetAbsolutePath(targetDir string) string {
 	return completePath
 }
 
+func GetRuntimeVars(targetRuntime string) (string, string) {
+	testRuntimeFilePath, testRuntimeURL := GetAbsolutePath(TESTS_FP), TEST_WASM_URL
+
+	// If target runtime is polkadot, re-assign vars
+	if targetRuntime == POLKADOT_RUNTIME {
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
+	}
+	return testRuntimeFilePath, testRuntimeURL
+}
+
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
 func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err error) {
 	if Exists(testRuntimeFilePath) {
@@ -46,6 +57,7 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err er
 		_ = out.Close()
 	}()
 
+	/* #nosec */
 	resp, err := http.Get(testRuntimeURL)
 	if err != nil {
 		return 0, err
