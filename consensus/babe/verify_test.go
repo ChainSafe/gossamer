@@ -1,6 +1,8 @@
 package babe
 
 import (
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 	"math/big"
 	"testing"
 	"time"
@@ -9,7 +11,7 @@ import (
 )
 
 func TestVerifySlotWinner(t *testing.T) {
-	rt := newRuntime(t)
+	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
@@ -73,7 +75,7 @@ func TestVerifySlotWinner(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight(t *testing.T) {
-	rt := newRuntime(t)
+	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
