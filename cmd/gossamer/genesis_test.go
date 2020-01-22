@@ -113,9 +113,6 @@ func TestGenesisStateLoading(t *testing.T) {
 	}
 
 	mgr := d.Services.Get(&core.Service{})
-	if _, ok := mgr.(*core.Service); !ok {
-		t.Fatal()
-	}
 
 	stateRoot, err := mgr.(*core.Service).StorageRoot()
 	if err != nil {
