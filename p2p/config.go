@@ -22,6 +22,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const KeyFile = "node.key"
+
+const DefaultProtocolId = "/gossamer/dot/0"
+
 // Config is used to configure a p2p service
 type Config struct {
 	// Peers used for bootstrapping
@@ -45,6 +49,10 @@ type Config struct {
 // build checks the configuration, sets up the private key for the p2p service,
 // and applies default values where appropriate
 func (c *Config) build() error {
+	if c.ProtocolId == "" {
+		c.ProtocolId = DefaultProtocolId
+	}
+
 	if !c.NoBootstrap && len(c.BootstrapNodes) == 0 {
 		log.Warn("Bootstrap is enabled and no bootstrap nodes are defined")
 	}

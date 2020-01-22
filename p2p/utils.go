@@ -34,8 +34,6 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-const KeyFile = "node.key"
-
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
 	maddr, err := multiaddr.NewMultiaddr(s)
@@ -140,13 +138,6 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 
 // decodeMessage decodes the message based on message type
 func decodeMessage(r io.Reader) (m Message, err error) {
-
-	// variable length encoding
-	_, err = readByte(r)
-	if err != nil {
-		return nil, err
-	}
-
 	msgType, err := readByte(r)
 	if err != nil {
 		return nil, err
