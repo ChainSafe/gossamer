@@ -527,10 +527,11 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 
 				for i := 0; i < int(length); i++ {
 					o, err = sd.DecodeByteArray()
-					s[i] = string(o.([]byte)[:]) // cast []byte into string
 					if err != nil {
 						return nil, err
 					}
+					s[i] = string(o.([]byte)[:]) // cast []byte into string
+
 				}
 				// get the pointer to the value and set the value
 				ptr := fieldValue.(*[]string)
