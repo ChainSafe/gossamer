@@ -310,11 +310,11 @@ func TestSetP2pConfig(t *testing.T) {
 		{
 			"protocol id",
 			[]string{"protocol"},
-			[]interface{}{"/gossamer/dot/test"},
+			[]interface{}{"/gossamer/test"},
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           cfg.DefaultP2PPort,
-				ProtocolId:     "/gossamer/dot/test",
+				ProtocolId:     "/gossamer/test",
 				NoBootstrap:    false,
 				NoMdns:         false,
 			},
