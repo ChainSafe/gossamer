@@ -281,22 +281,6 @@ func (sd *Decoder) DecodeByteArray() (o []byte, err error) {
 	return b, nil
 }
 
-// DecodePtrByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
-// of the byte array
-func (sd *Decoder) DecodePtrByteArray(output interface{}) error {
-	_, err := sd.DecodeInteger()
-	if err != nil {
-		return err
-	}
-
-	_, err = sd.Reader.Read(output.([]byte))
-	if err != nil {
-		return errors.New("could not decode invalid byte array: reached early EOF")
-	}
-
-	return nil
-}
-
 // DecodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
 // of the bool then returns it. if invalid, return false and an error
 func (sd *Decoder) DecodeBool() (bool, error) {
@@ -378,13 +362,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
 			*ptr = arr
-		case []string:
-			o, err = sd.DecodeByteArray()
-			if err != nil {
-				break
-			}
 		default:
-			fmt.Errorf("unexpected type: %s", reflect.TypeOf(t))
 			err = errors.New("could not decode invalid slice or array")
 		}
 
@@ -541,17 +519,22 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				ptr := fieldValue.(*string)
 				*ptr = string(o.([]byte))
 			case []string:
-				//sd.DecodePtrByteArray(v.Field(i).Interface())
-				// todo ed, find way to split array before calling decode byte array
-				//var qty int8
-				//o, err = sd.DecodeFixedWidthInt(qty)
-				var res = []string{""}
-				o, err = sd.DecodeArray(res)
+				length, err := sd.DecodeInteger()
 				if err != nil {
-					break
+					return nil, err
 				}
+				s := make([]string, length)
+
+				for i := 0; i < int(length); i++ {
+					o, err = sd.DecodeByteArray()
+					s[i] = string(o.([]byte)[:])  // cast []byte into string
+					if err != nil {
+						break
+					}
+				}
+				// get the pointer to the value and set the value
 				ptr := fieldValue.(*[]string)
-				*ptr = []string{"hello"}
+				*ptr = s
 			default:
 				_, err = sd.Decode(v.Field(i).Interface())
 				if err != nil {

@@ -18,6 +18,7 @@ package codec
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"reflect"
 	"strings"
@@ -191,27 +192,6 @@ func TestEncodeAndDecodeStringInStruct(t *testing.T) {
 	}
 }
 
-func TestEncodeString(t *testing.T) {
-	//var test = []string{"test"}
-	//var test = "test"
-	var test = &struct {
-		Foo []byte
-		Bar []byte
-	}{[]byte{0x01}, []byte{0xff, 0xff, 0x02}}
-
-	enc, err := Encode(test)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("encoded %v", enc)
-
-	dec, err := Decode(enc, &struct{Foo []byte; Bar []byte}{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("decoded: %v", dec)
-}
-
 func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 	test := &struct{
 		A []string
@@ -220,24 +200,12 @@ func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 	}
 
 	enc, err := Encode(test)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+	require.NotEqual(t, 0, len(enc), "Failed to encode StringArrayInStruct")
 
-	if len(enc) == 0 {
-		t.Fatal("fail to encode StringArrayInStruct")
-	}
+	var result = &struct {A []string	}{}
 
-	t.Logf("encoded %v", enc)
-
-	//dec, err := Decode(enc, &struct{A []string}{})
-	var ts = &struct {A []string	}{}
-	err = DecodePtr(enc, ts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("decoded %v", ts)
-	if !reflect.DeepEqual(test, ts) {
-		t.Fatalf("Fail: got %v expected %v", ts, test)
-	}
+	err = DecodePtr(enc, result)
+	require.Nil(t, err)
+	require.Equal(t, test, result, "Decoding failed")
 }
