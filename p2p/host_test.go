@@ -103,7 +103,7 @@ func TestBootstrap(t *testing.T) {
 	configB := &Config{
 		BootstrapNodes: []string{addrA.String()},
 		Port:           7002,
-		ProtocolId:     "gossamer/dot/0",
+		ProtocolId:     "gossamer/test",
 		RandSeed:       2,
 		NoMdns:         true,
 	}
