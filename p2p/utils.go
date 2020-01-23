@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/filecoin-project/go-leb128"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -132,6 +133,12 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 		return err
 	}
 	return f.Close()
+}
+
+// encodeMessageLEB128 applies leb128 variable-length encoding
+func encodeMessageLEB128(encMsg []byte) []byte {
+	out := leb128.FromUInt64(uint64(len(encMsg)))
+	return append(out, encMsg...)
 }
 
 // decodeMessage decodes the message based on message type

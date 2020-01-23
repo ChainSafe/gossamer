@@ -178,7 +178,7 @@ func (s *Service) handleStream(stream network.Stream) {
 	r := bufio.NewReader(stream)
 
 	for {
-		// variable length encoding
+		// read leb128 variable-length encoding
 		_, err := readByte(r)
 		if err != nil {
 			log.Error("Failed to read message encoding", "peer", peer, "err", err)

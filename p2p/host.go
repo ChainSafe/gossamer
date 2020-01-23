@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/sync"
@@ -188,11 +187,8 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 		return err
 	}
 
-	// variable length encoding
-	_, err = s.Write(common.Uint16ToBytes(uint16(len(encMsg)))[0:1])
-	if err != nil {
-		return err
-	}
+	// append leb128 variable-length encoding
+	encMsg = encodeMessageLEB128(encMsg)
 
 	_, err = s.Write(encMsg)
 	if err != nil {
