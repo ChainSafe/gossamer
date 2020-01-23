@@ -22,9 +22,9 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// read genesis file
 	genesisPath := getGenesisPath(ctx)
-	dataDir := tilde(defaultConfig.Global.DataDir)
+	dataDir := expandTilde(defaultConfig.Global.DataDir)
 	if ctx.String(utils.DataDirFlag.Name) != "" {
-		dataDir = tilde(ctx.String(utils.DataDirFlag.Name))
+		dataDir = expandTilde(ctx.String(utils.DataDirFlag.Name))
 	}
 	log.Debug("Loading genesis", "genesisPath", genesisPath, "dataDir", dataDir)
 

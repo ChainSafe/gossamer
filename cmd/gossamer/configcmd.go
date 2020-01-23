@@ -55,7 +55,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	var srvcs []services.Service
 
-	dataDir := tilde(defaultConfig.Global.DataDir)
+	dataDir := expandTilde(defaultConfig.Global.DataDir)
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
@@ -339,8 +339,8 @@ var tomlSettings = toml.Config{
 	},
 }
 
-// tilde will expand a tilde prefix path to full home path
-func tilde(targetPath string) string {
+// expandTilde will expand a tilde prefix path to full home path
+func expandTilde(targetPath string) string {
 	if strings.HasPrefix(targetPath, "~\\") || strings.HasPrefix(targetPath, "~/") {
 		if homeDir := home(); homeDir != "" {
 			targetPath = homeDir + targetPath[1:]
