@@ -102,7 +102,7 @@ func TestStartService(t *testing.T) {
 
 	dataDir := "./test_data"
 	dbSrv := state.NewService(dataDir)
-	err := dbSrv.Initialize(&types.BlockHeader{
+	err := dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 	}, trie.NewEmptyTrie(nil))
@@ -226,7 +226,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 	// simulate block sent from BABE session
 	newBlocks <- types.Block{
-		Header: &types.BlockHeader{
+		Header: &types.Header{
 			Number: big.NewInt(0),
 		},
 	}

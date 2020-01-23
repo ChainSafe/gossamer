@@ -337,11 +337,11 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 
 	genesisBlock := types.Block{
-		Header: &types.BlockHeader{
+		Header: &types.Header{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
 		},
-		Body: &types.BlockBody{},
+		Body: &types.Body{},
 	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
@@ -355,11 +355,11 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 
 	for i := 1; i <= depth; i++ {
 		block := types.Block{
-			Header: &types.BlockHeader{
+			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 			},
-			Body: &types.BlockBody{},
+			Body: &types.Body{},
 		}
 
 		hash := block.Header.Hash()
@@ -419,7 +419,7 @@ func TestStart(t *testing.T) {
 
 	dataDir := "./test_data"
 	dbSrv := state.NewService(dataDir)
-	err = dbSrv.Initialize(&types.BlockHeader{
+	err = dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 	}, trie.NewEmptyTrie(nil))
@@ -476,7 +476,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 	dataDir := "./test_data"
 	dbSrv := state.NewService(dataDir)
-	err = dbSrv.Initialize(&types.BlockHeader{
+	err = dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 	}, trie.NewEmptyTrie(nil))
@@ -569,7 +569,7 @@ func TestSeal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	header, err := types.NewBlockHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, [][]byte{})
+	header, err := types.NewHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, [][]byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -594,29 +594,10 @@ func TestSeal(t *testing.T) {
 	}
 }
 
-func TestBuildBlock_ok(t *testing.T) {
-	rt := newRuntime(t)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+func createTestBlock(babesession *Session, t *testing.T) (*types.Block, Slot) {
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
+	babesession.authorityIndex = 0
 	var slotNumber uint64 = 1
 
 	outAndProof, err := babesession.runLottery(slotNumber)
@@ -640,7 +621,7 @@ func TestBuildBlock_ok(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parentHeader := &types.BlockHeader{
+	parentHeader := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
 	}
@@ -651,17 +632,36 @@ func TestBuildBlock_ok(t *testing.T) {
 		number:   slotNumber,
 	}
 
-	// create pre-digest
-	preDigest, err := babesession.buildBlockPreDigest(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// build block
 	block, err := babesession.buildBlock(parentHeader, slot)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	return block, slot
+}
+func TestBuildBlock_ok(t *testing.T) {
+	rt := newRuntime(t)
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Runtime: rt,
+		Keypair: kp,
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	block, slot := createTestBlock(babesession, t)
 
 	// hash of parent header
 	parentHash, err := common.HexToHash("0x03106e6f6f740140676f7373616d65725f69735f636f6f6c6c00000000000000")
@@ -679,7 +679,13 @@ func TestBuildBlock_ok(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedBlockHeader := &types.BlockHeader{
+	// create pre-digest
+	preDigest, err := babesession.buildBlockPreDigest(slot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedBlockHeader := &types.Header{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
@@ -750,7 +756,7 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	parentHeader := &types.BlockHeader{
+	parentHeader := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
 	}

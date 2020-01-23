@@ -35,8 +35,9 @@ import (
 )
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
+//nolint:structcheck
 type Session struct {
-	blockState     BlockState // TODO: using an interface causes babe.Start to fail during tests with SIGABRT
+	blockState     BlockState //nolint:unused
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -48,6 +49,7 @@ type Session struct {
 	newBlocks      chan<- types.Block            // send blocks to core service
 }
 
+//nolint:structcheck
 type SessionConfig struct {
 	BlockState     BlockState
 	Keypair        *sr25519.Keypair
@@ -132,7 +134,7 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.config.EpochLength; slotNum++ {
-		parentHeader := b.blockState.GetLatestBlockHeader()
+		parentHeader := b.blockState.LatestHeader()
 		if parentHeader == nil {
 			log.Error("BABE block authoring", "error", "parent header is nil")
 		} else {
@@ -149,7 +151,7 @@ func (b *Session) invokeBlockAuthoring() {
 				hash := block.Header.Hash()
 				log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
 				b.newBlocks <- *block
-				err = b.blockState.AddBlock(*block.Header)
+				err = b.blockState.AddBlock(*block)
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
 				}
@@ -262,7 +264,7 @@ func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64
 }
 
 // construct a block for this slot with the given parent
-func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block, error) {
+func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
 	log.Debug("build-block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -319,7 +321,7 @@ func (b *Session) buildBlock(parent *types.BlockHeader, slot Slot) (*types.Block
 
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineId and a signature of the encoded block header.
-func (b *Session) buildBlockSeal(header *types.BlockHeader) (*types.SealDigest, error) {
+func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
 	encHeader, err := header.Encode()
 	if err != nil {
 		return nil, err
@@ -343,6 +345,7 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 	if err != nil {
 		return nil, err
 	}
+
 	encBabeHeader := babeHeader.Encode()
 
 	return &types.PreRuntimeDigest{

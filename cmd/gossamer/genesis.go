@@ -86,7 +86,7 @@ func loadGenesis(ctx *cli.Context) error {
 }
 
 // given raw genesis state data, return the initialized state trie and genesis block header.
-func initializeGenesisState(gen genesis.GenesisFields) (*trie.Trie, *types.BlockHeader, error) {
+func initializeGenesisState(gen genesis.GenesisFields) (*trie.Trie, *types.Header, error) {
 	t := trie.NewEmptyTrie(nil)
 	err := t.Load(gen.Raw)
 	if err != nil {
@@ -98,7 +98,7 @@ func initializeGenesisState(gen genesis.GenesisFields) (*trie.Trie, *types.Block
 		return nil, nil, fmt.Errorf("cannot create state root: %s", err)
 	}
 
-	header, err := types.NewBlockHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
+	header, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot create genesis header: %s", err)
 	}

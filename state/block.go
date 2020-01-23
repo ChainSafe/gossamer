@@ -13,10 +13,11 @@ import (
 	"github.com/ChainSafe/gossamer/polkadb"
 )
 
+// blockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type blockState struct {
-	bt          *blocktree.BlockTree
-	db          *polkadb.BlockDB
-	latestBlock *types.BlockHeader
+	bt           *blocktree.BlockTree
+	db           *polkadb.BlockDB
+	latestHeader *types.Header
 }
 
 // NewBlockState will create a new blockState backed by the database located at dataDir
@@ -31,16 +32,16 @@ func NewBlockState(dataDir string, latestHash common.Hash) (*blockState, error) 
 		db: blockDb,
 	}
 
-	latestBlock, err := bs.GetHeader(latestHash)
+	latestHeader, err := bs.GetHeader(latestHash)
 	if err != nil {
 		return bs, fmt.Errorf("NewBlockState latestBlock err: %s", err)
 	}
 
-	bs.latestBlock = latestBlock
+	bs.latestHeader = latestHeader
 	return bs, nil
 }
 
-func NewBlockStateFromGenesis(dataDir string, header *types.BlockHeader) (*blockState, error) {
+func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*blockState, error) {
 	blockDb, err := polkadb.NewBlockDB(dataDir)
 	if err != nil {
 		return nil, err
@@ -51,12 +52,12 @@ func NewBlockStateFromGenesis(dataDir string, header *types.BlockHeader) (*block
 		db: blockDb,
 	}
 
-	err = bs.SetHeader(*header)
+	err = bs.SetHeader(header)
 	if err != nil {
 		return nil, err
 	}
 
-	bs.latestBlock = header
+	bs.latestHeader = header
 	return bs, nil
 }
 
@@ -91,8 +92,8 @@ func blockDataKey(hash common.Hash) []byte {
 }
 
 // GetHeader returns a BlockHeader for a given hash
-func (bs *blockState) GetHeader(hash common.Hash) (*types.BlockHeader, error) {
-	result := new(types.BlockHeader)
+func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
+	var result *types.Header
 
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
@@ -118,8 +119,23 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 	return result, err
 }
 
-func (bs *blockState) GetLatestBlockHeader() *types.BlockHeader {
-	return bs.latestBlock
+// // GetBabeHeader returns a BabeHeader for a given epoch and slot
+// func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (babe.BabeHeader, error) {
+// 	var result babe.BabeHeader
+
+// 	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
+// 	if err != nil {
+// 		return babe.BabeHeader{}, err
+// 	}
+
+// 	err = json.Unmarshal(data, &result)
+
+// 	return result, err
+// }
+
+// LatestHeader returns the latest block available on blockState
+func (bs *blockState) LatestHeader() *types.Header {
+	return bs.latestHeader.DeepCopy()
 }
 
 // GetBlockByHash returns a block for a given hash
@@ -156,7 +172,7 @@ func (bs *blockState) GetBlockByNumber(blockNumber *big.Int) (types.Block, error
 }
 
 // SetHeader will set the header into DB
-func (bs *blockState) SetHeader(header types.BlockHeader) error {
+func (bs *blockState) SetHeader(header *types.Header) error {
 	hash := header.Hash()
 
 	// Write the encoded header
@@ -187,15 +203,42 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 	return err
 }
 
-// AddBlock will add a block into the DB
-func (bs *blockState) AddBlock(block types.BlockHeader) error {
+// // SetBabeHeader will set epoch, slot and blockData into DB
+// func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
+// 	// Write the encoded header
+// 	bh, err := json.Marshal(blockData)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	err = bs.db.Db.Put(babeHeaderKey(epoch, slot), bh)
+// 	return err
+// }
+
+// AddBlock will set the latestBlock in blockState DB
+func (bs *blockState) AddBlock(newBlock types.Block) error {
+
 	// Set the latest block
-	if block.Number.Cmp(bs.latestBlock.Number) == 1 {
-		bs.latestBlock = &block
+	// If latestHeader is nil OR the new block number is greater than current block number
+	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
+		bs.latestHeader = newBlock.Header.DeepCopy()
 	}
 
-	//TODO: Implement Add Block
-	return nil
+	// Add the blockHeader to the DB
+	err := bs.SetHeader(bs.latestHeader)
+	if err != nil {
+		return err
+	}
+	hash := newBlock.Header.Hash()
+
+	// Create BlockData
+	bd := types.BlockData{
+		Hash:   hash,
+		Header: newBlock.Header,
+		Body:   newBlock.Body,
+	}
+	err = bs.SetBlockData(hash, bd)
+	return err
 }
 
 // babeHeaderKey = babeHeaderPrefix || epoch || slice

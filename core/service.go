@@ -39,20 +39,23 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	rt      *runtime.Runtime
-	bs      *babe.Session
-	blkRec  <-chan types.Block // receive blocks from BABE session
-	msgRec  <-chan p2p.Message // receive messages from p2p service
-	msgSend chan<- p2p.Message // send messages to p2p service
+	blockState   BlockState
+	storageState StorageState
+	rt           *runtime.Runtime
+	bs           *babe.Session
+	blkRec       <-chan types.Block // receive blocks from BABE session
+	msgRec       <-chan p2p.Message // receive messages from p2p service
+	msgSend      chan<- p2p.Message // send messages to p2p service
 }
 
 type Config struct {
-	BlockState BlockState
-	Keystore   *keystore.Keystore
-	Runtime    *runtime.Runtime
-	MsgRec     <-chan p2p.Message
-	MsgSend    chan<- p2p.Message
-	NewBlocks  chan types.Block
+	BlockState   BlockState
+	StorageState StorageState
+	Keystore     *keystore.Keystore
+	Runtime      *runtime.Runtime
+	MsgRec       <-chan p2p.Message
+	MsgSend      chan<- p2p.Message
+	NewBlocks    chan types.Block // only used for testing purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -97,11 +100,13 @@ func NewService(cfg *Config) (*Service, error) {
 
 	// core service
 	return &Service{
-		rt:      cfg.Runtime,
-		bs:      bs,
-		blkRec:  cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:  cfg.MsgRec,
-		msgSend: cfg.MsgSend,
+		rt:           cfg.Runtime,
+		bs:           bs,
+		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:       cfg.MsgRec,
+		msgSend:      cfg.MsgSend,
+		blockState:   cfg.BlockState,
+		storageState: cfg.StorageState,
 	}, nil
 }
 
@@ -143,7 +148,7 @@ func (s *Service) Stop() error {
 
 // StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
-	return s.rt.StorageRoot()
+	return s.storageState.StorageRoot()
 }
 
 // receiveBlocks starts receiving blocks from the BABE session

@@ -51,8 +51,8 @@ func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 }
 
 type VrfOutputAndProof struct {
-	output [32]byte
-	proof  [64]byte
+	output [sr25519.VrfOutputLength]byte
+	proof  [sr25519.VrfProofLength]byte
 }
 
 // Slot represents a BABE slot

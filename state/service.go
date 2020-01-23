@@ -28,7 +28,7 @@ func NewService(path string) *Service {
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // The trie does not need a backing DB, since the DB will be created during Service.Start().
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(genesisHeader *types.BlockHeader, t *trie.Trie) error {
+func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	stateDataDir := filepath.Join(s.dbPath, "state")
 	blockDataDir := filepath.Join(s.dbPath, "block")
 
@@ -89,7 +89,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
 
-	err = storageDb.LoadFromDB(blockDb.latestBlock.StateRoot)
+	err = storageDb.LoadFromDB(blockDb.latestHeader.StateRoot)
 	if err != nil {
 		return fmt.Errorf("cannot load state from DB: %s", err)
 	}
