@@ -188,7 +188,7 @@ func TestGetConfig(t *testing.T) {
 		defaultConfig, err := getConfig(context)
 		require.Nil(t, err)
 
-		require.Equal(t, defaultConfig, c.expected)
+		require.Equal(t, c.expected, defaultConfig)
 
 	}
 }
@@ -220,7 +220,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 			setGlobalConfig(context, tCfg)
 
-			require.Equal(t, *tCfg, c.expected)
+			require.Equal(t, c.expected, *tCfg)
 		})
 	}
 }
@@ -295,7 +295,7 @@ func TestSetP2pConfig(t *testing.T) {
 			// Must call global setup to set data dir
 			setP2pConfig(context, &input.P2p)
 
-			require.Equal(t, input.P2p, c.expected)
+			require.Equal(t, c.expected, input.P2p)
 		})
 	}
 }
@@ -348,7 +348,7 @@ func TestSetRpcConfig(t *testing.T) {
 			input := cfg.DefaultConfig()
 			setRpcConfig(context, &input.Rpc)
 
-			require.Equal(t, input.Rpc, c.expected)
+			require.Equal(t, c.expected, input.Rpc)
 		})
 	}
 }
