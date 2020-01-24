@@ -31,7 +31,6 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
-	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
@@ -96,10 +95,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// Core
 	coreConfig := &core.Config{
-		Keystore: ks,
-		Runtime:  r,
-		MsgRec:   p2pMsgSend, // message channel from p2p service to core service
-		MsgSend:  p2pMsgRec,  // message channel from core service to p2p service
+		BlockState:   stateSrv.Block,
+		StorageState: stateSrv.Storage,
+		Keystore:     ks,
+		Runtime:      r,
+		MsgRec:       p2pMsgSend, // message channel from p2p service to core service
+		MsgSend:      p2pMsgRec,  // message channel from core service to p2p service
 	}
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
@@ -193,6 +194,10 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
 	}
 
+	if protocol := ctx.GlobalString(utils.ProtocolIDFlag.Name); protocol != "" {
+		fig.ProtocolID = protocol
+	}
+
 	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
@@ -210,12 +215,19 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 
 // createP2PService creates a p2p service from the command configuration and genesis data
 func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
-	// Default bootnodes are from genesis
+
+	// Default bootnodes and protocol from genesis file
 	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
+	protocolID := string(gendata.ProtocolID)
 
 	// If bootnodes flag has more than 1 bootnode, overwrite
 	if len(fig.P2p.BootstrapNodes) > 0 {
 		boostrapNodes = fig.P2p.BootstrapNodes
+	}
+
+	// If protocol id flag is not an empty string, overwrite
+	if fig.P2p.ProtocolID != "" {
+		protocolID = fig.P2p.ProtocolID
 	}
 
 	// p2p service configuation
@@ -226,7 +238,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		NoBootstrap:    fig.P2p.NoBootstrap,
 		NoMdns:         fig.P2p.NoMdns,
 		DataDir:        fig.Global.DataDir,
-		ProtocolID:     string(gendata.ProtocolID),
+		ProtocolID:     protocolID,
 	}
 
 	p2pMsgRec := make(chan p2p.Message)
@@ -242,10 +254,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 
 // createCoreService creates the core service from the provided core configuration
 func createCoreService(coreConfig *core.Config) *core.Service {
-
-	coreBlkRec := make(chan types.Block)
-
-	coreService, err := core.NewService(coreConfig, coreBlkRec)
+	coreService, err := core.NewService(coreConfig)
 	if err != nil {
 		log.Error("Failed to create new core service", "err", err)
 	}
