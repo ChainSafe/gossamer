@@ -45,13 +45,6 @@ func TestStoreGenesisInfo(t *testing.T) {
 	setGlobalConfig(ctx, &fig.Global)
 	dbSrv := state.NewService(fig.Global.DataDir)
 
-	// err = dbSrv.Start()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	//defer dbSrv.Stop()
-
 	tdb := &trie.Database{
 		Db: dbSrv.Storage.Db.Db,
 	}
