@@ -3,7 +3,6 @@ package state
 import (
 	"io/ioutil"
 	"math/big"
-	"os"
 	"reflect"
 	"testing"
 
@@ -15,15 +14,17 @@ import (
 )
 
 func TestSetAndGetHeader(t *testing.T) {
-	blockDb, err := polkadb.NewBlockDB("./test_data")
+	dataDir, err := ioutil.TempDir("./test_data", "")
+	require.Nil(t, err)
+
+	blockDb, err := polkadb.NewBlockDB(dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	defer func() {
-		if err = os.RemoveAll("../test_data"); err != nil {
-			t.Log("removal of temp directory test_data failed", "error", err)
-		}
+		err = blockDb.Db.Close()
+		require.Nil(t, err, "BlockDB close err: ", err)
 	}()
 
 	bs := &blockState{
@@ -108,15 +109,19 @@ func TestAddBlock(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestAddBlock")
 	require.Nil(t, err)
 
-	//Create a new blockState
-	blockState, err := NewBlockState(dataDir, common.NewHash([]byte{0}))
-	require.Nil(t, err)
+	blockDb, err := polkadb.NewBlockDB(dataDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	//Close DB
 	defer func() {
-		err = blockState.db.Db.Close()
+		err = blockDb.Db.Close()
 		require.Nil(t, err, "BlockDB close err: ", err)
 	}()
+
+	blockState := &blockState{
+		db: blockDb,
+	}
 
 	// Create header
 	header0 := &types.Header{
