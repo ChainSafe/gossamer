@@ -32,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
-	//"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
