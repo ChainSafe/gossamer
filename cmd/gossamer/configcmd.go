@@ -18,7 +18,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -48,14 +47,15 @@ import (
 
 // makeNode sets up node; opening badgerDB instance and returning the Dot container
 func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
-	defaultConfig, err := getConfig(ctx)
+	currentConfig, err := getConfig(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var srvcs []services.Service
 
-	dataDir := expandTilde(defaultConfig.Global.DataDir)
+	dataDir := currentConfig.Global.DataDir
+	log.Debug("Will create service, initialize stateDB and blockDB", "dataDir", dataDir, "currentConfig.Global.DataDir", currentConfig.Global.DataDir)
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
@@ -88,10 +88,10 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	log.Info("🕸\t Configuring node...", "dataDir", dataDir, "protocolID", string(gendata.ProtocolID), "BootstrapNodes", defaultConfig.P2p.BootstrapNodes)
+	log.Info("🕸\t Configuring node...", "dataDir", dataDir, "protocolID", gendata.ProtocolID, "BootstrapNodes", currentConfig.P2p.BootstrapNodes)
 
 	// P2P
-	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(defaultConfig, gendata)
+	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(currentConfig, gendata)
 	srvcs = append(srvcs, p2pSrvc)
 
 	// Core
@@ -109,9 +109,9 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	rpcSrvr := startRpc(ctx, defaultConfig.Rpc, apiSrvc)
+	rpcSrvr := startRpc(ctx, currentConfig.Rpc, apiSrvc)
 
-	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), defaultConfig, nil
+	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -135,26 +135,30 @@ func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtim
 
 // getConfig checks for config.toml if --config flag is specified and sets CLI flags
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
-	defaultConfig := cfg.DefaultConfig()
+	currentConfig := cfg.DefaultConfig()
 	// Load config file.
 	if file := ctx.GlobalString(utils.ConfigFileFlag.Name); file != "" {
 		configFile := ctx.GlobalString(utils.ConfigFileFlag.Name)
 		log.Debug("Loading config file", "configFile", configFile)
-		err := loadConfig(configFile, defaultConfig)
+		err := loadConfig(configFile, currentConfig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
-			return defaultConfig, err
+			return currentConfig, err
 		}
 	} else {
 		log.Debug("Config File is not set")
 	}
 
+	//expand tilde or dot
+	newDataDir := expandTildeOrDot(currentConfig.Global.DataDir)
+	currentConfig.Global.DataDir = newDataDir
+
 	// Parse CLI flags
-	log.Debug("Parse CLI flags")
-	setGlobalConfig(ctx, &defaultConfig.Global)
-	setP2pConfig(ctx, &defaultConfig.P2p)
-	setRpcConfig(ctx, &defaultConfig.Rpc)
-	return defaultConfig, nil
+	log.Debug("Going set CLI flags (will override config file if set) ", "currentConfig", currentConfig)
+	setGlobalConfig(ctx, &currentConfig.Global)
+	setP2pConfig(ctx, &currentConfig.P2p)
+	setRpcConfig(ctx, &currentConfig.Rpc)
+	return currentConfig, nil
 }
 
 // loadConfig loads the contents from config toml and inits Config object
@@ -175,11 +179,12 @@ func loadConfig(file string, config *cfg.Config) error {
 	return nil
 }
 
-func setGlobalConfig(ctx *cli.Context, fig *cfg.GlobalConfig) {
+func setGlobalConfig(ctx *cli.Context, currentConfig *cfg.GlobalConfig) {
+	newDataDir := currentConfig.DataDir
 	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
-		fig.DataDir, _ = filepath.Abs(dir)
+		newDataDir = expandTildeOrDot(dir)
 	}
-	fig.DataDir, _ = filepath.Abs(fig.DataDir)
+	currentConfig.DataDir, _ = filepath.Abs(newDataDir)
 }
 
 func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
@@ -284,14 +289,14 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	defaultConfig, err := getConfig(ctx)
+	currentConfig, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
 
 	comment := ""
 
-	out, err := toml.Marshal(defaultConfig)
+	out, err := toml.Marshal(currentConfig)
 	if err != nil {
 		return err
 	}
@@ -339,23 +344,14 @@ var tomlSettings = toml.Config{
 	},
 }
 
-// expandTilde will expand a tilde prefix path to full home path
-func expandTilde(targetPath string) string {
+// expandTildeOrDot will expand a tilde prefix path to full home path
+func expandTildeOrDot(targetPath string) string {
 	if strings.HasPrefix(targetPath, "~\\") || strings.HasPrefix(targetPath, "~/") {
-		if homeDir := home(); homeDir != "" {
+		if homeDir := cfg.HomeDir(); homeDir != "" {
 			targetPath = homeDir + targetPath[1:]
 		}
+	} else if strings.HasPrefix(targetPath, ".\\") || strings.HasPrefix(targetPath, "./") {
+		targetPath, _ = filepath.Abs(targetPath)
 	}
 	return path.Clean(os.ExpandEnv(targetPath))
-}
-
-// home will return the HOME ENV DIR OR the current user dir
-func home() string {
-	if homeDir := os.Getenv("HOME"); homeDir != "" {
-		return homeDir
-	}
-	if usrDir, err := user.Current(); err == nil {
-		return usrDir.HomeDir
-	}
-	return ""
 }

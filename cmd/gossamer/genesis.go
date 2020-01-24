@@ -15,16 +15,16 @@ import (
 )
 
 func loadGenesis(ctx *cli.Context) error {
-	defaultConfig, err := getConfig(ctx)
+	currentConfig, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
 
 	// read genesis file
 	genesisPath := getGenesisPath(ctx)
-	dataDir := expandTilde(defaultConfig.Global.DataDir)
+	dataDir := expandTildeOrDot(currentConfig.Global.DataDir)
 	if ctx.String(utils.DataDirFlag.Name) != "" {
-		dataDir = expandTilde(ctx.String(utils.DataDirFlag.Name))
+		dataDir = expandTildeOrDot(ctx.String(utils.DataDirFlag.Name))
 	}
 	log.Debug("Loading genesis", "genesisPath", genesisPath, "dataDir", dataDir)
 

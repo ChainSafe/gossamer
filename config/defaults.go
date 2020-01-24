@@ -76,7 +76,7 @@ func DefaultConfig() *Config {
 // persistence requirements.
 func DefaultDataDir() string {
 	// Try to place the data folder in the user's home dir
-	home := homeDir()
+	home := HomeDir()
 	if home != "" {
 		if runtime.GOOS == "darwin" {
 			return filepath.Join(home, "Library", "Gossamer")
@@ -90,7 +90,8 @@ func DefaultDataDir() string {
 	return ""
 }
 
-func homeDir() string {
+// HomeDir returns the current HOME directory
+func HomeDir() string {
 	if home := os.Getenv("HOME"); home != "" {
 		return home
 	}

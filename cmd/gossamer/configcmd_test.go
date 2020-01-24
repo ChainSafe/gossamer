@@ -185,11 +185,10 @@ func TestGetConfig(t *testing.T) {
 		set.String(c.name, c.value, "")
 		context := cli.NewContext(app, set, nil)
 
-		defaultConfig, err := getConfig(context)
+		currentConfig, err := getConfig(context)
 		require.Nil(t, err)
 
-		require.Equal(t, c.expected, defaultConfig)
-
+		require.Equal(t, c.expected, currentConfig)
 	}
 }
 
