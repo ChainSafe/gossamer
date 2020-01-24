@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/common"
 	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
@@ -103,9 +104,10 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	err = json.Unmarshal(data, result)
-	if result == nil {
+	if reflect.DeepEqual(result, new(types.Header)) {
 		return nil, fmt.Errorf("header does not exist")
 	}
+
 	result.Hash()
 	return result, err
 }

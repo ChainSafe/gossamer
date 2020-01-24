@@ -8,8 +8,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/trie"
 	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
 )
 
