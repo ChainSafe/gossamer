@@ -41,7 +41,7 @@ func TestStartService(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestValidateBlock(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestValidateTransaction(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,12 +126,13 @@ func TestAnnounceBlock(t *testing.T) {
 	msgSend := make(chan p2p.Message)
 
 	cfg := &Config{
-		Runtime:  rt,
-		MsgSend:  msgSend, // message channel from core service to p2p service
-		Keystore: keystore.NewKeystore(),
+		Runtime:   rt,
+		MsgSend:   msgSend, // message channel from core service to p2p service
+		Keystore:  keystore.NewKeystore(),
+		NewBlocks: blkRec,
 	}
 
-	s, err := NewService(cfg, blkRec)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +178,7 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +219,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +249,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		Keystore: keystore.NewKeystore(),
 	}
 
-	s, err := NewService(cfg, nil)
+	s, err := NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
