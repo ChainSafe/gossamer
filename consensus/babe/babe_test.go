@@ -408,65 +408,7 @@ func TestSlotTime(t *testing.T) {
 	}
 }
 
-func TestStart(t *testing.T) {
-	t.Skip()
-
-	rt := newRuntime(t)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dataDir := "./test_data"
-	dbSrv := state.NewService(dataDir)
-	err = dbSrv.Initialize(&types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		if err = os.RemoveAll("../test_data"); err != nil {
-			t.Log("removal of temp directory test_data failed", "error", err)
-		}
-	}()
-
-	cfg := &SessionConfig{
-		Runtime:    rt,
-		Keypair:    kp,
-		NewBlocks:  make(chan types.Block),
-		BlockState: dbSrv.Block,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	babesession.authorityIndex = 0
-	babesession.authorityData = []*AuthorityData{{nil, 1}}
-	conf := &BabeConfiguration{
-		SlotDuration:       1,
-		EpochLength:        6,
-		C1:                 1,
-		C2:                 10,
-		GenesisAuthorities: []AuthorityDataRaw{},
-		Randomness:         0,
-		SecondarySlots:     false,
-	}
-	babesession.config = conf
-
-	err = babesession.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestBabeAnnounceMessage(t *testing.T) {
-	t.Skip()
-
 	rt := newRuntime(t)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
