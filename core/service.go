@@ -19,6 +19,7 @@ package core
 import (
 	"fmt"
 
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
@@ -240,15 +241,24 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	block := msg.(*p2p.BlockResponseMessage).Data
+	// TODO: this is not correct, BlockResponseMessage.Data is not necessarily one block
+	// it may contain any number of blocks, depending on how many we requested
+	blockData := msg.(*p2p.BlockResponseMessage).Data
 
-	err := s.validateBlock(block)
+	err := s.validateBlock(blockData)
 	if err != nil {
 		log.Error("Failed to validate block", "err", err)
 		return err
 	}
 
-	return nil
+	block := new(types.Block)
+	_, err = scale.Decode(blockData, block)
+	if err != nil {
+		return err
+	}
+
+	// TODO: if latest block, use AddBlock
+	return s.blockState.SetBlock(block)
 }
 
 // ProcessTransactionMessage validates each transaction in the message and

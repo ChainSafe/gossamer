@@ -170,6 +170,15 @@ func (bs *blockState) SetHeader(header *types.Header) error {
 	return err
 }
 
+func (bs *blockState) SetBlock(block *types.Block) error {
+	blockData := &types.BlockData{
+		Hash:   block.Header.Hash(),
+		Header: block.Header,
+		Body:   block.Body,
+	}
+	return bs.SetBlockData(block.Header.Hash(), blockData)
+}
+
 // SetBlockData will set the block data using given hash and blockData into DB
 func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) error {
 	// Write the encoded header
@@ -183,9 +192,9 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 }
 
 // SetBabeHeader will set epoch, slot and blockData into DB
-func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData babe.BabeHeader) error {
+func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, bh babe.BabeHeader) error {
 	// Write the encoded header
-	bh, err := json.Marshal(blockData)
+	bh, err := json.Marshal(bh)
 	if err != nil {
 		return err
 	}

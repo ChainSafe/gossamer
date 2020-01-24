@@ -8,6 +8,7 @@ import (
 type BlockState interface {
 	LatestHeader() *types.Header
 	AddBlock(types.Block) error
+	SetBlock(*types.Block) error
 }
 
 type StorageState interface {
