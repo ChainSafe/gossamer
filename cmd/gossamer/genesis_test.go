@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	//"io/ioutil"
 	"math/big"
 	"os"
 	"reflect"
@@ -20,8 +21,7 @@ import (
 )
 
 func TestStoreGenesisInfo(t *testing.T) {
-	t.Skip()
-	tempFile, _ := createTempConfigFile()
+	tempFile, cfg := createTempConfigFile()
 	defer teardown(tempFile)
 
 	genesispath := createTempGenesisFile(t)
@@ -42,14 +42,28 @@ func TestStoreGenesisInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	setGlobalConfig(ctx, &fig.Global)
-	dbSrv := state.NewService(fig.Global.DataDir)
+	dataDir := cfg.Global.DataDir
 
-	tdb := &trie.Database{
-		Db: dbSrv.Storage.Db.Db,
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.Header{
+		Number:         big.NewInt(0),
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	gendata, err := tdb.LoadGenesisData()
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer dbSrv.Stop()
+
+	setGlobalConfig(ctx, &fig.Global)
+
+	gendata, err := dbSrv.Storage.LoadGenesisData()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +86,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 	}
 
 	genesisHeader := dbSrv.Block.LatestHeader()
-	if !reflect.DeepEqual(genesisHeader, expectedHeader) {
+	if !genesisHeader.Hash().Equal(expectedHeader.Hash()) {
 		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
 	}
 }
