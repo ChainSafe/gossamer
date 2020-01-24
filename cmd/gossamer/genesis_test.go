@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	//"io/ioutil"
 	"math/big"
 	"os"
 	"reflect"
