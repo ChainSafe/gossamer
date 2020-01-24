@@ -48,10 +48,12 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
-	err = storageDb.StoreInDB()
-	if err != nil {
-		return err
-	}
+	fmt.Printf("genesisHash %x\n", hash)
+
+	// err = storageDb.StoreInDB()
+	// if err != nil {
+	// 	return err
+	// }
 
 	blockDb, err := NewBlockStateFromGenesis(blockDataDir, genesisHeader)
 	if err != nil {
@@ -83,6 +85,8 @@ func (s *Service) Start() error {
 	if err != nil {
 		return fmt.Errorf("cnanot get latest hash: %s", err)
 	}
+
+	fmt.Printf("latestHeaderHash %x\n", latestHeaderHash)
 
 	blockDb, err := NewBlockState(blockDataDir, common.BytesToHash(latestHeaderHash))
 	if err != nil {

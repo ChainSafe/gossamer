@@ -3,13 +3,52 @@ package state
 import (
 	"io/ioutil"
 	"math/big"
+	"os"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSetAndGetHeader(t *testing.T) {
+	blockDb, err := polkadb.NewBlockDB("./test_data")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err = os.RemoveAll("../test_data"); err != nil {
+			t.Log("removal of temp directory test_data failed", "error", err)
+		}
+	}()
+
+	bs := &blockState{
+		db: blockDb,
+	}
+
+	header := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	err = bs.SetHeader(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := bs.GetHeader(header.Hash())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(res, header) {
+		t.Fatalf("Fail: got %v expected %v", res, header)
+	}
+}
 
 func TestGetBlockByNumber(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
