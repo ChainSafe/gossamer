@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/keystore"
 )
