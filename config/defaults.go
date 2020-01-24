@@ -32,7 +32,7 @@ const (
 
 	// P2P
 	DefaultP2PPort       = 7001
-	DefaultP2PProtocolId = "/gossamer/dot/0"
+	DefaultP2PProtocolID = "/gossamer/dot/0"
 
 	// Genesis
 	DefaultGenesisPath = "config/gssmr0.json"
@@ -53,7 +53,7 @@ var (
 	// P2P
 	DefaultP2PConfig = P2pCfg{
 		Port:           DefaultP2PPort,
-		ProtocolId:     DefaultP2PProtocolId,
+		ProtocolID:     DefaultP2PProtocolID,
 		BootstrapNodes: DefaultP2PBootstrap,
 		NoBootstrap:    false,
 		NoMdns:         false,

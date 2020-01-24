@@ -61,7 +61,7 @@ var (
 		Name:  "p2pport",
 		Usage: "Set P2P listening port",
 	}
-	ProtocolIdFlag = cli.StringFlag{
+	ProtocolIDFlag = cli.StringFlag{
 		Name:  "protocol",
 		Usage: "Set protocol id",
 	}
