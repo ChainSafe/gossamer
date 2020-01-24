@@ -32,7 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
@@ -97,31 +97,13 @@ func newRuntime(t *testing.T) *runtime.Runtime {
 }
 
 func TestStartService(t *testing.T) {
-	t.Skip()
 	rt := newRuntime(t)
 
-	dataDir := "./test_data"
-	dbSrv := state.NewService(dataDir)
-	err := dbSrv.Initialize(&types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		if err = os.RemoveAll("../test_data"); err != nil {
-			t.Log("removal of temp directory test_data failed", "error", err)
-		}
-	}()
-
 	cfg := &Config{
-		Runtime:    rt,
-		Keystore:   keystore.NewKeystore(),
-		BlockState: dbSrv.Block,
-		MsgRec:     make(chan p2p.Message),
-		MsgSend:    make(chan p2p.Message),
+		Runtime:  rt,
+		Keystore: keystore.NewKeystore(),
+		MsgRec:   make(chan p2p.Message),
+		MsgSend:  make(chan p2p.Message),
 	}
 
 	s, err := NewService(cfg)
