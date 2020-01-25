@@ -37,12 +37,12 @@ type AuthorityDataRaw struct {
 	Weight uint64
 }
 
-//nolint:structcheck
 type AuthorityData struct {
 	id     *sr25519.PublicKey
 	weight uint64
 }
 
+// NewAuthorityData returns AuthorityData with the given id and weight
 func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 	return &AuthorityData{
 		id:     pub,

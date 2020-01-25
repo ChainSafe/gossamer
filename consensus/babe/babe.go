@@ -35,9 +35,8 @@ import (
 )
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
-//nolint:structcheck
 type Session struct {
-	blockState     BlockState //nolint:unused
+	blockState     BlockState
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -49,7 +48,6 @@ type Session struct {
 	newBlocks      chan<- types.Block            // send blocks to core service
 }
 
-//nolint:structcheck
 type SessionConfig struct {
 	BlockState     BlockState
 	Keypair        *sr25519.Keypair

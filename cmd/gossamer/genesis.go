@@ -65,7 +65,7 @@ func loadGenesis(ctx *cli.Context) error {
 		}
 	}()
 
-	// setup trie database
+	// set up trie database
 	t.SetDb(&trie.Database{
 		Db: stateDb.Db.Db,
 	})
