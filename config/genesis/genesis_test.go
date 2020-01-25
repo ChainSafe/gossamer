@@ -46,7 +46,7 @@ func TestParseGenesisJson(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	genesis, err := LoadGenesisJsonFile(file.Name())
+	genesis, err := LoadGenesisJSONFile(file.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
