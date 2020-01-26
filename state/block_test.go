@@ -14,7 +14,7 @@ import (
 )
 
 func TestSetAndGetHeader(t *testing.T) {
-	dataDir, err := ioutil.TempDir("./test_data", "")
+	dataDir, err := ioutil.TempDir("", "./test_data")
 	require.Nil(t, err)
 
 	blockDb, err := polkadb.NewBlockDB(dataDir)

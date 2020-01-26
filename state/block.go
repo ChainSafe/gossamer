@@ -96,8 +96,6 @@ func blockDataKey(hash common.Hash) []byte {
 func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	result := new(types.Header)
 
-	fmt.Printf("GetHeader %x\n", hash)
-
 	data, err := bs.db.Db.Get(headerKey(hash))
 	if err != nil {
 		return nil, err
@@ -173,8 +171,6 @@ func (bs *blockState) SetHeader(header *types.Header) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("SetHeader %x\n", hash)
 
 	err = bs.db.Db.Put(headerKey(hash), bh)
 	if err != nil {

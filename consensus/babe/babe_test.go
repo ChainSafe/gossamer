@@ -356,7 +356,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 	newBlocks := make(chan types.Block)
 
-	dataDir, err := ioutil.TempDir("./test_data", "")
+	dataDir, err := ioutil.TempDir("", "./test_data")
 	if err != nil {
 		t.Fatal(err)
 	}
