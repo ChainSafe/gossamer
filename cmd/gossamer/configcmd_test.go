@@ -21,15 +21,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/state"
 
@@ -87,41 +88,6 @@ func createCliContext(description string, flags []string, values []interface{}) 
 	return context, nil
 }
 
-const TESTS_FP string = "../../substrate_test_runtime.compact.wasm"
-const TEST_WASM_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
-
-// Exists reports whether the named file or directory exists.
-func Exists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// getTestBlob checks if the test wasm file exists and if not, it fetches it from github
-func getTestBlob() (n int64, err error) {
-	if Exists(TESTS_FP) {
-		return 0, nil
-	}
-
-	out, err := os.Create(TESTS_FP)
-	if err != nil {
-		return 0, err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(TEST_WASM_URL)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	n, err = io.Copy(out, resp.Body)
-	return n, err
-}
-
 var tmpGenesis = &genesis.Genesis{
 	Name:       "gossamer",
 	ID:         "gossamer",
@@ -131,10 +97,11 @@ var tmpGenesis = &genesis.Genesis{
 }
 
 func createTempGenesisFile(t *testing.T) string {
-	_, err := getTestBlob()
-	require.Nil(t, err)
+	_ = runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
-	fp, err := filepath.Abs(TESTS_FP)
+	testRuntimeFilePath := tests.GetAbsolutePath(tests.POLKADOT_RUNTIME_FP)
+
+	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err)
 
 	testbytes, err := ioutil.ReadFile(fp)
