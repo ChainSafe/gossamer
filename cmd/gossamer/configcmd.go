@@ -108,7 +108,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// RPC
 	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
 
-	return dot.NewDot(string(gendata.Name), srvcs, rpcSrvr), fig, nil
+	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), fig, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -203,7 +203,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 
 	// Default bootnodes and protocol from genesis file
 	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
-	protocolId := string(gendata.ProtocolId)
+	protocolId := gendata.ProtocolId
 
 	// If bootnodes flag has more than 1 bootnode, overwrite
 	if len(fig.P2p.BootstrapNodes) > 0 {

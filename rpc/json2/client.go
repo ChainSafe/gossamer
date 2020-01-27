@@ -54,7 +54,7 @@ func EncodeClientRequest(method string, args interface{}) ([]byte, error) {
 	return json.Marshal(c)
 }
 
-// TODO: Decide how to encode reponse values
+// TODO: Decide how to encode response values
 // DecodeClientResponse unmarshals the response value
 func DecodeClientResponse(r io.Reader, reply interface{}) error {
 	var c clientResponse

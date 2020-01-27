@@ -219,7 +219,7 @@ func (sd *Decoder) DecodeUnsignedInteger() (o uint64, err error) {
 	} else if byteLen > 4 && byteLen < 8 {
 		tmp := make([]byte, 8)
 		copy(tmp, buf)
-		o = uint64(binary.LittleEndian.Uint64(tmp))
+		o = binary.LittleEndian.Uint64(tmp)
 	} else {
 		err = errors.New("could not decode invalid integer")
 	}
@@ -375,7 +375,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 }
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
-// to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the
+// to a struct which the encoded tuple should be marshaled into. If it is a valid encoding for the struct, it returns the
 // decoded struct, otherwise error,
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.

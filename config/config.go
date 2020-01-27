@@ -64,7 +64,7 @@ func ToTOML(file string, s *Config) *os.File {
 
 	var raw []byte
 	if raw, err = toml.Marshal(*s); err != nil {
-		log.Warn("error marshalling toml", "err", err)
+		log.Warn("error marshaling toml", "err", err)
 		os.Exit(1)
 	}
 

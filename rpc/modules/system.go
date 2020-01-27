@@ -23,6 +23,8 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 )
 
+const NOT_IMPLEMENTED = "not yet implemented"
+
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	api *api.Api // TODO: migrate to network state
@@ -60,25 +62,25 @@ func NewSystemModule(api *api.Api) *SystemModule {
 
 // Chain returns the runtime chain
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "not yet implemented"
+	*res = NOT_IMPLEMENTED
 	return nil
 }
 
 // Name returns the runtime name
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "not yet implemented"
+	*res = NOT_IMPLEMENTED
 	return nil
 }
 
 // Properties returns the runtime properties
 func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "not yet implemented"
+	*res = NOT_IMPLEMENTED
 	return nil
 }
 
 // Version returns the runtime version
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "not yet implemented"
+	*res = NOT_IMPLEMENTED
 	return nil
 }
 
