@@ -42,6 +42,7 @@ func NewBlockState(dataDir string, latestHash common.Hash) (*blockState, error) 
 	return bs, nil
 }
 
+// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at dataDir
 func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*blockState, error) {
 	blockDb, err := polkadb.NewBlockDB(dataDir)
 	if err != nil {
@@ -230,6 +231,7 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 	return append(babeHeaderPrefix, combined...)
 }
 
+// GetBabeHeader retrieves a BabeHeader from the database
 func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeHeader, error) {
 	result := new(babetypes.BabeHeader)
 
@@ -243,6 +245,7 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 	return result, err
 }
 
+// SetBabeHeader sets a BabeHeader in the database
 func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData *babetypes.BabeHeader) error {
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)

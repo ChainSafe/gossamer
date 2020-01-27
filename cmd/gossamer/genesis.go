@@ -85,7 +85,7 @@ func loadGenesis(ctx *cli.Context) error {
 	return t.Db().StoreGenesisData(gen)
 }
 
-// given raw genesis state data, return the initialized state trie and genesis block header.
+// initializeGenesisState given raw genesis state data, return the initialized state trie and genesis block header.
 func initializeGenesisState(gen genesis.GenesisFields) (*trie.Trie, *types.Header, error) {
 	t := trie.NewEmptyTrie(nil)
 	err := t.Load(gen.Raw)

@@ -61,6 +61,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	return storageDb.Db.Db.Close()
 }
 
+// Start initializes the Storage database and the Block database.
 func (s *Service) Start() error {
 	if s.Storage != nil || s.Block != nil {
 		return nil

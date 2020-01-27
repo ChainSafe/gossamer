@@ -31,6 +31,7 @@ type BabeHeader struct {
 	SlotNumber         uint64
 }
 
+// Encode performs SCALE encoding of a BabeHeader
 func (bh *BabeHeader) Encode() []byte {
 	enc := []byte{}
 	enc = append(enc, bh.VrfOutput[:]...)
@@ -43,6 +44,7 @@ func (bh *BabeHeader) Encode() []byte {
 	return enc
 }
 
+// Decode performs SCALE decoding of an encoded BabeHeader
 func (bh *BabeHeader) Decode(in []byte) error {
 	if len(in) < sr25519.VrfOutputLength+sr25519.VrfProofLength+16 {
 		return errors.New("input is too short: need at least VrfOutputLength (32) + VrfProofLength (64) + 16")

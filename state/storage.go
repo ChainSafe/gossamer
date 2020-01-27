@@ -12,6 +12,7 @@ type StorageState struct {
 	Db   *polkadb.StateDB
 }
 
+// NewStorageState creates a new StorageState backed by the given trie and database located at dataDir.
 func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
 	stateDb, err := polkadb.NewStateDB(dataDir)
 	if err != nil {
@@ -60,10 +61,12 @@ func (s *StorageState) LoadHash() (common.Hash, error) {
 	return s.trie.LoadHash()
 }
 
+// LoadFromDB loads the trie state with the given root from the database.
 func (s *StorageState) LoadFromDB(root common.Hash) error {
 	return s.trie.LoadFromDB(root)
 }
 
+// StoreInDB stores the current trie state in the database.
 func (s *StorageState) StoreInDB() error {
 	return s.trie.StoreInDB()
 }

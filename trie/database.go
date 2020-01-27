@@ -51,10 +51,12 @@ func (db *Database) Load(key []byte) ([]byte, error) {
 	return db.Db.Get(key)
 }
 
+// StoreLatestStorageHash stores the given hash at the known LatestStorageHashKey.
 func (db *Database) StoreLatestStorageHash(hash []byte) error {
 	return db.Db.Put(common.LatestStorageHashKey, hash)
 }
 
+// LoadLatestStorageHash retrieves the hash stored at the known LatestStorageHashKey.
 func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
 	hashbytes, err := db.Db.Get(common.LatestStorageHashKey)
 	if err != nil {
@@ -64,6 +66,7 @@ func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
+// StoreGenesisData stores the given genesis data at the known GenesisDataKey.
 func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	enc, err := scale.Encode(gen)
 	if err != nil {
@@ -73,6 +76,7 @@ func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	return db.Store(common.GenesisDataKey, enc)
 }
 
+// LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
 func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
 	enc, err := db.Load(common.GenesisDataKey)
 	if err != nil {

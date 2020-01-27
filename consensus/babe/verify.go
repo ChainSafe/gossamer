@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
+// verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
 func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
@@ -22,6 +23,7 @@ func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (b
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
+// verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool, error) {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal

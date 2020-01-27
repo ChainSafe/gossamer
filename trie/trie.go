@@ -62,6 +62,7 @@ func (t *Trie) Db() *Database {
 	return t.db
 }
 
+// SetDb sets the database backing the trie. This is used by the state service to set the database.
 func (t *Trie) SetDb(db *Database) {
 	t.db = db
 }
