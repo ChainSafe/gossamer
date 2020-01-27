@@ -11,27 +11,28 @@ import (
 // Genesis stores the data parsed from the genesis configuration file
 type Genesis struct {
 	Name       string
-	Id         string
+	ID         string
 	Bootnodes  []string
-	ProtocolId string
+	ProtocolID string
 	Genesis    GenesisFields
 }
 
-// Genesis stores the data parsed from the genesis configuration file
+// GenesisData stores the data parsed from the genesis configuration file
 type GenesisData struct {
 	Name          string
-	Id            string
+	ID            string
 	Bootnodes     [][]byte
-	ProtocolId    string
+	ProtocolID    string
 	genesisFields GenesisFields
 }
 
+// GenesisFields struct
 type GenesisFields struct {
 	Raw map[string]string
 }
 
-// LoadGenesisJsonFile parses a JSON formatted genesis file
-func LoadGenesisJsonFile(file string) (*Genesis, error) {
+// LoadGenesisJSONFile parses a JSON formatted genesis file
+func LoadGenesisJSONFile(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err
@@ -47,17 +48,18 @@ func LoadGenesisJsonFile(file string) (*Genesis, error) {
 	return g, err
 }
 
+// LoadGenesisData returns GenesisData
 func LoadGenesisData(file string) (*GenesisData, error) {
-	g, err := LoadGenesisJsonFile(file)
+	g, err := LoadGenesisJSONFile(file)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GenesisData{
 		Name:          g.Name,
-		Id:            g.Id,
+		ID:            g.ID,
 		Bootnodes:     common.StringArrayToBytes(g.Bootnodes),
-		ProtocolId:    g.ProtocolId,
+		ProtocolID:    g.ProtocolID,
 		genesisFields: g.Genesis,
 	}, nil
 }

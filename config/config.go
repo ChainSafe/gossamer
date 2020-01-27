@@ -29,7 +29,7 @@ import (
 type Config struct {
 	Global GlobalConfig `toml:"global"`
 	P2p    P2pCfg       `toml:"p2p"`
-	Rpc    RpcCfg       `toml:"rpc"`
+	RPC    RPCCfg       `toml:"rpc"`
 }
 
 type GlobalConfig struct {
@@ -39,12 +39,12 @@ type GlobalConfig struct {
 type P2pCfg struct {
 	BootstrapNodes []string `toml:"bootstrap-nodes"`
 	Port           uint32   `toml:"port"`
-	ProtocolId     string   `toml:"protocol-id"`
+	ProtocolID     string   `toml:"protocol-id"`
 	NoBootstrap    bool     `toml:"no-bootstrap"`
 	NoMdns         bool     `toml:"no-mdns"`
 }
 
-type RpcCfg struct {
+type RPCCfg struct {
 	Port    uint32       `toml:"port"`
 	Host    string       `toml:"host"`
 	Modules []api.Module `toml:"modules"`

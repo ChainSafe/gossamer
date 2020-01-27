@@ -83,7 +83,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocol", fig.P2p.ProtocolId, "bootnodes", fig.P2p.BootstrapNodes)
+	log.Info("🕸\t Configuring node...", "datadir", fig.Global.DataDir, "protocol", fig.P2p.ProtocolID, "bootnodes", fig.P2p.BootstrapNodes)
 
 	// P2P
 	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(fig, gendata)
@@ -102,11 +102,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
-	apiSrvc := api.NewApiService(p2pSrvc, nil)
+	apiSrvc := api.NewAPIService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	rpcSrvr := startRpc(ctx, fig.Rpc, apiSrvc)
+	rpcSrvr := startRPC(ctx, fig.RPC, apiSrvc)
 
 	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), fig, nil
 }
@@ -145,7 +145,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	// Parse CLI flags
 	setGlobalConfig(ctx, &fig.Global)
 	setP2pConfig(ctx, &fig.P2p)
-	setRpcConfig(ctx, &fig.Rpc)
+	setRPCConfig(ctx, &fig.RPC)
 	return fig, nil
 }
 
@@ -179,8 +179,8 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 		fig.BootstrapNodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
 	}
 
-	if protocol := ctx.GlobalString(utils.ProtocolIdFlag.Name); protocol != "" {
-		fig.ProtocolId = protocol
+	if protocol := ctx.GlobalString(utils.ProtocolIDFlag.Name); protocol != "" {
+		fig.ProtocolID = protocol
 	}
 
 	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
@@ -203,7 +203,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 
 	// Default bootnodes and protocol from genesis file
 	boostrapNodes := common.BytesToStringArray(gendata.Bootnodes)
-	protocolId := gendata.ProtocolId
+	protocolID := gendata.ProtocolID
 
 	// If bootnodes flag has more than 1 bootnode, overwrite
 	if len(fig.P2p.BootstrapNodes) > 0 {
@@ -211,8 +211,8 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 	}
 
 	// If protocol id flag is not an empty string, overwrite
-	if fig.P2p.ProtocolId != "" {
-		protocolId = fig.P2p.ProtocolId
+	if fig.P2p.ProtocolID != "" {
+		protocolID = fig.P2p.ProtocolID
 	}
 
 	// p2p service configuation
@@ -223,7 +223,7 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Servi
 		NoBootstrap:    fig.P2p.NoBootstrap,
 		NoMdns:         fig.P2p.NoMdns,
 		DataDir:        fig.Global.DataDir,
-		ProtocolId:     protocolId,
+		ProtocolID:     protocolID,
 	}
 
 	p2pMsgRec := make(chan p2p.Message)
@@ -247,27 +247,27 @@ func createCoreService(coreConfig *core.Config) *core.Service {
 	return coreService
 }
 
-func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
+func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 	// Modules
-	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
+	if mods := ctx.GlobalString(utils.RPCModuleFlag.Name); mods != "" {
+		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RPCModuleFlag.Name), ","))
 	}
 
 	// Host
-	if host := ctx.GlobalString(utils.RpcHostFlag.Name); host != "" {
+	if host := ctx.GlobalString(utils.RPCHostFlag.Name); host != "" {
 		fig.Host = host
 	}
 
 	// Port
-	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
+	if port := ctx.GlobalUint(utils.RPCPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
 
 }
 
-func startRpc(ctx *cli.Context, fig cfg.RpcCfg, apiSrvc *api.Service) *rpc.HttpServer {
-	if ctx.GlobalBool(utils.RpcEnabledFlag.Name) {
-		return rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
+func startRPC(ctx *cli.Context, fig cfg.RPCCfg, apiSrvc *api.Service) *rpc.HTTPServer {
+	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
+		return rpc.NewHTTPServer(apiSrvc.API, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
 	}
 	return nil
 }

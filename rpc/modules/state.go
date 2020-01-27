@@ -71,30 +71,35 @@ type StateStorageSizeResponse uint64
 
 type StateStorageKeysResponse [][]byte
 
-// TODO: Determine actual type
+// StateMetadataResponse []byte
+//TODO: Determine actual type
 type StateMetadataResponse []byte
 
+// StorageChangeSetResponse struct
 type StorageChangeSetResponse struct {
 	Block   common.Hash
 	Changes []KeyValueOption
 }
 
+// KeyValueOption struct
 type KeyValueOption struct {
 	StorageKey  []byte `json:"storageKey"`
 	StorageData []byte `json:"storageData"`
 }
 
+// StorageKey []byte
 type StorageKey []byte
 
+// StateRuntimeVersionResponse string
 type StateRuntimeVersionResponse string
 
 // StateModule is an RPC module providing access to storage API points.
 type StateModule struct {
-	api *api.Api
+	api *api.API
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(api *api.Api) *SystemModule {
+func NewStateModule(api *api.API) *SystemModule {
 	return &SystemModule{
 		api: api,
 	}

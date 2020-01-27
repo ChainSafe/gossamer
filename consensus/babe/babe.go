@@ -48,6 +48,7 @@ type Session struct {
 	newBlocks      chan<- types.Block            // send blocks to core service
 }
 
+// SessionConfig struct
 //nolint:structcheck
 type SessionConfig struct {
 	BlockState BlockState //nolint:unused
@@ -78,6 +79,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	return babeSession, nil
 }
 
+// Start a session
 func (b *Session) Start() error {
 	var i uint64 = 0
 	var err error
@@ -99,6 +101,7 @@ func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 	b.txQueue.Insert(vt)
 }
 
+// PeekFromTxQueue returns ValidTransaction
 func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 	return b.txQueue.Peek()
 }
@@ -276,7 +279,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 }
 
 // buildBlockSeal creates the seal for the block header.
-// the seal consists of the ConsensusEngineId and a signature of the encoded block header.
+// the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
 	encHeader, err := header.Encode()
 	if err != nil {
@@ -295,7 +298,7 @@ func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 }
 
 // buildBlockPreDigest creates the pre-digest for the slot.
-// the pre-digest consists of the ConsensusEngineId and the encoded BABE header for the slot.
+// the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
 	babeHeader, err := b.buildBlockBabeHeader(slot)
 	if err != nil {
@@ -352,9 +355,8 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 			b.addToQueue(included)
 
 			return nil, errors.New("could not apply extrinsic")
-		} else {
-			log.Trace("build_block applied extrinsic", "extrinsic", extrinsic)
 		}
+		log.Trace("build_block applied extrinsic", "extrinsic", extrinsic)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
 		t := b.txQueue.Pop()

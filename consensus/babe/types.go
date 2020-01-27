@@ -36,10 +36,11 @@ type BabeConfiguration struct {
 }
 
 type AuthorityDataRaw struct {
-	Id     [sr25519.PublicKeyLength]byte
+	ID     [sr25519.PublicKeyLength]byte
 	Weight uint64
 }
 
+//AuthorityData struct
 //nolint:structcheck
 type AuthorityData struct {
 	id     *sr25519.PublicKey

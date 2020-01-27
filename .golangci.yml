@@ -244,6 +244,38 @@ issues:
         - staticcheck
       text: "SA9003:"
 
+    - linters:
+        - golint
+      text: "package comment should be of the form"
+
+    - linters:
+        - golint
+      text: "don't use ALL_CAPS in Go names;"
+
+    - linters:
+        - golint
+      text: "don't use underscores in Go names;"
+
+    - linters:
+        - golint
+      text: "which can be annoying to use"
+
+    - linters:
+        - golint
+      text: "and that stutters; consider calling this"
+
+    - linters:
+        - golint
+      text: "should have comment or be unexported"
+
+    - linters:
+        - golint
+      text: "or a comment on this block"
+
+    - linters:
+        - golint
+      text: "error strings should not be capitalized or end with punctuation or a newline"
+
     # Exclude lll issues for long lines with go:generate
     - linters:
         - lll

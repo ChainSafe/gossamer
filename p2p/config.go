@@ -22,16 +22,18 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// KeyFile key
 const KeyFile = "node.key"
 
-const DefaultProtocolId = "/gossamer/dot/0"
+// DefaultProtocolID ID
+const DefaultProtocolID = "/gossamer/dot/0"
 
 // Config is used to configure a p2p service
 type Config struct {
 	// Peers used for bootstrapping
 	BootstrapNodes []string
 	// Protocol ID for network messages
-	ProtocolId string
+	ProtocolID string
 	// Listening port
 	Port uint32
 	// If 0, random host ID will be generated; If non-0, deterministic ID will be produced, keys will not be loaded from data dir
@@ -49,8 +51,8 @@ type Config struct {
 // build checks the configuration, sets up the private key for the p2p service,
 // and applies default values where appropriate
 func (c *Config) build() error {
-	if c.ProtocolId == "" {
-		c.ProtocolId = DefaultProtocolId
+	if c.ProtocolID == "" {
+		c.ProtocolID = DefaultProtocolID
 	}
 
 	if !c.NoBootstrap && len(c.BootstrapNodes) == 0 {

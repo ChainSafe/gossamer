@@ -22,11 +22,13 @@ import (
 	common "github.com/ChainSafe/gossamer/common"
 )
 
+// Uint32 struct
 type Uint32 struct {
 	exists bool
 	value  uint32
 }
 
+// NewUint32 new
 func NewUint32(exists bool, value uint32) *Uint32 {
 	return &Uint32{
 		exists: exists,
@@ -34,28 +36,34 @@ func NewUint32(exists bool, value uint32) *Uint32 {
 	}
 }
 
+// Exists bool
 func (x *Uint32) Exists() bool {
 	return x.exists
 }
 
+// Value uint32
 func (x *Uint32) Value() uint32 {
 	return x.value
 }
 
+// String string
 func (x *Uint32) String() string {
 	return fmt.Sprintf("%d", x.value)
 }
 
+// Set bool uint32
 func (x *Uint32) Set(exists bool, value uint32) {
 	x.exists = exists
 	x.value = value
 }
 
+// Hash struct
 type Hash struct {
 	exists bool
 	value  common.Hash
 }
 
+// NewHash Hash
 func NewHash(exists bool, value common.Hash) *Hash {
 	return &Hash{
 		exists: exists,
@@ -63,18 +71,22 @@ func NewHash(exists bool, value common.Hash) *Hash {
 	}
 }
 
+// Exists bool
 func (x *Hash) Exists() bool {
 	return x.exists
 }
 
+// Value Hash
 func (x *Hash) Value() common.Hash {
 	return x.value
 }
 
+// String string
 func (x *Hash) String() string {
 	return fmt.Sprintf("%x", x.value)
 }
 
+// Set bool, Hash
 func (x *Hash) Set(exists bool, value common.Hash) {
 	x.exists = exists
 	x.value = value

@@ -26,44 +26,46 @@ import (
 )
 
 const (
-	// RPC
-	DefaultRpcHttpHost = "localhost" // Default host interface for the HTTP RPC server
-	DefaultRpcHttpPort = 8545        // Default port for
+	// DefaultRPCHTTPHost Default host interface for the HTTP RPC server
+	DefaultRPCHTTPHost = "localhost"
+	// DefaultRPCHTTPPort http port
+	DefaultRPCHTTPPort = 8545
 
-	// P2P
-	DefaultP2PPort       = 7001
-	DefaultP2PProtocolId = "/gossamer/dot/0"
+	// DefaultP2PPort p2p port
+	DefaultP2PPort = 7001
+	// DefaultP2PProtocolID ID
+	DefaultP2PProtocolID = "/gossamer/dot/0"
 
-	// Genesis
+	// DefaultGenesisPath Genesis path
 	DefaultGenesisPath = "config/gssmr0.json"
 )
 
 var (
-	// Must be non-nil to match toml parsing semantics
+	// DefaultP2PBootstrap Must be non-nil to match toml parsing semantics
 	DefaultP2PBootstrap = []string{}
-	DefaultRpcModules   = []api.Module{"system"}
+	DefaultRPCModules   = []api.Module{"system"}
 )
 
 var (
-	// Global
+	// DefaultGlobalConfig Global
 	DefaultGlobalConfig = GlobalConfig{
 		DataDir: DefaultDataDir(),
 	}
 
-	// P2P
+	// DefaultP2PConfig P2P
 	DefaultP2PConfig = P2pCfg{
 		Port:           DefaultP2PPort,
-		ProtocolId:     DefaultP2PProtocolId,
+		ProtocolID:     DefaultP2PProtocolID,
 		BootstrapNodes: DefaultP2PBootstrap,
 		NoBootstrap:    false,
 		NoMdns:         false,
 	}
 
-	// RPC
-	DefaultRpcConfig = RpcCfg{
-		Host:    DefaultRpcHttpHost,
-		Port:    DefaultRpcHttpPort,
-		Modules: DefaultRpcModules,
+	// DefaultRPCConfig RPC
+	DefaultRPCConfig = RPCCfg{
+		Host:    DefaultRPCHTTPHost,
+		Port:    DefaultRPCHTTPPort,
+		Modules: DefaultRPCModules,
 	}
 )
 
@@ -72,7 +74,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Global: DefaultGlobalConfig,
 		P2p:    DefaultP2PConfig,
-		Rpc:    DefaultRpcConfig,
+		RPC:    DefaultRPCConfig,
 	}
 }
 

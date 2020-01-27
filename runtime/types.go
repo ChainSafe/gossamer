@@ -16,6 +16,7 @@
 
 package runtime
 
+// Version struct
 type Version struct {
 	Spec_name         []byte
 	Impl_name         []byte
@@ -25,12 +26,20 @@ type Version struct {
 }
 
 var (
-	CoreVersion                               = "Core_version"
-	CoreInitializeBlock                       = "Core_initialize_block"
-	CoreExecuteBlock                          = "Core_execute_block"
+	// CoreVersion string
+	CoreVersion = "Core_version"
+	// CoreInitializeBlock string
+	CoreInitializeBlock = "Core_initialize_block"
+	// CoreExecuteBlock string
+	CoreExecuteBlock = "Core_execute_block"
+	// TaggedTransactionQueueValidateTransaction string
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
-	BabeApiConfiguration                      = "BabeApi_configuration"
-	BlockBuilderInherentExtrinsics            = "BlockBuilder_inherent_extrinsics"
-	BlockBuilderApplyExtrinsic                = "BlockBuilder_apply_extrinsic"
-	BlockBuilderFinalizeBlock                 = "BlockBuilder_finalize_block"
+	// BabeAPIConfiguration string
+	BabeAPIConfiguration = "BabeApi_configuration"
+	// BlockBuilderInherentExtrinsics string
+	BlockBuilderInherentExtrinsics = "BlockBuilder_inherent_extrinsics"
+	// BlockBuilderApplyExtrinsic string
+	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
+	// BlockBuilderFinalizeBlock string
+	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 )

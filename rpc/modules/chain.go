@@ -28,6 +28,7 @@ type ChainHashRequest common.Hash
 
 type ChainBlockNumberRequest *big.Int
 
+// ChainBlockResponse struct
 // TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type ChainBlockResponse struct{}
 
@@ -39,11 +40,11 @@ type ChainHashResponse struct {
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
-	api *api.Api
+	api *api.API
 }
 
 // NewChainModule creates a new State module.
-func NewChainModule(api *api.Api) *ChainModule {
+func NewChainModule(api *api.API) *ChainModule {
 	return &ChainModule{
 		api: api,
 	}
@@ -59,7 +60,7 @@ func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberReques
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
 }
 
-//DB isn't implemented properly yet. Doesn't return block headers
+//GetHeader DB isn't implemented properly yet. Doesn't return block headers
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
 }
 

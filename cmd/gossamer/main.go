@@ -36,15 +36,15 @@ var (
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
 		utils.P2pPortFlag,
-		utils.ProtocolIdFlag,
+		utils.ProtocolIDFlag,
 		utils.NoBootstrapFlag,
 		utils.NoMdnsFlag,
 	}
 	rpcFlags = []cli.Flag{
-		utils.RpcEnabledFlag,
-		utils.RpcHostFlag,
-		utils.RpcPortFlag,
-		utils.RpcModuleFlag,
+		utils.RPCEnabledFlag,
+		utils.RPCHostFlag,
+		utils.RPCPortFlag,
+		utils.RPCModuleFlag,
 	}
 	genesisFlags = []cli.Flag{
 		utils.GenesisFlag,

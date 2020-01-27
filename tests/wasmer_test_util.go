@@ -23,6 +23,7 @@ const (
 	SIMPLE_RUNTIME_URL = "https://github.com//wasmerio/go-ext-wasm/blob/master/wasmer/test/testdata/examples/simple.wasm?raw=true"
 )
 
+// GetAbsolutePath string
 func GetAbsolutePath(targetDir string) string {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -33,6 +34,7 @@ func GetAbsolutePath(targetDir string) string {
 	return completePath
 }
 
+// GetRuntimeVars string
 func GetRuntimeVars(targetRuntime string) (string, string) {
 	testRuntimeFilePath, testRuntimeURL := GetAbsolutePath(TESTS_FP), TEST_WASM_URL
 
@@ -80,10 +82,12 @@ func Exists(name string) bool {
 	return true
 }
 
+// TestRuntimeStorage struct
 type TestRuntimeStorage struct {
 	trie *trie.Trie
 }
 
+// NewTestRuntimeStorage TestRuntimeStorage
 func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
 	if tr == nil {
 		tr = trie.NewEmptyTrie(nil)
@@ -93,31 +97,47 @@ func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
 	}
 }
 
+// TrieAsString string
 func (trs TestRuntimeStorage) TrieAsString() string {
 	return trs.trie.String()
 }
 
+// SetStorage func
 func (trs TestRuntimeStorage) SetStorage(key []byte, value []byte) error {
 	return trs.trie.Put(key, value)
 }
+
+// GetStorage func
 func (trs TestRuntimeStorage) GetStorage(key []byte) ([]byte, error) {
 	return trs.trie.Get(key)
 }
+
+// StorageRoot func
 func (trs TestRuntimeStorage) StorageRoot() (common.Hash, error) {
 	return trs.trie.Hash()
 }
+
+// SetStorageChild func
 func (trs TestRuntimeStorage) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
 	return trs.trie.PutChild(keyToChild, child)
 }
+
+// SetStorageIntoChild func
 func (trs TestRuntimeStorage) SetStorageIntoChild(keyToChild, key, value []byte) error {
 	return trs.trie.PutIntoChild(keyToChild, key, value)
 }
+
+// GetStorageFromChild func
 func (trs TestRuntimeStorage) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
 	return trs.trie.GetFromChild(keyToChild, key)
 }
+
+// ClearStorage func
 func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
 	return trs.trie.Delete(key)
 }
+
+// Entries func
 func (trs TestRuntimeStorage) Entries() map[string][]byte {
 	return trs.trie.Entries()
 }

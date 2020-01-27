@@ -27,7 +27,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
-	api *api.Api // TODO: migrate to network state
+	api *api.API // TODO: migrate to network state
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -54,7 +54,7 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(api *api.Api) *SystemModule {
+func NewSystemModule(api *api.API) *SystemModule {
 	return &SystemModule{
 		api: api, // TODO: migrate to network state
 	}

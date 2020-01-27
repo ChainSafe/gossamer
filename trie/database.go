@@ -28,7 +28,9 @@ import (
 )
 
 var (
-	LatestHashKey  = []byte("latest_hash")
+	// LatestHashKey latest_hash
+	LatestHashKey = []byte("latest_hash")
+	// GenesisDataKey genesis_data
 	GenesisDataKey = []byte("genesis_data")
 )
 
@@ -39,6 +41,7 @@ type Database struct {
 	Hasher *Hasher
 }
 
+// NewDatabase create new db
 func NewDatabase(db polkadb.Database) *Database {
 	batch := db.NewBatch()
 
@@ -48,18 +51,22 @@ func NewDatabase(db polkadb.Database) *Database {
 	}
 }
 
+// Store store
 func (db *Database) Store(key, value []byte) error {
 	return db.Db.Put(key, value)
 }
 
+// Load load
 func (db *Database) Load(key []byte) ([]byte, error) {
 	return db.Db.Get(key)
 }
 
+// StoreLatestHash store
 func (db *Database) StoreLatestHash(hash []byte) error {
 	return db.Db.Put(LatestHashKey, hash)
 }
 
+// LoadLatestHash load
 func (db *Database) LoadLatestHash() (common.Hash, error) {
 	hashbytes, err := db.Db.Get(LatestHashKey)
 	if err != nil {
@@ -69,6 +76,7 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
+// StoreGenesisData set
 func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	enc, err := scale.Encode(gen)
 	if err != nil {
@@ -78,6 +86,7 @@ func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	return db.Store(GenesisDataKey, enc)
 }
 
+// LoadGenesisData returns GenesisData
 func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
 	enc, err := db.Load(GenesisDataKey)
 	if err != nil {

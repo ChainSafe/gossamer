@@ -62,10 +62,9 @@ func (dt *table) Close() error {
 	if err != nil {
 		log.Info("Database closed")
 		return err
-	} else {
-		log.Crit("Failed to close database")
-		return nil
 	}
+	log.Crit("Failed to close database")
+	return nil
 }
 
 // NewIterator initializes type Iterable

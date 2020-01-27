@@ -60,8 +60,8 @@ func TestStoreGenesisInfo(t *testing.T) {
 
 	expected := &genesis.GenesisData{
 		Name:       tmpGenesis.Name,
-		Id:         tmpGenesis.Id,
-		ProtocolId: tmpGenesis.ProtocolId,
+		ID:         tmpGenesis.ID,
+		ProtocolID: tmpGenesis.ProtocolID,
 		Bootnodes:  common.StringArrayToBytes(tmpGenesis.Bootnodes),
 	}
 
@@ -77,7 +77,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	genesispath := createTempGenesisFile(t)
 	defer os.Remove(genesispath)
 
-	gen, err := genesis.LoadGenesisJsonFile(genesispath)
+	gen, err := genesis.LoadGenesisJSONFile(genesispath)
 	if err != nil {
 		t.Fatal(err)
 	}

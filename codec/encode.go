@@ -32,6 +32,7 @@ type Encoder struct {
 	Writer io.Writer
 }
 
+// Encode to byte array
 func Encode(in interface{}) ([]byte, error) {
 	buffer := bytes.Buffer{}
 	se := Encoder{&buffer}

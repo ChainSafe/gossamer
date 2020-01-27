@@ -88,9 +88,9 @@ func createCliContext(description string, flags []string, values []interface{}) 
 
 var tmpGenesis = &genesis.Genesis{
 	Name:       "gossamer",
-	Id:         "gossamer",
+	ID:         "gossamer",
 	Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
-	ProtocolId: "gossamer",
+	ProtocolID: "gossamer",
 	Genesis:    genesis.GenesisFields{},
 }
 
@@ -211,7 +211,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateP2PService(t *testing.T) {
 	gendata := &genesis.GenesisData{
-		ProtocolId: "gossamer",
+		ProtocolID: "gossamer",
 	}
 
 	srv, _, _ := createP2PService(cfg.DefaultConfig(), gendata)
@@ -243,7 +243,7 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           cfg.DefaultP2PPort,
-				ProtocolId:     cfg.DefaultP2PProtocolId,
+				ProtocolID:     cfg.DefaultP2PProtocolID,
 				NoBootstrap:    true,
 				NoMdns:         true,
 			},
@@ -255,7 +255,7 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: []string{"1234", "5678"},
 				Port:           cfg.DefaultP2PPort,
-				ProtocolId:     cfg.DefaultP2PProtocolId,
+				ProtocolID:     cfg.DefaultP2PProtocolID,
 				NoBootstrap:    false,
 				NoMdns:         false,
 			},
@@ -267,7 +267,7 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           1337,
-				ProtocolId:     cfg.DefaultP2PProtocolId,
+				ProtocolID:     cfg.DefaultP2PProtocolID,
 				NoBootstrap:    false,
 				NoMdns:         false,
 			},
@@ -279,7 +279,7 @@ func TestSetP2pConfig(t *testing.T) {
 			cfg.P2pCfg{
 				BootstrapNodes: cfg.DefaultP2PBootstrap,
 				Port:           cfg.DefaultP2PPort,
-				ProtocolId:     "/gossamer/test",
+				ProtocolID:     "/gossamer/test",
 				NoBootstrap:    false,
 				NoMdns:         false,
 			},
@@ -305,7 +305,7 @@ func TestSetP2pConfig(t *testing.T) {
 	}
 }
 
-func TestSetRpcConfig(t *testing.T) {
+func TestSetRPCConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 
 	app := cli.NewApp()
@@ -314,31 +314,31 @@ func TestSetRpcConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.RpcCfg
+		expected    cfg.RPCCfg
 	}{
 		{
 			"config file",
 			[]string{"config"},
 			[]interface{}{tempFile.Name()},
-			cfgClone.Rpc,
+			cfgClone.RPC,
 		},
 		{
 			"host and port",
 			[]string{"rpchost", "rpcport"},
 			[]interface{}{"someHost", uint(1337)},
-			cfg.RpcCfg{
+			cfg.RPCCfg{
 				Port:    1337,
 				Host:    "someHost",
-				Modules: cfg.DefaultRpcModules,
+				Modules: cfg.DefaultRPCModules,
 			},
 		},
 		{
 			"modules",
 			[]string{"rpcmods"},
 			[]interface{}{"system,state"},
-			cfg.RpcCfg{
-				Port:    cfg.DefaultRpcHttpPort,
-				Host:    cfg.DefaultRpcHttpHost,
+			cfg.RPCCfg{
+				Port:    cfg.DefaultRPCHTTPPort,
+				Host:    cfg.DefaultRPCHTTPHost,
 				Modules: []api.Module{"system", "state"},
 			},
 		},
@@ -353,10 +353,10 @@ func TestSetRpcConfig(t *testing.T) {
 			}
 
 			input := cfg.DefaultConfig()
-			setRpcConfig(context, &input.Rpc)
+			setRPCConfig(context, &input.RPC)
 
-			if !reflect.DeepEqual(input.Rpc, c.expected) {
-				t.Fatalf("\ngot %+v\nexpected %+v", input.Rpc, c.expected)
+			if !reflect.DeepEqual(input.RPC, c.expected) {
+				t.Fatalf("\ngot %+v\nexpected %+v", input.RPC, c.expected)
 			}
 		})
 	}

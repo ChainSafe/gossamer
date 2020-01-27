@@ -140,10 +140,9 @@ func (db *BadgerDB) Close() error {
 	if err == nil {
 		log.Info("Database closed")
 		return err
-	} else {
-		log.Crit("Failed to close database", "err", err)
-		return nil
 	}
+	log.Crit("Failed to close database", "err", err)
+	return nil
 }
 
 // Iterable struct contains a transaction, iterator and context fields released, initialized
