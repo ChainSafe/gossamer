@@ -187,6 +187,12 @@ linters:
     - govet
     - gofmt
     - goimports
+    - varcheck
+    - misspell
+    - ineffassign
+    - gosimple
+    - unconvert
+    - goconst
   enable-all: false
   disable:
     - maligned
