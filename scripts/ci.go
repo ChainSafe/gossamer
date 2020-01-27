@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	GOLANGCI_VERSION = "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0"
+	GOLANGCI_VERSION = "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.1"
 )
 
 func main() {
