@@ -54,7 +54,6 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	var srvcs []services.Service
 
 	dataDir := currentConfig.Global.DataDir
-	log.Debug("Will create service, initialize stateDB and blockDB", "dataDir", dataDir, "currentConfig.Global.DataDir", currentConfig.Global.DataDir)
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
@@ -140,7 +139,6 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	// Load config file.
 	if file := ctx.GlobalString(utils.ConfigFileFlag.Name); file != "" {
 		configFile := ctx.GlobalString(utils.ConfigFileFlag.Name)
-		log.Debug("Loading config file", "configFile", configFile)
 		err := loadConfig(configFile, currentConfig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
@@ -155,7 +153,6 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	currentConfig.Global.DataDir = newDataDir
 
 	// Parse CLI flags
-	log.Debug("Going set CLI flags (will override config file if set) ", "currentConfig", currentConfig)
 	setGlobalConfig(ctx, &currentConfig.Global)
 	setP2pConfig(ctx, &currentConfig.P2p)
 	setRpcConfig(ctx, &currentConfig.Rpc)
@@ -176,7 +173,6 @@ func loadConfig(file string, config *cfg.Config) error {
 	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
 		return err
 	}
-	log.Debug("Loaded configuration", "config", config)
 	return nil
 }
 

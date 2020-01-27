@@ -226,7 +226,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateP2PService(t *testing.T) {
 	gendata := &genesis.GenesisData{
-		ProtocolID: "gossamer",
+		ProtocolID: "/gossamer/test",
 	}
 
 	srv, _, _ := createP2PService(cfg.DefaultConfig(), gendata)

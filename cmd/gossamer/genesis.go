@@ -33,7 +33,7 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "Name", gen.Name, "ID", gen.ID, "protocolID", gen.ProtocolID, "Bootnodes", common.BytesToStringArray(gen.Bootnodes))
+	log.Info("🕸\t Initializing node", "Name", gen.Name, "ID", gen.ID, "ProtocolID", gen.ProtocolID, "Bootnodes", common.BytesToStringArray(gen.Bootnodes))
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
