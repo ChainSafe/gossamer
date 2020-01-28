@@ -104,7 +104,7 @@ func createTempGenesisFile(t *testing.T) string {
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err)
 
-	testbytes, err := ioutil.ReadFile(fp)
+	testBytes, err := ioutil.ReadFile(fp)
 	require.Nil(t, err)
 
 	testHex := hex.EncodeToString(testBytes)
