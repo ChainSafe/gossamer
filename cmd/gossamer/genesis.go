@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/gossamer/state"
 
 	"github.com/ChainSafe/gossamer/cmd/utils"
-	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/trie"
@@ -35,7 +34,7 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "name", gen.Name, "id", gen.ID, "protocolID", gen.ProtocolID, "bootnodes", common.BytesToStringArray(gen.Bootnodes))
+	log.Info("🕸\t Initializing node", "Name", gen.Name, "ID", gen.ID, "ProtocolID", gen.ProtocolID, "Bootnodes", gen.Bootnodes)
 
 	// Create service, initialize stateDB and blockDB
 	stateSrv := state.NewService(dataDir)
