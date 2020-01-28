@@ -20,15 +20,17 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	// read genesis file
 	fp := getGenesisPath(ctx)
+
 	dataDir := fig.Global.DataDir
 	if ctx.String(utils.DataDirFlag.Name) != "" {
 		dataDir = ctx.String(utils.DataDirFlag.Name)
 	}
+
 	log.Debug("Loading genesis", "genesisfile", fp, "datadir", dataDir)
 
-	gen, err := genesis.LoadGenesisData(fp)
+	// read genesis configuration file
+	gen, err := genesis.LoadGenesisJSONFile(fp)
 	if err != nil {
 		return err
 	}
@@ -57,7 +59,7 @@ func loadGenesis(ctx *cli.Context) error {
 	// create and load storage trie with initial genesis state
 	t := trie.NewEmptyTrie(tdb)
 
-	err = t.Load(gen.GenesisFields().Raw)
+	err = t.Load(gen.GenesisFields().Raw[0])
 	if err != nil {
 		return fmt.Errorf("cannot load trie with initial state: %s", err)
 	}
@@ -74,7 +76,7 @@ func loadGenesis(ctx *cli.Context) error {
 	}
 
 	// store node name, ID, p2p protocol, bootnodes in DB
-	return t.Db().StoreGenesisData(gen)
+	return t.Db().StoreGenesisData(gen.GenesisData())
 }
 
 // getGenesisPath gets the path to the genesis file

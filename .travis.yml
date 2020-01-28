@@ -45,4 +45,6 @@ matrix:
     - name: "Golang-ci Linter"
       script: make lint
     - name: "Build docker image"
-      script: make docker-build
+      script:
+        - make docker-build
+        - make docker-version
