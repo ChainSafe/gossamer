@@ -59,7 +59,6 @@ func TestStoreGenesisInfo(t *testing.T) {
 	gendata, err := dbSrv.Storage.LoadGenesisData()
 	require.Nil(t, err)
 
-
 	expected := &genesis.GenesisData{
 		Name:       tmpGenesis.Name,
 		ID:         tmpGenesis.ID,
@@ -92,7 +91,6 @@ func TestGenesisStateLoading(t *testing.T) {
 
 	gen, err := genesis.LoadGenesisJSONFile(genesispath)
 	require.Nil(t, err)
-
 
 	set := flag.NewFlagSet("config", 0)
 	set.String("config", tempFile.Name(), "TOML configuration file")

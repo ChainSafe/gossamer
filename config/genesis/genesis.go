@@ -19,10 +19,10 @@ type Genesis struct {
 
 // GenesisData defines the genesis file data formatted for trie storage
 type GenesisData struct {
-	Name          string
-	ID            string
-	Bootnodes     [][]byte
-	ProtocolID    string
+	Name       string
+	ID         string
+	Bootnodes  [][]byte
+	ProtocolID string
 }
 
 // GenesisFields stores genesis raw data
