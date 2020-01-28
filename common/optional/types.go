@@ -18,6 +18,7 @@ package optional
 
 import (
 	"fmt"
+	"math/big"
 
 	common "github.com/ChainSafe/gossamer/common"
 )
@@ -51,6 +52,35 @@ func (x *Uint32) Set(exists bool, value uint32) {
 	x.value = value
 }
 
+type Bytes struct {
+	exists bool
+	value  []byte
+}
+
+func NewBytes(exists bool, value []byte) *Bytes {
+	return &Bytes{
+		exists: exists,
+		value:  value,
+	}
+}
+
+func (x *Bytes) Exists() bool {
+	return x.exists
+}
+
+func (x *Bytes) Value() []byte {
+	return x.value
+}
+
+func (x *Bytes) String() string {
+	return fmt.Sprintf("%x", x.value)
+}
+
+func (x *Bytes) Set(exists bool, value []byte) {
+	x.exists = exists
+	x.value = value
+}
+
 type Hash struct {
 	exists bool
 	value  common.Hash
@@ -76,6 +106,78 @@ func (x *Hash) String() string {
 }
 
 func (x *Hash) Set(exists bool, value common.Hash) {
+	x.exists = exists
+	x.value = value
+}
+
+// CoreHeader is a state block header
+// This is copied from core/types since core/types imports this package, we cannot import core/types.
+type CoreHeader struct {
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         *big.Int    `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         [][]byte    `json:"digest"`
+	hash           common.Hash
+}
+
+type Header struct {
+	exists bool
+	value  *CoreHeader
+}
+
+func NewHeader(exists bool, value *CoreHeader) *Header {
+	return &Header{
+		exists: exists,
+		value:  value,
+	}
+}
+
+func (x *Header) Exists() bool {
+	return x.exists
+}
+
+func (x *Header) Value() *CoreHeader {
+	return x.value
+}
+
+func (x *Header) String() string {
+	return fmt.Sprintf("%v", x.value)
+}
+
+func (x *Header) Set(exists bool, value *CoreHeader) {
+	x.exists = exists
+	x.value = value
+}
+
+// CoreBody is the extrinsics inside a state block
+type CoreBody []byte
+
+type Body struct {
+	exists bool
+	value  *CoreBody
+}
+
+func NewBody(exists bool, value *CoreBody) *Body {
+	return &Body{
+		exists: exists,
+		value:  value,
+	}
+}
+
+func (x *Body) Exists() bool {
+	return x.exists
+}
+
+func (x *Body) Value() *CoreBody {
+	return x.value
+}
+
+func (x *Body) String() string {
+	return fmt.Sprintf("%v", x.value)
+}
+
+func (x *Body) Set(exists bool, value *CoreBody) {
 	x.exists = exists
 	x.value = value
 }

@@ -22,6 +22,7 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 )
 
 // Extrinsic is a generic transaction whose format is verified in the runtime
@@ -115,15 +116,39 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
-// BlockBody is the extrinsics inside a state block
+func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
+	if !oh.Exists() || oh.Value() == nil {
+		return nil, errors.New("header is None")
+	}
+
+	h := oh.Value()
+
+	if h.Number == nil {
+		// Hash() will panic if number is nil
+		return nil, errors.New("cannot have nil block number")
+	}
+
+	bh := &Header{
+		ParentHash:     h.ParentHash,
+		Number:         h.Number,
+		StateRoot:      h.StateRoot,
+		ExtrinsicsRoot: h.ExtrinsicsRoot,
+		Digest:         h.Digest,
+	}
+
+	bh.Hash()
+	return bh, nil
+}
+
+// Body is the extrinsics inside a state block
 type Body []byte
 
 /// BlockData is stored within the BlockDB
 type BlockData struct {
-	Hash   common.Hash
-	Header *Header
-	Body   *Body
-	// Receipt
-	// MessageQueue
-	// Justification
+	Hash          common.Hash
+	Header        *optional.Header
+	Body          *optional.Body
+	Receipt       *optional.Bytes
+	MessageQueue  *optional.Bytes
+	Justification *optional.Bytes
 }
