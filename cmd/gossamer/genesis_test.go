@@ -97,7 +97,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	genesispath := createTempGenesisFile(t)
 	defer os.Remove(genesispath)
 
-	gen, err := genesis.LoadGenesisJsonFile(genesispath)
+	gen, err := genesis.LoadGenesisJSONFile(genesispath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	}
 
 	expected := &trie.Trie{}
-	err = expected.Load(gen.Genesis.Raw)
+	err = expected.Load(gen.GenesisFields().Raw[0])
 	if err != nil {
 		t.Fatal(err)
 	}
