@@ -20,7 +20,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// RuntimeModule struct
+// RuntimeModule holds a fields for interacting with the runtime
 type RuntimeModule struct {
 	RuntimeAPI RuntimeAPI
 }
@@ -33,7 +33,7 @@ type RuntimeAPI interface {
 	Version() string
 }
 
-// NewRuntimeModule implements RuntimeAPI
+// NewRuntimeModule creates a struct RuntimeModule with a RuntimeAPI
 func NewRuntimeModule(runtimeAPI RuntimeAPI) *RuntimeModule {
 	return &RuntimeModule{runtimeAPI}
 }

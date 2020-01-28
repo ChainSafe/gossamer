@@ -41,7 +41,7 @@ type Database struct {
 	Hasher *Hasher
 }
 
-// NewDatabase create new db
+// NewDatabase create new db instance
 func NewDatabase(db polkadb.Database) *Database {
 	batch := db.NewBatch()
 
@@ -51,22 +51,22 @@ func NewDatabase(db polkadb.Database) *Database {
 	}
 }
 
-// Store store
+// Store stores a key and value into db
 func (db *Database) Store(key, value []byte) error {
 	return db.Db.Put(key, value)
 }
 
-// Load load
+// Load load a value for a given key from db
 func (db *Database) Load(key []byte) ([]byte, error) {
 	return db.Db.Get(key)
 }
 
-// StoreLatestHash store
+// StoreLatestHash store a hash into the db
 func (db *Database) StoreLatestHash(hash []byte) error {
 	return db.Db.Put(LatestHashKey, hash)
 }
 
-// LoadLatestHash load
+// LoadLatestHash load the latest hash from db
 func (db *Database) LoadLatestHash() (common.Hash, error) {
 	hashbytes, err := db.Db.Get(LatestHashKey)
 	if err != nil {
@@ -76,7 +76,7 @@ func (db *Database) LoadLatestHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-// StoreGenesisData set
+// StoreGenesisData store genesis data into db
 func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 	enc, err := scale.Encode(gen)
 	if err != nil {

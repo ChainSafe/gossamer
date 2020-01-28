@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	// DataDirFlag BadgerDB directory
+	// DataDirFlag BadgerDB Data directory
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the database",
@@ -33,12 +33,12 @@ var (
 		Usage: "Supports levels crit (silent) to trce (trace)",
 		Value: log.LvlInfo.String(),
 	}
-	// GenesisFlag Genesis
+	// GenesisFlag Path to genesis JSON file
 	GenesisFlag = cli.StringFlag{
 		Name:  "genesis",
 		Usage: "Path to genesis JSON file",
 	}
-	// ConfigFileFlag file
+	// ConfigFileFlag TOML configuration file
 	ConfigFileFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
@@ -57,22 +57,22 @@ var (
 		Name:  "bootnodes",
 		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
 	}
-	// P2pPortFlag var
+	// P2pPortFlag Set P2P listening port
 	P2pPortFlag = cli.UintFlag{
 		Name:  "p2pport",
 		Usage: "Set P2P listening port",
 	}
-	// ProtocolIDFlag var
+	// ProtocolIDFlag Set protocol id
 	ProtocolIDFlag = cli.StringFlag{
 		Name:  "protocol",
 		Usage: "Set protocol id",
 	}
-	// NoBootstrapFlag var
+	// NoBootstrapFlag Disables p2p bootstrapping
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
 		Usage: "Disables p2p bootstrapping (mdns still enabled)",
 	}
-	// NoMdnsFlag var
+	// NoMdnsFlag Disables p2p mdns
 	NoMdnsFlag = cli.BoolFlag{
 		Name:  "nomdns",
 		Usage: "Disables p2p mdns discovery",
@@ -81,22 +81,22 @@ var (
 
 // RPC flags
 var (
-	// RPCEnabledFlag var
+	// RPCEnabledFlag Enable the HTTP-RPC
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
 	}
-	// RPCHostFlag var
+	// RPCHostFlag HTTP-RPC server listening hostname
 	RPCHostFlag = cli.StringFlag{
 		Name:  "rpchost",
 		Usage: "HTTP-RPC server listening hostname",
 	}
-	// RPCPortFlag var
+	// RPCPortFlag HTTP-RPC server listening port
 	RPCPortFlag = cli.IntFlag{
 		Name:  "rpcport",
 		Usage: "HTTP-RPC server listening port",
 	}
-	// RPCModuleFlag var
+	// RPCModuleFlag API modules to enable via HTTP-RPC
 	RPCModuleFlag = cli.StringFlag{
 		Name:  "rpcmods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
@@ -105,37 +105,37 @@ var (
 
 // Account management flags
 var (
-	// GenerateFlag var
+	// GenerateFlag Generate a new keypair
 	GenerateFlag = cli.BoolFlag{
 		Name:  "generate",
 		Usage: "Generate a new keypair. If type is not specified, defaults to sr25519",
 	}
-	// PasswordFlag var
+	// PasswordFlag Password used to encrypt the keystore.
 	PasswordFlag = cli.StringFlag{
 		Name:  "password",
 		Usage: "Password used to encrypt the keystore. Used with --generate or --unlock",
 	}
-	// ImportFlag var
+	// ImportFlag Import encrypted keystore
 	ImportFlag = cli.StringFlag{
 		Name:  "import",
 		Usage: "Import encrypted keystore file generated with gossamer",
 	}
-	// ListFlag var
+	// ListFlag List node keys
 	ListFlag = cli.BoolFlag{
 		Name:  "list",
 		Usage: "List node keys",
 	}
-	// Ed25519Flag var
+	// Ed25519Flag Specify account type ed25519
 	Ed25519Flag = cli.BoolFlag{
 		Name:  "ed25519",
 		Usage: "Specify account type as ed25519",
 	}
-	// Sr25519Flag var
+	// Sr25519Flag Specify account type sr25519
 	Sr25519Flag = cli.BoolFlag{
 		Name:  "sr25519",
 		Usage: "Specify account type as sr25519",
 	}
-	// Secp256k1Flag var
+	// Secp256k1Flag Specify account type secp256k1
 	Secp256k1Flag = cli.BoolFlag{
 		Name:  "secp256k1",
 		Usage: "Specify account type as secp256k1",

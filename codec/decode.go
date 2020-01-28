@@ -33,7 +33,7 @@ type Decoder struct {
 	Reader io.Reader
 }
 
-// Decode interface
+// Decode a byte array into interface
 func Decode(in []byte, t interface{}) (interface{}, error) {
 	buf := &bytes.Buffer{}
 	sd := Decoder{Reader: buf}
@@ -46,7 +46,7 @@ func Decode(in []byte, t interface{}) (interface{}, error) {
 	return output, err
 }
 
-// DecodePtr pointer
+// DecodePtr a byte array into a interface pointer
 func DecodePtr(in []byte, t interface{}) error {
 	buf := &bytes.Buffer{}
 	sd := Decoder{Reader: buf}

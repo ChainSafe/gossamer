@@ -26,20 +26,20 @@ type Version struct {
 }
 
 var (
-	// CoreVersion string
+	// CoreVersion returns the string representing
 	CoreVersion = "Core_version"
-	// CoreInitializeBlock string
+	// CoreInitializeBlock returns the string representing
 	CoreInitializeBlock = "Core_initialize_block"
-	// CoreExecuteBlock string
+	// CoreExecuteBlock returns the string representing
 	CoreExecuteBlock = "Core_execute_block"
-	// TaggedTransactionQueueValidateTransaction string
+	// TaggedTransactionQueueValidateTransaction returns the string representing
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
-	// BabeAPIConfiguration string
+	// BabeAPIConfiguration returns the string representing
 	BabeAPIConfiguration = "BabeApi_configuration"
-	// BlockBuilderInherentExtrinsics string
+	// BlockBuilderInherentExtrinsics returns the string representing
 	BlockBuilderInherentExtrinsics = "BlockBuilder_inherent_extrinsics"
-	// BlockBuilderApplyExtrinsic string
+	// BlockBuilderApplyExtrinsic returns the string representing
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
-	// BlockBuilderFinalizeBlock string
+	// BlockBuilderFinalizeBlock returns the string representing
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 )

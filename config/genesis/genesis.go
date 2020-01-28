@@ -64,6 +64,7 @@ func LoadGenesisData(file string) (*GenesisData, error) {
 	}, nil
 }
 
+// GenesisFields returns genesisFields struct
 func (g *GenesisData) GenesisFields() GenesisFields {
 	return g.genesisFields
 }

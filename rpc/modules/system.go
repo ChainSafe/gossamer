@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/p2p"
 )
 
+// NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
 const NOT_IMPLEMENTED = "not yet implemented"
 
 // SystemModule is an RPC module providing access to core API points
@@ -33,20 +34,25 @@ type SystemModule struct {
 // EmptyRequest represents an RPC request with no fields
 type EmptyRequest struct{}
 
+// StringResponse holds the string response
 type StringResponse string
 
+// SystemHealthResponse struct to marshal json
 type SystemHealthResponse struct {
 	Health p2p.Health `json:"health"`
 }
 
+// SystemNetworkStateResponse struct to marshal json
 type SystemNetworkStateResponse struct {
 	NetworkState p2p.NetworkState `json:"networkState"`
 }
 
+// SystemPeersResponse struct to marshal json
 type SystemPeersResponse struct {
 	Peers []p2p.PeerInfo `json:"peers"`
 }
 
+// SystemPropertiesResponse struct to marshal json
 type SystemPropertiesResponse struct {
 	Ss58Format    int    `json:"ss58Format"`
 	TokenDecimals int    `json:"tokenDecimals"`

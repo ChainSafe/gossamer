@@ -43,7 +43,8 @@ const (
 var (
 	// DefaultP2PBootstrap Must be non-nil to match toml parsing semantics
 	DefaultP2PBootstrap = []string{}
-	DefaultRPCModules   = []api.Module{"system"}
+	// DefaultRPCModules holds defaults RPC modules
+	DefaultRPCModules = []api.Module{"system"}
 )
 
 var (

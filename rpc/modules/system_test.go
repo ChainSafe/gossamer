@@ -37,18 +37,22 @@ var (
 // Mock runtime API
 type MockRuntimeAPI struct{}
 
+// Chain is a mock func that returns testRuntimeChain
 func (r *MockRuntimeAPI) Chain() string {
 	return testRuntimeChain
 }
 
+// Name is a mock func that returns testRuntimeName
 func (r *MockRuntimeAPI) Name() string {
 	return testRuntimeName
 }
 
+// Properties is a mock func that returns testRuntimeProperties
 func (r *MockRuntimeAPI) Properties() string {
 	return testRuntimeProperties
 }
 
+// Version is a mock func that returns testRuntimeVersion
 func (r *MockRuntimeAPI) Version() string {
 	return testRuntimeVersion
 }
@@ -56,14 +60,17 @@ func (r *MockRuntimeAPI) Version() string {
 // Mock network API
 type MockP2pAPI struct{}
 
+// Health is a mock func that returns testHealth
 func (n *MockP2pAPI) Health() p2p.Health {
 	return testHealth
 }
 
+// NetworkState is a mock func that returns testNetworkState
 func (n *MockP2pAPI) NetworkState() p2p.NetworkState {
 	return testNetworkState
 }
 
+// Peers is a mock func that returns testPeers
 func (n *MockP2pAPI) Peers() []p2p.PeerInfo {
 	return testPeers
 }

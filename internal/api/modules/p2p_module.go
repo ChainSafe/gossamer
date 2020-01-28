@@ -21,7 +21,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// P2pModule struct
+// P2pModule holds the fields for manipulating the API
 type P2pModule struct {
 	P2pAPI P2pAPI
 }

@@ -32,36 +32,42 @@ var (
 	testPeers        = append([]p2p.PeerInfo{}, p2p.PeerInfo{})
 )
 
-// Mock RuntimeAPI
+// MockRuntimeAPI is the Mock for RuntimeAPI
 type MockRuntimeAPI struct{}
 
+// Chain is the Mock for Chain
 func (r *MockRuntimeAPI) Chain() string {
 	return testChain
 }
 
+// Name is the Mock for Name
 func (r *MockRuntimeAPI) Name() string {
 	return testName
 }
 
+// Properties is the Mock for Properties
 func (r *MockRuntimeAPI) Properties() string {
 	return testProperties
 }
 
+// Version is the Mock for Version
 func (r *MockRuntimeAPI) Version() string {
 	return testVersion
 }
 
-// Mock P2pAPI
+// MockP2pAPI Mock P2pAPI
 type MockP2pAPI struct{}
 
 func (n *MockP2pAPI) Health() p2p.Health {
 	return testHealth
 }
 
+// NetworkState is the Mock for NetworkState
 func (n *MockP2pAPI) NetworkState() p2p.NetworkState {
 	return testNetworkState
 }
 
+// Peers is the Mock for Peers
 func (n *MockP2pAPI) Peers() []p2p.PeerInfo {
 	return testPeers
 }

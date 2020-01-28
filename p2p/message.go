@@ -66,7 +66,7 @@ type StatusMessage struct {
 	ChainStatus         []byte
 }
 
-// GetType int
+// GetType returns the StatusMsgType int
 func (sm *StatusMessage) GetType() int {
 	return StatusMsgType
 }
