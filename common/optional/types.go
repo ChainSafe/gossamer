@@ -118,7 +118,7 @@ type CoreHeader struct {
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
 	Digest         [][]byte    `json:"digest"`
-	hash           common.Hash
+	//hash           common.Hash
 }
 
 type Header struct {

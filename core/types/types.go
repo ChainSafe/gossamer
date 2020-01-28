@@ -116,6 +116,17 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
+func (bh *Header) AsOptional() *optional.Header {
+	return optional.NewHeader(true, &optional.CoreHeader{
+		ParentHash:     bh.ParentHash,
+		Number:         bh.Number,
+		StateRoot:      bh.StateRoot,
+		ExtrinsicsRoot: bh.ExtrinsicsRoot,
+		Digest:         bh.Digest,
+	})
+}
+
+// NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
 func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 	if !oh.Exists() || oh.Value() == nil {
 		return nil, errors.New("header is None")
@@ -143,6 +154,22 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 // Body is the extrinsics inside a state block
 type Body []byte
 
+// NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
+func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
+	if !ob.Exists() || ob.Value() == nil {
+		return nil, errors.New("body is None")
+	}
+
+	b := ob.Value()
+	res := Body([]byte(*b))
+	return &res, nil
+}
+
+func (b *Body) AsOptional() *optional.Body {
+	ob := optional.CoreBody([]byte(*b))
+	return optional.NewBody(true, &ob)
+}
+
 /// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash          common.Hash
@@ -151,4 +178,10 @@ type BlockData struct {
 	Receipt       *optional.Bytes
 	MessageQueue  *optional.Bytes
 	Justification *optional.Bytes
+}
+
+func (bd *BlockData) Encode() []byte {
+	enc := bd.Hash[:]
+
+	return enc
 }
