@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/state"
 
@@ -85,41 +86,6 @@ func createCliContext(description string, flags []string, values []interface{}) 
 	return context, nil
 }
 
-const TESTS_FP string = "../../substrate_test_runtime.compact.wasm"
-const TEST_WASM_URL string = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
-
-// Exists reports whether the named file or directory exists.
-func Exists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// getTestBlob checks if the test wasm file exists and if not, it fetches it from github
-func getTestBlob() (n int64, err error) {
-	if Exists(TESTS_FP) {
-		return 0, nil
-	}
-
-	out, err := os.Create(TESTS_FP)
-	if err != nil {
-		return 0, err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(TEST_WASM_URL)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	n, err = io.Copy(out, resp.Body)
-	return n, err
-}
-
 var tmpGenesis = &genesis.Genesis{
 	Name:       "gossamer",
 	Id:         "gossamer",
@@ -129,25 +95,24 @@ var tmpGenesis = &genesis.Genesis{
 }
 
 func createTempGenesisFile(t *testing.T) string {
-	_, err := getTestBlob()
+	_ = runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+
+	testRuntimeFilePath := tests.GetAbsolutePath(tests.POLKADOT_RUNTIME_FP)
+
+	fp, err := filepath.Abs(testRuntimeFilePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fp, err := filepath.Abs(TESTS_FP)
+	testBytes, err := ioutil.ReadFile(fp)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testbytes, err := ioutil.ReadFile(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testhex := hex.EncodeToString(testbytes)
-	tmpGenesis.Genesis = genesis.GenesisFields{
-		Raw: map[string]string{"0x3a636f6465": "0x" + testhex},
-	}
+	testHex := hex.EncodeToString(testBytes)
+	testRaw := [2]map[string]string{}
+	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
+	tmpGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
 
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")
