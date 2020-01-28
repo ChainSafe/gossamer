@@ -107,10 +107,10 @@ func createTempGenesisFile(t *testing.T) string {
 	testbytes, err := ioutil.ReadFile(fp)
 	require.Nil(t, err)
 
-	testhex := hex.EncodeToString(testbytes)
-	tmpGenesis.Genesis = genesis.GenesisFields{
-		Raw: map[string]string{"0x3a636f6465": "0x" + testhex},
-	}
+	testHex := hex.EncodeToString(testBytes)
+	testRaw := [2]map[string]string{}
+	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
+	tmpGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
 
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")

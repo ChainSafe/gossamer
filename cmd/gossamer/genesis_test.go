@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"math/big"
 	"os"
 	"reflect"
 	"testing"
@@ -14,13 +15,14 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/urfave/cli"
 )
 
 func TestStoreGenesisInfo(t *testing.T) {
-	tempFile, _ := createTempConfigFile()
+	tempFile, cfg := createTempConfigFile()
 	defer teardown(tempFile)
 
 	genesispath := createTempGenesisFile(t)
@@ -37,19 +39,26 @@ func TestStoreGenesisInfo(t *testing.T) {
 	currentConfig, err := getConfig(ctx)
 	require.Nil(t, err)
 
-	dbSrv := state.NewService(currentConfig.Global.DataDir)
+	dataDir := cfg.Global.DataDir
+
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.Header{
+		Number:         big.NewInt(0),
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	require.Nil(t, err)
 
 	err = dbSrv.Start()
 	require.Nil(t, err)
 
 	defer dbSrv.Stop()
 
-	tdb := &trie.Database{
-		Db: dbSrv.Storage.Db.Db,
-	}
+	setGlobalConfig(ctx, &currentConfig.Global)
 
-	gendata, err := tdb.LoadGenesisData()
+	gendata, err := dbSrv.Storage.LoadGenesisData()
 	require.Nil(t, err)
+
 
 	expected := &genesis.GenesisData{
 		Name:       tmpGenesis.Name,
@@ -61,6 +70,17 @@ func TestStoreGenesisInfo(t *testing.T) {
 	if !reflect.DeepEqual(gendata, expected) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
 	}
+
+	stateRoot := dbSrv.Block.LatestHeader().StateRoot
+	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHeader := dbSrv.Block.LatestHeader()
+	if !genesisHeader.Hash().Equal(expectedHeader.Hash()) {
+		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
+	}
 }
 
 func TestGenesisStateLoading(t *testing.T) {
@@ -70,8 +90,9 @@ func TestGenesisStateLoading(t *testing.T) {
 	genesispath := createTempGenesisFile(t)
 	defer os.Remove(genesispath)
 
-	gen, err := genesis.LoadGenesisJsonFile(genesispath)
+	gen, err := genesis.LoadGenesisJSONFile(genesispath)
 	require.Nil(t, err)
+
 
 	set := flag.NewFlagSet("config", 0)
 	set.String("config", tempFile.Name(), "TOML configuration file")
@@ -89,7 +110,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	}
 
 	expected := &trie.Trie{}
-	err = expected.Load(gen.Genesis.Raw)
+	err = expected.Load(gen.GenesisFields().Raw[0])
 	require.Nil(t, err)
 
 	expectedRoot, err := expected.Hash()
