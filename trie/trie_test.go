@@ -156,7 +156,7 @@ func generateRandomTest(kv map[string][]byte) trieTest {
 		if kv[string(buf)] == nil || key < 256 {
 			test.key = buf
 
-			buf = make([]byte, r.Intn(128))
+			buf = make([]byte, r.Intn(128)+2)
 			r.Read(buf)
 			test.value = buf
 
@@ -560,7 +560,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := newEmpty()
 
-	rt := generateRandomTests(10000)
+	rt := generateRandomTests(100)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
