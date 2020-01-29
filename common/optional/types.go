@@ -158,10 +158,10 @@ type CoreBody []byte
 // TODO: when we change the state service's encoding to SCALE, these fields should become unexported.
 type Body struct {
 	Exists bool
-	Value  *CoreBody
+	Value  CoreBody
 }
 
-func NewBody(exists bool, value *CoreBody) *Body {
+func NewBody(exists bool, value CoreBody) *Body {
 	return &Body{
 		Exists: exists,
 		Value:  value,
@@ -180,7 +180,7 @@ func (x *Body) String() string {
 	return fmt.Sprintf("%v", x.Value)
 }
 
-func (x *Body) Set(exists bool, value *CoreBody) {
+func (x *Body) Set(exists bool, value CoreBody) {
 	x.Exists = exists
 	x.Value = value
 }

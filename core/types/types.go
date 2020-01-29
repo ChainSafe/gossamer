@@ -116,6 +116,7 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
+// AsOptional returns the Header as an optional.Header
 func (bh *Header) AsOptional() *optional.Header {
 	return optional.NewHeader(true, &optional.CoreHeader{
 		ParentHash:     bh.ParentHash,
@@ -161,16 +162,17 @@ func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
 	}
 
 	b := ob.Value
-	res := Body([]byte(*b))
+	res := Body([]byte(b))
 	return &res, nil
 }
 
+// AsOptional returns the Body as an optional.Body
 func (b *Body) AsOptional() *optional.Body {
 	ob := optional.CoreBody([]byte(*b))
-	return optional.NewBody(true, &ob)
+	return optional.NewBody(true, ob)
 }
 
-/// BlockData is stored within the BlockDB
+// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash          common.Hash
 	Header        *optional.Header
@@ -180,8 +182,64 @@ type BlockData struct {
 	Justification *optional.Bytes
 }
 
-func (bd *BlockData) Encode() []byte {
+// Encode performs SCALE encoding of the BlockData
+func (bd *BlockData) Encode() ([]byte, error) {
 	enc := bd.Hash[:]
 
-	return enc
+	if bd.Header.Exists() {
+		venc, err := scale.Encode(bd.Header.Value())
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+
+	if bd.Body.Exists {
+		venc, err := scale.Encode([]byte(bd.Body.Value))
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+
+	if bd.Receipt.Exists() {
+		venc, err := scale.Encode(bd.Receipt.Value())
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+
+	if bd.MessageQueue.Exists() {
+		venc, err := scale.Encode(bd.MessageQueue.Value())
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+
+	if bd.Justification.Exists() {
+		venc, err := scale.Encode(bd.Justification.Value())
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+
+	return enc, nil
 }

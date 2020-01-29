@@ -253,7 +253,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	// TODO: this is not correct, BlockResponseMessage.Data is not necessarily one block
 	// it may contain any number of blocks, depending on how many we requested
-	blockData := msg.(*p2p.BlockResponseMessage).Data
+	rawData := msg.(*p2p.BlockResponseMessage).Data
 
 	err := s.validateBlock(blockData)
 	if err != nil {
@@ -261,7 +261,11 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 		return err
 	}
 
-	block := new(types.Block)
+	block := &types.Block{
+		Header: new(types.Header),
+		Body:   new(types.Body),
+	}
+
 	_, err = scale.Decode(blockData, block)
 	if err != nil {
 		return err

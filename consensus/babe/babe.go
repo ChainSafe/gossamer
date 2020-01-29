@@ -149,7 +149,7 @@ func (b *Session) invokeBlockAuthoring() {
 				hash := block.Header.Hash()
 				log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
 				b.newBlocks <- *block
-				err = b.blockState.AddBlock(*block)
+				err = b.blockState.AddBlock(block)
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
 				}
