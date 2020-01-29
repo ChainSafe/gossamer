@@ -136,13 +136,13 @@ func (db *BadgerDB) Del(key []byte) error {
 
 // Close closes a DB
 func (db *BadgerDB) Close() error {
-	err := db.db.Close()
-	if err == nil {
-		log.Info("Database closed")
+	if err := db.db.Close(); err == nil {
+		log.Info("Database *BadgerDB closed successfully")
+		return nil
+	} else {
+		log.Crit("Failed to close Database *BadgerDB", "err", err)
 		return err
 	}
-	log.Crit("Failed to close database", "err", err)
-	return nil
 }
 
 // Iterable struct contains a transaction, iterator and context fields released, initialized

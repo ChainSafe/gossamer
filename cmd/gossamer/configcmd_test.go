@@ -27,6 +27,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/tests"
 
@@ -100,14 +102,10 @@ func createTempGenesisFile(t *testing.T) string {
 	testRuntimeFilePath := tests.GetAbsolutePath(tests.POLKADOT_RUNTIME_FP)
 
 	fp, err := filepath.Abs(testRuntimeFilePath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testBytes, err := ioutil.ReadFile(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testHex := hex.EncodeToString(testBytes)
 	testRaw := [2]map[string]string{}
@@ -116,21 +114,15 @@ func createTempGenesisFile(t *testing.T) string {
 
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Grab json encoded bytes
 	bz, err := json.Marshal(tmpGenesis)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// Write to temp file
 	_, err = file.Write(bz)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return file.Name()
 }
@@ -141,9 +133,7 @@ func TestGetConfig(t *testing.T) {
 
 	var err error
 	cfgClone.Global.DataDir, err = filepath.Abs(cfgClone.Global.DataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -162,14 +152,10 @@ func TestGetConfig(t *testing.T) {
 		set.String(c.name, c.value, "")
 		context := cli.NewContext(app, set, nil)
 
-		fig, err := getConfig(context)
-		if err != nil {
-			t.Fatalf("failed to set fig %v", err)
-		}
+		currentConfig, err := getConfig(context)
+		require.Nil(t, err)
 
-		if !reflect.DeepEqual(fig, c.expected) {
-			t.Errorf("\ngot: %+v \nexpected: %+v", fig, c.expected)
-		}
+		require.Equal(t, c.expected, currentConfig)
 	}
 }
 
@@ -194,30 +180,24 @@ func TestSetGlobalConfig(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			tCfg := &cfg.GlobalConfig{}
 
 			setGlobalConfig(context, tCfg)
 
-			if !reflect.DeepEqual(*tCfg, c.expected) {
-				t.Errorf("\ngot: %+v \nexpected: %+v", tCfg, c.expected)
-			}
+			require.Equal(t, c.expected, *tCfg)
 		})
 	}
 }
 
 func TestCreateP2PService(t *testing.T) {
 	gendata := &genesis.GenesisData{
-		ProtocolID: "gossamer",
+		ProtocolID: "/gossamer/test",
 	}
 
 	srv, _, _ := createP2PService(cfg.DefaultConfig(), gendata)
-	if srv == nil {
-		t.Fatalf("failed to create p2p service")
-	}
+	require.NotNil(t, srv, "failed to create p2p service")
 }
 
 func TestSetP2pConfig(t *testing.T) {
@@ -290,17 +270,13 @@ func TestSetP2pConfig(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			input := cfg.DefaultConfig()
 			// Must call global setup to set data dir
 			setP2pConfig(context, &input.P2p)
 
-			if !reflect.DeepEqual(input.P2p, c.expected) {
-				t.Fatalf("\ngot %+v\nexpected %+v", input.P2p, c.expected)
-			}
+			require.Equal(t, c.expected, input.P2p)
 		})
 	}
 }
@@ -348,16 +324,12 @@ func TestSetRPCConfig(t *testing.T) {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			input := cfg.DefaultConfig()
 			setRPCConfig(context, &input.RPC)
 
-			if !reflect.DeepEqual(input.RPC, c.expected) {
-				t.Fatalf("\ngot %+v\nexpected %+v", input.RPC, c.expected)
-			}
+			require.Equal(t, c.expected, input.RPC)
 		})
 	}
 }
@@ -397,26 +369,18 @@ func TestMakeNode(t *testing.T) {
 
 		t.Run(c.name, func(t *testing.T) {
 			context, err := createCliContext(c.name, c.flags, c.values)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			err = loadGenesis(context)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			node, _, err := makeNode(context)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			db := node.Services.Get(&state.Service{})
 
 			err = db.Stop()
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 		})
 	}
 }
@@ -443,15 +407,11 @@ func TestCommands(t *testing.T) {
 		app.Writer = ioutil.Discard
 
 		context, err := createCliContext(c.description, c.flags, c.values)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		command := dumpConfigCommand
 
 		err = command.Run(context)
-		if err != nil {
-			t.Fatalf("should have ran dumpConfig command. err: %s", err)
-		}
+		require.Nil(t, err, "should have ran dumpConfig command.")
 	}
 }

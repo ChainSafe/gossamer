@@ -58,13 +58,13 @@ func (dt *table) Del(key []byte) error {
 
 // Close closes table db
 func (dt *table) Close() error {
-	err := dt.db.Close()
-	if err != nil {
-		log.Info("Database closed")
+	if err := dt.db.Close(); err == nil {
+		log.Info("Database *table closed successfully")
+		return nil
+	} else {
+		log.Crit("Failed to close Database *table ", "err", err)
 		return err
 	}
-	log.Crit("Failed to close database")
-	return nil
 }
 
 // NewIterator initializes type Iterable
