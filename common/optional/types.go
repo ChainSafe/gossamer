@@ -153,31 +153,34 @@ func (x *Header) Set(exists bool, value *CoreHeader) {
 // CoreBody is the extrinsics inside a state block
 type CoreBody []byte
 
+// Body represents an optional types.Body.
+// The fields need to be exported since it's JSON encoded by the state service.
+// TODO: when we change the state service's encoding to SCALE, these fields should become unexported.
 type Body struct {
-	exists bool
-	value  *CoreBody
+	Exists bool
+	Value  *CoreBody
 }
 
 func NewBody(exists bool, value *CoreBody) *Body {
 	return &Body{
-		exists: exists,
-		value:  value,
+		Exists: exists,
+		Value:  value,
 	}
 }
 
-func (x *Body) Exists() bool {
-	return x.exists
-}
+// func (x *Body) Exists() bool {
+// 	return x.Exists
+// }
 
-func (x *Body) Value() *CoreBody {
-	return x.value
-}
+// func (x *Body) Value() *CoreBody {
+// 	return x.Value
+// }
 
 func (x *Body) String() string {
-	return fmt.Sprintf("%v", x.value)
+	return fmt.Sprintf("%v", x.Value)
 }
 
 func (x *Body) Set(exists bool, value *CoreBody) {
-	x.exists = exists
-	x.value = value
+	x.Exists = exists
+	x.Value = value
 }

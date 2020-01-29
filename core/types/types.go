@@ -128,7 +128,7 @@ func (bh *Header) AsOptional() *optional.Header {
 
 // NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
 func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
-	if !oh.Exists() || oh.Value() == nil {
+	if !oh.Exists() {
 		return nil, errors.New("header is None")
 	}
 
@@ -156,11 +156,11 @@ type Body []byte
 
 // NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
 func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
-	if !ob.Exists() || ob.Value() == nil {
+	if !ob.Exists {
 		return nil, errors.New("body is None")
 	}
 
-	b := ob.Value()
+	b := ob.Value
 	res := Body([]byte(*b))
 	return &res, nil
 }

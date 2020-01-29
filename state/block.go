@@ -112,17 +112,17 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 }
 
 // GetBlockData returns a BlockData for a given hash
-func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
+func (bs *blockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
 	result := new(types.BlockData)
 
 	data, err := bs.db.Db.Get(blockDataKey(hash))
 	if err != nil {
-		return types.BlockData{}, err
+		return nil, err
 	}
 
 	err = json.Unmarshal(data, result)
 
-	return *result, err
+	return result, err
 }
 
 // LatestHeader returns the latest block available on blockState
@@ -144,7 +144,7 @@ func (bs *blockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 
 	body, err := types.NewBodyFromOptional(blockData.Body)
 	if err != nil {
-		return nil, fmt.Errorf("block body does not exist")
+		return nil, err
 	}
 	return &types.Block{Header: header, Body: body}, nil
 }
@@ -209,8 +209,7 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData *types.BlockData)
 }
 
 // AddBlock will set the latestBlock in blockState DB
-func (bs *blockState) AddBlock(newBlock types.Block) error {
-
+func (bs *blockState) AddBlock(newBlock *types.Block) error {
 	// Set the latest block
 	// If latestHeader is nil OR the new block number is greater than current block number
 	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
