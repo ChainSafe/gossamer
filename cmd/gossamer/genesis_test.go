@@ -3,22 +3,26 @@ package main
 import (
 	"bytes"
 	"flag"
+	"math/big"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/state"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/urfave/cli"
 )
 
 func TestStoreGenesisInfo(t *testing.T) {
-	tempFile, _ := createTempConfigFile()
+	tempFile, cfg := createTempConfigFile()
 	defer teardown(tempFile)
 
 	genesispath := createTempGenesisFile(t)
@@ -30,43 +34,51 @@ func TestStoreGenesisInfo(t *testing.T) {
 	ctx := cli.NewContext(nil, set, nil)
 
 	err := loadGenesis(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
-	fig, err := getConfig(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	currentConfig, err := getConfig(ctx)
+	require.Nil(t, err)
 
-	setGlobalConfig(ctx, &fig.Global)
-	dbSrv := state.NewService(fig.Global.DataDir)
+	dataDir := cfg.Global.DataDir
+
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.Header{
+		Number:         big.NewInt(0),
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	require.Nil(t, err)
 
 	err = dbSrv.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	defer dbSrv.Stop()
 
-	tdb := &trie.Database{
-		Db: dbSrv.Storage.Db.Db,
-	}
+	setGlobalConfig(ctx, &currentConfig.Global)
 
-	gendata, err := tdb.LoadGenesisData()
-	if err != nil {
-		t.Fatal(err)
-	}
+	gendata, err := dbSrv.Storage.LoadGenesisData()
+	require.Nil(t, err)
 
 	expected := &genesis.GenesisData{
 		Name:       tmpGenesis.Name,
-		Id:         tmpGenesis.Id,
-		ProtocolId: tmpGenesis.ProtocolId,
+		ID:         tmpGenesis.ID,
+		ProtocolID: tmpGenesis.ProtocolID,
 		Bootnodes:  common.StringArrayToBytes(tmpGenesis.Bootnodes),
 	}
 
 	if !reflect.DeepEqual(gendata, expected) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
+	}
+
+	stateRoot := dbSrv.Block.LatestHeader().StateRoot
+	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	genesisHeader := dbSrv.Block.LatestHeader()
+	if !genesisHeader.Hash().Equal(expectedHeader.Hash()) {
+		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
 	}
 }
 
@@ -78,9 +90,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	defer os.Remove(genesispath)
 
 	gen, err := genesis.LoadGenesisJSONFile(genesispath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	set := flag.NewFlagSet("config", 0)
 	set.String("config", tempFile.Name(), "TOML configuration file")
@@ -88,14 +98,10 @@ func TestGenesisStateLoading(t *testing.T) {
 	context := cli.NewContext(nil, set, nil)
 
 	err = loadGenesis(context)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	d, _, err := makeNode(context)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
 		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
@@ -103,21 +109,15 @@ func TestGenesisStateLoading(t *testing.T) {
 
 	expected := &trie.Trie{}
 	err = expected.Load(gen.GenesisFields().Raw[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expectedRoot, err := expected.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	mgr := d.Services.Get(&core.Service{})
 
 	stateRoot, err := mgr.(*core.Service).StorageRoot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !bytes.Equal(expectedRoot[:], stateRoot[:]) {
 		t.Fatalf("Fail: got %x expected %x", stateRoot, expectedRoot)

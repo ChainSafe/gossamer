@@ -45,6 +45,10 @@ build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	GOBIN=$(PWD)/build/bin go run scripts/ci.go install
 
+# init: Init the gossamer folder using  gssmr0.json genesis file and default config file
+init:
+	./build/bin/gossamer init --genesis config/gssmr0.json --verbosity debug --config ./config.toml
+
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:
 	@echo "  >  \033[32mStarting server...\033[0m "
@@ -62,6 +66,10 @@ license: $(ADDLICENSE)
 docker: docker-build
 	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
 	docker run --rm $(FULLDOCKERNAME)
+
+docker-version:
+	@echo "  >  \033[32mStarting Gossamer Container...\033[0m "
+	docker run -it $(FULLDOCKERNAME) /bin/bash -c "/usr/local/gossamer --version"
 
 docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
