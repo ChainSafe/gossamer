@@ -155,7 +155,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	// Parse CLI flags
 	setGlobalConfig(ctx, &currentConfig.Global)
 	setP2pConfig(ctx, &currentConfig.P2p)
-	setRpcConfig(ctx, &currentConfig.RPC)
+	setRPCConfig(ctx, &currentConfig.RPC)
 	return currentConfig, nil
 }
 
