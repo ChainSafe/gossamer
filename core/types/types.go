@@ -18,6 +18,7 @@ package types
 
 import (
 	"errors"
+	"io"
 	"math/big"
 
 	scale "github.com/ChainSafe/gossamer/codec"
@@ -242,4 +243,106 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	return enc, nil
+}
+
+// Decode decodes the SCALE encoded input to BlockData
+func (bd *BlockData) Decode(r io.Reader) error {
+	hash, err := common.ReadHash(r)
+	if err != nil {
+		return err
+	}
+	bd.Hash = hash
+
+	sd := scale.Decoder{Reader: r}
+
+	headerExists, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	if headerExists == 1 {
+		header := &Header{
+			ParentHash:     common.Hash{},
+			Number:         big.NewInt(0),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         [][]byte{{}},
+		}
+		_, err = sd.Decode(header)
+		if err != nil {
+			return err
+		}
+
+		header.Hash()
+		bd.Header = header.AsOptional()
+	} else {
+		bd.Header = optional.NewHeader(false, nil)
+	}
+
+	bodyExists, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	if bodyExists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+
+		body := Body(b.([]byte))
+		bd.Body = body.AsOptional()
+	} else {
+		bd.Body = optional.NewBody(false, nil)
+	}
+
+	receiptExists, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	if receiptExists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+
+		bd.Receipt = optional.NewBytes(true, b.([]byte))
+	} else {
+		bd.Receipt = optional.NewBytes(false, nil)
+	}
+
+	msgQueueExists, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	if msgQueueExists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+
+		bd.MessageQueue = optional.NewBytes(true, b.([]byte))
+	} else {
+		bd.MessageQueue = optional.NewBytes(false, nil)
+	}
+
+	justificationExists, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	if justificationExists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+
+		bd.Justification = optional.NewBytes(true, b.([]byte))
+	} else {
+		bd.Justification = optional.NewBytes(false, nil)
+	}
+
+	return nil
 }
