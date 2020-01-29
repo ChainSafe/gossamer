@@ -22,13 +22,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/tests"
-
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 )
 
 var TestMessageTimeout = 2 * time.Second
@@ -230,8 +231,38 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	}
 	defer s.Stop()
 
-	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
-	//data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
+	hash := common.NewHash([]byte{0})
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+
+	header := &optional.CoreHeader{
+		ParentHash:     testHash,
+		Number:         big.NewInt(1),
+		StateRoot:      testHash,
+		ExtrinsicsRoot: testHash,
+		Digest:         [][]byte{{0xe, 0xf}},
+	}
+
+	bds := []*types.BlockData{{
+		Hash:          hash,
+		Header:        optional.NewHeader(true, header),
+		Body:          optional.NewBody(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}, {
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(true, []byte("asdf")),
+		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+		Justification: optional.NewBytes(true, []byte("qwerty")),
+	}}
+
+	data, err := types.EncodeBlockDataArray(bds)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	blockResponse := &p2p.BlockResponseMessage{Data: data}
 

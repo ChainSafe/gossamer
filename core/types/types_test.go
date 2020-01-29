@@ -230,3 +230,57 @@ func TestBlockDataDecodeAll(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)
 	}
 }
+
+func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
+	hash := common.NewHash([]byte{0})
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+
+	header := &optional.CoreHeader{
+		ParentHash:     testHash,
+		Number:         big.NewInt(1),
+		StateRoot:      testHash,
+		ExtrinsicsRoot: testHash,
+		Digest:         [][]byte{{0xe, 0xf}},
+	}
+
+	expected := []*BlockData{{
+		Hash:          hash,
+		Header:        optional.NewHeader(true, header),
+		Body:          optional.NewBody(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}, {
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(true, []byte("asdf")),
+		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+		Justification: optional.NewBytes(true, []byte("qwerty")),
+	}, {
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}}
+
+	enc, err := EncodeBlockDataArray(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := &bytes.Buffer{}
+	r.Write(enc)
+
+	res, err := DecodeBlockDataArray(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("Fail: got %v expected %v", res, expected)
+	}
+}

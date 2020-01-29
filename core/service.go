@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -251,28 +252,48 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	// TODO: this is not correct, BlockResponseMessage.Data is not necessarily one block
-	// it may contain any number of blocks, depending on how many we requested
-	rawData := msg.(*p2p.BlockResponseMessage).Data
+	data := msg.(*p2p.BlockResponseMessage).Data
+	buf := &bytes.Buffer{}
+	buf.Write(data)
 
-	err := s.validateBlock(blockData)
-	if err != nil {
-		log.Error("Failed to validate block", "err", err)
-		return err
-	}
-
-	block := &types.Block{
-		Header: new(types.Header),
-		Body:   new(types.Body),
-	}
-
-	_, err = scale.Decode(blockData, block)
+	blockData, err := types.DecodeBlockDataArray(buf)
 	if err != nil {
 		return err
 	}
 
-	// TODO: if latest block, use AddBlock
-	return s.blockState.SetBlock(block)
+	for _, bd := range blockData {
+		if bd.Header.Exists() && bd.Body.Exists {
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return err
+			}
+
+			block := &types.Block{
+				Header: header,
+				Body:   body,
+			}
+
+			enc, err := scale.Encode(block)
+			if err != nil {
+				return err
+			}
+
+			err = s.validateBlock(enc)
+			if err != nil {
+				log.Error("Failed to validate block", "err", err)
+				return err
+			}
+		}
+
+		// TODO: set BlockData
+	}
+
+	return nil
 }
 
 // ProcessTransactionMessage validates each transaction in the message and

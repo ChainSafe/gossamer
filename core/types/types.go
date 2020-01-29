@@ -346,3 +346,44 @@ func (bd *BlockData) Decode(r io.Reader) error {
 
 	return nil
 }
+
+func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
+	enc, err := scale.Encode(int32(len(bds)))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, bd := range bds {
+		benc, err := bd.Encode()
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, benc...)
+	}
+
+	return enc, nil
+}
+
+func DecodeBlockDataArray(r io.Reader) ([]*BlockData, error) {
+	sd := scale.Decoder{Reader: r}
+
+	l, err := sd.Decode(int32(0))
+	if err != nil {
+		return nil, err
+	}
+
+	length := int(l.(int32))
+	bds := make([]*BlockData, length)
+
+	for i := 0; i < length; i++ {
+		bd := new(BlockData)
+		err = bd.Decode(r)
+		if err != nil {
+			return bds, err
+		}
+
+		bds[i] = bd
+	}
+
+	return bds, err
+}
