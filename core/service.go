@@ -253,7 +253,10 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	data := msg.(*p2p.BlockResponseMessage).Data
 	buf := &bytes.Buffer{}
-	buf.Write(data)
+	_, err := buf.Write(data)
+	if err != nil {
+		return err
+	}
 
 	blockData, err := types.DecodeBlockDataArray(buf)
 	if err != nil {
