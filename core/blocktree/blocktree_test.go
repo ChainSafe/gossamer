@@ -20,10 +20,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/core/types"
-
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core/types"
 	db "github.com/ChainSafe/gossamer/db"
+	"github.com/ChainSafe/gossamer/state"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")
@@ -42,7 +42,7 @@ func createGenesisBlock() types.Block {
 }
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	d := &db.BlockDB{
+	d := &state.BlockDB{
 		Db: db.NewMemDatabase(),
 	}
 

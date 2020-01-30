@@ -7,14 +7,31 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
+// StateDB stores trie structure in an underlying Database
+type StateDB struct {
+	Db db.Database
+}
+
 type StorageState struct {
 	trie *trie.Trie
-	Db   *db.StateDB
+	Db   *StateDB
+}
+
+// NewStateDB instantiates badgerDB instance for storing trie structure
+func NewStateDB(dataDir string) (*StateDB, error) {
+	db, err := db.NewBadgerDB(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StateDB{
+		db,
+	}, nil
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at dataDir.
 func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
-	stateDb, err := db.NewStateDB(dataDir)
+	stateDb, err := NewStateDB(dataDir)
 	if err != nil {
 		return nil, err
 	}
