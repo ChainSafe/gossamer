@@ -304,50 +304,14 @@ func (bd *BlockData) Decode(r io.Reader) error {
 	}
 	bd.Hash = hash
 
-	sd := scale.Decoder{Reader: r}
-
-	headerExists, err := common.ReadByte(r)
+	bd.Header, err = decodeOptionalHeader(r)
 	if err != nil {
 		return err
 	}
 
-	if headerExists == 1 {
-		header := &Header{
-			ParentHash:     common.Hash{},
-			Number:         big.NewInt(0),
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         [][]byte{}, // TODO: digests are not decoded properly due to SCALE
-		}
-		_, err = sd.Decode(header)
-		if err != nil {
-			return err
-		}
-
-		header.Hash()
-		bd.Header = header.AsOptional()
-
-		// TODO: fix SCALE :(
-		common.ReadByte(r)
-	} else {
-		bd.Header = optional.NewHeader(false, nil)
-	}
-
-	bodyExists, err := common.ReadByte(r)
+	bd.Body, err = decodeOptionalBody(r)
 	if err != nil {
 		return err
-	}
-
-	if bodyExists == 1 {
-		b, err := sd.Decode([]byte{})
-		if err != nil {
-			return err
-		}
-
-		body := Body(b.([]byte))
-		bd.Body = body.AsOptional()
-	} else {
-		bd.Body = optional.NewBody(false, nil)
 	}
 
 	bd.Receipt, err = decodeOptionalBytes(r)
@@ -411,7 +375,61 @@ func DecodeBlockDataArray(r io.Reader) ([]*BlockData, error) {
 	return bds, err
 }
 
-// decodeOptionalBytes decodes SCALE encoded bytes into an *optional.Bytes
+// decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
+func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
+	sd := scale.Decoder{Reader: r}
+
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == 1 {
+		header := &Header{
+			ParentHash:     common.Hash{},
+			Number:         big.NewInt(0),
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         [][]byte{}, // TODO: digests are not decoded properly due to SCALE
+		}
+		_, err = sd.Decode(header)
+		if err != nil {
+			return nil, err
+		}
+
+		header.Hash()
+
+		// TODO: fix SCALE :(
+		common.ReadByte(r)
+		return header.AsOptional(), nil
+	}
+
+	return optional.NewHeader(false, nil), nil
+}
+
+// decodeOptionalBody decodes a SCALE encoded optional Body into an *optional.Body
+func decodeOptionalBody(r io.Reader) (*optional.Body, error) {
+	sd := scale.Decoder{Reader: r}
+
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return nil, err
+		}
+
+		body := Body(b.([]byte))
+		return body.AsOptional(), nil
+	}
+
+	return optional.NewBody(false, nil), nil
+}
+
+// decodeOptionalBytes decodes SCALE encoded optional bytes into an *optional.Bytes
 func decodeOptionalBytes(r io.Reader) (*optional.Bytes, error) {
 	sd := scale.Decoder{Reader: r}
 
@@ -427,7 +445,7 @@ func decodeOptionalBytes(r io.Reader) (*optional.Bytes, error) {
 		}
 
 		return optional.NewBytes(true, b.([]byte)), nil
-	} else {
-		return optional.NewBytes(false, nil), nil
 	}
+
+	return optional.NewBytes(false, nil), nil
 }
