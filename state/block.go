@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
-	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/db"
 )
@@ -21,7 +20,6 @@ type BlockDB struct {
 
 // blockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type blockState struct {
-	bt           *blocktree.BlockTree
 	db           *BlockDB
 	latestHeader *types.Header
 }
@@ -46,7 +44,6 @@ func NewBlockState(dataDir string, latestHash common.Hash) (*blockState, error) 
 	}
 
 	bs := &blockState{
-		bt: &blocktree.BlockTree{},
 		db: blockDb,
 	}
 
@@ -67,7 +64,6 @@ func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*blockState
 	}
 
 	bs := &blockState{
-		bt: &blocktree.BlockTree{},
 		db: blockDb,
 	}
 
