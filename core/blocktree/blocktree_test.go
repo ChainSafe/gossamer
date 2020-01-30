@@ -23,7 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 
 	"github.com/ChainSafe/gossamer/common"
-	db "github.com/ChainSafe/gossamer/polkadb"
+	db "github.com/ChainSafe/gossamer/db"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")

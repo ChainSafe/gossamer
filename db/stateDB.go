@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package polkadb
+package db
 
 // StateDB stores trie structure in an underlying Database
 type StateDB struct {

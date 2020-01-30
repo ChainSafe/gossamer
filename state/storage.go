@@ -3,18 +3,18 @@ package state
 import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/db"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
 type StorageState struct {
 	trie *trie.Trie
-	Db   *polkadb.StateDB
+	Db   *db.StateDB
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at dataDir.
 func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
-	stateDb, err := polkadb.NewStateDB(dataDir)
+	stateDb, err := db.NewStateDB(dataDir)
 	if err != nil {
 		return nil, err
 	}

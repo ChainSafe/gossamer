@@ -22,7 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/core/types"
 
-	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/db"
 
 	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
@@ -37,12 +37,12 @@ type BlockTree struct {
 	head            *node
 	leaves          leafMap
 	finalizedBlocks []*node
-	Db              *polkadb.BlockDB
+	Db              *db.BlockDB
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 // Currently passes in arrival time as a parameter instead of setting it as time of instanciation
-func NewBlockTreeFromGenesis(genesis types.Block, db *polkadb.BlockDB) *BlockTree {
+func NewBlockTreeFromGenesis(genesis types.Block, db *db.BlockDB) *BlockTree {
 	head := &node{
 		hash:        genesis.Header.Hash(),
 		number:      genesis.Header.Number,

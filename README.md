@@ -26,7 +26,7 @@ Our packages:
 | `dot` | wraps other packages to allow a complete client |
 | `internal` | internal api  |
 | `p2p` | peer-to-peer service using libp2p |
-| `polkadb` | database implemenation using badgerDB |
+| `db` | database implemenation using badgerDB |
 | `rpc` | RPC server |
 | `runtime` | WASM runtime integration using the wasmer interpreter |
 | `trie` | implementation of a modified Merkle-Patricia trie |
