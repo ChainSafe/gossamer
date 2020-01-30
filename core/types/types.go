@@ -400,7 +400,10 @@ func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
 		header.Hash()
 
 		// TODO: fix SCALE :(
-		common.ReadByte(r)
+		_, err = common.ReadByte(r)
+		if err != nil {
+			return nil, err
+		}
 		return header.AsOptional(), nil
 	}
 
