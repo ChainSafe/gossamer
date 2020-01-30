@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
-	scale "github.com/ChainSafe/gossamer/codec"
+	//scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
@@ -262,33 +262,37 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	}
 
 	for _, bd := range blockData {
-		if bd.Header.Exists() && bd.Body.Exists {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
-
-			body, err := types.NewBodyFromOptional(bd.Body)
-			if err != nil {
-				return err
-			}
-
-			block := &types.Block{
-				Header: header,
-				Body:   body,
-			}
-
-			enc, err := scale.Encode(block)
-			if err != nil {
-				return err
-			}
-
-			err = s.validateBlock(enc)
-			if err != nil {
-				log.Error("Failed to validate block", "err", err)
-				return err
-			}
+		enc, err := bd.Encode()
+		if err != nil {
+			return nil
 		}
+		// if bd.Header.Exists() && bd.Body.Exists {
+		// 	header, err := types.NewHeaderFromOptional(bd.Header)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	body, err := types.NewBodyFromOptional(bd.Body)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+
+		// 	block := &types.Block{
+		// 		Header: header,
+		// 		Body:   body,
+		// 	}
+
+		// 	enc, err := scale.Encode(block)
+		// 	if err != nil {
+		// 		return err
+		//	}
+
+		err = s.executeBlock(enc)
+		if err != nil {
+			log.Error("Failed to validate block", "err", err)
+			return err
+		}
+		//}
 
 		// TODO: set BlockData
 	}

@@ -36,6 +36,21 @@ type Block struct {
 	arrivalTime uint64 // arrival time of this block
 }
 
+func NewBlock(header *Header, body *Body, arrivalTime uint64) *Block {
+	return &Block{
+		Header:      header,
+		Body:        body,
+		arrivalTime: arrivalTime,
+	}
+}
+
+func NewEmptyBlock() *Block {
+	return &Block{
+		Header: new(Header),
+		Body:   new(Body),
+	}
+}
+
 // GetBlockArrivalTime returns the arrival time for a block
 func (b *Block) GetBlockArrivalTime() uint64 {
 	return b.arrivalTime
@@ -44,6 +59,15 @@ func (b *Block) GetBlockArrivalTime() uint64 {
 // SetBlockArrivalTime sets the arrival time for a block
 func (b *Block) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
+}
+
+func (b *Block) Encode() ([]byte, error) {
+	return scale.Encode(b)
+}
+
+func (b *Block) Decode(in []byte) error {
+	_, err := scale.Decode(in, b)
+	return err
 }
 
 // Header is a state block header
@@ -117,6 +141,11 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
+func (bh *Header) Decode(in []byte) error {
+	_, err := scale.Decode(in, bh)
+	return err
+}
+
 // AsOptional returns the Header as an optional.Header
 func (bh *Header) AsOptional() *optional.Header {
 	return optional.NewHeader(true, &optional.CoreHeader{
@@ -155,6 +184,11 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 
 // Body is the extrinsics inside a state block
 type Body []byte
+
+func NewBody(b []byte) *Body {
+	body := Body(b)
+	return &body
+}
 
 // NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
 func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
