@@ -17,15 +17,16 @@
 package state
 
 import (
-	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/polkadb"
-	"github.com/ChainSafe/gossamer/trie"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"runtime"
 	"sync"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/trie"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrencySetHeader(t *testing.T) {
