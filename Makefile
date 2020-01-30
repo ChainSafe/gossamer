@@ -38,7 +38,7 @@ test:
 ## test: Runs `go test -race` on project test files.
 test-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
-	go test ./... -race
+	go test ./state/... -race
 
 ## install: Install missing dependencies. Runs `go mod download` internally.
 install:

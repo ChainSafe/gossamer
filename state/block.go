@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/common"
 	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
@@ -19,6 +20,7 @@ type blockState struct {
 	bt           *blocktree.BlockTree
 	db           *polkadb.BlockDB
 	latestHeader *types.Header
+	lock         sync.RWMutex
 }
 
 // NewBlockState will create a new blockState backed by the database located at dataDir
@@ -165,6 +167,9 @@ func (bs *blockState) GetBlockByNumber(blockNumber *big.Int) (types.Block, error
 
 // SetHeader will set the header into DB
 func (bs *blockState) SetHeader(header *types.Header) error {
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
+
 	hash := header.Hash()
 
 	// Write the encoded header
@@ -185,6 +190,8 @@ func (bs *blockState) SetHeader(header *types.Header) error {
 
 // SetBlockData will set the block data using given hash and blockData into DB
 func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) error {
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
@@ -197,7 +204,8 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 
 // AddBlock will set the latestBlock in blockState DB
 func (bs *blockState) AddBlock(newBlock types.Block) error {
-
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
 	// Set the latest block
 	// If latestHeader is nil OR the new block number is greater than current block number
 	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
@@ -247,6 +255,8 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 
 // SetBabeHeader sets a BabeHeader in the database
 func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData *babetypes.BabeHeader) error {
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {

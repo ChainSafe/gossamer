@@ -28,7 +28,7 @@ import (
 	"testing"
 )
 
-func TestConcurrency(t *testing.T) {
+func TestConcurrencySetHeader(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "./test_data")
 	require.Nil(t, err)
 
