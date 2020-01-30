@@ -508,3 +508,35 @@ func TestDecodeArrays(t *testing.T) {
 		}
 	}
 }
+
+func TestDecodeEmptyArray(t *testing.T) {
+	expected := &struct {
+		Number *big.Int
+		Digest [][]byte
+	}{
+		big.NewInt(9),
+		[][]byte{{0xa, 0xb, 0xc, 0xd}},
+	}
+
+	testStruct := &struct {
+		Number *big.Int
+		Digest [][]byte
+	}{
+		big.NewInt(0),
+		[][]byte{}, // empty!!!
+	}
+
+	enc, err := Encode(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := Decode(enc, testStruct)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(output, expected) {
+		t.Fatalf("Fail: got %v expected %v", output, expected)
+	}
+}
