@@ -257,8 +257,6 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		Digest:         [][]byte{},
 	}
 
-	t.Log(header.AsOptional())
-
 	bds := []*types.BlockData{{
 		Hash:          header.Hash(),
 		Header:        header.AsOptional(),

@@ -275,9 +275,6 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 				return err
 			}
 
-			//fmt.Printf("%v\n", header)
-			//fmt.Printf("%v\n", body)
-
 			block := &types.Block{
 				Header: header,
 				Body:   body,
@@ -287,8 +284,6 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 			if err != nil {
 				return err
 			}
-
-			fmt.Printf("%v\n", enc)
 
 			err = s.executeBlock(enc)
 			if err != nil {

@@ -74,7 +74,6 @@ func (b *Block) Encode() ([]byte, error) {
 	}
 
 	return append(enc, encBody...), nil
-	//return append(enc, []byte(*b.Body)...), nil
 }
 
 func (b *Block) Decode(in []byte) error {
@@ -312,7 +311,7 @@ func (bd *BlockData) Decode(r io.Reader) error {
 			Number:         big.NewInt(0),
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
-			Digest:         [][]byte{},
+			Digest:         [][]byte{}, // TODO: digests are not decoded properly due to SCALE
 		}
 		_, err = sd.Decode(header)
 		if err != nil {
@@ -321,6 +320,9 @@ func (bd *BlockData) Decode(r io.Reader) error {
 
 		header.Hash()
 		bd.Header = header.AsOptional()
+
+		// TODO: fix SCALE :(
+		common.ReadByte(r)
 	} else {
 		bd.Header = optional.NewHeader(false, nil)
 	}

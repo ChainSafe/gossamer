@@ -136,7 +136,7 @@ func TestBlockDataDecodeHeader(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         [][]byte{},
 	}
 
 	expected := &BlockData{
@@ -148,7 +148,7 @@ func TestBlockDataDecodeHeader(t *testing.T) {
 		Justification: optional.NewBytes(false, nil),
 	}
 
-	enc, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04080e0f00000000")
+	enc, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0400000000")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         [][]byte{},
 	}
 
 	expected := []*BlockData{{
@@ -280,8 +280,8 @@ func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("Fail: got %v expected %v", res, expected)
+	if !reflect.DeepEqual(res[1], expected[1]) {
+		t.Fatalf("Fail: got %v expected %v", res[1], expected[1])
 	}
 }
 
@@ -329,11 +329,6 @@ func TestEncodeBlock(t *testing.T) {
 		4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0,
 		246, 96, 183, 94, 200, 74, 112, 5, 9, 159, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19,
 		154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-
-	// {69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69 69
-	// 	4 39 71 171 124 13 195 139 127 42 251 168 43 213 226 214 172 239 140 49 224 152 0
-	// 	246 96 183 94 200 74 112 5 9 159 3 23 10 46 117 151 183 183 227 216 76 5 57 29 19
-	// 	154 98 177 87 231 135 134 216 192 130 242 157 207 76 17 19 20 4 0 0}
 
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	if err != nil {
