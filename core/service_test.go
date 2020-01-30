@@ -232,24 +232,37 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	defer s.Stop()
 
 	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
 
-	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
-	//rawBlock := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	if err != nil {
+		t.Fatal(err)
 	}
 
+	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header := &types.Header{
+		ParentHash:     parentHash,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         [][]byte{},
+	}
+
+	t.Log(header.AsOptional())
+
 	bds := []*types.BlockData{{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
+		Hash:          header.Hash(),
+		Header:        header.AsOptional(),
+		Body:          types.NewBody([]byte{}).AsOptional(),
 		Receipt:       optional.NewBytes(false, nil),
 		MessageQueue:  optional.NewBytes(false, nil),
 		Justification: optional.NewBytes(false, nil),

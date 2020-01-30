@@ -62,7 +62,19 @@ func (b *Block) SetBlockArrivalTime(t uint64) {
 }
 
 func (b *Block) Encode() ([]byte, error) {
-	return scale.Encode(b)
+	enc, err := scale.Encode(b.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	// fix since scale doesn't handle *types.Body types, but does handle []byte
+	encBody, err := scale.Encode([]byte(*b.Body))
+	if err != nil {
+		return nil, err
+	}
+
+	return append(enc, encBody...), nil
+	//return append(enc, []byte(*b.Body)...), nil
 }
 
 func (b *Block) Decode(in []byte) error {
@@ -300,7 +312,7 @@ func (bd *BlockData) Decode(r io.Reader) error {
 			Number:         big.NewInt(0),
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
-			Digest:         [][]byte{{}},
+			Digest:         [][]byte{},
 		}
 		_, err = sd.Decode(header)
 		if err != nil {

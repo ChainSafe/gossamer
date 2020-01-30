@@ -262,37 +262,40 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	}
 
 	for _, bd := range blockData {
-		enc, err := bd.Encode()
-		if err != nil {
-			return nil
+		if bd.Header.Exists() && bd.Body.Exists {
+			fmt.Println(bd.Header)
+
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return err
+			}
+
+			//fmt.Printf("%v\n", header)
+			//fmt.Printf("%v\n", body)
+
+			block := &types.Block{
+				Header: header,
+				Body:   body,
+			}
+
+			enc, err := block.Encode()
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("%v\n", enc)
+
+			err = s.executeBlock(enc)
+			if err != nil {
+				log.Error("Failed to validate block", "err", err)
+				return err
+			}
 		}
-		// if bd.Header.Exists() && bd.Body.Exists {
-		// 	header, err := types.NewHeaderFromOptional(bd.Header)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-
-		// 	body, err := types.NewBodyFromOptional(bd.Body)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-
-		// 	block := &types.Block{
-		// 		Header: header,
-		// 		Body:   body,
-		// 	}
-
-		// 	enc, err := scale.Encode(block)
-		// 	if err != nil {
-		// 		return err
-		//	}
-
-		err = s.executeBlock(enc)
-		if err != nil {
-			log.Error("Failed to validate block", "err", err)
-			return err
-		}
-		//}
 
 		// TODO: set BlockData
 	}
