@@ -36,6 +36,7 @@ type Block struct {
 	arrivalTime uint64 // arrival time of this block
 }
 
+// NewBlock returns a new Block
 func NewBlock(header *Header, body *Body, arrivalTime uint64) *Block {
 	return &Block{
 		Header:      header,
@@ -44,6 +45,7 @@ func NewBlock(header *Header, body *Body, arrivalTime uint64) *Block {
 	}
 }
 
+// NewEmptyBlock returns a new Block with an initialized but empty Header and Body
 func NewEmptyBlock() *Block {
 	return &Block{
 		Header: new(Header),
@@ -61,6 +63,7 @@ func (b *Block) SetBlockArrivalTime(t uint64) {
 	b.arrivalTime = t
 }
 
+// Encode returns the SCALE encoding of a block
 func (b *Block) Encode() ([]byte, error) {
 	enc, err := scale.Encode(b.Header)
 	if err != nil {
@@ -76,6 +79,7 @@ func (b *Block) Encode() ([]byte, error) {
 	return append(enc, encBody...), nil
 }
 
+// Decode decodes the SCALE encoded input into this block
 func (b *Block) Decode(in []byte) error {
 	_, err := scale.Decode(in, b)
 	return err
@@ -148,10 +152,12 @@ func (bh *Header) Hash() common.Hash {
 	return bh.hash
 }
 
+// Encode returns the SCALE encoding of a header
 func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
+// Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(in []byte) error {
 	_, err := scale.Decode(in, bh)
 	return err
@@ -344,57 +350,25 @@ func (bd *BlockData) Decode(r io.Reader) error {
 		bd.Body = optional.NewBody(false, nil)
 	}
 
-	receiptExists, err := common.ReadByte(r)
+	bd.Receipt, err = decodeOptionalBytes(r)
 	if err != nil {
 		return err
 	}
 
-	if receiptExists == 1 {
-		b, err := sd.Decode([]byte{})
-		if err != nil {
-			return err
-		}
-
-		bd.Receipt = optional.NewBytes(true, b.([]byte))
-	} else {
-		bd.Receipt = optional.NewBytes(false, nil)
-	}
-
-	msgQueueExists, err := common.ReadByte(r)
+	bd.MessageQueue, err = decodeOptionalBytes(r)
 	if err != nil {
 		return err
 	}
 
-	if msgQueueExists == 1 {
-		b, err := sd.Decode([]byte{})
-		if err != nil {
-			return err
-		}
-
-		bd.MessageQueue = optional.NewBytes(true, b.([]byte))
-	} else {
-		bd.MessageQueue = optional.NewBytes(false, nil)
-	}
-
-	justificationExists, err := common.ReadByte(r)
+	bd.Justification, err = decodeOptionalBytes(r)
 	if err != nil {
 		return err
-	}
-
-	if justificationExists == 1 {
-		b, err := sd.Decode([]byte{})
-		if err != nil {
-			return err
-		}
-
-		bd.Justification = optional.NewBytes(true, b.([]byte))
-	} else {
-		bd.Justification = optional.NewBytes(false, nil)
 	}
 
 	return nil
 }
 
+// EncodeBlockDataArray encodes an array of BlockData using SCALE
 func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
 	enc, err := scale.Encode(int32(len(bds)))
 	if err != nil {
@@ -412,6 +386,7 @@ func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
 	return enc, nil
 }
 
+// DecodeBlockDataArray decodes a SCALE encoded BlockData array
 func DecodeBlockDataArray(r io.Reader) ([]*BlockData, error) {
 	sd := scale.Decoder{Reader: r}
 
@@ -434,4 +409,25 @@ func DecodeBlockDataArray(r io.Reader) ([]*BlockData, error) {
 	}
 
 	return bds, err
+}
+
+// decodeOptionalBytes decodes SCALE encoded bytes into an *optional.Bytes
+func decodeOptionalBytes(r io.Reader) (*optional.Bytes, error) {
+	sd := scale.Decoder{Reader: r}
+
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return nil, err
+		}
+
+		return optional.NewBytes(true, b.([]byte)), nil
+	} else {
+		return optional.NewBytes(false, nil), nil
+	}
 }

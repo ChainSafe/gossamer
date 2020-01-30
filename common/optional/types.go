@@ -23,11 +23,13 @@ import (
 	common "github.com/ChainSafe/gossamer/common"
 )
 
+// Uint32 represents an optional uint32 type.
 type Uint32 struct {
 	exists bool
 	value  uint32
 }
 
+// NewUint32 returns a new optional.Uint32
 func NewUint32(exists bool, value uint32) *Uint32 {
 	return &Uint32{
 		exists: exists,
@@ -35,28 +37,34 @@ func NewUint32(exists bool, value uint32) *Uint32 {
 	}
 }
 
+// Exists returns true if the value is Some, false if it is None.
 func (x *Uint32) Exists() bool {
 	return x.exists
 }
 
+// Value returns the uint32 value. It returns 0 if it is None.
 func (x *Uint32) Value() uint32 {
 	return x.value
 }
 
+// String returns the value as a string.
 func (x *Uint32) String() string {
 	return fmt.Sprintf("%d", x.value)
 }
 
+// Set sets the exists and value fields.
 func (x *Uint32) Set(exists bool, value uint32) {
 	x.exists = exists
 	x.value = value
 }
 
+// Bytes represents an optional Bytes type.
 type Bytes struct {
 	exists bool
 	value  []byte
 }
 
+// NewBytes returns a new optional.Bytes
 func NewBytes(exists bool, value []byte) *Bytes {
 	return &Bytes{
 		exists: exists,
@@ -64,28 +72,34 @@ func NewBytes(exists bool, value []byte) *Bytes {
 	}
 }
 
+// Exists returns true if the value is Some, false if it is None.
 func (x *Bytes) Exists() bool {
 	return x.exists
 }
 
+// Value returns the []byte value. It returns nil if it is None.
 func (x *Bytes) Value() []byte {
 	return x.value
 }
 
+// String returns the value as a string.
 func (x *Bytes) String() string {
 	return fmt.Sprintf("%x", x.value)
 }
 
+// Set sets the exists and value fields.
 func (x *Bytes) Set(exists bool, value []byte) {
 	x.exists = exists
 	x.value = value
 }
 
+// Hash represents an optional Hash type.
 type Hash struct {
 	exists bool
 	value  common.Hash
 }
 
+// NewHash returns a new optional.Hash
 func NewHash(exists bool, value common.Hash) *Hash {
 	return &Hash{
 		exists: exists,
@@ -93,6 +107,7 @@ func NewHash(exists bool, value common.Hash) *Hash {
 	}
 }
 
+// Exists returns true if the value is Some, false if it is None.
 func (x *Hash) Exists() bool {
 	return x.exists
 }
@@ -101,10 +116,12 @@ func (x *Hash) Value() common.Hash {
 	return x.value
 }
 
+// String returns the value as a string.
 func (x *Hash) String() string {
 	return fmt.Sprintf("%x", x.value)
 }
 
+// Set sets the exists and value fields.
 func (x *Hash) Set(exists bool, value common.Hash) {
 	x.exists = exists
 	x.value = value
@@ -121,11 +138,13 @@ type CoreHeader struct {
 	//hash           common.Hash
 }
 
+// Header represents an optional header type
 type Header struct {
 	exists bool
 	value  *CoreHeader
 }
 
+// NewHeader returns a new optional.Header
 func NewHeader(exists bool, value *CoreHeader) *Header {
 	return &Header{
 		exists: exists,
@@ -133,18 +152,22 @@ func NewHeader(exists bool, value *CoreHeader) *Header {
 	}
 }
 
+// Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {
 	return x.exists
 }
 
+// Value returns the value of the header. It returns nil if the header is None.
 func (x *Header) Value() *CoreHeader {
 	return x.value
 }
 
+// String returns the value as a string.
 func (x *Header) String() string {
 	return fmt.Sprintf("%v", x.value)
 }
 
+// Set sets the exists and value fields.
 func (x *Header) Set(exists bool, value *CoreHeader) {
 	x.exists = exists
 	x.value = value
@@ -161,6 +184,7 @@ type Body struct {
 	Value  CoreBody
 }
 
+// NewBody returns a new optional.Body
 func NewBody(exists bool, value CoreBody) *Body {
 	return &Body{
 		Exists: exists,
@@ -168,18 +192,12 @@ func NewBody(exists bool, value CoreBody) *Body {
 	}
 }
 
-// func (x *Body) Exists() bool {
-// 	return x.Exists
-// }
-
-// func (x *Body) Value() *CoreBody {
-// 	return x.Value
-// }
-
+// String returns the value as a string.
 func (x *Body) String() string {
 	return fmt.Sprintf("%v", x.Value)
 }
 
+// Set sets the exists and value fields.
 func (x *Body) Set(exists bool, value CoreBody) {
 	x.Exists = exists
 	x.Value = value
