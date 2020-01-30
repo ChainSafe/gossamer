@@ -135,7 +135,7 @@ func (s *Service) Start() error {
 
 	err := s.bs.Start()
 	if err != nil {
-		log.Error("CORE could not start BABE", "error", err)
+		log.Error("core could not start BABE", "error", err)
 	}
 
 	return err
@@ -165,7 +165,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 func (s *Service) handleBabeSession() {
 	for {
 		<-s.epochDone
-		log.Trace("CORE: BABE epoch complete, initializing new session")
+		log.Trace("core: BABE epoch complete, initializing new session")
 
 		newBlocks := make(chan types.Block)
 		s.blkRec = newBlocks
@@ -188,17 +188,17 @@ func (s *Service) handleBabeSession() {
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			log.Error("CORE could not initialize BABE", "error", err)
+			log.Error("core could not initialize BABE", "error", err)
 			return
 		}
 
 		err = bs.Start()
 		if err != nil {
-			log.Error("CORE could not start BABE", "error", err)
+			log.Error("core could not start BABE", "error", err)
 		}
 
 		s.bs = bs
-		log.Trace("CORE: BABE session initialized and started")
+		log.Trace("core: BABE session initialized and started")
 	}
 }
 
@@ -209,7 +209,7 @@ func (s *Service) receiveBlocks() {
 		block, ok := <-s.blkRec
 		if !ok {
 			// epoch complete
-			log.Debug("CORE: BABE session complete")
+			log.Debug("core: BABE session complete")
 		} else {
 			err := s.handleReceivedBlock(block)
 			if err != nil {

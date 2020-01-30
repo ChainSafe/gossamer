@@ -285,7 +285,8 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	// create new block header
-	header, err := types.NewHeader(parent.Hash(), big.NewInt(0).Add(parent.Number, big.NewInt(1)), common.Hash{}, common.Hash{}, [][]byte{})
+	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
+	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, [][]byte{})
 	if err != nil {
 		return nil, err
 	}
