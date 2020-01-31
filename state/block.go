@@ -97,6 +97,8 @@ func blockDataKey(hash common.Hash) []byte {
 
 // GetHeader returns a BlockHeader for a given hash
 func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	result := new(types.Header)
 
 	data, err := bs.db.Db.Get(headerKey(hash))
@@ -115,6 +117,8 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 
 // GetBlockData returns a BlockData for a given hash
 func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	result := new(types.BlockData)
 
 	data, err := bs.db.Db.Get(blockDataKey(hash))
@@ -129,6 +133,8 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 
 // LatestHeader returns the latest block available on blockState
 func (bs *blockState) LatestHeader() *types.Header {
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	return bs.latestHeader.DeepCopy()
 }
 
@@ -204,8 +210,8 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 
 // AddBlock will set the latestBlock in blockState DB
 func (bs *blockState) AddBlock(newBlock types.Block) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	// Set the latest block
 	// If latestHeader is nil OR the new block number is greater than current block number
 	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
@@ -241,6 +247,8 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 
 // GetBabeHeader retrieves a BabeHeader from the database
 func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeHeader, error) {
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	result := new(babetypes.BabeHeader)
 
 	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
@@ -255,8 +263,8 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 
 // SetBabeHeader sets a BabeHeader in the database
 func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData *babetypes.BabeHeader) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
+	//bs.lock.Lock()
+	//defer bs.lock.Unlock()
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
