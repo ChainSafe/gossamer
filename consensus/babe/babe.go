@@ -274,7 +274,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	// initialize block
 	encodedHeader, err := scale.Encode(parent)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot encode header: %s", err)
 	}
 	err = b.initializeBlock(encodedHeader)
 	if err != nil {
@@ -284,13 +284,13 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	// add block inherents
 	err = b.buildBlockInherents(slot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
 	// add block extrinsics
 	included, err := b.buildBlockExtrinsics(slot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot build extrisnics: %s", err)
 	}
 
 	// finalize block
@@ -298,7 +298,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	block, err := b.finalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
-		return nil, err
+		return nil, fmt.Errorf("cannot finalize block: %s", err)
 	}
 
 	block.Header.Number.Add(parent.Number, big.NewInt(1))
