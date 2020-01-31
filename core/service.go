@@ -118,6 +118,11 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
+func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
+	return s.grandpaAuthorities()
+	//return nil, nil
+}
+
 // Start starts the core service
 func (s *Service) Start() error {
 

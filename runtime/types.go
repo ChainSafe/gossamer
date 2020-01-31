@@ -30,6 +30,7 @@ var (
 	CoreExecuteBlock                          = "Core_execute_block"
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
 	BabeApiConfiguration                      = "BabeApi_configuration"
+	AuraApiAuthorities							= "AuraApi_authorities"
 	BlockBuilderInherentExtrinsics            = "BlockBuilder_inherent_extrinsics"
 	BlockBuilderApplyExtrinsic                = "BlockBuilder_apply_extrinsic"
 	BlockBuilderFinalizeBlock                 = "BlockBuilder_finalize_block"

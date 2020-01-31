@@ -276,3 +276,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		)
 	}
 }
+
+func TestRetrieveAuthorityData(t *testing.T) {
+	
+}
