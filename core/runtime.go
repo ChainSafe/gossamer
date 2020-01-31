@@ -59,7 +59,7 @@ func (s *Service) validateBlock(b []byte) error {
 func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
 	ret, err := s.rt.Exec(runtime.AuraApiAuthorities, []byte{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	auths := []*babe.AuthorityData{}

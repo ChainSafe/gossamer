@@ -22,13 +22,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/tests"
-
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 )
 
 var TestMessageTimeout = 2 * time.Second
@@ -275,8 +274,4 @@ func TestProcessTransactionMessage(t *testing.T) {
 			"\nreceived:", bsTxExt,
 		)
 	}
-}
-
-func TestRetrieveAuthorityData(t *testing.T) {
-	
 }
