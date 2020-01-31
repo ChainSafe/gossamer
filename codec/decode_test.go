@@ -515,7 +515,7 @@ func TestDecodeEmptyArray(t *testing.T) {
 		Digest [][]byte
 	}{
 		big.NewInt(9),
-		[][]byte{{0xa, 0xb, 0xc, 0xd}},
+		[][]byte{{0xa, 0xb, 0xc, 0xd}, {0xe, 0xf}},
 	}
 
 	testStruct := &struct {
@@ -523,7 +523,7 @@ func TestDecodeEmptyArray(t *testing.T) {
 		Digest [][]byte
 	}{
 		big.NewInt(0),
-		[][]byte{}, // empty!!!
+		[][]byte{},
 	}
 
 	enc, err := Encode(expected)
