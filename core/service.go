@@ -86,14 +86,34 @@ func NewService(cfg *Config) (*Service, error) {
 
 	epochDone := make(chan struct{})
 
+	srv := &Service{
+		rt:           cfg.Runtime,
+		keys:         keys,
+		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:       cfg.MsgRec,
+		msgSend:      cfg.MsgSend,
+		blockState:   cfg.BlockState,
+		storageState: cfg.StorageState,
+		epochDone:    epochDone,
+	}
+
+	authData, err := srv.retrieveAuthorityData()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: our authority index should be in authData, if it isn't, we aren't authorities
+	// need to add our authority data to :sys:auth in storage
+	index := uint64(len(authData))
+
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
 		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
 		BlockState:     cfg.BlockState,
-		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
-		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
+		AuthorityIndex: index,
+		AuthData:       append(authData, babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), index)),
 		EpochThreshold: big.NewInt(0),
 		Done:           epochDone,
 	}
@@ -104,24 +124,12 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	srv.bs = bs
+
 	// core service
-	return &Service{
-		rt:           cfg.Runtime,
-		bs:           bs,
-		keys:         keys,
-		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:       cfg.MsgRec,
-		msgSend:      cfg.MsgSend,
-		blockState:   cfg.BlockState,
-		storageState: cfg.StorageState,
-		epochDone:    epochDone,
-	}, nil
+	return srv, nil
 }
 
-func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
-	return s.grandpaAuthorities()
-	//return nil, nil
-}
 
 // Start starts the core service
 func (s *Service) Start() error {
@@ -165,6 +173,12 @@ func (s *Service) Stop() error {
 // StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
+}
+
+
+func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
+	// TODO: when we update to a new runtime, will need to pass in the latest block number
+	return s.grandpaAuthorities()
 }
 
 func (s *Service) handleBabeSession() {
