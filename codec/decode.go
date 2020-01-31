@@ -337,7 +337,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return t, nil
 	}
 
-	sl := reflect.MakeSlice(v.Type(), int(length), 1024)
+	sl := reflect.MakeSlice(v.Type(), int(length), int(length))
 
 	for i := 0; i < int(length); i++ {
 		arrayValue := sl.Index(i)
@@ -367,6 +367,13 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		if err != nil {
 			break
 		}
+	}
+
+	switch t.(type) {
+	case [][]byte:
+		copy(t.([][]byte), sl.Interface().([][]byte))
+	case [][32]byte:
+		copy(t.([][32]byte), sl.Interface().([][32]byte))
 	}
 
 	return sl.Interface(), err
