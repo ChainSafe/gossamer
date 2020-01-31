@@ -210,8 +210,6 @@ func (bs *blockState) SetBlockData(hash common.Hash, blockData types.BlockData) 
 
 // AddBlock will set the latestBlock in blockState DB
 func (bs *blockState) AddBlock(newBlock types.Block) error {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	// Set the latest block
 	// If latestHeader is nil OR the new block number is greater than current block number
 	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
@@ -247,8 +245,6 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 
 // GetBabeHeader retrieves a BabeHeader from the database
 func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeHeader, error) {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	result := new(babetypes.BabeHeader)
 
 	data, err := bs.db.Db.Get(babeHeaderKey(epoch, slot))
@@ -263,8 +259,6 @@ func (bs *blockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 
 // SetBabeHeader sets a BabeHeader in the database
 func (bs *blockState) SetBabeHeader(epoch uint64, slot uint64, blockData *babetypes.BabeHeader) error {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
