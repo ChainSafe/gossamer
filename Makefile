@@ -36,9 +36,9 @@ test:
 	go test ./... -v
 
 ## test: Runs `go test -race` on project test files.
-test-race:
+test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
-	go test ./state/... -race
+	go test ./state/... -race -timeout=5m
 
 ## install: Install missing dependencies. Runs `go mod download` internally.
 install:
