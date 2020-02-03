@@ -284,7 +284,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
-	d := &state.BlockDB{
+	d := &blocktree.Database{
 		Db: db.NewMemDatabase(),
 	}
 
