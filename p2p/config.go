@@ -22,8 +22,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// KeyFile key
 const KeyFile = "node.key"
 
+// DefaultProtocolID ID
 const DefaultProtocolID = "/gossamer/dot/0"
 
 var DefaultBootnodes = []string{}

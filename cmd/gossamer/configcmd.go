@@ -104,11 +104,11 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
-	apiSrvc := api.NewApiService(p2pSrvc, nil)
+	apiSrvc := api.NewAPIService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	rpcSrvr := startRpc(ctx, currentConfig.Rpc, apiSrvc)
+	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
 
 	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
 }
@@ -154,7 +154,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	// Parse CLI flags
 	setGlobalConfig(ctx, &currentConfig.Global)
 	setP2pConfig(ctx, &currentConfig.P2p)
-	setRpcConfig(ctx, &currentConfig.Rpc)
+	setRPCConfig(ctx, &currentConfig.RPC)
 	return currentConfig, nil
 }
 
@@ -257,27 +257,27 @@ func createCoreService(coreConfig *core.Config) *core.Service {
 	return coreService
 }
 
-func setRpcConfig(ctx *cli.Context, fig *cfg.RpcCfg) {
+func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 	// Modules
-	if mods := ctx.GlobalString(utils.RpcModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RpcModuleFlag.Name), ","))
+	if mods := ctx.GlobalString(utils.RPCModuleFlag.Name); mods != "" {
+		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RPCModuleFlag.Name), ","))
 	}
 
 	// Host
-	if host := ctx.GlobalString(utils.RpcHostFlag.Name); host != "" {
+	if host := ctx.GlobalString(utils.RPCHostFlag.Name); host != "" {
 		fig.Host = host
 	}
 
 	// Port
-	if port := ctx.GlobalUint(utils.RpcPortFlag.Name); port != 0 {
+	if port := ctx.GlobalUint(utils.RPCPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
 
 }
 
-func startRpc(ctx *cli.Context, fig cfg.RpcCfg, apiSrvc *api.Service) *rpc.HttpServer {
-	if ctx.GlobalBool(utils.RpcEnabledFlag.Name) {
-		return rpc.NewHttpServer(apiSrvc.Api, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
+func startRPC(ctx *cli.Context, fig cfg.RPCCfg, apiSrvc *api.Service) *rpc.HTTPServer {
+	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
+		return rpc.NewHTTPServer(apiSrvc.API, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
 	}
 	return nil
 }
