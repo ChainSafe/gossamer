@@ -18,10 +18,13 @@ func TestParseGenesisJson(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	expected := &Genesis{
-		Name:       "gossamer",
-		ID:         "gossamer",
-		Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
-		ProtocolID: "gossamer",
+		Name: "gossamer",
+		ID:   "gossamer",
+		Bootnodes: []string{
+			"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj",
+			"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj",
+		},
+		ProtocolID: "/gossamer/test/0",
 		Genesis:    GenesisFields{},
 	}
 
@@ -46,7 +49,7 @@ func TestParseGenesisJson(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	genesis, err := LoadGenesisJSONFile(file.Name())
+	genesis, err := LoadGenesisFromJSON(file.Name())
 	if err != nil {
 		t.Fatal(err)
 	}

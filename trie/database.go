@@ -83,9 +83,7 @@ func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
 		return nil, err
 	}
 
-	data, err := scale.Decode(enc, &genesis.GenesisData{
-		Bootnodes: [][]byte{{}},
-	})
+	data, err := scale.Decode(enc, &genesis.GenesisData{})
 	if err != nil {
 		return nil, err
 	}

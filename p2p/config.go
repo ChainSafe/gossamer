@@ -29,7 +29,7 @@ const DefaultProtocolID = "/gossamer/dot/0"
 // Config is used to configure a p2p service
 type Config struct {
 	// Peers used for bootstrapping
-	BootstrapNodes []string
+	Bootnodes []string
 	// Protocol ID for network messages
 	ProtocolID string
 	// Listening port
@@ -53,8 +53,8 @@ func (c *Config) build() error {
 		c.ProtocolID = DefaultProtocolID
 	}
 
-	if !c.NoBootstrap && len(c.BootstrapNodes) == 0 {
-		log.Warn("Bootstrap is enabled and no bootstrap nodes are defined")
+	if !c.NoBootstrap && len(c.Bootnodes) == 0 {
+		log.Warn("Bootstrap is enabled but no bootnodes are defined")
 	}
 
 	// check if random seed set
