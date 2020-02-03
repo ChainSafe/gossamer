@@ -317,8 +317,6 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 
 	for _, bd := range blockData {
 		if bd.Header.Exists() && bd.Body.Exists {
-			fmt.Println(bd.Header)
-
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return err
