@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	cfg "github.com/ChainSafe/gossamer/config"
@@ -39,6 +40,21 @@ import (
 )
 
 const TestDataDir = "./test_data"
+
+const TestProtocolID = "/gossamer/test/0"
+
+var TestBootnodes = []string{
+	"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
+	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
+}
+
+var TestGenesis = &genesis.Genesis{
+	Name:       "gossamer",
+	ID:         "gossamer",
+	Bootnodes:  TestBootnodes,
+	ProtocolID: TestProtocolID,
+	Genesis:    genesis.GenesisFields{},
+}
 
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
@@ -85,14 +101,6 @@ func createCliContext(description string, flags []string, values []interface{}) 
 	return context, nil
 }
 
-var tmpGenesis = &genesis.Genesis{
-	Name:       "gossamer",
-	ID:         "gossamer",
-	Bootnodes:  []string{"/ip4/104.211.54.233/tcp/30363/p2p/16Uiu2HAmFWPUx45xYYeCpAryQbvU3dY8PWGdMwS2tLm1dB1CsmCj"},
-	ProtocolID: "/gossamer/test/0",
-	Genesis:    genesis.GenesisFields{},
-}
-
 func createTempGenesisFile(t *testing.T) string {
 	_ = runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
@@ -107,14 +115,14 @@ func createTempGenesisFile(t *testing.T) string {
 	testHex := hex.EncodeToString(testBytes)
 	testRaw := [2]map[string]string{}
 	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
-	tmpGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
+	TestGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
 
 	// Create temp file
 	file, err := ioutil.TempFile(os.TempDir(), "genesis-test")
 	require.Nil(t, err)
 
 	// Grab json encoded bytes
-	bz, err := json.Marshal(tmpGenesis)
+	bz, err := json.Marshal(TestGenesis)
 	require.Nil(t, err)
 
 	// Write to temp file
@@ -226,9 +234,9 @@ func TestSetP2pConfig(t *testing.T) {
 		{
 			"bootstrap nodes",
 			[]string{"bootnodes"},
-			[]interface{}{"1234,5678"},
+			[]interface{}{strings.Join(TestBootnodes[:], ",")},
 			cfg.P2pCfg{
-				Bootnodes:   []string{"1234", "5678"},
+				Bootnodes:   TestBootnodes,
 				ProtocolID:  cfg.DefaultP2PProtocolID,
 				Port:        cfg.DefaultP2PPort,
 				NoBootstrap: false,

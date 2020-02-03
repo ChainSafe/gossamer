@@ -26,6 +26,8 @@ const KeyFile = "node.key"
 
 const DefaultProtocolID = "/gossamer/dot/0"
 
+var DefaultBootnodes = []string{}
+
 // Config is used to configure a p2p service
 type Config struct {
 	// Peers used for bootstrapping

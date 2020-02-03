@@ -78,8 +78,8 @@ func TestBuildConfig(t *testing.T) {
 	}
 
 	testCfg := &Config{
-		Bootnodes:   nil,
-		ProtocolID:  "",
+		Bootnodes:   DefaultBootnodes,
+		ProtocolID:  DefaultProtocolID,
 		Port:        0,
 		RandSeed:    0,
 		NoBootstrap: false,

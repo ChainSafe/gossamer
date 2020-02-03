@@ -58,10 +58,10 @@ func TestStoreGenesisInfo(t *testing.T) {
 	require.Nil(t, err)
 
 	expected := &genesis.GenesisData{
-		Name:       tmpGenesis.Name,
-		ID:         tmpGenesis.ID,
-		Bootnodes:  common.StringArrayToBytes(tmpGenesis.Bootnodes),
-		ProtocolID: tmpGenesis.ProtocolID,
+		Name:       TestGenesis.Name,
+		ID:         TestGenesis.ID,
+		Bootnodes:  common.StringArrayToBytes(TestGenesis.Bootnodes),
+		ProtocolID: TestGenesis.ProtocolID,
 	}
 
 	if !reflect.DeepEqual(gendata, expected) {
