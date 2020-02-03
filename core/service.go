@@ -273,7 +273,8 @@ func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 	// TODO: send updated host status message to p2p service
 	// s.msgSend <- msg
 
-	return nil
+	// handle any authority changes
+	return s.handleConsensusDigest(block.Header)
 }
 
 // handleReceivedMessage handles messages from the p2p service
@@ -329,6 +330,8 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 		return err
 	}
 
+	// TODO: handle consensus digest
+
 	return nil
 }
 
@@ -356,5 +359,27 @@ func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 		s.bs.PushToTxQueue(vtx)
 	}
 
+	return nil
+}
+
+// handle authority and randomness changes over transitions from one epoch to the next
+func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
+	var item types.DigestItem
+	for _, digest := range header.Digest {
+		item, err = types.DecodeDigestItem(digest)
+		if err != nil {
+			return err
+		}
+
+		if item.Type() == types.ConsensusDigestType {
+			break
+		}
+	}
+
+	if item == nil {
+		return nil
+	}
+
+	epochInfo := new(babe.NextEpochDescriptor)
 	return nil
 }

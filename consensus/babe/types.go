@@ -28,7 +28,7 @@ type BabeConfiguration struct {
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
 	GenesisAuthorities []AuthorityDataRaw
-	Randomness         byte
+	Randomness         byte // TODO: change to [VrfOutputLength]byte when updating to new runtime
 	SecondarySlots     bool
 }
 
@@ -60,4 +60,11 @@ type Slot struct {
 	start    uint64
 	duration uint64
 	number   uint64
+}
+
+// NextEpochDescriptor contains information about the next epoch.
+// It is broadcast as part of the consensus digest in the first block of the epoch.
+type NextEpochDescriptor struct {
+	authorities []*AuthorityData
+	randomness [sr25519.VrfOutputLength]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
 }
