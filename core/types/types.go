@@ -390,7 +390,7 @@ func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
 			Number:         big.NewInt(0),
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
-			Digest:         [][]byte{}, // TODO: digests are not decoded properly due to SCALE
+			Digest:         [][]byte{},
 		}
 		_, err = sd.Decode(header)
 		if err != nil {
@@ -398,12 +398,6 @@ func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
 		}
 
 		header.Hash()
-
-		// TODO: fix SCALE :(
-		_, err = common.ReadByte(r)
-		if err != nil {
-			return nil, err
-		}
 		return header.AsOptional(), nil
 	}
 
