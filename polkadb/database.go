@@ -94,8 +94,8 @@ func (db *BadgerDB) Put(key []byte, value []byte) error {
 
 // Has checks the given key exists already; returning true or false
 func (db *BadgerDB) Has(key []byte) (exists bool, err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 	err = db.db.View(func(txn *badger.Txn) error {
 		item, errr := txn.Get(snappy.Encode(nil, key))
 		if item != nil {
@@ -112,8 +112,8 @@ func (db *BadgerDB) Has(key []byte) (exists bool, err error) {
 
 // Get returns the given key
 func (db *BadgerDB) Get(key []byte) (data []byte, err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
+	db.lock.RLock()
+	defer db.lock.RUnlock()
 	err = db.db.View(func(txn *badger.Txn) error {
 		item, e := txn.Get(snappy.Encode(nil, key))
 		if e != nil {
@@ -197,8 +197,8 @@ func (i *Iterable) Released() bool {
 // Next rewinds the iterator to the zero-th position if uninitialized, and then will advance the iterator by one
 // returns bool to ensure access to the item
 func (i *Iterable) Next() bool {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.lock.RLock()
+	defer i.lock.RUnlock()
 	if !i.init {
 		i.iter.Rewind()
 		i.init = true
@@ -210,15 +210,15 @@ func (i *Iterable) Next() bool {
 // Seek will look for the provided key if present and go to that position. If
 // absent, it would seek to the next smallest key
 func (i *Iterable) Seek(key []byte) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.lock.RLock()
+	defer i.lock.RUnlock()
 	i.iter.Seek(snappy.Encode(nil, key))
 }
 
 // Key returns an item key
 func (i *Iterable) Key() []byte {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.lock.RLock()
+	defer i.lock.RUnlock()
 	ret, err := snappy.Decode(nil, i.iter.Item().Key())
 	if err != nil {
 		log.Warn("key retrieval error ", "error", err)
@@ -228,8 +228,8 @@ func (i *Iterable) Key() []byte {
 
 // Value returns a copy of the value of the item
 func (i *Iterable) Value() []byte {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.lock.RLock()
+	defer i.lock.RUnlock()
 	val, err := i.iter.Item().ValueCopy(nil)
 	if err != nil {
 		log.Warn("value retrieval error ", "error", err)

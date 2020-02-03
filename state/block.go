@@ -97,8 +97,6 @@ func blockDataKey(hash common.Hash) []byte {
 
 // GetHeader returns a BlockHeader for a given hash
 func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	result := new(types.Header)
 
 	data, err := bs.db.Db.Get(headerKey(hash))
@@ -117,8 +115,6 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 
 // GetBlockData returns a BlockData for a given hash
 func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	result := new(types.BlockData)
 
 	data, err := bs.db.Db.Get(blockDataKey(hash))
@@ -133,8 +129,6 @@ func (bs *blockState) GetBlockData(hash common.Hash) (types.BlockData, error) {
 
 // LatestHeader returns the latest block available on blockState
 func (bs *blockState) LatestHeader() *types.Header {
-	//bs.lock.Lock()
-	//defer bs.lock.Unlock()
 	return bs.latestHeader.DeepCopy()
 }
 
