@@ -248,7 +248,7 @@ func (s *Service) Health() Health {
 // NetworkState returns information about host needed for the rpc server and the runtime
 func (s *Service) NetworkState() NetworkState {
 	return NetworkState{
-		PeerId: s.host.id().String(),
+		PeerID: s.host.id().String(),
 	}
 }
 
@@ -258,7 +258,7 @@ func (s *Service) Peers() (peers []PeerInfo) {
 		if s.status.confirmed(p) {
 			msg := s.status.peerMessage[p]
 			peers = append(peers, PeerInfo{
-				PeerId:          p.String(),
+				PeerID:          p.String(),
 				Roles:           msg.Roles,
 				ProtocolVersion: msg.ProtocolVersion,
 				BestHash:        msg.BestBlockHash,

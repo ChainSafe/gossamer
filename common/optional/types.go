@@ -112,6 +112,7 @@ func (x *Hash) Exists() bool {
 	return x.exists
 }
 
+// Value returns Hash Value
 func (x *Hash) Value() common.Hash {
 	return x.value
 }

@@ -199,7 +199,7 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 	return bh, nil
 }
 
-// Body is the extrinsics inside a state block
+// Body is the encoded extrinsics inside a state block
 type Body []byte
 
 func NewBody(b []byte) *Body {

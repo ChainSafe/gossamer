@@ -52,6 +52,7 @@ type Service struct {
 	msgSend      chan<- p2p.Message // send messages to p2p service
 }
 
+// Config holds the config obj
 type Config struct {
 	BlockState   BlockState
 	StorageState StorageState
