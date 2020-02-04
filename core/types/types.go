@@ -111,11 +111,12 @@ func (bh *Header) Hash() common.Hash {
 	return bh.hash
 }
 
+// Encode to byte array
 func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
-// BlockBody is the extrinsics inside a state block
+// Body is the extrinsics inside a state block
 type Body []byte
 
 // NewBodyFromExtrinsics creates a block body given an array of extrinsics.
@@ -159,7 +160,7 @@ func BytesArrayToExtrinsics(b [][]byte) []Extrinsic {
 	return exts
 }
 
-/// BlockData is stored within the BlockDB
+// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash   common.Hash
 	Header *Header
