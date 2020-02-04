@@ -135,7 +135,7 @@ func SwapNibbles(k []byte) []byte {
 	return result
 }
 
-// ReadByte
+// ReadByte reads a byte from the reader and returns it
 func ReadByte(r io.Reader) (byte, error) {
 	buf := make([]byte, 1)
 	_, err := r.Read(buf)
@@ -145,7 +145,7 @@ func ReadByte(r io.Reader) (byte, error) {
 	return buf[0], nil
 }
 
-// ReadHash
+// ReadHash reads a 32-byte hash from the reader and returns it
 func ReadHash(r io.Reader) (Hash, error) {
 	buf := make([]byte, 32)
 	_, err := r.Read(buf)
@@ -157,7 +157,7 @@ func ReadHash(r io.Reader) (Hash, error) {
 	return Hash(h), nil
 }
 
-// ReadUint32
+// ReadUint32 reads a 4-byte uint32 from the reader and returns it
 func ReadUint32(r io.Reader) (uint32, error) {
 	buf := make([]byte, 4)
 	_, err := r.Read(buf)
@@ -167,7 +167,7 @@ func ReadUint32(r io.Reader) (uint32, error) {
 	return binary.LittleEndian.Uint32(buf), nil
 }
 
-// ReadUint64
+// ReadUint64 reads an 8-byte uint32 from the reader and returns it
 func ReadUint64(r io.Reader) (uint64, error) {
 	buf := make([]byte, 8)
 	_, err := r.Read(buf)
