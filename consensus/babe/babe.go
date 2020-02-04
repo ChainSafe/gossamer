@@ -342,7 +342,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	block := &types.Block{
 		Header: header,
-		Body: body,
+		Body:   body,
 	}
 
 	return block, nil

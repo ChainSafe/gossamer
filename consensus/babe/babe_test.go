@@ -498,7 +498,6 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 		babesession.PushToTxQueue(vtx)
 	}
 
-
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
 		t.Fatal(err)
@@ -587,7 +586,16 @@ func TestBuildBlock_ok(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", block.Header, expectedBlockHeader)
 	}
 
-	// 
+	// confirm block body is correct
+	extsRes, err := block.Body.AsExtrinsics()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extsBytes := types.ExtrinsicsArrayToBytesArray(extsRes)
+	if !reflect.DeepEqual(extsBytes, exts) {
+		t.Fatalf("Fail: got %v expected %v", extsBytes, exts)
+	}
 }
 
 func TestBuildBlock_failing(t *testing.T) {
