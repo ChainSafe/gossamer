@@ -130,7 +130,6 @@ func NewService(cfg *Config) (*Service, error) {
 	return srv, nil
 }
 
-
 // Start starts the core service
 func (s *Service) Start() error {
 
@@ -174,7 +173,6 @@ func (s *Service) Stop() error {
 func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
 }
-
 
 func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 	// TODO: when we update to a new runtime, will need to pass in the latest block number
@@ -273,8 +271,7 @@ func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 	// TODO: send updated host status message to p2p service
 	// s.msgSend <- msg
 
-	// handle any authority changes
-	return s.handleConsensusDigest(block.Header)
+	return nil
 }
 
 // handleReceivedMessage handles messages from the p2p service
@@ -322,17 +319,24 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	block := msg.(*p2p.BlockResponseMessage).Data
+	blockData := msg.(*p2p.BlockResponseMessage).Data
 
-	err := s.validateBlock(block)
+	err := s.validateBlock(blockData)
 	if err != nil {
 		log.Error("Failed to validate block", "err", err)
 		return err
 	}
 
-	// TODO: handle consensus digest
+	block := &types.Block{
+		Header: new(types.Header),
+		Body:   new(types.Body),
+	}
+	err = block.Decode(blockData)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return s.handleConsensusDigest(block.Header)
 }
 
 // ProcessTransactionMessage validates each transaction in the message and
@@ -376,10 +380,21 @@ func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 		}
 	}
 
+	// TODO: if this block is the first in the epoch and it doesn't have a consensus digest, this is an error
 	if item == nil {
 		return nil
 	}
 
-	epochInfo := new(babe.NextEpochDescriptor)
+	consensusDigest := item.(*types.ConsensusDigest)
+
+	epochData := new(babe.NextEpochDescriptor)
+	err = epochData.Decode(consensusDigest.Data)
+	if err != nil {
+		return err
+	}
+
+	// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
+	s.bs.SetEpochData(epochData)
+
 	return nil
 }

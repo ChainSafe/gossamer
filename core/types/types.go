@@ -34,6 +34,12 @@ type Block struct {
 	arrivalTime uint64 // arrival time of this block
 }
 
+// Decode decodes the SCALE encoded input into this block
+func (b *Block) Decode(in []byte) error {
+	_, err := scale.Decode(in, b)
+	return err
+}
+
 // GetBlockArrivalTime returns the arrival time for a block
 func (b *Block) GetBlockArrivalTime() uint64 {
 	return b.arrivalTime

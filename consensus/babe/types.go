@@ -17,6 +17,10 @@
 package babe
 
 import (
+	"encoding/binary"
+	"errors"
+
+	//scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
@@ -50,6 +54,55 @@ func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 	}
 }
 
+func (a *AuthorityData) ToRaw() *AuthorityDataRaw {
+	raw := new(AuthorityDataRaw)
+
+	id := a.id.Encode()
+	copy(raw.Id[:], id)
+
+	raw.Weight = a.weight
+	return raw
+}
+
+func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
+	id, err := sr25519.NewPublicKey(raw.Id[:])
+	if err != nil {
+		return err
+	}
+
+	a = NewAuthorityData(id, raw.Weight)
+	return nil
+}
+
+func (a *AuthorityData) Encode() []byte {
+	raw := a.ToRaw()
+
+	enc := raw.Id[:]
+
+	weightBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
+
+	return append(enc, weightBytes...)
+}
+
+func (a *AuthorityData) Decode(in []byte) error {
+	if len(in) < 40 {
+		return errors.New("length of input <40 bytes")
+	}
+
+	weight := binary.LittleEndian.Uint64(in[32:40])
+
+	id := [32]byte{}
+	copy(id[:], in[:32])
+
+	raw := &AuthorityDataRaw{
+		Id:     id,
+		Weight: weight,
+	}
+
+	return a.FromRaw(raw)
+}
+
 type VrfOutputAndProof struct {
 	output [sr25519.VrfOutputLength]byte
 	proof  [sr25519.VrfProofLength]byte
@@ -65,6 +118,43 @@ type Slot struct {
 // NextEpochDescriptor contains information about the next epoch.
 // It is broadcast as part of the consensus digest in the first block of the epoch.
 type NextEpochDescriptor struct {
-	authorities []*AuthorityData
-	randomness [sr25519.VrfOutputLength]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
+	Authorities []*AuthorityData
+	Randomness  [sr25519.VrfOutputLength]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
+}
+
+// NextEpochDescriptorRaw
+type NextEpochDescriptorRaw struct {
+	Authorities []*AuthorityDataRaw
+	Randomness  [sr25519.VrfOutputLength]byte
+}
+
+func (n *NextEpochDescriptor) Encode() []byte {
+	enc := []byte{}
+
+	for _, a := range n.Authorities {
+		enc = append(enc, a.Encode()...)
+	}
+
+	return append(enc, n.Randomness[:]...)
+}
+
+func (n *NextEpochDescriptor) Decode(in []byte) error {
+	n.Authorities = []*AuthorityData{}
+
+	i := 0
+	for i = 0; i < (len(in)-32)/40; i += 40 {
+		auth := new(AuthorityData)
+		err := auth.Decode(in[i*40 : (i+1)*40])
+		if err != nil {
+			return err
+		}
+
+		n.Authorities = append(n.Authorities, auth)
+	}
+
+	rand := [32]byte{}
+	copy(rand[:], in[i:])
+	n.Randomness = rand
+
+	return nil
 }
