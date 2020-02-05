@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package polkadb
+package db
 
 import (
 	"bytes"
@@ -141,7 +141,7 @@ func testBatchTablePutWithPrefix(db Database, t *testing.T) {
 		if size == 0 {
 			t.Fatalf("failed to set size of data in each batch, got %v", size)
 		}
-		err = b.Delete([]byte(k(i)))
+		err = b.Delete(k(i))
 		if err != nil {
 			t.Fatalf("failed to delete batch key %v", k(i))
 		}

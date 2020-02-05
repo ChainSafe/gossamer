@@ -24,8 +24,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/config/genesis"
-	db "github.com/ChainSafe/gossamer/polkadb"
+	"github.com/ChainSafe/gossamer/db"
 )
 
 func newTrie() (*Trie, error) {
@@ -41,19 +42,19 @@ func newTrie() (*Trie, error) {
 
 	trie := &Trie{
 		db: &Database{
-			Db:     stateDB,
+			DB:     stateDB,
 			Hasher: hasher,
 		},
 		root: nil,
 	}
 
-	trie.db.Batch = trie.db.Db.NewBatch()
+	trie.db.Batch = trie.db.DB.NewBatch()
 
 	return trie, nil
 }
 
 func (t *Trie) closeDb() {
-	t.db.Db.Close()
+	t.db.DB.Close()
 	if err := os.RemoveAll("./test_data"); err != nil {
 		fmt.Println("removal of temp directory gossamer_data failed")
 	}
@@ -206,11 +207,16 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 
 	defer trie.closeDb()
 
+	bootnodes := common.StringArrayToBytes([]string{
+		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
+		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
+	})
+
 	expected := &genesis.GenesisData{
 		Name:       "gossamer",
 		ID:         "gossamer",
-		ProtocolID: "gossamer",
-		Bootnodes:  [][]byte{[]byte("noot")},
+		Bootnodes:  bootnodes,
+		ProtocolID: "/gossamer/test/0",
 	}
 
 	err = trie.db.StoreGenesisData(expected)

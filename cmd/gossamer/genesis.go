@@ -32,7 +32,7 @@ func loadGenesis(ctx *cli.Context) error {
 	log.Debug("Loading genesis", "genesisPath", genesisPath, "dataDir", dataDir)
 
 	// read genesis configuration file
-	gen, err := genesis.LoadGenesisJSONFile(genesisPath)
+	gen, err := genesis.LoadGenesisFromJSON(genesisPath)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// set up trie database
 	t.SetDb(&trie.Database{
-		Db: stateDb.Db.Db,
+		DB: stateDb.Db.Db,
 	})
 
 	// write initial genesis data to DB
