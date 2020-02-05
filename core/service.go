@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -51,6 +52,7 @@ type Service struct {
 	msgSend      chan<- p2p.Message // send messages to p2p service
 }
 
+// Config holds the config obj
 type Config struct {
 	BlockState   BlockState
 	StorageState StorageState
@@ -319,24 +321,60 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	blockData := msg.(*p2p.BlockResponseMessage).Data
-
-	err := s.validateBlock(blockData)
-	if err != nil {
-		log.Error("Failed to validate block", "err", err)
-		return err
-	}
-
-	block := &types.Block{
-		Header: new(types.Header),
-		Body:   new(types.Body),
-	}
-	err = block.Decode(blockData)
+	data := msg.(*p2p.BlockResponseMessage).Data
+	buf := &bytes.Buffer{}
+	_, err := buf.Write(data)
 	if err != nil {
 		return err
 	}
 
-	return s.handleConsensusDigest(block.Header)
+	blockData, err := types.DecodeBlockDataArray(buf)
+	if err != nil {
+		return err
+	}
+
+	for _, bd := range blockData {
+		if bd.Header.Exists() {
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			s.handleConsensusDigest(header)
+		}
+
+		if bd.Header.Exists() && bd.Body.Exists {
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return err
+			}
+
+			block := &types.Block{
+				Header: header,
+				Body:   body,
+			}
+
+			enc, err := block.Encode()
+			if err != nil {
+				return err
+			}
+
+			err = s.executeBlock(enc)
+			if err != nil {
+				log.Error("Failed to validate block", "err", err)
+				return err
+			}
+		}
+
+		// TODO: set BlockData
+	}
+
+	return nil
 }
 
 // ProcessTransactionMessage validates each transaction in the message and

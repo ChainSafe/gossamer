@@ -51,6 +51,7 @@ type Session struct {
 	done           chan<- struct{}               // lets core know when the epoch is done
 }
 
+// SessionConfig struct
 type SessionConfig struct {
 	BlockState     BlockState
 	Keypair        *sr25519.Keypair
@@ -93,6 +94,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	return babeSession, nil
 }
 
+// Start a session
 func (b *Session) Start() error {
 	if b.epochThreshold == nil {
 		err := b.setEpochThreshold()
@@ -120,6 +122,7 @@ func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 	b.txQueue.Insert(vt)
 }
 
+// PeekFromTxQueue returns ValidTransaction
 func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 	return b.txQueue.Peek()
 }
@@ -162,7 +165,7 @@ func (b *Session) invokeBlockAuthoring() {
 				log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
 				log.Debug("BABE built block", "header", block.Header, "body", block.Body)
 				b.newBlocks <- *block
-				err = b.blockState.AddBlock(*block)
+				err = b.blockState.AddBlock(block)
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
 				}
@@ -302,7 +305,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	// initialize block header
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot encode header: %s", err)
 	}
 	err = b.initializeBlock(encodedHeader)
 	if err != nil {
@@ -312,13 +315,13 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	// add block inherents
 	err = b.buildBlockInherents(slot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
 	// add block extrinsics
 	included, err := b.buildBlockExtrinsics(slot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot build extrisnics: %s", err)
 	}
 
 	// finalize block
@@ -326,7 +329,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	block, err := b.finalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
-		return nil, err
+		return nil, fmt.Errorf("cannot finalize block: %s", err)
 	}
 
 	block.Header.ParentHash = parent.Hash()
@@ -347,7 +350,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 }
 
 // buildBlockSeal creates the seal for the block header.
-// the seal consists of the ConsensusEngineId and a signature of the encoded block header.
+// the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
 	encHeader, err := header.Encode()
 	if err != nil {
@@ -366,7 +369,7 @@ func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 }
 
 // buildBlockPreDigest creates the pre-digest for the slot.
-// the pre-digest consists of the ConsensusEngineId and the encoded BABE header for the slot.
+// the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
 	babeHeader, err := b.buildBlockBabeHeader(slot)
 	if err != nil {
@@ -423,9 +426,8 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 			b.addToQueue(included)
 
 			return nil, errors.New("could not apply extrinsic")
-		} else {
-			log.Trace("build_block applied extrinsic", "extrinsic", extrinsic)
 		}
+		log.Trace("build_block applied extrinsic", "extrinsic", extrinsic)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
 		t := b.txQueue.Pop()

@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
@@ -72,7 +74,7 @@ func TestValidateBlock(t *testing.T) {
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
 
 	// `core_execute_block` will throw error, no expected result
-	err = s.validateBlock(data)
+	err = s.executeBlock(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +104,7 @@ func TestValidateTransaction(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
 	expected := &transaction.Validity{
 		Priority: 69,
-		Requires: [][]byte{{}},
+		Requires: [][]byte{},
 		// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
 		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
 		Longevity: 64,
@@ -229,8 +231,52 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	}
 	defer s.Stop()
 
-	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
-	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
+	hash := common.NewHash([]byte{0})
+	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	header := &types.Header{
+		ParentHash:     parentHash,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         [][]byte{},
+	}
+
+	bds := []*types.BlockData{{
+		Hash:          header.Hash(),
+		Header:        header.AsOptional(),
+		Body:          types.NewBody([]byte{}).AsOptional(),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}, {
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(true, []byte("asdf")),
+		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+		Justification: optional.NewBytes(true, []byte("qwerty")),
+	}}
+
+	data, err := types.EncodeBlockDataArray(bds)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	blockResponse := &p2p.BlockResponseMessage{Data: data}
 

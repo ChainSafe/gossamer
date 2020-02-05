@@ -378,11 +378,11 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		}
 	}
 	root, err := t.Hash()
-	log.Trace("[ext_blake2_256_enumerated_trie_root]", "root hash", fmt.Sprintf("0x%x", root))
 	if err != nil {
 		log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 		return
 	}
+	log.Trace("[ext_blake2_256_enumerated_trie_root]", "root", root)
 	copy(memory[result:result+32], root[:])
 }
 
@@ -440,7 +440,7 @@ func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 
 	res := hasher.Sum64()
 	hash := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash, uint64(res))
+	binary.LittleEndian.PutUint64(hash, res)
 	copy(memory[out:out+8], hash)
 }
 
@@ -459,7 +459,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	}
 	res0 := h0.Sum64()
 	hash0 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash0, uint64(res0))
+	binary.LittleEndian.PutUint64(hash0, res0)
 
 	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
 	_, err = h1.Write(memory[data : data+len])
@@ -469,7 +469,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	}
 	res1 := h1.Sum64()
 	hash1 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash1, uint64(res1))
+	binary.LittleEndian.PutUint64(hash1, res1)
 
 	//concatenated result
 	both := append(hash0, hash1...)

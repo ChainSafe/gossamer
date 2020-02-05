@@ -24,7 +24,7 @@ import (
 
 // gets the configuration data for Babe from the runtime
 func (b *Session) configurationFromRuntime() error {
-	data, err := b.rt.Exec(runtime.BabeApiConfiguration, []byte{})
+	data, err := b.rt.Exec(runtime.BabeAPIConfiguration, []byte{})
 	if err != nil {
 		return err
 	}
@@ -64,11 +64,12 @@ func (b *Session) finalizeBlock() (*types.Block, error) {
 		return nil, err
 	}
 
-	bh := &types.Block{
-		Header: new(types.Header),
-		Body:   new(types.Body),
-	}
-
+	// TODO: finalize block actually returns a header, not a block. need to update this function
+	// as well as buildBlock
+	bh := new(types.Header)
 	_, err = scale.Decode(data, bh)
-	return bh, err
+	return &types.Block{
+		Header: bh,
+		Body:   nil,
+	}, err
 }

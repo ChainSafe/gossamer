@@ -36,11 +36,13 @@ type BabeConfiguration struct {
 	SecondarySlots     bool
 }
 
+// AuthorityDataRaw represents the fields for the Authority Data
 type AuthorityDataRaw struct {
-	Id     [sr25519.PublicKeyLength]byte
+	ID     [sr25519.PublicKeyLength]byte
 	Weight uint64
 }
 
+//AuthorityData struct
 type AuthorityData struct {
 	id     *sr25519.PublicKey
 	weight uint64
@@ -58,14 +60,14 @@ func (a *AuthorityData) ToRaw() *AuthorityDataRaw {
 	raw := new(AuthorityDataRaw)
 
 	id := a.id.Encode()
-	copy(raw.Id[:], id)
+	copy(raw.ID[:], id)
 
 	raw.Weight = a.weight
 	return raw
 }
 
 func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
-	id, err := sr25519.NewPublicKey(raw.Id[:])
+	id, err := sr25519.NewPublicKey(raw.ID[:])
 	if err != nil {
 		return err
 	}
@@ -77,7 +79,7 @@ func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
 func (a *AuthorityData) Encode() []byte {
 	raw := a.ToRaw()
 
-	enc := raw.Id[:]
+	enc := raw.ID[:]
 
 	weightBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
@@ -96,13 +98,14 @@ func (a *AuthorityData) Decode(in []byte) error {
 	copy(id[:], in[:32])
 
 	raw := &AuthorityDataRaw{
-		Id:     id,
+		ID:     id,
 		Weight: weight,
 	}
 
 	return a.FromRaw(raw)
 }
 
+// VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
 	output [sr25519.VrfOutputLength]byte
 	proof  [sr25519.VrfProofLength]byte

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package polkadb
+package db
 
 import (
 	"os"
@@ -136,13 +136,12 @@ func (db *BadgerDB) Del(key []byte) error {
 
 // Close closes a DB
 func (db *BadgerDB) Close() error {
-	if err := db.db.Close(); err == nil {
-		log.Info("Database *BadgerDB closed successfully")
-		return nil
-	} else {
+	if err := db.db.Close(); err != nil {
 		log.Crit("Failed to close Database *BadgerDB", "err", err)
 		return err
 	}
+	log.Info("Database *BadgerDB closed successfully")
+	return nil
 }
 
 // Iterable struct contains a transaction, iterator and context fields released, initialized
