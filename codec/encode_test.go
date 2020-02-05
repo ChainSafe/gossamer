@@ -18,6 +18,7 @@ package codec
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -209,4 +210,66 @@ func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 	err = DecodePtr(enc, result)
 	require.Nil(t, err)
 	require.Equal(t, test, result, "Decoding failed")
+}
+
+// test type for encoding
+type TypeReal struct {
+	A string
+}
+
+// Encode func for TypeReal that uses actual Scale Encode
+func (tr TypeReal) Encode() ([]byte, error) {
+	return Encode(tr)
+}
+
+// test to confirm EncodeCustom is return Scale Encoded result
+func TestEncodeCustomTypeReal(t *testing.T) {
+	test := &TypeReal{A: "hello"}
+
+	encCust, err := EncodeCustom(test)
+	require.Nil(t, err)
+
+	encScale, err := Encode(test)
+	require.Nil(t, err)
+
+	require.Equal(t, encScale, encCust)
+}
+
+// test types for encoding
+type TypeFake struct {
+	A string
+}
+
+// Encode func for TypeFake that return fake byte array [1, 2, 3]
+func (tr TypeFake) Encode() ([]byte, error) {
+	return []byte{1, 2, 3}, nil
+}
+
+// test to confirm EncodeCustom is using type's Encode function
+func TestEncodeCustomTypeFake(t *testing.T) {
+	test := &TypeFake{A: "hello"}
+	expected := []byte{1, 2, 3}
+
+	encCust, err := EncodeCustom(test)
+	require.Nil(t, err)
+
+	require.Equal(t, expected, encCust)
+}
+
+// test types for encoding
+type TypeError struct {
+	A string
+}
+
+// Encode func for TypeError that return an error
+func (tr TypeError) Encode() ([]byte, error) {
+	return nil, fmt.Errorf("error encoding")
+}
+
+// test to confirm EncodeCustom is handling errors
+func TestEncodeCustomTypeError(t *testing.T) {
+	test := &TypeError{A: "hello"}
+
+	_, err := EncodeCustom(test)
+	require.EqualError(t, err, "error encoding")
 }
