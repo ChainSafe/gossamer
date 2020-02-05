@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/polkadb"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -33,11 +32,11 @@ func TestConcurrencySetHeader(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "./test_data")
 	require.Nil(t, err)
 
-	blockDB, err := polkadb.NewBlockDB(dataDir)
+	blockDB, err := NewBlockDB(dataDir)
 	require.Nil(t, err)
 
 	threads := runtime.NumCPU()
-	dbs := make([]*polkadb.BlockDB, threads)
+	dbs := make([]*BlockDB, threads)
 	for i := 0; i < threads; i++ {
 		cpy := *blockDB
 		dbs[i] = &cpy
