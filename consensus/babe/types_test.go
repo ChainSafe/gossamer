@@ -1,7 +1,7 @@
 package babe
 
 import (
-	"reflect"
+	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
@@ -31,7 +31,6 @@ func TestDecodeNextEpochDescriptor(t *testing.T) {
 	}
 
 	enc := ned.Encode()
-	t.Log(enc)
 
 	res := new(NextEpochDescriptor)
 	err := res.Decode(enc)
@@ -39,7 +38,9 @@ func TestDecodeNextEpochDescriptor(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(res, ned) {
-		t.Fatalf("Fail: got %v expected %v", res, ned)
+	enc2 := res.Encode()
+
+	if !bytes.Equal(enc2, enc) {
+		t.Fatalf("Fail: got %v expected %v", enc2, enc)
 	}
 }

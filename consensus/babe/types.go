@@ -72,7 +72,8 @@ func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
 		return err
 	}
 
-	a = NewAuthorityData(id, raw.Weight)
+	a.id = id
+	a.weight = raw.Weight
 	return nil
 }
 
@@ -145,7 +146,7 @@ func (n *NextEpochDescriptor) Decode(in []byte) error {
 	n.Authorities = []*AuthorityData{}
 
 	i := 0
-	for i = 0; i < (len(in)-32)/40; i += 40 {
+	for i = 0; i < (len(in)-32)/40; i++ {
 		auth := new(AuthorityData)
 		err := auth.Decode(in[i*40 : (i+1)*40])
 		if err != nil {
@@ -156,7 +157,7 @@ func (n *NextEpochDescriptor) Decode(in []byte) error {
 	}
 
 	rand := [32]byte{}
-	copy(rand[:], in[i:])
+	copy(rand[:], in[i*40:])
 	n.Randomness = rand
 
 	return nil
