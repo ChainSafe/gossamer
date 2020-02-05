@@ -1,18 +1,18 @@
 # Contribution Guidelines
 
-Thank you for your interest on our implementation of the Polkadot Runtime Enviornment Implementation! We're excited to get to know you and work with you on gossamer. We've put together these guidelines to help you figure out how you can help us.
+Thank you for your interest in our implementation of the Polkadot Runtime Environment Implementation! We're excited to get to know you and work with you on gossamer. We've put together these guidelines to help you figure out how you can help us.
 
 At any point in this process feel free to reach out on [Discord](https://discord.gg/Xdc5xjE) with any questions or to say Hello :)
 
 # Getting Started
 
-Generally, it is important to have a basic understanding of Polkadot and the Polkadot Runtime Enviornment. Having a stronger  understanding will allow you to make more significant contributions. We've put together a list of resources that can help you develop this fundamental knowledge.  
+Generally, it is important to have a basic understanding of Polkadot and the Polkadot Runtime Environment. Having a stronger  understanding will allow you to make more significant contributions. We've put together a list of resources that can help you develop this fundamental knowledge.  
 
 The Web3 Foundation has a [Polkadot Wiki](https://wiki.polkadot.network/docs/en/learn-introduction) that would help both part-time and core contributors to the project in order to get up to speed. Our [wiki](https://github.com/ChainSafe/gossamer/wiki) also has some helpful resources. 
 
 The [Polkadot Runtime Specification](https://research.web3.foundation/en/latest/_static/pdfview/viewer.html?file=../pdf/polkadot_re_spec.pdf) serves as our primary specification, however it is currently in its draft status so things may be subject to change.
 
-One important thing distinction is that we are building the Polkadot Runtime Environment, not Polkadot itself. Given that, although a deep understanding of Polkadot is helpful, it's not critical to contribute to gossamer. To help understand how the Runtime Enviornment relates to Polkadot, check out this [talk that one of our team members gave at DotCon.](https://www.youtube.com/watch?v=nYkbYhM5Yfk)
+One important thing distinction is that we are building the Polkadot Runtime Environment, not Polkadot itself. Given that, although a deep understanding of Polkadot is helpful, it's not critical to contribute to gossamer. To help understand how the Runtime Environment relates to Polkadot, check out this [talk that one of our team members gave at DotCon.](https://www.youtube.com/watch?v=nYkbYhM5Yfk)
 
 ## Contribution Steps
 
