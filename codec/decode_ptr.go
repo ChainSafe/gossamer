@@ -24,7 +24,7 @@ import (
 )
 
 // check if interface has method Decode, if so use that, otherwise use regular scale decoding
-func DecodeCustom(in []byte, t interface{}) (error) {
+func DecodeCustom(in []byte, t interface{}) error {
 	someType := reflect.TypeOf(t)
 	_, ok := someType.MethodByName("Decode")
 	if ok {

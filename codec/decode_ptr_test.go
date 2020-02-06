@@ -18,12 +18,13 @@ package codec
 import (
 	"bytes"
 	"errors"
-	"github.com/ChainSafe/gossamer/consensus/babe/types"
-	"github.com/ChainSafe/gossamer/crypto/sr25519"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/consensus/babe/types"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodePtrFixedWidthInts(t *testing.T) {
@@ -220,7 +221,7 @@ func TestDecodeCustom_DecodeBabeHeader(t *testing.T) {
 		BlockProducerIndex: 17,
 		SlotNumber:         420,
 	}
-	encoded := []byte {0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28, 120, 23, 235, 159, 115, 122, 207, 206, 123, 232, 75, 243, 115, 255, 131, 181, 219, 241, 200, 206, 21, 22, 238, 16, 68, 49, 86, 99, 76, 139, 39, 0, 102, 106, 181, 136, 97, 141, 187, 1, 234, 183, 241, 28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142, 134, 124, 226, 217, 95, 30, 176, 246, 5, 3, 17, 0, 0, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0}
+	encoded := []byte{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28, 120, 23, 235, 159, 115, 122, 207, 206, 123, 232, 75, 243, 115, 255, 131, 181, 219, 241, 200, 206, 21, 22, 238, 16, 68, 49, 86, 99, 76, 139, 39, 0, 102, 106, 181, 136, 97, 141, 187, 1, 234, 183, 241, 28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142, 134, 124, 226, 217, 95, 30, 176, 246, 5, 3, 17, 0, 0, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0}
 	decodedBabeHeader := new(types.BabeHeader)
 
 	err := DecodeCustom(encoded, decodedBabeHeader)
@@ -236,7 +237,7 @@ func (tr *MockTypeA) Decode(in []byte) error {
 // test decoding for MockTypeA (which has Decode func)
 func TestDecodeCustom_DecodeMockTypeA(t *testing.T) {
 	expected := &MockTypeA{A: "hello"}
-	encoded := []byte {20, 104, 101, 108, 108, 111}
+	encoded := []byte{20, 104, 101, 108, 108, 111}
 	mockType := new(MockTypeA)
 
 	err := DecodeCustom(encoded, mockType)
@@ -247,7 +248,7 @@ func TestDecodeCustom_DecodeMockTypeA(t *testing.T) {
 // test decoding for MockTypeB (which does not have Decode func)
 func TestDecodeCustom_DecodeMockTypeB(t *testing.T) {
 	expected := &MockTypeB{A: "hello"}
-	encoded := []byte {20, 104, 101, 108, 108, 111}
+	encoded := []byte{20, 104, 101, 108, 108, 111}
 	mockType := new(MockTypeB)
 
 	err := DecodeCustom(encoded, mockType)
@@ -264,7 +265,7 @@ func (tr *MockTypeC) Decode(in []byte) error {
 // test decoding for MockTypeC (which has Decode func that returns fake data (A: "goodbye"))
 func TestDecodeCustom_DecodeMockTypeC(t *testing.T) {
 	expected := &MockTypeC{A: "goodbye"}
-	encoded := []byte {20, 104, 101, 108, 108, 111}
+	encoded := []byte{20, 104, 101, 108, 108, 111}
 	mockType := new(MockTypeC)
 
 	err := DecodeCustom(encoded, mockType)
@@ -279,7 +280,7 @@ func (tr *MockTypeD) Decode(in []byte) error {
 
 // test decoding for MockTypeD (which has Decode func that returns error)
 func TestDecodeCustom_DecodeMockTypeD(t *testing.T) {
-	encoded := []byte {20, 104, 101, 108, 108, 111}
+	encoded := []byte{20, 104, 101, 108, 108, 111}
 	mockType := new(MockTypeD)
 
 	err := DecodeCustom(encoded, mockType)
