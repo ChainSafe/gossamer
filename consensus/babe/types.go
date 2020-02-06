@@ -55,6 +55,7 @@ func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 	}
 }
 
+// ToRaw returns the AuthorityData as AuthorityDataRaw. It encodes the authority public keys.
 func (a *AuthorityData) ToRaw() *AuthorityDataRaw {
 	raw := new(AuthorityDataRaw)
 
@@ -65,6 +66,8 @@ func (a *AuthorityData) ToRaw() *AuthorityDataRaw {
 	return raw
 }
 
+// FromRaw sets the AuthorityData given AuthorityDataRaw. It converts the byte representations of
+// the authority public keys into a sr25519.PublicKey.
 func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
 	id, err := sr25519.NewPublicKey(raw.ID[:])
 	if err != nil {
@@ -76,6 +79,7 @@ func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
 	return nil
 }
 
+// Encode returns the SCALE encoding of the AuthorityData.
 func (a *AuthorityData) Encode() []byte {
 	raw := a.ToRaw()
 
@@ -87,6 +91,7 @@ func (a *AuthorityData) Encode() []byte {
 	return append(enc, weightBytes...)
 }
 
+// Decode sets the AuthorityData to the SCALE decoded input.
 func (a *AuthorityData) Decode(in []byte) error {
 	if len(in) < 40 {
 		return errors.New("length of input <40 bytes")
@@ -125,12 +130,13 @@ type NextEpochDescriptor struct {
 	Randomness  [sr25519.VrfOutputLength]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
 }
 
-// NextEpochDescriptorRaw
+// NextEpochDescriptorRaw contains information about the next epoch.
 type NextEpochDescriptorRaw struct {
 	Authorities []*AuthorityDataRaw
 	Randomness  [sr25519.VrfOutputLength]byte
 }
 
+// Encode returns the SCALE encoding of the NextEpochDescriptor.
 func (n *NextEpochDescriptor) Encode() []byte {
 	enc := []byte{}
 
@@ -141,6 +147,7 @@ func (n *NextEpochDescriptor) Encode() []byte {
 	return append(enc, n.Randomness[:]...)
 }
 
+// Decode sets the NextEpochDescriptor to the SCALE decoded input.
 func (n *NextEpochDescriptor) Decode(in []byte) error {
 	n.Authorities = []*AuthorityData{}
 

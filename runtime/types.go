@@ -35,7 +35,7 @@ var (
 	// TaggedTransactionQueueValidateTransaction returns the string representing
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
 	// AuraApiAuthorities TODO: deprecated with newest runtime, should be Grandpa_authorities
-	AuraApiAuthorities = "AuraApi_authorities"
+	AuraAPIAuthorities = "AuraApi_authorities"
 	// BabeAPIConfiguration returns the string representing
 	BabeAPIConfiguration = "BabeApi_configuration"
 	// BlockBuilderInherentExtrinsics returns the string representing

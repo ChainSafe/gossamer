@@ -340,7 +340,10 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 				return err
 			}
 
-			s.handleConsensusDigest(header)
+			err = s.handleConsensusDigest(header)
+			if err != nil {
+				return err
+			}
 		}
 
 		if bd.Header.Exists() && bd.Body.Exists {

@@ -57,7 +57,7 @@ func (s *Service) executeBlock(b []byte) error {
 
 // TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
 func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
-	ret, err := s.rt.Exec(runtime.AuraApiAuthorities, []byte{})
+	ret, err := s.rt.Exec(runtime.AuraAPIAuthorities, []byte{})
 	if err != nil {
 		return nil, err
 	}
