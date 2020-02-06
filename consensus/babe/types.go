@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 
-	//scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 

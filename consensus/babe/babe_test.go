@@ -348,7 +348,6 @@ func TestSlotTime(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	t.Skip()
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	kp, err := sr25519.GenerateKeypair()

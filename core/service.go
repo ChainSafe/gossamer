@@ -105,7 +105,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// TODO: our authority index should be in authData, if it isn't, we aren't authorities
-	// need to add our authority data to :sys:auth in storage
+	// need to add our authority data to storage
 	index := uint64(len(authData))
 
 	// BABE session configuration
