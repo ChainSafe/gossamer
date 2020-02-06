@@ -50,6 +50,7 @@ type Service struct {
 	msgRec       <-chan p2p.Message // receive messages from p2p service
 	epochDone    <-chan struct{}    // receive from this channel when BABE epoch changes
 	msgSend      chan<- p2p.Message // send messages to p2p service
+	// track requested block id messages
 }
 
 // Config holds the config obj
@@ -285,8 +286,10 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 	// TODO: check if we should send block request message
 
 	// TODO: update message properties and use generated id
+	// BlockAnnounceMessage
+
 	blockRequest := &p2p.BlockRequestMessage{
-		ID:            1,
+		ID:            1, // random
 		RequestedData: 2,
 		StartingBlock: []byte{},
 		EndBlockHash:  optional.NewHash(true, common.Hash{}),
@@ -296,6 +299,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 
 	// send block request message to p2p service
 	s.msgSend <- blockRequest
+
+	//
 
 	return nil
 }
