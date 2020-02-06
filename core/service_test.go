@@ -215,9 +215,13 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 func TestProcessBlockResponseMessage(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
+	blockState := NewMockBlockState()
+
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      keystore.NewKeystore(),
+		BlockState:    blockState,
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -273,12 +277,9 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		Justification: optional.NewBytes(true, []byte("qwerty")),
 	}}
 
-	data, err := types.EncodeBlockDataArray(bds)
-	if err != nil {
-		t.Fatal(err)
+	blockResponse := &p2p.BlockResponseMessage{
+		BlockData: bds,
 	}
-
-	blockResponse := &p2p.BlockResponseMessage{Data: data}
 
 	err = s.ProcessBlockResponseMessage(blockResponse)
 	if err != nil {
@@ -320,4 +321,30 @@ func TestProcessTransactionMessage(t *testing.T) {
 			"\nreceived:", bsTxExt,
 		)
 	}
+}
+
+type MockBlockState struct{}
+
+func NewMockBlockState() *MockBlockState {
+	return &MockBlockState{}
+}
+
+func (bs *MockBlockState) LatestHeader() *types.Header {
+	return &types.Header{}
+}
+
+func (bs *MockBlockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
+	return &types.BlockData{}, nil
+}
+
+func (bs *MockBlockState) SetBlockData(blockData *types.BlockData) error {
+	return nil
+}
+
+func (bs *MockBlockState) AddBlock(*types.Block) error {
+	return nil
+}
+
+func (bs *MockBlockState) SetBlock(*types.Block) error {
+	return nil
 }

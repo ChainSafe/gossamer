@@ -17,7 +17,6 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 
@@ -41,26 +40,28 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blockState   BlockState
-	storageState StorageState
-	rt           *runtime.Runtime
-	bs           *babe.Session
-	keys         []crypto.Keypair
-	blkRec       <-chan types.Block // receive blocks from BABE session
-	msgRec       <-chan p2p.Message // receive messages from p2p service
-	epochDone    <-chan struct{}    // receive from this channel when BABE epoch changes
-	msgSend      chan<- p2p.Message // send messages to p2p service
+	blockState    BlockState
+	storageState  StorageState
+	rt            *runtime.Runtime
+	bs            *babe.Session
+	keys          []crypto.Keypair
+	blkRec        <-chan types.Block // receive blocks from BABE session
+	msgRec        <-chan p2p.Message // receive messages from p2p service
+	epochDone     <-chan struct{}    // receive from this channel when BABE epoch changes
+	msgSend       chan<- p2p.Message // send messages to p2p service
+	babeAuthority bool
 }
 
 // Config holds the config obj
 type Config struct {
-	BlockState   BlockState
-	StorageState StorageState
-	Keystore     *keystore.Keystore
-	Runtime      *runtime.Runtime
-	MsgRec       <-chan p2p.Message
-	MsgSend      chan<- p2p.Message
-	NewBlocks    chan types.Block // only used for testing purposes
+	BlockState    BlockState
+	StorageState  StorageState
+	Keystore      *keystore.Keystore
+	Runtime       *runtime.Runtime
+	MsgRec        <-chan p2p.Message
+	MsgSend       chan<- p2p.Message
+	NewBlocks     chan types.Block // only used for testing purposes
+	BabeAuthority bool
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -86,37 +87,44 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	epochDone := make(chan struct{})
+	var epochDone chan struct{}
+	var bs *babe.Session
+	var err error
 
-	// BABE session configuration
-	bsConfig := &babe.SessionConfig{
-		Keypair:        keys[0].(*sr25519.Keypair),
-		Runtime:        cfg.Runtime,
-		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
-		BlockState:     cfg.BlockState,
-		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
-		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
-		EpochThreshold: big.NewInt(0),
-		Done:           epochDone,
-	}
+	if cfg.BabeAuthority {
+		epochDone = make(chan struct{})
 
-	// create a new BABE session
-	bs, err := babe.NewSession(bsConfig)
-	if err != nil {
-		return nil, err
+		// BABE session configuration
+		bsConfig := &babe.SessionConfig{
+			Keypair:        keys[0].(*sr25519.Keypair),
+			Runtime:        cfg.Runtime,
+			NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
+			BlockState:     cfg.BlockState,
+			AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
+			AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
+			EpochThreshold: big.NewInt(0),
+			Done:           epochDone,
+		}
+
+		// create a new BABE session
+		bs, err = babe.NewSession(bsConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// core service
 	return &Service{
-		rt:           cfg.Runtime,
-		bs:           bs,
-		keys:         keys,
-		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:       cfg.MsgRec,
-		msgSend:      cfg.MsgSend,
-		blockState:   cfg.BlockState,
-		storageState: cfg.StorageState,
-		epochDone:    epochDone,
+		rt:            cfg.Runtime,
+		bs:            bs,
+		keys:          keys,
+		blkRec:        cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:        cfg.MsgRec,
+		msgSend:       cfg.MsgSend,
+		blockState:    cfg.BlockState,
+		storageState:  cfg.StorageState,
+		epochDone:     epochDone,
+		babeAuthority: cfg.BabeAuthority,
 	}, nil
 }
 
@@ -132,15 +140,19 @@ func (s *Service) Start() error {
 	// start receiving messages from p2p service
 	go s.receiveMessages()
 
-	// monitor babe session for epoch changes
-	go s.handleBabeSession()
+	if s.babeAuthority {
+		// monitor babe session for epoch changes
+		go s.handleBabeSession()
 
-	err := s.bs.Start()
-	if err != nil {
-		log.Error("core could not start BABE", "error", err)
+		err := s.bs.Start()
+		if err != nil {
+			log.Error("core could not start BABE", "error", err)
+		}
+
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // Stop stops the core service
@@ -304,17 +316,9 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	data := msg.(*p2p.BlockResponseMessage).Data
-	buf := &bytes.Buffer{}
-	_, err := buf.Write(data)
-	if err != nil {
-		return err
-	}
-
-	blockData, err := types.DecodeBlockDataArray(buf)
-	if err != nil {
-		return err
-	}
+	// TODO: keep track of the block requests we've made; if the ID of the block response doesn't match the ID
+	// of a request we've given out, then ignore it
+	blockData := msg.(*p2p.BlockResponseMessage).BlockData
 
 	for _, bd := range blockData {
 		if bd.Header.Exists() && bd.Body.Exists {
@@ -343,12 +347,66 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 				log.Error("Failed to validate block", "err", err)
 				return err
 			}
+
+			// GetBlockHeader; if exists, return
+
+			// SetBlockHeader
 		}
 
-		// TODO: set BlockData
+		err := s.compareAndSetBlockData(bd)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
+	if s.blockState == nil {
+		return fmt.Errorf("no blockState")
+	}
+
+	existingData, err := s.blockState.GetBlockData(bd.Hash)
+	if err != nil {
+		// no block data exists, ok
+		return s.blockState.SetBlockData(bd)
+	}
+
+	if existingData == nil {
+		return s.blockState.SetBlockData(bd)
+	}
+
+	//return nil
+
+	if existingData.Header == nil {
+		fmt.Println("noot")
+		existingData.Header = bd.Header
+	}
+
+	// if !existingData.Header.Exists() && bd.Header.Exists() {
+	// 	existingData.Header = bd.Header
+	// }
+
+	return nil
+
+	if !existingData.Body.Exists && bd.Body.Exists {
+		existingData.Body = bd.Body
+	}
+
+	if !existingData.Receipt.Exists() && bd.Receipt.Exists() {
+		existingData.Receipt = bd.Receipt
+	}
+
+	if !existingData.MessageQueue.Exists() && bd.MessageQueue.Exists() {
+		existingData.MessageQueue = bd.MessageQueue
+	}
+
+	if !existingData.Justification.Exists() && bd.Justification.Exists() {
+		existingData.Justification = bd.Justification
+	}
+
+	return s.blockState.SetBlockData(existingData)
 }
 
 // ProcessTransactionMessage validates each transaction in the message and

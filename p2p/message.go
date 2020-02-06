@@ -311,8 +311,7 @@ func (bm *BlockAnnounceMessage) IDString() string {
 
 // BlockResponseMessage struct
 type BlockResponseMessage struct {
-	ID uint64
-	///Data []byte // TODO: change this to BlockData type
+	ID        uint64
 	BlockData []*types.BlockData
 }
 
