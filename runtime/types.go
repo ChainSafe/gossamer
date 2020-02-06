@@ -34,7 +34,7 @@ var (
 	CoreExecuteBlock = "Core_execute_block"
 	// TaggedTransactionQueueValidateTransaction returns the string representing
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
-	// AuraApiAuthorities represents the AuraApi_authorities call
+	// AuraAPIAuthorities represents the AuraApi_authorities call
 	AuraAPIAuthorities = "AuraApi_authorities" // TODO: deprecated with newest runtime, should be Grandpa_authorities
 	// BabeAPIConfiguration returns the string representing
 	BabeAPIConfiguration = "BabeApi_configuration"
