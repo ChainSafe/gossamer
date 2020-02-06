@@ -18,7 +18,7 @@ package codec
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"math/big"
 	"reflect"
 	"strings"
@@ -213,18 +213,36 @@ func TestEncodeAndDecodeStringArrayInStruct(t *testing.T) {
 }
 
 // test type for encoding
-type TypeReal struct {
+type MockTypeA struct {
 	A string
 }
 
 // Encode func for TypeReal that uses actual Scale Encode
-func (tr TypeReal) Encode() ([]byte, error) {
+func (tr *MockTypeA) Encode() ([]byte, error) {
 	return Encode(tr)
 }
 
 // test to confirm EncodeCustom is return Scale Encoded result
-func TestEncodeCustomTypeReal(t *testing.T) {
-	test := &TypeReal{A: "hello"}
+func TestEncodeCustomMockTypeA(t *testing.T) {
+	test := &MockTypeA{A: "hello"}
+
+	encCust, err := EncodeCustom(test)
+	require.Nil(t, err)
+
+	encScale, err := Encode(test)
+	require.Nil(t, err)
+
+	require.Equal(t, encScale, encCust)
+}
+
+// test type for encoding, this type does not have Encode func
+type MockTypeB struct {
+	A string
+}
+
+// test to confirm EncodeCustom is return Scale Encoded result
+func TestEncodeCustomMockTypeB(t *testing.T) {
+	test := &MockTypeB{A: "hello"}
 
 	encCust, err := EncodeCustom(test)
 	require.Nil(t, err)
@@ -236,18 +254,18 @@ func TestEncodeCustomTypeReal(t *testing.T) {
 }
 
 // test types for encoding
-type TypeFake struct {
+type MockTypeC struct {
 	A string
 }
 
-// Encode func for TypeFake that return fake byte array [1, 2, 3]
-func (tr TypeFake) Encode() ([]byte, error) {
+// Encode func for MockTypeC that return fake byte array [1, 2, 3]
+func (tr *MockTypeC) Encode() ([]byte, error) {
 	return []byte{1, 2, 3}, nil
 }
 
 // test to confirm EncodeCustom is using type's Encode function
-func TestEncodeCustomTypeFake(t *testing.T) {
-	test := &TypeFake{A: "hello"}
+func TestEncodeCustomMockTypeC(t *testing.T) {
+	test := &MockTypeC{A: "hello"}
 	expected := []byte{1, 2, 3}
 
 	encCust, err := EncodeCustom(test)
@@ -257,18 +275,18 @@ func TestEncodeCustomTypeFake(t *testing.T) {
 }
 
 // test types for encoding
-type TypeError struct {
+type MockTypeD struct {
 	A string
 }
 
-// Encode func for TypeError that return an error
-func (tr TypeError) Encode() ([]byte, error) {
-	return nil, fmt.Errorf("error encoding")
+// Encode func for MockTypeD that return an error
+func (tr *MockTypeD) Encode() ([]byte, error) {
+	return nil, errors.New("error encoding")
 }
 
 // test to confirm EncodeCustom is handling errors
-func TestEncodeCustomTypeError(t *testing.T) {
-	test := &TypeError{A: "hello"}
+func TestEncodeCustomMockTypeD(t *testing.T) {
+	test := &MockTypeD{A: "hello"}
 
 	_, err := EncodeCustom(test)
 	require.EqualError(t, err, "error encoding")
