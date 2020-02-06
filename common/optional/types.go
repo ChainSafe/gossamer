@@ -49,6 +49,9 @@ func (x *Uint32) Value() uint32 {
 
 // String returns the value as a string.
 func (x *Uint32) String() string {
+	if !x.exists {
+		return "None"
+	}
 	return fmt.Sprintf("%d", x.value)
 }
 
@@ -84,6 +87,9 @@ func (x *Bytes) Value() []byte {
 
 // String returns the value as a string.
 func (x *Bytes) String() string {
+	if !x.exists {
+		return "None"
+	}
 	return fmt.Sprintf("%x", x.value)
 }
 
@@ -119,6 +125,9 @@ func (x *Hash) Value() common.Hash {
 
 // String returns the value as a string.
 func (x *Hash) String() string {
+	if !x.exists {
+		return "None"
+	}
 	return fmt.Sprintf("%x", x.value)
 }
 
@@ -164,6 +173,9 @@ func (x *Header) Value() *CoreHeader {
 
 // String returns the value as a string.
 func (x *Header) String() string {
+	if !x.exists {
+		return "None"
+	}
 	return fmt.Sprintf("%v", x.value)
 }
 
@@ -194,6 +206,9 @@ func NewBody(exists bool, value CoreBody) *Body {
 
 // String returns the value as a string.
 func (x *Body) String() string {
+	if !x.Exists {
+		return "None"
+	}
 	return fmt.Sprintf("%v", x.Value)
 }
 
