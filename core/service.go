@@ -88,14 +88,33 @@ func NewService(cfg *Config) (*Service, error) {
 
 	epochDone := make(chan struct{})
 
+	srv := &Service{
+		rt:           cfg.Runtime,
+		keys:         keys,
+		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:       cfg.MsgRec,
+		msgSend:      cfg.MsgSend,
+		blockState:   cfg.BlockState,
+		storageState: cfg.StorageState,
+		epochDone:    epochDone,
+	}
+
+	authData, err := srv.retrieveAuthorityData()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: check config if we are authorities
+	index := srv.determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey))
+
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
 		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
 		BlockState:     cfg.BlockState,
-		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
-		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
+		AuthorityIndex: index,
+		AuthData:       authData,
 		EpochThreshold: big.NewInt(0),
 		Done:           epochDone,
 	}
@@ -106,18 +125,15 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	srv.bs = bs
+
 	// core service
-	return &Service{
-		rt:           cfg.Runtime,
-		bs:           bs,
-		keys:         keys,
-		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:       cfg.MsgRec,
-		msgSend:      cfg.MsgSend,
-		blockState:   cfg.BlockState,
-		storageState: cfg.StorageState,
-		epochDone:    epochDone,
-	}, nil
+	return srv, nil
+}
+
+func (s *Service) determineAuthorityIndex(pub *sr25519.PublicKey) uint64 {
+
+	return 0
 }
 
 // Start starts the core service
@@ -162,6 +178,11 @@ func (s *Service) Stop() error {
 // StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
+}
+
+func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
+	// TODO: when we update to a new runtime, will need to pass in the latest block number
+	return s.grandpaAuthorities()
 }
 
 func (s *Service) handleBabeSession() {
@@ -317,6 +338,18 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	}
 
 	for _, bd := range blockData {
+		if bd.Header.Exists() {
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			err = s.handleConsensusDigest(header)
+			if err != nil {
+				return err
+			}
+		}
+
 		if bd.Header.Exists() && bd.Body.Exists {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
@@ -374,6 +407,39 @@ func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 		// push to the transaction queue of BABE session
 		s.bs.PushToTxQueue(vtx)
 	}
+
+	return nil
+}
+
+// handle authority and randomness changes over transitions from one epoch to the next
+func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
+	var item types.DigestItem
+	for _, digest := range header.Digest {
+		item, err = types.DecodeDigestItem(digest)
+		if err != nil {
+			return err
+		}
+
+		if item.Type() == types.ConsensusDigestType {
+			break
+		}
+	}
+
+	// TODO: if this block is the first in the epoch and it doesn't have a consensus digest, this is an error
+	if item == nil {
+		return nil
+	}
+
+	consensusDigest := item.(*types.ConsensusDigest)
+
+	epochData := new(babe.NextEpochDescriptor)
+	err = epochData.Decode(consensusDigest.Data)
+	if err != nil {
+		return err
+	}
+
+	// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
+	s.bs.SetEpochData(epochData)
 
 	return nil
 }
