@@ -19,33 +19,37 @@ package state
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/stretchr/testify/require"
 )
 
-var testHealth = p2p.Health{}
-var testNetworkState = p2p.NetworkState{}
-var testPeers = []p2p.PeerInfo{}
+var testHealth = &common.Health{}
+var testNetworkState = &common.NetworkState{}
+var testPeers = &[]common.PeerInfo{}
 
 // test state.Network
 func TestNetworkState(t *testing.T) {
-
 	state := newTestService(t)
 
 	// test state.Network.Health()
-	health := state.Network.Health()
+	health, err := state.Network.GetHealth()
+	require.Nil(t, err)
+
 	if health != testHealth {
 		t.Errorf("System.Health - expected %+v got: %+v\n", testHealth, health)
 	}
 
 	// test state.Network.NetworkState()
-	networkState := state.Network.NetworkState()
+	networkState, err := state.Network.GetNetworkState()
+	require.Nil(t, err)
+
 	if networkState != testNetworkState {
 		t.Errorf("System.NetworkState - expected %+v got: %+v\n", testNetworkState, networkState)
 	}
 
 	// test state.Network.Peers()
-	peers := state.Network.Peers()
-	if len(peers) != len(testPeers) {
-		t.Errorf("System.Peers - expected %+v got: %+v\n", testPeers, peers)
-	}
+	peers, err := state.Network.GetPeers()
+	require.Nil(t, err)
+
+	require.Equal(t, peers, testPeers)
 }
