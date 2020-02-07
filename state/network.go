@@ -7,6 +7,10 @@ import (
 	"github.com/ChainSafe/gossamer/db"
 )
 
+const healthKey = []byte("health")
+const networkStateKey = []byte("networkstate")
+const peersKey = []byte("peers")
+
 // NetworkDB stores network information in an underlying database
 type NetworkDB struct {
 	Db db.Database
@@ -23,7 +27,6 @@ func NewNetworkDB(dataDir string) (*NetworkDB, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &NetworkDB{
 		db,
 	}, nil
@@ -35,26 +38,20 @@ func NewNetworkState(dataDir string) (*NetworkState, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	ns := &NetworkState{
 		db: db,
 	}
-
 	return ns, nil
 }
 
 // GetHealth retrieves network health from the database
 func (ns *NetworkState) GetHealth() (*common.Health, error) {
 	res := new(common.Health)
-
-	// TODO: update key
-	data, err := ns.db.Db.Get([]byte("health"))
+	data, err := ns.db.Db.Get(healthKey)
 	if err != nil {
 		return res, err
 	}
-
 	err = json.Unmarshal(data, res)
-
 	return res, err
 }
 
@@ -64,25 +61,18 @@ func (ns *NetworkState) SetHealth(health *common.Health) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: update key
-	err = ns.db.Db.Put([]byte("health"), enc)
-
+	err = ns.db.Db.Put(healthKey, enc)
 	return err
 }
 
 // GetNetworkState retrieves network state from the database
 func (ns *NetworkState) GetNetworkState() (*common.NetworkState, error) {
 	res := new(common.NetworkState)
-
-	// TODO: update key
-	data, err := ns.db.Db.Get([]byte("networkstate"))
+	data, err := ns.db.Db.Get(networkStateKey)
 	if err != nil {
 		return res, err
 	}
-
 	err = json.Unmarshal(data, res)
-
 	return res, err
 }
 
@@ -92,25 +82,18 @@ func (ns *NetworkState) SetNetworkState(networkState *common.NetworkState) error
 	if err != nil {
 		return err
 	}
-
-	// TODO: update key
-	err = ns.db.Db.Put([]byte("networkstate"), enc)
-
+	err = ns.db.Db.Put(networkStateKey, enc)
 	return err
 }
 
 // GetNetworkState retrieves network state from the database
 func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
 	res := new([]common.PeerInfo)
-
-	// TODO: update key
-	data, err := ns.db.Db.Get([]byte("peers"))
+	data, err := ns.db.Db.Get(peersKey)
 	if err != nil {
 		return res, err
 	}
-
 	err = json.Unmarshal(data, res)
-
 	return res, err
 }
 
@@ -120,9 +103,6 @@ func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: update key
-	err = ns.db.Db.Put([]byte("peers"), enc)
-
+	err = Key.db.Db.Put(peersKey), enc)
 	return err
 }
