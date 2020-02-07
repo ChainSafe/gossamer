@@ -100,8 +100,6 @@ func NewService(cfg *Config) (*Service, error) {
 		epochDone:    epochDone,
 	}
 
-	return srv, nil
-
 	authData, err := srv.retrieveAuthorityData()
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve authority data: %s", err)

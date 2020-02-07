@@ -62,7 +62,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	babesession.authorityData = make([]*AuthorityData, 1)
 	babesession.authorityData[0] = &AuthorityData{
-		id: kp.Public().(*sr25519.PublicKey),
+		ID: kp.Public().(*sr25519.PublicKey),
 	}
 
 	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
@@ -98,8 +98,8 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 	babesession.authorityData = make([]*AuthorityData, 1)
 	babesession.authorityData[0] = &AuthorityData{
-		id:     kp.Public().(*sr25519.PublicKey),
-		weight: 1,
+		ID:     kp.Public().(*sr25519.PublicKey),
+		Weight: 1,
 	}
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
