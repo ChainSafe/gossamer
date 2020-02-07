@@ -23,7 +23,7 @@ import (
 	"reflect"
 )
 
-// check if interface has method Decode, if so use that, otherwise use regular scale decoding
+// DecodeCustom check if interface has method Decode, if so use that, otherwise use regular scale decoding
 func DecodeCustom(in []byte, t interface{}) error {
 	someType := reflect.TypeOf(t)
 	_, ok := someType.MethodByName("Decode")
@@ -36,9 +36,8 @@ func DecodeCustom(in []byte, t interface{}) error {
 			return err.(error)
 		}
 		return nil
-	} else {
-		return DecodePtr(in, t)
 	}
+	return DecodePtr(in, t)
 }
 
 // DecodePtr is the high level function wrapping the specific type decoding functions
