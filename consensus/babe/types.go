@@ -19,7 +19,10 @@ package babe
 import (
 	"encoding/binary"
 	"errors"
+	//"io"
 
+	//scale "github.com/ChainSafe/gossamer/codec"
+	//"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
@@ -43,15 +46,15 @@ type AuthorityDataRaw struct {
 
 //AuthorityData struct
 type AuthorityData struct {
-	id     *sr25519.PublicKey
-	weight uint64
+	ID     *sr25519.PublicKey
+	Weight uint64
 }
 
 // NewAuthorityData returns AuthorityData with the given id and weight
 func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 	return &AuthorityData{
-		id:     pub,
-		weight: weight,
+		ID:     pub,
+		Weight: weight,
 	}
 }
 
@@ -59,10 +62,10 @@ func NewAuthorityData(pub *sr25519.PublicKey, weight uint64) *AuthorityData {
 func (a *AuthorityData) ToRaw() *AuthorityDataRaw {
 	raw := new(AuthorityDataRaw)
 
-	id := a.id.Encode()
+	id := a.ID.Encode()
 	copy(raw.ID[:], id)
 
-	raw.Weight = a.weight
+	raw.Weight = a.Weight
 	return raw
 }
 
@@ -74,8 +77,8 @@ func (a *AuthorityData) FromRaw(raw *AuthorityDataRaw) error {
 		return err
 	}
 
-	a.id = id
-	a.weight = raw.Weight
+	a.ID = id
+	a.Weight = raw.Weight
 	return nil
 }
 
@@ -101,6 +104,16 @@ func (a *AuthorityData) Decode(in []byte) error {
 
 	id := [32]byte{}
 	copy(id[:], in[:32])
+
+	// weight, err := common.ReadUint64(r)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// id, err := common.Read32Bytes(r)
+	// if err != nil {
+	// 	return err
+	// }
 
 	raw := &AuthorityDataRaw{
 		ID:     id,

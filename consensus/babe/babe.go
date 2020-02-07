@@ -241,7 +241,7 @@ func (b *Session) setEpochThreshold() error {
 func (b *Session) authorityWeights() []uint64 {
 	weights := make([]uint64, len(b.authorityData))
 	for i, auth := range b.authorityData {
-		weights[i] = auth.weight
+		weights[i] = auth.Weight
 	}
 	return weights
 }

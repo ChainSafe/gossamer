@@ -54,13 +54,14 @@ type Service struct {
 
 // Config holds the config obj
 type Config struct {
-	BlockState   BlockState
-	StorageState StorageState
-	Keystore     *keystore.Keystore
-	Runtime      *runtime.Runtime
-	MsgRec       <-chan p2p.Message
-	MsgSend      chan<- p2p.Message
-	NewBlocks    chan types.Block // only used for testing purposes
+	BlockState    BlockState
+	StorageState  StorageState
+	Keystore      *keystore.Keystore
+	Runtime       *runtime.Runtime
+	MsgRec        <-chan p2p.Message
+	MsgSend       chan<- p2p.Message
+	NewBlocks     chan types.Block // only used for testing purposes
+	BabeAuthority bool
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -99,9 +100,11 @@ func NewService(cfg *Config) (*Service, error) {
 		epochDone:    epochDone,
 	}
 
+	return srv, nil
+
 	authData, err := srv.retrieveAuthorityData()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not retrieve authority data: %s", err)
 	}
 
 	// TODO: check config if we are authorities
