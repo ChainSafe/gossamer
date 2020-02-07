@@ -369,30 +369,39 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 
 	existingData, err := s.blockState.GetBlockData(bd.Hash)
 	if err != nil {
+		log.Info("core", "error", err)
 		// no block data exists, ok
 		return s.blockState.SetBlockData(bd)
 	}
 
 	if existingData == nil {
+		fmt.Println("noot????")
+	}
+
+	fmt.Println(existingData)
+
+	if existingData == nil {
 		return s.blockState.SetBlockData(bd)
 	}
 
-	//return nil
-
 	if existingData.Header == nil {
-		fmt.Println("noot")
 		existingData.Header = bd.Header
 	}
 
-	// if !existingData.Header.Exists() && bd.Header.Exists() {
-	// 	existingData.Header = bd.Header
-	// }
+	if !existingData.Header.Exists() && bd.Header.Exists() {
+		existingData.Header = bd.Header
+	}
 
-	return nil
+	//return nil
+	if existingData.Body == nil {
+		existingData.Body = bd.Body
+	}
 
 	if !existingData.Body.Exists && bd.Body.Exists {
 		existingData.Body = bd.Body
 	}
+
+	return nil
 
 	if !existingData.Receipt.Exists() && bd.Receipt.Exists() {
 		existingData.Receipt = bd.Receipt
