@@ -36,7 +36,7 @@ func (b *Session) configurationFromRuntime() error {
 	bc := new(BabeConfiguration)
 	_, err = scale.Decode(data, bc)
 	if err != nil {
-		log.Trace("babe configurationFromRuntime", "error", err)
+		log.Error("babe configurationFromRuntime", "error", err)
 		return err
 	}
 
@@ -72,7 +72,7 @@ func (b *Session) finalizeBlock() (*types.Header, error) {
 	bh := new(types.Header)
 	_, err = scale.Decode(data, bh)
 	if err != nil {
-		log.Trace("babe finalizeBlock", "error", err)
+		log.Error("babe finalizeBlock", "error", err)
 	}
 	return bh, err
 }

@@ -64,6 +64,8 @@ type Config struct {
 	BabeAuthority bool
 }
 
+var testEpochThreshold = big.NewInt(0).SetBytes([]byte{0xf,0xf,0xf,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0});
+
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
 func NewService(cfg *Config) (*Service, error) {
@@ -125,7 +127,7 @@ func NewService(cfg *Config) (*Service, error) {
 		BlockState:     cfg.BlockState,
 		AuthorityIndex: index,
 		AuthData:       authData,
-		EpochThreshold: big.NewInt(0),
+		EpochThreshold: testEpochThreshold,
 		Done:           epochDone,
 	}
 
@@ -219,7 +221,7 @@ func (s *Service) handleBabeSession() {
 			BlockState:     s.blockState,
 			AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
 			AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(s.keys[0].Public().(*sr25519.PublicKey), 1)},
-			EpochThreshold: big.NewInt(0),
+			EpochThreshold: testEpochThreshold,
 			Done:           epochDone,
 		}
 

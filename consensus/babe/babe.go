@@ -103,6 +103,8 @@ func (b *Session) Start() error {
 		}
 	}
 
+	log.Debug("BABE", "epochThreshold", b.epochThreshold)
+
 	var i uint64 = 0
 	var err error
 	for ; i < b.config.EpochLength; i++ {
@@ -147,32 +149,34 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.config.EpochLength; slotNum++ {
-		parentHeader := b.blockState.LatestHeader()
-		if parentHeader == nil {
-			log.Error("BABE block authoring", "error", "parent header is nil")
-		} else {
-			currentSlot := Slot{
-				start:    uint64(time.Now().Unix()),
-				duration: b.config.SlotDuration,
-				number:   slotNum,
-			}
-
-			block, err := b.buildBlock(parentHeader, currentSlot)
-			if err != nil {
-				log.Error("BABE block authoring", "error", err)
+		if b.slotToProof[slotNum] != nil {
+			parentHeader := b.blockState.LatestHeader()
+			if parentHeader == nil {
+				log.Error("BABE block authoring", "error", "parent header is nil")
 			} else {
-				hash := block.Header.Hash()
-				log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
-				log.Debug("BABE built block", "header", block.Header, "body", block.Body)
-				b.newBlocks <- *block
-				err = b.blockState.AddBlock(block)
+				currentSlot := Slot{
+					start:    uint64(time.Now().Unix()),
+					duration: b.config.SlotDuration,
+					number:   slotNum,
+				}
+
+				block, err := b.buildBlock(parentHeader, currentSlot)
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
+				} else {
+					hash := block.Header.Hash()
+					log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
+					log.Debug("BABE built block", "header", block.Header, "body", block.Body)
+					b.newBlocks <- *block
+					err = b.blockState.AddBlock(block)
+					if err != nil {
+						log.Error("BABE block authoring", "error", err)
+					}
 				}
 			}
-		}
 
-		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
+			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
+		}
 	}
 
 	if b.newBlocks != nil {
@@ -210,6 +214,7 @@ func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 		copy(outbytes[:], output)
 		proofbytes := [sr25519.VrfProofLength]byte{}
 		copy(proofbytes[:], proof)
+		log.Debug("BABE lottery", "won slot", slot)
 		return &VrfOutputAndProof{
 			output: outbytes,
 			proof:  proofbytes,
