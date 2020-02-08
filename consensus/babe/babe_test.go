@@ -174,44 +174,6 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 	}
 }
 
-func TestConfigurationFromRuntime(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
-	expected := &BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        6,
-		C1:                 3,
-		C2:                 10,
-		GenesisAuthorities: []AuthorityDataRaw{},
-		Randomness:         0,
-		SecondarySlots:     false,
-	}
-
-	if babesession.config == expected {
-		t.Errorf("Fail: got %v expected %v\n", babesession.config, expected)
-	}
-}
-
 func TestMedian_OddLength(t *testing.T) {
 	us := []uint64{3, 2, 1, 4, 5}
 	res, err := median(us)
@@ -399,7 +361,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
-		GenesisAuthorities: []AuthorityDataRaw{},
+		GenesisAuthorities: []*AuthorityDataRaw{},
 		Randomness:         0,
 		SecondarySlots:     false,
 	}

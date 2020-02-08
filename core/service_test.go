@@ -25,7 +25,9 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -320,4 +322,36 @@ func TestProcessTransactionMessage(t *testing.T) {
 			"\nreceived:", bsTxExt,
 		)
 	}
+}
+
+func TestDetermineAuthorityIndex(t *testing.T) {
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+
+	authA, _ := sr25519.NewPublicKey(authABytes)
+	authB, _ := sr25519.NewPublicKey(authBBytes)
+
+	authData := []*babe.AuthorityData{
+		{ID: authA, Weight: 1},
+		{ID: authB, Weight: 1},
+	}
+
+	index, err := determineAuthorityIndex(authA, authData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if index != 0 {
+		t.Fatalf("Fail: got %d expected %d", index, 0)
+	}
+
+	index, err = determineAuthorityIndex(authB, authData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if index != 1 {
+		t.Fatalf("Fail: got %d expected %d", index, 1)
+	}
+
 }

@@ -73,6 +73,8 @@ func NewService(cfg *Config) (*Service, error) {
 
 	keys := cfg.Keystore.Sr25519Keypairs()
 
+	log.Debug("core", "keys", keys)
+
 	// no validator keypair found, generate a new one
 	if len(keys) == 0 {
 		kp, err := sr25519.GenerateKeypair()
@@ -105,8 +107,15 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, fmt.Errorf("could not retrieve authority data: %s", err)
 	}
 
+	log.Debug("core", "authData", authData)
+
 	// TODO: check config if we are authorities
-	index := srv.determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey))
+	index, err := determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey), authData)
+	if err != nil {
+		log.Error("core", "error", err)
+	}
+
+	log.Debug("core", "babe key", keys[0].Public().Hex(), "index", index)
 
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
@@ -123,7 +132,7 @@ func NewService(cfg *Config) (*Service, error) {
 	// create a new BABE session
 	bs, err := babe.NewSession(bsConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not start babe session: %s", err)
 	}
 
 	srv.bs = bs
@@ -132,9 +141,14 @@ func NewService(cfg *Config) (*Service, error) {
 	return srv, nil
 }
 
-func (s *Service) determineAuthorityIndex(pub *sr25519.PublicKey) uint64 {
+func determineAuthorityIndex(pub *sr25519.PublicKey, authData []*babe.AuthorityData) (uint64, error) {
+	for i, auth := range authData {
+		if bytes.Equal(pub.Encode(), auth.ID.Encode()) {
+			return uint64(i), nil
+		}
+	}
 
-	return 0
+	return 1<<63, fmt.Errorf("key not in BABE authority data")
 }
 
 // Start starts the core service

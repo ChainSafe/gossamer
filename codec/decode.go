@@ -366,7 +366,14 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			copy(arr[:], buf)
 			*ptr = arr
 		default:
-			err = errors.New("could not decode invalid slice or array")
+			fmt.Println("DecodeArray")
+			res, err := sd.DecodeCustom(sl.Index(i).Interface())
+			if err != nil {
+				return nil, err
+			}
+			arrayValue.Set(reflect.ValueOf(res))
+
+			//err = errors.New("could not decode invalid slice or array")
 		}
 
 		if err != nil {
@@ -380,6 +387,9 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 	case [][32]byte:
 		copy(t.([][32]byte), sl.Interface().([][32]byte))
 	}
+
+
+	fmt.Println(sl)
 
 	return sl.Interface(), err
 }
@@ -544,10 +554,12 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				ptr := fieldValue.(*[]string)
 				*ptr = o.([]string)
 			default:
-				_, err = sd.Decode(v.Field(i).Interface())
+				o, err = sd.Decode(v.Field(i).Interface())
 				if err != nil {
 					break
 				}
+				// TODO: clean up this function, can use field.Set everywhere (remove switch case?)
+				field.Set(reflect.ValueOf(o))
 			}
 
 			if err != nil {
