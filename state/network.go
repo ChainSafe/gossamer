@@ -85,7 +85,7 @@ func (ns *NetworkState) SetNetworkState(networkState *common.NetworkState) error
 	return err
 }
 
-// GetNetworkState retrieves network state from the database
+// GetPeers retrieves network state from the database
 func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
 	res := new([]common.PeerInfo)
 	data, err := ns.db.Db.Get(peersKey)
@@ -96,7 +96,7 @@ func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
 	return res, err
 }
 
-// SetNetworkState sets network state in the database
+// SetPeers sets network state in the database
 func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
 	enc, err := json.Marshal(peers)
 	if err != nil {

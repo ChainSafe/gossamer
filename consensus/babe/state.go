@@ -28,7 +28,7 @@ type BlockState interface {
 	SetBlock(*types.Block) error
 }
 
-// StorageState interface for network state methods
+// NetworkState interface for network state methods
 type NetworkState interface {
 	GetHealth() (*common.Health, error)
 	SetHealth(*common.Health) error

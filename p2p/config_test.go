@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/state"
+	"github.com/stretchr/testify/require"
 )
 
 // test buildIdentity method
@@ -99,7 +100,5 @@ func TestBuild(t *testing.T) {
 		privateKey:   testKey,
 	}
 
-	if reflect.DeepEqual(cfg, expected) {
-		t.Error("Configurations should the same")
-	}
+	require.Equal(t, expected, cfg)
 }
