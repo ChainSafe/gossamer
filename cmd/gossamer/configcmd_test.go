@@ -180,9 +180,9 @@ func TestSetGlobalConfig(t *testing.T) {
 			cfg.GlobalConfig{DataDir: tempPath},
 		},
 		{"roles flag",
-			[]string{"roles"},
-			[]interface{}{"1"},
-			cfg.GlobalConfig{Roles: byte(1)},
+			[]string{"datadir", "roles"},
+			[]interface{}{"test1", "1"},
+			cfg.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
 		},
 	}
 

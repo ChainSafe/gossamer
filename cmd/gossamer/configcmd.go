@@ -189,7 +189,7 @@ func setGlobalConfig(ctx *cli.Context, currentConfig *cfg.GlobalConfig) {
 	if roles := ctx.GlobalString(utils.RolesFlag.Name); roles != "" {
 		b, err := strconv.Atoi(roles)
 		if err != nil {
-			log.Debug("Failed to convert roles to byte", "roles", roles)
+			log.Debug("Failed to convert to byte", "roles", roles)
 		} else {
 			newRoles = byte(b)
 		}

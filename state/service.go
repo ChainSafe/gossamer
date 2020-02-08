@@ -54,12 +54,12 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
-	err = blockState.db.Db.Close()
+	networkState, err := NewNetworkState(networkDataDir)
 	if err != nil {
 		return err
 	}
 
-	networkState, err := NewNetworkState(networkDataDir)
+	err = blockState.db.Db.Close()
 	if err != nil {
 		return err
 	}

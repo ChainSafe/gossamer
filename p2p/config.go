@@ -30,7 +30,7 @@ const DefaultDataDir = "~/.gossamer"
 const DefaultPort = 7000
 const DefaultRandSeed = 0 // random key
 const DefaultProtocolID = "/gossamer/dot/0"
-const DefaultRoles = 1 // full node
+const DefaultRoles = "1" // full node
 
 var DefaultBootnodes = []string{}
 

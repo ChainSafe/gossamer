@@ -17,9 +17,12 @@
 package state
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,23 +34,40 @@ var testPeers = &[]common.PeerInfo{}
 func TestNetworkState(t *testing.T) {
 	state := newTestService(t)
 
-	// test state.Network.Health()
+	header := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	err := state.Initialize(header, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = state.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = state.Network.SetHealth(testHealth)
+	require.Nil(t, err)
+
 	health, err := state.Network.GetHealth()
 	require.Nil(t, err)
 
-	if health != testHealth {
-		t.Errorf("System.Health - expected %+v got: %+v\n", testHealth, health)
-	}
+	require.Equal(t, health, testHealth)
 
-	// test state.Network.NetworkState()
+	err = state.Network.SetNetworkState(testNetworkState)
+	require.Nil(t, err)
+
 	networkState, err := state.Network.GetNetworkState()
 	require.Nil(t, err)
 
-	if networkState != testNetworkState {
-		t.Errorf("System.NetworkState - expected %+v got: %+v\n", testNetworkState, networkState)
-	}
+	require.Equal(t, networkState, testNetworkState)
 
-	// test state.Network.Peers()
+	err = state.Network.SetPeers(testPeers)
+	require.Nil(t, err)
+
 	peers, err := state.Network.GetPeers()
 	require.Nil(t, err)
 

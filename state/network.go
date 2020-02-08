@@ -7,9 +7,9 @@ import (
 	"github.com/ChainSafe/gossamer/db"
 )
 
-const healthKey = []byte("health")
-const networkStateKey = []byte("networkstate")
-const peersKey = []byte("peers")
+var healthKey = []byte("health")
+var networkStateKey = []byte("networkstate")
+var peersKey = []byte("peers")
 
 // NetworkDB stores network information in an underlying database
 type NetworkDB struct {
@@ -34,14 +34,13 @@ func NewNetworkDB(dataDir string) (*NetworkDB, error) {
 
 // NewNetworkState creates NetworkState with a network database in DataDir
 func NewNetworkState(dataDir string) (*NetworkState, error) {
-	db, err := NewNetworkDB(dataDir)
+	networkDb, err := NewNetworkDB(dataDir)
 	if err != nil {
 		return nil, err
 	}
-	ns := &NetworkState{
-		db: db,
-	}
-	return ns, nil
+	return &NetworkState{
+		db: networkDb,
+	}, nil
 }
 
 // GetHealth retrieves network health from the database
@@ -103,6 +102,6 @@ func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
 	if err != nil {
 		return err
 	}
-	err = Key.db.Db.Put(peersKey), enc)
+	err = ns.db.Db.Put(peersKey, enc)
 	return err
 }
