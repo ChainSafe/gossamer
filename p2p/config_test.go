@@ -62,17 +62,21 @@ func TestBuildIdentity(t *testing.T) {
 
 // test build configuration method
 func TestBuild(t *testing.T) {
-	testDir := path.Join(os.TempDir(), "gossamer-test")
-	defer os.RemoveAll(testDir)
+	testDataDir := path.Join(os.TempDir(), "gossamer-test")
+	defer os.RemoveAll(testDataDir)
 
-	testRoles := byte(1) // full node
+	testBlockState := &state.BlockState{}
+	testNetworkState := &state.NetworkState{}
+	testStorageState := &state.StorageState{}
+
+	testRandSeed := int64(1)
 
 	cfg := &Config{
-		BlockState:   &state.BlockState{},
-		NetworkState: &state.NetworkState{},
-		StorageState: &state.StorageState{},
-		DataDir:      testDir,
-		Roles:        testRoles,
+		BlockState:   testBlockState,
+		NetworkState: testNetworkState,
+		StorageState: testStorageState,
+		DataDir:      testDataDir,
+		RandSeed:     testRandSeed,
 	}
 
 	err := cfg.build()
@@ -80,25 +84,15 @@ func TestBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	testKey, err := generateKey(0, testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &Config{
-		BlockState:   &state.BlockState{},
-		NetworkState: &state.NetworkState{},
-		StorageState: &state.StorageState{},
-		DataDir:      testDir,
-		Roles:        testRoles,
-		Port:         DefaultPort,
-		RandSeed:     DefaultRandSeed,
-		Bootnodes:    DefaultBootnodes,
-		ProtocolID:   DefaultProtocolID,
-		NoBootstrap:  false,
-		NoMdns:       false,
-		privateKey:   testKey,
-	}
-
-	require.Equal(t, expected, cfg)
+	require.Equal(t, testBlockState, cfg.BlockState)
+	require.Equal(t, testNetworkState, cfg.NetworkState)
+	require.Equal(t, testStorageState, cfg.StorageState)
+	require.Equal(t, testDataDir, cfg.DataDir)
+	require.Equal(t, DefaultRoles, cfg.Roles)
+	require.Equal(t, DefaultPort, cfg.Port)
+	require.Equal(t, testRandSeed, cfg.RandSeed)
+	require.Equal(t, DefaultBootnodes, cfg.Bootnodes)
+	require.Equal(t, DefaultProtocolID, cfg.ProtocolID)
+	require.Equal(t, false, cfg.NoBootstrap)
+	require.Equal(t, false, cfg.NoMdns)
 }

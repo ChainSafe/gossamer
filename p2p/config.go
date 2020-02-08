@@ -27,12 +27,12 @@ import (
 
 const DefaultKeyFile = "node.key"
 const DefaultDataDir = "~/.gossamer"
-const DefaultPort = 7000
-const DefaultRandSeed = 0 // random key
+const DefaultPort = uint32(7000)
+const DefaultRandSeed = int64(0) // random key
 const DefaultProtocolID = "/gossamer/dot/0"
-const DefaultRoles = "1" // full node
+const DefaultRoles = byte(1) // full node
 
-var DefaultBootnodes = []string{}
+var DefaultBootnodes = []string(nil)
 
 // Config is used to configure a p2p service
 type Config struct {
@@ -81,7 +81,7 @@ func (c *Config) build() error {
 	}
 
 	if c.Roles == 0 {
-		c.DataDir = DefaultRoles
+		c.Roles = DefaultRoles
 	}
 
 	if c.Port == 0 {
