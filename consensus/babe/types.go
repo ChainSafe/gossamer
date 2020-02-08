@@ -19,11 +19,8 @@ package babe
 import (
 	"bytes"
 	"encoding/binary"
-	//"errors"
 	"io"
-	"fmt"
 
-	//scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
@@ -47,7 +44,6 @@ type AuthorityDataRaw struct {
 }
 
 func (a *AuthorityDataRaw) Decode(r io.Reader) (*AuthorityDataRaw, error) {
-	fmt.Println("AuthorityDataRaw decode")
 	id, err := common.Read32Bytes(r)
 	if err != nil {
 		return nil, err

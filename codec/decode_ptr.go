@@ -45,7 +45,6 @@ func (sd *Decoder) DecodeCustom(t interface{}) (interface{}, error) {
 	someType := reflect.TypeOf(t)
 	_, ok := someType.MethodByName("Decode")
 	if ok {
-		fmt.Println("has decode method")
 		meth := reflect.ValueOf(t).MethodByName("Decode")
 		inVal := []reflect.Value{reflect.ValueOf(sd.Reader)}
 		res := meth.Call(inVal)
@@ -54,7 +53,6 @@ func (sd *Decoder) DecodeCustom(t interface{}) (interface{}, error) {
 			return nil, err.(error)
 		}
 		t = res[0].Interface()
-		fmt.Println(t)
 		return t, nil
 	}
 
