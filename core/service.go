@@ -111,7 +111,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 	log.Debug("core", "authData", authData)
 
-	// TODO: check config if we are authorities
 	index, err := determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey), authData)
 	if err != nil {
 		log.Error("core", "error", err)

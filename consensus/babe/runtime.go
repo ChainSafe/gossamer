@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"fmt"
 	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -30,8 +29,6 @@ func (b *Session) configurationFromRuntime() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(data)
 
 	bc := new(BabeConfiguration)
 	_, err = scale.Decode(data, bc)

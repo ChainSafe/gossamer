@@ -113,15 +113,6 @@ func (a *AuthorityData) Encode() []byte {
 
 // Decode sets the AuthorityData to the SCALE decoded input.
 func (a *AuthorityData) Decode(r io.Reader) error {
-	// if len(in) < 40 {
-	// 	return errors.New("length of input <40 bytes")
-	// }
-
-	// weight := binary.LittleEndian.Uint64(in[32:40])
-
-	// id := [32]byte{}
-	// copy(id[:], in[:32])
-
 	id, err := common.Read32Bytes(r)
 	if err != nil {
 		return err
