@@ -28,7 +28,8 @@ const KeyFile = "node.key"
 // DefaultProtocolID ID
 const DefaultProtocolID = "/gossamer/dot/0"
 
-var DefaultBootnodes = []string{}
+// DefaultBootnodes holds the default bootnodes the client will always have
+var DefaultBootnodes []string
 
 // Config is used to configure a p2p service
 type Config struct {

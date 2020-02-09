@@ -266,14 +266,6 @@ issues:
 
     - linters:
         - golint
-      text: "should have comment or be unexported"
-
-    - linters:
-        - golint
-      text: "or a comment on this block"
-
-    - linters:
-        - golint
       text: "error strings should not be capitalized or end with punctuation or a newline"
 
     # Exclude lll issues for long lines with go:generate

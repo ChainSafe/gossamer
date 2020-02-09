@@ -51,10 +51,12 @@ func NewAPIService(p2pAPI apiModule.P2pAPI, runtimeAPI apiModule.RuntimeAPI) *Se
 	}
 }
 
+// Start does nothing
 func (s *Service) Start() error {
 	return nil
 }
 
+// Stop does nothing
 func (s *Service) Stop() error {
 	return nil
 }

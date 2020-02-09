@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
+// Service is the struct that holds storage, block and network states
 type Service struct {
 	dbPath  string
 	Storage *StorageState
@@ -16,6 +17,7 @@ type Service struct {
 	Network *networkState
 }
 
+// NewService create a new instance of Service
 func NewService(path string) *Service {
 	return &Service{
 		dbPath:  path,
@@ -97,6 +99,7 @@ func (s *Service) Start() error {
 	return nil
 }
 
+// Stop will stop (Storage and Block) DB instances
 func (s *Service) Stop() error {
 	// Closing Badger Databases
 	err := s.Storage.Db.Db.Close()

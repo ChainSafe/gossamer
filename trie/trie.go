@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+//nolint
 var EmptyHash, _ = NewEmptyTrie(nil).Hash()
 
 // Trie is a Merkle Patricia Trie.
