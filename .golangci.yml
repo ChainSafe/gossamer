@@ -264,10 +264,6 @@ issues:
         - golint
       text: "and that stutters; consider calling this"
 
-    - linters:
-        - golint
-      text: "error strings should not be capitalized or end with punctuation or a newline"
-
     # Exclude lll issues for long lines with go:generate
     - linters:
         - lll
