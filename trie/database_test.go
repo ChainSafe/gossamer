@@ -212,7 +212,7 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
 	})
 
-	expected := &genesis.GenesisData{
+	expected := &genesis.Data{
 		Name:       "gossamer",
 		ID:         "gossamer",
 		Bootnodes:  bootnodes,

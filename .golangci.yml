@@ -260,10 +260,6 @@ issues:
         - golint
       text: "which can be annoying to use"
 
-    - linters:
-        - golint
-      text: "and that stutters; consider calling this"
-
     # Exclude lll issues for long lines with go:generate
     - linters:
         - lll

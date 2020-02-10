@@ -70,7 +70,7 @@ func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
 }
 
 // StoreGenesisData stores the given genesis data at the known GenesisDataKey.
-func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
+func (db *Database) StoreGenesisData(gen *genesis.Data) error {
 	enc, err := scale.Encode(gen)
 	if err != nil {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
@@ -80,18 +80,18 @@ func (db *Database) StoreGenesisData(gen *genesis.GenesisData) error {
 }
 
 // LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
-func (db *Database) LoadGenesisData() (*genesis.GenesisData, error) {
+func (db *Database) LoadGenesisData() (*genesis.Data, error) {
 	enc, err := db.Load(common.GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := scale.Decode(enc, &genesis.GenesisData{})
+	data, err := scale.Decode(enc, &genesis.Data{})
 	if err != nil {
 		return nil, err
 	}
 
-	return data.(*genesis.GenesisData), nil
+	return data.(*genesis.Data), nil
 }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together

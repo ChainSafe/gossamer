@@ -45,7 +45,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	}
 
 	hash := genesisHeader.Hash()
-	err = storageDb.Db.Db.Put(common.LatestHeaderHashKey, hash[:])
+	err = storageDb.DB.DB.Put(common.LatestHeaderHashKey, hash[:])
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
-	return storageDb.Db.Db.Close()
+	return storageDb.DB.DB.Close()
 }
 
 // Start initializes the Storage database and the Block database.
@@ -77,7 +77,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot make storage state: %s", err)
 	}
 
-	latestHeaderHash, err := storageDb.Db.Db.Get(common.LatestHeaderHashKey)
+	latestHeaderHash, err := storageDb.DB.DB.Get(common.LatestHeaderHashKey)
 	if err != nil {
 		return fmt.Errorf("cnanot get latest hash: %s", err)
 	}
@@ -102,7 +102,7 @@ func (s *Service) Start() error {
 // Stop will stop (Storage and Block) DB instances
 func (s *Service) Stop() error {
 	// Closing Badger Databases
-	err := s.Storage.Db.Db.Close()
+	err := s.Storage.DB.DB.Close()
 	if err != nil {
 		return err
 	}

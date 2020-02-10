@@ -40,7 +40,7 @@ type Session struct {
 	blockState     BlockState
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
-	config         *BabeConfiguration
+	config         *Configuration
 	authorityIndex uint64
 	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch

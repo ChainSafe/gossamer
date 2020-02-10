@@ -9,26 +9,26 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-// StateDB stores trie structure in an underlying Database
-type StateDB struct {
-	Db db.Database
+// DB stores trie structure in an underlying Database
+type DB struct {
+	DB db.Database
 }
 
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	trie *trie.Trie
-	Db   *StateDB
+	DB   *DB
 	lock sync.RWMutex
 }
 
 // NewStateDB instantiates badgerDB instance for storing trie structure
-func NewStateDB(dataDir string) (*StateDB, error) {
+func NewStateDB(dataDir string) (*DB, error) {
 	db, err := db.NewBadgerDB(dataDir)
 	if err != nil {
 		return nil, err
 	}
 
-	return &StateDB{
+	return &DB{
 		db,
 	}, nil
 }
@@ -39,11 +39,11 @@ func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
 	if err != nil {
 		return nil, err
 	}
-	db := trie.NewDatabase(stateDb.Db)
+	db := trie.NewDatabase(stateDb.DB)
 	t.SetDb(db)
 	return &StorageState{
 		trie: t,
-		Db:   stateDb,
+		DB:   stateDb,
 	}, nil
 }
 
@@ -124,7 +124,7 @@ func (s *StorageState) Entries() map[string][]byte {
 }
 
 // LoadGenesisData returns LoadGenesisData from the trie
-func (s *StorageState) LoadGenesisData() (*genesis.GenesisData, error) {
+func (s *StorageState) LoadGenesisData() (*genesis.Data, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.trie.Db().LoadGenesisData()

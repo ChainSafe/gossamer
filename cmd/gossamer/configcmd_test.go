@@ -53,7 +53,7 @@ var TestGenesis = &genesis.Genesis{
 	ID:         "gossamer",
 	Bootnodes:  TestBootnodes,
 	ProtocolID: TestProtocolID,
-	Genesis:    genesis.GenesisFields{},
+	Genesis:    genesis.Fields{},
 }
 
 func teardown(tempFile *os.File) {
@@ -115,7 +115,7 @@ func createTempGenesisFile(t *testing.T) string {
 	testHex := hex.EncodeToString(testBytes)
 	testRaw := [2]map[string]string{}
 	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
-	TestGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
+	TestGenesis.Genesis = genesis.Fields{Raw: testRaw}
 
 	// Create temp file
 	file, err := ioutil.TempFile(os.TempDir(), "genesis-test")
@@ -197,7 +197,7 @@ func TestSetGlobalConfig(t *testing.T) {
 }
 
 func TestCreateP2PService(t *testing.T) {
-	srv, _, _ := createP2PService(cfg.DefaultConfig(), &genesis.GenesisData{})
+	srv, _, _ := createP2PService(cfg.DefaultConfig(), &genesis.Data{})
 	if srv == nil {
 		t.Fatalf("failed to create p2p service")
 	}

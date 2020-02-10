@@ -29,7 +29,7 @@ func (b *Session) configurationFromRuntime() error {
 		return err
 	}
 
-	bc := new(BabeConfiguration)
+	bc := new(Configuration)
 	_, err = scale.Decode(data, bc)
 	if err != nil {
 		return err
