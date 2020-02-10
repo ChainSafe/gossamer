@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/common/optional"
 )
 
-var TestRoles = byte(1) // full node
 var TestProtocolID = "/gossamer/test/0"
 
 // arbitrary block request message
@@ -49,12 +48,11 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	msgRec = make(chan Message)
 	msgSend = make(chan Message)
 
-	// same for all p2p tests
-	cfg.BlockState = &MockBlockState{}
-	cfg.NetworkState = &MockNetworkState{}
-	cfg.StorageState = &MockStorageState{}
-	cfg.ProtocolID = TestProtocolID
-	cfg.Roles = TestRoles
+	// same for all p2p tests use the createTestService helper method
+	cfg.BlockState = &MockBlockState{}     // required
+	cfg.NetworkState = &MockNetworkState{} // required
+	cfg.StorageState = &MockStorageState{} // required
+	cfg.ProtocolID = TestProtocolID        // default "/gossamer/dot/0"
 
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {

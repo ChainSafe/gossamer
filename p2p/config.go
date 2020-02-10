@@ -44,7 +44,7 @@ type Config struct {
 	StorageState StorageState
 	// Global data directory
 	DataDir string
-	// Role is a bitmap value whose bits represent difierent roles for the sender node (see Table E.2, defaults to full node - 1)
+	// Role is a bitmap value whose bits represent difierent roles for the sender node (see Table E.2)
 	Roles byte
 	// Listening port
 	Port uint32

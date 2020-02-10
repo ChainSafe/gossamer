@@ -88,7 +88,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	// TODO: check Roles to see if we need p2p service (Roles 0 = no network)
+	// TODO: Configure node based on Roles #601
 
 	// P2P
 	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(currentConfig, gendata, stateSrv)
