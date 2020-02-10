@@ -64,7 +64,7 @@ type Config struct {
 	BabeAuthority bool
 }
 
-var testEpochThreshold = big.NewInt(0).SetBytes([]byte{0xf,0xf,0xf,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0});
+var testEpochThreshold = big.NewInt(0).SetBytes([]byte{0xf, 0xf, 0xf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
@@ -149,7 +149,7 @@ func determineAuthorityIndex(pub *sr25519.PublicKey, authData []*babe.AuthorityD
 		}
 	}
 
-	return 1<<63, fmt.Errorf("key not in BABE authority data")
+	return 1 << 63, fmt.Errorf("key not in BABE authority data")
 }
 
 // Start starts the core service

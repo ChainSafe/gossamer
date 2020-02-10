@@ -366,7 +366,8 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 			copy(arr[:], buf)
 			*ptr = arr
 		default:
-			res, err := sd.DecodeCustom(sl.Index(i).Interface())
+			var res interface{}
+			res, err = sd.DecodeCustom(sl.Index(i).Interface())
 			if err != nil {
 				return nil, err
 			}

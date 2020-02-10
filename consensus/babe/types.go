@@ -169,6 +169,7 @@ func (n *NextEpochDescriptor) Encode() []byte {
 }
 
 // Decode sets the NextEpochDescriptor to the SCALE decoded input.
+// TODO: change to io.Reader
 func (n *NextEpochDescriptor) Decode(in []byte) error {
 	n.Authorities = []*AuthorityData{}
 
@@ -176,8 +177,11 @@ func (n *NextEpochDescriptor) Decode(in []byte) error {
 	for i = 0; i < (len(in)-32)/40; i++ {
 		auth := new(AuthorityData)
 		buf := &bytes.Buffer{}
-		buf.Write(in[i*40 : (i+1)*40])
-		err := auth.Decode(buf)
+		_, err := buf.Write(in[i*40 : (i+1)*40])
+		if err != nil {
+			return err
+		}
+		err = auth.Decode(buf)
 		if err != nil {
 			return err
 		}

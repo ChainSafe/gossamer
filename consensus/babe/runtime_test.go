@@ -63,6 +63,9 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	}
 
 	err = tt.Put(key, value)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
 

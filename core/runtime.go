@@ -80,7 +80,10 @@ func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
 	auths := make([]*babe.AuthorityData, len(keys))
 	for i, auth := range authsRaw {
 		auths[i] = new(babe.AuthorityData)
-		auths[i].FromRaw(auth)
+		err = auths[i].FromRaw(auth)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return auths, err
