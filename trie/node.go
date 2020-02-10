@@ -48,7 +48,8 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
-type node interface {
+// Node is the interface for trie methods
+type Node interface {
 	Encode() ([]byte, error)
 	Decode(r io.Reader, h byte) error
 	isDirty() bool
@@ -59,7 +60,7 @@ type node interface {
 type (
 	branch struct {
 		key      []byte // partial key
-		children [16]node
+		children [16]Node
 		value    []byte
 		dirty    bool
 	}
@@ -118,7 +119,7 @@ func (b *branch) setKey(key []byte) {
 // Encode is the high-level function wrapping the encoding for different node types
 // encoding has the following format:
 // NodeHeader | Extra partial key length | Partial Key | Value
-func Encode(n node) ([]byte, error) {
+func Encode(n Node) ([]byte, error) {
 	switch n := n.(type) {
 	case *branch:
 		return n.Encode()
@@ -194,7 +195,7 @@ func (l *leaf) Encode() ([]byte, error) {
 }
 
 // Decode wraps the decoding of different node types back into a node
-func Decode(r io.Reader) (node, error) {
+func Decode(r io.Reader) (Node, error) {
 	header, err := readByte(r)
 	if err != nil {
 		return nil, err

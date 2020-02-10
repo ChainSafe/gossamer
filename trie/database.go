@@ -99,7 +99,7 @@ func (t *Trie) Encode() ([]byte, error) {
 	return encode(t.root, []byte{})
 }
 
-func encode(n node, enc []byte) ([]byte, error) {
+func encode(n Node, enc []byte) ([]byte, error) {
 	if n == nil {
 		return []byte{}, nil
 	}
@@ -164,7 +164,7 @@ func (t *Trie) Decode(enc []byte) error {
 	return decode(r, t.root)
 }
 
-func decode(r io.Reader, prev node) error {
+func decode(r io.Reader, prev Node) error {
 	sd := &scale.Decoder{Reader: r}
 
 	if b, ok := prev.(*branch); ok {

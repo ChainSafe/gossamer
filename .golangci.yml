@@ -256,10 +256,6 @@ issues:
         - golint
       text: "don't use underscores in Go names;"
 
-    - linters:
-        - golint
-      text: "which can be annoying to use"
-
     # Exclude lll issues for long lines with go:generate
     - linters:
         - lll

@@ -40,7 +40,7 @@ func NewHasher() (*Hasher, error) {
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
-func (h *Hasher) Hash(n node) (res []byte, err error) {
+func (h *Hasher) Hash(n Node) (res []byte, err error) {
 	encNode, err := n.Encode()
 	if err != nil {
 		return nil, err

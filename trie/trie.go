@@ -31,7 +31,7 @@ var EmptyHash, _ = NewEmptyTrie(nil).Hash()
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
 	db       *Database
-	root     node
+	root     Node
 	children map[common.Hash]*Trie
 }
 
@@ -45,7 +45,7 @@ func NewEmptyTrie(db *Database) *Trie {
 }
 
 // NewTrie creates a trie with an existing root node from db
-func NewTrie(db *Database, root node) *Trie {
+func NewTrie(db *Database, root Node) *Trie {
 	return &Trie{
 		db:       db,
 		root:     root,
@@ -54,7 +54,7 @@ func NewTrie(db *Database, root node) *Trie {
 }
 
 // Root returns the root of the trie
-func (t *Trie) Root() node {
+func (t *Trie) Root() Node {
 	return t.root
 }
 
@@ -88,7 +88,7 @@ func (t *Trie) Entries() map[string][]byte {
 	return t.entries(t.root, nil, make(map[string][]byte))
 }
 
-func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[string][]byte {
+func (t *Trie) entries(current Node, prefix []byte, kv map[string][]byte) map[string][]byte {
 	switch c := current.(type) {
 	case *branch:
 		if c.value != nil {
@@ -116,7 +116,7 @@ func (t *Trie) Put(key, value []byte) error {
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
-	var n node
+	var n Node
 
 	if len(value) > 0 {
 		_, n, err = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
@@ -133,7 +133,7 @@ func (t *Trie) tryPut(key, value []byte) (err error) {
 }
 
 // TryPut attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err error) {
+func (t *Trie) insert(parent Node, key []byte, value Node) (ok bool, n Node, err error) {
 	switch p := parent.(type) {
 	case *branch:
 		ok, n, err = t.updateBranch(p, key, value)
@@ -200,7 +200,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (ok bool, n node, err
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-func (t *Trie) updateBranch(p *branch, key []byte, value node) (ok bool, n node, err error) {
+func (t *Trie) updateBranch(p *branch, key []byte, value Node) (ok bool, n Node, err error) {
 	length := lenCommonPrefix(key, p.key)
 
 	// whole parent key matches
@@ -296,7 +296,7 @@ func (t *Trie) tryGet(key []byte) (value *leaf, err error) {
 	return value, err
 }
 
-func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
+func (t *Trie) retrieve(parent Node, key []byte) (value *leaf, err error) {
 	switch p := parent.(type) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
@@ -335,7 +335,7 @@ func (t *Trie) Delete(key []byte) error {
 	return nil
 }
 
-func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
+func (t *Trie) delete(parent Node, key []byte) (ok bool, n Node, err error) {
 	switch p := parent.(type) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
@@ -370,7 +370,7 @@ func (t *Trie) delete(parent node, key []byte) (ok bool, n node, err error) {
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
 // if the upated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *branch, n node, key []byte) (ok bool, nn node, err error) {
+func handleDeletion(p *branch, n Node, key []byte) (ok bool, nn Node, err error) {
 	nn = n
 	length := lenCommonPrefix(p.key, key)
 	bitmap := p.childrenBitmap()

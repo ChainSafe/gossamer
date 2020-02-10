@@ -36,7 +36,7 @@ func byteArray(length int) []byte {
 }
 
 func TestChildrenBitmap(t *testing.T) {
-	b := &branch{children: [16]node{}}
+	b := &branch{children: [16]Node{}}
 	res := b.childrenBitmap()
 	if res != 0 {
 		t.Errorf("Fail to get children bitmap: got %x expected %x", res, 1)
@@ -66,24 +66,24 @@ func TestBranchHeader(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{nil, [16]node{}, nil, true}, []byte{0x80}},
-		{&branch{[]byte{0x00}, [16]node{}, nil, true}, []byte{0x81}},
-		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true}, []byte{0x84}},
+		{&branch{nil, [16]Node{}, nil, true}, []byte{0x80}},
+		{&branch{[]byte{0x00}, [16]Node{}, nil, true}, []byte{0x81}},
+		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]Node{}, nil, true}, []byte{0x84}},
 
-		{&branch{nil, [16]node{}, []byte{0x01}, true}, []byte{0xc0}},
-		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc1}},
-		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc2}},
-		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}, true}, []byte{0xc3}},
+		{&branch{nil, [16]Node{}, []byte{0x01}, true}, []byte{0xc0}},
+		{&branch{[]byte{0x00}, [16]Node{}, []byte{0x01}, true}, []byte{0xc1}},
+		{&branch{[]byte{0x00, 0x00}, [16]Node{}, []byte{0x01}, true}, []byte{0xc2}},
+		{&branch{[]byte{0x00, 0x00, 0xf}, [16]Node{}, []byte{0x01}, true}, []byte{0xc3}},
 
-		{&branch{byteArray(62), [16]node{}, nil, true}, []byte{0xbe}},
-		{&branch{byteArray(62), [16]node{}, []byte{0x00}, true}, []byte{0xfe}},
-		{&branch{byteArray(63), [16]node{}, nil, true}, []byte{0xbf, 0}},
-		{&branch{byteArray(64), [16]node{}, nil, true}, []byte{0xbf, 1}},
-		{&branch{byteArray(64), [16]node{}, []byte{0x01}, true}, []byte{0xff, 1}},
+		{&branch{byteArray(62), [16]Node{}, nil, true}, []byte{0xbe}},
+		{&branch{byteArray(62), [16]Node{}, []byte{0x00}, true}, []byte{0xfe}},
+		{&branch{byteArray(63), [16]Node{}, nil, true}, []byte{0xbf, 0}},
+		{&branch{byteArray(64), [16]Node{}, nil, true}, []byte{0xbf, 1}},
+		{&branch{byteArray(64), [16]Node{}, []byte{0x01}, true}, []byte{0xff, 1}},
 
-		{&branch{byteArray(317), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
-		{&branch{byteArray(318), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 0}},
-		{&branch{byteArray(573), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 255, 0}},
+		{&branch{byteArray(317), [16]Node{}, []byte{0x01}, true}, []byte{255, 254}},
+		{&branch{byteArray(318), [16]Node{}, []byte{0x01}, true}, []byte{255, 255, 0}},
+		{&branch{byteArray(573), [16]Node{}, []byte{0x01}, true}, []byte{255, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
@@ -102,7 +102,7 @@ func TestFailingPk(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{byteArray(2 << 16), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
+		{&branch{byteArray(2 << 16), [16]Node{}, []byte{0x01}, true}, []byte{255, 254}},
 	}
 
 	for _, test := range tests {
@@ -147,7 +147,7 @@ func TestBranchEncode(t *testing.T) {
 	randVals := generateRand(100)
 
 	for i, testKey := range randKeys {
-		b := &branch{key: testKey, children: [16]node{}, value: randVals[i]}
+		b := &branch{key: testKey, children: [16]Node{}, value: randVals[i]}
 		expected := []byte{}
 
 		header, err := b.header()
@@ -252,19 +252,19 @@ func TestEncodeRoot(t *testing.T) {
 
 func TestBranchDecode(t *testing.T) {
 	tests := []*branch{
-		{[]byte{}, [16]node{}, nil, true},
-		{[]byte{0x00}, [16]node{}, nil, true},
-		{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
-		{[]byte{}, [16]node{}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		{byteArray(62), [16]node{}, nil, true},
-		{byteArray(63), [16]node{}, nil, true},
-		{byteArray(64), [16]node{}, nil, true},
-		{byteArray(317), [16]node{}, []byte{0x01}, true},
-		{byteArray(318), [16]node{}, []byte{0x01}, true},
-		{byteArray(573), [16]node{}, []byte{0x01}, true},
+		{[]byte{}, [16]Node{}, nil, true},
+		{[]byte{0x00}, [16]Node{}, nil, true},
+		{[]byte{0x00, 0x00, 0xf, 0x3}, [16]Node{}, nil, true},
+		{[]byte{}, [16]Node{}, []byte{0x01}, true},
+		{[]byte{}, [16]Node{&leaf{}}, []byte{0x01}, true},
+		{[]byte{}, [16]Node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+		{[]byte{}, [16]Node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+		{byteArray(62), [16]Node{}, nil, true},
+		{byteArray(63), [16]Node{}, nil, true},
+		{byteArray(64), [16]Node{}, nil, true},
+		{byteArray(317), [16]Node{}, []byte{0x01}, true},
+		{byteArray(318), [16]Node{}, []byte{0x01}, true},
+		{byteArray(573), [16]Node{}, []byte{0x01}, true},
 	}
 
 	for _, test := range tests {
@@ -328,14 +328,14 @@ func TestLeafDecode(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	tests := []node{
-		&branch{[]byte{}, [16]node{}, nil, true},
-		&branch{[]byte{0x00}, [16]node{}, nil, true},
-		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
-		&branch{[]byte{}, [16]node{}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+	tests := []Node{
+		&branch{[]byte{}, [16]Node{}, nil, true},
+		&branch{[]byte{0x00}, [16]Node{}, nil, true},
+		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]Node{}, nil, true},
+		&branch{[]byte{}, [16]Node{}, []byte{0x01}, true},
+		&branch{[]byte{}, [16]Node{&leaf{}}, []byte{0x01}, true},
+		&branch{[]byte{}, [16]Node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
+		&branch{[]byte{}, [16]Node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
 		&leaf{[]byte{}, nil, true},
 		&leaf{[]byte{0x00}, nil, true},
 		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},

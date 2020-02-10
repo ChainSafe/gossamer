@@ -30,7 +30,7 @@ func (t *Trie) StringWithEncoding() string {
 	return t.string("", t.root, nil, true)
 }
 
-func (t *Trie) string(str string, current node, prefix []byte, withEncoding bool) string {
+func (t *Trie) string(str string, current Node, prefix []byte, withEncoding bool) string {
 	h, err := NewHasher()
 	if err != nil {
 		return ""

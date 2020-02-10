@@ -13,8 +13,8 @@ import (
 type Service struct {
 	dbPath  string
 	Storage *StorageState
-	Block   *blockState
-	Network *networkState
+	Block   *BlockState
+	Network *NetworkState
 }
 
 // NewService create a new instance of Service
