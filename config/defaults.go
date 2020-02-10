@@ -31,18 +31,18 @@ const (
 	// DefaultRPCHTTPPort http port
 	DefaultRPCHTTPPort = 8545
 
-	// DefaultP2PPort network port
-	DefaultP2PPort = 7001
-	// DefaultP2PProtocolID ID
-	DefaultP2PProtocolID = "/gossamer/dot/0"
+	// DefaultNetworkPort network port
+	DefaultNetworkPort = 7001
+	// DefaultNetworkProtocolID ID
+	DefaultNetworkProtocolID = "/gossamer/dot/0"
 
 	// DefaultGenesisPath Genesis path
 	DefaultGenesisPath = "config/gssmr0.json"
 )
 
 var (
-	// DefaultP2PBootnodes Must be non-nil to match toml parsing semantics
-	DefaultP2PBootnodes = []string{}
+	// DefaultNetworkBootnodes Must be non-nil to match toml parsing semantics
+	DefaultNetworkBootnodes = []string{}
 	// DefaultRPCModules holds defaults RPC modules
 	DefaultRPCModules = []api.Module{"system"}
 )
@@ -54,11 +54,11 @@ var (
 		Roles:   byte(1), // full node
 	}
 
-	// DefaultP2PConfig P2P
-	DefaultP2PConfig = NetworkCfg{
-		Bootnodes:   DefaultP2PBootnodes,
-		ProtocolID:  DefaultP2PProtocolID,
-		Port:        DefaultP2PPort,
+	// DefaultNetworkConfig Network
+	DefaultNetworkConfig = NetworkCfg{
+		Bootnodes:   DefaultNetworkBootnodes,
+		ProtocolID:  DefaultNetworkProtocolID,
+		Port:        DefaultNetworkPort,
 		NoBootstrap: false,
 		NoMdns:      false,
 	}
@@ -75,7 +75,7 @@ var (
 func DefaultConfig() *Config {
 	return &Config{
 		Global:  DefaultGlobalConfig,
-		Network: DefaultP2PConfig,
+		Network: DefaultNetworkConfig,
 		RPC:     DefaultRPCConfig,
 	}
 }

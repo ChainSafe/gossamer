@@ -55,17 +55,17 @@ var (
 	}
 )
 
-// P2P flags
+// Network flags
 var (
-	// BootnodesFlag P2P service settings
+	// BootnodesFlag Network service settings
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
-		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
+		Usage: "Comma separated enode URLs for network discovery bootstrap",
 	}
-	// PortFlag Set P2P listening port
+	// PortFlag Set network listening port
 	PortFlag = cli.UintFlag{
 		Name:  "p2pport",
-		Usage: "Set P2P listening port",
+		Usage: "Set network listening port",
 	}
 	// ProtocolIDFlag Set protocol id
 	ProtocolIDFlag = cli.StringFlag{

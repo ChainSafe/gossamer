@@ -89,8 +89,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// TODO: Configure node based on Roles #601
 
-	// P2P
-	networkSrvc, networkMsgSend, networkMsgRec := createP2PService(currentConfig, gendata, stateSrv)
+	// Network
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(currentConfig, gendata)
 	srvcs = append(srvcs, networkSrvc)
 
 	// Core
@@ -207,10 +207,14 @@ func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 	}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if port := ctx.GlobalUint(P2pPortFlag.Name); port != 0 {
 =======
 	if port := ctx.GlobalUint(utils.NetworkPortFlag.Name); port != 0 {
 >>>>>>> p2p: update p2p to network part 3
+=======
+	if port := ctx.GlobalUint(utils.PortFlag.Name); port != 0 {
+>>>>>>> p2p: update p2p to network part 4
 		fig.Port = uint32(port)
 	}
 
@@ -225,8 +229,13 @@ func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 	}
 }
 
+<<<<<<< HEAD
 // createP2PService creates a network service from the command configuration and genesis data
 func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+=======
+// createNetworkService creates a network service from the command configuration and genesis data
+func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData) (*network.Service, chan network.Message, chan network.Message) {
+>>>>>>> p2p: update p2p to network part 4
 
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)

@@ -34,7 +34,7 @@ import (
 func createTestDot(t *testing.T, testDir string) *Dot {
 	var services []services.Service
 
-	// P2P
+	// Network
 	networkCfg := &network.Config{
 		BlockState:   &state.BlockState{},   // required
 		NetworkState: &state.NetworkState{}, // required

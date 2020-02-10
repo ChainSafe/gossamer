@@ -201,9 +201,9 @@ func TestSetGlobalConfig(t *testing.T) {
 	}
 }
 
-func TestCreateP2PService(t *testing.T) {
+func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createP2PService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
+	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
@@ -228,9 +228,9 @@ func TestSetNetworkConfig(t *testing.T) {
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
 			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
-				Port:        cfg.DefaultP2PPort,
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
+				Port:        cfg.DefaultNetworkPort,
 				NoBootstrap: true,
 				NoMdns:      true,
 			},
@@ -241,8 +241,8 @@ func TestSetNetworkConfig(t *testing.T) {
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
 			cfg.NetworkCfg{
 				Bootnodes:   TestBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
-				Port:        cfg.DefaultP2PPort,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
+				Port:        cfg.DefaultNetworkPort,
 				NoBootstrap: false,
 				NoMdns:      false,
 			},
@@ -252,8 +252,8 @@ func TestSetNetworkConfig(t *testing.T) {
 			[]string{"port"},
 			[]interface{}{uint(1337)},
 			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
 				Port:        1337,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -264,8 +264,8 @@ func TestSetNetworkConfig(t *testing.T) {
 			[]string{"protocol"},
 			[]interface{}{TestProtocolID},
 			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				Port:        cfg.DefaultP2PPort,
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				Port:        cfg.DefaultNetworkPort,
 				ProtocolID:  TestProtocolID,
 				NoBootstrap: false,
 				NoMdns:      false,
