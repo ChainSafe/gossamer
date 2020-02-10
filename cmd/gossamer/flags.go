@@ -62,9 +62,9 @@ var (
 		Name:  "bootnodes",
 		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
 	}
-	// P2pPortFlag Set P2P listening port
-	P2pPortFlag = cli.UintFlag{
-		Name:  "port",
+	// PortFlag Set P2P listening port
+	PortFlag = cli.UintFlag{
+		Name:  "p2pport",
 		Usage: "Set P2P listening port",
 	}
 	// ProtocolIDFlag Set protocol id

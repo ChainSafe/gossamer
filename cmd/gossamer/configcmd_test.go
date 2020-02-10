@@ -207,7 +207,7 @@ func TestCreateP2PService(t *testing.T) {
 	require.NotNil(t, srv, "failed to create network service")
 }
 
-func TestSetP2pConfig(t *testing.T) {
+func TestSetNetworkConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -215,19 +215,19 @@ func TestSetP2pConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.P2pCfg
+		expected    cfg.NetworkCfg
 	}{
 		{
 			"config file",
 			[]string{"config"},
 			[]interface{}{tempFile.Name()},
-			cfgClone.P2p,
+			cfgClone.Network,
 		},
 		{
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			cfg.P2pCfg{
+			cfg.NetworkCfg{
 				Bootnodes:   cfg.DefaultP2PBootnodes,
 				ProtocolID:  cfg.DefaultP2PProtocolID,
 				Port:        cfg.DefaultP2PPort,
@@ -239,7 +239,7 @@ func TestSetP2pConfig(t *testing.T) {
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
-			cfg.P2pCfg{
+			cfg.NetworkCfg{
 				Bootnodes:   TestBootnodes,
 				ProtocolID:  cfg.DefaultP2PProtocolID,
 				Port:        cfg.DefaultP2PPort,
@@ -251,7 +251,7 @@ func TestSetP2pConfig(t *testing.T) {
 			"port",
 			[]string{"port"},
 			[]interface{}{uint(1337)},
-			cfg.P2pCfg{
+			cfg.NetworkCfg{
 				Bootnodes:   cfg.DefaultP2PBootnodes,
 				ProtocolID:  cfg.DefaultP2PProtocolID,
 				Port:        1337,
@@ -263,7 +263,7 @@ func TestSetP2pConfig(t *testing.T) {
 			"protocol id",
 			[]string{"protocol"},
 			[]interface{}{TestProtocolID},
-			cfg.P2pCfg{
+			cfg.NetworkCfg{
 				Bootnodes:   cfg.DefaultP2PBootnodes,
 				Port:        cfg.DefaultP2PPort,
 				ProtocolID:  TestProtocolID,
@@ -281,9 +281,9 @@ func TestSetP2pConfig(t *testing.T) {
 
 			input := cfg.DefaultConfig()
 			// Must call global setup to set data dir
-			setP2pConfig(context, &input.P2p)
+			setNetworkConfig(context, &input.Network)
 
-			require.Equal(t, c.expected, input.P2p)
+			require.Equal(t, c.expected, input.Network)
 		})
 	}
 }

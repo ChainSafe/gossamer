@@ -155,7 +155,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 
 	// Parse CLI flags
 	setGlobalConfig(ctx, &currentConfig.Global)
-	setP2pConfig(ctx, &currentConfig.P2p)
+	setNetworkConfig(ctx, &currentConfig.Network)
 	setRPCConfig(ctx, &currentConfig.RPC)
 	return currentConfig, nil
 }
@@ -196,7 +196,7 @@ func setGlobalConfig(ctx *cli.Context, currentConfig *cfg.GlobalConfig) {
 	currentConfig.Roles = newRoles
 }
 
-func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
+func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
 		fig.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
@@ -206,7 +206,11 @@ func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
 		fig.ProtocolID = protocol
 	}
 
+<<<<<<< HEAD
 	if port := ctx.GlobalUint(P2pPortFlag.Name); port != 0 {
+=======
+	if port := ctx.GlobalUint(utils.NetworkPortFlag.Name); port != 0 {
+>>>>>>> p2p: update p2p to network part 3
 		fig.Port = uint32(port)
 	}
 
@@ -229,17 +233,18 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData, stateServic
 	protocolID := gendata.ProtocolID
 
 	// If bootnodes flag has one or more bootnodes, overwrite genesis bootnodes
-	if len(fig.P2p.Bootnodes) > 0 {
-		bootnodes = fig.P2p.Bootnodes
+	if len(fig.Network.Bootnodes) > 0 {
+		bootnodes = fig.Network.Bootnodes
 	}
 
 	// If protocol id flag is not an empty string, overwrite
-	if fig.P2p.ProtocolID != "" {
-		protocolID = fig.P2p.ProtocolID
+	if fig.Network.ProtocolID != "" {
+		protocolID = fig.Network.ProtocolID
 	}
 
 	// network service configuation
 	networkConfig := network.Config{
+<<<<<<< HEAD
 		BlockState:   stateService.Block,
 		StorageState: stateService.Storage,
 		NetworkState: stateService.Network,
@@ -250,6 +255,15 @@ func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData, stateServic
 		ProtocolID:   protocolID,
 		NoBootstrap:  fig.P2p.NoBootstrap,
 		NoMdns:       fig.P2p.NoMdns,
+=======
+		Bootnodes:   bootnodes,
+		ProtocolID:  protocolID,
+		Port:        fig.Network.Port,
+		RandSeed:    0,
+		NoBootstrap: fig.Network.NoBootstrap,
+		NoMdns:      fig.Network.NoMdns,
+		DataDir:     fig.Global.DataDir,
+>>>>>>> p2p: update p2p to network part 3
 	}
 
 	networkMsgRec := make(chan network.Message)

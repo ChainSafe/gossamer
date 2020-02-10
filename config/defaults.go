@@ -55,7 +55,7 @@ var (
 	}
 
 	// DefaultP2PConfig P2P
-	DefaultP2PConfig = P2pCfg{
+	DefaultP2PConfig = NetworkCfg{
 		Bootnodes:   DefaultP2PBootnodes,
 		ProtocolID:  DefaultP2PProtocolID,
 		Port:        DefaultP2PPort,
@@ -74,9 +74,9 @@ var (
 // DefaultConfig is the default settings used when a config.toml file is not passed in during instantiation
 func DefaultConfig() *Config {
 	return &Config{
-		Global: DefaultGlobalConfig,
-		P2p:    DefaultP2PConfig,
-		RPC:    DefaultRPCConfig,
+		Global:  DefaultGlobalConfig,
+		Network: DefaultP2PConfig,
+		RPC:     DefaultRPCConfig,
 	}
 }
 
