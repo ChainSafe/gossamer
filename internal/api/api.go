@@ -38,11 +38,11 @@ type API struct {
 type Module string
 
 // NewAPIService creates a new API instance.
-func NewAPIService(p2pAPI apiModule.P2pAPI, runtimeAPI apiModule.RuntimeAPI) *Service {
+func NewAPIService(networkAPI apiModule.P2pAPI, runtimeAPI apiModule.RuntimeAPI) *Service {
 	return &Service{
 		&API{
 			P2pModule: &apiModule.P2pModule{
-				P2pAPI: p2pAPI,
+				P2pAPI: networkAPI,
 			},
 			RuntimeModule: &apiModule.RuntimeModule{
 				RuntimeAPI: runtimeAPI,

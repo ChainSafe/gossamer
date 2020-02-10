@@ -73,11 +73,11 @@ func (n *MockP2pAPI) Peers() []common.PeerInfo {
 }
 
 func newMockAPI() *api.API {
-	p2pAPI := &MockP2pAPI{}
+	networkAPI := &MockP2pAPI{}
 	runtimeAPI := &MockRuntimeAPI{}
 
 	return &api.API{
-		P2pModule:     module.NewP2pModule(p2pAPI),
+		P2pModule:     module.NewP2pModule(networkAPI),
 		RuntimeModule: module.NewRuntimeModule(runtimeAPI),
 	}
 }

@@ -28,7 +28,7 @@ import (
 // Config is a collection of configurations throughout the system
 type Config struct {
 	Global GlobalConfig `toml:"global"`
-	P2p    P2pCfg       `toml:"p2p"`
+	P2p    P2pCfg       `toml:"network"`
 	RPC    RPCCfg       `toml:"rpc"`
 }
 

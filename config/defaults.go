@@ -31,7 +31,7 @@ const (
 	// DefaultRPCHTTPPort http port
 	DefaultRPCHTTPPort = 8545
 
-	// DefaultP2PPort p2p port
+	// DefaultP2PPort network port
 	DefaultP2PPort = 7001
 	// DefaultP2PProtocolID ID
 	DefaultP2PProtocolID = "/gossamer/dot/0"

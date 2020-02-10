@@ -26,7 +26,7 @@ type P2pModule struct {
 	P2pAPI P2pAPI
 }
 
-// P2pAPI is the interface for the p2p package
+// P2pAPI is the interface for the network package
 type P2pAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
@@ -34,23 +34,23 @@ type P2pAPI interface {
 }
 
 // NewP2pModule implements P2pAPI
-func NewP2pModule(p2pAPI P2pAPI) *P2pModule {
-	return &P2pModule{p2pAPI}
+func NewP2pModule(networkAPI P2pAPI) *P2pModule {
+	return &P2pModule{networkAPI}
 }
 
-// Health returns p2p service Health()
+// Health returns network service Health()
 func (m *P2pModule) Health() common.Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
 	return m.P2pAPI.Health()
 }
 
-// NetworkState returns p2p service NetworkState()
+// NetworkState returns network service NetworkState()
 func (m *P2pModule) NetworkState() common.NetworkState {
 	log.Debug("[rpc] Executing System.NetworkState", "params", nil)
 	return m.P2pAPI.NetworkState()
 }
 
-// Peers returns p2p service Peers()
+// Peers returns network service Peers()
 func (m *P2pModule) Peers() []common.PeerInfo {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return m.P2pAPI.Peers()

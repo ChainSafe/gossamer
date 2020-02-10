@@ -72,15 +72,15 @@ var (
 		Name:  "protocol",
 		Usage: "Set protocol id",
 	}
-	// NoBootstrapFlag Disables p2p bootstrapping
+	// NoBootstrapFlag Disables network bootstrapping
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
-		Usage: "Disables p2p bootstrapping (mdns still enabled)",
+		Usage: "Disables network bootstrapping (mdns still enabled)",
 	}
-	// NoMdnsFlag Disables p2p mdns
+	// NoMdnsFlag Disables network mdns
 	NoMdnsFlag = cli.BoolFlag{
 		Name:  "nomdns",
-		Usage: "Disables p2p mdns discovery",
+		Usage: "Disables network mdns discovery",
 	}
 )
 

@@ -204,7 +204,7 @@ func TestSetGlobalConfig(t *testing.T) {
 func TestCreateP2PService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
 	srv, _, _ := createP2PService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
-	require.NotNil(t, srv, "failed to create p2p service")
+	require.NotNil(t, srv, "failed to create network service")
 }
 
 func TestSetP2pConfig(t *testing.T) {
