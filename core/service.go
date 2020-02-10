@@ -18,8 +18,12 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"golang.org/x/exp/rand"
 	"math/big"
+	mrand "math/rand"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -41,16 +45,17 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blockState   BlockState
-	storageState StorageState
-	rt           *runtime.Runtime
-	bs           *babe.Session
-	keys         []crypto.Keypair
-	blkRec       <-chan types.Block // receive blocks from BABE session
-	msgRec       <-chan p2p.Message // receive messages from p2p service
-	epochDone    <-chan struct{}    // receive from this channel when BABE epoch changes
-	msgSend      chan<- p2p.Message // send messages to p2p service
-	// track requested block id messages
+	blockState        BlockState
+	storageState      StorageState
+	rt                *runtime.Runtime
+	bs                *babe.Session
+	keys              []crypto.Keypair
+	blkRec            <-chan types.Block // receive blocks from BABE session
+	msgRec            <-chan p2p.Message // receive messages from p2p service
+	epochDone         <-chan struct{}    // receive from this channel when BABE epoch changes
+	msgSend           chan<- p2p.Message // send messages to p2p service
+	requestedBlockIDs []string           // track requested block id messages
+
 }
 
 // Config holds the config obj
@@ -282,25 +287,52 @@ func (s *Service) handleReceivedMessage(msg p2p.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
-
-	// TODO: check if we should send block request message
-
-	// TODO: update message properties and use generated id
-	// BlockAnnounceMessage
-
-	blockRequest := &p2p.BlockRequestMessage{
-		ID:            1, // random
-		RequestedData: 2,
-		StartingBlock: []byte{},
-		EndBlockHash:  optional.NewHash(true, common.Hash{}),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+	blockAnnounceMessage, ok := msg.(*p2p.BlockAnnounceMessage)
+	if !ok {
+		return errors.New("could not cast p2p.Message to BlockAnnounceMessage")
 	}
 
-	// send block request message to p2p service
-	s.msgSend <- blockRequest
+	if s.blockState == nil {
+		return errors.New("ProcessBlockAnnounceMessage error: blockState is nil")
+	}
 
-	//
+	latestBlockNum := s.blockState.LatestHeader().Number
+	messageBlockNum := blockAnnounceMessage.Number
+
+	// check if we should send block request message
+	if latestBlockNum.Cmp(messageBlockNum) == 1 {
+		// BlockAnnounceMessage
+		blockAnnounce := &p2p.BlockAnnounceMessage{
+			ParentHash:     blockAnnounceMessage.ParentHash,
+			Number:         messageBlockNum,
+			StateRoot:      blockAnnounceMessage.StateRoot,
+			ExtrinsicsRoot: blockAnnounceMessage.ExtrinsicsRoot,
+			Digest:         blockAnnounceMessage.Digest,
+		}
+
+		// send block request message to p2p service
+		s.msgSend <- blockAnnounce
+
+	} else {
+
+		//generate random ID
+		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
+		seed := rand.New(s1).Uint64()
+		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+
+		blockRequest := &p2p.BlockRequestMessage{
+			ID:            randomID, // random
+			RequestedData: 2,
+			StartingBlock: []byte{},
+			EndBlockHash:  optional.NewHash(true, common.Hash{}),
+			Direction:     1,
+			Max:           optional.NewUint32(false, 0),
+		}
+
+		// send block request message to p2p service
+		s.msgSend <- blockRequest
+
+	}
 
 	return nil
 }

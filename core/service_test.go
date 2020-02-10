@@ -17,10 +17,15 @@
 package core
 
 import (
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/trie"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -167,48 +172,103 @@ func TestAnnounceBlock(t *testing.T) {
 }
 
 func TestProcessBlockAnnounceMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
-	msgRec := make(chan p2p.Message)
-	msgSend := make(chan p2p.Message)
-
-	cfg := &Config{
-		Runtime:  rt,
-		MsgRec:   msgRec,
-		MsgSend:  msgSend,
-		Keystore: keystore.NewKeystore(),
+	testCases := []struct {
+		name          string
+		blockAnnounce *p2p.BlockAnnounceMessage
+		msgType       int
+		msgTypeString string
+	}{
+		{
+			name: "should respond with a BlockRequestMsgType for block 1 BlockAnnounceMessage",
+			blockAnnounce: &p2p.BlockAnnounceMessage{
+				Number:         big.NewInt(1),
+				ParentHash:     common.Hash{},
+				StateRoot:      common.Hash{},
+				ExtrinsicsRoot: common.Hash{},
+				Digest:         [][]byte{},
+			},
+			msgType:       p2p.BlockRequestMsgType, //1
+			msgTypeString: "BlockRequestMsgType",
+		},
+		{
+			name: "should respond with a BlockAnnounceMessage for block 2 BlockAnnounceMessage",
+			blockAnnounce: &p2p.BlockAnnounceMessage{
+				Number:         big.NewInt(2),
+				ParentHash:     common.Hash{},
+				StateRoot:      common.Hash{},
+				ExtrinsicsRoot: common.Hash{},
+				Digest:         [][]byte{},
+			},
+			msgType:       p2p.BlockAnnounceMsgType, //3
+			msgTypeString: "BlockAnnounceMsgType",
+		},
 	}
 
-	s, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, test := range testCases {
 
-	err = s.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer s.Stop()
+		t.Run(test.name, func(t *testing.T) {
 
-	blockAnnounce := &p2p.BlockAnnounceMessage{
-		Number: big.NewInt(1),
-	}
+			rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
-	// simulate mssage sent from p2p service
-	msgRec <- blockAnnounce
+			msgRec := make(chan p2p.Message)
+			msgSend := make(chan p2p.Message)
 
-	select {
-	case msg := <-msgSend:
-		msgType := msg.GetType()
-		if msgType != p2p.BlockRequestMsgType {
-			t.Error(
-				"received unexpected message type",
-				"\nexpected:", p2p.BlockRequestMsgType,
-				"\nreceived:", msgType,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("timeout waiting for message")
+			dataDir, err := ioutil.TempDir("", "./test_data")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			dbSrv := state.NewService(dataDir)
+			err = dbSrv.Initialize(&types.Header{
+				Number:    big.NewInt(0),
+				StateRoot: trie.EmptyHash,
+			}, trie.NewEmptyTrie(nil))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = dbSrv.Start()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			defer func() {
+				err = dbSrv.Stop()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}()
+
+			cfg := &Config{
+				Runtime:    rt,
+				MsgRec:     msgRec,
+				MsgSend:    msgSend,
+				Keystore:   keystore.NewKeystore(),
+				BlockState: dbSrv.Block,
+			}
+
+			s, err := NewService(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = s.Start()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Stop()
+
+			// simulate mssage sent from p2p service
+			msgRec <- test.blockAnnounce
+
+			select {
+			case msg := <-msgSend:
+				msgType := msg.GetType()
+				require.Equal(t, test.msgType, msgType)
+			case <-time.After(TestMessageTimeout):
+				t.Error("timeout waiting for message")
+			}
+		})
 	}
 }
 
