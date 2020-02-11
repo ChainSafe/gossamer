@@ -353,10 +353,10 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 			// SetBlockHeader
 		}
 
-		// err := s.compareAndSetBlockData(bd)
-		// if err != nil {
-		// 	return err
-		// }
+		err := s.compareAndSetBlockData(bd)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -375,12 +375,6 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 	}
 
 	if existingData == nil {
-		fmt.Println("noot????")
-	}
-
-	fmt.Println(existingData)
-
-	if existingData == nil {
 		return s.blockState.SetBlockData(bd)
 	}
 
@@ -392,7 +386,6 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 		existingData.Header = bd.Header
 	}
 
-	//return nil
 	if existingData.Body == nil {
 		existingData.Body = bd.Body
 	}
@@ -400,8 +393,6 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 	if !existingData.Body.Exists && bd.Body.Exists {
 		existingData.Body = bd.Body
 	}
-
-	return nil
 
 	if !existingData.Receipt.Exists() && bd.Receipt.Exists() {
 		existingData.Receipt = bd.Receipt

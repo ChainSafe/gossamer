@@ -133,6 +133,8 @@ func (bs *blockState) GetHeader(hash common.Hash) (*types.Header, error) {
 func (bs *blockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
 	result := new(types.BlockData)
 
+	fmt.Println("GetBlockData")
+
 	data, err := bs.db.Db.Get(blockDataKey(hash))
 	if err != nil {
 		return nil, err
