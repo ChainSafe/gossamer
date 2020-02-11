@@ -73,8 +73,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 	keys := cfg.Keystore.Sr25519Keypairs()
 
-	log.Debug("core", "keys", keys)
-
 	// no validator keypair found, generate a new one
 	if len(keys) == 0 {
 		kp, err := sr25519.GenerateKeypair()
@@ -212,7 +210,7 @@ func (s *Service) handleBabeSession() {
 			Runtime:    s.rt,
 			NewBlocks:  newBlocks, // becomes block send channel in BABE session
 			BlockState: s.blockState,
-			AuthData:   []*babe.AuthorityData{}, // AuthoirtyData will be set when the NextEpochDescriptor arrives.
+			AuthData:   s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:       epochDone,
 		}
 

@@ -94,7 +94,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
-	log.Debug("BABE session", "authority index", babeSession.authorityIndex)
+	log.Trace("BABE session", "authority index", babeSession.authorityIndex)
 
 	return babeSession, nil
 }
@@ -108,7 +108,7 @@ func (b *Session) Start() error {
 		}
 	}
 
-	log.Debug("BABE", "epochThreshold", b.epochThreshold)
+	log.Trace("BABE", "epochThreshold", b.epochThreshold)
 
 	var i uint64 = 0
 	var err error
@@ -132,6 +132,10 @@ func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
 // PeekFromTxQueue returns ValidTransaction
 func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 	return b.txQueue.Peek()
+}
+
+func (b *Session) AuthorityData() []*AuthorityData {
+	return b.authorityData
 }
 
 func (b *Session) SetEpochData(data *NextEpochDescriptor) error {
@@ -233,7 +237,7 @@ func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 		copy(outbytes[:], output)
 		proofbytes := [sr25519.VrfProofLength]byte{}
 		copy(proofbytes[:], proof)
-		log.Debug("BABE lottery", "won slot", slot)
+		log.Trace("BABE lottery", "won slot", slot)
 		return &VrfOutputAndProof{
 			output: outbytes,
 			proof:  proofbytes,
