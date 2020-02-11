@@ -353,10 +353,10 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 			// SetBlockHeader
 		}
 
-		err := s.compareAndSetBlockData(bd)
-		if err != nil {
-			return err
-		}
+		// err := s.compareAndSetBlockData(bd)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil

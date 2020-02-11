@@ -234,12 +234,11 @@ func (bs *blockState) SetBlock(block *types.Block) error {
 		Header: block.Header.AsOptional(),
 		Body:   block.Body.AsOptional(),
 	}
-	return bs.SetBlockData(block.Header.Hash(), blockData)
+	return bs.SetBlockData(blockData)
 }
 
 // SetBlockData will set the block data using given hash and blockData into DB
 func (bs *blockState) SetBlockData(blockData *types.BlockData) error {
-	return nil
 	// Write the encoded header
 	bh, err := json.Marshal(blockData)
 	if err != nil {
@@ -271,7 +270,7 @@ func (bs *blockState) AddBlock(newBlock *types.Block) error {
 		Header: newBlock.Header.AsOptional(),
 		Body:   newBlock.Body.AsOptional(),
 	}
-	err = bs.SetBlockData(hash, bd)
+	err = bs.SetBlockData(bd)
 	return err
 }
 
