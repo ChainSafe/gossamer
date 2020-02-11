@@ -32,4 +32,7 @@ type BlockState interface {
 type StorageState interface {
 	StorageRoot() (common.Hash, error)
 	SetStorage([]byte, []byte) error
+	GetStorage([]byte) ([]byte, error)
+	StoreInDB() error
+	SetLatestHeaderHash(hash []byte) error
 }

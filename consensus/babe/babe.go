@@ -178,10 +178,11 @@ func (b *Session) invokeBlockAuthoring() {
 					log.Error("BABE block authoring", "error", err)
 				}
 
-				err = b.storageState.SetStorage(common.LatestHeaderHashKey, hash[:])
+				err = b.storageState.SetLatestHeaderHash(hash[:])
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
 				}
+
 			}
 		}
 

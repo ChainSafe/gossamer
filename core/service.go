@@ -184,6 +184,12 @@ func (s *Service) handleBabeSession() {
 		<-s.epochDone
 		log.Trace("core: BABE epoch complete, initializing new session")
 
+		// commit the storage trie to the DB
+		err := s.storageState.StoreInDB()
+		if err != nil {
+			log.Error("core", "error", err)
+		}
+
 		newBlocks := make(chan types.Block)
 		s.blkRec = newBlocks
 
