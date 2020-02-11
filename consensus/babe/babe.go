@@ -38,6 +38,7 @@ import (
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
 	blockState     BlockState
+	storageState   StorageState
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *BabeConfiguration
@@ -54,6 +55,7 @@ type Session struct {
 // SessionConfig struct
 type SessionConfig struct {
 	BlockState     BlockState
+	StorageState   StorageState
 	Keypair        *sr25519.Keypair
 	Runtime        *runtime.Runtime
 	NewBlocks      chan<- types.Block
@@ -71,6 +73,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	babeSession := &Session{
 		blockState:     cfg.BlockState,
+		storageState:   cfg.StorageState,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
 		txQueue:        new(tx.PriorityQueue),
@@ -146,6 +149,11 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
+	if b.storageState == nil {
+		log.Error("BABE block authoring", "error", "storageState is nil")
+		return
+	}
+
 	for ; slotNum < b.config.EpochLength; slotNum++ {
 		parentHeader := b.blockState.LatestHeader()
 		if parentHeader == nil {
@@ -166,6 +174,11 @@ func (b *Session) invokeBlockAuthoring() {
 				log.Debug("BABE built block", "header", block.Header, "body", block.Body)
 				b.newBlocks <- *block
 				err = b.blockState.AddBlock(block)
+				if err != nil {
+					log.Error("BABE block authoring", "error", err)
+				}
+
+				err = b.storageState.SetStorage(common.LatestHeaderHashKey, hash[:])
 				if err != nil {
 					log.Error("BABE block authoring", "error", err)
 				}
