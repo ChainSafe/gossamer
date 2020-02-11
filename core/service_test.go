@@ -25,13 +25,13 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
-	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/tests"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
 var TestMessageTimeout = 2 * time.Second
@@ -40,10 +40,11 @@ func TestStartService(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
-		MsgRec:   make(chan p2p.Message),
-		MsgSend:  make(chan p2p.Message),
+		Runtime:       rt,
+		Keystore:      keystore.NewKeystore(),
+		MsgRec:        make(chan p2p.Message),
+		MsgSend:       make(chan p2p.Message),
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -63,8 +64,9 @@ func TestValidateBlock(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      keystore.NewKeystore(),
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -86,8 +88,9 @@ func TestValidateTransaction(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      keystore.NewKeystore(),
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -129,10 +132,11 @@ func TestAnnounceBlock(t *testing.T) {
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		Runtime:   rt,
-		MsgSend:   msgSend, // message channel from core service to p2p service
-		Keystore:  keystore.NewKeystore(),
-		NewBlocks: newBlocks,
+		Runtime:       rt,
+		MsgSend:       msgSend, // message channel from core service to p2p service
+		Keystore:      keystore.NewKeystore(),
+		NewBlocks:     newBlocks,
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -175,10 +179,11 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 	msgSend := make(chan p2p.Message)
 
 	cfg := &Config{
-		Runtime:  rt,
-		MsgRec:   msgRec,
-		MsgSend:  msgSend,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		MsgRec:        msgRec,
+		MsgSend:       msgSend,
+		Keystore:      keystore.NewKeystore(),
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -215,11 +220,27 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestProcessBlockResponseMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      ks,
+		BabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -289,11 +310,27 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 }
 
 func TestProcessTransactionMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      ks,
+		BabeAuthority: true,
 	}
 
 	s, err := NewService(cfg)
@@ -322,36 +359,4 @@ func TestProcessTransactionMessage(t *testing.T) {
 			"\nreceived:", bsTxExt,
 		)
 	}
-}
-
-func TestDetermineAuthorityIndex(t *testing.T) {
-	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
-	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
-
-	authA, _ := sr25519.NewPublicKey(authABytes)
-	authB, _ := sr25519.NewPublicKey(authBBytes)
-
-	authData := []*babe.AuthorityData{
-		{ID: authA, Weight: 1},
-		{ID: authB, Weight: 1},
-	}
-
-	index, err := determineAuthorityIndex(authA, authData)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if index != 0 {
-		t.Fatalf("Fail: got %d expected %d", index, 0)
-	}
-
-	index, err = determineAuthorityIndex(authB, authData)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if index != 1 {
-		t.Fatalf("Fail: got %d expected %d", index, 1)
-	}
-
 }

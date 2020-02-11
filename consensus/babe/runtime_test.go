@@ -12,23 +12,8 @@ import (
 )
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = babesession.configurationFromRuntime()
+	babesession := createTestSession(t, nil)
+	err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,11 +64,7 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 		Keypair: kp,
 	}
 
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)

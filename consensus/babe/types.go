@@ -131,25 +131,6 @@ func (a *AuthorityData) Decode(r io.Reader) error {
 	return a.FromRaw(raw)
 }
 
-// // Decode sets the AuthorityData to the SCALE decoded input.
-// func (a *AuthorityData) Decode(in []byte) error {
-// 	if len(in) < 40 {
-// 		return errors.New("length of input <40 bytes")
-// 	}
-
-// 	weight := binary.LittleEndian.Uint64(in[32:40])
-
-// 	id := [32]byte{}
-// 	copy(id[:], in[:32])
-
-// 	raw := &AuthorityDataRaw{
-// 		ID:     id,
-// 		Weight: weight,
-// 	}
-
-// 	return a.FromRaw(raw)
-// }
-
 // VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
 	output [sr25519.VrfOutputLength]byte

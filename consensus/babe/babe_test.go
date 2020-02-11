@@ -37,6 +37,43 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
+func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
+	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+
+	if cfg == nil {
+		cfg = &SessionConfig{
+			Runtime: rt,
+		}
+	}
+
+	if cfg.Runtime == nil {
+		cfg.Runtime = rt
+	}
+
+	var err error
+	if cfg.Keypair == nil {
+		cfg.Keypair, err = sr25519.GenerateKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if cfg.AuthData == nil {
+		auth := &AuthorityData{
+			ID:     cfg.Keypair.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		}
+		cfg.AuthData = []*AuthorityData{auth}
+	}
+
+	babesession, err := NewSession(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return babesession
+}
+
 func TestCalculateThreshold(t *testing.T) {
 	// C = 1
 	var C1 uint64 = 1
@@ -103,23 +140,7 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 }
 
 func TestRunLottery(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	babesession := createTestSession(t, nil)
 	babesession.epochThreshold = big.NewInt(0)
 
 	outAndProof, err := babesession.runLottery(0)
@@ -133,23 +154,7 @@ func TestRunLottery(t *testing.T) {
 }
 
 func TestRunLottery_False(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	babesession := createTestSession(t, nil)
 	babesession.epochThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 
 	outAndProof, err := babesession.runLottery(0)
@@ -275,27 +280,8 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 }
 
 func TestSlotTime(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	bt := createFlatBlockTree(t, 100)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	babesession := createTestSession(t, nil)
 
 	res, err := babesession.slotTime(103, bt, 20)
 	if err != nil {
@@ -310,12 +296,6 @@ func TestSlotTime(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
 	newBlocks := make(chan types.Block)
 
 	dataDir, err := ioutil.TempDir("", "./test_data")
@@ -345,13 +325,12 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}()
 
 	cfg := &SessionConfig{
-		Runtime:    rt,
-		Keypair:    kp,
 		NewBlocks:  newBlocks,
 		BlockState: dbSrv.Block,
 	}
 
-	babesession, err := NewSession(cfg)
+	babesession := createTestSession(t, cfg)
+	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,27 +363,20 @@ func TestBabeAnnounceMessage(t *testing.T) {
 }
 
 func TestSeal(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cfg := &SessionConfig{
-		Runtime: rt,
 		Keypair: kp,
 	}
 
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	babesession.authorityData = []*AuthorityData{{nil, 1}}
 
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
@@ -483,22 +455,8 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 	return block, slot
 }
 func TestBuildBlock_ok(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = babesession.configurationFromRuntime()
+	babesession := createTestSession(t, nil)
+	err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -559,22 +517,8 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestBuildBlock_failing(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-	}
-
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = babesession.configurationFromRuntime()
+	babesession := createTestSession(t, nil)
+	err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -632,5 +576,53 @@ func TestBuildBlock_failing(t *testing.T) {
 	txc := babesession.txQueue.Peek()
 	if !bytes.Equal(*txc.Extrinsic, txa) {
 		t.Fatal("did not readd valid transaction to queue")
+	}
+}
+
+func TestDetermineAuthorityIndex(t *testing.T) {
+	kpA, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kpB, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubA := kpA.Public().(*sr25519.PublicKey)
+	pubB := kpB.Public().(*sr25519.PublicKey)
+
+	authData := []*AuthorityData{
+		{ID: pubA, Weight: 1},
+		{ID: pubB, Weight: 1},
+	}
+
+	bs := &Session{
+		authorityData: authData,
+		keypair:       kpA,
+	}
+
+	err = bs.setAuthorityIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bs.authorityIndex != 0 {
+		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 0)
+	}
+
+	bs = &Session{
+		authorityData: authData,
+		keypair:       kpB,
+	}
+
+	err = bs.setAuthorityIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if bs.authorityIndex != 1 {
+		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 1)
 	}
 }

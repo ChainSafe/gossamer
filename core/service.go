@@ -19,7 +19,6 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -41,15 +40,16 @@ var _ services.Service = &Service{}
 // BABE session, and p2p service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blockState   BlockState
-	storageState StorageState
-	rt           *runtime.Runtime
-	bs           *babe.Session
-	keys         []crypto.Keypair
-	blkRec       <-chan types.Block // receive blocks from BABE session
-	msgRec       <-chan p2p.Message // receive messages from p2p service
-	epochDone    <-chan struct{}    // receive from this channel when BABE epoch changes
-	msgSend      chan<- p2p.Message // send messages to p2p service
+	blockState    BlockState
+	storageState  StorageState
+	rt            *runtime.Runtime
+	bs            *babe.Session
+	keys          []crypto.Keypair
+	blkRec        <-chan types.Block // receive blocks from BABE session
+	msgRec        <-chan p2p.Message // receive messages from p2p service
+	epochDone     <-chan struct{}    // receive from this channel when BABE epoch changes
+	msgSend       chan<- p2p.Message // send messages to p2p service
+	babeAuthority bool
 }
 
 // Config holds the config obj
@@ -63,8 +63,6 @@ type Config struct {
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeAuthority bool
 }
-
-var testEpochThreshold = big.NewInt(0).SetBytes([]byte{0xf, 0xf, 0xf, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 
 // NewService returns a new core service that connects the runtime, BABE
 // session, and p2p service.
@@ -91,65 +89,60 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	epochDone := make(chan struct{})
+	var srv = &Service{}
 
-	srv := &Service{
-		rt:           cfg.Runtime,
-		keys:         keys,
-		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:       cfg.MsgRec,
-		msgSend:      cfg.MsgSend,
-		blockState:   cfg.BlockState,
-		storageState: cfg.StorageState,
-		epochDone:    epochDone,
-	}
+	if cfg.BabeAuthority {
+		epochDone := make(chan struct{})
 
-	authData, err := srv.retrieveAuthorityData()
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve authority data: %s", err)
-	}
+		srv = &Service{
+			rt:            cfg.Runtime,
+			keys:          keys,
+			blkRec:        cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:        cfg.MsgRec,
+			msgSend:       cfg.MsgSend,
+			blockState:    cfg.BlockState,
+			storageState:  cfg.StorageState,
+			epochDone:     epochDone,
+			babeAuthority: true,
+		}
 
-	log.Trace("core", "authData", authData)
+		authData, err := srv.retrieveAuthorityData()
+		if err != nil {
+			return nil, fmt.Errorf("could not retrieve authority data: %s", err)
+		}
 
-	index, err := determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey), authData)
-	if err != nil {
-		log.Error("core", "error", err)
-	}
+		// BABE session configuration
+		bsConfig := &babe.SessionConfig{
+			Keypair:    keys[0].(*sr25519.Keypair),
+			Runtime:    cfg.Runtime,
+			NewBlocks:  cfg.NewBlocks, // becomes block send channel in BABE session
+			BlockState: cfg.BlockState,
+			AuthData:   authData,
+			Done:       epochDone,
+		}
 
-	log.Trace("core", "babe key", keys[0].Public().Hex(), "index", index)
+		// create a new BABE session
+		bs, err := babe.NewSession(bsConfig)
+		if err != nil {
+			return nil, fmt.Errorf("could not start babe session: %s", err)
+		}
 
-	// BABE session configuration
-	bsConfig := &babe.SessionConfig{
-		Keypair:        keys[0].(*sr25519.Keypair),
-		Runtime:        cfg.Runtime,
-		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
-		BlockState:     cfg.BlockState,
-		AuthorityIndex: index,
-		AuthData:       authData,
-		EpochThreshold: testEpochThreshold,
-		Done:           epochDone,
-	}
-
-	// create a new BABE session
-	bs, err := babe.NewSession(bsConfig)
-	if err != nil {
-		return nil, fmt.Errorf("could not start babe session: %s", err)
-	}
-
-	srv.bs = bs
-
-	// core service
-	return srv, nil
-}
-
-func determineAuthorityIndex(pub *sr25519.PublicKey, authData []*babe.AuthorityData) (uint64, error) {
-	for i, auth := range authData {
-		if bytes.Equal(pub.Encode(), auth.ID.Encode()) {
-			return uint64(i), nil
+		srv.bs = bs
+	} else {
+		srv = &Service{
+			rt:            cfg.Runtime,
+			keys:          keys,
+			blkRec:        cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:        cfg.MsgRec,
+			msgSend:       cfg.MsgSend,
+			blockState:    cfg.BlockState,
+			storageState:  cfg.StorageState,
+			babeAuthority: false,
 		}
 	}
 
-	return 1 << 63, fmt.Errorf("key not in BABE authority data")
+	// core service
+	return srv, nil
 }
 
 // Start starts the core service
@@ -161,15 +154,19 @@ func (s *Service) Start() error {
 	// start receiving messages from p2p service
 	go s.receiveMessages()
 
-	// monitor babe session for epoch changes
-	go s.handleBabeSession()
+	if s.babeAuthority {
+		// monitor babe session for epoch changes
+		go s.handleBabeSession()
 
-	err := s.bs.Start()
-	if err != nil {
-		log.Error("core could not start BABE", "error", err)
+		err := s.bs.Start()
+		if err != nil {
+			log.Error("core could not start BABE", "error", err)
+		}
+
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // Stop stops the core service
@@ -211,14 +208,12 @@ func (s *Service) handleBabeSession() {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:        s.keys[0].(*sr25519.Keypair),
-			Runtime:        s.rt,
-			NewBlocks:      newBlocks, // becomes block send channel in BABE session
-			BlockState:     s.blockState,
-			AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
-			AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(s.keys[0].Public().(*sr25519.PublicKey), 1)},
-			EpochThreshold: testEpochThreshold,
-			Done:           epochDone,
+			Keypair:    s.keys[0].(*sr25519.Keypair),
+			Runtime:    s.rt,
+			NewBlocks:  newBlocks, // becomes block send channel in BABE session
+			BlockState: s.blockState,
+			AuthData:   []*babe.AuthorityData{}, // AuthoirtyData will be set when the NextEpochDescriptor arrives.
+			Done:       epochDone,
 		}
 
 		// create a new BABE session
