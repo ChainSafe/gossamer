@@ -127,6 +127,7 @@ func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
 	return b.txQueue.Peek()
 }
 
+// SetEpochData will set the authorityData and randomness
 func (b *Session) SetEpochData(data *NextEpochDescriptor) {
 	b.authorityData = data.Authorities
 	b.randomness = data.Randomness

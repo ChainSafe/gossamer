@@ -25,16 +25,21 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
-// KeyFile key
+// DefaultKeyFile KeyFile key
 const DefaultKeyFile = "node.key"
-// DefaultDataDir
+
+// DefaultDataDir for the gossamer database and related blockchain files
 const DefaultDataDir = "~/.gossamer"
-// DefaultPort
+
+// DefaultPort is the default por const
 const DefaultPort = uint32(7000)
+
 // DefaultRandSeed is a random key
 const DefaultRandSeed = int64(0)
+
 // DefaultProtocolID ID
 const DefaultProtocolID = "/gossamer/dot/0"
+
 // DefaultRoles full node
 const DefaultRoles = byte(1)
 
