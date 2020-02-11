@@ -35,6 +35,7 @@ type Config struct {
 // GlobalConfig is to marshal/unmarshal toml global config vars
 type GlobalConfig struct {
 	DataDir string `toml:"data-dir"`
+	Roles   byte   `toml:"roles"`
 }
 
 // P2pCfg is to marshal/unmarshal toml p2p vars

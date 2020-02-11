@@ -1,34 +1,107 @@
 package state
 
-import "github.com/ChainSafe/gossamer/p2p"
+import (
+	"encoding/json"
 
-// NetworkState is a wrapper for the the network state
+	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/db"
+)
+
+var healthKey = []byte("health")
+var networkStateKey = []byte("networkstate")
+var peersKey = []byte("peers")
+
+// NetworkDB stores network information in an underlying database
+type NetworkDB struct {
+	Db db.Database
+}
+
+// NetworkState defines fields for manipulating the state of network
 type NetworkState struct {
-	p2p *p2p.Service
+	db *NetworkDB
 }
 
-// NewNetworkState will create a new instance of NetworkState
-func NewNetworkState() *NetworkState {
-	return &NetworkState{
-		// TODO: pass p2p service instance to network state
-		p2p: &p2p.Service{},
+// NewNetworkDB instantiates a badgerDB instance for storing relevant BlockData
+func NewNetworkDB(dataDir string) (*NetworkDB, error) {
+	db, err := db.NewBadgerDB(dataDir)
+	if err != nil {
+		return nil, err
 	}
+	return &NetworkDB{
+		db,
+	}, nil
 }
 
-// Health return Health() of p2p service
-func (ns *NetworkState) Health() p2p.Health {
-	// TODO: return Health() of p2p service
-	return p2p.Health{}
+// NewNetworkState creates NetworkState with a network database in DataDir
+func NewNetworkState(dataDir string) (*NetworkState, error) {
+	networkDb, err := NewNetworkDB(dataDir)
+	if err != nil {
+		return nil, err
+	}
+	return &NetworkState{
+		db: networkDb,
+	}, nil
 }
 
-// NetworkState return NetworkState() of p2p service
-func (ns *NetworkState) NetworkState() p2p.NetworkState {
-	// TODO: return NetworkState() of p2p service
-	return p2p.NetworkState{}
+// GetHealth retrieves network health from the database
+func (ns *NetworkState) GetHealth() (*common.Health, error) {
+	res := new(common.Health)
+	data, err := ns.db.Db.Get(healthKey)
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(data, res)
+	return res, err
 }
 
-// Peers return Peers() of p2p service
-func (ns *NetworkState) Peers() []p2p.PeerInfo {
-	// TODO: return Peers() of p2p service
-	return []p2p.PeerInfo{}
+// SetHealth sets network health in the database
+func (ns *NetworkState) SetHealth(health *common.Health) error {
+	enc, err := json.Marshal(health)
+	if err != nil {
+		return err
+	}
+	err = ns.db.Db.Put(healthKey, enc)
+	return err
+}
+
+// GetNetworkState retrieves network state from the database
+func (ns *NetworkState) GetNetworkState() (*common.NetworkState, error) {
+	res := new(common.NetworkState)
+	data, err := ns.db.Db.Get(networkStateKey)
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(data, res)
+	return res, err
+}
+
+// SetNetworkState sets network state in the database
+func (ns *NetworkState) SetNetworkState(networkState *common.NetworkState) error {
+	enc, err := json.Marshal(networkState)
+	if err != nil {
+		return err
+	}
+	err = ns.db.Db.Put(networkStateKey, enc)
+	return err
+}
+
+// GetPeers retrieves network state from the database
+func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
+	res := new([]common.PeerInfo)
+	data, err := ns.db.Db.Get(peersKey)
+	if err != nil {
+		return res, err
+	}
+	err = json.Unmarshal(data, res)
+	return res, err
+}
+
+// SetPeers sets network state in the database
+func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
+	enc, err := json.Marshal(peers)
+	if err != nil {
+		return err
+	}
+	err = ns.db.Db.Put(peersKey, enc)
+	return err
 }
