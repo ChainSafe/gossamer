@@ -109,14 +109,14 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, fmt.Errorf("could not retrieve authority data: %s", err)
 	}
 
-	log.Debug("core", "authData", authData)
+	log.Trace("core", "authData", authData)
 
 	index, err := determineAuthorityIndex(keys[0].Public().(*sr25519.PublicKey), authData)
 	if err != nil {
 		log.Error("core", "error", err)
 	}
 
-	log.Debug("core", "babe key", keys[0].Public().Hex(), "index", index)
+	log.Trace("core", "babe key", keys[0].Public().Hex(), "index", index)
 
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
@@ -154,9 +154,6 @@ func determineAuthorityIndex(pub *sr25519.PublicKey, authData []*babe.AuthorityD
 
 // Start starts the core service
 func (s *Service) Start() error {
-
-	// TODO: generate host status message and send to p2p service on startup
-	// msgSend <- hostMessage
 
 	// start receiving blocks from BABE session
 	go s.receiveBlocks()

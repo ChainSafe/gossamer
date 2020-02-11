@@ -50,6 +50,7 @@ func TestRetrieveAuthorityData(t *testing.T) {
 		{ID: authA, Weight: 1},
 		{ID: authB, Weight: 1},
 	}
+
 	if !reflect.DeepEqual(auths, expected) {
 		t.Fatalf("Fail: got %v expected %v", auths, expected)
 	}
