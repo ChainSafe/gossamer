@@ -20,7 +20,8 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/internal/api"
 )
 
 // NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
@@ -28,7 +29,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
-	api *api.API // TODO: migrate to network state
+	api *state.Service // TODO: migrate to network state
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -60,7 +61,7 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(api *api.API) *SystemModule {
+func NewSystemModule(api *state.Service) *SystemModule {
 	return &SystemModule{
 		api: api, // TODO: migrate to network state
 	}
@@ -74,7 +75,7 @@ func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringRes
 
 // Name returns the runtime name
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+	*res = "gossamer v0.0"
 	return nil
 }
 
@@ -92,21 +93,24 @@ func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringR
 
 // Health returns the information about the health of the network
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
-	// TODO: migrate from api to network state
-	res.Health = sm.api.P2pModule.Health()
-	return nil
+	// TODO: rename to not have `Get` to match API
+	health, err := sm.api.Network.GetHealth()
+	res.Health = *health
+	return err
 }
 
 // NetworkState returns the network state (basic information about the host)
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
-	// TODO: migrate from api to network state
-	res.NetworkState = sm.api.P2pModule.NetworkState()
-	return nil
+	// TODO: rename to not have `Get` to match API
+	networkState, err := sm.api.Network.GetNetworkState()
+	res.NetworkState = *networkState
+	return err
 }
 
 // Peers returns peer information for each connected and confirmed peer
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
-	// TODO: migrate from api to network state
-	res.Peers = sm.api.P2pModule.Peers()
-	return nil
+	// TODO: rename to not have `Get` to match API
+	peers, err := sm.api.Network.GetPeers()
+	res.Peers = *peers
+	return err
 }

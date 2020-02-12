@@ -22,10 +22,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/internal/api"
+	//"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/rpc/modules"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
+
+type Module string
 
 // Codec defines the interface for creating a CodecRequest.
 type Codec interface {
@@ -40,11 +43,18 @@ type CodecRequest interface {
 	WriteError(w http.ResponseWriter, status int, err error)
 }
 
+// ServerConfig ...
+type ServerConfig struct {
+	API     *state.Service
+	Modules []string
+}
+
 // Server is an RPC server.
 type Server struct {
 	codec    Codec       // Codec for requests/responses (default JSON)
 	services *serviceMap // Maps requests to actual procedure calls
-	api      *api.API    // API interface for system internals
+	//api      *api.API    // API interface for system internals
+	api *state.Service
 }
 
 // NewServer creates a new Server.
@@ -54,26 +64,42 @@ func NewServer() *Server {
 	}
 }
 
-// NewAPIServer creates a new Server.
-func NewAPIServer(mods []api.Module, api *api.API) *Server {
+// NewStateServer creates a new Server that interfaces with the state service.
+func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
 		services: new(serviceMap),
-		api:      api,
+		api:      cfg.API,
 	}
 
-	s.RegisterModules(mods)
+	s.RegisterModules(cfg.Modules)
 
 	return s
 }
 
+// // NewAPIServer creates a new Server.
+// func NewAPIServer(mods []api.Module, api *api.API) *Server {
+// 	s := &Server{
+// 		services: new(serviceMap),
+// 		api:      api,
+// 	}
+
+// 	s.RegisterModules(mods)
+
+// 	return s
+// }
+
 // RegisterModules registers the RPC services associated with the given API modules
-func (s *Server) RegisterModules(mods []api.Module) {
+func (s *Server) RegisterModules(mods []string) {
 	for _, mod := range mods {
 		log.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
+			// TODO: pass in state interface
 			srvc = modules.NewSystemModule(s.api)
+		case "author":
+			// TODO: pass in state interface
+			srvc = modules.NewAuthorModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
@@ -94,7 +120,7 @@ func (s *Server) RegisterCodec(codec Codec) {
 }
 
 // RegisterService adds a service to the servers service map.
-func (s *Server) RegisterService(receiver interface{}, name api.Module) error {
+func (s *Server) RegisterService(receiver interface{}, name string) error {
 	return s.services.register(receiver, string(name))
 }
 
