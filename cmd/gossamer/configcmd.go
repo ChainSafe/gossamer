@@ -94,7 +94,10 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(currentConfig, gendata, stateSrv)
 	srvcs = append(srvcs, p2pSrvc)
 
-	log.Debug("make node", "authority", currentConfig.Global.Authority)
+	// BABE authority configuration
+	currentConfig.Global.Authority = currentConfig.Global.Authority || ctx.GlobalBool(utils.AuthorityFlag.Name)
+	log.Info("node", "authority", currentConfig.Global.Authority || ctx.GlobalBool(utils.AuthorityFlag.Name))
+
 	// Core
 	coreConfig := &core.Config{
 		BlockState:    stateSrv.Block,

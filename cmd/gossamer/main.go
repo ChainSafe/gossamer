@@ -34,6 +34,7 @@ var (
 		utils.ConfigFileFlag,
 		utils.UnlockFlag,
 		utils.PasswordFlag,
+		utils.AuthorityFlag,
 	}
 	p2pFlags = []cli.Flag{
 		utils.BootnodesFlag,
