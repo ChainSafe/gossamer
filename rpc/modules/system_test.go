@@ -24,9 +24,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
-
-	// "github.com/ChainSafe/gossamer/internal/api"
-	// module "github.com/ChainSafe/gossamer/internal/api/modules"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -39,54 +36,6 @@ var (
 	}
 	testPeers = []common.PeerInfo{}
 )
-
-// // Mock runtime API
-// type MockRuntimeAPI struct{}
-
-// // Chain is a mock func that returns testRuntimeChain
-// func (r *MockRuntimeAPI) Chain() string {
-// 	return testRuntimeChain
-// }
-
-// // Name is a mock func that returns testRuntimeName
-// func (r *MockRuntimeAPI) Name() string {
-// 	return testRuntimeName
-// }
-
-// // Properties is a mock func that returns testRuntimeProperties
-// func (r *MockRuntimeAPI) Properties() string {
-// 	return testRuntimeProperties
-// }
-
-// // Version is a mock func that returns testRuntimeVersion
-// func (r *MockRuntimeAPI) Version() string {
-// 	return testRuntimeVersion
-// }
-
-// // Mock network API
-// type MockP2pAPI struct{}
-
-// func (n *MockP2pAPI) Health() common.Health {
-// 	return testHealth
-// }
-
-// func (n *MockP2pAPI) NetworkState() common.NetworkState {
-// 	return testNetworkState
-// }
-
-// func (n *MockP2pAPI) Peers() []common.PeerInfo {
-// 	return testPeers
-// }
-
-// func newMockAPI() *api.API {
-// 	p2pAPI := &MockP2pAPI{}
-// 	runtimeAPI := &MockRuntimeAPI{}
-
-// 	return &api.API{
-// 		P2pModule:     module.NewP2pModule(p2pAPI),
-// 		RuntimeModule: module.NewRuntimeModule(runtimeAPI),
-// 	}
-// }
 
 func newStateService(t *testing.T) *state.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
