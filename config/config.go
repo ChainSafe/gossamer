@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"os"
 
-	//"github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 )
