@@ -322,7 +322,7 @@ func TestSetRPCConfig(t *testing.T) {
 			cfg.RPCCfg{
 				Port:    cfg.DefaultRPCHTTPPort,
 				Host:    cfg.DefaultRPCHTTPHost,
-				Modules: []api.Module{"system", "state"},
+				Modules: []string{"system", "state"},
 			},
 		},
 	}

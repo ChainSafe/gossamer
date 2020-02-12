@@ -107,11 +107,12 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
-	apiSrvc := api.NewAPIService(p2pSrvc, nil)
-	srvcs = append(srvcs, apiSrvc)
+	// apiSrvc := api.NewAPIService(p2pSrvc, nil)
+	// srvcs = append(srvcs, apiSrvc)
 
 	// RPC
-	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
+	rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
+	srvcs = append(srvcs, rpcSrvr)
 
 	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
 }
@@ -277,7 +278,7 @@ func createCoreService(coreConfig *core.Config) *core.Service {
 func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 	// Modules
 	if mods := ctx.GlobalString(utils.RPCModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RPCModuleFlag.Name), ","))
+		fig.Modules = strings.Split(ctx.GlobalString(utils.RPCModuleFlag.Name), ",")
 	}
 
 	// Host
@@ -292,10 +293,19 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func startRPC(ctx *cli.Context, fig cfg.RPCCfg, apiSrvc *api.Service) *rpc.HTTPServer {
-	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
-		return rpc.NewHTTPServer(apiSrvc.API, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
+func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HTTPServer {
+	cfg := &rpc.HTTPServerConfig{
+		API:     stateSrv,
+		Codec:   &json2.Codec{},
+		Host:    fig.Host,
+		Port:    fig.Port,
+		Modules: fig.Modules,
 	}
+
+	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
+		return rpc.NewHTTPServer(cfg)
+	}
+
 	return nil
 }
 
