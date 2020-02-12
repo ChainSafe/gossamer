@@ -132,13 +132,13 @@ func TestEncodeAndDecodeFromDB(t *testing.T) {
 		}
 	}
 
-	enc, err := trie.Encode()
+	enc, err := trie.encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	testTrie := &Trie{}
-	err = testTrie.Decode(enc)
+	err = testTrie.decode(enc)
 	if err != nil {
 		testTrie.Print()
 		t.Fatal(err)
