@@ -97,9 +97,9 @@ func (s *Server) RegisterModules(mods []string) {
 		case "system":
 			// TODO: pass in state interface
 			srvc = modules.NewSystemModule(s.api)
-		case "author":
-			// TODO: pass in state interface
-			srvc = modules.NewAuthorModule(s.api)
+		// case "author":
+		// 	// TODO: pass in state interface
+		// 	srvc = modules.NewAuthorModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

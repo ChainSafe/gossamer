@@ -21,7 +21,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
-	//"github.com/ChainSafe/gossamer/internal/api"
 )
 
 const (

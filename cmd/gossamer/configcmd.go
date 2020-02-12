@@ -31,7 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/p2p"
@@ -106,15 +105,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
 
-	// API
-	// apiSrvc := api.NewAPIService(p2pSrvc, nil)
-	// srvcs = append(srvcs, apiSrvc)
-
 	// RPC
-	rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
-	srvcs = append(srvcs, rpcSrvr)
+	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
+		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
+		srvcs = append(srvcs, rpcSrvr)
+	}
 
-	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
+	return dot.NewDot(gendata.Name, srvcs), currentConfig, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -307,15 +304,6 @@ func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HT
 	}
 
 	return nil
-}
-
-// strToMods casts a []strings to []api.Module
-func strToMods(strs []string) []api.Module {
-	var res []api.Module
-	for _, str := range strs {
-		res = append(res, api.Module(str))
-	}
-	return res
 }
 
 // dumpConfig is the dumpconfig command.
