@@ -20,6 +20,8 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/internal/api"
 )
 
 // NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
@@ -27,7 +29,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
-	networkAPI NetworkAPI
+	api *state.Service // TODO: migrate to network state
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -59,7 +61,7 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI) *SystemModule {
+func NewSystemModule(api *state.Service) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 	}
@@ -91,21 +93,24 @@ func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringR
 
 // Health returns the information about the health of the network
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
-	health := sm.networkAPI.Health()
+	// TODO: rename to not have `Get` to match API
+	health, err := sm.api.Network.GetHealth()
 	res.Health = *health
-	return nil
+	return err
 }
 
 // NetworkState returns the network state (basic information about the host)
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
-	networkState := sm.networkAPI.NetworkState()
+	// TODO: rename to not have `Get` to match API
+	networkState, err := sm.api.Network.GetNetworkState()
 	res.NetworkState = *networkState
-	return nil
+	return err
 }
 
 // Peers returns peer information for each connected and confirmed peer
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
-	peers := sm.networkAPI.Peers()
-	res.Peers = peers
-	return nil
+	// TODO: rename to not have `Get` to match API
+	peers, err := sm.api.Network.GetPeers()
+	res.Peers = *peers
+	return err
 }

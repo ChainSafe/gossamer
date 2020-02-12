@@ -17,13 +17,18 @@
 package modules
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/network"
+	"github.com/ChainSafe/gossamer/core/types"
+
+	// "github.com/ChainSafe/gossamer/internal/api"
+	// module "github.com/ChainSafe/gossamer/internal/api/modules"
 	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/trie"
 )
 
 var (
@@ -35,16 +40,62 @@ var (
 	testPeers = []common.PeerInfo{}
 )
 
-func newNetworkService(t *testing.T) *network.Service {
+// // Mock runtime API
+// type MockRuntimeAPI struct{}
+
+// // Chain is a mock func that returns testRuntimeChain
+// func (r *MockRuntimeAPI) Chain() string {
+// 	return testRuntimeChain
+// }
+
+// // Name is a mock func that returns testRuntimeName
+// func (r *MockRuntimeAPI) Name() string {
+// 	return testRuntimeName
+// }
+
+// // Properties is a mock func that returns testRuntimeProperties
+// func (r *MockRuntimeAPI) Properties() string {
+// 	return testRuntimeProperties
+// }
+
+// // Version is a mock func that returns testRuntimeVersion
+// func (r *MockRuntimeAPI) Version() string {
+// 	return testRuntimeVersion
+// }
+
+// // Mock network API
+// type MockP2pAPI struct{}
+
+// func (n *MockP2pAPI) Health() common.Health {
+// 	return testHealth
+// }
+
+// func (n *MockP2pAPI) NetworkState() common.NetworkState {
+// 	return testNetworkState
+// }
+
+// func (n *MockP2pAPI) Peers() []common.PeerInfo {
+// 	return testPeers
+// }
+
+// func newMockAPI() *api.API {
+// 	p2pAPI := &MockP2pAPI{}
+// 	runtimeAPI := &MockRuntimeAPI{}
+
+// 	return &api.API{
+// 		P2pModule:     module.NewP2pModule(p2pAPI),
+// 		RuntimeModule: module.NewRuntimeModule(runtimeAPI),
+// 	}
+// }
+
+func newStateService(t *testing.T) *state.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
-	cfg := &network.Config{
-		NoStatus:     true,
-		NetworkState: &state.NetworkState{},
-		DataDir:      testDir,
-	}
-
-	srv, err := network.NewService(cfg, nil, nil)
+	srv := state.NewService(testDir)
+	err := srv.Initialize(&types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,8 +105,15 @@ func newNetworkService(t *testing.T) *network.Service {
 
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
-	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	st := newStateService(t)
+	err := st.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer st.Stop()
+
+	sys := NewSystemModule(st)
 
 	res := &SystemHealthResponse{}
 	sys.Health(nil, nil, res)
@@ -67,8 +125,15 @@ func TestSystemModule_Health(t *testing.T) {
 
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
-	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	st := newStateService(t)
+	err := st.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer st.Stop()
+
+	sys := NewSystemModule(st)
 
 	res := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, res)
@@ -82,8 +147,20 @@ func TestSystemModule_NetworkState(t *testing.T) {
 
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
-	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	st := newStateService(t)
+	err := st.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer st.Stop()
+
+	err = st.Network.SetPeers(&testPeers)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sys := NewSystemModule(st)
 
 	res := &SystemPeersResponse{}
 	sys.Peers(nil, nil, res)

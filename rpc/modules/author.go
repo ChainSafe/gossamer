@@ -20,11 +20,14 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/internal/api"
 )
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	coreAPI CoreAPI
+	//api *api.API
+	api *state.Service
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -77,7 +80,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api CoreAPI) *AuthorModule {
+func NewAuthorModule(api *state.Service) *AuthorModule {
 	return &AuthorModule{
 		coreAPI: api,
 	}

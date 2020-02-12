@@ -22,9 +22,13 @@ import (
 	"reflect"
 	"strings"
 
+	//"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/rpc/modules"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
+
+type Module string
 
 // Codec defines the interface for creating a CodecRequest.
 type Codec interface {
@@ -39,23 +43,18 @@ type CodecRequest interface {
 	WriteError(w http.ResponseWriter, status int, err error)
 }
 
-// ServerConfig configures the server
+// ServerConfig ...
 type ServerConfig struct {
-	BlockAPI   modules.BlockAPI
-	StorageAPI modules.StorageAPI
-	NetworkAPI modules.NetworkAPI
-	CoreAPI    modules.CoreAPI
-	Modules    []string
+	API     *state.Service
+	Modules []string
 }
 
 // Server is an RPC server.
 type Server struct {
-	codec      Codec       // Codec for requests/responses (default JSON)
-	services   *serviceMap // Maps requests to actual procedure calls
-	blockAPI   modules.BlockAPI
-	storageAPI modules.StorageAPI
-	networkAPI modules.NetworkAPI
-	coreAPI    modules.CoreAPI
+	codec    Codec       // Codec for requests/responses (default JSON)
+	services *serviceMap // Maps requests to actual procedure calls
+	//api      *api.API    // API interface for system internals
+	api *state.Service
 }
 
 // NewServer creates a new Server.
@@ -68,17 +67,26 @@ func NewServer() *Server {
 // NewStateServer creates a new Server that interfaces with the state service.
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
-		services:   new(serviceMap),
-		blockAPI:   cfg.BlockAPI,
-		storageAPI: cfg.StorageAPI,
-		networkAPI: cfg.NetworkAPI,
-		coreAPI:    cfg.CoreAPI,
+		services: new(serviceMap),
+		api:      cfg.API,
 	}
 
 	s.RegisterModules(cfg.Modules)
 
 	return s
 }
+
+// // NewAPIServer creates a new Server.
+// func NewAPIServer(mods []api.Module, api *api.API) *Server {
+// 	s := &Server{
+// 		services: new(serviceMap),
+// 		api:      api,
+// 	}
+
+// 	s.RegisterModules(mods)
+
+// 	return s
+// }
 
 // RegisterModules registers the RPC services associated with the given API modules
 func (s *Server) RegisterModules(mods []string) {
@@ -109,7 +117,7 @@ func (s *Server) RegisterCodec(codec Codec) {
 
 // RegisterService adds a service to the servers service map.
 func (s *Server) RegisterService(receiver interface{}, name string) error {
-	return s.services.register(receiver, name)
+	return s.services.register(receiver, string(name))
 }
 
 // ServeHTTP handles http requests to the RPC server.
