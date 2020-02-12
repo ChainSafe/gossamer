@@ -35,7 +35,7 @@ type Config struct {
 type GlobalConfig struct {
 	DataDir   string `toml:"data-dir"`
 	Roles     byte   `toml:"roles"`
-	Authority bool   `toml:"validator"`
+	Authority bool   `toml:"authority"`
 }
 
 type P2pCfg struct {

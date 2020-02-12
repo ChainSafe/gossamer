@@ -1,5 +1,6 @@
 [global]
 data-dir = "~/.gossamer"
+authority = true
 
 [p2p]
 bootstrap-nodes = []
