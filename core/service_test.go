@@ -17,12 +17,13 @@
 package core
 
 import (
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
@@ -206,6 +207,7 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 
 	for _, test := range testCases {
 
+		localTest := test
 		t.Run(test.name, func(t *testing.T) {
 
 			rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
@@ -258,13 +260,13 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 			}
 			defer s.Stop()
 
-			// simulate mssage sent from p2p service
-			msgRec <- test.blockAnnounce
+			// simulate message sent from p2p service
+			msgRec <- localTest.blockAnnounce
 
 			select {
 			case msg := <-msgSend:
 				msgType := msg.GetType()
-				require.Equal(t, test.msgType, msgType)
+				require.Equal(t, localTest.msgType, msgType)
 			case <-time.After(TestMessageTimeout):
 				t.Error("timeout waiting for message")
 			}

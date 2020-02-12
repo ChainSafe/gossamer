@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/rand"
 	"math/big"
 	mrand "math/rand"
 	"time"
+
+	"golang.org/x/exp/rand"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -54,7 +55,7 @@ type Service struct {
 	msgRec            <-chan p2p.Message // receive messages from p2p service
 	epochDone         <-chan struct{}    // receive from this channel when BABE epoch changes
 	msgSend           chan<- p2p.Message // send messages to p2p service
-	requestedBlockIDs []string           // track requested block id messages
+	requestedBlockIDs map[uint64]bool    // track requested block id messages
 
 }
 
@@ -133,6 +134,8 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	srv.bs = bs
+
+	srv.requestedBlockIDs = make(map[uint64]bool)
 
 	// core service
 	return srv, nil
@@ -342,6 +345,9 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
 		}
+
+		//track request
+		s.requestedBlockIDs[randomID] = true
 
 		// send block request message to p2p service
 		s.msgSend <- blockRequest
