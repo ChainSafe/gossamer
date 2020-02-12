@@ -290,8 +290,9 @@ func TestProcessTransactionMessage(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:       rt,
+		Keystore:      keystore.NewKeystore(),
+		BabeAuthority: true,
 	}
 
 	s, err := NewService(cfg)

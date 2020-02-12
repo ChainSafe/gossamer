@@ -94,14 +94,16 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(currentConfig, gendata, stateSrv)
 	srvcs = append(srvcs, p2pSrvc)
 
+	log.Debug("make node", "authority", currentConfig.Global.Authority)
 	// Core
 	coreConfig := &core.Config{
-		BlockState:   stateSrv.Block,
-		StorageState: stateSrv.Storage,
-		Keystore:     ks,
-		Runtime:      rt,
-		MsgRec:       p2pMsgSend, // message channel from p2p service to core service
-		MsgSend:      p2pMsgRec,  // message channel from core service to p2p service
+		BlockState:    stateSrv.Block,
+		StorageState:  stateSrv.Storage,
+		Keystore:      ks,
+		Runtime:       rt,
+		MsgRec:        p2pMsgSend, // message channel from p2p service to core service
+		MsgSend:       p2pMsgRec,  // message channel from core service to p2p service
+		BabeAuthority: currentConfig.Global.Authority,
 	}
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
@@ -110,7 +112,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	apiSrvc := api.NewAPIService(p2pSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
-	// RPC
+	// TODO: check rpc flag
 	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
 
 	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
