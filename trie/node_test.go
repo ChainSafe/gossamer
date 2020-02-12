@@ -143,8 +143,8 @@ func TestLeafHeader(t *testing.T) {
 }
 
 func TestBranchEncode(t *testing.T) {
-	randKeys := generateRand(100)
-	randVals := generateRand(100)
+	randKeys := generateRand(101)
+	randVals := generateRand(101)
 
 	for i, testKey := range randKeys {
 		b := &branch{key: testKey, children: [16]Node{}, value: randVals[i]}

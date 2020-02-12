@@ -381,8 +381,9 @@ func TestMakeNode(t *testing.T) {
 			err = loadGenesis(context)
 			require.Nil(t, err)
 
-			node, _, err := makeNode(context)
+			node, cfg, err := makeNode(context)
 			require.Nil(t, err)
+			require.NotNil(t, cfg)
 
 			db := node.Services.Get(&state.Service{})
 
