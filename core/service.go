@@ -46,16 +46,16 @@ var _ services.Service = &Service{}
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blockState   BlockState
-	storageState StorageState
-	rt           *runtime.Runtime
-	bs           *babe.Session
-	keys         []crypto.Keypair
-	blkRec       <-chan types.Block     // receive blocks from BABE session
-	msgRec       <-chan network.Message // receive messages from network service
-	epochDone    <-chan struct{}        // receive from this channel when BABE epoch changes
-	msgSend      chan<- network.Message // send messages to network service
-	requestedBlockIDs map[uint64]bool    // track requested block id messages
+	blockState        BlockState
+	storageState      StorageState
+	rt                *runtime.Runtime
+	bs                *babe.Session
+	keys              []crypto.Keypair
+	blkRec            <-chan types.Block     // receive blocks from BABE session
+	msgRec            <-chan network.Message // receive messages from network service
+	epochDone         <-chan struct{}        // receive from this channel when BABE epoch changes
+	msgSend           chan<- network.Message // send messages to network service
+	requestedBlockIDs map[uint64]bool        // track requested block id messages
 }
 
 // Config holds the config obj
@@ -303,7 +303,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
-	blockAnnounceMessage, ok := msg.(*p2p.BlockAnnounceMessage)
+	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
 		return errors.New("could not cast p2p.Message to BlockAnnounceMessage")
 	}
@@ -318,7 +318,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	// check if we should send block request message
 	if latestBlockNum.Cmp(messageBlockNum) == 1 {
 		// BlockAnnounceMessage
-		blockAnnounce := &p2p.BlockAnnounceMessage{
+		blockAnnounce := &network.BlockAnnounceMessage{
 			ParentHash:     blockAnnounceMessage.ParentHash,
 			Number:         messageBlockNum,
 			StateRoot:      blockAnnounceMessage.StateRoot,
@@ -336,7 +336,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		blockRequest := &p2p.BlockRequestMessage{
+		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,
 			StartingBlock: []byte{},

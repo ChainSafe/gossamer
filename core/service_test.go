@@ -212,8 +212,8 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 
 			rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
-	msgRec := make(chan network.Message)
-	msgSend := make(chan network.Message)
+			msgRec := make(chan network.Message)
+			msgSend := make(chan network.Message)
 
 			dataDir, err := ioutil.TempDir("", "./test_data")
 			if err != nil {
