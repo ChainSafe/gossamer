@@ -263,7 +263,7 @@ issues:
 
     - linters:
         - gocyclo
-      text: "cyclomatic complexity 40 of func " # codec/decode.go: (*Decoder).DecodeTuple
+      text: "cyclomatic complexity 42 of func " # codec/decode.go: (*Decoder).DecodeTuple
 
 
     # Exclude lll issues for long lines with go:generate

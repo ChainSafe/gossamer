@@ -25,6 +25,8 @@ import (
 	"math/big"
 	"reflect"
 
+	log "github.com/ChainSafe/log15"
+
 	"github.com/ChainSafe/gossamer/common"
 )
 
@@ -448,7 +450,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 					*ptr = o.(uint64)
 				}
 			case *int:
-				if o, err = sd.DecodeFixedWidthInt(int(0)); err == nil {
+				if o, err = sd.DecodeFixedWidthInt(0); err == nil {
 					*ptr = o.(int)
 				}
 			case *uint:
@@ -478,7 +480,9 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 					*ptr = o.([]string)
 				}
 			default:
+				// TODO: do we really have to decode this here and discard ?
 				if _, err = sd.Decode(v.Field(i).Interface()); err == nil {
+					log.Debug("DecodeTuple default decoded value will be discarded")
 				}
 			}
 
