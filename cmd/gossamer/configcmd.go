@@ -96,7 +96,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// BABE authority configuration; flag overwrites config option
 	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !currentConfig.Global.Authority {
 		currentConfig.Global.Authority = true
-	} else if !auth && currentConfig.Global.Authority {
+	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && currentConfig.Global.Authority {
 		currentConfig.Global.Authority = false
 	}
 
