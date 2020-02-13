@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/ChainSafe/gossamer/internal/api"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 )
@@ -46,9 +45,9 @@ type NetworkCfg struct {
 }
 
 type RPCCfg struct {
-	Port    uint32       `toml:"port"`
-	Host    string       `toml:"host"`
-	Modules []api.Module `toml:"modules"`
+	Port    uint32   `toml:"port"`
+	Host    string   `toml:"host"`
+	Modules []string `toml:"modules"`
 }
 
 func (c *Config) String() string {

@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/state"
@@ -60,11 +59,7 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 	}
 	services = append(services, dbSrv)
 
-	// API
-	apiSrvc := api.NewAPIService(networkSrvc, nil)
-	services = append(services, apiSrvc)
-
-	return NewDot("gossamer", services, nil)
+	return NewDot("gossamer", services)
 }
 
 func TestDot_Start(t *testing.T) {
@@ -73,7 +68,6 @@ func TestDot_Start(t *testing.T) {
 
 	availableServices := [...]services.Service{
 		&network.Service{},
-		&api.Service{},
 		&state.Service{},
 	}
 

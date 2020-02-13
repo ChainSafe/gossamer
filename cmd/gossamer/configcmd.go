@@ -30,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/network"
@@ -105,14 +104,13 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
 
-	// API
-	apiSrvc := api.NewAPIService(networkSrvc, nil)
-	srvcs = append(srvcs, apiSrvc)
-
 	// RPC
-	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
+	if ctx.GlobalBool(RPCEnabledFlag.Name) {
+		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
+		srvcs = append(srvcs, rpcSrvr)
+	}
 
-	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
+	return dot.NewDot(gendata.Name, srvcs), currentConfig, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -276,7 +274,7 @@ func createCoreService(coreConfig *core.Config) *core.Service {
 func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 	// Modules
 	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))
+		fig.Modules = strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ",")
 	}
 
 	// Host
@@ -291,20 +289,20 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func startRPC(ctx *cli.Context, fig cfg.RPCCfg, apiSrvc *api.Service) *rpc.HTTPServer {
-	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		return rpc.NewHTTPServer(apiSrvc.API, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
+func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HTTPServer {
+	cfg := &rpc.HTTPServerConfig{
+		API:     stateSrv,
+		Codec:   &json2.Codec{},
+		Host:    fig.Host,
+		Port:    fig.Port,
+		Modules: fig.Modules,
 	}
-	return nil
-}
 
-// strToMods casts a []strings to []api.Module
-func strToMods(strs []string) []api.Module {
-	var res []api.Module
-	for _, str := range strs {
-		res = append(res, api.Module(str))
+	if ctx.GlobalBool(RPCEnabledFlag.Name) {
+		return rpc.NewHTTPServer(cfg)
 	}
-	return res
+
+	return nil
 }
 
 // dumpConfig is the dumpconfig command.

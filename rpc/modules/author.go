@@ -20,11 +20,12 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/internal/api"
+	"github.com/ChainSafe/gossamer/state"
 )
 
 type AuthorModule struct {
-	api *api.API
+	//api *api.API
+	api *state.Service
 }
 
 type KeyInsertRequest struct {
@@ -67,7 +68,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api *api.API) *AuthorModule {
+func NewAuthorModule(api *state.Service) *AuthorModule {
 	return &AuthorModule{
 		api: api,
 	}
