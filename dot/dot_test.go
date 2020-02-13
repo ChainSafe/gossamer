@@ -64,7 +64,7 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 	apiSrvc := api.NewAPIService(p2pSrvc, nil)
 	services = append(services, apiSrvc)
 
-	return NewDot("gossamer", services, nil)
+	return NewDot("gossamer", services)
 }
 
 func TestDot_Start(t *testing.T) {
