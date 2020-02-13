@@ -36,65 +36,76 @@ type encodeTest struct {
 var encodeTests = []encodeTest{
 
 	//fixed width
-	{val: int8(1), output: []byte{0x01}, bytesEncoded: 1},
-	{val: uint8(1), output: []byte{0x01}, bytesEncoded: 1},
-
-	{val: int16(1), output: []byte{0x01, 0}, bytesEncoded: 2},
-	{val: int16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
-
-	{val: uint16(1), output: []byte{0x01, 0}, bytesEncoded: 2},
-	{val: uint16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
-
-	{val: int32(1), output: []byte{0x01, 0, 0, 0}, bytesEncoded: 4},
-	{val: int32(16383), output: []byte{0xff, 0x3f, 0, 0}, bytesEncoded: 4},
-	{val: int32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
-
-	{val: uint32(1), output: []byte{0x01, 0, 0, 0}, bytesEncoded: 4},
-	{val: uint32(16383), output: []byte{0xff, 0x3f, 0, 0}, bytesEncoded: 4},
-	{val: uint32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
-
-	{val: int64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
-
-	{val: uint64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
-
-	{val: int(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: int(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
-
-	{val: uint(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
-	{val: uint(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+	//{val: int8(1), output: []byte{0x01}, bytesEncoded: 1},
+	//{val: uint8(1), output: []byte{0x01}, bytesEncoded: 1},
+	//
+	//{val: int16(1), output: []byte{0x01, 0}, bytesEncoded: 2},
+	//{val: int16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
+	//
+	//{val: uint16(1), output: []byte{0x01, 0}, bytesEncoded: 2},
+	//{val: uint16(16383), output: []byte{0xff, 0x3f}, bytesEncoded: 2},
+	//
+	//{val: int32(1), output: []byte{0x01, 0, 0, 0}, bytesEncoded: 4},
+	//{val: int32(16383), output: []byte{0xff, 0x3f, 0, 0}, bytesEncoded: 4},
+	//{val: int32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
+	//
+	//{val: uint32(1), output: []byte{0x01, 0, 0, 0}, bytesEncoded: 4},
+	//{val: uint32(16383), output: []byte{0xff, 0x3f, 0, 0}, bytesEncoded: 4},
+	//{val: uint32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
+	//
+	//{val: int64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+	//
+	//{val: uint64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+	//
+	//{val: int(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: int(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+	//
+	//{val: uint(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	//{val: uint(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
 
 
 	// compact integers
-	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
-	{val: big.NewInt(1), output: []byte{0x04}, bytesEncoded: 1},
-	{val: big.NewInt(42), output: []byte{0xa8}, bytesEncoded: 1},
-	{val: big.NewInt(69), output: []byte{0x15, 0x01}, bytesEncoded: 2},
-	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}, bytesEncoded: 2},
-	{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}, bytesEncoded: 4},
-	{val: big.NewInt(1073741823), output: []byte{0xfe, 0xff, 0xff, 0xff}, bytesEncoded: 4},
-	{val: big.NewInt(1<<32 - 1), output: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, bytesEncoded: 5},
+	//{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
+	//{val: big.NewInt(1), output: []byte{0x04}, bytesEncoded: 1},
+	//{val: big.NewInt(42), output: []byte{0xa8}, bytesEncoded: 1},
+	//{val: big.NewInt(69), output: []byte{0x15, 0x01}, bytesEncoded: 2},
+	//{val: big.NewInt(16383), output: []byte{0xfd, 0xff}, bytesEncoded: 2},
+	//{val: big.NewInt(16384), output: []byte{0x02, 0x00, 0x01, 0x00}, bytesEncoded: 4},
+	//{val: big.NewInt(1073741823), output: []byte{0xfe, 0xff, 0xff, 0xff}, bytesEncoded: 4},
+	//{val: big.NewInt(1<<32 - 1), output: []byte{0x03, 0xff, 0xff, 0xff, 0xff}, bytesEncoded: 5},
 
 	// byte arrays
-	{val: []byte{0x01}, output: []byte{0x04, 0x01}, bytesEncoded: 2},
-	{val: []byte{0xff}, output: []byte{0x04, 0xff}, bytesEncoded: 2},
-	{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
-	{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
-	{val: byteArray(64), output: append([]byte{0x01, 0x01}, byteArray(64)...), bytesEncoded: 66},
-	{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), bytesEncoded: 16388},
+	//{val: []byte{0x01}, output: []byte{0x04, 0x01}, bytesEncoded: 2},
+	//{val: []byte{0xff}, output: []byte{0x04, 0xff}, bytesEncoded: 2},
+	//{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
+	//{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
+	{val: []byte{104, 101, 108, 108, 111}, output:[]byte{20, 104, 101, 108, 108, 111}, bytesEncoded: 6},  // hello
+	//{val: byteArray(32), output: append([]byte{0x80}, byteArray(32)...), bytesEncoded: 33},
+	//{val: byteArray(64), output: append([]byte{0x01, 0x01}, byteArray(64)...), bytesEncoded: 66},
+	//{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), bytesEncoded: 16388},
+
+	// [32]byte arrays
+	//{val: [32]byte{0xff}, output: []byte{0x80, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, bytesEncoded: 33},
+
+	// common.Hash
+	//{val: common.BytesToHash([]byte{0xff}), output: []byte{0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff}, bytesEncoded:33},
 
 	// booleans
-	{val: true, output: []byte{0x01}, bytesEncoded: 1},
-	{val: false, output: []byte{0x00}, bytesEncoded: 1},
+	//{val: true, output: []byte{0x01}, bytesEncoded: 1},
+	//{val: false, output: []byte{0x00}, bytesEncoded: 1},
+
+	// strings
+	{val: "hello", output:[]byte{20, 104, 101, 108, 108, 111}, bytesEncoded: 6},
 
 	// structs
 	{val: &struct {
@@ -182,7 +193,7 @@ func TestEncode(t *testing.T) {
 			t.Error(err)
 		} else if !bytes.Equal(output, test.output) {
 			if len(test.output) < 1<<15 {
-				t.Errorf("Fail: input %x got %x expected %x", test.val, output, test.output)
+				t.Errorf("Fail: input %v got %v expected %v", test.val, output, test.output)
 			} else {
 				//Only prints first 10 bytes of a failed test if output is > 2^15 bytes
 				t.Errorf("Failed test with large output. First 10 bytes: got %x... expected %x...", output[0:10], test.output[0:10])

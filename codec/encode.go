@@ -74,7 +74,8 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case bool:
 		n, err = se.encodeBool(v)
 	case common.Hash:
-		n, err = se.Writer.Write(v.ToBytes())
+		n, err = se.encodeByteArray(v[:])
+		//n, err = se.Writer.Write(v.ToBytes())
 	case interface{}:
 		t := reflect.TypeOf(b).Kind()
 		switch t {
