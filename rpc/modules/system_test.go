@@ -31,7 +31,7 @@ import (
 var (
 	testHealth       = common.Health{}
 	testNetworkState = common.NetworkState{}
-	testPeers        = append([]common.PeerInfo{}, common.PeerInfo{})
+	testPeers        = []common.PeerInfo{{}}
 )
 
 func newStateService(t *testing.T) *state.Service {
