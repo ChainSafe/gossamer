@@ -29,10 +29,6 @@ import (
 )
 
 var (
-	testRuntimeChain      = "Chain"
-	testRuntimeName       = "Gossamer"
-	testRuntimeProperties = "Properties"
-	testRuntimeVersion    = "0.0.1"
 	testHealth            = common.Health{}
 	testNetworkState      = common.NetworkState{}
 	testPeers             = append([]common.PeerInfo{}, common.PeerInfo{})
