@@ -32,6 +32,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+	log "github.com/ChainSafe/log15"
+
 )
 
 // stringToAddrInfos converts a single string peer id to AddrInfo
@@ -140,12 +142,20 @@ func encodeMessageLEB128(encMsg []byte) []byte {
 	return append(out, encMsg...)
 }
 
+// decodeMessageLEB128 applies leb128 variable-length encoding
+func decodeMessageLEB128(in []byte) uint64 {
+	return leb128.ToUInt64(in)
+	
+}
+
 // decodeMessage decodes the message based on message type
 func decodeMessage(r io.Reader) (m Message, err error) {
 	msgType, err := common.ReadByte(r)
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("decodeMessage", "msgType", msgType)
 
 	switch msgType {
 	case StatusMsgType:

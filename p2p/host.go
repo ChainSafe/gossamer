@@ -188,7 +188,7 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 	}
 
 	// append leb128 variable-length encoding
-	encMsg = encodeMessageLEB128(encMsg)
+	//encMsg = encodeMessageLEB128(encMsg)
 
 	_, err = s.Write(encMsg)
 	if err != nil {

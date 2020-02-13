@@ -133,7 +133,7 @@ func (s *Service) receiveCoreMessages() {
 		// receive message from core service
 		msg := <-s.msgRec
 
-		log.Trace(
+		log.Debug(
 			"Broadcasting message from core service",
 			"host", s.host.id(),
 			"type", msg.GetType(),
@@ -181,19 +181,28 @@ func (s *Service) handleStream(stream network.Stream) {
 	r := bufio.NewReader(stream)
 
 	for {
-		// read leb128 variable-length encoding
-		_, err := common.ReadByte(r)
-		if err != nil {
-			log.Error("Failed to read message encoding", "peer", peer, "err", err)
-			return // exit
-		}
+		// // read leb128 variable-length encoding
+		// b, err := common.ReadByte(r)
+		// if err != nil {
+		// 	log.Error("Failed to read message encoding", "peer", peer, "err", err)
+		// 	return // exit
+		// }
+		// b1, err := common.ReadByte(r)
+		// if err != nil {
+		// 	log.Error("Failed to read message encoding", "peer", peer, "err", err)
+		// 	return // exit
+		// }
 
+		//log.Debug("handleStream", "byte0", b, "byte1", b1)
+		
 		// decode message based on message type
 		msg, err := decodeMessage(r)
 		if err != nil {
 			log.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			return // exit
 		}
+
+		log.Debug("handleStream", "msg", msg)
 
 		// handle message based on peer status and message type
 		s.handleMessage(peer, msg)
