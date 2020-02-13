@@ -30,7 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/runtime"
 	log "github.com/ChainSafe/log15"
 )
@@ -38,7 +38,7 @@ import (
 var _ services.Service = &Service{}
 
 // Service is an overhead layer that allows communication between the runtime,
-// BABE session, and p2p service. It deals with the validation of transactions
+// BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
 	blockState   BlockState
@@ -46,10 +46,10 @@ type Service struct {
 	rt           *runtime.Runtime
 	bs           *babe.Session
 	keys         []crypto.Keypair
-	blkRec       <-chan types.Block // receive blocks from BABE session
-	msgRec       <-chan p2p.Message // receive messages from p2p service
-	epochDone    <-chan struct{}    // receive from this channel when BABE epoch changes
-	msgSend      chan<- p2p.Message // send messages to p2p service
+	blkRec       <-chan types.Block     // receive blocks from BABE session
+	msgRec       <-chan network.Message // receive messages from network service
+	epochDone    <-chan struct{}        // receive from this channel when BABE epoch changes
+	msgSend      chan<- network.Message // send messages to network service
 }
 
 // Config holds the config obj
@@ -58,13 +58,13 @@ type Config struct {
 	StorageState StorageState
 	Keystore     *keystore.Keystore
 	Runtime      *runtime.Runtime
-	MsgRec       <-chan p2p.Message
-	MsgSend      chan<- p2p.Message
+	MsgRec       <-chan network.Message
+	MsgSend      chan<- network.Message
 	NewBlocks    chan types.Block // only used for testing purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE
-// session, and p2p service.
+// session, and network service.
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.Keystore == nil {
 		return nil, fmt.Errorf("no keystore provided")
@@ -88,14 +88,34 @@ func NewService(cfg *Config) (*Service, error) {
 
 	epochDone := make(chan struct{})
 
+	srv := &Service{
+		rt:           cfg.Runtime,
+		keys:         keys,
+		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:       cfg.MsgRec,
+		msgSend:      cfg.MsgSend,
+		blockState:   cfg.BlockState,
+		storageState: cfg.StorageState,
+		epochDone:    epochDone,
+	}
+
+	authData, err := srv.retrieveAuthorityData()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: our authority index should be in authData, if it isn't, we aren't authorities
+	// need to add our authority data to storage
+	index := uint64(len(authData))
+
 	// BABE session configuration
 	bsConfig := &babe.SessionConfig{
 		Keypair:        keys[0].(*sr25519.Keypair),
 		Runtime:        cfg.Runtime,
 		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
 		BlockState:     cfg.BlockState,
-		AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
-		AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), 1)},
+		AuthorityIndex: index,
+		AuthData:       append(authData, babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), index)),
 		EpochThreshold: big.NewInt(0),
 		Done:           epochDone,
 	}
@@ -106,18 +126,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	srv.bs = bs
+
 	// core service
-	return &Service{
-		rt:           cfg.Runtime,
-		bs:           bs,
-		keys:         keys,
-		blkRec:       cfg.NewBlocks, // becomes block receive channel in core service
-		msgRec:       cfg.MsgRec,
-		msgSend:      cfg.MsgSend,
-		blockState:   cfg.BlockState,
-		storageState: cfg.StorageState,
-		epochDone:    epochDone,
-	}, nil
+	return srv, nil
 }
 
 // Start starts the core service
@@ -126,7 +138,7 @@ func (s *Service) Start() error {
 	// start receiving blocks from BABE session
 	go s.receiveBlocks()
 
-	// start receiving messages from p2p service
+	// start receiving messages from network service
 	go s.receiveMessages()
 
 	// monitor babe session for epoch changes
@@ -148,7 +160,7 @@ func (s *Service) Stop() error {
 		s.rt.Stop()
 	}
 
-	// close message channel to p2p service
+	// close message channel to network service
 	if s.msgSend != nil {
 		close(s.msgSend)
 	}
@@ -159,6 +171,11 @@ func (s *Service) Stop() error {
 // StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
+}
+
+func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
+	// TODO: when we update to a new runtime, will need to pass in the latest block number
+	return s.grandpaAuthorities()
 }
 
 func (s *Service) handleBabeSession() {
@@ -218,25 +235,25 @@ func (s *Service) receiveBlocks() {
 	}
 }
 
-// receiveMessages starts receiving messages from the p2p service
+// receiveMessages starts receiving messages from the network service
 func (s *Service) receiveMessages() {
 	for {
-		// receive message from p2p service
+		// receive message from network service
 		msg, ok := <-s.msgRec
 		if !ok {
-			log.Error("Failed to receive message from p2p service")
+			log.Error("Failed to receive message from network service")
 			return // exit
 		}
 		err := s.handleReceivedMessage(msg)
 		if err != nil {
-			log.Error("Failed to handle message from p2p service", "err", err)
+			log.Error("Failed to handle message from network service", "err", err)
 		}
 	}
 }
 
 // handleReceivedBlock handles blocks from the BABE session
 func (s *Service) handleReceivedBlock(block types.Block) (err error) {
-	msg := &p2p.BlockAnnounceMessage{
+	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
 		StateRoot:      block.Header.StateRoot,
@@ -244,28 +261,28 @@ func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 		Digest:         block.Header.Digest,
 	}
 
-	// send block announce message to p2p service
+	// send block announce message to network service
 	s.msgSend <- msg
 
 	// TODO: check if host status message needs to be updated based on new block
-	// information, if so, generate host status message and send to p2p service
+	// information, if so, generate host status message and send to network service
 
-	// TODO: send updated host status message to p2p service
+	// TODO: send updated host status message to network service
 	// s.msgSend <- msg
 
 	return nil
 }
 
-// handleReceivedMessage handles messages from the p2p service
-func (s *Service) handleReceivedMessage(msg p2p.Message) (err error) {
+// handleReceivedMessage handles messages from the network service
+func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.GetType()
 
 	switch msgType {
-	case p2p.BlockAnnounceMsgType:
+	case network.BlockAnnounceMsgType:
 		err = s.ProcessBlockAnnounceMessage(msg)
-	case p2p.BlockResponseMsgType:
+	case network.BlockResponseMsgType:
 		err = s.ProcessBlockResponseMessage(msg)
-	case p2p.TransactionMsgType:
+	case network.TransactionMsgType:
 		err = s.ProcessTransactionMessage(msg)
 	default:
 		err = fmt.Errorf("Received unsupported message type")
@@ -277,12 +294,12 @@ func (s *Service) handleReceivedMessage(msg p2p.Message) (err error) {
 // ProcessBlockAnnounceMessage creates a block request message from the block
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
-func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
+func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// TODO: check if we should send block request message
 
 	// TODO: update message properties and use generated id
-	blockRequest := &p2p.BlockRequestMessage{
+	blockRequest := &network.BlockRequestMessage{
 		ID:            1,
 		RequestedData: 2,
 		StartingBlock: []byte{},
@@ -291,7 +308,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 		Max:           optional.NewUint32(false, 0),
 	}
 
-	// send block request message to p2p service
+	// send block request message to network service
 	s.msgSend <- blockRequest
 
 	return nil
@@ -300,8 +317,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
 // ProcessBlockResponseMessage attempts to validate and add the block to the
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
-func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
-	data := msg.(*p2p.BlockResponseMessage).Data
+func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
+	data := msg.(*network.BlockResponseMessage).Data
 	buf := &bytes.Buffer{}
 	_, err := buf.Write(data)
 	if err != nil {
@@ -314,6 +331,18 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 	}
 
 	for _, bd := range blockData {
+		if bd.Header.Exists() {
+			header, err := types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return err
+			}
+
+			err = s.handleConsensusDigest(header)
+			if err != nil {
+				return err
+			}
+		}
+
 		if bd.Header.Exists() && bd.Body.Exists {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
@@ -350,10 +379,10 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 
 // ProcessTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
+func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 
 	// get transactions from message extrinsics
-	txs := msg.(*p2p.TransactionMessage).Extrinsics
+	txs := msg.(*network.TransactionMessage).Extrinsics
 
 	for _, tx := range txs {
 		tx := tx // pin
@@ -371,6 +400,39 @@ func (s *Service) ProcessTransactionMessage(msg p2p.Message) error {
 		// push to the transaction queue of BABE session
 		s.bs.PushToTxQueue(vtx)
 	}
+
+	return nil
+}
+
+// handle authority and randomness changes over transitions from one epoch to the next
+func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
+	var item types.DigestItem
+	for _, digest := range header.Digest {
+		item, err = types.DecodeDigestItem(digest)
+		if err != nil {
+			return err
+		}
+
+		if item.Type() == types.ConsensusDigestType {
+			break
+		}
+	}
+
+	// TODO: if this block is the first in the epoch and it doesn't have a consensus digest, this is an error
+	if item == nil {
+		return nil
+	}
+
+	consensusDigest := item.(*types.ConsensusDigest)
+
+	epochData := new(babe.NextEpochDescriptor)
+	err = epochData.Decode(consensusDigest.Data)
+	if err != nil {
+		return err
+	}
+
+	// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
+	s.bs.SetEpochData(epochData)
 
 	return nil
 }
