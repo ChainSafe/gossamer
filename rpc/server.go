@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"strings"
 
-	//"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/rpc/modules"
 	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
@@ -53,8 +52,7 @@ type ServerConfig struct {
 type Server struct {
 	codec    Codec       // Codec for requests/responses (default JSON)
 	services *serviceMap // Maps requests to actual procedure calls
-	//api      *api.API    // API interface for system internals
-	api *state.Service
+	api      *state.Service
 }
 
 // NewServer creates a new Server.
@@ -76,18 +74,6 @@ func NewStateServer(cfg *ServerConfig) *Server {
 	return s
 }
 
-// // NewAPIServer creates a new Server.
-// func NewAPIServer(mods []api.Module, api *api.API) *Server {
-// 	s := &Server{
-// 		services: new(serviceMap),
-// 		api:      api,
-// 	}
-
-// 	s.RegisterModules(mods)
-
-// 	return s
-// }
-
 // RegisterModules registers the RPC services associated with the given API modules
 func (s *Server) RegisterModules(mods []string) {
 	for _, mod := range mods {
@@ -95,11 +81,7 @@ func (s *Server) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			// TODO: pass in state interface
 			srvc = modules.NewSystemModule(s.api)
-		// case "author":
-		// 	// TODO: pass in state interface
-		// 	srvc = modules.NewAuthorModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/state"
-	//"github.com/ChainSafe/gossamer/internal/api"
 )
 
 type AuthorModule struct {
