@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	//"io"
 	"fmt"
 	"net/http"
 
@@ -49,8 +50,14 @@ func (h *HTTPServer) Start() {
 	log.Debug("[rpc] Starting HTTP Server...", "port", h.Port)
 	http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
 
+	// mockHandler := func(w http.ResponseWriter, req *http.Request) {
+	// 	io.WriteString(w, "Hello, world!\n")
+	// }
+
+	http.HandleFunc("/", h.rpcServer.ServeHTTP)
+
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf("%s:%d", h.Host, h.Port), nil)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", h.Port), nil)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)
 		}
