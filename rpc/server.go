@@ -103,7 +103,7 @@ func (s *Server) RegisterCodec(codec Codec) {
 
 // RegisterService adds a service to the servers service map.
 func (s *Server) RegisterService(receiver interface{}, name string) error {
-	return s.services.register(receiver, string(name))
+	return s.services.register(receiver, name)
 }
 
 // ServeHTTP handles http requests to the RPC server.
