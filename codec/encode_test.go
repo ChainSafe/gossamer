@@ -35,7 +35,7 @@ type encodeTest struct {
 
 var encodeTests = []encodeTest{
 
-	// fixed width
+	//fixed width
 	{val: int8(1), output: []byte{0x01}, bytesEncoded: 1},
 	{val: uint8(1), output: []byte{0x01}, bytesEncoded: 1},
 
@@ -52,6 +52,27 @@ var encodeTests = []encodeTest{
 	{val: uint32(1), output: []byte{0x01, 0, 0, 0}, bytesEncoded: 4},
 	{val: uint32(16383), output: []byte{0xff, 0x3f, 0, 0}, bytesEncoded: 4},
 	{val: uint32(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f}, bytesEncoded: 4},
+
+	{val: int64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+
+	{val: uint64(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint64(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint64(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint64(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+
+	{val: int(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: int(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+
+	{val: uint(1), output: []byte{0x01, 0, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint(16383), output: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint(1073741823), output: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0}, bytesEncoded: 8},
+	{val: uint(9223372036854775807), output: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f}, bytesEncoded: 8},
+
 
 	// compact integers
 	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
