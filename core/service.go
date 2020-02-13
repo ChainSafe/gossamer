@@ -204,6 +204,12 @@ func (s *Service) handleBabeSession() {
 		<-s.epochDone
 		log.Trace("core: BABE epoch complete, initializing new session")
 
+		// commit the storage trie to the DB
+		err := s.storageState.StoreInDB()
+		if err != nil {
+			log.Error("core", "error", err)
+		}
+
 		newBlocks := make(chan types.Block)
 		s.blkRec = newBlocks
 
@@ -216,6 +222,7 @@ func (s *Service) handleBabeSession() {
 			Runtime:        s.rt,
 			NewBlocks:      newBlocks, // becomes block send channel in BABE session
 			BlockState:     s.blockState,
+			StorageState:   s.storageState,
 			AuthorityIndex: 0, // TODO: where do we get the BABE authority data?
 			AuthData:       []*babe.AuthorityData{babe.NewAuthorityData(s.keys[0].Public().(*sr25519.PublicKey), 1)},
 			EpochThreshold: big.NewInt(0),
