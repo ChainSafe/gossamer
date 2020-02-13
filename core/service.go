@@ -111,12 +111,13 @@ func NewService(cfg *Config) (*Service, error) {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:    keys[0].(*sr25519.Keypair),
-			Runtime:    cfg.Runtime,
-			NewBlocks:  cfg.NewBlocks, // becomes block send channel in BABE session
-			BlockState: cfg.BlockState,
-			AuthData:   authData,
-			Done:       epochDone,
+			Keypair:      keys[0].(*sr25519.Keypair),
+			Runtime:      cfg.Runtime,
+			NewBlocks:    cfg.NewBlocks, // becomes block send channel in BABE session
+			BlockState:   cfg.BlockState,
+			StorageState: cfg.StorageState,
+			AuthData:     authData,
+			Done:         epochDone,
 		}
 
 		// create a new BABE session
@@ -198,6 +199,12 @@ func (s *Service) handleBabeSession() {
 		<-s.epochDone
 		log.Trace("core: BABE epoch complete, initializing new session")
 
+		// commit the storage trie to the DB
+		err := s.storageState.StoreInDB()
+		if err != nil {
+			log.Error("core", "error", err)
+		}
+
 		newBlocks := make(chan types.Block)
 		s.blkRec = newBlocks
 
@@ -206,12 +213,13 @@ func (s *Service) handleBabeSession() {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:    s.keys[0].(*sr25519.Keypair),
-			Runtime:    s.rt,
-			NewBlocks:  newBlocks, // becomes block send channel in BABE session
-			BlockState: s.blockState,
-			AuthData:   s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
-			Done:       epochDone,
+			Keypair:      s.keys[0].(*sr25519.Keypair),
+			Runtime:      s.rt,
+			NewBlocks:    newBlocks, // becomes block send channel in BABE session
+			BlockState:   s.blockState,
+			StorageState: s.storageState,
+			AuthData:     s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
+			Done:         epochDone,
 		}
 
 		// create a new BABE session

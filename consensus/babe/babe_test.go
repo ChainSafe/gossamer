@@ -325,8 +325,9 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}()
 
 	cfg := &SessionConfig{
-		NewBlocks:  newBlocks,
-		BlockState: dbSrv.Block,
+		NewBlocks:    newBlocks,
+		BlockState:   dbSrv.Block,
+		StorageState: dbSrv.Storage,
 	}
 
 	babesession := createTestSession(t, cfg)
