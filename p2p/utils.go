@@ -142,10 +142,9 @@ func encodeMessageLEB128(encMsg []byte) []byte {
 	return append(out, encMsg...)
 }
 
-// decodeMessageLEB128 applies leb128 variable-length encoding
+// decodeLEB128 decodes leb128 variable-length encoding
 func decodeMessageLEB128(in []byte) uint64 {
 	return leb128.ToUInt64(in)
-	
 }
 
 // decodeMessage decodes the message based on message type
