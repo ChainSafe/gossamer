@@ -19,6 +19,7 @@ package babe
 import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 )
 
 // BlockState interface for block state methods
@@ -33,4 +34,10 @@ type StorageState interface {
 	StorageRoot() (common.Hash, error)
 	SetStorage([]byte, []byte) error
 	SetLatestHeaderHash(hash []byte) error
+}
+
+type TransactionQueue interface {
+	 Push(vt *tx.ValidTransaction)
+	 Pop() *tx.ValidTransaction
+	 Peek() *tx.ValidTransaction
 }

@@ -43,6 +43,7 @@ var _ services.Service = &Service{}
 type Service struct {
 	blockState   BlockState
 	storageState StorageState
+	txQueue 	TransactionQueue
 	rt           *runtime.Runtime
 	bs           *babe.Session
 	keys         []crypto.Keypair
@@ -56,6 +57,7 @@ type Service struct {
 type Config struct {
 	BlockState   BlockState
 	StorageState StorageState
+	TxQueue 	TransactionQueue
 	Keystore     *keystore.Keystore
 	Runtime      *runtime.Runtime
 	MsgRec       <-chan network.Message
@@ -97,6 +99,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:   cfg.BlockState,
 		storageState: cfg.StorageState,
 		epochDone:    epochDone,
+		txQueue: cfg.TxQueue,
 	}
 
 	authData, err := srv.retrieveAuthorityData()
@@ -119,6 +122,7 @@ func NewService(cfg *Config) (*Service, error) {
 		AuthData:       append(authData, babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), index)),
 		EpochThreshold: big.NewInt(0),
 		Done:           epochDone,
+		TxQueue: 	cfg.TxQueue,
 	}
 
 	// create a new BABE session
@@ -406,7 +410,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		vtx := transaction.NewValidTransaction(tx, val)
 
 		// push to the transaction queue of BABE session
-		s.bs.PushToTxQueue(vtx)
+		s.txQueue.Push(vtx)
 	}
 
 	return nil

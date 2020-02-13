@@ -15,6 +15,7 @@ type Service struct {
 	Storage *StorageState
 	Block   *BlockState
 	Network *NetworkState
+	TxQueue *TransactionQueue
 }
 
 func NewService(path string) *Service {
@@ -113,6 +114,7 @@ func (s *Service) Start() error {
 	s.Storage = storageState
 	s.Block = blockState
 	s.Network = networkState
+	s.TxQueue = NewTransactionQueue()
 
 	return nil
 }

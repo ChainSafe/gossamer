@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
@@ -82,9 +83,12 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	txQueue := state.NewTransactionQueue()
+
 	cfg := &SessionConfig{
 		Runtime: rt,
 		Keypair: kp,
+		TxQueue: txQueue,
 	}
 
 	babesession, err := NewSession(cfg)

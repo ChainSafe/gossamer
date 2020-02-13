@@ -82,6 +82,8 @@ func (s *Server) RegisterModules(mods []string) {
 		switch mod {
 		case "system":
 			srvc = modules.NewSystemModule(s.api)
+		case "author":
+			srvc = modules.NewSystemModule(s.api)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

@@ -96,6 +96,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	coreConfig := &core.Config{
 		BlockState:   stateSrv.Block,
 		StorageState: stateSrv.Storage,
+		TxQueue: stateSrv.TxQueue,
 		Keystore:     ks,
 		Runtime:      rt,
 		MsgRec:       networkMsgSend, // message channel from network service to core service

@@ -46,7 +46,7 @@ type Session struct {
 	authorityIndex uint64
 	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
-	txQueue        *tx.PriorityQueue
+	txQueue        TransactionQueue
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	newBlocks      chan<- types.Block            // send blocks to core service
 	done           chan<- struct{}               // lets core know when the epoch is done
@@ -56,6 +56,7 @@ type Session struct {
 type SessionConfig struct {
 	BlockState     BlockState
 	StorageState   StorageState
+	TxQueue 		TransactionQueue
 	Keypair        *sr25519.Keypair
 	Runtime        *runtime.Runtime
 	NewBlocks      chan<- types.Block
@@ -76,7 +77,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		storageState:   cfg.StorageState,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
-		txQueue:        new(tx.PriorityQueue),
+		txQueue:        cfg.TxQueue,
 		slotToProof:    make(map[uint64]*VrfOutputAndProof),
 		newBlocks:      cfg.NewBlocks,
 		authorityIndex: cfg.AuthorityIndex,
@@ -118,16 +119,6 @@ func (b *Session) Start() error {
 	go b.invokeBlockAuthoring()
 
 	return nil
-}
-
-// PushToTxQueue adds a ValidTransaction to BABE's transaction queue
-func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
-	b.txQueue.Insert(vt)
-}
-
-// PeekFromTxQueue returns ValidTransaction
-func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
-	return b.txQueue.Peek()
 }
 
 func (b *Session) SetEpochData(data *NextEpochDescriptor) {
@@ -497,7 +488,7 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 
 func (b *Session) addToQueue(txs []*tx.ValidTransaction) {
 	for _, t := range txs {
-		b.txQueue.Insert(t)
+		b.txQueue.Push(t)
 	}
 }
 

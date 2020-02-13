@@ -20,7 +20,10 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/state"
+	log "github.com/ChainSafe/log15"
 )
 
 type AuthorModule struct {
@@ -97,4 +100,9 @@ func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
 func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) {
+	vtx := tx.NewValidTransaction(types.Extrinsic(*req), &tx.Validity{})
+	cm.api.TxQueue.Push(vtx)
+	hash, _ := common.Blake2bHash(*req)
+	*res = ExtrinsicHashResponse(hash)
+	log.Info("[rpc] submitted extrinsic", vtx)
 }

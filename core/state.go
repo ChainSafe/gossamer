@@ -18,6 +18,7 @@ package core
 
 import (
 	"github.com/ChainSafe/gossamer/common"
+	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
@@ -35,4 +36,10 @@ type StorageState interface {
 	GetStorage([]byte) ([]byte, error)
 	StoreInDB() error
 	SetLatestHeaderHash(hash []byte) error
+}
+
+type TransactionQueue interface {
+	 Push(vt *tx.ValidTransaction)
+	 Pop() *tx.ValidTransaction
+	 Peek() *tx.ValidTransaction
 }
