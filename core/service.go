@@ -22,7 +22,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
+	//"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -108,6 +108,24 @@ func NewService(cfg *Config) (*Service, error) {
 		if err != nil {
 			return nil, err
 		}
+// =======
+// 	// TODO: our authority index should be in authData, if it isn't, we aren't authorities
+// 	// need to add our authority data to storage
+// 	index := uint64(len(authData))
+
+// 	// BABE session configuration
+// 	bsConfig := &babe.SessionConfig{
+// 		Keypair:        keys[0].(*sr25519.Keypair),
+// 		Runtime:        cfg.Runtime,
+// 		NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
+// 		BlockState:     cfg.BlockState,
+// 		StorageState:   cfg.StorageState,
+// 		AuthorityIndex: index,
+// 		AuthData:       append(authData, babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), index)),
+// 		EpochThreshold: big.NewInt(0),
+// 		Done:           epochDone,
+// 	}
+// >>>>>>> noot/block-persist
 
 		// TODO: our authority index should be in authData, if it isn't, we aren't authorities
 		// need to add our authority data to storage
@@ -119,6 +137,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Runtime:        cfg.Runtime,
 			NewBlocks:      cfg.NewBlocks, // becomes block send channel in BABE session
 			BlockState:     cfg.BlockState,
+			StorageState:   cfg.StorageState,
 			AuthorityIndex: index,
 			AuthData:       append(authData, babe.NewAuthorityData(keys[0].Public().(*sr25519.PublicKey), index)),
 			EpochThreshold: big.NewInt(0),
@@ -281,6 +300,11 @@ func (s *Service) receiveMessages() {
 
 // handleReceivedBlock handles blocks from the BABE session
 func (s *Service) handleReceivedBlock(block types.Block) (err error) {
+	err = s.blockState.SetHeader(block.Header)
+	if err != nil {
+		return err
+	}
+
 	msg := &p2p.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -323,21 +347,39 @@ func (s *Service) handleReceivedMessage(msg p2p.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg p2p.Message) error {
+	data := msg.(*p2p.BlockAnnounceMessage)
+
+	header, err := types.NewHeader(data.ParentHash, data.Number, data.StateRoot, data.ExtrinsicsRoot, data.Digest)
+	if err != nil {
+		return err
+	}
 
 	// TODO: check if we should send block request message
 
 	// TODO: update message properties and use generated id
-	blockRequest := &p2p.BlockRequestMessage{
-		ID:            1,
-		RequestedData: 2,
-		StartingBlock: []byte{},
-		EndBlockHash:  optional.NewHash(true, common.Hash{}),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
-	}
+	// blockRequest := &p2p.BlockRequestMessage{
+	// 	ID:            1,
+	// 	RequestedData: 2,
+	// 	StartingBlock: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1},
+	// 	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	// 	Direction:     1,
+	// 	Max:           optional.NewUint32(false, 0),
+	// }
 
 	// send block request message to p2p service
-	s.msgSend <- blockRequest
+	//s.msgSend <- blockRequest
+
+	_, err = s.blockState.GetHeader(header.Hash())
+	if err != nil && err.Error() == "Key not found" {
+		err = s.blockState.SetHeader(header)
+		if err != nil {
+			return err
+		}		
+	} else {
+		return err
+	}
+
+	log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
 
 	return nil
 }

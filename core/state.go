@@ -26,6 +26,8 @@ type BlockState interface {
 	LatestHeader() *types.Header
 	AddBlock(*types.Block) error
 	SetBlock(*types.Block) error
+	SetHeader(*types.Header) error
+	GetHeader(common.Hash) (*types.Header, error)
 }
 
 // StorageState interface for storage state methods
@@ -34,5 +36,5 @@ type StorageState interface {
 	SetStorage([]byte, []byte) error
 	GetStorage([]byte) ([]byte, error)
 	StoreInDB() error
-	SetLatestHeaderHash(hash []byte) error
+	SetLatestHeaderHash([]byte) error
 }
