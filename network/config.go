@@ -121,8 +121,8 @@ func (c *Config) checkState() (err error) {
 	return err
 }
 
-// buildIdentity attempts to load the p2p private key required to start the
-// servce, if a key does not exist or cannot be loaded, it creates a new key
+// buildIdentity attempts to load the private key required to start the network
+// service, if a key does not exist or cannot be loaded, it creates a new key
 // using the random seed (if random seed is not set, creates new random key)
 func (c *Config) buildIdentity() error {
 	if c.RandSeed == 0 {

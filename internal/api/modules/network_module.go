@@ -17,6 +17,7 @@
 package module
 
 import (
+	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -27,9 +28,9 @@ type NetworkModule struct {
 
 // NetworkAPI is the interface for the network package
 type NetworkAPI interface {
-	Health() network.Health
-	NetworkState() network.NetworkState
-	Peers() []network.PeerInfo
+	Health() common.Health
+	NetworkState() common.NetworkState
+	Peers() []common.PeerInfo
 }
 
 // NewNetworkModule implements NetworkAPI
@@ -38,19 +39,19 @@ func NewNetworkModule(networkAPI NetworkAPI) *NetworkModule {
 }
 
 // Health returns network service Health()
-func (m *NetworkModule) Health() network.Health {
+func (m *NetworkModule) Health() common.Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
 	return m.NetworkAPI.Health()
 }
 
 // NetworkState returns network service NetworkState()
-func (m *NetworkModule) NetworkState() network.NetworkState {
+func (m *NetworkModule) NetworkState() common.NetworkState {
 	log.Debug("[rpc] Executing System.NetworkState", "params", nil)
 	return m.NetworkAPI.NetworkState()
 }
 
 // Peers returns network service Peers()
-func (m *NetworkModule) Peers() []network.PeerInfo {
+func (m *NetworkModule) Peers() []common.PeerInfo {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
 	return m.NetworkAPI.Peers()
 }

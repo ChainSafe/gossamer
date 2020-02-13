@@ -58,17 +58,17 @@ func (r *MockRuntimeAPI) Version() string {
 // MockNetworkAPI Mock NetworkAPI
 type MockNetworkAPI struct{}
 
-func (n *MockNetworkAPI) Health() network.Health {
+func (n *MockNetworkAPI) Health() common.Health {
 	return testHealth
 }
 
 // NetworkState is the Mock for NetworkState
-func (n *MockNetworkAPI) NetworkState() network.NetworkState {
+func (n *MockNetworkAPI) NetworkState() common.NetworkState {
 	return testNetworkState
 }
 
 // Peers is the Mock for Peers
-func (n *MockNetworkAPI) Peers() []network.PeerInfo {
+func (n *MockNetworkAPI) Peers() []common.PeerInfo {
 	return testPeers
 }
 

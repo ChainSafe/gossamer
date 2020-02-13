@@ -64,7 +64,7 @@ var (
 	}
 	// PortFlag Set network listening port
 	PortFlag = cli.UintFlag{
-		Name:  "p2pport",
+		Name:  "port",
 		Usage: "Set network listening port",
 	}
 	// ProtocolIDFlag Set protocol id

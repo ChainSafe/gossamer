@@ -60,15 +60,15 @@ func (r *MockRuntimeAPI) Version() string {
 // Mock network API
 type MockNetworkAPI struct{}
 
-func (n *MockP2pAPI) Health() common.Health {
+func (n *MockNetworkAPI) Health() common.Health {
 	return testHealth
 }
 
-func (n *MockP2pAPI) NetworkState() common.NetworkState {
+func (n *MockNetworkAPI) NetworkState() common.NetworkState {
 	return testNetworkState
 }
 
-func (n *MockP2pAPI) Peers() []common.PeerInfo {
+func (n *MockNetworkAPI) Peers() []common.PeerInfo {
 	return testPeers
 }
 

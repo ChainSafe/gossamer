@@ -36,7 +36,7 @@ var (
 	}
 	networkFlags = []cli.Flag{
 		BootnodesFlag,
-		P2pPortFlag,
+		PortFlag,
 		ProtocolIDFlag,
 		NoBootstrapFlag,
 		NoMdnsFlag,
