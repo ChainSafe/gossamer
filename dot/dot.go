@@ -22,25 +22,22 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/internal/services"
-	//"github.com/ChainSafe/gossamer/rpc"
 	log "github.com/ChainSafe/log15"
 )
 
 // Dot is a container for all the components of a node.
 type Dot struct {
-	Name     string
-	Services *services.ServiceRegistry // Registry of all core services
-	//RPC       *rpc.HTTPServer           // HTTP instance for RPC server
-	IsStarted chan struct{} // Signals node startup complete
-	stop      chan struct{} // Used to signal node shutdown
+	Name      string
+	Services  *services.ServiceRegistry // Registry of all core services
+	IsStarted chan struct{}             // Signals node startup complete
+	stop      chan struct{}             // Used to signal node shutdown
 }
 
 // NewDot initializes a Dot with provided components.
 func NewDot(name string, srvcs []services.Service) *Dot {
 	d := &Dot{
-		Name:     name,
-		Services: services.NewServiceRegistry(),
-		//RPC:       rpc,
+		Name:      name,
+		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
 		stop:      nil,
 	}
@@ -56,9 +53,6 @@ func NewDot(name string, srvcs []services.Service) *Dot {
 func (d *Dot) Start() {
 	log.Debug("Starting core services.")
 	d.Services.StartAll()
-	// if d.RPC != nil {
-	// 	d.RPC.Start()
-	// }
 
 	d.stop = make(chan struct{})
 	go func() {

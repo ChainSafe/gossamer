@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	//"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
