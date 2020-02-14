@@ -1,6 +1,11 @@
 package core
 
 import (
+	"io/ioutil"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/keystore"
@@ -10,10 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/tests"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func TestProcessBlockRequestMsgType(t *testing.T) {
