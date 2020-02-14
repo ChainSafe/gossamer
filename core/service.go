@@ -326,7 +326,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 			Digest:         blockAnnounceMessage.Digest,
 		}
 
-		// send block request message to network service
+		// send blockAnnounce message to network service
+		log.Debug("send blockAnnounce message to network service")
 		s.msgSend <- blockAnnounce
 
 	} else {
@@ -349,6 +350,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		s.requestedBlockIDs[randomID] = true
 
 		// send block request message to network service
+		log.Debug("send blockRequest message to network service")
 		s.msgSend <- blockRequest
 
 	}

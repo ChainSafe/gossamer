@@ -17,16 +17,13 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/trie"
 	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
@@ -173,104 +170,76 @@ func TestAnnounceBlock(t *testing.T) {
 }
 
 func TestProcessBlockAnnounceMessage(t *testing.T) {
-	testCases := []struct {
-		name          string
-		blockAnnounce *network.BlockAnnounceMessage
-		msgType       int
-		msgTypeString string
-	}{
-		{
-			name: "should respond with a BlockRequestMsgType for block 1 BlockAnnounceMessage",
-			blockAnnounce: &network.BlockAnnounceMessage{
-				Number:         big.NewInt(1),
-				ParentHash:     common.Hash{},
-				StateRoot:      common.Hash{},
-				ExtrinsicsRoot: common.Hash{},
-				Digest:         [][]byte{},
-			},
-			msgType:       network.BlockRequestMsgType, //1
-			msgTypeString: "BlockRequestMsgType",
-		},
-		{
-			name: "should respond with a BlockAnnounceMessage for block 2 BlockAnnounceMessage",
-			blockAnnounce: &network.BlockAnnounceMessage{
-				Number:         big.NewInt(2),
-				ParentHash:     common.Hash{},
-				StateRoot:      common.Hash{},
-				ExtrinsicsRoot: common.Hash{},
-				Digest:         [][]byte{},
-			},
-			msgType:       network.BlockAnnounceMsgType, //3
-			msgTypeString: "BlockAnnounceMsgType",
-		},
+	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+
+	msgRec := make(chan network.Message)
+	msgSend := make(chan network.Message)
+
+	dataDir, err := ioutil.TempDir("", "./test_data")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, test := range testCases {
+	dbSrv := state.NewService(dataDir)
 
-		localTest := test
-		t.Run(test.name, func(t *testing.T) {
+	err = dbSrv.Initialize(&types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			msgRec := make(chan network.Message)
-			msgSend := make(chan network.Message)
+	defer func() {
+		err = dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
-			dataDir, err := ioutil.TempDir("", "./test_data")
-			if err != nil {
-				t.Fatal(err)
-			}
+	cfg := &Config{
+		Runtime:    rt,
+		MsgRec:     msgRec,
+		MsgSend:    msgSend,
+		Keystore:   keystore.NewKeystore(),
+		BlockState: dbSrv.Block,
+	}
 
-			dbSrv := state.NewService(dataDir)
-			err = dbSrv.Initialize(&types.Header{
-				Number:    big.NewInt(0),
-				StateRoot: trie.EmptyHash,
-			}, trie.NewEmptyTrie(nil))
-			if err != nil {
-				t.Fatal(err)
-			}
+	s, err := NewService(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			err = dbSrv.Start()
-			if err != nil {
-				t.Fatal(err)
-			}
+	err = s.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Stop()
 
-			defer func() {
-				err = dbSrv.Stop()
-				if err != nil {
-					t.Fatal(err)
-				}
-			}()
+	blockAnnounce := &network.BlockAnnounceMessage{
+		Number: big.NewInt(1),
+	}
 
-			cfg := &Config{
-				Runtime:    rt,
-				MsgRec:     msgRec,
-				MsgSend:    msgSend,
-				Keystore:   keystore.NewKeystore(),
-				BlockState: dbSrv.Block,
-			}
+	// simulate mssage sent from network service
+	msgRec <- blockAnnounce
 
-			s, err := NewService(cfg)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			err = s.Start()
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer s.Stop()
-
-			// simulate message sent from network service
-			msgRec <- localTest.blockAnnounce
-
-			select {
-			case msg := <-msgSend:
-				msgType := msg.GetType()
-				require.Equal(t, localTest.msgType, msgType)
-			case <-time.After(TestMessageTimeout):
-				t.Error("timeout waiting for message")
-			}
-		})
+	select {
+	case msg := <-msgSend:
+		msgType := msg.GetType()
+		if msgType != network.BlockRequestMsgType {
+			t.Error(
+				"received unexpected message type",
+				"\nexpected:", network.BlockRequestMsgType,
+				"\nreceived:", msgType,
+			)
+		}
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
 	}
 }
 
