@@ -17,13 +17,14 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
 	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/trie"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
