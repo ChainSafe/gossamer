@@ -77,6 +77,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	case []*big.Int:
 		out, err = sd.DecodeBigIntArray()
 	case common.Hash, [32]byte:
+		sd.ReadByte()
+		//out, err = sd.DecodeByteArray()
 		b := make([]byte, 32)
 		_, err = sd.Reader.Read(b)
 		out = b

@@ -328,6 +328,9 @@ var decodeArrayTests = []decodeArrayTest{
 	{val: []byte{0x08, 0x00, 0x04}, t: make([]*big.Int, 2), output: []*big.Int{big.NewInt(0), big.NewInt(1)}},
 	{val: append([]byte{0x8}, byteArray64[:]...), t: [][32]byte{{}, {}}, output: [][32]byte{byteArray32, byteArray32}},
 	{val: []byte{0x4, 0x04, 0x01}, t: [][]byte{{}}, output: [][]byte{{0x01}}},
+	// todo ed, figure out these test cases
+	//{val: []byte{0x80, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, t: common.Hash{}, output: common.Hash{0xff}},
+	//{val: []byte{0x80, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, t: []byte{}, output: []byte{0xff,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
 }
 
 var reverseByteTests = []reverseByteTest{
@@ -429,6 +432,23 @@ func TestDecodeFixedWidthInts(t *testing.T) {
 			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
 		}
 	}
+	for _, test := range decodeFixedWidthIntTestsInt {
+		output, err := Decode(test.val, int(0))
+		if err != nil {
+			t.Error(err)
+		} else if output.(int) != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
+		}
+	}
+
+	for _, test := range decodeFixedWidthIntTestsUint {
+		output, err := Decode(test.val, uint(0))
+		if err != nil {
+			t.Error(err)
+		} else if output.(uint) != test.output {
+			t.Errorf("Fail: input %d got %d expected %d", test.val, output, test.output)
+		}
+	}
 }
 
 func TestDecodeBigInts(t *testing.T) {
@@ -503,7 +523,8 @@ func TestDecodeArrays(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
+			//t.Errorf("Fail: got %d expected %d", output, test.output)
+			t.Errorf("Fail: got %v expected %v", output, test.output)
 		}
 	}
 }
