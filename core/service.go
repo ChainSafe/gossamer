@@ -287,7 +287,7 @@ func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 	if s.blockState == nil {
 		return fmt.Errorf("blockState is nil")
 	}
-	
+
 	err = s.blockState.SetHeader(block.Header)
 	if err != nil {
 		return err
@@ -362,7 +362,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		err = s.blockState.SetHeader(header)
 		if err != nil {
 			return err
-		}		
+		}
 	} else {
 		return err
 	}

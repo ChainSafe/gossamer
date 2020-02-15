@@ -195,7 +195,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 		// }
 
 		//log.Debug("handleStream", "byte0", b, "byte1", b1)
-		
+
 		// decode message based on message type
 		msg, err := decodeMessage(r)
 		if err != nil {

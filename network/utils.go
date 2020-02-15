@@ -28,12 +28,11 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/common"
+	log "github.com/ChainSafe/log15"
 	"github.com/filecoin-project/go-leb128"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	log "github.com/ChainSafe/log15"
-
 )
 
 // stringToAddrInfos converts a single string peer id to AddrInfo

@@ -117,13 +117,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		StorageState:  stateSrv.Storage,
 		Keystore:      ks,
 		Runtime:       rt,
-<<<<<<< HEAD
-		MsgRec:        p2pMsgSend, // message channel from p2p service to core service
-		MsgSend:       p2pMsgRec,  // message channel from core service to p2p service
-=======
 		MsgRec:        networkMsgSend, // message channel from network service to core service
 		MsgSend:       networkMsgRec,  // message channel from core service to network service
->>>>>>> 87fb006134fa8d6ece4aadfdbb3c88188bd629b8
 		BabeAuthority: currentConfig.Global.Authority,
 	}
 	coreSrvc := createCoreService(coreConfig)
