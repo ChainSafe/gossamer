@@ -32,8 +32,9 @@ type Config struct {
 }
 
 type GlobalConfig struct {
-	DataDir string `toml:"data-dir"`
-	Roles   byte   `toml:"roles"`
+	DataDir   string `toml:"data-dir"`
+	Roles     byte   `toml:"roles"`
+	Authority bool   `toml:"authority"`
 }
 
 type NetworkCfg struct {
