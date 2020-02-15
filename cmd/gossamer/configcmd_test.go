@@ -201,12 +201,6 @@ func TestSetGlobalConfig(t *testing.T) {
 	}
 }
 
-func TestCreateNetworkService(t *testing.T) {
-	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
-	require.NotNil(t, srv, "failed to create network service")
-}
-
 func TestSetNetworkConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 	app := cli.NewApp()

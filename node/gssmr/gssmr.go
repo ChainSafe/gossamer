@@ -17,13 +17,24 @@
 package gssmr
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/ChainSafe/gossamer/common"
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config/genesis"
+	"github.com/ChainSafe/gossamer/core"
+	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
+	"github.com/urfave/cli"
 )
 
 // Node is a container for all the components of a node.
@@ -86,4 +97,127 @@ func (d *Node) Stop() {
 	if d.stop != nil {
 		close(d.stop)
 	}
+}
+
+// MakeNode sets up node; opening badgerDB instance and returning the Node container
+func MakeNode(ctx *cli.Context, currentConfig *cfg.Config, ks *keystore.Keystore) (*Node, *cfg.Config, error) {
+	var srvcs []services.Service
+
+	dataDir := currentConfig.Global.DataDir
+
+	// Create service, initialize stateDB and blockDB
+	stateSrv := state.NewService(dataDir)
+	srvcs = append(srvcs, stateSrv)
+
+	err := stateSrv.Start()
+	if err != nil {
+		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
+	}
+
+	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
+	rt, err := loadStateAndRuntime(stateSrv.Storage, ks)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
+	}
+
+	// load genesis from JSON file
+	gendata, err := stateSrv.Storage.LoadGenesisData()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: Configure node based on Roles #601
+
+	// Network
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(currentConfig, gendata, stateSrv)
+	srvcs = append(srvcs, networkSrvc)
+
+	// Core
+	coreConfig := &core.Config{
+		BlockState:    stateSrv.Block,
+		StorageState:  stateSrv.Storage,
+		Keystore:      ks,
+		Runtime:       rt,
+		MsgRec:        networkMsgSend, // message channel from network service to core service
+		MsgSend:       networkMsgRec,  // message channel from core service to network service
+		BabeAuthority: currentConfig.Global.Authority,
+	}
+	coreSrvc := createCoreService(coreConfig)
+	srvcs = append(srvcs, coreSrvc)
+
+	// API
+	apiSrvc := api.NewAPIService(networkSrvc, nil)
+	srvcs = append(srvcs, apiSrvc)
+
+	return NewNode(gendata.Name, srvcs, nil), currentConfig, nil
+}
+
+func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
+	latestState, err := ss.LoadHash()
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state root hash: %s", err)
+	}
+
+	err = ss.LoadFromDB(latestState)
+	if err != nil {
+		return nil, fmt.Errorf("cannot load latest state: %s", err)
+	}
+
+	code, err := ss.GetStorage([]byte(":code"))
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving :code from trie: %s", err)
+	}
+
+	return runtime.NewRuntime(code, ss, ks)
+}
+
+// createNetworkService creates a network service from the command configuration and genesis data
+func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+	// Default bootnodes and protocol from genesis file
+	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
+	protocolID := gendata.ProtocolID
+
+	// If bootnodes flag has one or more bootnodes, overwrite genesis bootnodes
+	if len(fig.Network.Bootnodes) > 0 {
+		bootnodes = fig.Network.Bootnodes
+	}
+
+	// If protocol id flag is not an empty string, overwrite
+	if fig.Network.ProtocolID != "" {
+		protocolID = fig.Network.ProtocolID
+	}
+
+	// network service configuation
+	networkConfig := network.Config{
+		BlockState:   stateService.Block,
+		StorageState: stateService.Storage,
+		NetworkState: stateService.Network,
+		DataDir:      fig.Global.DataDir,
+		Roles:        fig.Global.Roles,
+		Port:         fig.Network.Port,
+		Bootnodes:    bootnodes,
+		ProtocolID:   protocolID,
+		NoBootstrap:  fig.Network.NoBootstrap,
+		NoMdns:       fig.Network.NoMdns,
+	}
+
+	networkMsgRec := make(chan network.Message)
+	networkMsgSend := make(chan network.Message)
+
+	networkService, err := network.NewService(&networkConfig, networkMsgSend, networkMsgRec)
+	if err != nil {
+		log.Error("Failed to create new network service", "err", err)
+	}
+
+	return networkService, networkMsgSend, networkMsgRec
+}
+
+// createCoreService creates the core service from the provided core configuration
+func createCoreService(coreConfig *core.Config) *core.Service {
+	coreService, err := core.NewService(coreConfig)
+	if err != nil {
+		log.Error("Failed to create new core service", "err", err)
+	}
+
+	return coreService
 }
