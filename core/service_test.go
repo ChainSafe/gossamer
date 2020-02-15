@@ -360,3 +360,19 @@ func TestProcessTransactionMessage(t *testing.T) {
 		)
 	}
 }
+
+func TestService_NotAuthority(t *testing.T) {
+	cfg := &Config{
+		Keystore:      keystore.NewKeystore(),
+		BabeAuthority: false,
+	}
+
+	s, err := NewService(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if s.bs != nil {
+		t.Fatal("Fail: should not have babe session")
+	}
+}

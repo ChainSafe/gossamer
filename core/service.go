@@ -123,7 +123,9 @@ func NewService(cfg *Config) (*Service, error) {
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			return nil, fmt.Errorf("could not start babe session: %s", err)
+			log.Error("[core] could not start babe session", "error", err)
+			srv.babeAuthority = false
+			return nil, nil
 		}
 
 		srv.bs = bs
@@ -186,6 +188,9 @@ func (s *Service) Stop() error {
 
 // StorageRoot returns the hash of the runtime storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
+	if s.storageState == nil {
+		return common.Hash{}, fmt.Errorf("storage state is nil")
+	}
 	return s.storageState.StorageRoot()
 }
 
@@ -418,8 +423,10 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		// create new valid transaction
 		vtx := transaction.NewValidTransaction(tx, val)
 
-		// push to the transaction queue of BABE session
-		s.bs.PushToTxQueue(vtx)
+		if s.babeAuthority {
+			// push to the transaction queue of BABE session
+			s.bs.PushToTxQueue(vtx)
+		}
 	}
 
 	return nil
@@ -452,6 +459,10 @@ func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 		return err
 	}
 
-	// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
-	return s.bs.SetEpochData(epochData)
+	if s.babeAuthority {
+		// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
+		s.bs.SetEpochData(epochData)
+	}
+
+	return nil
 }
