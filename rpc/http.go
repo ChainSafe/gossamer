@@ -61,12 +61,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 // Start registers the rpc handler function and starts the server listening on `h.port`
 func (h *HTTPServer) Start() error {
 	log.Debug("[rpc] Starting HTTP Server...", "host", h.Host, "port", h.Port)
-	http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
-
-	// mockHandler := func(w http.ResponseWriter, req *http.Request) {
-	// 	io.WriteString(w, "Hello, world!\n")
-	// }
-
+	//http.HandleFunc("/rpc", h.rpcServer.ServeHTTP)
 	http.HandleFunc("/", h.rpcServer.ServeHTTP)
 
 	go func() {

@@ -100,11 +100,11 @@ func (s *Service) Start() error {
 		s.mdns.start()
 	}
 
-	// if s.cfg.NetworkState != nil {
-	// 	s.SetHealth()
-	// 	s.SetNetworkState()
-	// 	s.SetPeers()
-	// }
+	if s.cfg.NetworkState != nil {
+		s.SetHealth()
+		s.SetNetworkState()
+		s.SetPeers()
+	}
 
 	return nil
 }

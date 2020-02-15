@@ -78,31 +78,37 @@ func NewAuthorModule(api *state.Service) *AuthorModule {
 }
 
 // InsertKey Insert a key into the keystore
-func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
+func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	_ = cm.api
+	return nil
 }
 
 // PendingExtrinsics Returns all pending extrinsics
-func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) {
+func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
+	return nil
 }
 
 // RemoveExtrinsic Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
-func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) {
+func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) error {
+	return nil
 }
 
 // RotateKeys Generate new session keys and returns the corresponding public keys
-func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) {
+func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) error {
+	return nil
 }
 
 // SubmitAndWatchExtrinsic Submit and subscribe to watch an extrinsic until unsubscribed
-func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) {
+func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) error {
+	return nil
 }
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
-func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) {
+func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
 	vtx := tx.NewValidTransaction(types.Extrinsic(*req), &tx.Validity{})
 	cm.api.TxQueue.Push(vtx)
 	hash, _ := common.Blake2bHash(*req)
 	*res = ExtrinsicHashResponse(hash)
-	log.Info("[rpc] submitted extrinsic", vtx)
+	log.Info("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
+	return nil
 }

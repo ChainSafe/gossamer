@@ -129,7 +129,7 @@ func NewService(cfg *Config) (*Service, error) {
 		if err != nil {
 			log.Error("[core] could not start babe session", "error", err)
 			srv.isBabeAuthority = false
-			return nil, nil
+			return srv, nil
 		}
 
 		srv.bs = bs
@@ -166,7 +166,7 @@ func (s *Service) Start() error {
 
 		err := s.bs.Start()
 		if err != nil {
-			log.Error("core could not start BABE", "error", err)
+			log.Error("[core] could not start BABE", "error", err)
 		}
 
 		return err
@@ -207,12 +207,12 @@ func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 func (s *Service) handleBabeSession() {
 	for {
 		<-s.epochDone
-		log.Trace("core: BABE epoch complete, initializing new session")
+		log.Debug("[core] BABE epoch complete, initializing new session")
 
 		// commit the storage trie to the DB
 		err := s.storageState.StoreInDB()
 		if err != nil {
-			log.Error("core", "error", err)
+			log.Error("[core]", "error", err)
 		}
 
 		newBlocks := make(chan types.Block)
@@ -228,6 +228,7 @@ func (s *Service) handleBabeSession() {
 			NewBlocks:    newBlocks, // becomes block send channel in BABE session
 			BlockState:   s.blockState,
 			StorageState: s.storageState,
+			TxQueue:      s.txQueue,
 			AuthData:     s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:         epochDone,
 		}
@@ -235,17 +236,17 @@ func (s *Service) handleBabeSession() {
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			log.Error("core could not initialize BABE", "error", err)
+			log.Error("[core] could not initialize BABE", "error", err)
 			return
 		}
 
 		err = bs.Start()
 		if err != nil {
-			log.Error("core could not start BABE", "error", err)
+			log.Error("[core] could not start BABE", "error", err)
 		}
 
 		s.bs = bs
-		log.Trace("core: BABE session initialized and started")
+		log.Trace("[core] BABE session initialized and started")
 	}
 }
 
@@ -254,13 +255,10 @@ func (s *Service) receiveBlocks() {
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
-		if !ok {
-			// epoch complete
-			log.Debug("core: BABE session complete")
-		} else {
+		if ok {
 			err := s.handleReceivedBlock(block)
 			if err != nil {
-				log.Error("Failed to handle block from BABE session", "err", err)
+				log.Error("[core] failed to handle block from BABE session", "err", err)
 			}
 		}
 	}
@@ -272,12 +270,12 @@ func (s *Service) receiveMessages() {
 		// receive message from network service
 		msg, ok := <-s.msgRec
 		if !ok {
-			log.Error("Failed to receive message from network service")
+			log.Error("[core] failed to receive message from network service")
 			return // exit
 		}
 		err := s.handleReceivedMessage(msg)
 		if err != nil {
-			log.Error("Failed to handle message from network service", "err", err)
+			log.Error("[core] failed to handle message from network service", "err", err)
 		}
 	}
 }
@@ -397,7 +395,7 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 
 			err = s.executeBlock(enc)
 			if err != nil {
-				log.Error("Failed to validate block", "err", err)
+				log.Error("[core] failed to validate block", "err", err)
 				return err
 			}
 		}
@@ -421,7 +419,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		// validate each transaction
 		val, err := s.validateTransaction(tx)
 		if err != nil {
-			log.Error("Failed to validate transaction", "err", err)
+			log.Error("[core] failed to validate transaction", "err", err)
 			return err // exit
 		}
 
