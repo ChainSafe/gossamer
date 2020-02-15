@@ -40,11 +40,11 @@ func TestStartService(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      keystore.NewKeystore(),
-		MsgRec:        make(chan network.Message),
-		MsgSend:       make(chan network.Message),
-		BabeAuthority: false,
+		Runtime:         rt,
+		Keystore:        keystore.NewKeystore(),
+		MsgRec:          make(chan network.Message),
+		MsgSend:         make(chan network.Message),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -64,9 +64,9 @@ func TestValidateBlock(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: false,
+		Runtime:         rt,
+		Keystore:        keystore.NewKeystore(),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -88,9 +88,9 @@ func TestValidateTransaction(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: false,
+		Runtime:         rt,
+		Keystore:        keystore.NewKeystore(),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -132,11 +132,11 @@ func TestAnnounceBlock(t *testing.T) {
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		Runtime:       rt,
-		MsgSend:       msgSend, // message channel from core service to network service
-		Keystore:      keystore.NewKeystore(),
-		NewBlocks:     newBlocks,
-		BabeAuthority: false,
+		Runtime:         rt,
+		MsgSend:         msgSend, // message channel from core service to network service
+		Keystore:        keystore.NewKeystore(),
+		NewBlocks:       newBlocks,
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -179,11 +179,11 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 	msgSend := make(chan network.Message)
 
 	cfg := &Config{
-		Runtime:       rt,
-		MsgRec:        msgRec,
-		MsgSend:       msgSend,
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: false,
+		Runtime:         rt,
+		MsgRec:          msgRec,
+		MsgSend:         msgSend,
+		Keystore:        keystore.NewKeystore(),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -238,9 +238,9 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      ks,
-		BabeAuthority: false,
+		Runtime:         rt,
+		Keystore:        ks,
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -328,9 +328,9 @@ func TestProcessTransactionMessage(t *testing.T) {
 	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      ks,
-		BabeAuthority: true,
+		Runtime:         rt,
+		Keystore:        ks,
+		IsBabeAuthority: true,
 	}
 
 	s, err := NewService(cfg)
@@ -363,8 +363,8 @@ func TestProcessTransactionMessage(t *testing.T) {
 
 func TestService_NotAuthority(t *testing.T) {
 	cfg := &Config{
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: false,
+		Keystore:        keystore.NewKeystore(),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)

@@ -40,28 +40,28 @@ var _ services.Service = &Service{}
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	blockState    BlockState
-	storageState  StorageState
-	rt            *runtime.Runtime
-	bs            *babe.Session
-	keys          []crypto.Keypair
-	blkRec        <-chan types.Block     // receive blocks from BABE session
-	msgRec        <-chan network.Message // receive messages from network service
-	epochDone     <-chan struct{}        // receive from this channel when BABE epoch changes
-	msgSend       chan<- network.Message // send messages to network service
-	babeAuthority bool
+	blockState      BlockState
+	storageState    StorageState
+	rt              *runtime.Runtime
+	bs              *babe.Session
+	keys            []crypto.Keypair
+	blkRec          <-chan types.Block     // receive blocks from BABE session
+	msgRec          <-chan network.Message // receive messages from network service
+	epochDone       <-chan struct{}        // receive from this channel when BABE epoch changes
+	msgSend         chan<- network.Message // send messages to network service
+	isBabeAuthority bool
 }
 
 // Config holds the config obj
 type Config struct {
-	BlockState    BlockState
-	StorageState  StorageState
-	Keystore      *keystore.Keystore
-	Runtime       *runtime.Runtime
-	MsgRec        <-chan network.Message
-	MsgSend       chan<- network.Message
-	NewBlocks     chan types.Block // only used for testing purposes
-	BabeAuthority bool
+	BlockState      BlockState
+	StorageState    StorageState
+	Keystore        *keystore.Keystore
+	Runtime         *runtime.Runtime
+	MsgRec          <-chan network.Message
+	MsgSend         chan<- network.Message
+	NewBlocks       chan types.Block // only used for testing purposes
+	IsBabeAuthority bool
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -89,19 +89,19 @@ func NewService(cfg *Config) (*Service, error) {
 
 	var srv = &Service{}
 
-	if cfg.BabeAuthority {
+	if cfg.IsBabeAuthority {
 		epochDone := make(chan struct{})
 
 		srv = &Service{
-			rt:            cfg.Runtime,
-			keys:          keys,
-			blkRec:        cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:        cfg.MsgRec,
-			msgSend:       cfg.MsgSend,
-			blockState:    cfg.BlockState,
-			storageState:  cfg.StorageState,
-			epochDone:     epochDone,
-			babeAuthority: true,
+			rt:              cfg.Runtime,
+			keys:            keys,
+			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:          cfg.MsgRec,
+			msgSend:         cfg.MsgSend,
+			blockState:      cfg.BlockState,
+			storageState:    cfg.StorageState,
+			epochDone:       epochDone,
+			isBabeAuthority: true,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -124,21 +124,21 @@ func NewService(cfg *Config) (*Service, error) {
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
 			log.Error("[core] could not start babe session", "error", err)
-			srv.babeAuthority = false
+			srv.isBabeAuthority = false
 			return nil, nil
 		}
 
 		srv.bs = bs
 	} else {
 		srv = &Service{
-			rt:            cfg.Runtime,
-			keys:          keys,
-			blkRec:        cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:        cfg.MsgRec,
-			msgSend:       cfg.MsgSend,
-			blockState:    cfg.BlockState,
-			storageState:  cfg.StorageState,
-			babeAuthority: false,
+			rt:              cfg.Runtime,
+			keys:            keys,
+			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:          cfg.MsgRec,
+			msgSend:         cfg.MsgSend,
+			blockState:      cfg.BlockState,
+			storageState:    cfg.StorageState,
+			isBabeAuthority: false,
 		}
 	}
 
@@ -155,7 +155,7 @@ func (s *Service) Start() error {
 	// start receiving messages from network service
 	go s.receiveMessages()
 
-	if s.babeAuthority {
+	if s.isBabeAuthority {
 		// monitor babe session for epoch changes
 		go s.handleBabeSession()
 
@@ -423,7 +423,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		// create new valid transaction
 		vtx := transaction.NewValidTransaction(tx, val)
 
-		if s.babeAuthority {
+		if s.isBabeAuthority {
 			// push to the transaction queue of BABE session
 			s.bs.PushToTxQueue(vtx)
 		}
@@ -459,7 +459,7 @@ func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 		return err
 	}
 
-	if s.babeAuthority {
+	if s.isBabeAuthority {
 		// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
 		err = s.bs.SetEpochData(epochData)
 		if err != nil {
