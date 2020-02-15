@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package cfg
+package config
 
 import (
 	"encoding/json"
@@ -34,6 +34,7 @@ type Config struct {
 
 type GlobalConfig struct {
 	DataDir   string `toml:"data-dir"`
+	Chain     string `toml:"chain"`
 	Roles     byte   `toml:"roles"`
 	Authority bool   `toml:"authority"`
 }

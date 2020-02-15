@@ -27,6 +27,11 @@ var (
 		Name:  "datadir",
 		Usage: "Data directory for the database",
 	}
+	// ChainFlag node implementation
+	ChainFlag = cli.StringFlag{
+		Name:  "chain",
+		Usage: "Node implementation",
+	}
 	// RolesFlag role of the node (0 = no network, 1 = full node, ...)
 	RolesFlag = cli.StringFlag{
 		Name:  "roles",

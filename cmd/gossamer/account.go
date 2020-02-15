@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/crypto/secp256k1"
@@ -243,7 +243,7 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 		}
 	} else {
 		// datadir not specified, return ~/.gossamer/keystore as absolute path
-		datadir = cfg.DefaultDataDir()
+		datadir = config.DefaultDataDir()
 
 		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {

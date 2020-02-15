@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/ChainSafe/gossamer/node/gssmr"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -29,6 +30,7 @@ var (
 	app       = cli.NewApp()
 	nodeFlags = []cli.Flag{
 		DataDirFlag,
+		ChainFlag,
 		RolesFlag,
 		ConfigFileFlag,
 		UnlockFlag,
@@ -82,6 +84,7 @@ var (
 		ArgsUsage: "",
 		Flags: []cli.Flag{
 			DataDirFlag,
+			ChainFlag,
 			GenesisFlag,
 			VerbosityFlag,
 			ConfigFileFlag,
@@ -93,7 +96,7 @@ var (
 		Action:   FixFlagOrder(handleAccounts),
 		Name:     "account",
 		Usage:    "manage gossamer keystore",
-		Flags:    append(append(accountFlags, DataDirFlag), VerbosityFlag),
+		Flags:    append(append(accountFlags, DataDirFlag, ChainFlag), VerbosityFlag),
 		Category: "KEYSTORE",
 		Description: "The account command is used to manage the gossamer keystore.\n" +
 			"\tTo generate a new sr25519 account: gossamer account --generate\n" +
@@ -154,13 +157,14 @@ func initNode(ctx *cli.Context) error {
 		return err
 	}
 
+	log.Info("Initializing node...")
+
 	err = loadGenesis(ctx)
 	if err != nil {
 		log.Error("error loading genesis state", "error", err)
 		return err
 	}
 
-	log.Info("🕸\t Finished initializing node!")
 	return nil
 }
 
@@ -171,13 +175,36 @@ func gossamer(ctx *cli.Context) error {
 		return err
 	}
 
-	node, _, err := makeNode(ctx)
+	log.Info("Building configuration...")
+
+	cfg, err := buildConfig(ctx)
 	if err != nil {
-		log.Error("error starting gossamer", "err", err)
+		log.Error("error configuring node", "err", err)
 		return err
 	}
 
-	log.Info("🕸️\t Starting node...", "name", node.Name)
+	log.Info("Unlocking account...")
+
+	ks, err := unlockAccount(ctx, cfg)
+	if err != nil {
+		log.Error("error unlocking account", "err", err)
+		return err
+	}
+
+	log.Info(
+		"Making node...",
+		"DataDir", cfg.Global.DataDir,
+		"Chain", cfg.Global.Chain,
+	)
+
+	node, err := gssmr.MakeNode(ctx, cfg, ks)
+	if err != nil {
+		log.Error("error making node", "err", err)
+		return err
+	}
+
+	log.Info("Starting node...", "name", node.Name)
+
 	node.Start()
 
 	return nil

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package cfg
+package config
 
 import (
 	"os"
@@ -51,6 +51,7 @@ var (
 	// DefaultGlobalConfig Global
 	DefaultGlobalConfig = GlobalConfig{
 		DataDir:   DefaultDataDir(),
+		Chain:     "gssmr",
 		Roles:     byte(1), // full node
 		Authority: true,    // BABE block producer
 	}

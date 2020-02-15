@@ -23,7 +23,7 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/common"
-	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/internal/api"
@@ -100,7 +100,7 @@ func (d *Node) Stop() {
 }
 
 // MakeNode sets up node; opening badgerDB instance and returning the Node container
-func MakeNode(ctx *cli.Context, currentConfig *cfg.Config, ks *keystore.Keystore) (*Node, *cfg.Config, error) {
+func MakeNode(ctx *cli.Context, currentConfig *config.Config, ks *keystore.Keystore) (*Node, error) {
 	var srvcs []services.Service
 
 	dataDir := currentConfig.Global.DataDir
@@ -111,19 +111,19 @@ func MakeNode(ctx *cli.Context, currentConfig *cfg.Config, ks *keystore.Keystore
 
 	err := stateSrv.Start()
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
+		return nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
 	rt, err := loadStateAndRuntime(stateSrv.Storage, ks)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error loading state and runtime: %s", err)
+		return nil, fmt.Errorf("error loading state and runtime: %s", err)
 	}
 
 	// load genesis from JSON file
 	gendata, err := stateSrv.Storage.LoadGenesisData()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// TODO: Configure node based on Roles #601
@@ -149,7 +149,7 @@ func MakeNode(ctx *cli.Context, currentConfig *cfg.Config, ks *keystore.Keystore
 	apiSrvc := api.NewAPIService(networkSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
-	return NewNode(gendata.Name, srvcs, nil), currentConfig, nil
+	return NewNode(gendata.Name, srvcs, nil), nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -172,7 +172,7 @@ func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtim
 }
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+func createNetworkService(fig *config.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID

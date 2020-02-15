@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -25,77 +26,75 @@ import (
 	"strings"
 	"unicode"
 
-	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/keystore"
-	"github.com/ChainSafe/gossamer/node/gssmr"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
-// makeNode reads the configuration and makes the node
-func makeNode(ctx *cli.Context) (*gssmr.Node, *cfg.Config, error) {
-	currentConfig, err := getConfig(ctx)
+// buildConfig updates initialized configuration from flags
+func buildConfig(ctx *cli.Context) (*config.Config, error) {
+
+	// initialized configuration
+	cfg, err := getConfig(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	log.Info("🕸\t Configuring node...", "datadir", currentConfig.Global.DataDir, "protocol", currentConfig.Network.ProtocolID, "bootnodes", currentConfig.Network.Bootnodes)
+	return cfg, nil
+}
 
-	dataDir := currentConfig.Global.DataDir
-
-	// load all static keys from keystore directory
+// unlockAccount
+func unlockAccount(ctx *cli.Context, cfg *config.Config) (*keystore.Keystore, error) {
+	// --unlock - load all static keys from keystore directory
 	ks := keystore.NewKeystore()
 	// unlock keys, if specified
 	if keyindices := ctx.String(UnlockFlag.Name); keyindices != "" {
-		err = unlockKeys(ctx, dataDir, ks)
+		err := unlockKeys(ctx, cfg.Global.DataDir, ks)
 		if err != nil {
-			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
+			return nil, fmt.Errorf("could not unlock keys: %s", err)
 		}
 	}
-
-	// BABE authority configuration; flag overwrites config option
-	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !currentConfig.Global.Authority {
-		currentConfig.Global.Authority = true
-	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && currentConfig.Global.Authority {
-		currentConfig.Global.Authority = false
-	}
-
-	log.Info("node", "authority", currentConfig.Global.Authority)
-
-	// TODO: make node based on implementation
-	return gssmr.MakeNode(ctx, currentConfig, ks)
+	return ks, nil
 }
 
-// getConfig checks for config.toml if --config flag is specified and sets CLI flags
-func getConfig(ctx *cli.Context) (*cfg.Config, error) {
-	currentConfig := cfg.DefaultConfig()
-	// Load config file.
-	if file := ctx.GlobalString(ConfigFileFlag.Name); file != "" {
-		configFile := ctx.GlobalString(ConfigFileFlag.Name)
-		err := loadConfig(configFile, currentConfig)
+// // getConfig checks for config.toml if --config flag is specified and sets CLI flags
+func getConfig(ctx *cli.Context) (*config.Config, error) {
+
+	// default configuration
+	cfg := config.DefaultConfig()
+
+	log.Info(
+		"Default configuration...",
+		"chain", cfg.Global.Chain,
+		"datadir", cfg.Global.DataDir,
+		"protocol", cfg.Network.ProtocolID,
+		"bootnodes", cfg.Network.Bootnodes,
+	)
+
+	// --config
+	if filename := ctx.GlobalString(ConfigFileFlag.Name); filename != "" {
+		err := loadConfig(filename, cfg)
 		if err != nil {
-			log.Warn("err loading toml file", "err", err.Error())
-			return currentConfig, err
+			log.Error("Failed to load toml configuration file", "err", err.Error())
+			return nil, err
 		}
 	} else {
-		log.Debug("Config File is not set")
+		log.Debug("toml configuration file not set")
 	}
 
-	//expand tilde or dot
-	newDataDir := expandTildeOrDot(currentConfig.Global.DataDir)
-	currentConfig.Global.DataDir = newDataDir
+	// parse flags and update configuration
+	setGlobalConfig(ctx, &cfg.Global)
+	setNetworkConfig(ctx, &cfg.Network)
+	setRPCConfig(ctx, &cfg.RPC)
 
-	// Parse CLI flags
-	setGlobalConfig(ctx, &currentConfig.Global)
-	setNetworkConfig(ctx, &currentConfig.Network)
-	setRPCConfig(ctx, &currentConfig.RPC)
-	return currentConfig, nil
+	return cfg, nil
 }
 
 // loadConfig loads the contents from config toml and inits Config object
-func loadConfig(file string, config *cfg.Config) error {
+func loadConfig(file string, cfg *config.Config) error {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return err
@@ -105,70 +104,106 @@ func loadConfig(file string, config *cfg.Config) error {
 	if err != nil {
 		return err
 	}
-	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
+	if err = tomlSettings.NewDecoder(f).Decode(&cfg); err != nil {
 		return err
 	}
 	return nil
 }
 
-func setGlobalConfig(ctx *cli.Context, currentConfig *cfg.GlobalConfig) {
-	newDataDir := currentConfig.DataDir
-	if dir := ctx.GlobalString(DataDirFlag.Name); dir != "" {
-		newDataDir = expandTildeOrDot(dir)
-	}
-	currentConfig.DataDir, _ = filepath.Abs(newDataDir)
+// --config --datadir --roles
+func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 
-	newRoles := currentConfig.Roles
+	// --datadir
+	if dataDir := ctx.String(DataDirFlag.Name); dataDir != "" {
+		expandedDataDir := expandPath(dataDir)
+		cfg.DataDir, _ = filepath.Abs(expandedDataDir)
+		log.Warn(
+			"Updated configuration...",
+			"DataDir", cfg.DataDir,
+		)
+	}
+
+	// --chain
+	if chain := ctx.String(ChainFlag.Name); chain != "" {
+		cfg.Chain = chain
+		log.Warn(
+			"Updated configuration...",
+			"Chain", cfg.Chain,
+		)
+	}
+
+	// --roles
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
 		b, err := strconv.Atoi(roles)
 		if err != nil {
-			log.Debug("Failed to convert to byte", "roles", roles)
+			log.Debug(
+				"Failed to convert string to byte",
+				"Roles", roles,
+			)
 		} else {
-			newRoles = byte(b)
+			cfg.Roles = byte(b)
+			log.Warn(
+				"Updated configuration...",
+				"Roles", cfg.Roles,
+			)
 		}
 	}
-	currentConfig.Roles = newRoles
+
+	// --authority
+	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !cfg.Authority {
+		cfg.Authority = true
+		log.Warn(
+			"Updated configuration...",
+			"Authority", cfg.Authority,
+		)
+	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && cfg.Authority {
+		cfg.Authority = false
+		log.Warn(
+			"Updated configuration...",
+			"Authority", cfg.Authority,
+		)
+	}
 }
 
-func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
+func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkCfg) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
-		fig.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+		cfg.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 	}
 
 	if protocol := ctx.GlobalString(ProtocolIDFlag.Name); protocol != "" {
-		fig.ProtocolID = protocol
+		cfg.ProtocolID = protocol
 	}
 
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
-		fig.Port = uint32(port)
+		cfg.Port = uint32(port)
 	}
 
 	// NoBootstrap
 	if off := ctx.GlobalBool(NoBootstrapFlag.Name); off {
-		fig.NoBootstrap = true
+		cfg.NoBootstrap = true
 	}
 
 	// NoMdns
 	if off := ctx.GlobalBool(NoMdnsFlag.Name); off {
-		fig.NoMdns = true
+		cfg.NoMdns = true
 	}
 }
 
-func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
+func setRPCConfig(ctx *cli.Context, cfg *config.RPCCfg) {
 	// Modules
 	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))
+		cfg.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))
 	}
 
 	// Host
 	if host := ctx.GlobalString(RPCHostFlag.Name); host != "" {
-		fig.Host = host
+		cfg.Host = host
 	}
 
 	// Port
 	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
-		fig.Port = uint32(port)
+		cfg.Port = uint32(port)
 	}
 
 }
@@ -184,14 +219,14 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	currentConfig, err := getConfig(ctx)
+	cfg, err := getConfig(ctx)
 	if err != nil {
 		return err
 	}
 
 	comment := ""
 
-	out, err := toml.Marshal(currentConfig)
+	out, err := toml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
@@ -239,10 +274,10 @@ var tomlSettings = toml.Config{
 	},
 }
 
-// expandTildeOrDot will expand a tilde prefix path to full home path
-func expandTildeOrDot(targetPath string) string {
+// expandPath will expand a tilde prefix path to full home path
+func expandPath(targetPath string) string {
 	if strings.HasPrefix(targetPath, "~\\") || strings.HasPrefix(targetPath, "~/") {
-		if homeDir := cfg.HomeDir(); homeDir != "" {
+		if homeDir := config.HomeDir(); homeDir != "" {
 			targetPath = homeDir + targetPath[1:]
 		}
 	} else if strings.HasPrefix(targetPath, ".\\") || strings.HasPrefix(targetPath, "./") {
