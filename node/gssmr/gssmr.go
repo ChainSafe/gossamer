@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package dot
+package gssmr
 
 import (
 	"os"
@@ -26,8 +26,8 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// Dot is a container for all the components of a node.
-type Dot struct {
+// Node is a container for all the components of a node.
+type Node struct {
 	Name      string
 	Services  *services.ServiceRegistry // Registry of all core services
 	RPC       *rpc.HTTPServer           // HTTP instance for RPC server
@@ -35,9 +35,9 @@ type Dot struct {
 	stop      chan struct{}             // Used to signal node shutdown
 }
 
-// NewDot initializes a Dot with provided components.
-func NewDot(name string, srvcs []services.Service, rpc *rpc.HTTPServer) *Dot {
-	d := &Dot{
+// NewNode initializes a Node with provided components.
+func NewNode(name string, srvcs []services.Service, rpc *rpc.HTTPServer) *Node {
+	d := &Node{
 		Name:      name,
 		Services:  services.NewServiceRegistry(),
 		RPC:       rpc,
@@ -53,8 +53,7 @@ func NewDot(name string, srvcs []services.Service, rpc *rpc.HTTPServer) *Dot {
 }
 
 // Start starts all services. API service is started last.
-func (d *Dot) Start() {
-	log.Debug("Starting core services.")
+func (d *Node) Start() {
 	d.Services.StartAll()
 	if d.RPC != nil {
 		d.RPC.Start()
@@ -76,13 +75,13 @@ func (d *Dot) Start() {
 	d.Wait()
 }
 
-// Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
-func (d *Dot) Wait() {
+// Wait is used to force the node to stay alive until a signal is passed into `Node.stop`
+func (d *Node) Wait() {
 	<-d.stop
 }
 
 //Stop all services first, then send stop signal for test
-func (d *Dot) Stop() {
+func (d *Node) Stop() {
 	d.Services.StopAll()
 	if d.stop != nil {
 		close(d.stop)

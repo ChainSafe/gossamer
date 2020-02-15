@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package dot
+package gssmr
 
 import (
 	"math/big"
@@ -30,8 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-// Creates a Dot with default configurations. Does not include RPC server.
-func createTestDot(t *testing.T, testDir string) *Dot {
+// Creates a Node with default configurations. Does not include RPC server.
+func createTestNode(t *testing.T, testDir string) *Node {
 	var services []services.Service
 
 	// Network
@@ -64,11 +64,11 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 	apiSrvc := api.NewAPIService(networkSrvc, nil)
 	services = append(services, apiSrvc)
 
-	return NewDot("gossamer", services, nil)
+	return NewNode("gssmr", services, nil)
 }
 
-func TestDot_Start(t *testing.T) {
-	testDir := path.Join(os.TempDir(), "gossamer-test")
+func TestNode_Start(t *testing.T) {
+	testDir := path.Join(os.TempDir(), "gssmr-test")
 	defer os.RemoveAll(testDir)
 
 	availableServices := [...]services.Service{
@@ -77,22 +77,22 @@ func TestDot_Start(t *testing.T) {
 		&state.Service{},
 	}
 
-	dot := createTestDot(t, testDir)
+	gssmr := createTestNode(t, testDir)
 
-	go dot.Start()
+	go gssmr.Start()
 
-	// Wait until dot.Start() is finished
-	<-dot.IsStarted
+	// Wait until gssmr.Start() is finished
+	<-gssmr.IsStarted
 
 	for _, srvc := range availableServices {
-		s := dot.Services.Get(srvc)
+		s := gssmr.Services.Get(srvc)
 		if s == nil {
 			t.Fatalf("error getting service: %T", srvc)
 		}
 	}
 
-	dot.Stop()
+	gssmr.Stop()
 
 	// Wait for everything to finish
-	<-dot.stop
+	<-gssmr.stop
 }

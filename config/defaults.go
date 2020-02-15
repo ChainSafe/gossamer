@@ -34,7 +34,7 @@ const (
 	// DefaultNetworkPort network port
 	DefaultNetworkPort = 7001
 	// DefaultNetworkProtocolID ID
-	DefaultNetworkProtocolID = "/gossamer/dot/0"
+	DefaultNetworkProtocolID = "/gossamer/gssmr/0"
 
 	// DefaultGenesisPath Genesis path
 	DefaultGenesisPath = "config/gssmr0.json"

@@ -29,7 +29,7 @@ const DefaultKeyFile = "node.key"
 const DefaultDataDir = "~/.gossamer"
 const DefaultPort = uint32(7000)
 const DefaultRandSeed = int64(0) // random key
-const DefaultProtocolID = "/gossamer/dot/0"
+const DefaultProtocolID = "/gossamer/gssmr/0"
 const DefaultRoles = byte(1) // full node
 
 var DefaultBootnodes = []string(nil)
@@ -181,7 +181,7 @@ func (c *Config) buildProtocol() error {
 
 	if c.ProtocolVersion == 0 {
 		s := strings.Split(c.ProtocolID, "/")
-		// expecting default protocol format ("/gossamer/dot/0")
+		// expecting default protocol format ("/gossamer/gssmr/0")
 		if len(s) != 4 {
 			log.Warn(
 				"Unable to parse ProtocolID, using DefaultProtocolVersion",

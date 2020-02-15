@@ -24,9 +24,9 @@ Our packages:
 | `consensus` | BABE/GRANDPA implementations |
 | `core` | Core service to orchestrate system interations |
 | `db` | database implemenation using badgerDB |
-| `dot` | wraps other packages to allow a complete client |
 | `internal` | internal api  |
 | `network` | peer-to-peer service using libp2p |
+| `node` | node implementations for different chains |
 | `rpc` | RPC server |
 | `runtime` | WASM runtime integration using the wasmer interpreter |
 | `trie` | implementation of a modified Merkle-Patricia trie |

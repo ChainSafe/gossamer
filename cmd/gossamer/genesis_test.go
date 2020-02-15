@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/node/gssmr"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
@@ -103,8 +103,8 @@ func TestGenesisStateLoading(t *testing.T) {
 	d, _, err := makeNode(context)
 	require.Nil(t, err)
 
-	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Dot{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Dot{}))
+	if reflect.TypeOf(d) != reflect.TypeOf(&gssmr.Node{}) {
+		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&gssmr.Node{}))
 	}
 
 	expected := &trie.Trie{}

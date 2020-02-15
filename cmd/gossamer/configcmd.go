@@ -29,11 +29,11 @@ import (
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
 	"github.com/ChainSafe/gossamer/core"
-	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/network"
+	"github.com/ChainSafe/gossamer/node/gssmr"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -43,8 +43,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-// makeNode sets up node; opening badgerDB instance and returning the Dot container
-func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
+// makeNode sets up node; opening badgerDB instance and returning the Node container
+func makeNode(ctx *cli.Context) (*gssmr.Node, *cfg.Config, error) {
 	currentConfig, err := getConfig(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -122,7 +122,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// TODO: check rpc flag
 	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
 
-	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
+	return gssmr.NewNode(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
