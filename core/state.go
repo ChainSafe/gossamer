@@ -39,7 +39,7 @@ type StorageState interface {
 }
 
 type TransactionQueue interface {
-	 Push(vt *tx.ValidTransaction)
-	 Pop() *tx.ValidTransaction
-	 Peek() *tx.ValidTransaction
+	Push(vt *tx.ValidTransaction)
+	Pop() *tx.ValidTransaction
+	Peek() *tx.ValidTransaction
 }

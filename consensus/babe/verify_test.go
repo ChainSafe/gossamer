@@ -5,29 +5,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/tests"
+	// <<<<<<< HEAD
+	// 	"github.com/ChainSafe/gossamer/runtime"
+	// 	"github.com/ChainSafe/gossamer/state"
+	// 	"github.com/ChainSafe/gossamer/tests"
 
+	// =======
+	// >>>>>>> 1e7b07d99288d8df50db43beed2beab647bd0f13
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
 func TestVerifySlotWinner(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	cfg := &SessionConfig{
-		Runtime: rt,
 		Keypair: kp,
 	}
 
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +61,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	babesession.authorityData = make([]*AuthorityData, 1)
 	babesession.authorityData[0] = &AuthorityData{
-		id: kp.Public().(*sr25519.PublicKey),
+		ID: kp.Public().(*sr25519.PublicKey),
 	}
 
 	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
@@ -77,35 +75,38 @@ func TestVerifySlotWinner(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	kp, err := sr25519.GenerateKeypair()
+	babesession := createTestSession(t, nil)
+	err := babesession.configurationFromRuntime()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	txQueue := state.NewTransactionQueue()
+	// <<<<<<< HEAD
+	// 	txQueue := state.NewTransactionQueue()
 
-	cfg := &SessionConfig{
-		Runtime: rt,
-		Keypair: kp,
-		TxQueue: txQueue,
-	}
+	// 	cfg := &SessionConfig{
+	// 		Runtime: rt,
+	// 		Keypair: kp,
+	// 		TxQueue: txQueue,
+	// 	}
 
-	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	// 	babesession, err := NewSession(cfg)
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// 	err = babesession.configurationFromRuntime()
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
 
-	babesession.authorityData = make([]*AuthorityData, 1)
-	babesession.authorityData[0] = &AuthorityData{
-		id:     kp.Public().(*sr25519.PublicKey),
-		weight: 1,
-	}
+	// 	babesession.authorityData = make([]*AuthorityData, 1)
+	// 	babesession.authorityData[0] = &AuthorityData{
+	// 		id:     kp.Public().(*sr25519.PublicKey),
+	// 		weight: 1,
+	// 	}
 
+	// =======
+	// >>>>>>> 1e7b07d99288d8df50db43beed2beab647bd0f13
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 

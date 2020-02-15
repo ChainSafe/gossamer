@@ -100,9 +100,12 @@ func (s *Service) Start() error {
 		s.mdns.start()
 	}
 
-	s.SetHealth()
-	s.SetNetworkState()
-	s.SetPeers()
+	// if s.cfg.NetworkState != nil {
+	// 	s.SetHealth()
+	// 	s.SetNetworkState()
+	// 	s.SetPeers()
+	// }
+
 	return nil
 }
 
@@ -275,7 +278,7 @@ func (s *Service) SetPeers() error {
 }
 
 // Peers returns information about connected peers needed for the rpc server
-func (s *Service) Peers() (*[]common.PeerInfo) {
+func (s *Service) Peers() *[]common.PeerInfo {
 	peers := []common.PeerInfo{}
 
 	for _, p := range s.host.peers() {

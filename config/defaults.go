@@ -48,8 +48,9 @@ var (
 var (
 	// DefaultGlobalConfig Global
 	DefaultGlobalConfig = GlobalConfig{
-		DataDir: DefaultDataDir(),
-		Roles:   byte(1), // full node
+		DataDir:   DefaultDataDir(),
+		Roles:     byte(1), // full node
+		Authority: true,    // BABE block producer
 	}
 
 	// DefaultNetworkConfig Network

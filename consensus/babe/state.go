@@ -18,8 +18,8 @@ package babe
 
 import (
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/core/types"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 // BlockState interface for block state methods
@@ -37,7 +37,7 @@ type StorageState interface {
 }
 
 type TransactionQueue interface {
-	 Push(vt *tx.ValidTransaction)
-	 Pop() *tx.ValidTransaction
-	 Peek() *tx.ValidTransaction
+	Push(vt *tx.ValidTransaction)
+	Pop() *tx.ValidTransaction
+	Peek() *tx.ValidTransaction
 }
