@@ -22,7 +22,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/common"
-	//"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"

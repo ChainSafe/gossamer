@@ -182,19 +182,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	r := bufio.NewReader(stream)
 
 	for {
-		// // read leb128 variable-length encoding
-		// b, err := common.ReadByte(r)
-		// if err != nil {
-		// 	log.Error("Failed to read message encoding", "peer", peer, "err", err)
-		// 	return // exit
-		// }
-		// b1, err := common.ReadByte(r)
-		// if err != nil {
-		// 	log.Error("Failed to read message encoding", "peer", peer, "err", err)
-		// 	return // exit
-		// }
-
-		//log.Debug("handleStream", "byte0", b, "byte1", b1)
+		// TODO: re-add leb128 variable-length encoding
 
 		// decode message based on message type
 		msg, err := decodeMessage(r)
@@ -202,8 +190,6 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 			log.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			return // exit
 		}
-
-		log.Debug("handleStream", "msg", msg)
 
 		// handle message based on peer status and message type
 		s.handleMessage(peer, msg)

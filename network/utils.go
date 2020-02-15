@@ -153,8 +153,6 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 		return nil, err
 	}
 
-	log.Debug("decodeMessage", "msgType", msgType)
-
 	switch msgType {
 	case StatusMsgType:
 		m = new(StatusMessage)
