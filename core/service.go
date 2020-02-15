@@ -461,7 +461,10 @@ func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 
 	if s.babeAuthority {
 		// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
-		s.bs.SetEpochData(epochData)
+		err = s.bs.SetEpochData(epochData)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
