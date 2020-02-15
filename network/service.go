@@ -41,7 +41,7 @@ type Service struct {
 	msgRec      <-chan Message
 	msgSend     chan<- Message
 	noBootstrap bool
-	noMdns      bool
+	noMDNS      bool
 	noStatus    bool // internal option
 	noGossip    bool // internal option
 }
@@ -72,7 +72,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		msgRec:      msgRec,
 		msgSend:     msgSend,
 		noBootstrap: cfg.NoBootstrap,
-		noMdns:      cfg.NoMdns,
+		noMDNS:      cfg.NoMDNS,
 	}
 
 	return network, err
@@ -96,7 +96,7 @@ func (s *Service) Start() error {
 	// TODO: ensure bootstrap has connected to bootnodes and addresses have been
 	// registered by the host before mDNS attempts to connect to bootnodes
 
-	if !s.noMdns {
+	if !s.noMDNS {
 		s.mdns.start()
 	}
 

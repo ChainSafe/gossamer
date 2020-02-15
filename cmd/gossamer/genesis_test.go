@@ -34,7 +34,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 	err := loadGenesis(ctx)
 	require.Nil(t, err)
 
-	currentConfig, err := getConfig(ctx)
+	currentConfig, err := buildConfig(ctx)
 	require.Nil(t, err)
 
 	dataDir := cfg.Global.DataDir

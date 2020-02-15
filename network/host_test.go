@@ -34,7 +34,7 @@ func TestConnect(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
@@ -51,7 +51,7 @@ func TestConnect(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
@@ -100,7 +100,7 @@ func TestBootstrap(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
@@ -119,7 +119,7 @@ func TestBootstrap(t *testing.T) {
 		Port:      7002,
 		RandSeed:  2,
 		Bootnodes: []string{addrA.String()},
-		NoMdns:    true,
+		NoMDNS:    true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
@@ -158,7 +158,7 @@ func TestPing(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
@@ -175,7 +175,7 @@ func TestPing(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, _, _ := createTestService(t, configB)
@@ -220,7 +220,7 @@ func TestSend(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
@@ -237,7 +237,7 @@ func TestSend(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)
@@ -285,7 +285,7 @@ func TestBroadcast(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, _ := createTestService(t, configA)
@@ -302,7 +302,7 @@ func TestBroadcast(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)
@@ -329,7 +329,7 @@ func TestBroadcast(t *testing.T) {
 		Port:        7003,
 		RandSeed:    3,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeC, msgSendC, _ := createTestService(t, configC)
@@ -388,7 +388,7 @@ func TestExistingStream(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, msgSendA, _ := createTestService(t, configA)
@@ -410,7 +410,7 @@ func TestExistingStream(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)

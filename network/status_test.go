@@ -38,7 +38,7 @@ func TestStatus(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, _, msgRecA := createTestService(t, configA)
@@ -77,7 +77,7 @@ func TestStatus(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, _, msgRecB := createTestService(t, configB)

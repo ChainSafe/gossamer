@@ -33,7 +33,7 @@ func TestGossip(t *testing.T) {
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeA, msgSendA, _ := createTestService(t, configA)
@@ -49,7 +49,7 @@ func TestGossip(t *testing.T) {
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeB, msgSendB, _ := createTestService(t, configB)
@@ -75,7 +75,7 @@ func TestGossip(t *testing.T) {
 		Port:        7003,
 		RandSeed:    3,
 		NoBootstrap: true,
-		NoMdns:      true,
+		NoMDNS:      true,
 	}
 
 	nodeC, msgSendC, _ := createTestService(t, configC)

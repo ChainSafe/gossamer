@@ -61,7 +61,7 @@ type Config struct {
 	// Disables bootstrapping
 	NoBootstrap bool
 	// Disables MDNS discovery
-	NoMdns bool
+	NoMDNS bool
 	// Identity key for node
 	privateKey crypto.PrivKey
 }

@@ -37,11 +37,50 @@ import (
 // buildConfig updates initialized configuration from flags
 func buildConfig(ctx *cli.Context) (*config.Config, error) {
 
-	// initialized configuration
-	cfg, err := getConfig(ctx)
-	if err != nil {
-		return nil, err
+	// load default configuration
+	cfg := config.DefaultConfig()
+
+	log.Debug(
+		"Set default \"Global\" configuration...",
+		"DataDir", cfg.Global.DataDir,
+		"Chain", cfg.Global.Chain,
+		"Roles", cfg.Global.Roles,
+		"Authority", cfg.Global.Authority,
+	)
+
+	log.Debug(
+		"Set default \"Network\" configuration...",
+		"Bootnodes", cfg.Network.Bootnodes,
+		"ProtocolID", cfg.Network.ProtocolID,
+		"Port", cfg.Network.Port,
+		"NoBootstrap", cfg.Network.NoBootstrap,
+		"NoMDNS", cfg.Network.NoMDNS,
+	)
+
+	log.Debug(
+		"Set default \"RPC\" configuration...",
+		"Port", cfg.RPC.Port,
+		"Host", cfg.RPC.Host,
+		"Modules", cfg.RPC.Modules,
+	)
+
+	// --config
+	if filename := ctx.GlobalString(ConfigFileFlag.Name); filename != "" {
+		log.Debug(
+			"Loading toml configuration file...",
+			"filename", filename,
+		)
+		err := loadConfig(filename, cfg)
+		if err != nil {
+			log.Error("Failed to load toml configuration file", "err", err)
+			return nil, err
+		}
 	}
+
+	// parse flags and update configuration
+	setGlobalConfig(ctx, &cfg.Global)
+	setNetworkConfig(ctx, &cfg.Network)
+	setRPCConfig(ctx, &cfg.RPC)
 
 	return cfg, nil
 }
@@ -60,46 +99,12 @@ func unlockAccount(ctx *cli.Context, cfg *config.Config) (*keystore.Keystore, er
 	return ks, nil
 }
 
-// // getConfig checks for config.toml if --config flag is specified and sets CLI flags
-func getConfig(ctx *cli.Context) (*config.Config, error) {
-
-	// default configuration
-	cfg := config.DefaultConfig()
-
-	log.Info(
-		"Default configuration...",
-		"chain", cfg.Global.Chain,
-		"datadir", cfg.Global.DataDir,
-		"protocol", cfg.Network.ProtocolID,
-		"bootnodes", cfg.Network.Bootnodes,
-	)
-
-	// --config
-	if filename := ctx.GlobalString(ConfigFileFlag.Name); filename != "" {
-		err := loadConfig(filename, cfg)
-		if err != nil {
-			log.Error("Failed to load toml configuration file", "err", err.Error())
-			return nil, err
-		}
-	} else {
-		log.Debug("toml configuration file not set")
-	}
-
-	// parse flags and update configuration
-	setGlobalConfig(ctx, &cfg.Global)
-	setNetworkConfig(ctx, &cfg.Network)
-	setRPCConfig(ctx, &cfg.RPC)
-
-	return cfg, nil
-}
-
 // loadConfig loads the contents from config toml and inits Config object
 func loadConfig(file string, cfg *config.Config) error {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return err
 	}
-	log.Debug("Loading configuration", "path", filepath.Clean(fp))
 	f, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		return err
@@ -117,7 +122,7 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 	if dataDir := ctx.String(DataDirFlag.Name); dataDir != "" {
 		expandedDataDir := expandPath(dataDir)
 		cfg.DataDir, _ = filepath.Abs(expandedDataDir)
-		log.Warn(
+		log.Debug(
 			"Updated configuration...",
 			"DataDir", cfg.DataDir,
 		)
@@ -126,7 +131,7 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 	// --chain
 	if chain := ctx.String(ChainFlag.Name); chain != "" {
 		cfg.Chain = chain
-		log.Warn(
+		log.Debug(
 			"Updated configuration...",
 			"Chain", cfg.Chain,
 		)
@@ -136,13 +141,13 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
 		b, err := strconv.Atoi(roles)
 		if err != nil {
-			log.Debug(
+			log.Error(
 				"Failed to convert string to byte",
 				"Roles", roles,
 			)
 		} else {
 			cfg.Roles = byte(b)
-			log.Warn(
+			log.Debug(
 				"Updated configuration...",
 				"Roles", cfg.Roles,
 			)
@@ -152,13 +157,13 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 	// --authority
 	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !cfg.Authority {
 		cfg.Authority = true
-		log.Warn(
+		log.Debug(
 			"Updated configuration...",
 			"Authority", cfg.Authority,
 		)
 	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && cfg.Authority {
 		cfg.Authority = false
-		log.Warn(
+		log.Debug(
 			"Updated configuration...",
 			"Authority", cfg.Authority,
 		)
@@ -184,9 +189,9 @@ func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkCfg) {
 		cfg.NoBootstrap = true
 	}
 
-	// NoMdns
-	if off := ctx.GlobalBool(NoMdnsFlag.Name); off {
-		cfg.NoMdns = true
+	// NoMDNS
+	if off := ctx.GlobalBool(NoMDNSFlag.Name); off {
+		cfg.NoMDNS = true
 	}
 }
 
@@ -219,7 +224,7 @@ func strToMods(strs []string) []api.Module {
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
-	cfg, err := getConfig(ctx)
+	cfg, err := buildConfig(ctx)
 	if err != nil {
 		return err
 	}

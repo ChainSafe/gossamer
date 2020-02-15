@@ -97,8 +97,8 @@ func createCliContext(description string, flags []string, values []interface{}) 
 			return nil, fmt.Errorf("unexpected cli value type: %T", values[i])
 		}
 	}
-	context := cli.NewContext(nil, set, nil)
-	return context, nil
+	ctx := cli.NewContext(nil, set, nil)
+	return ctx, nil
 }
 
 func createTempGenesisFile(t *testing.T) string {
@@ -155,9 +155,9 @@ func TestGetConfig(t *testing.T) {
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, "")
-		context := cli.NewContext(app, set, nil)
+		ctx := cli.NewContext(app, set, nil)
 
-		currentConfig, err := getConfig(context)
+		currentConfig, err := buildConfig(ctx)
 		require.Nil(t, err)
 
 		require.Equal(t, c.expected, currentConfig)
@@ -189,12 +189,12 @@ func TestSetGlobalConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			tCfg := &config.GlobalConfig{}
 
-			setGlobalConfig(context, tCfg)
+			setGlobalConfig(ctx, tCfg)
 
 			require.Equal(t, c.expected, *tCfg)
 		})
@@ -226,7 +226,7 @@ func TestSetNetworkConfig(t *testing.T) {
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        config.DefaultNetworkPort,
 				NoBootstrap: true,
-				NoMdns:      true,
+				NoMDNS:      true,
 			},
 		},
 		{
@@ -238,7 +238,7 @@ func TestSetNetworkConfig(t *testing.T) {
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        config.DefaultNetworkPort,
 				NoBootstrap: false,
-				NoMdns:      false,
+				NoMDNS:      false,
 			},
 		},
 		{
@@ -250,7 +250,7 @@ func TestSetNetworkConfig(t *testing.T) {
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        1337,
 				NoBootstrap: false,
-				NoMdns:      false,
+				NoMDNS:      false,
 			},
 		},
 		{
@@ -262,7 +262,7 @@ func TestSetNetworkConfig(t *testing.T) {
 				Port:        config.DefaultNetworkPort,
 				ProtocolID:  TestProtocolID,
 				NoBootstrap: false,
-				NoMdns:      false,
+				NoMDNS:      false,
 			},
 		},
 	}
@@ -270,12 +270,12 @@ func TestSetNetworkConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			input := config.DefaultConfig()
 			// Must call global setup to set data dir
-			setNetworkConfig(context, &input.Network)
+			setNetworkConfig(ctx, &input.Network)
 
 			require.Equal(t, c.expected, input.Network)
 		})
@@ -324,11 +324,11 @@ func TestSetRPCConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			input := config.DefaultConfig()
-			setRPCConfig(context, &input.RPC)
+			setRPCConfig(ctx, &input.RPC)
 
 			require.Equal(t, c.expected, input.RPC)
 		})
@@ -369,13 +369,13 @@ func TestMakeNode(t *testing.T) {
 		c := c // bypass scopelint false positive
 
 		t.Run(c.name, func(t *testing.T) {
-			context, err := createCliContext(c.name, c.flags, c.values)
+			ctx, err := createCliContext(c.name, c.flags, c.values)
 			require.Nil(t, err)
 
-			err = loadGenesis(context)
+			err = loadGenesis(ctx)
 			require.Nil(t, err)
 
-			node, _, err := makeNode(context)
+			node, _, err := makeNode(ctx)
 			require.Nil(t, err)
 
 			db := node.Services.Get(&state.Service{})
@@ -407,12 +407,12 @@ func TestCommands(t *testing.T) {
 		app := cli.NewApp()
 		app.Writer = ioutil.Discard
 
-		context, err := createCliContext(c.description, c.flags, c.values)
+		ctx, err := createCliContext(c.description, c.flags, c.values)
 		require.Nil(t, err)
 
 		command := dumpConfigCommand
 
-		err = command.Run(context)
+		err = command.Run(ctx)
 		require.Nil(t, err, "should have ran dumpConfig command.")
 	}
 }

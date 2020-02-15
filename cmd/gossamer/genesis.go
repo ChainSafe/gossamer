@@ -16,7 +16,7 @@ import (
 )
 
 func loadGenesis(ctx *cli.Context) error {
-	currentConfig, err := getConfig(ctx)
+	currentConfig, err := buildConfig(ctx)
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ var (
 		PortFlag,
 		ProtocolIDFlag,
 		NoBootstrapFlag,
-		NoMdnsFlag,
+		NoMDNSFlag,
 	}
 	rpcFlags = []cli.Flag{
 		RPCEnabledFlag,
@@ -195,6 +195,8 @@ func gossamer(ctx *cli.Context) error {
 		"Making node...",
 		"DataDir", cfg.Global.DataDir,
 		"Chain", cfg.Global.Chain,
+		"Roles", cfg.Global.Roles,
+		"Authority", cfg.Global.Authority,
 	)
 
 	node, err := gssmr.MakeNode(ctx, cfg, ks)

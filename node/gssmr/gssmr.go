@@ -91,7 +91,7 @@ func (d *Node) Wait() {
 	<-d.stop
 }
 
-//Stop all services first, then send stop signal for test
+// Stop all services first, then send stop signal for test
 func (d *Node) Stop() {
 	d.Services.StopAll()
 	if d.stop != nil {
@@ -198,7 +198,7 @@ func createNetworkService(fig *config.Config, gendata *genesis.GenesisData, stat
 		Bootnodes:    bootnodes,
 		ProtocolID:   protocolID,
 		NoBootstrap:  fig.Network.NoBootstrap,
-		NoMdns:       fig.Network.NoMdns,
+		NoMDNS:       fig.Network.NoMDNS,
 	}
 
 	networkMsgRec := make(chan network.Message)
