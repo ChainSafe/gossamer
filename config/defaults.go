@@ -50,14 +50,18 @@ var (
 var (
 	// DefaultGlobalConfig Global
 	DefaultGlobalConfig = GlobalConfig{
-		DataDir:   DefaultDataDir(),
-		Chain:     "gssmr",
+		DataDir: DefaultDataDir(),
+		Chain:   "gssmr",
+	}
+
+	// DefaultNodeConfig Node
+	DefaultNodeConfig = NodeConfig{
 		Roles:     byte(1), // full node
 		Authority: true,    // BABE block producer
 	}
 
 	// DefaultNetworkConfig Network
-	DefaultNetworkConfig = NetworkCfg{
+	DefaultNetworkConfig = NetworkConfig{
 		Bootnodes:   DefaultNetworkBootnodes,
 		ProtocolID:  DefaultNetworkProtocolID,
 		Port:        DefaultNetworkPort,
@@ -66,7 +70,7 @@ var (
 	}
 
 	// DefaultRPCConfig RPC
-	DefaultRPCConfig = RPCCfg{
+	DefaultRPCConfig = RPCConfig{
 		Host:    DefaultRPCHTTPHost,
 		Port:    DefaultRPCHTTPPort,
 		Modules: DefaultRPCModules,
@@ -77,6 +81,7 @@ var (
 func DefaultConfig() *Config {
 	return &Config{
 		Global:  DefaultGlobalConfig,
+		Node:    DefaultNodeConfig,
 		Network: DefaultNetworkConfig,
 		RPC:     DefaultRPCConfig,
 	}

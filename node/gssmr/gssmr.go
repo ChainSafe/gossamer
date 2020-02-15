@@ -140,7 +140,7 @@ func MakeNode(ctx *cli.Context, currentConfig *config.Config, ks *keystore.Keyst
 		Runtime:       rt,
 		MsgRec:        networkMsgSend, // message channel from network service to core service
 		MsgSend:       networkMsgRec,  // message channel from core service to network service
-		BabeAuthority: currentConfig.Global.Authority,
+		BabeAuthority: currentConfig.Node.Authority,
 	}
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
@@ -193,7 +193,7 @@ func createNetworkService(fig *config.Config, gendata *genesis.GenesisData, stat
 		StorageState: stateService.Storage,
 		NetworkState: stateService.Network,
 		DataDir:      fig.Global.DataDir,
-		Roles:        fig.Global.Roles,
+		Roles:        fig.Node.Roles,
 		Port:         fig.Network.Port,
 		Bootnodes:    bootnodes,
 		ProtocolID:   protocolID,

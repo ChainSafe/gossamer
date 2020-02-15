@@ -28,13 +28,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/internal/api"
-	"github.com/ChainSafe/gossamer/keystore"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
-// buildConfig updates initialized configuration from flags
+// buildConfig loads the default gossamer config, then updates the config based
+// on the toml configuration file (if provided), then updates the config based
+// on any command options (if provided), returning the updated config
 func buildConfig(ctx *cli.Context) (*config.Config, error) {
 
 	// load default configuration
@@ -44,8 +45,12 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 		"Set default \"Global\" configuration...",
 		"DataDir", cfg.Global.DataDir,
 		"Chain", cfg.Global.Chain,
-		"Roles", cfg.Global.Roles,
-		"Authority", cfg.Global.Authority,
+	)
+
+	log.Debug(
+		"Set default \"Node\" configuration...",
+		"Roles", cfg.Node.Roles,
+		"Authority", cfg.Node.Authority,
 	)
 
 	log.Debug(
@@ -59,8 +64,8 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 
 	log.Debug(
 		"Set default \"RPC\" configuration...",
-		"Port", cfg.RPC.Port,
 		"Host", cfg.RPC.Host,
+		"Port", cfg.RPC.Port,
 		"Modules", cfg.RPC.Modules,
 	)
 
@@ -79,24 +84,11 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 
 	// parse flags and update configuration
 	setGlobalConfig(ctx, &cfg.Global)
+	setNodeConfig(ctx, &cfg.Node)
 	setNetworkConfig(ctx, &cfg.Network)
 	setRPCConfig(ctx, &cfg.RPC)
 
 	return cfg, nil
-}
-
-// unlockAccount
-func unlockAccount(ctx *cli.Context, cfg *config.Config) (*keystore.Keystore, error) {
-	// --unlock - load all static keys from keystore directory
-	ks := keystore.NewKeystore()
-	// unlock keys, if specified
-	if keyindices := ctx.String(UnlockFlag.Name); keyindices != "" {
-		err := unlockKeys(ctx, cfg.Global.DataDir, ks)
-		if err != nil {
-			return nil, fmt.Errorf("could not unlock keys: %s", err)
-		}
-	}
-	return ks, nil
 }
 
 // loadConfig loads the contents from config toml and inits Config object
@@ -115,7 +107,6 @@ func loadConfig(file string, cfg *config.Config) error {
 	return nil
 }
 
-// --config --datadir --roles
 func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 
 	// --datadir
@@ -136,6 +127,10 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 			"Chain", cfg.Chain,
 		)
 	}
+}
+
+// --config --datadir --roles
+func setNodeConfig(ctx *cli.Context, cfg *config.NodeConfig) {
 
 	// --roles
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -170,7 +165,7 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 	}
 }
 
-func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkCfg) {
+func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkConfig) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
 		cfg.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
@@ -195,7 +190,7 @@ func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkCfg) {
 	}
 }
 
-func setRPCConfig(ctx *cli.Context, cfg *config.RPCCfg) {
+func setRPCConfig(ctx *cli.Context, cfg *config.RPCConfig) {
 	// Modules
 	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
 		cfg.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))

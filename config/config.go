@@ -27,19 +27,23 @@ import (
 
 // Config is a collection of configurations throughout the system
 type Config struct {
-	Global  GlobalConfig `toml:"global"`
-	Network NetworkCfg   `toml:"network"`
-	RPC     RPCCfg       `toml:"rpc"`
+	Global  GlobalConfig  `toml:"global"`
+	Node    NodeConfig    `toml:"node"`
+	Network NetworkConfig `toml:"network"`
+	RPC     RPCConfig     `toml:"rpc"`
 }
 
 type GlobalConfig struct {
-	DataDir   string `toml:"data-dir"`
-	Chain     string `toml:"chain"`
-	Roles     byte   `toml:"roles"`
-	Authority bool   `toml:"authority"`
+	DataDir string `toml:"data-dir"`
+	Chain   string `toml:"chain"`
 }
 
-type NetworkCfg struct {
+type NodeConfig struct {
+	Roles     byte `toml:"roles"`
+	Authority bool `toml:"authority"`
+}
+
+type NetworkConfig struct {
 	Bootnodes   []string `toml:"bootstrap-nodes"`
 	ProtocolID  string   `toml:"protocol-id"`
 	Port        uint32   `toml:"port"`
@@ -47,7 +51,7 @@ type NetworkCfg struct {
 	NoMDNS      bool     `toml:"no-mdns"`
 }
 
-type RPCCfg struct {
+type RPCConfig struct {
 	Port    uint32       `toml:"port"`
 	Host    string       `toml:"host"`
 	Modules []api.Module `toml:"modules"`

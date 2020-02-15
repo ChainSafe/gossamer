@@ -21,6 +21,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/node/gssmr"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -185,18 +186,28 @@ func gossamer(ctx *cli.Context) error {
 
 	log.Info("Unlocking account...")
 
-	ks, err := unlockAccount(ctx, cfg)
-	if err != nil {
-		log.Error("error unlocking account", "err", err)
-		return err
+	// load all static keys from keystore directory
+	ks := keystore.NewKeystore()
+
+	// unlock keys specified with --unlock command option
+	if unlock := ctx.String(UnlockFlag.Name); unlock != "" {
+		err := unlockKeys(ctx, cfg.Global.DataDir, ks)
+		if err != nil {
+			log.Error("error unlocking account", "err", err)
+			return fmt.Errorf("could not unlock keys: %s", err)
+		}
 	}
 
 	log.Info(
-		"Making node...",
+		"Global configuration...",
 		"DataDir", cfg.Global.DataDir,
 		"Chain", cfg.Global.Chain,
-		"Roles", cfg.Global.Roles,
-		"Authority", cfg.Global.Authority,
+	)
+
+	log.Info(
+		"Node configuration...",
+		"Roles", cfg.Node.Roles,
+		"Authority", cfg.Node.Authority,
 	)
 
 	node, err := gssmr.MakeNode(ctx, cfg, ks)

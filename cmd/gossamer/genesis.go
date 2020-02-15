@@ -16,14 +16,15 @@ import (
 )
 
 func loadGenesis(ctx *cli.Context) error {
-	currentConfig, err := buildConfig(ctx)
+
+	cfg, err := buildConfig(ctx)
 	if err != nil {
 		return err
 	}
 
 	// read genesis file
 	genesisPath := getGenesisPath(ctx)
-	dataDir := expandPath(currentConfig.Global.DataDir)
+	dataDir := expandPath(cfg.Global.DataDir)
 	if ctx.String(DataDirFlag.Name) != "" {
 		dataDir = expandPath(ctx.String(DataDirFlag.Name))
 	}

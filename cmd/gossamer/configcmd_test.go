@@ -209,7 +209,7 @@ func TestSetNetworkConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    config.NetworkCfg
+		expected    config.NetworkConfig
 	}{
 		{
 			"config file",
@@ -221,7 +221,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			config.NetworkCfg{
+			config.NetworkConfig{
 				Bootnodes:   config.DefaultNetworkBootnodes,
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        config.DefaultNetworkPort,
@@ -233,7 +233,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
-			config.NetworkCfg{
+			config.NetworkConfig{
 				Bootnodes:   TestBootnodes,
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        config.DefaultNetworkPort,
@@ -245,7 +245,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			"port",
 			[]string{"port"},
 			[]interface{}{uint(1337)},
-			config.NetworkCfg{
+			config.NetworkConfig{
 				Bootnodes:   config.DefaultNetworkBootnodes,
 				ProtocolID:  config.DefaultNetworkProtocolID,
 				Port:        1337,
@@ -257,7 +257,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			"protocol id",
 			[]string{"protocol"},
 			[]interface{}{TestProtocolID},
-			config.NetworkCfg{
+			config.NetworkConfig{
 				Bootnodes:   config.DefaultNetworkBootnodes,
 				Port:        config.DefaultNetworkPort,
 				ProtocolID:  TestProtocolID,
@@ -291,7 +291,7 @@ func TestSetRPCConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    config.RPCCfg
+		expected    config.RPCConfig
 	}{
 		{
 			"config file",
@@ -303,7 +303,7 @@ func TestSetRPCConfig(t *testing.T) {
 			"host and port",
 			[]string{"rpchost", "rpcport"},
 			[]interface{}{"someHost", uint(1337)},
-			config.RPCCfg{
+			config.RPCConfig{
 				Port:    1337,
 				Host:    "someHost",
 				Modules: config.DefaultRPCModules,
@@ -313,7 +313,7 @@ func TestSetRPCConfig(t *testing.T) {
 			"modules",
 			[]string{"rpcmods"},
 			[]interface{}{"system,state"},
-			config.RPCCfg{
+			config.RPCConfig{
 				Port:    config.DefaultRPCHTTPPort,
 				Host:    config.DefaultRPCHTTPHost,
 				Modules: []api.Module{"system", "state"},
