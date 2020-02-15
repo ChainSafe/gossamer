@@ -310,7 +310,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bsTx := s.bs.PeekFromTxQueue()
+	bsTx := s.txQueue.Peek()
 	bsTxExt := []byte(*bsTx.Extrinsic)
 
 	if !reflect.DeepEqual(ext, bsTxExt) {
