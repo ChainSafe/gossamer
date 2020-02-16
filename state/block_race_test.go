@@ -29,10 +29,10 @@ import (
 )
 
 func TestConcurrencySetHeader(t *testing.T) {
-	dataDir, err := ioutil.TempDir("", "./test_data")
+	rootDir, err := ioutil.TempDir("", "./test_data")
 	require.Nil(t, err)
 
-	blockDB, err := NewBlockDB(dataDir)
+	blockDB, err := NewBlockDB(rootDir)
 	require.Nil(t, err)
 
 	threads := runtime.NumCPU()

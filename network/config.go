@@ -26,7 +26,7 @@ import (
 )
 
 const DefaultKeyFile = "node.key"
-const DefaultDataDir = "~/.gossamer"
+const DefaultNodeDir = "~/.gossamer/gssmr"
 const DefaultPort = uint32(7000)
 const DefaultRandSeed = int64(0) // random key
 const DefaultProtocolID = "/gossamer/gssmr/0"
@@ -42,8 +42,8 @@ type Config struct {
 	NetworkState NetworkState
 	// StorageState interface
 	StorageState StorageState
-	// Global data directory
-	DataDir string
+	// Node directory
+	NodeDir string
 	// Role is a bitmap value whose bits represent difierent roles for the sender node (see Table E.2)
 	Roles byte
 	// Listening port
@@ -76,8 +76,8 @@ func (c *Config) build() error {
 		return err
 	}
 
-	if c.DataDir == "" {
-		c.DataDir = DefaultDataDir
+	if c.NodeDir == "" {
+		c.NodeDir = DefaultNodeDir
 	}
 
 	if c.Roles == 0 {
@@ -128,7 +128,7 @@ func (c *Config) buildIdentity() error {
 	if c.RandSeed == 0 {
 
 		// attempt to load existing key
-		key, err := loadKey(c.DataDir)
+		key, err := loadKey(c.NodeDir)
 		if err != nil {
 			return err
 		}
@@ -137,11 +137,11 @@ func (c *Config) buildIdentity() error {
 		if key == nil {
 			log.Trace(
 				"Generating new p2p identity",
-				"DataDir", c.DataDir,
+				"NodeDir", c.NodeDir,
 			)
 
 			// generate key
-			key, err = generateKey(c.RandSeed, c.DataDir)
+			key, err = generateKey(c.RandSeed, c.NodeDir)
 			if err != nil {
 				return err
 			}
@@ -152,12 +152,12 @@ func (c *Config) buildIdentity() error {
 	} else {
 		log.Warn(
 			"Generating p2p identity from seed",
-			"DataDir", c.DataDir,
+			"NodeDir", c.NodeDir,
 			"RandSeed", c.RandSeed,
 		)
 
 		// generate temporary deterministic key
-		key, err := generateKey(c.RandSeed, c.DataDir)
+		key, err := generateKey(c.RandSeed, c.NodeDir)
 		if err != nil {
 			return err
 		}

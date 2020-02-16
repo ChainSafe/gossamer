@@ -39,7 +39,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const TestDataDir = "./test_data"
+const TestRootDir = "./test_data"
 
 const TestProtocolID = "/gossamer/test/0"
 
@@ -62,15 +62,15 @@ func teardown(tempFile *os.File) {
 	}
 }
 
-func removeTestDataDir() {
-	if err := os.RemoveAll(TestDataDir); err != nil {
+func removeTestRootDir() {
+	if err := os.RemoveAll(TestRootDir); err != nil {
 		log.Warn("cannot remove test data dir", "err", err)
 	}
 }
 
 func createTempConfigFile() (*os.File, *config.Config) {
 	testConfig := config.DefaultConfig()
-	testConfig.Global.DataDir = TestDataDir
+	testConfig.Global.RootDir = TestRootDir
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
@@ -137,7 +137,7 @@ func TestGetConfig(t *testing.T) {
 	defer teardown(tempFile)
 
 	var err error
-	configClone.Global.DataDir, err = filepath.Abs(configClone.Global.DataDir)
+	configClone.Global.RootDir, err = filepath.Abs(configClone.Global.RootDir)
 	require.Nil(t, err)
 
 	app := cli.NewApp()
@@ -174,15 +174,15 @@ func TestSetGlobalConfig(t *testing.T) {
 		values      []interface{}
 		expected    config.GlobalConfig
 	}{
-		{"datadir flag",
-			[]string{"datadir"},
+		{"root flag",
+			[]string{"root"},
 			[]interface{}{"test1"},
-			config.GlobalConfig{DataDir: tempPath},
+			config.GlobalConfig{RootDir: tempPath},
 		},
 		{"roles flag",
-			[]string{"datadir", "roles"},
+			[]string{"root", "roles"},
 			[]interface{}{"test1", "1"},
-			config.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
+			config.GlobalConfig{RootDir: tempPath, Roles: byte(1)},
 		},
 	}
 
@@ -348,7 +348,7 @@ func TestMakeNode(t *testing.T) {
 	t.Skip()
 	tempFile, configClone := createTempConfigFile()
 	defer teardown(tempFile)
-	defer removeTestDataDir()
+	defer removeTestRootDir()
 
 	genesisPath := createTempGenesisFile(t)
 	defer os.Remove(genesisPath)
@@ -389,7 +389,7 @@ func TestMakeNode(t *testing.T) {
 func TestCommands(t *testing.T) {
 	tempFile, _ := createTempConfigFile()
 	defer teardown(tempFile)
-	defer removeTestDataDir()
+	defer removeTestRootDir()
 
 	tc := []struct {
 		description string

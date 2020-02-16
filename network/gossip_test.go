@@ -25,11 +25,11 @@ import (
 
 // test gossip messages to connected peers
 func TestGossip(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -41,11 +41,11 @@ func TestGossip(t *testing.T) {
 
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
@@ -67,11 +67,11 @@ func TestGossip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDirC := path.Join(os.TempDir(), "gossamer-test", "nodeC")
-	defer os.RemoveAll(dataDirC)
+	rootDirC := path.Join(os.TempDir(), "gossamer-test", "nodeC")
+	defer os.RemoveAll(rootDirC)
 
 	configC := &Config{
-		DataDir:     dataDirC,
+		RootDir:     rootDirC,
 		Port:        7003,
 		RandSeed:    3,
 		NoBootstrap: true,

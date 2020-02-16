@@ -16,7 +16,7 @@ var testKeystoreDir = "./test_data"
 var testPassword = []byte("1234")
 
 func TestGenerateCommand(t *testing.T) {
-	ctx, err := createCliContext("account generate", []string{"generate", "datadir"}, []interface{}{true, testKeystoreDir})
+	ctx, err := createCliContext("account generate", []string{"generate", "root"}, []interface{}{true, testKeystoreDir})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestGenerateCommand(t *testing.T) {
 }
 
 func TestGenerateCommand_Password(t *testing.T) {
-	ctx, err := createCliContext("account generate", []string{"generate", "datadir", "password"}, []interface{}{true, testKeystoreDir, string(testPassword)})
+	ctx, err := createCliContext("account generate", []string{"generate", "root", "password"}, []interface{}{true, testKeystoreDir, string(testPassword)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestGenerateCommand_Password(t *testing.T) {
 }
 
 func TestGenerateCommand_Type(t *testing.T) {
-	ctx, err := createCliContext("account generate", []string{"generate", "datadir", "type"}, []interface{}{true, testKeystoreDir, "ed25519"})
+	ctx, err := createCliContext("account generate", []string{"generate", "root", "type"}, []interface{}{true, testKeystoreDir, "ed25519"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestImportCommand(t *testing.T) {
 	filename := ""
 	defer os.RemoveAll(testKeystoreDir)
 
-	ctx, err := createCliContext("account import", []string{"import", "datadir"}, []interface{}{filename, testKeystoreDir})
+	ctx, err := createCliContext("account import", []string{"import", "root"}, []interface{}{filename, testKeystoreDir})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestImportKey(t *testing.T) {
 func TestListCommand(t *testing.T) {
 	defer os.RemoveAll(testKeystoreDir)
 
-	ctx, err := createCliContext("account list", []string{"list", "datadir"}, []interface{}{true, testKeystoreDir})
+	ctx, err := createCliContext("account list", []string{"list", "root"}, []interface{}{true, testKeystoreDir})
 	if err != nil {
 		t.Fatal(err)
 	}

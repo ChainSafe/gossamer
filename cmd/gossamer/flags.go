@@ -22,14 +22,14 @@ import (
 )
 
 var (
-	// DataDirFlag BadgerDB Data directory
-	DataDirFlag = cli.StringFlag{
-		Name:  "datadir",
+	// RootDirFlag BadgerDB Data directory
+	RootDirFlag = cli.StringFlag{
+		Name:  "root",
 		Usage: "Data directory for the database",
 	}
-	// ChainFlag node implementation
-	ChainFlag = cli.StringFlag{
-		Name:  "chain",
+	// NodeFlag node implementation
+	NodeFlag = cli.StringFlag{
+		Name:  "node",
 		Usage: "Node implementation",
 	}
 	// RolesFlag role of the node (0 = no network, 1 = full node, ...)

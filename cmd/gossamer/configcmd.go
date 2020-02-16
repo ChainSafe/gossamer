@@ -43,8 +43,9 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 
 	log.Debug(
 		"Set default \"Global\" configuration...",
-		"DataDir", cfg.Global.DataDir,
-		"Chain", cfg.Global.Chain,
+		"RootDir", cfg.Global.RootDir,
+		"Node", cfg.Global.Node,
+		"NodeDir", cfg.Global.NodeDir,
 	)
 
 	log.Debug(
@@ -107,29 +108,43 @@ func loadConfig(file string, cfg *config.Config) error {
 	return nil
 }
 
+// --root --node
 func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 
-	// --datadir
-	if dataDir := ctx.String(DataDirFlag.Name); dataDir != "" {
-		expandedDataDir := expandPath(dataDir)
-		cfg.DataDir, _ = filepath.Abs(expandedDataDir)
+	rootDir := ""
+	node := ""
+
+	// --root
+	if rootDir = ctx.String(RootDirFlag.Name); rootDir != "" {
+		expandedRootDir := expandPath(rootDir)
+		cfg.RootDir, _ = filepath.Abs(expandedRootDir)
 		log.Debug(
 			"Updated configuration...",
-			"DataDir", cfg.DataDir,
+			"RootDir", cfg.RootDir,
 		)
 	}
 
-	// --chain
-	if chain := ctx.String(ChainFlag.Name); chain != "" {
-		cfg.Chain = chain
+	// --node
+	if node = ctx.String(NodeFlag.Name); node != "" {
+		cfg.Node = node
 		log.Debug(
 			"Updated configuration...",
-			"Chain", cfg.Chain,
+			"Node", cfg.Node,
 		)
 	}
+
+	if rootDir != "" || node != "" {
+		// create node directory from root directory and node name
+		cfg.NodeDir = filepath.Join(cfg.RootDir, cfg.Node)
+		log.Debug(
+			"Updated configuration...",
+			"NodeDir", cfg.NodeDir,
+		)
+	}
+
 }
 
-// --config --datadir --roles
+// --roles --authority
 func setNodeConfig(ctx *cli.Context, cfg *config.NodeConfig) {
 
 	// --roles
@@ -163,45 +178,53 @@ func setNodeConfig(ctx *cli.Context, cfg *config.NodeConfig) {
 			"Authority", cfg.Authority,
 		)
 	}
+
 }
 
+// --bootnodes --protocol --port --nobootstrap --nomdns
 func setNetworkConfig(ctx *cli.Context, cfg *config.NetworkConfig) {
-	// Bootnodes
+
+	// --bootnodes
 	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
 		cfg.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 	}
 
+	// --protocol
 	if protocol := ctx.GlobalString(ProtocolIDFlag.Name); protocol != "" {
 		cfg.ProtocolID = protocol
 	}
 
+	// --port
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
 	}
 
-	// NoBootstrap
+	// --nobootstrap
 	if off := ctx.GlobalBool(NoBootstrapFlag.Name); off {
 		cfg.NoBootstrap = true
 	}
 
-	// NoMDNS
+	// --nomdns
 	if off := ctx.GlobalBool(NoMDNSFlag.Name); off {
 		cfg.NoMDNS = true
 	}
+
 }
 
+// --rpc --rpcmods --rpchost --rpcport
 func setRPCConfig(ctx *cli.Context, cfg *config.RPCConfig) {
-	// Modules
+
+	// --rpcmods
 	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
 		cfg.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))
 	}
 
-	// Host
+	// --rpchost
 	if host := ctx.GlobalString(RPCHostFlag.Name); host != "" {
 		cfg.Host = host
 	}
 
-	// Port
+	// --rpcport
 	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
 	}

@@ -37,9 +37,9 @@ func TestStoreGenesisInfo(t *testing.T) {
 	currentConfig, err := buildConfig(ctx)
 	require.Nil(t, err)
 
-	dataDir := cfg.Global.DataDir
+	rootDir := cfg.Global.RootDir
 
-	dbSrv := state.NewService(dataDir)
+	dbSrv := state.NewService(rootDir)
 	err = dbSrv.Initialize(&types.Header{
 		Number:         big.NewInt(0),
 		StateRoot:      trie.EmptyHash,

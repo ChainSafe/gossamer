@@ -38,6 +38,9 @@ const (
 
 	// DefaultGenesisPath Genesis path
 	DefaultGenesisPath = "config/gssmr0.json"
+
+	// DefaultNode
+	DefaultNode = "gssmr"
 )
 
 var (
@@ -50,8 +53,9 @@ var (
 var (
 	// DefaultGlobalConfig Global
 	DefaultGlobalConfig = GlobalConfig{
-		DataDir: DefaultDataDir(),
-		Chain:   "gssmr",
+		RootDir: DefaultRootDir(),
+		Node:    DefaultNode,
+		NodeDir: filepath.Join(DefaultRootDir(), DefaultNode),
 	}
 
 	// DefaultNodeConfig Node
@@ -87,9 +91,9 @@ func DefaultConfig() *Config {
 	}
 }
 
-// DefaultDataDir is the default data directory to use for the databases and other
+// DefaultRootDir is the default data directory to use for the databases and other
 // persistence requirements.
-func DefaultDataDir() string {
+func DefaultRootDir() string {
 	// Try to place the data folder in the user's home dir
 	home := HomeDir()
 	if home != "" {

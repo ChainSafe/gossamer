@@ -32,12 +32,12 @@ func handleAccounts(ctx *cli.Context) error {
 		return err
 	}
 
-	// key directory is datadir/keystore/
-	var datadir string
-	if dir := ctx.String(DataDirFlag.Name); dir != "" {
-		datadir, err = filepath.Abs(dir)
+	// key directory is [root]/[node]/keystore/
+	var nodeDir string
+	if dir := ctx.String(RootDirFlag.Name); dir != "" {
+		nodeDir, err = filepath.Abs(dir)
 		if err != nil {
-			log.Error("invalid datadir", "error", err)
+			log.Error("invalid nodeDir", "error", err)
 			return err
 		}
 	}
@@ -64,7 +64,7 @@ func handleAccounts(ctx *cli.Context) error {
 			password = []byte(pwdflag)
 		}
 
-		_, err = generateKeypair(keytype, datadir, password)
+		_, err = generateKeypair(keytype, nodeDir, password)
 		if err != nil {
 			log.Error("generate error", "error", err)
 			return err
@@ -74,7 +74,7 @@ func handleAccounts(ctx *cli.Context) error {
 	// import key
 	if keyimport := ctx.String(ImportFlag.Name); keyimport != "" {
 		log.Info("importing key...")
-		_, err = importKey(keyimport, datadir)
+		_, err = importKey(keyimport, nodeDir)
 		if err != nil {
 			log.Error("import error", "error", err)
 			return err
@@ -83,7 +83,7 @@ func handleAccounts(ctx *cli.Context) error {
 
 	// list keys
 	if keylist := ctx.Bool(ListFlag.Name); keylist {
-		_, err = listKeys(datadir)
+		_, err = listKeys(nodeDir)
 		if err != nil {
 			log.Error("list error", "error", err)
 			return err
@@ -93,11 +93,11 @@ func handleAccounts(ctx *cli.Context) error {
 	return nil
 }
 
-// importKey imports a key specified by its filename to datadir/keystore/
+// importKey imports a key specified by its filename to [root]/[node]/keystore/
 // it saves it under the filename "[publickey].key"
 // it returns the absolute path of the imported key file
-func importKey(filename, datadir string) (string, error) {
-	keystorepath, err := keystoreDir(datadir)
+func importKey(filename, nodeDir string) (string, error) {
+	keystorepath, err := keystoreDir(nodeDir)
 	if err != nil {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
@@ -113,7 +113,7 @@ func importKey(filename, datadir string) (string, error) {
 		return "", fmt.Errorf("could not read file contents: %s", err)
 	}
 
-	keystorefile, err := filepath.Abs(keystorepath + "/" + ksjson.PublicKey[2:] + ".key")
+	keystorefile, err := filepath.Abs(filepath.Join(keystorepath, ksjson.PublicKey[2:]+".key"))
 	if err != nil {
 		return "", fmt.Errorf("could not create keystore file path: %s", err)
 	}
@@ -127,9 +127,9 @@ func importKey(filename, datadir string) (string, error) {
 	return keystorefile, nil
 }
 
-// listKeys lists all the keys in the datadir/keystore/ directory and returns them as a list of filepaths
-func listKeys(datadir string) ([]string, error) {
-	keys, err := getKeyFiles(datadir)
+// listKeys lists all the keys in the [root]/[node]/keystore/ directory and returns them as a list of filepaths
+func listKeys(nodeDir string) ([]string, error) {
+	keys, err := getKeyFiles(nodeDir)
 	if err != nil {
 		return nil, err
 	}
@@ -141,9 +141,9 @@ func listKeys(datadir string) ([]string, error) {
 	return keys, nil
 }
 
-// getKeyFiles returns the filenames of all the keys in the datadir's keystore
-func getKeyFiles(datadir string) ([]string, error) {
-	keystorepath, err := keystoreDir(datadir)
+// getKeyFiles returns the filenames of all the keys in the nodeDir's keystore
+func getKeyFiles(nodeDir string) ([]string, error) {
+	keystorepath, err := keystoreDir(nodeDir)
 	if err != nil {
 		return nil, fmt.Errorf("could not get keystore directory: %s", err)
 	}
@@ -165,10 +165,10 @@ func getKeyFiles(datadir string) ([]string, error) {
 	return keys, nil
 }
 
-// generateKeypair create a new keypair with the corresponding type and saves it to datadir/keystore/[public key].key
+// generateKeypair create a new keypair with the corresponding type and saves it to [root]/[node]/keystore/[public key].key
 // in json format encrypted using the specified password
 // it returns the resulting filepath of the new key
-func generateKeypair(keytype, datadir string, password []byte) (string, error) {
+func generateKeypair(keytype, nodeDir string, password []byte) (string, error) {
 	if password == nil {
 		password = getPassword("Enter password to encrypt keystore file:")
 	}
@@ -199,13 +199,13 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		}
 	}
 
-	keystorepath, err := keystoreDir(datadir)
+	keystorepath, err := keystoreDir(nodeDir)
 	if err != nil {
 		return "", fmt.Errorf("could not get keystore directory: %s", err)
 	}
 
 	pub := hex.EncodeToString(kp.Public().Encode())
-	fp, err := filepath.Abs(keystorepath + "/" + pub + ".key")
+	fp, err := filepath.Abs(filepath.Join(keystorepath, pub+".key"))
 	if err != nil {
 		return "", fmt.Errorf("invalid filepath: %s", err)
 	}
@@ -231,35 +231,35 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	return fp, nil
 }
 
-// keystoreDir returnns the absolute filepath of the keystore directory given gossamer's datadir
+// keystoreDir returnns the absolute filepath of the keystore directory given gossamer's nodeDir
 // by default, it is ~/.gossamer/keystore/
-// otherwise, it is datadir/keystore/
-func keystoreDir(datadir string) (keystorepath string, err error) {
-	// datadir specified, return datadir/keystore as absolute path
-	if datadir != "" {
-		keystorepath, err = filepath.Abs(datadir + "/keystore")
+// otherwise, it is [root]/[node]/keystore/
+func keystoreDir(nodeDir string) (keystorepath string, err error) {
+	// nodeDir specified, return [root]/[node]/keystore/ as absolute path
+	if nodeDir != "" {
+		keystorepath, err = filepath.Abs(nodeDir + "/keystore")
 		if err != nil {
 			return "", err
 		}
 	} else {
-		// datadir not specified, return ~/.gossamer/keystore as absolute path
-		datadir = config.DefaultDataDir()
+		// nodeDir not specified, return ~/.gossamer/keystore as absolute path
+		nodeDir = config.DefaultRootDir()
 
-		keystorepath, err = filepath.Abs(datadir + "/keystore")
+		keystorepath, err = filepath.Abs(nodeDir + "/keystore")
 		if err != nil {
 			return "", fmt.Errorf("could not create keystore file path: %s", err)
 		}
 	}
 
-	// if datadir does not exist, create it
-	if _, err = os.Stat(datadir); os.IsNotExist(err) {
-		err = os.Mkdir(datadir, os.ModePerm)
+	// if nodeDir does not exist, create it
+	if _, err = os.Stat(nodeDir); os.IsNotExist(err) {
+		err = os.Mkdir(nodeDir, os.ModePerm)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	// if datadir/keystore does not exist, create it
+	// if [root]/[node]/keystore/ does not exist, create it
 	if _, err = os.Stat(keystorepath); os.IsNotExist(err) {
 		err = os.Mkdir(keystorepath, os.ModePerm)
 		if err != nil {

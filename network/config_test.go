@@ -16,7 +16,7 @@ func TestBuildIdentity(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	configA := &Config{
-		DataDir: testDir,
+		RootDir: testDir,
 	}
 
 	err := configA.buildIdentity()
@@ -25,7 +25,7 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	configB := &Config{
-		DataDir: testDir,
+		RootDir: testDir,
 	}
 
 	err = configB.buildIdentity()
@@ -62,8 +62,8 @@ func TestBuildIdentity(t *testing.T) {
 
 // test build configuration method
 func TestBuild(t *testing.T) {
-	testDataDir := path.Join(os.TempDir(), "gossamer-test")
-	defer os.RemoveAll(testDataDir)
+	testRootDir := path.Join(os.TempDir(), "gossamer-test")
+	defer os.RemoveAll(testRootDir)
 
 	testBlockState := &state.BlockState{}
 	testNetworkState := &state.NetworkState{}
@@ -75,7 +75,7 @@ func TestBuild(t *testing.T) {
 		BlockState:   testBlockState,
 		NetworkState: testNetworkState,
 		StorageState: testStorageState,
-		DataDir:      testDataDir,
+		RootDir:      testRootDir,
 		RandSeed:     testRandSeed,
 	}
 
@@ -87,7 +87,7 @@ func TestBuild(t *testing.T) {
 	require.Equal(t, testBlockState, cfg.BlockState)
 	require.Equal(t, testNetworkState, cfg.NetworkState)
 	require.Equal(t, testStorageState, cfg.StorageState)
-	require.Equal(t, testDataDir, cfg.DataDir)
+	require.Equal(t, testRootDir, cfg.RootDir)
 	require.Equal(t, DefaultRoles, cfg.Roles)
 	require.Equal(t, DefaultPort, cfg.Port)
 	require.Equal(t, testRandSeed, cfg.RandSeed)

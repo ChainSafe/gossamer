@@ -29,10 +29,10 @@ import (
 )
 
 func TestSetAndGetHeader(t *testing.T) {
-	dataDir, err := ioutil.TempDir("", "./test_data")
+	rootDir, err := ioutil.TempDir("", "./test_data")
 	require.Nil(t, err)
 
-	blockDb, err := NewBlockDB(dataDir)
+	blockDb, err := NewBlockDB(rootDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,11 +67,11 @@ func TestSetAndGetHeader(t *testing.T) {
 }
 
 func TestGetBlockByNumber(t *testing.T) {
-	dataDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
+	rootDir, err := ioutil.TempDir("", "TestGetBlockByNumber")
 	require.Nil(t, err)
 
 	// Create & start a new State service
-	stateService := NewService(dataDir)
+	stateService := NewService(rootDir)
 	err = stateService.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
@@ -122,10 +122,10 @@ func TestGetBlockByNumber(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	dataDir, err := ioutil.TempDir("", "TestAddBlock")
+	rootDir, err := ioutil.TempDir("", "TestAddBlock")
 	require.Nil(t, err)
 
-	blockDb, err := NewBlockDB(dataDir)
+	blockDb, err := NewBlockDB(rootDir)
 	if err != nil {
 		t.Fatal(err)
 	}

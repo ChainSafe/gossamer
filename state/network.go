@@ -22,8 +22,8 @@ type NetworkState struct {
 }
 
 // NewNetworkDB instantiates a badgerDB instance for storing relevant BlockData
-func NewNetworkDB(dataDir string) (*NetworkDB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+func NewNetworkDB(rootDir string) (*NetworkDB, error) {
+	db, err := db.NewBadgerDB(rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -32,9 +32,9 @@ func NewNetworkDB(dataDir string) (*NetworkDB, error) {
 	}, nil
 }
 
-// NewNetworkState creates NetworkState with a network database in DataDir
-func NewNetworkState(dataDir string) (*NetworkState, error) {
-	networkDb, err := NewNetworkDB(dataDir)
+// NewNetworkState creates NetworkState with a network database in RootDir
+func NewNetworkState(rootDir string) (*NetworkState, error) {
+	networkDb, err := NewNetworkDB(rootDir)
 	if err != nil {
 		return nil, err
 	}

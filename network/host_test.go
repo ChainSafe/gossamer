@@ -26,11 +26,11 @@ import (
 
 // test host connect method
 func TestConnect(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -43,11 +43,11 @@ func TestConnect(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
@@ -92,11 +92,11 @@ func TestConnect(t *testing.T) {
 
 // test host bootstrap method on start
 func TestBootstrap(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -111,11 +111,11 @@ func TestBootstrap(t *testing.T) {
 
 	addrA := nodeA.host.multiaddrs()[0]
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:   dataDirB,
+		RootDir:   rootDirB,
 		Port:      7002,
 		RandSeed:  2,
 		Bootnodes: []string{addrA.String()},
@@ -150,11 +150,11 @@ func TestBootstrap(t *testing.T) {
 
 // test host ping method
 func TestPing(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -167,11 +167,11 @@ func TestPing(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
@@ -212,11 +212,11 @@ func TestPing(t *testing.T) {
 
 // test host send method
 func TestSend(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -229,11 +229,11 @@ func TestSend(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
@@ -277,11 +277,11 @@ func TestSend(t *testing.T) {
 
 // test host broadcast method
 func TestBroadcast(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -294,11 +294,11 @@ func TestBroadcast(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
@@ -321,11 +321,11 @@ func TestBroadcast(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDirC := path.Join(os.TempDir(), "gossamer-test", "nodeC")
-	defer os.RemoveAll(dataDirC)
+	rootDirC := path.Join(os.TempDir(), "gossamer-test", "nodeC")
+	defer os.RemoveAll(rootDirC)
 
 	configC := &Config{
-		DataDir:     dataDirC,
+		RootDir:     rootDirC,
 		Port:        7003,
 		RandSeed:    3,
 		NoBootstrap: true,
@@ -380,11 +380,11 @@ func TestBroadcast(t *testing.T) {
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -402,11 +402,11 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,

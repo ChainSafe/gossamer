@@ -22,8 +22,8 @@ type StorageState struct {
 }
 
 // NewStateDB instantiates badgerDB instance for storing trie structure
-func NewStateDB(dataDir string) (*StateDB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+func NewStateDB(rootDir string) (*StateDB, error) {
+	db, err := db.NewBadgerDB(rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +33,9 @@ func NewStateDB(dataDir string) (*StateDB, error) {
 	}, nil
 }
 
-// NewStorageState creates a new StorageState backed by the given trie and database located at dataDir.
-func NewStorageState(dataDir string, t *trie.Trie) (*StorageState, error) {
-	stateDb, err := NewStateDB(dataDir)
+// NewStorageState creates a new StorageState backed by the given trie and database located at rootDir.
+func NewStorageState(rootDir string, t *trie.Trie) (*StorageState, error) {
+	stateDb, err := NewStateDB(rootDir)
 	if err != nil {
 		return nil, err
 	}

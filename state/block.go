@@ -29,8 +29,8 @@ type BlockState struct {
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
-func NewBlockDB(dataDir string) (*BlockDB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+func NewBlockDB(rootDir string) (*BlockDB, error) {
+	db, err := db.NewBadgerDB(rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +40,9 @@ func NewBlockDB(dataDir string) (*BlockDB, error) {
 	}, nil
 }
 
-// NewBlockState will create a new BlockState backed by the database located at dataDir
-func NewBlockState(dataDir string, latestHash common.Hash) (*BlockState, error) {
-	blockDb, err := NewBlockDB(dataDir)
+// NewBlockState will create a new BlockState backed by the database located at rootDir
+func NewBlockState(rootDir string, latestHash common.Hash) (*BlockState, error) {
+	blockDb, err := NewBlockDB(rootDir)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +61,9 @@ func NewBlockState(dataDir string, latestHash common.Hash) (*BlockState, error) 
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at dataDir
-func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*BlockState, error) {
-	blockDb, err := NewBlockDB(dataDir)
+// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at rootDir
+func NewBlockStateFromGenesis(rootDir string, header *types.Header) (*BlockState, error) {
+	blockDb, err := NewBlockDB(rootDir)
 	if err != nil {
 		return nil, err
 	}

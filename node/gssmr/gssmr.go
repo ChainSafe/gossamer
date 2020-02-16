@@ -103,10 +103,10 @@ func (d *Node) Stop() {
 func MakeNode(ctx *cli.Context, currentConfig *config.Config, ks *keystore.Keystore) (*Node, error) {
 	var srvcs []services.Service
 
-	dataDir := currentConfig.Global.DataDir
+	nodeDir := currentConfig.Global.NodeDir
 
 	// Create service, initialize stateDB and blockDB
-	stateSrv := state.NewService(dataDir)
+	stateSrv := state.NewService(nodeDir)
 	srvcs = append(srvcs, stateSrv)
 
 	err := stateSrv.Start()
@@ -192,7 +192,7 @@ func createNetworkService(fig *config.Config, gendata *genesis.GenesisData, stat
 		BlockState:   stateService.Block,
 		StorageState: stateService.Storage,
 		NetworkState: stateService.Network,
-		DataDir:      fig.Global.DataDir,
+		NodeDir:      fig.Global.NodeDir,
 		Roles:        fig.Node.Roles,
 		Port:         fig.Network.Port,
 		Bootnodes:    bootnodes,

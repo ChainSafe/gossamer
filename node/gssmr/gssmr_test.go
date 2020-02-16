@@ -43,7 +43,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-const TestDataDir = "./test_data"
+const TestRootDir = "./test_data"
 
 const TestProtocolID = "/gossamer/test/0"
 
@@ -66,15 +66,15 @@ func teardown(tempFile *os.File) {
 	}
 }
 
-func removeTestDataDir() {
-	if err := os.RemoveAll(TestDataDir); err != nil {
+func removeTestRootDir() {
+	if err := os.RemoveAll(TestRootDir); err != nil {
 		log.Warn("cannot remove test data dir", "err", err)
 	}
 }
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
-	testConfig.Global.DataDir = TestDataDir
+	testConfig.Global.RootDir = TestRootDir
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
@@ -145,7 +145,7 @@ func createTestNode(t *testing.T, testDir string) *Node {
 		BlockState:   &state.BlockState{},   // required
 		NetworkState: &state.NetworkState{}, // required
 		StorageState: &state.StorageState{}, // required
-		DataDir:      testDir,               // default "~/.gossamer"
+		RootDir:      testDir,               // default "~/.gossamer"
 		Roles:        1,                     // required
 		RandSeed:     1,                     // default 0
 	}
@@ -204,7 +204,7 @@ func TestNode_Start(t *testing.T) {
 }
 
 func TestCreateNetworkService(t *testing.T) {
-	stateSrv := state.NewService(TestDataDir)
+	stateSrv := state.NewService(TestRootDir)
 	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }

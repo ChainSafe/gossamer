@@ -22,7 +22,7 @@ func TestUnlock(t *testing.T) {
 	t.Log(keyfile)
 
 	ctx, err := createCliContext("unlock",
-		[]string{"datadir", "unlock", "password"},
+		[]string{"root", "unlock", "password"},
 		[]interface{}{testKeystoreDir, "0", string(testPassword)},
 	)
 	require.Nil(t, err)
@@ -60,7 +60,7 @@ func TestUnlockFlag(t *testing.T) {
 	defer os.Remove(genesisPath)
 
 	ctx, err := createCliContext("load genesis",
-		[]string{"datadir", "genesis"},
+		[]string{"root", "genesis"},
 		[]interface{}{testKeystoreDir, genesisPath},
 	)
 	require.Nil(t, err)
@@ -70,7 +70,7 @@ func TestUnlockFlag(t *testing.T) {
 	require.Nil(t, err)
 
 	ctx, err = createCliContext("unlock",
-		[]string{"datadir", "genesis", "unlock", "password"},
+		[]string{"root", "genesis", "unlock", "password"},
 		[]interface{}{testKeystoreDir, genesisPath, "0", string(testPassword)},
 	)
 	if err != nil {

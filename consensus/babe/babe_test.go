@@ -356,12 +356,12 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 	newBlocks := make(chan types.Block)
 
-	dataDir, err := ioutil.TempDir("", "./test_data")
+	rootDir, err := ioutil.TempDir("", "./test_data")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dbSrv := state.NewService(dataDir)
+	dbSrv := state.NewService(rootDir)
 	err = dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,

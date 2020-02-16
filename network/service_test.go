@@ -69,11 +69,11 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 
 // test network service starts
 func TestStartService(t *testing.T) {
-	dataDir := path.Join(os.TempDir(), "gossamer-test", "node")
-	defer os.RemoveAll(dataDir)
+	rootDir := path.Join(os.TempDir(), "gossamer-test", "node")
+	defer os.RemoveAll(rootDir)
 
 	config := &Config{
-		DataDir:     dataDir,
+		RootDir:     rootDir,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -85,11 +85,11 @@ func TestStartService(t *testing.T) {
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -102,11 +102,11 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,

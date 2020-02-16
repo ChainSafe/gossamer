@@ -24,12 +24,29 @@ func loadGenesis(ctx *cli.Context) error {
 
 	// read genesis file
 	genesisPath := getGenesisPath(ctx)
-	dataDir := expandPath(cfg.Global.DataDir)
-	if ctx.String(DataDirFlag.Name) != "" {
-		dataDir = expandPath(ctx.String(DataDirFlag.Name))
+
+	// default node directory
+	nodeDir := expandPath(cfg.Global.NodeDir)
+
+	if ctx.String(RootDirFlag.Name) != "" && ctx.String(NodeFlag.Name) != "" {
+		nodeDir = expandPath(
+			filepath.Join(
+				ctx.String(RootDirFlag.Name),
+				ctx.String(NodeFlag.Name),
+			),
+		)
 	}
 
-	log.Debug("Loading genesis", "genesisPath", genesisPath, "dataDir", dataDir)
+	if ctx.String(RootDirFlag.Name) == "" && ctx.String(NodeFlag.Name) != "" {
+		nodeDir = expandPath(
+			filepath.Join(
+				config.DefaultRootDir(),
+				ctx.String(NodeFlag.Name),
+			),
+		)
+	}
+
+	log.Debug("Loading genesis", "genesisPath", genesisPath, "nodeDir", nodeDir)
 
 	// read genesis configuration file
 	gen, err := genesis.LoadGenesisFromJSON(genesisPath)
@@ -37,10 +54,16 @@ func loadGenesis(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("🕸\t Initializing node", "Name", gen.Name, "ID", gen.ID, "ProtocolID", gen.ProtocolID, "Bootnodes", gen.Bootnodes)
+	log.Info(
+		"Initializing node",
+		"Name", gen.Name,
+		"ID", gen.ID,
+		"ProtocolID", gen.ProtocolID,
+		"Bootnodes", gen.Bootnodes,
+	)
 
 	// initialize stateDB and blockDB
-	stateSrv := state.NewService(dataDir)
+	stateSrv := state.NewService(nodeDir)
 
 	t, header, err := initializeGenesisState(gen.GenesisFields())
 	if err != nil {
@@ -53,8 +76,8 @@ func loadGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("cannot initialize state service: %s", err)
 	}
 
-	stateDataDir := filepath.Join(dataDir, "state")
-	stateDb, err := state.NewStorageState(stateDataDir, t)
+	stateDir := filepath.Join(nodeDir, "state")
+	stateDb, err := state.NewStorageState(stateDir, t)
 	if err != nil {
 		return fmt.Errorf("cannot create state db: %s", err)
 	}

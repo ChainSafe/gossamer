@@ -30,11 +30,11 @@ func NewService(path string) *Service {
 // The trie does not need a backing DB, since the DB will be created during Service.Start().
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
-	stateDataDir := filepath.Join(s.dbPath, "state")
-	blockDataDir := filepath.Join(s.dbPath, "block")
-	networkDataDir := filepath.Join(s.dbPath, "network")
+	stateDir := filepath.Join(s.dbPath, "state")
+	blockDir := filepath.Join(s.dbPath, "block")
+	networkDir := filepath.Join(s.dbPath, "network")
 
-	storageState, err := NewStorageState(stateDataDir, t)
+	storageState, err := NewStorageState(stateDir, t)
 	if err != nil {
 		return err
 	}
@@ -50,12 +50,12 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
-	blockState, err := NewBlockStateFromGenesis(blockDataDir, genesisHeader)
+	blockState, err := NewBlockStateFromGenesis(blockDir, genesisHeader)
 	if err != nil {
 		return err
 	}
 
-	networkState, err := NewNetworkState(networkDataDir)
+	networkState, err := NewNetworkState(networkDir)
 	if err != nil {
 		return err
 	}
@@ -79,11 +79,11 @@ func (s *Service) Start() error {
 		return nil
 	}
 
-	stateDataDir := filepath.Join(s.dbPath, "state")
-	blockDataDir := filepath.Join(s.dbPath, "block")
-	networkDataDir := filepath.Join(s.dbPath, "network")
+	stateDir := filepath.Join(s.dbPath, "state")
+	blockDir := filepath.Join(s.dbPath, "block")
+	networkDir := filepath.Join(s.dbPath, "network")
 
-	storageState, err := NewStorageState(stateDataDir, trie.NewEmptyTrie(nil))
+	storageState, err := NewStorageState(stateDir, trie.NewEmptyTrie(nil))
 	if err != nil {
 		return fmt.Errorf("cannot make storage state: %s", err)
 	}
@@ -95,7 +95,7 @@ func (s *Service) Start() error {
 
 	log.Trace("state service", "latestHeaderHash", latestHeaderHash)
 
-	blockState, err := NewBlockState(blockDataDir, common.BytesToHash(latestHeaderHash))
+	blockState, err := NewBlockState(blockDir, common.BytesToHash(latestHeaderHash))
 	if err != nil {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
@@ -105,7 +105,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot load state from DB: %s", err)
 	}
 
-	networkState, err := NewNetworkState(networkDataDir)
+	networkState, err := NewNetworkState(networkDir)
 	if err != nil {
 		return fmt.Errorf("cannot make network state: %s", err)
 	}

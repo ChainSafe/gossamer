@@ -28,10 +28,12 @@ import (
 )
 
 var (
-	app       = cli.NewApp()
+	app         = cli.NewApp()
+	globalFlags = []cli.Flag{
+		RootDirFlag,
+		NodeFlag,
+	}
 	nodeFlags = []cli.Flag{
-		DataDirFlag,
-		ChainFlag,
 		RolesFlag,
 		ConfigFileFlag,
 		UnlockFlag,
@@ -74,7 +76,7 @@ var (
 		Name:        "dumpconfig",
 		Usage:       "Show configuration values",
 		ArgsUsage:   "",
-		Flags:       append(nodeFlags, rpcFlags...),
+		Flags:       append(append(globalFlags, nodeFlags...), rpcFlags...),
 		Category:    "CONFIGURATION DEBUGGING",
 		Description: `The dumpconfig command shows configuration values.`,
 	}
@@ -84,8 +86,8 @@ var (
 		Usage:     "Initialize node genesis state",
 		ArgsUsage: "",
 		Flags: []cli.Flag{
-			DataDirFlag,
-			ChainFlag,
+			RootDirFlag,
+			NodeFlag,
 			GenesisFlag,
 			VerbosityFlag,
 			ConfigFileFlag,
@@ -97,7 +99,7 @@ var (
 		Action:   FixFlagOrder(handleAccounts),
 		Name:     "account",
 		Usage:    "manage gossamer keystore",
-		Flags:    append(append(accountFlags, DataDirFlag, ChainFlag), VerbosityFlag),
+		Flags:    append(append(accountFlags, RootDirFlag, NodeFlag), VerbosityFlag),
 		Category: "KEYSTORE",
 		Description: "The account command is used to manage the gossamer keystore.\n" +
 			"\tTo generate a new sr25519 account: gossamer account --generate\n" +
@@ -121,6 +123,7 @@ func init() {
 		initCommand,
 		accountCommand,
 	}
+	app.Flags = append(app.Flags, globalFlags...)
 	app.Flags = append(app.Flags, nodeFlags...)
 	app.Flags = append(app.Flags, networkFlags...)
 	app.Flags = append(app.Flags, rpcFlags...)
@@ -158,8 +161,6 @@ func initNode(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Info("Initializing node...")
-
 	err = loadGenesis(ctx)
 	if err != nil {
 		log.Error("error loading genesis state", "error", err)
@@ -191,7 +192,7 @@ func gossamer(ctx *cli.Context) error {
 
 	// unlock keys specified with --unlock command option
 	if unlock := ctx.String(UnlockFlag.Name); unlock != "" {
-		err := unlockKeys(ctx, cfg.Global.DataDir, ks)
+		err := unlockKeys(ctx, cfg.Global.NodeDir, ks)
 		if err != nil {
 			log.Error("error unlocking account", "err", err)
 			return fmt.Errorf("could not unlock keys: %s", err)
@@ -200,8 +201,9 @@ func gossamer(ctx *cli.Context) error {
 
 	log.Info(
 		"Global configuration...",
-		"DataDir", cfg.Global.DataDir,
-		"Chain", cfg.Global.Chain,
+		"RootDir", cfg.Global.RootDir,
+		"Node", cfg.Global.Node,
+		"NodeDir", cfg.Global.NodeDir,
 	)
 
 	log.Info(

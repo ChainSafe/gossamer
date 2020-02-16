@@ -39,7 +39,7 @@ func createTestNode(t *testing.T, testDir string) *Node {
 		BlockState:   &state.BlockState{},   // required
 		NetworkState: &state.NetworkState{}, // required
 		StorageState: &state.StorageState{}, // required
-		DataDir:      testDir,               // default "~/.gossamer"
+		RootDir:      testDir,               // default "~/.gossamer"
 		Roles:        1,                     // required
 		RandSeed:     1,                     // default 0
 	}

@@ -34,7 +34,7 @@ type BadgerDB struct {
 
 //Config defines configurations for BadgerService instance
 type Config struct {
-	DataDir string
+	RootDir string
 }
 
 // NewBadgerDB initializes badgerDB instance
@@ -55,7 +55,7 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 
 	return &BadgerDB{
 		config: Config{
-			DataDir: file,
+			RootDir: file,
 		},
 		db: db,
 	}, nil
@@ -63,7 +63,7 @@ func NewBadgerDB(file string) (*BadgerDB, error) {
 
 // Path returns the path to the database directory.
 func (db *BadgerDB) Path() string {
-	return db.config.DataDir
+	return db.config.RootDir
 }
 
 // Batch struct contains a database instance, key-value mapping for batch writes and length of item value for batch write

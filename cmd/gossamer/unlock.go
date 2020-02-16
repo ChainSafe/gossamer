@@ -26,12 +26,12 @@ import (
 
 // unlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password
 // and places them into the keystore
-func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
+func unlockKeys(ctx *cli.Context, rootDir string, ks *keystore.Keystore) error {
 	var indices []int
 	var passwords []string
 	var err error
 
-	keydir, err := keystoreDir(datadir)
+	keydir, err := keystoreDir(rootDir)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 	}
 
 	// get paths to key files
-	keyfiles, err := getKeyFiles(datadir)
+	keyfiles, err := getKeyFiles(rootDir)
 	if err != nil {
 		return err
 	}

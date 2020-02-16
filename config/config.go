@@ -34,8 +34,9 @@ type Config struct {
 }
 
 type GlobalConfig struct {
-	DataDir string `toml:"data-dir"`
-	Chain   string `toml:"chain"`
+	RootDir string `toml:"root-dir"`
+	Node    string `toml:"node"`
+	NodeDir string `toml:"node-dir"`
 }
 
 type NodeConfig struct {

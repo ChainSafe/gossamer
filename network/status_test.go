@@ -30,11 +30,11 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	rootDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(rootDirA)
 
 	configA := &Config{
-		DataDir:     dataDirA,
+		RootDir:     rootDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -69,11 +69,11 @@ func TestStatus(t *testing.T) {
 	// simulate host status message sent from core service on startup
 	msgRecA <- testStatusMessage
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	rootDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(rootDirB)
 
 	configB := &Config{
-		DataDir:     dataDirB,
+		RootDir:     rootDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,
