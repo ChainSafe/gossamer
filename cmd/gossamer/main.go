@@ -199,15 +199,15 @@ func gossamer(ctx *cli.Context) error {
 		}
 	}
 
-	log.Info(
-		"Global configuration...",
+	log.Debug(
+		"Using GlobalConfig",
 		"RootDir", cfg.Global.RootDir,
 		"Node", cfg.Global.Node,
 		"NodeDir", cfg.Global.NodeDir,
 	)
 
-	log.Info(
-		"Node configuration...",
+	log.Debug(
+		"Using NodeConfig",
 		"Roles", cfg.Node.Roles,
 		"Authority", cfg.Node.Authority,
 	)

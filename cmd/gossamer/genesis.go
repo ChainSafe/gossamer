@@ -37,7 +37,8 @@ func loadGenesis(ctx *cli.Context) error {
 		)
 	}
 
-	if ctx.String(RootDirFlag.Name) == "" && ctx.String(NodeFlag.Name) != "" {
+	// TODO: create slice of approved nodes
+	if ctx.String(RootDirFlag.Name) == "" && (ctx.String(NodeFlag.Name) == "gssmr" || ctx.String(NodeFlag.Name) == "ksmcc") {
 		nodeDir = expandPath(
 			filepath.Join(
 				config.DefaultRootDir(),

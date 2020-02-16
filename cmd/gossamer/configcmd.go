@@ -42,20 +42,20 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 	cfg := config.DefaultConfig()
 
 	log.Debug(
-		"Set default \"Global\" configuration...",
+		"Default GlobalConfig",
 		"RootDir", cfg.Global.RootDir,
 		"Node", cfg.Global.Node,
 		"NodeDir", cfg.Global.NodeDir,
 	)
 
 	log.Debug(
-		"Set default \"Node\" configuration...",
+		"Default NodeConfig",
 		"Roles", cfg.Node.Roles,
 		"Authority", cfg.Node.Authority,
 	)
 
 	log.Debug(
-		"Set default \"Network\" configuration...",
+		"Default NetworkConfig",
 		"Bootnodes", cfg.Network.Bootnodes,
 		"ProtocolID", cfg.Network.ProtocolID,
 		"Port", cfg.Network.Port,
@@ -64,7 +64,7 @@ func buildConfig(ctx *cli.Context) (*config.Config, error) {
 	)
 
 	log.Debug(
-		"Set default \"RPC\" configuration...",
+		"Default RPCConfig",
 		"Host", cfg.RPC.Host,
 		"Port", cfg.RPC.Port,
 		"Modules", cfg.RPC.Modules,
@@ -119,25 +119,34 @@ func setGlobalConfig(ctx *cli.Context, cfg *config.GlobalConfig) {
 		expandedRootDir := expandPath(rootDir)
 		cfg.RootDir, _ = filepath.Abs(expandedRootDir)
 		log.Debug(
-			"Updated configuration...",
+			"Updated GlobalConfig",
 			"RootDir", cfg.RootDir,
 		)
 	}
 
 	// --node
 	if node = ctx.String(NodeFlag.Name); node != "" {
-		cfg.Node = node
-		log.Debug(
-			"Updated configuration...",
-			"Node", cfg.Node,
-		)
+		// TODO: create slice of approved nodes
+		if node == "gssmr" || node == "ksmcc" {
+			cfg.Node = node
+			log.Debug(
+				"Updated GlobalConfig",
+				"Node", cfg.Node,
+			)
+		} else {
+			log.Error(
+				"Failed to update GlobalConfig",
+				"NodeFlag", node,
+			)
+		}
 	}
 
-	if rootDir != "" || node != "" {
+	// TODO: create slice of approved nodes
+	if (rootDir != "" || node != "") && (node == "gssmr" || node == "ksmcc") {
 		// create node directory from root directory and node name
 		cfg.NodeDir = filepath.Join(cfg.RootDir, cfg.Node)
 		log.Debug(
-			"Updated configuration...",
+			"Updated GlobalConfig",
 			"NodeDir", cfg.NodeDir,
 		)
 	}
@@ -158,7 +167,7 @@ func setNodeConfig(ctx *cli.Context, cfg *config.NodeConfig) {
 		} else {
 			cfg.Roles = byte(b)
 			log.Debug(
-				"Updated configuration...",
+				"Updated NodeConfig",
 				"Roles", cfg.Roles,
 			)
 		}
@@ -168,13 +177,13 @@ func setNodeConfig(ctx *cli.Context, cfg *config.NodeConfig) {
 	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !cfg.Authority {
 		cfg.Authority = true
 		log.Debug(
-			"Updated configuration...",
+			"Updated NodeConfig",
 			"Authority", cfg.Authority,
 		)
 	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && cfg.Authority {
 		cfg.Authority = false
 		log.Debug(
-			"Updated configuration...",
+			"Updated NodeConfig",
 			"Authority", cfg.Authority,
 		)
 	}
