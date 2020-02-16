@@ -343,19 +343,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// TODO: check if we should send block request message
 
-	// TODO: update message properties and use generated id
-	// blockRequest := &network.BlockRequestMessage{
-	// 	ID:            1,
-	// 	RequestedData: 2,
-	// 	StartingBlock: []byte{},
-	// 	EndBlockHash:  optional.NewHash(true, common.Hash{}),
-	// 	Direction:     1,
-	// 	Max:           optional.NewUint32(false, 0),
-	// }
-
-	// send block request message to network service
-	//s.msgSend <- blockRequest
-
 	_, err = s.blockState.GetHeader(header.Hash())
 	if err != nil && err.Error() == "Key not found" {
 		err = s.blockState.SetHeader(header)
