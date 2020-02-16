@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -42,10 +43,8 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 		rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 
 		cfg = &Config{
-			Runtime:  rt,
-			Keystore: keystore.NewKeystore(),
-			MsgRec:   make(chan network.Message),
-			MsgSend:  make(chan network.Message),
+			Runtime:         rt,
+			IsBabeAuthority: false,
 		}
 	}
 
@@ -66,6 +65,10 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 		t.Fatal(err)
 	}
 
+	if cfg.NewBlocks == nil {
+		cfg.NewBlocks = make(chan types.Block)
+	}
+
 	dbSrv := state.NewService(dataDir)
 	err = dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
@@ -80,12 +83,12 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 		t.Fatal(err)
 	}
 
-	defer func() {
-		err = dbSrv.Stop()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	// defer func() {
+	// 	err = dbSrv.Stop()
+	// 	if err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// }()
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = dbSrv.Block
@@ -93,10 +96,6 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 
 	if cfg.StorageState == nil {
 		cfg.StorageState = dbSrv.Storage
-	}
-
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
 	}
 
 	s, err := NewService(cfg)
@@ -170,19 +169,14 @@ func TestAnnounceBlock(t *testing.T) {
 
 	s, dbSrv := newTestService(t, cfg)
 
-	err := dbSrv.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	defer func() {
-		err = dbSrv.Stop()
+		err := dbSrv.Stop()
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
 
-	err = s.Start()
+	err := s.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,11 +257,27 @@ func TestProcessBlockAnnounceMessage(t *testing.T) {
 }
 
 func TestProcessBlockResponseMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:  rt,
-		Keystore: keystore.NewKeystore(),
+		Runtime:         rt,
+		Keystore:        ks,
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
@@ -337,12 +347,27 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 }
 
 func TestProcessTransactionMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:       rt,
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: true,
+		Runtime:         rt,
+		Keystore:        ks,
+		IsBabeAuthority: true,
 	}
 
 	s, err := NewService(cfg)
@@ -375,8 +400,8 @@ func TestProcessTransactionMessage(t *testing.T) {
 
 func TestService_NotAuthority(t *testing.T) {
 	cfg := &Config{
-		Keystore:      keystore.NewKeystore(),
-		BabeAuthority: false,
+		Keystore:        keystore.NewKeystore(),
+		IsBabeAuthority: false,
 	}
 
 	s, err := NewService(cfg)
