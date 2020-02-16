@@ -27,7 +27,6 @@ import (
 )
 
 type AuthorModule struct {
-	//api *api.API
 	api *state.Service
 }
 
@@ -37,7 +36,7 @@ type KeyInsertRequest struct {
 	PublicKey []byte `json:"publicKey"`
 }
 
-type Extrinsic []byte
+type Extrinsic string
 
 type ExtrinsicOrHash struct {
 	Hash      common.Hash
@@ -105,9 +104,28 @@ func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
 func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
-	vtx := tx.NewValidTransaction(types.Extrinsic(*req), &tx.Validity{})
+	extBytes, err := common.HexToBytes(string(*req))
+	if err != nil {
+		return err
+	}
+
+	log.Trace("[rpc]", "extrinsic", extBytes)
+
+	// TODO: validate transaction before submitting to tx queue
+
+	ext := types.Extrinsic(extBytes)
+
+	vtx := &tx.ValidTransaction{
+		Extrinsic: &ext,
+		Validity:  nil,
+	}
+
 	cm.api.TxQueue.Push(vtx)
-	hash, _ := common.Blake2bHash(*req)
+	hash, err := common.Blake2bHash(extBytes)
+	if err != nil {
+		return err
+	}
+
 	*res = ExtrinsicHashResponse(hash)
 	log.Info("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
 	return nil

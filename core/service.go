@@ -417,7 +417,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		tx := tx // pin
 
 		// validate each transaction
-		val, err := s.validateTransaction(tx)
+		val, err := s.ValidateTransaction(tx)
 		if err != nil {
 			log.Error("[core] failed to validate transaction", "err", err)
 			return err // exit

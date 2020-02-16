@@ -28,7 +28,7 @@ import (
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
-func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
+func (s *Service) ValidateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	ret, err := s.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err

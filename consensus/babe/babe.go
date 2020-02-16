@@ -201,7 +201,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 		} else {
 			hash := block.Header.Hash()
 			log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number)
-			log.Trace("[babe] built block", "header", block.Header, "body", block.Body)
+			log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
 
 			b.newBlocks <- *block
 			err = b.blockState.AddBlock(block)

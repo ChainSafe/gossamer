@@ -17,7 +17,6 @@
 package rpc
 
 import (
-	//"io"
 	"fmt"
 	"net/http"
 

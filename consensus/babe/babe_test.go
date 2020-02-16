@@ -463,27 +463,12 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 	return block, slot
 }
 func TestBuildBlock_ok(t *testing.T) {
-	// <<<<<<< HEAD
-	// 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	// 	kp, err := sr25519.GenerateKeypair()
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-
 	txQueue := state.NewTransactionQueue()
 
 	cfg := &SessionConfig{
-		// Runtime: rt,
-		// Keypair: kp,
 		TxQueue: txQueue,
 	}
 
-	// 	babesession, err := NewSession(cfg)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// 	err = babesession.configurationFromRuntime()
-	// =======
 	babesession := createTestSession(t, cfg)
 	err := babesession.configurationFromRuntime()
 	if err != nil {
@@ -546,27 +531,12 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestBuildBlock_failing(t *testing.T) {
-	// <<<<<<< HEAD
-	// 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	// 	kp, err := sr25519.GenerateKeypair()
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-
 	txQueue := state.NewTransactionQueue()
 
 	cfg := &SessionConfig{
-		// Runtime: rt,
-		// Keypair: kp,
 		TxQueue: txQueue,
 	}
 
-	// 	babesession, err := NewSession(cfg)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// 	err = babesession.configurationFromRuntime()
-	// =======
 	babesession := createTestSession(t, cfg)
 	err := babesession.configurationFromRuntime()
 	if err != nil {
