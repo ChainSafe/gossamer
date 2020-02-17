@@ -25,3 +25,7 @@ func (q *TransactionQueue) Pop() *tx.ValidTransaction {
 func (q *TransactionQueue) Peek() *tx.ValidTransaction {
 	return q.queue.Peek()
 }
+
+func (q *TransactionQueue) Pending() [][]byte {
+	return nil
+}

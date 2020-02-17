@@ -199,12 +199,9 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
 }
 
+// PushToTxQueue pushes a transaction to the queue
 func (s *Service) PushToTxQueue(vt *transaction.ValidTransaction) {
 	s.txQueue.Push(vt)
-}
-
-func (s *Service) PeekFromTxQueue() *transaction.ValidTransaction {
-	return s.txQueue.Peek()
 }
 
 func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
