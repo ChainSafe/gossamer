@@ -64,7 +64,7 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
 		out, err = sd.DecodeBigInt()
-	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		out, err = sd.DecodeFixedWidthInt(t)
 	case []byte, string:
 		out, err = sd.DecodeByteArray()
