@@ -17,16 +17,16 @@
 package modules
 
 import (
-	"math/big"
+	//"math/big"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/core/types"
+	//"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/network"
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
+	//"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/trie"
 )
 
 var (
@@ -41,20 +41,20 @@ var (
 	testPeers = []common.PeerInfo{}
 )
 
-func newStateService(t *testing.T) *state.Service {
-	testDir := path.Join(os.TempDir(), "test_data")
+// func newStateService(t *testing.T) *state.Service {
+// 	testDir := path.Join(os.TempDir(), "test_data")
 
-	srv := state.NewService(testDir)
-	err := srv.Initialize(&types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	srv := state.NewService(testDir)
+// 	err := srv.Initialize(&types.Header{
+// 		Number:    big.NewInt(0),
+// 		StateRoot: trie.EmptyHash,
+// 	}, trie.NewEmptyTrie(nil))
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	return srv
-}
+// 	return srv
+// }
 
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
