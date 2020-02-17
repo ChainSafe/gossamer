@@ -1,4 +1,4 @@
-package modules
+package rpc
 
 import (
 	"github.com/ChainSafe/gossamer/common"

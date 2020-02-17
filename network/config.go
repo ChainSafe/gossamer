@@ -51,7 +51,9 @@ type Config struct {
 	// BlockState interface
 	BlockState BlockState
 	// NetworkState interface
-	NetworkState NetworkState
+	// NetworkState NetworkState
+	// // StorageState interface
+	// StorageState StorageState
 	// Global data directory
 	DataDir string
 	// Role is a bitmap value whose bits represent difierent roles for the sender node (see Table E.2)
@@ -121,15 +123,15 @@ func (c *Config) build() error {
 }
 
 func (c *Config) checkState() (err error) {
-	// set NoStatus to true if we don't need BlockState
 	if c.BlockState == nil && !c.NoStatus {
 		err = errors.New("Failed to build configuration: BlockState required")
 	}
-
-	if c.NetworkState == nil {
-		err = errors.New("Failed to build configuration: NetworkState required")
-	}
-
+	// if c.NetworkState == nil {
+	// 	err = errors.New("Failed to build configuration: NetworkState required")
+	// }
+	// if c.StorageState == nil {
+	// 	err = errors.New("Failed to build configuration: StorageState required")
+	// }
 	return err
 }
 

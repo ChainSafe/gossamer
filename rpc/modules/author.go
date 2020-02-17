@@ -25,7 +25,6 @@ import (
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	//api *api.API
 	api *state.Service
 }
 

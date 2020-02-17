@@ -24,14 +24,21 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
 var (
-	testHealth       = common.Health{}
-	testNetworkState = common.NetworkState{}
-	testPeers        = []common.PeerInfo{{}}
+	testHealth = common.Health{
+		Peers:           0,
+		IsSyncing:       false,
+		ShouldHavePeers: true,
+	}
+	testNetworkState = common.NetworkState{
+		PeerID: "12D3KooWMdRV3xJq3VPcnomVtA6yNjg4GpNMgyqeq42KqzUqnZTu",
+	}
+	testPeers = []common.PeerInfo{}
 )
 
 func newStateService(t *testing.T) *state.Service {
@@ -49,17 +56,26 @@ func newStateService(t *testing.T) *state.Service {
 	return srv
 }
 
-// Test RPC's System.Health() response
-func TestSystemModule_Health(t *testing.T) {
-	st := newStateService(t)
-	err := st.Start()
+func newNetworkService(t *testing.T) *network.Service {
+	testDir := path.Join(os.TempDir(), "test_data")
+
+	cfg := &network.Config{
+		NoStatus: true,
+		DataDir:  testDir,
+	}
+
+	srv, err := network.NewService(cfg, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	defer st.Stop()
+	return srv
+}
 
-	sys := NewSystemModule(st)
+// Test RPC's System.Health() response
+func TestSystemModule_Health(t *testing.T) {
+	net := newNetworkService(t)
+	sys := NewSystemModule(net)
 
 	res := &SystemHealthResponse{}
 	sys.Health(nil, nil, res)
@@ -71,15 +87,8 @@ func TestSystemModule_Health(t *testing.T) {
 
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
-	st := newStateService(t)
-	err := st.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer st.Stop()
-
-	sys := NewSystemModule(st)
+	net := newNetworkService(t)
+	sys := NewSystemModule(net)
 
 	res := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, res)
@@ -93,20 +102,8 @@ func TestSystemModule_NetworkState(t *testing.T) {
 
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
-	st := newStateService(t)
-	err := st.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer st.Stop()
-
-	err = st.Network.SetPeers(&testPeers)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sys := NewSystemModule(st)
+	net := newNetworkService(t)
+	sys := NewSystemModule(net)
 
 	res := &SystemPeersResponse{}
 	sys.Peers(nil, nil, res)
