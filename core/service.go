@@ -203,6 +203,10 @@ func (s *Service) PushToTxQueue(vt *transaction.ValidTransaction) {
 	s.txQueue.Push(vt)
 }
 
+func (s *Service) PeekFromTxQueue() *transaction.ValidTransaction {
+	return s.txQueue.Peek()
+}
+
 func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 	// TODO: when we update to a new runtime, will need to pass in the latest block number
 	return s.grandpaAuthorities()

@@ -181,3 +181,34 @@ func TestPriorityQueueConcurrentCalls(t *testing.T) {
 	}()
 
 }
+
+func TestPending(t *testing.T) {
+	tests := []*ValidTransaction{
+		{
+			Validity: &Validity{Priority: 5},
+		},
+		{
+			Validity: &Validity{Priority: 4},
+		},
+		{
+			Validity: &Validity{Priority: 3},
+		},
+		{
+			Validity: &Validity{Priority: 2},
+		},
+		{
+			Validity: &Validity{Priority: 1},
+		},
+	}
+
+	pq := NewPriorityQueue()
+
+	for _, node := range tests {
+		pq.Insert(node)
+	}
+
+	pending := pq.Pending()
+	if !reflect.DeepEqual(pending, tests) {
+		t.Fatalf("Fail: got %v expected %v", pending, tests)
+	}
+}
