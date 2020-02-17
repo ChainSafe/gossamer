@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/rpc/modules"
-	//"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -52,9 +51,8 @@ type ServerConfig struct {
 
 // Server is an RPC server.
 type Server struct {
-	codec    Codec       // Codec for requests/responses (default JSON)
-	services *serviceMap // Maps requests to actual procedure calls
-	//api      *state.Service
+	codec      Codec       // Codec for requests/responses (default JSON)
+	services   *serviceMap // Maps requests to actual procedure calls
 	blockApi   BlockApi
 	storageApi StorageApi
 	networkApi NetworkApi
@@ -70,8 +68,7 @@ func NewServer() *Server {
 // NewStateServer creates a new Server that interfaces with the state service.
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
-		services: new(serviceMap),
-		//api:      cfg.API,
+		services:   new(serviceMap),
 		blockApi:   cfg.BlockApi,
 		storageApi: cfg.StorageApi,
 		networkApi: cfg.NetworkApi,

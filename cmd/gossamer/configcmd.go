@@ -115,8 +115,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	srvcs = append(srvcs, coreSrvc)
 
 	// RPC
-	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
-		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
+	if ctx.GlobalBool(RPCEnabledFlag.Name) {
+		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv, networkSrvc)
 		srvcs = append(srvcs, rpcSrvr)
 	}
 
@@ -247,15 +247,16 @@ func createNetworkService(fig *cfg.Config, gendata *genesis.Data, stateService *
 
 	// network service configuation
 	networkConfig := network.Config{
-		BlockState:   stateService.Block,
-		NetworkState: stateService.Network,
-		DataDir:      fig.Global.DataDir,
-		Roles:        fig.Global.Roles,
-		Port:         fig.Network.Port,
-		Bootnodes:    bootnodes,
-		ProtocolID:   protocolID,
-		NoBootstrap:  fig.Network.NoBootstrap,
-		NoMdns:       fig.Network.NoMdns,
+		BlockState: stateService.Block,
+		// StorageState: stateService.Storage,
+		// NetworkState: stateService.Network,
+		DataDir:     fig.Global.DataDir,
+		Roles:       fig.Global.Roles,
+		Port:        fig.Network.Port,
+		Bootnodes:   bootnodes,
+		ProtocolID:  protocolID,
+		NoBootstrap: fig.Network.NoBootstrap,
+		NoMdns:      fig.Network.NoMdns,
 	}
 
 	networkMsgRec := make(chan network.Message)
@@ -298,13 +299,15 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HTTPServer {
+func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
-		API:     stateSrv,
-		Codec:   &json2.Codec{},
-		Host:    fig.Host,
-		Port:    fig.Port,
-		Modules: fig.Modules,
+		BlockApi:   stateSrv.Block,
+		StorageApi: stateSrv.Storage,
+		NetworkApi: networkSrvc,
+		Codec:      &json2.Codec{},
+		Host:       fig.Host,
+		Port:       fig.Port,
+		Modules:    fig.Modules,
 	}
 
 	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
@@ -314,12 +317,6 @@ func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HT
 	return nil
 }
 
-<<<<<<< HEAD
-	return rpc.NewHTTPServer(cfg)
-}
-
-=======
->>>>>>> remove api usages
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx *cli.Context) error {
 	currentConfig, err := getConfig(ctx)
