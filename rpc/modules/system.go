@@ -20,7 +20,6 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/state"
 )
 
 // NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
@@ -28,7 +27,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
-	api *state.Service // TODO: migrate to network state
+	networkApi NetworkApi
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -60,9 +59,9 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(api *state.Service) *SystemModule {
+func NewSystemModule(net NetworkApi) *SystemModule {
 	return &SystemModule{
-		api: api, // TODO: migrate to network state
+		networkApi: net, // TODO: migrate to network state
 	}
 }
 
@@ -93,23 +92,23 @@ func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringR
 // Health returns the information about the health of the network
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
 	// TODO: rename to not have `Get` to match API
-	health, err := sm.api.Network.GetHealth()
+	health := sm.networkApi.Health()
 	res.Health = *health
-	return err
+	return nil
 }
 
 // NetworkState returns the network state (basic information about the host)
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
 	// TODO: rename to not have `Get` to match API
-	networkState, err := sm.api.Network.GetNetworkState()
+	networkState := sm.networkApi.NetworkState()
 	res.NetworkState = *networkState
-	return err
+	return nil
 }
 
 // Peers returns peer information for each connected and confirmed peer
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
 	// TODO: rename to not have `Get` to match API
-	peers, err := sm.api.Network.GetPeers()
-	res.Peers = *peers
-	return err
+	peers := sm.networkApi.Peers()
+	res.Peers = peers
+	return nil
 }

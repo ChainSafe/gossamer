@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/rpc/modules"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -32,18 +32,24 @@ type HTTPServer struct {
 }
 
 type HTTPServerConfig struct {
-	API     *state.Service
-	Codec   Codec
-	Host    string
-	Port    uint32
-	Modules []string
+	BlockApi   modules.BlockApi
+	StorageApi modules.StorageApi
+	NetworkApi modules.NetworkApi
+	CoreApi    modules.CoreApi
+	Codec      Codec
+	Host       string
+	Port       uint32
+	Modules    []string
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	stateServerCfg := &ServerConfig{
-		API:     cfg.API,
-		Modules: cfg.Modules,
+		BlockApi:   cfg.BlockApi,
+		StorageApi: cfg.StorageApi,
+		NetworkApi: cfg.NetworkApi,
+		CoreApi:    cfg.CoreApi,
+		Modules:    cfg.Modules,
 	}
 
 	server := &HTTPServer{

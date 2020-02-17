@@ -199,6 +199,10 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
 }
 
+func (s *Service) PushToTxQueue(vt *transaction.ValidTransaction) {
+	s.txQueue.Push(vt)
+}
+
 func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 	// TODO: when we update to a new runtime, will need to pass in the latest block number
 	return s.grandpaAuthorities()

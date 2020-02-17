@@ -22,12 +22,11 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
 type AuthorModule struct {
-	api *state.Service
+	coreApi CoreApi
 }
 
 type KeyInsertRequest struct {
@@ -70,15 +69,15 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api *state.Service) *AuthorModule {
+func NewAuthorModule(api CoreApi) *AuthorModule {
 	return &AuthorModule{
-		api: api,
+		coreApi: api,
 	}
 }
 
 // InsertKey Insert a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
-	_ = cm.api
+	_ = cm.coreApi
 	return nil
 }
 
@@ -120,7 +119,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		Validity:  nil,
 	}
 
-	cm.api.TxQueue.Push(vtx)
+	cm.coreApi.PushToTxQueue(vtx)
 	hash, err := common.Blake2bHash(extBytes)
 	if err != nil {
 		return err

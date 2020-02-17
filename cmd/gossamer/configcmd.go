@@ -117,7 +117,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// RPC
 	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv)
+		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv, networkSrvc, coreSrvc)
 		srvcs = append(srvcs, rpcSrvr)
 	}
 
@@ -248,16 +248,14 @@ func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateSe
 
 	// network service configuation
 	networkConfig := network.Config{
-		BlockState:   stateService.Block,
-		StorageState: stateService.Storage,
-		NetworkState: stateService.Network,
-		DataDir:      fig.Global.DataDir,
-		Roles:        fig.Global.Roles,
-		Port:         fig.Network.Port,
-		Bootnodes:    bootnodes,
-		ProtocolID:   protocolID,
-		NoBootstrap:  fig.Network.NoBootstrap,
-		NoMdns:       fig.Network.NoMdns,
+		BlockState:  stateService.Block,
+		DataDir:     fig.Global.DataDir,
+		Roles:       fig.Global.Roles,
+		Port:        fig.Network.Port,
+		Bootnodes:   bootnodes,
+		ProtocolID:  protocolID,
+		NoBootstrap: fig.Network.NoBootstrap,
+		NoMdns:      fig.Network.NoMdns,
 	}
 
 	networkMsgRec := make(chan network.Message)
@@ -300,13 +298,16 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service) *rpc.HTTPServer {
+func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service, coreSrvc *core.Service) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
-		API:     stateSrv,
-		Codec:   &json2.Codec{},
-		Host:    fig.Host,
-		Port:    fig.Port,
-		Modules: fig.Modules,
+		BlockApi:   stateSrv.Block,
+		StorageApi: stateSrv.Storage,
+		NetworkApi: networkSrvc,
+		CoreApi:    coreSrvc,
+		Codec:      &json2.Codec{},
+		Host:       fig.Host,
+		Port:       fig.Port,
+		Modules:    fig.Modules,
 	}
 
 	if ctx.GlobalBool(RPCEnabledFlag.Name) {

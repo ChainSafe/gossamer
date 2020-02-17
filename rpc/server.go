@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/rpc/modules"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -44,15 +43,21 @@ type CodecRequest interface {
 
 // ServerConfig ...
 type ServerConfig struct {
-	API     *state.Service
-	Modules []string
+	BlockApi   modules.BlockApi
+	StorageApi modules.StorageApi
+	NetworkApi modules.NetworkApi
+	CoreApi    modules.CoreApi
+	Modules    []string
 }
 
 // Server is an RPC server.
 type Server struct {
-	codec    Codec       // Codec for requests/responses (default JSON)
-	services *serviceMap // Maps requests to actual procedure calls
-	api      *state.Service
+	codec      Codec       // Codec for requests/responses (default JSON)
+	services   *serviceMap // Maps requests to actual procedure calls
+	blockApi   modules.BlockApi
+	storageApi modules.StorageApi
+	networkApi modules.NetworkApi
+	coreApi    modules.CoreApi
 }
 
 // NewServer creates a new Server.
@@ -65,8 +70,11 @@ func NewServer() *Server {
 // NewStateServer creates a new Server that interfaces with the state service.
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
-		services: new(serviceMap),
-		api:      cfg.API,
+		services:   new(serviceMap),
+		blockApi:   cfg.BlockApi,
+		storageApi: cfg.StorageApi,
+		networkApi: cfg.NetworkApi,
+		coreApi:    cfg.CoreApi,
 	}
 
 	s.RegisterModules(cfg.Modules)
@@ -81,9 +89,9 @@ func (s *Server) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(s.api)
+			srvc = modules.NewSystemModule(s.networkApi)
 		case "author":
-			srvc = modules.NewAuthorModule(s.api)
+			srvc = modules.NewAuthorModule(s.coreApi)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

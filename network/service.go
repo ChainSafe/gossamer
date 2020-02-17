@@ -73,6 +73,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		msgSend:     msgSend,
 		noBootstrap: cfg.NoBootstrap,
 		noMdns:      cfg.NoMdns,
+		noStatus:    cfg.NoStatus,
 	}
 
 	return network, err
@@ -98,12 +99,6 @@ func (s *Service) Start() error {
 
 	if !s.noMdns {
 		s.mdns.start()
-	}
-
-	if s.cfg.NetworkState != nil {
-		s.SetHealth()
-		s.SetNetworkState()
-		s.SetPeers()
 	}
 
 	return nil
@@ -175,10 +170,6 @@ func (s *Service) handleConn(conn network.Conn) {
 
 		// manage status messages for new connection
 		s.status.handleConn(conn)
-
-		s.SetHealth()
-		s.SetNetworkState()
-		s.SetPeers()
 	}
 }
 
@@ -249,10 +240,6 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	}
 }
 
-func (s *Service) SetHealth() error {
-	return s.cfg.NetworkState.SetHealth(s.Health())
-}
-
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() *common.Health {
 	return &common.Health{
@@ -262,10 +249,6 @@ func (s *Service) Health() *common.Health {
 	}
 }
 
-func (s *Service) SetNetworkState() error {
-	return s.cfg.NetworkState.SetNetworkState(s.NetworkState())
-}
-
 // NetworkState returns information about host needed for the rpc server and the runtime
 func (s *Service) NetworkState() *common.NetworkState {
 	return &common.NetworkState{
@@ -273,12 +256,8 @@ func (s *Service) NetworkState() *common.NetworkState {
 	}
 }
 
-func (s *Service) SetPeers() error {
-	return s.cfg.NetworkState.SetPeers(s.Peers())
-}
-
 // Peers returns information about connected peers needed for the rpc server
-func (s *Service) Peers() *[]common.PeerInfo {
+func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
 	for _, p := range s.host.peers() {
@@ -293,5 +272,5 @@ func (s *Service) Peers() *[]common.PeerInfo {
 			})
 		}
 	}
-	return &peers
+	return peers
 }
