@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/state"
 )
 
 // ChainHashRequest Hash
@@ -44,19 +43,19 @@ type ChainHashResponse struct {
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
-	api *state.Service
+	blockApi BlockApi
 }
 
 // NewChainModule creates a new State module.
-func NewChainModule(api *state.Service) *ChainModule {
+func NewChainModule(api BlockApi) *ChainModule {
 	return &ChainModule{
-		blockAPI: api,
+		blockApi: api,
 	}
 }
 
 // GetBlock assigns the ChainModule api to nothing
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
-	_ = cm.blockAPI
+	_ = cm.blockApi
 }
 
 // GetBlockHash isn't implemented properly yet.

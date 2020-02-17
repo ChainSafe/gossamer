@@ -17,25 +17,10 @@
 package network
 
 import (
-	//"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
 // BlockState interface for block state methods
 type BlockState interface {
 	LatestHeader() *types.Header
-	// AddBlock(*types.Block) error
-	// SetBlock(*types.Block) error
 }
-
-// // NetworkState interface for network state methods
-// type NetworkState interface {
-// 	Health() (*common.Health, error)
-// 	NetworkState() (*common.NetworkState, error)
-// 	Peers() (*[]common.PeerInfo, error)
-// }
-
-// // StorageState interface for storage state methods
-// type StorageState interface {
-// 	StorageRoot() (common.Hash, error)
-// }
