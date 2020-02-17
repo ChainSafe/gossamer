@@ -46,6 +46,7 @@ type ServerConfig struct {
 	BlockApi   BlockApi
 	StorageApi StorageApi
 	NetworkApi NetworkApi
+	CoreApi    CoreApi
 	Modules    []string
 }
 
@@ -56,6 +57,7 @@ type Server struct {
 	blockApi   BlockApi
 	storageApi StorageApi
 	networkApi NetworkApi
+	coreApi    CoreApi
 }
 
 // NewServer creates a new Server.
@@ -72,6 +74,7 @@ func NewStateServer(cfg *ServerConfig) *Server {
 		blockApi:   cfg.BlockApi,
 		storageApi: cfg.StorageApi,
 		networkApi: cfg.NetworkApi,
+		coreApi:    cfg.CoreApi,
 	}
 
 	s.RegisterModules(cfg.Modules)

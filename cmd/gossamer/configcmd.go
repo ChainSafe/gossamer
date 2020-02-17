@@ -247,9 +247,7 @@ func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateSe
 
 	// network service configuation
 	networkConfig := network.Config{
-		BlockState: stateService.Block,
-		// StorageState: stateService.Storage,
-		// NetworkState: stateService.Network,
+		BlockState:  stateService.Block,
 		DataDir:     fig.Global.DataDir,
 		Roles:       fig.Global.Roles,
 		Port:        fig.Network.Port,
