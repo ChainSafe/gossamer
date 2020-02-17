@@ -24,7 +24,6 @@ import (
 )
 
 type AuthorModule struct {
-	//api *api.API
 	api *state.Service
 }
 

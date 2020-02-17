@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/rpc/modules"
-	"github.com/ChainSafe/gossamer/state"
+	//"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -44,15 +44,20 @@ type CodecRequest interface {
 
 // ServerConfig ...
 type ServerConfig struct {
-	API     *state.Service
-	Modules []string
+	BlockApi   BlockApi
+	StorageApi StorageApi
+	NetworkApi NetworkApi
+	Modules    []string
 }
 
 // Server is an RPC server.
 type Server struct {
 	codec    Codec       // Codec for requests/responses (default JSON)
 	services *serviceMap // Maps requests to actual procedure calls
-	api      *state.Service
+	//api      *state.Service
+	blockApi   BlockApi
+	storageApi StorageApi
+	networkApi NetworkApi
 }
 
 // NewServer creates a new Server.
@@ -66,7 +71,10 @@ func NewServer() *Server {
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
 		services: new(serviceMap),
-		api:      cfg.API,
+		//api:      cfg.API,
+		blockApi:   cfg.BlockApi,
+		storageApi: cfg.StorageApi,
+		networkApi: cfg.NetworkApi,
 	}
 
 	s.RegisterModules(cfg.Modules)
@@ -81,7 +89,7 @@ func (s *Server) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(s.api)
+			srvc = modules.NewSystemModule(s.networkApi)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
