@@ -35,11 +35,10 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 
 	// Network
 	networkCfg := &network.Config{
-		BlockState:   &state.BlockState{}, // required
-		NetworkState: &state.NetworkState{},
-		DataDir:      testDir, // default "~/.gossamer"
-		Roles:        1,       // required
-		RandSeed:     1,       // default 0
+		BlockState: &state.BlockState{}, // required
+		DataDir:    testDir,             // default "~/.gossamer"
+		Roles:      1,                   // required
+		RandSeed:   1,                   // default 0
 	}
 	networkSrvc, err := network.NewService(networkCfg, nil, nil)
 	if err != nil {

@@ -66,15 +66,13 @@ func TestBuild(t *testing.T) {
 	defer os.RemoveAll(testDataDir)
 
 	testBlockState := &state.BlockState{}
-	testNetworkState := &state.NetworkState{}
 
 	testRandSeed := int64(1)
 
 	cfg := &Config{
-		BlockState:   testBlockState,
-		NetworkState: testNetworkState,
-		DataDir:      testDataDir,
-		RandSeed:     testRandSeed,
+		BlockState: testBlockState,
+		DataDir:    testDataDir,
+		RandSeed:   testRandSeed,
 	}
 
 	err := cfg.build()
@@ -83,7 +81,6 @@ func TestBuild(t *testing.T) {
 	}
 
 	require.Equal(t, testBlockState, cfg.BlockState)
-	require.Equal(t, testNetworkState, cfg.NetworkState)
 	require.Equal(t, testDataDir, cfg.DataDir)
 	require.Equal(t, DefaultRoles, cfg.Roles)
 	require.Equal(t, DefaultPort, cfg.Port)
