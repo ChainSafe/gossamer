@@ -82,7 +82,7 @@ func (sd *Decoder) DecodePtr(t interface{}) (err error) {
 	case [][32]byte, [][]byte:
 		_, err = sd.DecodeArray(t)
 	case interface{}:
-		_, err = sd.DecodeTuple(t)
+		_, err = sd.DecodeInterface(t)
 	default:
 		return errors.New("decode error: unsupported type")
 	}
