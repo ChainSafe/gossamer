@@ -44,8 +44,8 @@ go get -u github.com/ChainSafe/gossamer
 
 ```
 make gossamer
-build/bin/gossamer init
-build/bin/gossamer
+bin/gossamer init
+bin/gossamer
 ```
 
 ## Docker
