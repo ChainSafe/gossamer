@@ -5,13 +5,6 @@ import (
 	"testing"
 	"time"
 
-	// <<<<<<< HEAD
-	// 	"github.com/ChainSafe/gossamer/runtime"
-	// 	"github.com/ChainSafe/gossamer/state"
-	// 	"github.com/ChainSafe/gossamer/tests"
-
-	// =======
-	// >>>>>>> 1e7b07d99288d8df50db43beed2beab647bd0f13
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 )
 
@@ -81,32 +74,6 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// <<<<<<< HEAD
-	// 	txQueue := state.NewTransactionQueue()
-
-	// 	cfg := &SessionConfig{
-	// 		Runtime: rt,
-	// 		Keypair: kp,
-	// 		TxQueue: txQueue,
-	// 	}
-
-	// 	babesession, err := NewSession(cfg)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// 	err = babesession.configurationFromRuntime()
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-
-	// 	babesession.authorityData = make([]*AuthorityData, 1)
-	// 	babesession.authorityData[0] = &AuthorityData{
-	// 		id:     kp.Public().(*sr25519.PublicKey),
-	// 		weight: 1,
-	// 	}
-
-	// =======
-	// >>>>>>> 1e7b07d99288d8df50db43beed2beab647bd0f13
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 

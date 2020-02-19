@@ -14,7 +14,6 @@ var peersKey = []byte("peers")
 // NetworkDB stores network information in an underlying database
 type NetworkDB struct {
 	Db db.Database
-	//Network *network.Service
 }
 
 // NetworkState defines fields for manipulating the state of network
@@ -53,7 +52,6 @@ func (ns *NetworkState) GetHealth() (*common.Health, error) {
 	}
 	err = json.Unmarshal(data, res)
 	return res, err
-	//return ns.network.Health(), nil
 }
 
 // SetHealth sets network health in the database
