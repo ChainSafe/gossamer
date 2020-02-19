@@ -122,7 +122,8 @@ func NewService(cfg *Config) (*Service, error) {
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
 			log.Error("[core] could not start babe session", "error", err)
-			return nil, err
+			srv.isBabeAuthority = false
+			return srv, nil
 		}
 
 		srv.bs = bs
