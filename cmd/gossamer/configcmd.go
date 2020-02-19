@@ -299,9 +299,9 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
-		BlockApi:   stateSrv.Block,
-		StorageApi: stateSrv.Storage,
-		NetworkApi: networkSrvc,
+		BlockAPI:   stateSrv.Block,
+		StorageAPI: stateSrv.Storage,
+		NetworkAPI: networkSrvc,
 		Codec:      &json2.Codec{},
 		Host:       fig.Host,
 		Port:       fig.Port,

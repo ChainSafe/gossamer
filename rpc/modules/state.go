@@ -108,21 +108,22 @@ type StateRuntimeVersionResponse string
 
 // StateModule is an RPC module providing access to storage API points.
 type StateModule struct {
-	networkApi NetworkApi
-	storageApi StorageApi
+	networkAPI NetworkAPI
+	storageAPI StorageAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(networkApi NetworkApi, storageApi StorageApi) *SystemModule {
-	return &SystemModule{
-		networkApi: networkApi,
+func NewStateModule(net NetworkAPI, storage StorageAPI) *StateModule {
+	return &StateModule{
+		networkAPI: net,
+		storageAPI: storage,
 	}
 }
 
 // Call isn't implemented properly yet.
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
-	_ = sm.networkApi
-	_ = sm.storageApi
+	_ = sm.networkAPI
+	_ = sm.storageAPI
 }
 
 // GetChildKeys isn't implemented properly yet.

@@ -24,7 +24,7 @@ import (
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
-	coreApi CoreApi
+	coreApi CoreAPI
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -77,7 +77,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api CoreApi) *AuthorModule {
+func NewAuthorModule(api CoreAPI) *AuthorModule {
 	return &AuthorModule{
 		coreApi: api,
 	}
