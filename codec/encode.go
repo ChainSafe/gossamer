@@ -63,8 +63,6 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	switch v := b.(type) {
 	case []byte:
 		n, err = se.encodeByteArray(v)
-	case [32]byte:
-		n, err = se.encodeByteArray(v[:])
 	case *big.Int:
 		n, err = se.encodeBigInteger(v)
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
@@ -74,8 +72,7 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case bool:
 		n, err = se.encodeBool(v)
 	case common.Hash:
-		n, err = se.encodeByteArray(v[:])
-		//n, err = se.Writer.Write(v.ToBytes())
+		n, err = se.Writer.Write(v.ToBytes())
 	case interface{}:
 		t := reflect.TypeOf(b).Kind()
 		switch t {

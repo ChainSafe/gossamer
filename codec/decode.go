@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"reflect"
@@ -63,17 +64,13 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	case []*big.Int:
 		out, err = sd.DecodeBigIntArray()
 	case common.Hash:
-		out, err = sd.DecodeByteArray()
-		out = common.NewHash(out.([]byte))
-	case [32]byte:
-		var b [32]byte
-		sd.ReadByte()
-		_, err = sd.Reader.Read(b[:])
-		out = b
+		b := make([]byte, 32)
+		_, err = sd.Reader.Read(b)
+		out = common.NewHash(b)
 	case [][32]byte, [][]byte:
 		out, err = sd.DecodeArray(t)
 	case interface{}:
-		out, err = sd.DecodeTuple(t)
+		out, err = sd.DecodeInterface(t)
 	default:
 		return nil, errors.New("decode error: unsupported type")
 	}
@@ -293,16 +290,28 @@ func (sd *Decoder) DecodeBool() (bool, error) {
 	return false, errors.New("cannot decode invalid boolean")
 }
 
+// DecodeInterface will decode to interface
+func (sd *Decoder) DecodeInterface(t interface{}) (interface{}, error) {
+	switch reflect.ValueOf(t).Kind() {
+	case reflect.Ptr:
+		switch reflect.ValueOf(t).Elem().Kind() {
+		case reflect.Slice, reflect.Array:
+			return sd.DecodeArray(t)
+		default:
+			return sd.DecodeTuple(t)
+		}
+	case reflect.Slice, reflect.Array:
+		return sd.DecodeArray(t)
+	case reflect.Struct:
+		return sd.DecodeTuple(t)
+	default:
+		return nil, fmt.Errorf("unexpected kind: %s", reflect.ValueOf(t).Kind())
+	}
+}
+
 // DecodeArray will decode array to interface
 func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
-	var v reflect.Value
-	switch reflect.ValueOf(t).Kind() {
-	//case reflect.Ptr:
-	//	v = reflect.ValueOf(t).Elem()
-	case reflect.Slice, reflect.Array:
-		v = reflect.ValueOf(t)
-	}
-
+	v := reflect.ValueOf(t)
 	var err error
 	var o interface{}
 
@@ -365,7 +374,6 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 	default:
 		v = reflect.ValueOf(t)
 	}
-	//v := reflect.ValueOf(t).Elem()
 
 	var err error
 	var o interface{}

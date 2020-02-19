@@ -76,11 +76,9 @@ func (sd *Decoder) DecodePtr(t interface{}) (err error) {
 	case []*big.Int:
 		err = sd.DecodePtrBigIntArray(t)
 	case *common.Hash:
-		temp := make([]byte, 32)
-		err = sd.DecodePtrByteArray(temp)
-		*t = common.NewHash(temp)
-	case *[32]byte:
-		err = sd.DecodePtrByteArray(t[:])
+		b := make([]byte, 32)
+		_, err = sd.Reader.Read(b)
+		*t = common.NewHash(b)
 	case [][32]byte, [][]byte:
 		_, err = sd.DecodeArray(t)
 	case interface{}:
