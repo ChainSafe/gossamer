@@ -43,10 +43,10 @@ type CodecRequest interface {
 
 // ServerConfig ...
 type ServerConfig struct {
-	BlockApi   modules.BlockApi
-	StorageApi modules.StorageApi
-	NetworkApi modules.NetworkApi
-	CoreApi    modules.CoreApi
+	BlockAPI   modules.BlockAPI
+	StorageAPI modules.StorageAPI
+	NetworkAPI modules.NetworkAPI
+	CoreAPI    modules.CoreAPI
 	Modules    []string
 }
 
@@ -54,10 +54,10 @@ type ServerConfig struct {
 type Server struct {
 	codec      Codec       // Codec for requests/responses (default JSON)
 	services   *serviceMap // Maps requests to actual procedure calls
-	blockApi   modules.BlockApi
-	storageApi modules.StorageApi
-	networkApi modules.NetworkApi
-	coreApi    modules.CoreApi
+	blockAPI   modules.BlockAPI
+	storageAPI modules.StorageAPI
+	networkAPI modules.NetworkAPI
+	coreAPI    modules.CoreAPI
 }
 
 // NewServer creates a new Server.
@@ -71,10 +71,10 @@ func NewServer() *Server {
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
 		services:   new(serviceMap),
-		blockApi:   cfg.BlockApi,
-		storageApi: cfg.StorageApi,
-		networkApi: cfg.NetworkApi,
-		coreApi:    cfg.CoreApi,
+		blockAPI:   cfg.BlockAPI,
+		storageAPI: cfg.StorageAPI,
+		networkAPI: cfg.NetworkAPI,
+		coreAPI:    cfg.CoreAPI,
 	}
 
 	s.RegisterModules(cfg.Modules)
@@ -89,9 +89,9 @@ func (s *Server) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(s.networkApi)
+			srvc = modules.NewSystemModule(s.networkAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(s.coreApi)
+			srvc = modules.NewAuthorModule(s.coreAPI)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

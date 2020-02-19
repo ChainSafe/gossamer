@@ -43,19 +43,19 @@ type ChainHashResponse struct {
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
-	blockApi BlockApi
+	blockAPI BlockAPI
 }
 
 // NewChainModule creates a new State module.
-func NewChainModule(api BlockApi) *ChainModule {
+func NewChainModule(api BlockAPI) *ChainModule {
 	return &ChainModule{
-		blockApi: api,
+		blockAPI: api,
 	}
 }
 
 // GetBlock assigns the ChainModule api to nothing
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) {
-	_ = cm.blockApi
+	_ = cm.blockAPI
 }
 
 // GetBlockHash isn't implemented properly yet.

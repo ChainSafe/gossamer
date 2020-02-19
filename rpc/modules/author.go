@@ -26,7 +26,7 @@ import (
 )
 
 type AuthorModule struct {
-	coreApi CoreApi
+	coreApi CoreAPI
 }
 
 type KeyInsertRequest struct {
@@ -69,7 +69,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api CoreApi) *AuthorModule {
+func NewAuthorModule(api CoreAPI) *AuthorModule {
 	return &AuthorModule{
 		coreApi: api,
 	}

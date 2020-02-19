@@ -5,17 +5,17 @@ import (
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 )
 
-type StorageApi interface{}
+type StorageAPI interface{}
 
-type BlockApi interface{}
+type BlockAPI interface{}
 
 // NetworkApi interface for network state methods
-type NetworkApi interface {
+type NetworkAPI interface {
 	Health() *common.Health
 	NetworkState() *common.NetworkState
 	Peers() []common.PeerInfo
 }
 
-type CoreApi interface {
+type CoreAPI interface {
 	PushToTxQueue(*tx.ValidTransaction)
 }
