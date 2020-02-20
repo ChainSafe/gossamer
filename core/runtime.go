@@ -26,8 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/runtime"
 )
 
-// runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
-// and returns *Validity
+// ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (s *Service) ValidateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 	ret, err := s.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
