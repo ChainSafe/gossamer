@@ -386,35 +386,23 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 		return s.blockState.SetBlockData(bd)
 	}
 
-	if existingData.Header == nil {
+	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
 		existingData.Header = bd.Header
 	}
 
-	if !existingData.Header.Exists() && bd.Header.Exists() {
-		existingData.Header = bd.Header
-	}
-
-	if existingData.Body == nil {
+	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
 		existingData.Body = bd.Body
 	}
 
-	if !existingData.Body.Exists && bd.Body.Exists {
-		existingData.Body = bd.Body
-	}
-
-	if existingData.Receipt == nil {
-
-	}
-
-	if !existingData.Receipt.Exists() && bd.Receipt.Exists() {
+	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
 		existingData.Receipt = bd.Receipt
 	}
 
-	if !existingData.MessageQueue.Exists() && bd.MessageQueue.Exists() {
+	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
 		existingData.MessageQueue = bd.MessageQueue
 	}
 
-	if !existingData.Justification.Exists() && bd.Justification.Exists() {
+	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
 		existingData.Justification = bd.Justification
 	}
 
