@@ -107,6 +107,7 @@ func (c *Config) build() error {
 }
 
 func (c *Config) checkState() (err error) {
+	// set NoStatus to true if we don't need BlockState
 	if c.BlockState == nil && !c.NoStatus {
 		err = errors.New("Failed to build configuration: BlockState required")
 	}
