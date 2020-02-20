@@ -363,7 +363,12 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				*ptr = arr
 			}
 		default:
-			err = errors.New("could not decode invalid slice or array")
+			var res interface{}
+			res, err = sd.DecodeCustom(sl.Index(i).Interface())
+			if err != nil {
+				return nil, err
+			}
+			arrayValue.Set(reflect.ValueOf(res))
 		}
 
 		if err != nil {
@@ -480,9 +485,10 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 					*ptr = o.([]string)
 				}
 			default:
-				// TODO: do we really have to decode this here and discard ?
-				if _, err = sd.Decode(v.Field(i).Interface()); err == nil {
-					log.Debug("DecodeTuple default decoded value will be discarded")
+				var o interface{}
+				// TODO: clean up this function, can use field.Set everywhere (remove switch case?)
+				if o, err = sd.Decode(v.Field(i).Interface()); err == nil {
+					field.Set(reflect.ValueOf(o))
 				}
 			}
 
