@@ -91,7 +91,6 @@ func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringR
 
 // Health returns the information about the health of the network
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
-	// TODO: rename to not have `Get` to match API
 	health := sm.networkAPI.Health()
 	res.Health = *health
 	return nil
@@ -99,7 +98,6 @@ func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHe
 
 // NetworkState returns the network state (basic information about the host)
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
-	// TODO: rename to not have `Get` to match API
 	networkState := sm.networkAPI.NetworkState()
 	res.NetworkState = *networkState
 	return nil
@@ -107,7 +105,6 @@ func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *Sy
 
 // Peers returns peer information for each connected and confirmed peer
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
-	// TODO: rename to not have `Get` to match API
 	peers := sm.networkAPI.Peers()
 	res.Peers = peers
 	return nil

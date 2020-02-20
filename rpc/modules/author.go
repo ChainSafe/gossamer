@@ -23,7 +23,7 @@ import (
 )
 
 type AuthorModule struct {
-	coreApi CoreAPI
+	coreAPI CoreAPI
 }
 
 type KeyInsertRequest struct {
@@ -68,11 +68,11 @@ type ExtrinsicHashResponse common.Hash
 // NewAuthorModule creates a new Author module.
 func NewAuthorModule(api CoreAPI) *AuthorModule {
 	return &AuthorModule{
-		coreApi: api,
+		coreAPI: api,
 	}
 }
 
-// InsertKey snserts a key into the keystore
+// InsertKey inserts a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) {
 	_ = cm.coreApi
 }
