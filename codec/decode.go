@@ -25,8 +25,6 @@ import (
 	"math/big"
 	"reflect"
 
-	log "github.com/ChainSafe/log15"
-
 	"github.com/ChainSafe/gossamer/common"
 )
 

@@ -67,6 +67,7 @@ func (s *StorageState) GetLatestHeaderHash() ([]byte, error) {
 
 	return latestHeaderHash, err
 }
+
 // ExistsStorage check if the key exists in the storage trie
 func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
 	s.lock.RLock()

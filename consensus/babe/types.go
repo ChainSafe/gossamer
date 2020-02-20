@@ -43,6 +43,7 @@ type AuthorityDataRaw struct {
 	Weight uint64
 }
 
+// Decode will decode the Reader r into a AuthorityDataRaw
 func (a *AuthorityDataRaw) Decode(r io.Reader) (*AuthorityDataRaw, error) {
 	id, err := common.Read32Bytes(r)
 	if err != nil {
