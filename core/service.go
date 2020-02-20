@@ -20,9 +20,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/rand"
 	mrand "math/rand"
 	"time"
+
+	"golang.org/x/exp/rand"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
