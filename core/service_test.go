@@ -299,7 +299,16 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 
 	err = s.ProcessBlockResponseMessage(blockResponse)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+
+	res, err := blockState.GetHeader(header.Hash())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(res, header) {
+		t.Fatalf("Fail: got %v expected %v", res, header)
 	}
 }
 

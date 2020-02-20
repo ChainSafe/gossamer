@@ -348,9 +348,18 @@ func (s *Service) ProcessBlockResponseMessage(msg p2p.Message) error {
 				return err
 			}
 
-			// GetBlockHeader; if exists, return
+			// get block header; if exists, return
+			existingHeader, err := s.blockState.GetHeader(bd.Hash)
+			if err == nil && existingHeader != nil {
+				// header exists, return
+				// TODO: store this block in the blocktree
+				return nil
+			}
 
-			// SetBlockHeader
+			err = s.blockState.SetHeader(header)
+			if err != nil {
+				return err
+			}
 		}
 
 		err := s.compareAndSetBlockData(bd)
@@ -369,7 +378,6 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 
 	existingData, err := s.blockState.GetBlockData(bd.Hash)
 	if err != nil {
-		log.Info("core", "error", err)
 		// no block data exists, ok
 		return s.blockState.SetBlockData(bd)
 	}
@@ -392,6 +400,10 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 
 	if !existingData.Body.Exists && bd.Body.Exists {
 		existingData.Body = bd.Body
+	}
+
+	if existingData.Receipt == nil {
+
 	}
 
 	if !existingData.Receipt.Exists() && bd.Receipt.Exists() {
