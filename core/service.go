@@ -337,7 +337,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	}
 
 	// TODO: check if we should send block request message
-
 	_, err = s.blockState.GetHeader(header.Hash())
 	if err != nil && err.Error() == "Key not found" {
 		err = s.blockState.SetHeader(header)

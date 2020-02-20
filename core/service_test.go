@@ -83,13 +83,6 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 		t.Fatal(err)
 	}
 
-	// defer func() {
-	// 	err = dbSrv.Stop()
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// }()
-
 	if cfg.BlockState == nil {
 		cfg.BlockState = dbSrv.Block
 	}
