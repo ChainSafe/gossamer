@@ -83,7 +83,7 @@ func (q *PriorityQueue) Pending() []*ValidTransaction {
 // Insert traverses the list and places a valid transaction with priority p directly before the
 // first node with priority p-1. If there are other nodes with priority p, the new node is placed
 // behind them.
-func (q *PriorityQueue) Insert(vt *ValidTransaction) {
+func (q *PriorityQueue) Push(vt *ValidTransaction) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	curr := q.head

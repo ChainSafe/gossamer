@@ -47,6 +47,7 @@ type ServerConfig struct {
 	StorageAPI modules.StorageAPI
 	NetworkAPI modules.NetworkAPI
 	CoreAPI    modules.CoreAPI
+	TxQueueAPI modules.TransactionQueueAPI
 	Modules    []string
 }
 
@@ -58,6 +59,7 @@ type Server struct {
 	storageAPI modules.StorageAPI
 	networkAPI modules.NetworkAPI
 	coreAPI    modules.CoreAPI
+	txQueueAPI modules.TransactionQueueAPI
 }
 
 // NewServer creates a new Server.
@@ -75,6 +77,7 @@ func NewStateServer(cfg *ServerConfig) *Server {
 		storageAPI: cfg.StorageAPI,
 		networkAPI: cfg.NetworkAPI,
 		coreAPI:    cfg.CoreAPI,
+		txQueueAPI: cfg.TxQueueAPI,
 	}
 
 	s.RegisterModules(cfg.Modules)
@@ -91,7 +94,7 @@ func (s *Server) RegisterModules(mods []string) {
 		case "system":
 			srvc = modules.NewSystemModule(s.networkAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(s.coreAPI)
+			srvc = modules.NewAuthorModule(s.coreAPI, s.txQueueAPI)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue

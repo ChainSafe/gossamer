@@ -17,6 +17,7 @@
 package transaction
 
 import (
+	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
@@ -62,4 +63,8 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 		Extrinsic: &extrinsic,
 		Validity:  validity,
 	}
+}
+
+func (vt *ValidTransaction) Encode() ([]byte, error) {
+	return scale.Encode(vt)
 }

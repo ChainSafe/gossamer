@@ -330,6 +330,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 	cfg := &Config{
 		Runtime:         rt,
 		Keystore:        ks,
+		TxQueue:         transaction.NewPriorityQueue(),
 		IsBabeAuthority: true,
 	}
 

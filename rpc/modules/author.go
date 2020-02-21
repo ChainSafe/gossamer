@@ -26,7 +26,8 @@ import (
 )
 
 type AuthorModule struct {
-	coreAPI CoreAPI
+	coreAPI    CoreAPI
+	txQueueAPI TransactionQueueAPI
 }
 
 type KeyInsertRequest struct {
@@ -69,9 +70,10 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(api CoreAPI) *AuthorModule {
+func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
 	return &AuthorModule{
-		coreAPI: api,
+		coreAPI:    coreAPI,
+		txQueueAPI: txQueueAPI,
 	}
 }
 
@@ -83,6 +85,12 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
+	pending, err := cm.txQueueAPI.Pending()
+	if err != nil {
+		return err
+	}
+
+	*res = PendingExtrinsicsResponse(pending)
 	return nil
 }
 
@@ -114,12 +122,14 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 
 	ext := types.Extrinsic(extBytes)
 
+	// TODO: form valid transaction by decoding tx bytes
+
 	vtx := &tx.ValidTransaction{
 		Extrinsic: &ext,
 		Validity:  nil,
 	}
 
-	cm.coreAPI.PushToTxQueue(vtx)
+	cm.txQueueAPI.Push(vtx)
 	hash, err := common.Blake2bHash(extBytes)
 	if err != nil {
 		return err

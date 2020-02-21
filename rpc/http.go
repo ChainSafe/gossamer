@@ -36,6 +36,7 @@ type HTTPServerConfig struct {
 	StorageAPI modules.StorageAPI
 	NetworkAPI modules.NetworkAPI
 	CoreAPI    modules.CoreAPI
+	TxQueueAPI modules.TransactionQueueAPI
 	Codec      Codec
 	Host       string
 	Port       uint32
@@ -49,6 +50,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		StorageAPI: cfg.StorageAPI,
 		NetworkAPI: cfg.NetworkAPI,
 		CoreAPI:    cfg.CoreAPI,
+		TxQueueAPI: cfg.TxQueueAPI,
 		Modules:    cfg.Modules,
 	}
 

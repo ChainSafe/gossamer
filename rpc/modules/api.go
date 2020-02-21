@@ -19,6 +19,12 @@ type NetworkAPI interface {
 }
 
 // CoreAPI ...
-type CoreAPI interface {
-	PushToTxQueue(*tx.ValidTransaction)
+type CoreAPI interface{}
+
+// TransactionQueueAPI ...
+type TransactionQueueAPI interface {
+	Push(*tx.ValidTransaction)
+	Pop() *tx.ValidTransaction
+	Peek() *tx.ValidTransaction
+	Pending() ([][]byte, error)
 }

@@ -15,7 +15,7 @@ func NewTransactionQueue() *TransactionQueue {
 }
 
 func (q *TransactionQueue) Push(vt *tx.ValidTransaction) {
-	q.queue.Insert(vt)
+	q.queue.Push(vt)
 }
 
 func (q *TransactionQueue) Pop() *tx.ValidTransaction {
@@ -26,6 +26,15 @@ func (q *TransactionQueue) Peek() *tx.ValidTransaction {
 	return q.queue.Peek()
 }
 
-func (q *TransactionQueue) Pending() [][]byte {
-	return nil
+func (q *TransactionQueue) Pending() ([][]byte, error) {
+	txs := q.queue.Pending()
+	pending := [][]byte{}
+	for _, tx := range txs {
+		enc, err := tx.Encode()
+		if err != nil {
+			return nil, err
+		}
+		pending = append(pending, enc)
+	}
+	return pending, nil
 }
