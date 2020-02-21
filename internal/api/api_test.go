@@ -19,7 +19,7 @@ package api
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/common"
 )
 
 var (
@@ -27,9 +27,9 @@ var (
 	testName         = "Gossamer"
 	testProperties   = "Properties"
 	testVersion      = "0.0.1"
-	testHealth       = p2p.Health{}
-	testNetworkState = p2p.NetworkState{}
-	testPeers        = append([]p2p.PeerInfo{}, p2p.PeerInfo{})
+	testHealth       = common.Health{}
+	testNetworkState = common.NetworkState{}
+	testPeers        = append([]common.PeerInfo{}, common.PeerInfo{})
 )
 
 // MockRuntimeAPI is the Mock for RuntimeAPI
@@ -55,25 +55,25 @@ func (r *MockRuntimeAPI) Version() string {
 	return testVersion
 }
 
-// MockP2pAPI Mock P2pAPI
-type MockP2pAPI struct{}
+// MockNetworkAPI Mock NetworkAPI
+type MockNetworkAPI struct{}
 
-func (n *MockP2pAPI) Health() p2p.Health {
+func (n *MockNetworkAPI) Health() common.Health {
 	return testHealth
 }
 
 // NetworkState is the Mock for NetworkState
-func (n *MockP2pAPI) NetworkState() p2p.NetworkState {
+func (n *MockNetworkAPI) NetworkState() common.NetworkState {
 	return testNetworkState
 }
 
 // Peers is the Mock for Peers
-func (n *MockP2pAPI) Peers() []p2p.PeerInfo {
+func (n *MockNetworkAPI) Peers() []common.PeerInfo {
 	return testPeers
 }
 
 func TestSystemModule(t *testing.T) {
-	s := NewAPIService(&MockP2pAPI{}, &MockRuntimeAPI{})
+	s := NewAPIService(&MockNetworkAPI{}, &MockRuntimeAPI{})
 
 	// Runtime Module
 
@@ -104,19 +104,19 @@ func TestSystemModule(t *testing.T) {
 	// Network Module
 
 	// System.Health
-	health := s.API.P2pModule.Health()
+	health := s.API.NetworkModule.Health()
 	if health != testHealth {
 		t.Fatalf("System.Health - expected %+v got: %+v\n", testHealth, health)
 	}
 
 	// System.NetworkState
-	networkState := s.API.P2pModule.NetworkState()
+	networkState := s.API.NetworkModule.NetworkState()
 	if networkState != testNetworkState {
 		t.Fatalf("System.NetworkState - expected %+v got: %+v\n", testNetworkState, networkState)
 	}
 
 	// System.Peers
-	peers := s.API.P2pModule.Peers()
+	peers := s.API.NetworkModule.Peers()
 	if len(peers) != len(testPeers) {
 		t.Fatalf("System.Peers - expected %+v got: %+v\n", testPeers, peers)
 	}

@@ -1,7 +1,8 @@
 [global]
 data-dir = "~/.gossamer"
+authority = true
 
-[p2p]
+[network]
 bootstrap-nodes = []
 port = 7001
 no-bootstrap = false

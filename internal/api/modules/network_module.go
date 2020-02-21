@@ -17,41 +17,41 @@
 package module
 
 import (
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/common"
 	log "github.com/ChainSafe/log15"
 )
 
-// P2pModule holds the fields for manipulating the API
-type P2pModule struct {
-	P2pAPI P2pAPI
+// NetworkModule holds the fields for manipulating the API
+type NetworkModule struct {
+	NetworkAPI NetworkAPI
 }
 
-// P2pAPI is the interface for the p2p package
-type P2pAPI interface {
-	Health() p2p.Health
-	NetworkState() p2p.NetworkState
-	Peers() []p2p.PeerInfo
+// NetworkAPI is the interface for the network package
+type NetworkAPI interface {
+	Health() common.Health
+	NetworkState() common.NetworkState
+	Peers() []common.PeerInfo
 }
 
-// NewP2pModule implements P2pAPI
-func NewP2pModule(p2pAPI P2pAPI) *P2pModule {
-	return &P2pModule{p2pAPI}
+// NewNetworkModule implements NetworkAPI
+func NewNetworkModule(networkAPI NetworkAPI) *NetworkModule {
+	return &NetworkModule{networkAPI}
 }
 
-// Health returns p2p service Health()
-func (m *P2pModule) Health() p2p.Health {
+// Health returns network service Health()
+func (m *NetworkModule) Health() common.Health {
 	log.Debug("[rpc] Executing System.Health", "params", nil)
-	return m.P2pAPI.Health()
+	return m.NetworkAPI.Health()
 }
 
-// NetworkState returns p2p service NetworkState()
-func (m *P2pModule) NetworkState() p2p.NetworkState {
+// NetworkState returns network service NetworkState()
+func (m *NetworkModule) NetworkState() common.NetworkState {
 	log.Debug("[rpc] Executing System.NetworkState", "params", nil)
-	return m.P2pAPI.NetworkState()
+	return m.NetworkAPI.NetworkState()
 }
 
-// Peers returns p2p service Peers()
-func (m *P2pModule) Peers() []p2p.PeerInfo {
+// Peers returns network service Peers()
+func (m *NetworkModule) Peers() []common.PeerInfo {
 	log.Debug("[rpc] Executing System.Peers", "params", nil)
-	return m.P2pAPI.Peers()
+	return m.NetworkAPI.Peers()
 }

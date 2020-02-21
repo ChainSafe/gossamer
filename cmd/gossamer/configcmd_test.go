@@ -70,6 +70,7 @@ func removeTestDataDir() {
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
+	testConfig.Global.Authority = false
 	testConfig.Global.DataDir = TestDataDir
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
@@ -113,9 +114,11 @@ func createTempGenesisFile(t *testing.T) string {
 	require.Nil(t, err)
 
 	testHex := hex.EncodeToString(testBytes)
-	testRaw := [2]map[string]string{}
-	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
-	TestGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
+	TestGenesis.Genesis.Raw = [2]map[string]string{}
+	if TestGenesis.Genesis.Raw[0] == nil {
+		TestGenesis.Genesis.Raw[0] = make(map[string]string)
+	}
+	TestGenesis.Genesis.Raw[0]["0x3a636f6465"] = "0x" + testHex
 
 	// Create temp file
 	file, err := ioutil.TempFile(os.TempDir(), "genesis-test")
@@ -179,6 +182,11 @@ func TestSetGlobalConfig(t *testing.T) {
 			[]interface{}{"test1"},
 			cfg.GlobalConfig{DataDir: tempPath},
 		},
+		{"roles flag",
+			[]string{"datadir", "roles"},
+			[]interface{}{"test1", "1"},
+			cfg.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
+		},
 	}
 
 	for _, c := range tc {
@@ -196,14 +204,13 @@ func TestSetGlobalConfig(t *testing.T) {
 	}
 }
 
-func TestCreateP2PService(t *testing.T) {
-	srv, _, _ := createP2PService(cfg.DefaultConfig(), &genesis.GenesisData{})
-	if srv == nil {
-		t.Fatalf("failed to create p2p service")
-	}
+func TestCreateNetworkService(t *testing.T) {
+	stateSrv := state.NewService(TestDataDir)
+	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
+	require.NotNil(t, srv, "failed to create network service")
 }
 
-func TestSetP2pConfig(t *testing.T) {
+func TestSetNetworkConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 	app := cli.NewApp()
 	app.Writer = ioutil.Discard
@@ -211,22 +218,22 @@ func TestSetP2pConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.P2pCfg
+		expected    cfg.NetworkCfg
 	}{
 		{
 			"config file",
 			[]string{"config"},
 			[]interface{}{tempFile.Name()},
-			cfgClone.P2p,
+			cfgClone.Network,
 		},
 		{
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			cfg.P2pCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
-				Port:        cfg.DefaultP2PPort,
+			cfg.NetworkCfg{
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
+				Port:        cfg.DefaultNetworkPort,
 				NoBootstrap: true,
 				NoMdns:      true,
 			},
@@ -235,21 +242,21 @@ func TestSetP2pConfig(t *testing.T) {
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
-			cfg.P2pCfg{
+			cfg.NetworkCfg{
 				Bootnodes:   TestBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
-				Port:        cfg.DefaultP2PPort,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
+				Port:        cfg.DefaultNetworkPort,
 				NoBootstrap: false,
 				NoMdns:      false,
 			},
 		},
 		{
 			"port",
-			[]string{"p2pport"},
+			[]string{"port"},
 			[]interface{}{uint(1337)},
-			cfg.P2pCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				ProtocolID:  cfg.DefaultP2PProtocolID,
+			cfg.NetworkCfg{
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				ProtocolID:  cfg.DefaultNetworkProtocolID,
 				Port:        1337,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -258,11 +265,11 @@ func TestSetP2pConfig(t *testing.T) {
 		{
 			"protocol id",
 			[]string{"protocol"},
-			[]interface{}{"/gossamer/test/0"},
-			cfg.P2pCfg{
-				Bootnodes:   cfg.DefaultP2PBootnodes,
-				ProtocolID:  "/gossamer/test/0",
-				Port:        cfg.DefaultP2PPort,
+			[]interface{}{TestProtocolID},
+			cfg.NetworkCfg{
+				Bootnodes:   cfg.DefaultNetworkBootnodes,
+				Port:        cfg.DefaultNetworkPort,
+				ProtocolID:  TestProtocolID,
 				NoBootstrap: false,
 				NoMdns:      false,
 			},
@@ -277,9 +284,9 @@ func TestSetP2pConfig(t *testing.T) {
 
 			input := cfg.DefaultConfig()
 			// Must call global setup to set data dir
-			setP2pConfig(context, &input.P2p)
+			setNetworkConfig(context, &input.Network)
 
-			require.Equal(t, c.expected, input.P2p)
+			require.Equal(t, c.expected, input.Network)
 		})
 	}
 }
@@ -347,7 +354,6 @@ func TestStrToMods(t *testing.T) {
 }
 
 func TestMakeNode(t *testing.T) {
-	t.Skip()
 	tempFile, cfgClone := createTempConfigFile()
 	defer teardown(tempFile)
 	defer removeTestDataDir()

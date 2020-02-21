@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
 )
@@ -34,20 +34,23 @@ import (
 func createTestDot(t *testing.T, testDir string) *Dot {
 	var services []services.Service
 
-	// P2P
-	p2pCfg := &p2p.Config{
-		RandSeed: 1,       // default 0
-		DataDir:  testDir, // default "~/.gossamer"
+	// Network
+	networkCfg := &network.Config{
+		BlockState:   &state.BlockState{},   // required
+		NetworkState: &state.NetworkState{}, // required
+		StorageState: &state.StorageState{}, // required
+		DataDir:      testDir,               // default "~/.gossamer"
+		Roles:        1,                     // required
+		RandSeed:     1,                     // default 0
 	}
-	p2pSrvc, err := p2p.NewService(p2pCfg, nil, nil)
-	services = append(services, p2pSrvc)
+	networkSrvc, err := network.NewService(networkCfg, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	services = append(services, networkSrvc)
 
 	// DB
-	dataDir := "../test_data"
-	dbSrv := state.NewService(dataDir)
+	dbSrv := state.NewService(testDir)
 	err = dbSrv.Initialize(&types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
@@ -55,11 +58,10 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	services = append(services, dbSrv)
 
 	// API
-	apiSrvc := api.NewAPIService(p2pSrvc, nil)
+	apiSrvc := api.NewAPIService(networkSrvc, nil)
 	services = append(services, apiSrvc)
 
 	return NewDot("gossamer", services, nil)
@@ -70,7 +72,7 @@ func TestDot_Start(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	availableServices := [...]services.Service{
-		&p2p.Service{},
+		&network.Service{},
 		&api.Service{},
 		&state.Service{},
 	}

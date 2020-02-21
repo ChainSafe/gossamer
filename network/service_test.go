@@ -14,9 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package network
 
 import (
+	"os"
+	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -24,6 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/optional"
 )
+
+var TestProtocolID = "/gossamer/test/0"
 
 // arbitrary block request message
 var TestMessage = &BlockRequestMessage{
@@ -39,11 +43,16 @@ var TestMessage = &BlockRequestMessage{
 // maximum wait time for non-status message to be handled
 var TestMessageTimeout = 3 * time.Second
 
-// helper method to create and start a new p2p service
+// helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan Message, msgRec chan Message) {
-
 	msgRec = make(chan Message)
 	msgSend = make(chan Message)
+
+	// same for all network tests use the createTestService helper method
+	cfg.BlockState = &MockBlockState{}     // required
+	cfg.NetworkState = &MockNetworkState{} // required
+	cfg.StorageState = &MockStorageState{} // required
+	cfg.ProtocolID = TestProtocolID        // default "/gossamer/dot/0"
 
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
@@ -58,11 +67,14 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	return node, msgSend, msgRec
 }
 
-// test p2p service starts
+// test network service starts
 func TestStartService(t *testing.T) {
+	dataDir := path.Join(os.TempDir(), "gossamer-test", "node")
+	defer os.RemoveAll(dataDir)
+
 	config := &Config{
+		DataDir:     dataDir,
 		Port:        7001,
-		ProtocolID:  "/gossamer/test/0",
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMdns:      true,
@@ -73,9 +85,12 @@ func TestStartService(t *testing.T) {
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
+	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(dataDirA)
+
 	configA := &Config{
+		DataDir:     dataDirA,
 		Port:        7001,
-		ProtocolID:  "/gossamer/test/0",
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMdns:      true,
@@ -87,9 +102,12 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
+	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(dataDirB)
+
 	configB := &Config{
+		DataDir:     dataDirB,
 		Port:        7002,
-		ProtocolID:  "/gossamer/test/0",
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMdns:      true,

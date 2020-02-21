@@ -21,10 +21,10 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"unicode"
 
-	"github.com/ChainSafe/gossamer/cmd/utils"
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
@@ -33,7 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/api"
 	"github.com/ChainSafe/gossamer/internal/services"
 	"github.com/ChainSafe/gossamer/keystore"
-	"github.com/ChainSafe/gossamer/p2p"
+	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/rpc"
 	"github.com/ChainSafe/gossamer/rpc/json2"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -49,6 +49,8 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Info("🕸\t Configuring node...", "datadir", currentConfig.Global.DataDir, "protocol", currentConfig.Network.ProtocolID, "bootnodes", currentConfig.Network.Bootnodes)
 
 	var srvcs []services.Service
 
@@ -66,7 +68,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	// load all static keys from keystore directory
 	ks := keystore.NewKeystore()
 	// unlock keys, if specified
-	if keyindices := ctx.String(utils.UnlockFlag.Name); keyindices != "" {
+	if keyindices := ctx.String(UnlockFlag.Name); keyindices != "" {
 		err = unlockKeys(ctx, dataDir, ks)
 		if err != nil {
 			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
@@ -85,29 +87,39 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 		return nil, nil, err
 	}
 
-	log.Info("🕸\t Configuring node...", "datadir", currentConfig.Global.DataDir, "protocol", currentConfig.P2p.ProtocolID, "bootnodes", currentConfig.P2p.Bootnodes)
+	// TODO: Configure node based on Roles #601
 
-	// P2P
-	p2pSrvc, p2pMsgSend, p2pMsgRec := createP2PService(currentConfig, gendata)
-	srvcs = append(srvcs, p2pSrvc)
+	// Network
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(currentConfig, gendata, stateSrv)
+	srvcs = append(srvcs, networkSrvc)
+
+	// BABE authority configuration; flag overwrites config option
+	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !currentConfig.Global.Authority {
+		currentConfig.Global.Authority = true
+	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && currentConfig.Global.Authority {
+		currentConfig.Global.Authority = false
+	}
+
+	log.Info("node", "authority", currentConfig.Global.Authority)
 
 	// Core
 	coreConfig := &core.Config{
-		BlockState:   stateSrv.Block,
-		StorageState: stateSrv.Storage,
-		Keystore:     ks,
-		Runtime:      rt,
-		MsgRec:       p2pMsgSend, // message channel from p2p service to core service
-		MsgSend:      p2pMsgRec,  // message channel from core service to p2p service
+		BlockState:      stateSrv.Block,
+		StorageState:    stateSrv.Storage,
+		Keystore:        ks,
+		Runtime:         rt,
+		MsgRec:          networkMsgSend, // message channel from network service to core service
+		MsgSend:         networkMsgRec,  // message channel from core service to network service
+		IsBabeAuthority: currentConfig.Global.Authority,
 	}
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
 
 	// API
-	apiSrvc := api.NewAPIService(p2pSrvc, nil)
+	apiSrvc := api.NewAPIService(networkSrvc, nil)
 	srvcs = append(srvcs, apiSrvc)
 
-	// RPC
+	// TODO: check rpc flag
 	rpcSrvr := startRPC(ctx, currentConfig.RPC, apiSrvc)
 
 	return dot.NewDot(gendata.Name, srvcs, rpcSrvr), currentConfig, nil
@@ -136,8 +148,8 @@ func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtim
 func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 	currentConfig := cfg.DefaultConfig()
 	// Load config file.
-	if file := ctx.GlobalString(utils.ConfigFileFlag.Name); file != "" {
-		configFile := ctx.GlobalString(utils.ConfigFileFlag.Name)
+	if file := ctx.GlobalString(ConfigFileFlag.Name); file != "" {
+		configFile := ctx.GlobalString(ConfigFileFlag.Name)
 		err := loadConfig(configFile, currentConfig)
 		if err != nil {
 			log.Warn("err loading toml file", "err", err.Error())
@@ -153,7 +165,7 @@ func getConfig(ctx *cli.Context) (*cfg.Config, error) {
 
 	// Parse CLI flags
 	setGlobalConfig(ctx, &currentConfig.Global)
-	setP2pConfig(ctx, &currentConfig.P2p)
+	setNetworkConfig(ctx, &currentConfig.Network)
 	setRPCConfig(ctx, &currentConfig.RPC)
 	return currentConfig, nil
 }
@@ -177,74 +189,87 @@ func loadConfig(file string, config *cfg.Config) error {
 
 func setGlobalConfig(ctx *cli.Context, currentConfig *cfg.GlobalConfig) {
 	newDataDir := currentConfig.DataDir
-	if dir := ctx.GlobalString(utils.DataDirFlag.Name); dir != "" {
+	if dir := ctx.GlobalString(DataDirFlag.Name); dir != "" {
 		newDataDir = expandTildeOrDot(dir)
 	}
 	currentConfig.DataDir, _ = filepath.Abs(newDataDir)
+
+	newRoles := currentConfig.Roles
+	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
+		b, err := strconv.Atoi(roles)
+		if err != nil {
+			log.Debug("Failed to convert to byte", "roles", roles)
+		} else {
+			newRoles = byte(b)
+		}
+	}
+	currentConfig.Roles = newRoles
 }
 
-func setP2pConfig(ctx *cli.Context, fig *cfg.P2pCfg) {
+func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 	// Bootnodes
-	if bnodes := ctx.GlobalString(utils.BootnodesFlag.Name); bnodes != "" {
-		fig.Bootnodes = strings.Split(ctx.GlobalString(utils.BootnodesFlag.Name), ",")
+	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
+		fig.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 	}
 
-	if protocol := ctx.GlobalString(utils.ProtocolIDFlag.Name); protocol != "" {
+	if protocol := ctx.GlobalString(ProtocolIDFlag.Name); protocol != "" {
 		fig.ProtocolID = protocol
 	}
 
-	if port := ctx.GlobalUint(utils.P2pPortFlag.Name); port != 0 {
+	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
 
 	// NoBootstrap
-	if off := ctx.GlobalBool(utils.NoBootstrapFlag.Name); off {
+	if off := ctx.GlobalBool(NoBootstrapFlag.Name); off {
 		fig.NoBootstrap = true
 	}
 
 	// NoMdns
-	if off := ctx.GlobalBool(utils.NoMdnsFlag.Name); off {
+	if off := ctx.GlobalBool(NoMdnsFlag.Name); off {
 		fig.NoMdns = true
 	}
 }
 
-// createP2PService creates a p2p service from the command configuration and genesis data
-func createP2PService(fig *cfg.Config, gendata *genesis.GenesisData) (*p2p.Service, chan p2p.Message, chan p2p.Message) {
-
+// createNetworkService creates a network service from the command configuration and genesis data
+func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID
 
 	// If bootnodes flag has one or more bootnodes, overwrite genesis bootnodes
-	if len(fig.P2p.Bootnodes) > 0 {
-		bootnodes = fig.P2p.Bootnodes
+	if len(fig.Network.Bootnodes) > 0 {
+		bootnodes = fig.Network.Bootnodes
 	}
 
 	// If protocol id flag is not an empty string, overwrite
-	if fig.P2p.ProtocolID != "" {
-		protocolID = fig.P2p.ProtocolID
+	if fig.Network.ProtocolID != "" {
+		protocolID = fig.Network.ProtocolID
 	}
 
-	// p2p service configuation
-	p2pConfig := p2p.Config{
-		Bootnodes:   bootnodes,
-		ProtocolID:  protocolID,
-		Port:        fig.P2p.Port,
-		RandSeed:    0,
-		NoBootstrap: fig.P2p.NoBootstrap,
-		NoMdns:      fig.P2p.NoMdns,
-		DataDir:     fig.Global.DataDir,
+	// network service configuation
+	networkConfig := network.Config{
+		BlockState:   stateService.Block,
+		StorageState: stateService.Storage,
+		NetworkState: stateService.Network,
+		DataDir:      fig.Global.DataDir,
+		Roles:        fig.Global.Roles,
+		Port:         fig.Network.Port,
+		Bootnodes:    bootnodes,
+		ProtocolID:   protocolID,
+		NoBootstrap:  fig.Network.NoBootstrap,
+		NoMdns:       fig.Network.NoMdns,
 	}
 
-	p2pMsgRec := make(chan p2p.Message)
-	p2pMsgSend := make(chan p2p.Message)
+	networkMsgRec := make(chan network.Message)
+	networkMsgSend := make(chan network.Message)
 
-	p2pService, err := p2p.NewService(&p2pConfig, p2pMsgSend, p2pMsgRec)
+	networkService, err := network.NewService(&networkConfig, networkMsgSend, networkMsgRec)
 	if err != nil {
-		log.Error("Failed to create new p2p service", "err", err)
+		log.Error("Failed to create new network service", "err", err)
 	}
 
-	return p2pService, p2pMsgSend, p2pMsgRec
+	return networkService, networkMsgSend, networkMsgRec
 }
 
 // createCoreService creates the core service from the provided core configuration
@@ -259,24 +284,24 @@ func createCoreService(coreConfig *core.Config) *core.Service {
 
 func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 	// Modules
-	if mods := ctx.GlobalString(utils.RPCModuleFlag.Name); mods != "" {
-		fig.Modules = strToMods(strings.Split(ctx.GlobalString(utils.RPCModuleFlag.Name), ","))
+	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
+		fig.Modules = strToMods(strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ","))
 	}
 
 	// Host
-	if host := ctx.GlobalString(utils.RPCHostFlag.Name); host != "" {
+	if host := ctx.GlobalString(RPCHostFlag.Name); host != "" {
 		fig.Host = host
 	}
 
 	// Port
-	if port := ctx.GlobalUint(utils.RPCPortFlag.Name); port != 0 {
+	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
 		fig.Port = uint32(port)
 	}
 
 }
 
 func startRPC(ctx *cli.Context, fig cfg.RPCCfg, apiSrvc *api.Service) *rpc.HTTPServer {
-	if ctx.GlobalBool(utils.RPCEnabledFlag.Name) {
+	if ctx.GlobalBool(RPCEnabledFlag.Name) {
 		return rpc.NewHTTPServer(apiSrvc.API, &json2.Codec{}, fig.Host, fig.Port, fig.Modules)
 	}
 	return nil

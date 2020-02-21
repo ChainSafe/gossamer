@@ -14,9 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package network
 
 import (
+	"os"
+	"path"
 	"testing"
 	"time"
 )
@@ -26,7 +28,11 @@ var TestMdnsTimeout = 3 * time.Second
 
 // test mdns discovery service (discovers and connects)
 func TestMdns(t *testing.T) {
+	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	defer os.RemoveAll(dataDirA)
+
 	configA := &Config{
+		DataDir:     dataDirA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
@@ -38,7 +44,11 @@ func TestMdns(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
+	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	defer os.RemoveAll(dataDirB)
+
 	configB := &Config{
+		DataDir:     dataDirB,
 		Port:        7002,
 		RandSeed:    2,
 		NoBootstrap: true,

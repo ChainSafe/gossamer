@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package utils
+package main
 
 import (
 	log "github.com/ChainSafe/log15"
@@ -26,6 +26,11 @@ var (
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the database",
+	}
+	// RolesFlag role of the node (0 = no network, 1 = full node, ...)
+	RolesFlag = cli.StringFlag{
+		Name:  "roles",
+		Usage: "Roles of the gossamer node",
 	}
 	// VerbosityFlag cli service settings
 	VerbosityFlag = cli.StringFlag{
@@ -48,34 +53,38 @@ var (
 		Name:  "unlock",
 		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
 	}
+	AuthorityFlag = cli.BoolFlag{
+		Name:  "authority",
+		Usage: "Set to true if node is a BABE authority, false otherwise.",
+	}
 )
 
-// P2P flags
+// Network flags
 var (
-	// BootnodesFlag P2P service settings
+	// BootnodesFlag Network service settings
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
-		Usage: "Comma separated enode URLs for P2P discovery bootstrap",
+		Usage: "Comma separated enode URLs for network discovery bootstrap",
 	}
-	// P2pPortFlag Set P2P listening port
-	P2pPortFlag = cli.UintFlag{
-		Name:  "p2pport",
-		Usage: "Set P2P listening port",
+	// PortFlag Set network listening port
+	PortFlag = cli.UintFlag{
+		Name:  "port",
+		Usage: "Set network listening port",
 	}
 	// ProtocolIDFlag Set protocol id
 	ProtocolIDFlag = cli.StringFlag{
 		Name:  "protocol",
 		Usage: "Set protocol id",
 	}
-	// NoBootstrapFlag Disables p2p bootstrapping
+	// NoBootstrapFlag Disables network bootstrapping
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
-		Usage: "Disables p2p bootstrapping (mdns still enabled)",
+		Usage: "Disables network bootstrapping (mdns still enabled)",
 	}
-	// NoMdnsFlag Disables p2p mdns
+	// NoMdnsFlag Disables network mdns
 	NoMdnsFlag = cli.BoolFlag{
 		Name:  "nomdns",
-		Usage: "Disables p2p mdns discovery",
+		Usage: "Disables network mdns discovery",
 	}
 )
 

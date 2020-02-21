@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package p2p
+package network
 
 import (
 	"bufio"
@@ -24,14 +24,16 @@ import (
 	"github.com/ChainSafe/gossamer/internal/services"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/network"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 var _ services.Service = &Service{}
 
-// Service describes a p2p service
+// Service describes a network service
 type Service struct {
 	ctx         context.Context
+	cfg         *Config
 	host        *host
 	mdns        *mdns
 	status      *status
@@ -44,7 +46,7 @@ type Service struct {
 	noGossip    bool // internal option
 }
 
-// NewService creates a new p2p service from the configuration and message channels
+// NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
 	ctx := context.Background()
 
@@ -60,8 +62,9 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		return nil, err
 	}
 
-	p2p := &Service{
+	network := &Service{
 		ctx:         ctx,
+		cfg:         cfg,
 		host:        host,
 		mdns:        newMdns(host),
 		status:      newStatus(host),
@@ -72,17 +75,14 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noMdns:      cfg.NoMdns,
 	}
 
-	return p2p, err
+	return network, err
 }
 
-// Start starts the p2p service
+// Start starts the network service
 func (s *Service) Start() error {
 
-	// receive messages from core service (including host status messages)
+	// receive messages from core service
 	go s.receiveCoreMessages()
-
-	// TODO: ensure core service generates host status message and sends to p2p
-	// service before connecting and exchanging status messages with peers
 
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(s.handleStream)
@@ -104,7 +104,7 @@ func (s *Service) Start() error {
 }
 
 // Stop closes running instances of the host and network services as well as
-// the message channel from the p2p service to the core service (services that
+// the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
 
@@ -134,35 +134,38 @@ func (s *Service) receiveCoreMessages() {
 		// receive message from core service
 		msg := <-s.msgRec
 
-		// check if non-status message
-		if msg.GetType() != StatusMsgType {
+		log.Trace(
+			"Broadcasting message from core service",
+			"host", s.host.id(),
+			"type", msg.GetType(),
+		)
 
-			log.Trace(
-				"Broadcasting message from core service",
-				"host", s.host.id(),
-				"type", msg.GetType(),
-			)
-
-			// broadcast message to connected peers
-			s.host.broadcast(msg)
-
-		} else {
-
-			// check if status is enabled
-			if !s.noStatus {
-
-				// update host status message
-				s.status.setHostMessage(msg)
-			}
-		}
+		// broadcast message to connected peers
+		s.host.broadcast(msg)
 	}
 }
 
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn network.Conn) {
-
 	// check if status is enabled
 	if !s.noStatus {
+
+		// get latest block header from block state
+		latestBlock := s.cfg.BlockState.LatestHeader()
+
+		// update host status message
+		msg := &StatusMessage{
+			ProtocolVersion:     s.cfg.ProtocolVersion,
+			MinSupportedVersion: s.cfg.MinSupportedVersion,
+			Roles:               s.cfg.Roles,
+			BestBlockNumber:     latestBlock.Number.Uint64(),
+			BestBlockHash:       latestBlock.Hash(),
+			GenesisHash:         latestBlock.StateRoot,
+			ChainStatus:         []byte{0}, // TODO
+		}
+
+		// update host status message
+		s.status.setHostMessage(msg)
 
 		// manage status messages for new connection
 		s.status.handleConn(conn)
@@ -172,7 +175,7 @@ func (s *Service) handleConn(conn network.Conn) {
 // handleStream starts reading from the inbound message stream (substream with
 // a matching protocol id that was opened by the connected peer) and continues
 // reading until the inbound message stream is closed or reset.
-func (s *Service) handleStream(stream network.Stream) {
+func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	peer := stream.Conn().RemotePeer()
 
 	// create buffer stream for non-blocking read
@@ -237,8 +240,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 }
 
 // Health returns information about host needed for the rpc server
-func (s *Service) Health() Health {
-	return Health{
+func (s *Service) Health() common.Health {
+	return common.Health{
 		Peers:           s.host.peerCount(),
 		IsSyncing:       false, // TODO
 		ShouldHavePeers: !s.noBootstrap,
@@ -246,18 +249,18 @@ func (s *Service) Health() Health {
 }
 
 // NetworkState returns information about host needed for the rpc server and the runtime
-func (s *Service) NetworkState() NetworkState {
-	return NetworkState{
+func (s *Service) NetworkState() common.NetworkState {
+	return common.NetworkState{
 		PeerID: s.host.id().String(),
 	}
 }
 
 // Peers returns information about connected peers needed for the rpc server
-func (s *Service) Peers() (peers []PeerInfo) {
+func (s *Service) Peers() (peers []common.PeerInfo) {
 	for _, p := range s.host.peers() {
 		if s.status.confirmed(p) {
 			msg := s.status.peerMessage[p]
-			peers = append(peers, PeerInfo{
+			peers = append(peers, common.PeerInfo{
 				PeerID:          p.String(),
 				Roles:           msg.Roles,
 				ProtocolVersion: msg.ProtocolVersion,

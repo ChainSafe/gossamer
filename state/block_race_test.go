@@ -17,59 +17,55 @@
 package state
 
 import (
+	"io/ioutil"
 	"math/big"
+	"runtime"
+	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
 )
 
-var testHealth = &common.Health{}
-var testNetworkState = &common.NetworkState{}
-var testPeers = &[]common.PeerInfo{}
+func TestConcurrencySetHeader(t *testing.T) {
+	dataDir, err := ioutil.TempDir("", "./test_data")
+	require.Nil(t, err)
 
-// test state.Network
-func TestNetworkState(t *testing.T) {
-	state := newTestService(t)
+	blockDB, err := NewBlockDB(dataDir)
+	require.Nil(t, err)
 
-	header := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
+	threads := runtime.NumCPU()
+	dbs := make([]*BlockDB, threads)
+	for i := 0; i < threads; i++ {
+		cpy := *blockDB
+		dbs[i] = &cpy
 	}
 
-	err := state.Initialize(header, trie.NewEmptyTrie(nil))
-	if err != nil {
-		t.Fatal(err)
+	pend := new(sync.WaitGroup)
+	pend.Add(threads)
+	for i := 0; i < threads; i++ {
+		go func(index int) {
+			defer pend.Done()
+
+			bs := &BlockState{
+				db: dbs[index],
+			}
+
+			header := &types.Header{
+				Number:    big.NewInt(0),
+				StateRoot: trie.EmptyHash,
+			}
+
+			err = bs.SetHeader(header)
+			require.Nil(t, err)
+
+			res, err := bs.GetHeader(header.Hash())
+			require.Nil(t, err)
+
+			require.Equal(t, header, res)
+
+		}(i)
 	}
-
-	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = state.Network.SetHealth(testHealth)
-	require.Nil(t, err)
-
-	health, err := state.Network.GetHealth()
-	require.Nil(t, err)
-
-	require.Equal(t, health, testHealth)
-
-	err = state.Network.SetNetworkState(testNetworkState)
-	require.Nil(t, err)
-
-	networkState, err := state.Network.GetNetworkState()
-	require.Nil(t, err)
-
-	require.Equal(t, networkState, testNetworkState)
-
-	err = state.Network.SetPeers(testPeers)
-	require.Nil(t, err)
-
-	peers, err := state.Network.GetPeers()
-	require.Nil(t, err)
-
-	require.Equal(t, peers, testPeers)
+	pend.Wait()
 }

@@ -19,11 +19,11 @@ package core
 import (
 	"errors"
 
-	"github.com/ChainSafe/gossamer/runtime"
-
 	scale "github.com/ChainSafe/gossamer/codec"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
+	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/runtime"
 )
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
@@ -53,4 +53,38 @@ func (s *Service) executeBlock(b []byte) error {
 	}
 
 	return nil
+}
+
+// TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
+func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
+	ret, err := s.rt.Exec(runtime.AuraAPIAuthorities, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	decodedKeys, err := scale.Decode(ret, [][32]byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	keys := decodedKeys.([][32]byte)
+	authsRaw := make([]*babe.AuthorityDataRaw, len(keys))
+
+	for i, key := range keys {
+		authsRaw[i] = &babe.AuthorityDataRaw{
+			ID:     key,
+			Weight: 1,
+		}
+	}
+
+	auths := make([]*babe.AuthorityData, len(keys))
+	for i, auth := range authsRaw {
+		auths[i] = new(babe.AuthorityData)
+		err = auths[i].FromRaw(auth)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return auths, err
 }
