@@ -78,6 +78,7 @@ func NewAuthorModule(api CoreAPI) *AuthorModule {
 // InsertKey inserts a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	_ = cm.coreAPI
+	return nil
 }
 
 // PendingExtrinsics Returns all pending extrinsics
