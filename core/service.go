@@ -277,8 +277,6 @@ func (s *Service) receiveMessages() {
 }
 
 // handleReceivedBlock handles blocks from the BABE session
-//TODO: remove nolint after `(*Service).handleReceivedBlock` - result `err` is no longer always `nil`
-//nolint
 func (s *Service) handleReceivedBlock(block types.Block) (err error) {
 	if s.blockState == nil {
 		return fmt.Errorf("blockState is nil")
