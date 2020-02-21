@@ -26,4 +26,5 @@ type BlockState interface {
 }
 
 // NetworkState interface for network state methods
+//nolint:golint
 type NetworkState interface{}

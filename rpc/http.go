@@ -31,6 +31,7 @@ type HTTPServer struct {
 	rpcServer *Server // Actual RPC call handler
 }
 
+// HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
 	BlockAPI   modules.BlockAPI
 	StorageAPI modules.StorageAPI
@@ -78,6 +79,7 @@ func (h *HTTPServer) Start() error {
 	return nil
 }
 
+// Stop stops the server
 func (h *HTTPServer) Stop() error {
 	return nil
 }
