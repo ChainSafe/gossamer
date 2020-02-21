@@ -26,8 +26,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-type Module string
-
 // Codec defines the interface for creating a CodecRequest.
 type Codec interface {
 	NewRequest(*http.Request) CodecRequest
