@@ -230,7 +230,7 @@ func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 }
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+func createNetworkService(fig *cfg.Config, gendata *genesis.Data, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID
@@ -247,14 +247,15 @@ func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateSe
 
 	// network service configuation
 	networkConfig := network.Config{
-		BlockState:  stateService.Block,
-		DataDir:     fig.Global.DataDir,
-		Roles:       fig.Global.Roles,
-		Port:        fig.Network.Port,
-		Bootnodes:   bootnodes,
-		ProtocolID:  protocolID,
-		NoBootstrap: fig.Network.NoBootstrap,
-		NoMdns:      fig.Network.NoMdns,
+		BlockState:   stateService.Block,
+		NetworkState: stateService.Network,
+		DataDir:      fig.Global.DataDir,
+		Roles:        fig.Global.Roles,
+		Port:         fig.Network.Port,
+		Bootnodes:    bootnodes,
+		ProtocolID:   protocolID,
+		NoBootstrap:  fig.Network.NoBootstrap,
+		NoMdns:       fig.Network.NoMdns,
 	}
 
 	networkMsgRec := make(chan network.Message)

@@ -24,3 +24,6 @@ import (
 type BlockState interface {
 	LatestHeader() *types.Header
 }
+
+// NetworkState interface for network state methods
+type NetworkState interface{}

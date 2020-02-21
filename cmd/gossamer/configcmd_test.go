@@ -51,7 +51,7 @@ var TestGenesis = &genesis.Genesis{
 	ID:         "gossamer",
 	Bootnodes:  TestBootnodes,
 	ProtocolID: TestProtocolID,
-	Genesis:    genesis.GenesisFields{},
+	Genesis:    genesis.Fields{},
 }
 
 func teardown(tempFile *os.File) {
@@ -204,7 +204,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
+	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.Data{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
@@ -372,8 +372,9 @@ func TestMakeNode(t *testing.T) {
 			err = loadGenesis(context)
 			require.Nil(t, err)
 
-			node, _, err := makeNode(context)
+			node, cfg, err := makeNode(context)
 			require.Nil(t, err)
+			require.NotNil(t, cfg)
 
 			db := node.Services.Get(&state.Service{})
 
