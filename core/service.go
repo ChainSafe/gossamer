@@ -45,9 +45,9 @@ type Service struct {
 	bs              *babe.Session
 	keys            []crypto.Keypair
 	blkRec          <-chan types.Block     // receive blocks from BABE session
-	msgRec          <-chan network.Message // receive messages from p2p service
+	msgRec          <-chan network.Message // receive messages from network service
 	epochDone       <-chan struct{}        // receive from this channel when BABE epoch changes
-	msgSend         chan<- network.Message // send messages to p2p service
+	msgSend         chan<- network.Message // send messages to network service
 	isBabeAuthority bool
 }
 
