@@ -30,9 +30,15 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	var at []uint64
 	dl := bt.DeepestBlock()
 	bn := new(big.Int).SetUint64(slotTail)
-	nf := bn.Sub(dl.Header.Number, bn)
+
+	deepestBlock, err := b.blockState.GetBlockByHash(dl)
+	if err != nil {
+		return 0, err
+	}
+
+	nf := bn.Sub(deepestBlock.Header.Number, bn)
 	// check to make sure we have enough blocks before the deepest block to accurately calculate slot time
-	if dl.Header.Number.Cmp(bn) <= 0 {
+	if deepestBlock.Header.Number.Cmp(bn) <= 0 {
 		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
 	}
 
@@ -46,7 +52,12 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	if err != nil {
 		return 0, err
 	}
-	for _, block := range bt.SubBlockchain(s.Header.Number, dl.Header.Number) {
+	for _, hash := range bt.SubBlockchain(s.Header.Hash(), deepestBlock.Header.Hash()) {
+		block, err := b.blockState.GetBlockByHash(hash)
+		if err != nil {
+			return 0, err
+		}
+
 		so, offsetErr := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
 		if offsetErr != nil {
 			return 0, err
@@ -54,6 +65,7 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 		st := block.GetBlockArrivalTime() + (so * sd)
 		at = append(at, st)
 	}
+
 	st, err := median(at)
 	if err != nil {
 		return 0, err

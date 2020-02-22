@@ -318,7 +318,8 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var expected uint64 = 104000
+	//var expected uint64 = 104000
+	expected := uint64(103000)
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)

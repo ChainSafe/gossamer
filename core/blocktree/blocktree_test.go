@@ -17,6 +17,7 @@
 package blocktree
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -79,8 +80,8 @@ func TestBlockTree_GetBlock(t *testing.T) {
 		t.Fatal("node is nil")
 	}
 
-	if n.number.Cmp(big.NewInt(2)) != 0 {
-		t.Errorf("got: %s expected: %s", n.number, big.NewInt(2))
+	if !bytes.Equal(hashes[2][:], n.hash[:]) {
+		t.Fatalf("Fail: got %x expected %x", n.hash, hashes[2])
 	}
 
 }
@@ -178,11 +179,12 @@ func TestBlockTree_Subchain(t *testing.T) {
 	}
 }
 
-func TestBlockTree_ComputeSlotForBlock(t *testing.T) {
+func TestBlockTree_ComputeSlotForNode(t *testing.T) {
 	bt, hashes := createFlatTree(t, 9)
 
 	expectedSlotNumber := uint64(9)
-	slotNumber := bt.ComputeSlotForBlock(bt.GetNode(hashes[9]).getBlockFromNode(), 1000)
+
+	slotNumber := bt.computeSlotForNode(bt.GetNode(hashes[9]), 1000)
 
 	if slotNumber != expectedSlotNumber {
 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)

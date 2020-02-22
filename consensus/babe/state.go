@@ -29,6 +29,7 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	SetBlock(*types.Block) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 }
 
 // StorageState interface for storage state methods

@@ -1,10 +1,12 @@
 package blocktree
 
 import (
+	"bytes"
+	"encoding/binary"
 	"errors"
-	"fmt"
+	"io"
+	"math/big"
 
-	scale "github.com/ChainSafe/gossamer/codec"
 	"github.com/ChainSafe/gossamer/common"
 )
 
@@ -17,8 +19,6 @@ func (bt *BlockTree) Store() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(enc)
 
 	return bt.db.Put(common.BlockTreeKey, enc)
 }
@@ -33,12 +33,100 @@ func (bt *BlockTree) Load() error {
 		return err
 	}
 
-	dec, err := scale.Decode(enc, bt)
-	bt = dec.(*BlockTree)
-
-	return nil
+	return bt.Decode(enc)
 }
 
+// Encode recursively encodes the block tree
+// enc(node) [32B block hash + 8B arrival time + scale(num children n)] | enc(children[0]) | ... | enc(children[n-1])
 func (bt *BlockTree) Encode() ([]byte, error) {
-	return scale.Encode(bt)
+	return encode(bt.head, []byte{})
+}
+
+func encode(n *node, enc []byte) ([]byte, error) {
+	if n == nil {
+		return enc, nil
+	}
+
+	// encode hash and arrival time
+	enc = append(enc, n.hash[:]...)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, n.arrivalTime)
+	enc = append(enc, buf...)
+
+	binary.LittleEndian.PutUint64(buf, uint64(len(n.children)))
+	enc = append(enc, buf...)
+
+	var err error
+	for _, child := range n.children {
+		enc, err = encode(child, enc)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return enc, nil
+}
+
+func (bt *BlockTree) Decode(in []byte) error {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return err
+	}
+
+	hash, err := common.ReadHash(r)
+	if err != nil {
+		return err
+	}
+	arrivalTime, err := common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+	numChildren, err := common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	bt.head = &node{
+		hash:        hash,
+		parent:      nil,
+		children:    make([]*node, numChildren),
+		depth:       big.NewInt(0),
+		arrivalTime: arrivalTime,
+	}
+
+	return decode(r, bt.head)
+}
+
+func decode(r io.Reader, parent *node) error {
+
+	for i, _ := range parent.children {
+		hash, err := common.ReadHash(r)
+		if err != nil {
+			return err
+		}
+		arrivalTime, err := common.ReadUint64(r)
+		if err != nil {
+			return err
+		}
+		numChildren, err := common.ReadUint64(r)
+		if err != nil {
+			return err
+		}
+
+		parent.children[i] = &node{
+			hash:        hash,
+			parent:      parent,
+			children:    make([]*node, numChildren),
+			depth:       big.NewInt(0).Add(parent.depth, big.NewInt(1)),
+			arrivalTime: arrivalTime,
+		}
+
+		err = decode(r, parent.children[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
