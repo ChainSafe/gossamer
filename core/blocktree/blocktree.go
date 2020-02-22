@@ -169,7 +169,6 @@ func (bt *BlockTree) deepestLeaf() *node {
 
 // DeepestBlock returns leftmost deepest block in BlockTree BT
 func (bt *BlockTree) DeepestBlockHash() Hash {
-	//return common.NewHash([]byte{0})
 	return bt.leaves.deepestLeaf().hash
 }
 
