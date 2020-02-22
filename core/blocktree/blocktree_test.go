@@ -24,13 +24,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/db"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")
 
-func createGenesisBlock() types.Block {
-	b := types.Block{
+func createGenesisBlock() *types.Block {
+	b := &types.Block{
 		Header: &types.Header{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
@@ -43,11 +42,7 @@ func createGenesisBlock() types.Block {
 }
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	d := &Database{
-		Db: db.NewMemDatabase(),
-	}
-
-	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)
+	bt := NewBlockTreeFromGenesis(createGenesisBlock(), nil)
 	require.NotNil(t, bt)
 
 	previousHash := bt.head.hash
@@ -55,7 +50,7 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 
 	hashes := []common.Hash{bt.head.hash}
 	for i := 1; i <= depth; i++ {
-		block := types.Block{
+		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
@@ -93,7 +88,7 @@ func TestBlockTree_GetBlock(t *testing.T) {
 func TestBlockTree_AddBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 1)
 
-	block := types.Block{
+	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: hashes[1],
 			Number:     big.NewInt(1),
@@ -138,7 +133,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	bt, hashes := createFlatTree(t, 3)
 
 	// Insert a block to create a competing path
-	extraBlock := types.Block{
+	extraBlock := &types.Block{
 		Header: &types.Header{
 			ParentHash: hashes[0],
 			Number:     big.NewInt(1),
@@ -163,7 +158,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 	expectedPath := hashes[1:]
 
 	// Insert a block to create a competing path
-	extraBlock := types.Block{
+	extraBlock := &types.Block{
 		Header: &types.Header{
 			ParentHash: hashes[0],
 			Number:     big.NewInt(1),

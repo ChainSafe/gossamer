@@ -17,6 +17,8 @@
 package babe
 
 import (
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
@@ -26,6 +28,7 @@ type BlockState interface {
 	LatestHeader() *types.Header
 	AddBlock(*types.Block) error
 	SetBlock(*types.Block) error
+	GetBlockByNumber(*big.Int) (*types.Block, error)
 }
 
 // StorageState interface for storage state methods

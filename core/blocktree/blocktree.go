@@ -23,29 +23,22 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/db"
-	log "github.com/ChainSafe/log15"
 	"github.com/disiqueira/gotree"
 )
 
 // Hash common.Hash
 type Hash = common.Hash
 
-// Database is the blocktree database
-type Database struct {
-	Db db.Database
-}
-
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	head            *Node
-	leaves          leafMap
-	finalizedBlocks []*Node
-	Db              *Database
+	head   *Node
+	leaves leafMap
+	db     db.Database
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 // Currently passes in arrival time as a parameter instead of setting it as time of instanciation
-func NewBlockTreeFromGenesis(genesis types.Block, db *Database) *BlockTree {
+func NewBlockTreeFromGenesis(genesis *types.Block, db db.Database) *BlockTree {
 	head := &Node{
 		hash:        genesis.Header.Hash(),
 		number:      genesis.Header.Number,
@@ -55,26 +48,20 @@ func NewBlockTreeFromGenesis(genesis types.Block, db *Database) *BlockTree {
 		arrivalTime: genesis.GetBlockArrivalTime(),
 	}
 	return &BlockTree{
-		head:            head,
-		finalizedBlocks: []*Node{},
-		leaves:          leafMap{head.hash: head},
-		Db:              db,
+		head:   head,
+		leaves: leafMap{head.hash: head},
+		db:     db,
 	}
 }
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(block types.Block) {
+func (bt *BlockTree) AddBlock(block *types.Block) error {
 	parent := bt.GetNode(block.Header.ParentHash)
 	// Check if it already exists
-	// TODO: Can shortcut this by checking DB
-	// TODO: Write blockData to db
-	// TODO: Create getter functions to check if blockNum is greater than best block stored
-
 	n := bt.GetNode(block.Header.Hash())
 	if n != nil {
-		log.Debug("Attempted to add block to tree that already exists", "Hash", n.hash)
-		return
+		return fmt.Errorf("Attempted to add block to tree that already exists: hash=%x number=%d", n.hash, n.number)
 	}
 
 	depth := big.NewInt(0)
@@ -91,6 +78,8 @@ func (bt *BlockTree) AddBlock(block types.Block) {
 	parent.addChild(n)
 
 	bt.leaves.Replace(parent, n)
+
+	return nil
 }
 
 // GetNode finds and returns a node based on its Hash. Returns nil if not found.
@@ -108,12 +97,10 @@ func (bt *BlockTree) GetNode(h Hash) *Node {
 	return nil
 }
 
-// GetBlockFromBlockNumber finds and returns a block from its number
-// TODO: Grab block details from Db, this currently constructs and returns a block from node info
-func (bt *BlockTree) GetBlockFromBlockNumber(b *big.Int) *types.Block {
-	return bt.getNodeFromBlockNumber(b).getBlockFromNode()
-
-}
+// // GetBlockFromBlockNumber finds and returns a block from its number
+// func (bt *BlockTree) getBlockFromBlockNumber(b *big.Int) *types.Block {
+// 	return bt.getNodeFromBlockNumber(b).getBlockFromNode()
+// }
 
 // GetBNodeFromBlockNumber finds and returns a node from its number
 func (bt *BlockTree) getNodeFromBlockNumber(b *big.Int) *Node {

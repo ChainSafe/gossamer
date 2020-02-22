@@ -17,6 +17,8 @@
 package core
 
 import (
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
 )
@@ -28,6 +30,7 @@ type BlockState interface {
 	SetBlock(*types.Block) error
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
+	GetBlockByNumber(*big.Int) (*types.Block, error)
 }
 
 // StorageState interface for storage state methods

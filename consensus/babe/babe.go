@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	tx "github.com/ChainSafe/gossamer/common/transaction"
 	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
+	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/runtime"
@@ -39,6 +40,7 @@ import (
 type Session struct {
 	blockState     BlockState
 	storageState   StorageState
+	blockTree      *blocktree.BlockTree
 	keypair        *sr25519.Keypair
 	rt             *runtime.Runtime
 	config         *Configuration
@@ -56,6 +58,7 @@ type Session struct {
 type SessionConfig struct {
 	BlockState     BlockState
 	StorageState   StorageState
+	BlockTree      *blocktree.BlockTree
 	Keypair        *sr25519.Keypair
 	Runtime        *runtime.Runtime
 	NewBlocks      chan<- types.Block
@@ -73,6 +76,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	babeSession := &Session{
 		blockState:     cfg.BlockState,
 		storageState:   cfg.StorageState,
+		blockTree:      cfg.BlockTree,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
 		txQueue:        new(tx.PriorityQueue),

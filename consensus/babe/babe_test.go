@@ -30,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/db"
 	"github.com/ChainSafe/gossamer/runtime"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/tests"
@@ -236,13 +235,13 @@ func TestSlotOffset(t *testing.T) {
 	}
 }
 
-func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
+func createFlatBlockTree(t *testing.T, depth int, blockState BlockState) *blocktree.BlockTree {
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	genesisBlock := types.Block{
+	genesisBlock := &types.Block{
 		Header: &types.Header{
 			ParentHash: zeroHash,
 			Number:     big.NewInt(0),
@@ -251,16 +250,14 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
-	d := &blocktree.Database{
-		Db: db.NewMemDatabase(),
-	}
-
-	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)
+	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, nil)
 	previousHash := genesisBlock.Header.Hash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
+	blockState.SetBlock(genesisBlock)
+
 	for i := 1; i <= depth; i++ {
-		block := types.Block{
+		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
@@ -274,14 +271,47 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 		bt.AddBlock(block)
 		previousHash = hash
 		previousAT = block.GetBlockArrivalTime()
+		blockState.AddBlock(block)
 	}
 
 	return bt
 }
 
 func TestSlotTime(t *testing.T) {
-	bt := createFlatBlockTree(t, 100)
-	babesession := createTestSession(t, nil)
+	dataDir, err := ioutil.TempDir("", "./test_data")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err = dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	cfg := &SessionConfig{
+		BlockState:   dbSrv.Block,
+		StorageState: dbSrv.Storage,
+	}
+
+	babesession := createTestSession(t, cfg)
+
+	bt := createFlatBlockTree(t, 100, dbSrv.Block)
 
 	res, err := babesession.slotTime(103, bt, 20)
 	if err != nil {

@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
+	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/crypto"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
@@ -41,6 +42,7 @@ var _ services.Service = &Service{}
 type Service struct {
 	blockState      BlockState
 	storageState    StorageState
+	blockTree       *blocktree.BlockTree
 	rt              *runtime.Runtime
 	bs              *babe.Session
 	keys            []crypto.Keypair
@@ -55,6 +57,7 @@ type Service struct {
 type Config struct {
 	BlockState      BlockState
 	StorageState    StorageState
+	BlockTree       *blocktree.BlockTree
 	Keystore        *keystore.Keystore
 	Runtime         *runtime.Runtime
 	MsgRec          <-chan network.Message
@@ -94,6 +97,7 @@ func NewService(cfg *Config) (*Service, error) {
 		srv = &Service{
 			rt:              cfg.Runtime,
 			keys:            keys,
+			blockTree:       cfg.BlockTree,
 			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
 			msgRec:          cfg.MsgRec,
 			msgSend:         cfg.MsgSend,
@@ -117,6 +121,7 @@ func NewService(cfg *Config) (*Service, error) {
 			StorageState: cfg.StorageState,
 			AuthData:     authData,
 			Done:         epochDone,
+			BlockTree:    cfg.BlockTree,
 		}
 
 		// create a new BABE session
@@ -132,6 +137,7 @@ func NewService(cfg *Config) (*Service, error) {
 		srv = &Service{
 			rt:              cfg.Runtime,
 			keys:            keys,
+			blockTree:       cfg.BlockTree,
 			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
 			msgRec:          cfg.MsgRec,
 			msgSend:         cfg.MsgSend,

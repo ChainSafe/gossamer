@@ -173,7 +173,7 @@ func (bs *BlockState) GetBlockByNumber(blockNumber *big.Int) (*types.Block, erro
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
 	}
 
 	// Then find the block based on the hash
@@ -211,6 +211,12 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 // SetBlock will set a block using BlockState SetBlockData method
 func (bs *BlockState) SetBlock(block *types.Block) error {
+	// Add the blockHeader to the DB
+	err := bs.SetHeader(block.Header)
+	if err != nil {
+		return err
+	}
+
 	blockData := &types.BlockData{
 		Hash:   block.Header.Hash(),
 		Header: block.Header.AsOptional(),
