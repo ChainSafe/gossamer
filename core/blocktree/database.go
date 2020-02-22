@@ -37,7 +37,7 @@ func (bt *BlockTree) Load() error {
 }
 
 // Encode recursively encodes the block tree
-// enc(node) [32B block hash + 8B arrival time + scale(num children n)] | enc(children[0]) | ... | enc(children[n-1])
+// enc(node) = [32B block hash + 8B arrival time + 8B num children n] | enc(children[0]) | ... | enc(children[n-1])
 func (bt *BlockTree) Encode() ([]byte, error) {
 	return encode(bt.head, []byte{})
 }
@@ -95,10 +95,12 @@ func (bt *BlockTree) Decode(in []byte) error {
 		arrivalTime: arrivalTime,
 	}
 
-	return decode(r, bt.head)
+	bt.leaves = leafMap{bt.head.hash: bt.head}
+
+	return bt.decode(r, bt.head)
 }
 
-func decode(r io.Reader, parent *node) error {
+func (bt *BlockTree) decode(r io.Reader, parent *node) error {
 
 	for i, _ := range parent.children {
 		hash, err := common.ReadHash(r)
@@ -122,7 +124,9 @@ func decode(r io.Reader, parent *node) error {
 			arrivalTime: arrivalTime,
 		}
 
-		err = decode(r, parent.children[i])
+		bt.leaves.Replace(parent, parent.children[i])
+
+		err = bt.decode(r, parent.children[i])
 		if err != nil {
 			return err
 		}

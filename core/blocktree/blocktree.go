@@ -109,10 +109,10 @@ func (bt *BlockTree) String() string {
 	// Format leaves
 	var leaves string
 	for k := range bt.leaves {
-		leaves = leaves + fmt.Sprintf("0x%X ", k)
+		leaves = leaves + fmt.Sprintf("0x%s ", k)
 	}
 
-	metadata := fmt.Sprintf("Leaves: %v", leaves)
+	metadata := fmt.Sprintf("Leaves: %s", leaves)
 
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
