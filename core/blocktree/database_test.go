@@ -12,9 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/db"
 )
 
-func createTestBlockTree(t *testing.T, genesisBlock *types.Block, depth int, db db.Database) *BlockTree {
-	bt := NewBlockTreeFromGenesis(genesisBlock, db)
-	previousHash := genesisBlock.Header.Hash()
+func createTestBlockTree(t *testing.T, header *types.Header, depth int, db db.Database) *BlockTree {
+	bt := NewBlockTreeFromGenesis(header, db)
+	previousHash := header.Hash()
 
 	// branch tree randomly
 	type testBranch struct {
@@ -84,22 +84,19 @@ func TestStoreBlockTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	genesisBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-		},
-		Body: &types.Body{},
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
 	}
 
-	bt := createTestBlockTree(t, genesisBlock, 10, testDb)
+	bt := createTestBlockTree(t, header, 10, testDb)
 
 	err = bt.Store()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resBt := NewBlockTreeFromGenesis(genesisBlock, testDb)
+	resBt := NewBlockTreeFromGenesis(header, testDb)
 	err = resBt.Load()
 
 	if !reflect.DeepEqual(bt, resBt) {

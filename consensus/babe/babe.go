@@ -196,38 +196,43 @@ func (b *Session) invokeBlockAuthoring() {
 }
 
 func (b *Session) handleSlot(slotNum uint64) {
-	parentHeader := b.blockState.LatestHeader()
-	if parentHeader == nil {
+	parentHeader, err := b.blockState.ChainHeadAsHeader()
+	if err != nil {
 		log.Error("BABE block authoring", "error", "parent header is nil")
-	} else {
-		currentSlot := Slot{
-			start:    uint64(time.Now().Unix()),
-			duration: b.config.SlotDuration,
-			number:   slotNum,
-		}
-
-		block, err := b.buildBlock(parentHeader, currentSlot)
-		if err != nil {
-			log.Error("BABE block authoring", "error", err)
-		} else {
-			hash := block.Header.Hash()
-			log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
-			log.Debug("BABE built block", "header", block.Header, "body", block.Body)
-
-			b.newBlocks <- *block
-			err = b.blockState.AddBlock(block)
-			if err != nil {
-				log.Error("BABE block authoring", "error", err)
-			}
-
-			err = b.storageState.SetLatestHeaderHash(hash[:])
-			if err != nil {
-				log.Error("BABE block authoring", "error", err)
-			}
-
-		}
+		return
 	}
 
+	if parentHeader == nil {
+		log.Error("BABE block authoring", "error", "parent header is nil")
+		return
+	}
+
+	currentSlot := Slot{
+		start:    uint64(time.Now().Unix()),
+		duration: b.config.SlotDuration,
+		number:   slotNum,
+	}
+
+	block, err := b.buildBlock(parentHeader, currentSlot)
+	if err != nil {
+		log.Error("BABE block authoring", "error", err)
+	} else {
+		hash := block.Header.Hash()
+		log.Info("BABE", "built block", hash.String(), "number", block.Header.Number)
+		log.Debug("BABE built block", "header", block.Header, "body", block.Body)
+
+		b.newBlocks <- *block
+		err = b.blockState.AddBlock(block)
+		if err != nil {
+			log.Error("BABE block authoring", "error", err)
+		}
+
+		err = b.storageState.SetLatestHeaderHash(hash[:])
+		if err != nil {
+			log.Error("BABE block authoring", "error", err)
+		}
+
+	}
 }
 
 // runLottery runs the lottery for a specific slot number

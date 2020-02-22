@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/db"
 	"github.com/ChainSafe/gossamer/trie"
 	log "github.com/ChainSafe/log15"
 )
@@ -57,6 +59,11 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
+	err = initializeBlockTree(blockState.db.Db, genesisHeader)
+	if err != nil {
+		return err
+	}
+
 	networkState, err := NewNetworkState(networkDataDir)
 	if err != nil {
 		return err
@@ -73,6 +80,16 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	}
 
 	return storageState.DB.DB.Close()
+}
+
+func initializeBlockTree(db db.Database, genesisHeader *types.Header) error {
+	bt := blocktree.NewBlockTreeFromGenesis(genesisHeader, db)
+	err := bt.Store()
+	if err != nil {
+		return fmt.Errorf("cannot store block tree in db: %s", err)
+	}
+
+	return nil
 }
 
 // Start initializes the Storage database and the Block database.
@@ -97,12 +114,28 @@ func (s *Service) Start() error {
 
 	log.Trace("state service", "latestHeaderHash", latestHeaderHash)
 
-	blockState, err := NewBlockState(blockDataDir, common.BytesToHash(latestHeaderHash))
+	blockDb, err := NewBlockDB(blockDataDir)
+	if err != nil {
+		return err
+	}
+
+	bt := blocktree.NewEmptyBlockTree(blockDb.Db)
+	err = bt.Load()
+	if err != nil {
+		return err
+	}
+
+	blockState, err := NewBlockState(blockDb, bt)
 	if err != nil {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
 
-	err = storageState.LoadFromDB(blockState.latestHeader.StateRoot)
+	headBlock, err := blockState.GetHeader(blockState.ChainHead())
+	if err != nil {
+		return fmt.Errorf("cannot get chain head from db: %s", err)
+	}
+
+	err = storageState.LoadFromDB(headBlock.StateRoot)
 	if err != nil {
 		return fmt.Errorf("cannot load state from DB: %s", err)
 	}

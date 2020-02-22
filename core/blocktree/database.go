@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 )
 
+// Store stores the blocktree in the underlying db
 func (bt *BlockTree) Store() error {
 	if bt.db == nil {
 		return errors.New("blocktree db is nil")
@@ -23,6 +24,7 @@ func (bt *BlockTree) Store() error {
 	return bt.db.Put(common.BlockTreeKey, enc)
 }
 
+// Load loads the blocktree from the underlying db
 func (bt *BlockTree) Load() error {
 	if bt.db == nil {
 		return errors.New("blocktree db is nil")
@@ -101,7 +103,6 @@ func (bt *BlockTree) Decode(in []byte) error {
 }
 
 func (bt *BlockTree) decode(r io.Reader, parent *node) error {
-
 	for i, _ := range parent.children {
 		hash, err := common.ReadHash(r)
 		if err != nil {

@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -36,16 +37,24 @@ type BlockTree struct {
 	db     db.Database
 }
 
+// NewEmptyBlockTree creates a BlockTree with a nil head
+func NewEmptyBlockTree(db db.Database) *BlockTree {
+	return &BlockTree{
+		head:   nil,
+		leaves: make(leafMap),
+		db:     db,
+	}
+}
+
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
 // Currently passes in arrival time as a parameter instead of setting it as time of instanciation
-func NewBlockTreeFromGenesis(genesis *types.Block, db db.Database) *BlockTree {
+func NewBlockTreeFromGenesis(genesis *types.Header, db db.Database) *BlockTree {
 	head := &node{
-		hash: genesis.Header.Hash(),
-		//number:      genesis.Header.Number,
+		hash:        genesis.Hash(),
 		parent:      nil,
 		children:    []*node{},
 		depth:       big.NewInt(0),
-		arrivalTime: genesis.GetBlockArrivalTime(), // TODO: genesis block doesn't have an arrival time
+		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
 	}
 	return &BlockTree{
 		head:   head,
@@ -58,10 +67,14 @@ func NewBlockTreeFromGenesis(genesis *types.Block, db db.Database) *BlockTree {
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block *types.Block) error {
 	parent := bt.GetNode(block.Header.ParentHash)
+	if parent == nil {
+		return fmt.Errorf("cannot find parent block in blocktree")
+	}
+
 	// Check if it already exists
 	n := bt.GetNode(block.Header.Hash())
 	if n != nil {
-		return fmt.Errorf("Attempted to add block to tree that already exists: hash=%x", n.hash)
+		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
 	}
 
 	depth := big.NewInt(0)
@@ -119,7 +132,7 @@ func (bt *BlockTree) String() string {
 
 // LongestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
 func (bt *BlockTree) LongestPath() []*node {
-	dl := bt.DeepestLeaf()
+	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
 		path = append([]*node{curr}, path...)
@@ -150,13 +163,14 @@ func (bt *BlockTree) SubBlockchain(start Hash, end Hash) []Hash {
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) DeepestLeaf() *node {
-	return bt.leaves.DeepestLeaf()
+func (bt *BlockTree) deepestLeaf() *node {
+	return bt.leaves.deepestLeaf()
 }
 
 // DeepestBlock returns leftmost deepest block in BlockTree BT
-func (bt *BlockTree) DeepestBlock() Hash {
-	return bt.leaves.DeepestLeaf().hash
+func (bt *BlockTree) DeepestBlockHash() Hash {
+	//return common.NewHash([]byte{0})
+	return bt.leaves.deepestLeaf().hash
 }
 
 // ComputeSlotForBlock computes the slot for a block from genesis

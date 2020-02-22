@@ -22,10 +22,9 @@ type BlockDB struct {
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt           *blocktree.BlockTree
-	db           *BlockDB
-	latestHeader *types.Header
-	lock         sync.RWMutex
+	bt   *blocktree.BlockTree
+	db   *BlockDB
+	lock sync.RWMutex
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -36,28 +35,21 @@ func NewBlockDB(dataDir string) (*BlockDB, error) {
 	}
 
 	return &BlockDB{
-		db,
+		Db: db,
 	}, nil
 }
 
 // NewBlockState will create a new BlockState backed by the database located at dataDir
-func NewBlockState(dataDir string, latestHash common.Hash) (*BlockState, error) {
-	blockDb, err := NewBlockDB(dataDir)
-	if err != nil {
-		return nil, err
+func NewBlockState(db *BlockDB, bt *blocktree.BlockTree) (*BlockState, error) {
+	if bt == nil {
+		return nil, fmt.Errorf("block tree is nil")
 	}
 
 	bs := &BlockState{
-		bt: &blocktree.BlockTree{},
-		db: blockDb,
+		bt: bt,
+		db: db,
 	}
 
-	latestHeader, err := bs.GetHeader(latestHash)
-	if err != nil {
-		return bs, fmt.Errorf("NewBlockState latestBlock err: %s", err)
-	}
-
-	bs.latestHeader = latestHeader
 	return bs, nil
 }
 
@@ -69,7 +61,7 @@ func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*BlockState
 	}
 
 	bs := &BlockState{
-		bt: &blocktree.BlockTree{},
+		bt: blocktree.NewBlockTreeFromGenesis(header, blockDb.Db),
 		db: blockDb,
 	}
 
@@ -78,7 +70,6 @@ func NewBlockStateFromGenesis(dataDir string, header *types.Header) (*BlockState
 		return nil, err
 	}
 
-	bs.latestHeader = header
 	return bs, nil
 }
 
@@ -144,11 +135,6 @@ func (bs *BlockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
 	return result, err
 }
 
-// LatestHeader returns the latest block available on BlockState
-func (bs *BlockState) LatestHeader() *types.Header {
-	return bs.latestHeader.DeepCopy()
-}
-
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	header, err := bs.GetHeader(hash)
@@ -209,7 +195,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return err
 }
 
-// SetBlock will set a block using BlockState SetBlockData method
+// SetBlock will add a block to the DB
 func (bs *BlockState) SetBlock(block *types.Block) error {
 	// Add the blockHeader to the DB
 	err := bs.SetHeader(block.Header)
@@ -239,29 +225,39 @@ func (bs *BlockState) SetBlockData(hash common.Hash, blockData *types.BlockData)
 	return err
 }
 
-// AddBlock will set the latestBlock in BlockState DB
-func (bs *BlockState) AddBlock(newBlock *types.Block) error {
-	// Set the latest block
-	// If latestHeader is nil OR the new block number is greater than current block number
-	if bs.latestHeader == nil || (newBlock.Header.Number != nil && newBlock.Header.Number.Cmp(bs.latestHeader.Number) == 1) {
-		bs.latestHeader = newBlock.Header.DeepCopy()
-	}
-
-	// Add the blockHeader to the DB
-	err := bs.SetHeader(bs.latestHeader)
+// AddBlock adds a block to the blocktree and the DB
+func (bs *BlockState) AddBlock(block *types.Block) error {
+	// add block to blocktree
+	err := bs.bt.AddBlock(block)
 	if err != nil {
 		return err
 	}
-	hash := newBlock.Header.Hash()
 
-	// Create BlockData
+	// add the header to the DB
+	err = bs.SetHeader(block.Header)
+	if err != nil {
+		return err
+	}
+	hash := block.Header.Hash()
+
+	// add block data to the DB
 	bd := &types.BlockData{
 		Hash:   hash,
-		Header: newBlock.Header.AsOptional(),
-		Body:   newBlock.Body.AsOptional(),
+		Header: block.Header.AsOptional(),
+		Body:   block.Body.AsOptional(),
 	}
 	err = bs.SetBlockData(hash, bd)
 	return err
+}
+
+// rename BestBlockHash ?
+func (bs *BlockState) ChainHead() common.Hash {
+	return bs.bt.DeepestBlockHash()
+}
+
+// rename BestBlockHeader?
+func (bs *BlockState) ChainHeadAsHeader() (*types.Header, error) {
+	return bs.GetHeader(bs.ChainHead())
 }
 
 // babeHeaderKey = babeHeaderPrefix || epoch || slice

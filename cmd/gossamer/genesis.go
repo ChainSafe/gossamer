@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/common"
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/core/blocktree"
+	//"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/trie"
@@ -66,10 +66,10 @@ func loadGenesis(ctx *cli.Context) error {
 		}
 	}()
 
-	err = initializeBlockTree(dataDir, header)
-	if err != nil {
-		return err
-	}
+	// err = initializeBlockTree(dataDir, header)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// set up trie database
 	t.SetDb(&trie.Database{
@@ -112,29 +112,29 @@ func initializeGenesisState(gen genesis.Fields) (*trie.Trie, *types.Header, erro
 	return t, header, nil
 }
 
-func initializeBlockTree(dataDir string, genesisHeader *types.Header) error {
-	blockDataDir := filepath.Join(dataDir, "block")
-	blockDB, err := state.NewBlockDB(blockDataDir)
-	if err != nil {
-		return fmt.Errorf("cannot create block db: %s", err)
-	}
+// func initializeBlockTree(dataDir string, genesisHeader *types.Header) error {
+// 	blockDataDir := filepath.Join(dataDir, "block")
+// 	blockDB, err := state.NewBlockDB(blockDataDir)
+// 	if err != nil {
+// 		return fmt.Errorf("cannot create block db: %s", err)
+// 	}
 
-	defer func() {
-		err = blockDB.Db.Close()
-		if err != nil {
-			log.Error("Loading genesis: cannot close stateDB", "error", err)
-		}
-	}()
+// 	defer func() {
+// 		err = blockDB.Db.Close()
+// 		if err != nil {
+// 			log.Error("Loading genesis: cannot close stateDB", "error", err)
+// 		}
+// 	}()
 
-	// initialize blocktree
-	bt := blocktree.NewBlockTreeFromGenesis(&types.Block{Header: genesisHeader}, blockDB.Db)
-	err = bt.Store()
-	if err != nil {
-		return fmt.Errorf("cannot store block tree in db: %s", err)
-	}
+// 	// initialize blocktree
+// 	bt := blocktree.NewBlockTreeFromGenesis(&types.Block{Header: genesisHeader}, blockDB.Db)
+// 	err = bt.Store()
+// 	if err != nil {
+// 		return fmt.Errorf("cannot store block tree in db: %s", err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // getGenesisPath gets the path to the genesis file
 func getGenesisPath(ctx *cli.Context) string {

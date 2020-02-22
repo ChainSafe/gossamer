@@ -25,7 +25,7 @@ import (
 
 // BlockState interface for block state methods
 type BlockState interface {
-	LatestHeader() *types.Header
+	ChainHeadAsHeader() (*types.Header, error)
 	AddBlock(*types.Block) error
 	SetBlock(*types.Block) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)

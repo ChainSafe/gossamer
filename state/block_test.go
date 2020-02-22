@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/common"
+	//"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
 	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
@@ -125,27 +126,12 @@ func TestAddBlock(t *testing.T) {
 	dataDir, err := ioutil.TempDir("", "TestAddBlock")
 	require.Nil(t, err)
 
-	blockDb, err := NewBlockDB(dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		err = blockDb.Db.Close()
-		require.Nil(t, err, "BlockDB close err: ", err)
-	}()
-
-	blockState := &BlockState{
-		db: blockDb,
-	}
-
 	// Create header
 	header0 := &types.Header{
 		Number: big.NewInt(0),
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
-
 	// BlockBody with fake extrinsics
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
@@ -154,13 +140,20 @@ func TestAddBlock(t *testing.T) {
 		Body:   &blockBody0,
 	}
 
+	//bt := blocktree.NewEmptyBlockTree(nil)
+	blockState, err := NewBlockStateFromGenesis(dataDir, header0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Add the block0 to the DB
-	err = blockState.AddBlock(block0)
+	err = blockState.SetBlock(block0)
 	require.Nil(t, err)
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
-		Number: big.NewInt(1),
+		ParentHash: blockHash0,
+		Number:     big.NewInt(1),
 	}
 	blockHash1 := header1.Hash()
 
@@ -179,17 +172,6 @@ func TestAddBlock(t *testing.T) {
 	// Get the blocks & check if it's the same as the added blocks
 	retBlock, err := blockState.GetBlockByHash(blockHash0)
 	require.Nil(t, err)
-
-	// this will panic if not successful, so catch and fail it so
-	func() {
-		hash := retBlock.Header.Hash()
-		defer func() {
-			if r := recover(); r != nil {
-				t.Fatal("got panic when processing retBlock.Header.Hash() ", r)
-			}
-		}()
-		require.NotEqual(t, hash, common.Hash{})
-	}()
 
 	require.Equal(t, block0, retBlock, "Could not validate returned block0 as expected")
 
@@ -210,6 +192,5 @@ func TestAddBlock(t *testing.T) {
 	require.Equal(t, block1, retBlock, "Could not validate returned block1 as expected")
 
 	// Check if latestBlock is set correctly
-	require.Equal(t, block1.Header, blockState.latestHeader, "Latest Header Block Check Fail")
-
+	require.Equal(t, block1.Header.Hash(), blockState.ChainHead(), "Latest Header Block Check Fail")
 }

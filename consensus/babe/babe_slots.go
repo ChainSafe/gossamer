@@ -28,7 +28,7 @@ import (
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
 	var at []uint64
-	dl := bt.DeepestBlock()
+	dl := bt.DeepestBlockHash()
 	bn := new(big.Int).SetUint64(slotTail)
 
 	deepestBlock, err := b.blockState.GetBlockByHash(dl)

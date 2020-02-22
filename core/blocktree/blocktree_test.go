@@ -29,21 +29,13 @@ import (
 
 var zeroHash, _ = common.HexToHash("0x00")
 
-func createGenesisBlock() *types.Block {
-	b := &types.Block{
-		Header: &types.Header{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-		},
-		Body: &types.Body{},
-	}
-	b.Header.Hash()
-	b.SetBlockArrivalTime(uint64(0))
-	return b
-}
-
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	bt := NewBlockTreeFromGenesis(createGenesisBlock(), nil)
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	bt := NewBlockTreeFromGenesis(header, nil)
 	require.NotNil(t, bt)
 
 	previousHash := bt.head.hash

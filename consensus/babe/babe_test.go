@@ -250,7 +250,7 @@ func createFlatBlockTree(t *testing.T, depth int, blockState BlockState) *blockt
 	}
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
-	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, nil)
+	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock.Header, nil)
 	previousHash := genesisBlock.Header.Hash()
 	previousAT := genesisBlock.GetBlockArrivalTime()
 
