@@ -20,11 +20,12 @@ import (
 	"errors"
 	"fmt"
 
-	scale "github.com/ChainSafe/gossamer/codec"
-	tx "github.com/ChainSafe/gossamer/common/transaction"
-	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	scale "github.com/ChainSafe/gossamer/lib/codec"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	tx "github.com/ChainSafe/gossamer/lib/transaction"
+
 	log "github.com/ChainSafe/log15"
 )
 

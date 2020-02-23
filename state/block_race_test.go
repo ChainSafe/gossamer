@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 

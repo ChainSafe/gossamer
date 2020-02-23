@@ -19,7 +19,7 @@ package types
 import (
 	"errors"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.

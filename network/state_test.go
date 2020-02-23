@@ -19,8 +19,8 @@ package network
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // MockBlockState ...

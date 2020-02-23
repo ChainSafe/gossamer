@@ -22,10 +22,10 @@ import (
 	"io"
 	"math/big"
 
-	scale "github.com/ChainSafe/gossamer/codec"
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/core/types"
+	scale "github.com/ChainSafe/gossamer/lib/codec"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 //nolint

@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // AuthorityDataKey is the default authority hash

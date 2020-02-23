@@ -6,8 +6,8 @@ import (
 	"os"
 	"path"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 //nolint

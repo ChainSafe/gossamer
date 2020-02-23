@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 var TestProtocolID = "/gossamer/test/0"

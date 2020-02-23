@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 func TestBodyToExtrinsics(t *testing.T) {

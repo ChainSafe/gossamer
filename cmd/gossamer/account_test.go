@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
 var testKeystoreDir = "./test_data"

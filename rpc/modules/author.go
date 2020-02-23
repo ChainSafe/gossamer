@@ -19,7 +19,7 @@ package modules
 import (
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // AuthorModule holds a pointer to the API

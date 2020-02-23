@@ -23,10 +23,10 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
 )
 
 // Creates a Dot with default configurations. Does not include RPC server.

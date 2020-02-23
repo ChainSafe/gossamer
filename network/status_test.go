@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // wait time for status messages to be exchanged and handled

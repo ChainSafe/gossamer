@@ -21,7 +21,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/network"
 )
 

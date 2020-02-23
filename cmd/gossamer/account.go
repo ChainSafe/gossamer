@@ -10,11 +10,11 @@ import (
 	"syscall"
 
 	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/crypto"
-	"github.com/ChainSafe/gossamer/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/crypto/secp256k1"
-	"github.com/ChainSafe/gossamer/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"

@@ -4,12 +4,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/consensus/babe"
-	"github.com/ChainSafe/gossamer/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/runtime"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests"
-	"github.com/ChainSafe/gossamer/trie"
 )
 
 func TestRetrieveAuthorityData(t *testing.T) {

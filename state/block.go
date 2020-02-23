@@ -8,12 +8,12 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
-	babetypes "github.com/ChainSafe/gossamer/consensus/babe/types"
-	"github.com/ChainSafe/gossamer/core/blocktree"
 	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/db"
+	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/db"
 )
 
 // BlockDB stores block's in an underlying Database

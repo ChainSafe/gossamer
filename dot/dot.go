@@ -21,7 +21,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/lib/services"
 	log "github.com/ChainSafe/log15"
 )
 

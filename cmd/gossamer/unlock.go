@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/keystore"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )

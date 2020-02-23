@@ -17,8 +17,8 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // BlockState interface for block state methods

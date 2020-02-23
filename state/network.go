@@ -3,8 +3,8 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/db"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/db"
 )
 
 var healthKey = []byte("health")

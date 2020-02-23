@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // StorageAPI is the interface for the storage state
