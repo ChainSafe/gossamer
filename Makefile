@@ -50,9 +50,9 @@ build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	GOBIN=$(PWD)/build/bin go run scripts/ci.go install
 
-# init: Init the gossamer folder using  gssmr0.json genesis file and default config file
+# init: Init the gossamer folder using genesis file and default config file
 init:
-	./build/bin/gossamer init --genesis config/gssmr0.json --verbosity debug --config ./config.toml
+	./build/bin/gossamer init --genesis ./node/gssmr/genesis.json --verbosity debug --config ./node/gssmr/config.toml
 
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:

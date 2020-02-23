@@ -24,7 +24,7 @@ WORKDIR $GOPATH/src/github.com/ChainSafe/gossamer
 # Add go mod lock files and gossamer default config
 COPY go.mod .
 COPY go.sum .
-COPY config.toml .
+COPY node/gssmr/config.toml .
 
 # Get go mods
 RUN go mod download
