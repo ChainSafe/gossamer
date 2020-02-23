@@ -27,10 +27,10 @@ import (
 	"strings"
 	"testing"
 
-	cfg "github.com/ChainSafe/gossamer/config"
+	cfg "github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/tests"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"

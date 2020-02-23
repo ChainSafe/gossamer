@@ -17,7 +17,7 @@
 package network
 
 import (
-	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/dot/core/types"
 )
 
 // BlockState interface for block state methods

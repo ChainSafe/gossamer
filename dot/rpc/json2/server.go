@@ -21,7 +21,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/dot/rpc"
 )
 
 // JSONVersion defines the actual supported json version

@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"path/filepath"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/core/types"
+	cfg "github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/state"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )

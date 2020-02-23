@@ -25,7 +25,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -33,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	tx "github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/tests"
 )
 

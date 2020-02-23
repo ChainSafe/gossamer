@@ -22,7 +22,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"

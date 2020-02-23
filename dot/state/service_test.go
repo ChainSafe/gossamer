@@ -13,33 +13,42 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
 package state
 
 import (
+	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/core/types"
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/stretchr/testify/require"
 )
 
-var testHealth = &common.Health{}
-var testNetworkState = &common.NetworkState{}
-var testPeers = &[]common.PeerInfo{}
-
-// test state.Network
-func TestNetworkState(t *testing.T) {
-	state := newTestService(t)
-
-	header := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
+// helper method to create and start test state service
+func newTestService(t *testing.T) (state *Service) {
+	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
+	if err != nil {
+		t.Fatal("failed to create temp dir: " + err.Error())
 	}
 
-	err := state.Initialize(header, trie.NewEmptyTrie(nil))
+	state = NewService(dir)
+
+	return state
+}
+
+func TestService_Start(t *testing.T) {
+	state := newTestService(t)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tr := trie.NewEmptyTrie(nil)
+
+	err = state.Initialize(genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,27 +58,5 @@ func TestNetworkState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = state.Network.SetHealth(testHealth)
-	require.Nil(t, err)
-
-	health, err := state.Network.GetHealth()
-	require.Nil(t, err)
-
-	require.Equal(t, health, testHealth)
-
-	err = state.Network.SetNetworkState(testNetworkState)
-	require.Nil(t, err)
-
-	networkState, err := state.Network.GetNetworkState()
-	require.Nil(t, err)
-
-	require.Equal(t, networkState, testNetworkState)
-
-	err = state.Network.SetPeers(testPeers)
-	require.Nil(t, err)
-
-	peers, err := state.Network.GetPeers()
-	require.Nil(t, err)
-
-	require.Equal(t, peers, testPeers)
+	state.Stop()
 }

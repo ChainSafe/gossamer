@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	cfg "github.com/ChainSafe/gossamer/config"
+	cfg "github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"

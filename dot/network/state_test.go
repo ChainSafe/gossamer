@@ -14,29 +14,38 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package network
 
 import (
-	"github.com/ChainSafe/gossamer/core/types"
+	"math/big"
+
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// BlockState interface for block state methods
-type BlockState interface {
-	LatestHeader() *types.Header
-	GetBlockData(hash common.Hash) (*types.BlockData, error)
-	SetBlockData(blockData *types.BlockData) error
-	AddBlock(*types.Block) error
-	SetBlock(*types.Block) error
-	GetHeader(common.Hash) (*types.Header, error)
-	SetHeader(*types.Header) error
-}
+// MockBlockState ...
+type MockBlockState struct{}
 
-// StorageState interface for storage state methods
-type StorageState interface {
-	StorageRoot() (common.Hash, error)
-	SetStorage([]byte, []byte) error
-	GetStorage([]byte) ([]byte, error)
-	StoreInDB() error
-	SetLatestHeaderHash([]byte) error
+// LatestHeader for MockBlockState
+func (mbs *MockBlockState) LatestHeader() *types.Header {
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	if err != nil {
+		return nil
+	}
+	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
+	if err != nil {
+		return nil
+	}
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	if err != nil {
+		return nil
+	}
+
+	return &types.Header{
+		ParentHash:     parentHash,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         [][]byte{{}},
+	}
 }

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/stretchr/testify/require"
 )
 

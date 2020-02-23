@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	log "github.com/ChainSafe/log15"
 )
 

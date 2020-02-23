@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/rpc"
+	"github.com/ChainSafe/gossamer/dot/rpc"
 )
 
 type RecordWriter struct {

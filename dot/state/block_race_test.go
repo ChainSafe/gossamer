@@ -13,50 +13,59 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package state
 
 import (
 	"io/ioutil"
 	"math/big"
-	"os"
+	"runtime"
+	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/require"
 )
 
-// helper method to create and start test state service
-func newTestService(t *testing.T) (state *Service) {
-	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
-	if err != nil {
-		t.Fatal("failed to create temp dir: " + err.Error())
+func TestConcurrencySetHeader(t *testing.T) {
+	dataDir, err := ioutil.TempDir("", "./test_data")
+	require.Nil(t, err)
+
+	blockDB, err := NewBlockDB(dataDir)
+	require.Nil(t, err)
+
+	threads := runtime.NumCPU()
+	dbs := make([]*BlockDB, threads)
+	for i := 0; i < threads; i++ {
+		cpy := *blockDB
+		dbs[i] = &cpy
 	}
 
-	state = NewService(dir)
+	pend := new(sync.WaitGroup)
+	pend.Add(threads)
+	for i := 0; i < threads; i++ {
+		go func(index int) {
+			defer pend.Done()
 
-	return state
-}
+			bs := &BlockState{
+				db: dbs[index],
+			}
 
-func TestService_Start(t *testing.T) {
-	state := newTestService(t)
+			header := &types.Header{
+				Number:    big.NewInt(0),
+				StateRoot: trie.EmptyHash,
+			}
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
+			err = bs.SetHeader(header)
+			require.Nil(t, err)
+
+			res, err := bs.GetHeader(header.Hash())
+			require.Nil(t, err)
+
+			require.Equal(t, header, res)
+
+		}(i)
 	}
-
-	tr := trie.NewEmptyTrie(nil)
-
-	err = state.Initialize(genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	state.Stop()
+	pend.Wait()
 }
