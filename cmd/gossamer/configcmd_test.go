@@ -76,7 +76,7 @@ func createTempConfigFile() (*os.File, *dot.Config) {
 		log.Crit("Cannot create temporary file", "err", err)
 		os.Exit(1)
 	}
-	f := dot.ToTOML(tmpFile.Name(), testConfig)
+	f := dot.ExportConfig(tmpFile.Name(), testConfig)
 	return f, testConfig
 }
 

@@ -60,8 +60,8 @@ func (c *Config) String() string {
 	return string(out)
 }
 
-// ToTOML encodes a state type into a TOML file.
-func ToTOML(file string, s *Config) *os.File {
+// ExportConfig encodes a state type into a TOML file.
+func ExportConfig(file string, s *Config) *os.File {
 	var (
 		newFile *os.File
 		err     error
