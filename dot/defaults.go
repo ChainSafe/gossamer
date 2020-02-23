@@ -54,7 +54,7 @@ var (
 	}
 
 	// DefaultNetworkConfig Network
-	DefaultNetworkConfig = NetworkCfg{
+	DefaultNetworkConfig = NetworkConfig{
 		Bootnodes:   DefaultNetworkBootnodes,
 		ProtocolID:  DefaultNetworkProtocolID,
 		Port:        DefaultNetworkPort,
@@ -63,7 +63,7 @@ var (
 	}
 
 	// DefaultRPCConfig RPC
-	DefaultRPCConfig = RPCCfg{
+	DefaultRPCConfig = RPCConfig{
 		Host:    DefaultRPCHTTPHost,
 		Port:    DefaultRPCHTTPPort,
 		Modules: DefaultRPCModules,

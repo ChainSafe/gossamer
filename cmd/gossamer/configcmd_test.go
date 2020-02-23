@@ -27,11 +27,12 @@ import (
 	"strings"
 	"testing"
 
-	cfg "github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/tests"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -66,18 +67,16 @@ func removeTestDataDir() {
 	}
 }
 
-func createTempConfigFile() (*os.File, *cfg.Config) {
-	testConfig := cfg.DefaultConfig()
+func createTempConfigFile() (*os.File, *dot.Config) {
+	testConfig := dot.DefaultConfig()
 	testConfig.Global.Authority = false
 	testConfig.Global.DataDir = TestDataDir
-
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
 		log.Crit("Cannot create temporary file", "err", err)
 		os.Exit(1)
 	}
-
-	f := cfg.ToTOML(tmpFile.Name(), testConfig)
+	f := dot.ToTOML(tmpFile.Name(), testConfig)
 	return f, testConfig
 }
 
@@ -147,9 +146,9 @@ func TestGetConfig(t *testing.T) {
 	tc := []struct {
 		name     string
 		value    string
-		expected *cfg.Config
+		expected *dot.Config
 	}{
-		{"", "", cfg.DefaultConfig()},
+		{"", "", dot.DefaultConfig()},
 		{"config", tempFile.Name(), cfgClone},
 	}
 
@@ -173,17 +172,17 @@ func TestSetGlobalConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.GlobalConfig
+		expected    dot.GlobalConfig
 	}{
 		{"datadir flag",
 			[]string{"datadir"},
 			[]interface{}{"test1"},
-			cfg.GlobalConfig{DataDir: tempPath},
+			dot.GlobalConfig{DataDir: tempPath},
 		},
 		{"roles flag",
 			[]string{"datadir", "roles"},
 			[]interface{}{"test1", "1"},
-			cfg.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
+			dot.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
 		},
 	}
 
@@ -193,7 +192,7 @@ func TestSetGlobalConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			tCfg := &cfg.GlobalConfig{}
+			tCfg := &dot.GlobalConfig{}
 
 			setGlobalConfig(context, tCfg)
 
@@ -204,7 +203,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.Data{}, stateSrv)
+	srv, _, _ := createNetworkService(dot.DefaultConfig(), &genesis.Data{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
@@ -216,7 +215,7 @@ func TestSetNetworkConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.NetworkCfg
+		expected    dot.NetworkConfig
 	}{
 		{
 			"config file",
@@ -228,10 +227,10 @@ func TestSetNetworkConfig(t *testing.T) {
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
-				Port:        cfg.DefaultNetworkPort,
+			dot.NetworkConfig{
+				Bootnodes:   dot.DefaultNetworkBootnodes,
+				ProtocolID:  dot.DefaultNetworkProtocolID,
+				Port:        dot.DefaultNetworkPort,
 				NoBootstrap: true,
 				NoMdns:      true,
 			},
@@ -240,10 +239,10 @@ func TestSetNetworkConfig(t *testing.T) {
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
-			cfg.NetworkCfg{
+			dot.NetworkConfig{
 				Bootnodes:   TestBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
-				Port:        cfg.DefaultNetworkPort,
+				ProtocolID:  dot.DefaultNetworkProtocolID,
+				Port:        dot.DefaultNetworkPort,
 				NoBootstrap: false,
 				NoMdns:      false,
 			},
@@ -252,9 +251,9 @@ func TestSetNetworkConfig(t *testing.T) {
 			"port",
 			[]string{"port"},
 			[]interface{}{uint(1337)},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
+			dot.NetworkConfig{
+				Bootnodes:   dot.DefaultNetworkBootnodes,
+				ProtocolID:  dot.DefaultNetworkProtocolID,
 				Port:        1337,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -264,9 +263,9 @@ func TestSetNetworkConfig(t *testing.T) {
 			"protocol id",
 			[]string{"protocol"},
 			[]interface{}{TestProtocolID},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				Port:        cfg.DefaultNetworkPort,
+			dot.NetworkConfig{
+				Bootnodes:   dot.DefaultNetworkBootnodes,
+				Port:        dot.DefaultNetworkPort,
 				ProtocolID:  TestProtocolID,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -280,7 +279,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			input := cfg.DefaultConfig()
+			input := dot.DefaultConfig()
 			// Must call global setup to set data dir
 			setNetworkConfig(context, &input.Network)
 
@@ -298,7 +297,7 @@ func TestSetRPCConfig(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.RPCCfg
+		expected    dot.RPCConfig
 	}{
 		{
 			"config file",
@@ -310,19 +309,19 @@ func TestSetRPCConfig(t *testing.T) {
 			"host and port",
 			[]string{"rpchost", "rpcport"},
 			[]interface{}{"someHost", uint(1337)},
-			cfg.RPCCfg{
+			dot.RPCConfig{
 				Port:    1337,
 				Host:    "someHost",
-				Modules: cfg.DefaultRPCModules,
+				Modules: dot.DefaultRPCModules,
 			},
 		},
 		{
 			"modules",
 			[]string{"rpcmods"},
 			[]interface{}{"system,state"},
-			cfg.RPCCfg{
-				Port:    cfg.DefaultRPCHTTPPort,
-				Host:    cfg.DefaultRPCHTTPHost,
+			dot.RPCConfig{
+				Port:    dot.DefaultRPCHTTPPort,
+				Host:    dot.DefaultRPCHTTPHost,
 				Modules: []string{"system", "state"},
 			},
 		},
@@ -334,7 +333,7 @@ func TestSetRPCConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			input := cfg.DefaultConfig()
+			input := dot.DefaultConfig()
 			setRPCConfig(context, &input.RPC)
 
 			require.Equal(t, c.expected, input.RPC)
@@ -356,7 +355,7 @@ func TestMakeNode(t *testing.T) {
 		name     string
 		flags    []string
 		values   []interface{}
-		expected *cfg.Config
+		expected *dot.Config
 	}{
 		{"node from config (norpc)", []string{"config", "genesis"}, []interface{}{tempFile.Name(), genesisPath}, cfgClone},
 		{"default node (norpc)", []string{"genesis"}, []interface{}{genesisPath}, cfgClone},
