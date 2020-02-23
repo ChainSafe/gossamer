@@ -24,14 +24,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	tx "github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
 )
 
 // runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction
 // and returns *Validity
-func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
+func (s *Service) validateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := s.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (s *Service) validateTransaction(e types.Extrinsic) (*tx.Validity, error) {
 		return nil, errors.New("could not validate transaction")
 	}
 
-	v := tx.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
 	_, err = scale.Decode(ret[1:], v)
 
 	return v, err

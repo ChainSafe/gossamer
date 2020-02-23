@@ -38,7 +38,7 @@ test:
 ## test: Runs `go test -race` on project test files.
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
-	go test ./state/... -race -timeout=5m
+	go test ./dot/state/... -race -timeout=5m
 
 ## install: Install missing dependencies. Runs `go mod download` internally.
 install:
@@ -50,9 +50,9 @@ build:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	GOBIN=$(PWD)/build/bin go run scripts/ci.go install
 
-# init: Init the gossamer folder using genesis file and default config file
+# init: Initialize gossamer using the default genesis and toml configuration files
 init:
-	./build/bin/gossamer init --genesis ./node/gssmr/genesis.json --verbosity debug --config ./node/gssmr/config.toml
+	./build/bin/gossamer init --verbosity debug
 
 ## start: Starts application from binary executable in `./bin/gossamer`
 start:

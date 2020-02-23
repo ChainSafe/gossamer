@@ -31,7 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	tx "github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -47,7 +47,7 @@ type Session struct {
 	authorityIndex uint64
 	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
-	txQueue        *tx.PriorityQueue
+	txQueue        *transaction.PriorityQueue
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	newBlocks      chan<- types.Block            // send blocks to core service
 	done           chan<- struct{}               // lets core know when the epoch is done
@@ -76,7 +76,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		storageState:   cfg.StorageState,
 		keypair:        cfg.Keypair,
 		rt:             cfg.Runtime,
-		txQueue:        new(tx.PriorityQueue),
+		txQueue:        new(transaction.PriorityQueue),
 		slotToProof:    make(map[uint64]*VrfOutputAndProof),
 		newBlocks:      cfg.NewBlocks,
 		authorityData:  cfg.AuthData,
@@ -129,12 +129,12 @@ func (b *Session) Start() error {
 }
 
 // PushToTxQueue adds a ValidTransaction to BABE's transaction queue
-func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
+func (b *Session) PushToTxQueue(vt *transaction.ValidTransaction) {
 	b.txQueue.Insert(vt)
 }
 
 // PeekFromTxQueue returns ValidTransaction
-func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
+func (b *Session) PeekFromTxQueue() *transaction.ValidTransaction {
 	return b.txQueue.Peek()
 }
 
@@ -462,9 +462,9 @@ func (b *Session) buildBlockBabeHeader(slot Slot) (*babetypes.BabeHeader, error)
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error) {
+func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
 	extrinsic := b.nextReadyExtrinsic()
-	included := []*tx.ValidTransaction{}
+	included := []*transaction.ValidTransaction{}
 
 	// TODO: check when block is full
 	for !hasSlotEnded(slot) && extrinsic != nil {
@@ -526,7 +526,7 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 	return nil
 }
 
-func (b *Session) addToQueue(txs []*tx.ValidTransaction) {
+func (b *Session) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		b.txQueue.Insert(t)
 	}
@@ -545,7 +545,7 @@ func hasSlotEnded(slot Slot) bool {
 	return slot.start+slot.duration < uint64(time.Now().Unix())
 }
 
-func extrinsicsToBody(txs []*tx.ValidTransaction) (*types.Body, error) {
+func extrinsicsToBody(txs []*transaction.ValidTransaction) (*types.Body, error) {
 	extrinsics := []types.Extrinsic{}
 
 	for _, tx := range txs {

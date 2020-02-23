@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	common "github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const none = "None"

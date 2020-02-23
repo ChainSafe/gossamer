@@ -24,9 +24,10 @@
 # Sublime
 *.sublime*
 
-test_data/
-/build/bin
-chaindata/
+/bin
+/build
+
+test_data
+
+*.key
 *.wasm
-node.key
-bin/golangci-lint

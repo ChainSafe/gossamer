@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"errors"
 
-	log "github.com/ChainSafe/log15"
-
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	log "github.com/ChainSafe/log15"
 )
 
 //nolint
