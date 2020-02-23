@@ -173,13 +173,13 @@ func (bt *BlockTree) DeepestBlockHash() Hash {
 }
 
 // ComputeSlotForBlock computes the slot for a block from genesis
-// helper for now, there's a better way to do this
 func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
 	return bt.computeSlotForNode(&node{
 		arrivalTime: b.GetBlockArrivalTime(),
 	}, sd)
 }
 
+// TOOD: not sure how correct this is, there isn't necessarily one block per slot
 func (bt *BlockTree) computeSlotForNode(b *node, sd uint64) uint64 {
 	gt := bt.head.arrivalTime
 	nt := b.arrivalTime

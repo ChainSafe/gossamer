@@ -20,18 +20,18 @@ import (
 	"errors"
 	"math/big"
 	"sort"
-
-	"github.com/ChainSafe/gossamer/core/blocktree"
 )
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
-func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
+func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
-	dl := bt.DeepestBlockHash()
+
+	head := b.blockState.ChainHead()
+
 	bn := new(big.Int).SetUint64(slotTail)
 
-	deepestBlock, err := b.blockState.GetBlockByHash(dl)
+	deepestBlock, err := b.blockState.GetBlockByHash(head)
 	if err != nil {
 		return 0, err
 	}
@@ -52,13 +52,13 @@ func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64
 	if err != nil {
 		return 0, err
 	}
-	for _, hash := range bt.SubBlockchain(s.Header.Hash(), deepestBlock.Header.Hash()) {
+	for _, hash := range b.blockState.SubChain(s.Header.Hash(), deepestBlock.Header.Hash()) {
 		block, err := b.blockState.GetBlockByHash(hash)
 		if err != nil {
 			return 0, err
 		}
 
-		so, offsetErr := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
+		so, offsetErr := slotOffset(b.blockState.ComputeSlotForBlock(block, sd), slot)
 		if offsetErr != nil {
 			return 0, err
 		}

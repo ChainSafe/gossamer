@@ -260,6 +260,14 @@ func (bs *BlockState) ChainHeadAsHeader() (*types.Header, error) {
 	return bs.GetHeader(bs.ChainHead())
 }
 
+func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
+	return bs.bt.SubBlockchain(start, end)
+}
+
+func (bs *BlockState) ComputeSlotForBlock(block *types.Block, slotDuration uint64) uint64 {
+	return bs.bt.ComputeSlotForBlock(block, slotDuration)
+}
+
 // babeHeaderKey = babeHeaderPrefix || epoch || slice
 func babeHeaderKey(epoch uint64, slot uint64) []byte {
 	epochBytes := make([]byte, 8)
