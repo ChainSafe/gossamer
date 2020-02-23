@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"io"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // Database is a wrapper around a db

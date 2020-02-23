@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package codec
+package scale
 
 func reverseBytes(a []byte) []byte {
 	for i := len(a)/2 - 1; i >= 0; i-- {

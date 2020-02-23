@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"sync"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	allocator "github.com/ChainSafe/gossamer/lib/runtime/allocator"
+	"github.com/ChainSafe/gossamer/lib/scale"
 
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"

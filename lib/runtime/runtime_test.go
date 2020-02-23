@@ -25,11 +25,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests"
 
@@ -556,7 +556,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 
 	for _, test := range tests {
 		keyBigInt := new(big.Int).SetBytes(test.key)
-		encodedKey, err2 := codec.Encode(keyBigInt)
+		encodedKey, err2 := scale.Encode(keyBigInt)
 		require.Nil(t, err2)
 
 		e := expectedTrie.Put(encodedKey, test.value)

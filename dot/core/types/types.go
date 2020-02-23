@@ -21,9 +21,9 @@ import (
 	"io"
 	"math/big"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // Extrinsic is a generic transaction whose format is verified in the runtime

@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"testing"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // byteArray makes byte array with length specified; used to test byte array encoding

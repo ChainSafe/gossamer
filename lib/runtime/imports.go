@@ -62,13 +62,11 @@ import (
 	"math/big"
 	"unsafe"
 
-	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/gossamer/lib/codec"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/OneOfOne/xxhash"
@@ -365,7 +363,7 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 		pos += valueLen
 
 		// encode the key
-		encodedOutput, err := codec.Encode(big.NewInt(int64(i)))
+		encodedOutput, err := scale.Encode(big.NewInt(int64(i)))
 		if err != nil {
 			log.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return

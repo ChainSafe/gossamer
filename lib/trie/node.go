@@ -45,8 +45,8 @@ import (
 	"fmt"
 	"io"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // node is the interface for trie methods

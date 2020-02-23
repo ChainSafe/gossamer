@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 
-	scale "github.com/ChainSafe/gossamer/lib/codec"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 //nolint
