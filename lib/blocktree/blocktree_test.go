@@ -22,7 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +44,7 @@ func createGenesisBlock() types.Block {
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 	d := &Database{
-		Db: db.NewMemDatabase(),
+		Db: database.NewMemDatabase(),
 	}
 
 	bt := NewBlockTreeFromGenesis(createGenesisBlock(), d)

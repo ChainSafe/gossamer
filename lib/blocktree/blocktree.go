@@ -22,7 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/disiqueira/gotree"
@@ -33,7 +33,7 @@ type Hash = common.Hash
 
 // Database is the blocktree database
 type Database struct {
-	Db db.Database
+	Db database.Database
 }
 
 // BlockTree represents the current state with all possible blocks

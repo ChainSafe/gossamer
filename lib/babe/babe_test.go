@@ -30,7 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	tx "github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -252,7 +252,7 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	genesisBlock.SetBlockArrivalTime(uint64(1000))
 
 	d := &blocktree.Database{
-		Db: db.NewMemDatabase(),
+		Db: database.NewMemDatabase(),
 	}
 
 	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock, d)

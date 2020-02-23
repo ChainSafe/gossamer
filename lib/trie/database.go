@@ -23,19 +23,19 @@ import (
 
 	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
 // Database is a wrapper around a db
 type Database struct {
-	DB     db.Database
-	Batch  db.Batch
+	DB     database.Database
+	Batch  database.Batch
 	Hasher *Hasher
 }
 
 // NewDatabase create new db instance
-func NewDatabase(db db.Database) *Database {
+func NewDatabase(db database.Database) *Database {
 	batch := db.NewBatch()
 
 	return &Database{

@@ -21,14 +21,14 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // DB stores trie structure in an underlying Database
 type DB struct {
-	DB db.Database
+	DB database.Database
 }
 
 // StorageState is the struct that holds the trie, db and lock
@@ -40,7 +40,7 @@ type StorageState struct {
 
 // NewStateDB instantiates badgerDB instance for storing trie structure
 func NewStateDB(dataDir string) (*DB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+	db, err := database.NewBadgerDB(dataDir)
 	if err != nil {
 		return nil, err
 	}

@@ -29,12 +29,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 )
 
 // BlockDB stores block's in an underlying Database
 type BlockDB struct {
-	Db db.Database
+	Db database.Database
 }
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
@@ -47,7 +47,7 @@ type BlockState struct {
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
 func NewBlockDB(dataDir string) (*BlockDB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+	db, err := database.NewBadgerDB(dataDir)
 	if err != nil {
 		return nil, err
 	}

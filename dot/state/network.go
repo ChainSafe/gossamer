@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 )
 
 var healthKey = []byte("health")
@@ -29,7 +29,7 @@ var peersKey = []byte("peers")
 
 // NetworkDB stores network information in an underlying database
 type NetworkDB struct {
-	Db db.Database
+	Db database.Database
 }
 
 // NetworkState defines fields for manipulating the state of network
@@ -39,7 +39,7 @@ type NetworkState struct {
 
 // NewNetworkDB instantiates a badgerDB instance for storing relevant BlockData
 func NewNetworkDB(dataDir string) (*NetworkDB, error) {
-	db, err := db.NewBadgerDB(dataDir)
+	db, err := database.NewBadgerDB(dataDir)
 	if err != nil {
 		return nil, err
 	}

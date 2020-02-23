@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/db"
+	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
@@ -35,7 +35,7 @@ func newTrie() (*Trie, error) {
 		return nil, err
 	}
 
-	stateDB, err := db.NewBadgerDB("./test_data/state")
+	stateDB, err := database.NewBadgerDB("./test_data/state")
 	if err != nil {
 		return nil, err
 	}
