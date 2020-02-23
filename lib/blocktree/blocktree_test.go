@@ -20,11 +20,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/db"
+
+	"github.com/stretchr/testify/require"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")

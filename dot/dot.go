@@ -22,6 +22,7 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/lib/services"
+
 	log "github.com/ChainSafe/log15"
 )
 

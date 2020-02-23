@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	log "github.com/ChainSafe/log15"
 )
 

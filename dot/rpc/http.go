@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+
 	log "github.com/ChainSafe/log15"
 )
 

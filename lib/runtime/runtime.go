@@ -25,6 +25,7 @@ import (
 	scale "github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	allocator "github.com/ChainSafe/gossamer/lib/runtime/allocator"
+
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )

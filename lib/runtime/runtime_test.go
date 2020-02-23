@@ -25,15 +25,15 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/tests"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/lib/codec"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/tests"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestExecVersion(t *testing.T) {

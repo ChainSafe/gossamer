@@ -36,6 +36,7 @@
 // `Extra partial key length` is included if len(key) > 63 and consists of the remaining key length
 // `Partial Key` is the leaf's key
 // `Value` is the leaf's SCALE encoded value
+
 package trie
 
 import (

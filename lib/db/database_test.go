@@ -18,11 +18,10 @@ package db
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"fmt"
 
 	"github.com/dgraph-io/badger/v2"
 )

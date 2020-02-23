@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/db"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/disiqueira/gotree"
 )
