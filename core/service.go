@@ -316,32 +316,22 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	messageBlockNum := blockAnnounceMessage.Number
 
 	// check if we should send block request message
-	if latestBlockNum.Cmp(messageBlockNum) == 1 {
-		// BlockAnnounceMessage
-		blockAnnounce := &network.BlockAnnounceMessage{
-			ParentHash:     blockAnnounceMessage.ParentHash,
-			Number:         messageBlockNum,
-			StateRoot:      blockAnnounceMessage.StateRoot,
-			ExtrinsicsRoot: blockAnnounceMessage.ExtrinsicsRoot,
-			Digest:         blockAnnounceMessage.Digest,
-		}
-
-		// send blockAnnounce message to network service
-		log.Debug("send blockAnnounce message to network service")
-		s.msgSend <- blockAnnounce
-
-	} else {
+	if latestBlockNum.Cmp(messageBlockNum) == -1 {
 
 		//generate random ID
 		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
+		currentHash, _ := common.HexToBytes(s.blockState.LatestHeader().Hash().String())
+
+		blockAnnounceStateRootHash, _ := common.HexToHash(blockAnnounceMessage.StateRoot.String())
+
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,
-			StartingBlock: []byte{},
-			EndBlockHash:  optional.NewHash(true, common.Hash{}),
+			StartingBlock: append([]byte{0}, currentHash...),
+			EndBlockHash:  optional.NewHash(true, blockAnnounceStateRootHash),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
 		}
