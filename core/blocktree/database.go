@@ -69,6 +69,7 @@ func encode(n *node, enc []byte) ([]byte, error) {
 	return enc, nil
 }
 
+// Decode recursively decodes an encoded block tree
 func (bt *BlockTree) Decode(in []byte) error {
 	r := &bytes.Buffer{}
 	_, err := r.Write(in)
@@ -103,7 +104,7 @@ func (bt *BlockTree) Decode(in []byte) error {
 }
 
 func (bt *BlockTree) decode(r io.Reader, parent *node) error {
-	for i, _ := range parent.children {
+	for i := range parent.children {
 		hash, err := common.ReadHash(r)
 		if err != nil {
 			return err

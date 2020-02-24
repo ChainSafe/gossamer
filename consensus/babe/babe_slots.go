@@ -20,6 +20,8 @@ import (
 	"errors"
 	"math/big"
 	"sort"
+
+	"github.com/ChainSafe/gossamer/core/types"
 )
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
@@ -28,7 +30,6 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
 
 	head := b.blockState.ChainHead()
-
 	bn := new(big.Int).SetUint64(slotTail)
 
 	deepestBlock, err := b.blockState.GetBlockByHash(head)
@@ -48,12 +49,15 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	}
 
 	err = b.configurationFromRuntime()
-	sd := b.config.SlotDuration
 	if err != nil {
 		return 0, err
 	}
+
+	sd := b.config.SlotDuration
+
+	var block *types.Block
 	for _, hash := range b.blockState.SubChain(s.Header.Hash(), deepestBlock.Header.Hash()) {
-		block, err := b.blockState.GetBlockByHash(hash)
+		block, err = b.blockState.GetBlockByHash(hash)
 		if err != nil {
 			return 0, err
 		}

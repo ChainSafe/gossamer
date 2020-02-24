@@ -250,20 +250,25 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 	return err
 }
 
+// ChainHead returns the hash of the head of the current chain
 // rename BestBlockHash ?
 func (bs *BlockState) ChainHead() common.Hash {
 	return bs.bt.DeepestBlockHash()
 }
 
+// ChainHeadAsHeader returns the block header of the current head of the chain
 // rename BestBlockHeader?
 func (bs *BlockState) ChainHeadAsHeader() (*types.Header, error) {
 	return bs.GetHeader(bs.ChainHead())
 }
 
+// SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
 	return bs.bt.SubBlockchain(start, end)
 }
 
+// ComputeSlotForBlock returns the slot number for a given block
+// TODO: can move this out of the blocktree into BABE
 func (bs *BlockState) ComputeSlotForBlock(block *types.Block, slotDuration uint64) uint64 {
 	return bs.bt.ComputeSlotForBlock(block, slotDuration)
 }

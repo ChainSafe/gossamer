@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/db"
 )
 
-func createTestBlockTree(t *testing.T, header *types.Header, depth int, db db.Database) *BlockTree {
+func createTestBlockTree(header *types.Header, depth int, db db.Database) *BlockTree {
 	bt := NewBlockTreeFromGenesis(header, db)
 	previousHash := header.Hash()
 
@@ -43,7 +43,7 @@ func createTestBlockTree(t *testing.T, header *types.Header, depth int, db db.Da
 		if isBranch == 1 {
 			branches = append(branches, testBranch{
 				hash:  hash,
-				depth: bt.GetNode(hash).depth,
+				depth: bt.getNode(hash).depth,
 			})
 		}
 	}
@@ -53,7 +53,7 @@ func createTestBlockTree(t *testing.T, header *types.Header, depth int, db db.Da
 		for i := int(branch.depth.Uint64()); i <= depth; i++ {
 			block := &types.Block{
 				Header: &types.Header{
-					ParentHash: branch.hash,
+					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 				},
 				Body: &types.Body{},
@@ -89,7 +89,7 @@ func TestStoreBlockTree(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
-	bt := createTestBlockTree(t, header, 10, testDb)
+	bt := createTestBlockTree(header, 10, testDb)
 
 	err = bt.Store()
 	if err != nil {
@@ -98,6 +98,9 @@ func TestStoreBlockTree(t *testing.T) {
 
 	resBt := NewBlockTreeFromGenesis(header, testDb)
 	err = resBt.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if !reflect.DeepEqual(bt, resBt) {
 		t.Fatalf("Fail: got %v expected %v", resBt, bt)

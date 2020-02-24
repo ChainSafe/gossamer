@@ -66,13 +66,13 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db db.Database) *BlockTree {
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block *types.Block) error {
-	parent := bt.GetNode(block.Header.ParentHash)
+	parent := bt.getNode(block.Header.ParentHash)
 	if parent == nil {
 		return fmt.Errorf("cannot find parent block in blocktree")
 	}
 
 	// Check if it already exists
-	n := bt.GetNode(block.Header.Hash())
+	n := bt.getNode(block.Header.Hash())
 	if n != nil {
 		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
 	}
@@ -95,7 +95,7 @@ func (bt *BlockTree) AddBlock(block *types.Block) error {
 }
 
 // GetNode finds and returns a node based on its Hash. Returns nil if not found.
-func (bt *BlockTree) GetNode(h Hash) *node {
+func (bt *BlockTree) getNode(h Hash) *node {
 	if bt.head.hash == h {
 		return bt.head
 	}
@@ -130,8 +130,8 @@ func (bt *BlockTree) String() string {
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }
 
-// LongestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) LongestPath() []*node {
+// longestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
+func (bt *BlockTree) longestPath() []*node {
 	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
@@ -142,18 +142,16 @@ func (bt *BlockTree) LongestPath() []*node {
 	}
 }
 
-// SubChain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubChain(start Hash, end Hash) []*node {
-	sn := bt.GetNode(start)
-	en := bt.GetNode(end)
+// subChain returns the path from the node with Hash start to the node with Hash end
+func (bt *BlockTree) subChain(start Hash, end Hash) []*node {
+	sn := bt.getNode(start)
+	en := bt.getNode(end)
 	return sn.subChain(en)
 }
 
 // SubBlockchain returns the path from the node with Hash start to the node with Hash end
 func (bt *BlockTree) SubBlockchain(start Hash, end Hash) []Hash {
-	// s := bt.getNodeFromBlockNumber(start)
-	// e := bt.getNodeFromBlockNumber(end)
-	sc := bt.SubChain(start, end)
+	sc := bt.subChain(start, end)
 	var bc []Hash
 	for _, node := range sc {
 		bc = append(bc, node.hash)
@@ -167,7 +165,7 @@ func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }
 
-// DeepestBlock returns leftmost deepest block in BlockTree BT
+// DeepestBlockHash returns the hash of the leftmost deepest block in the blocktree
 func (bt *BlockTree) DeepestBlockHash() Hash {
 	return bt.leaves.deepestLeaf().hash
 }
@@ -179,7 +177,7 @@ func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
 	}, sd)
 }
 
-// TOOD: not sure how correct this is, there isn't necessarily one block per slot
+// TODOge: not sure how correct this is, there isn't necessarily one block per slot
 func (bt *BlockTree) computeSlotForNode(b *node, sd uint64) uint64 {
 	gt := bt.head.arrivalTime
 	nt := b.arrivalTime

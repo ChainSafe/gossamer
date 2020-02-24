@@ -67,7 +67,7 @@ func TestBlockTree_GetBlock(t *testing.T) {
 	// Calls AddBlock
 	bt, hashes := createFlatTree(t, 2)
 
-	n := bt.GetNode(hashes[2])
+	n := bt.getNode(hashes[2])
 	if n == nil {
 		t.Fatal("node is nil")
 	}
@@ -92,7 +92,7 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	hash := block.Header.Hash()
 	bt.AddBlock(block)
 
-	n := bt.GetNode(hash)
+	n := bt.getNode(hash)
 
 	if bt.leaves[n.hash] == nil {
 		t.Errorf("expected %x to be a leaf", n.hash)
@@ -110,7 +110,7 @@ func TestNode_isDecendantOf(t *testing.T) {
 	bt, hashes := createFlatTree(t, 4)
 
 	// Check leaf is descendant of root
-	leaf := bt.GetNode(hashes[3])
+	leaf := bt.getNode(hashes[3])
 	if !leaf.isDescendantOf(bt.head) {
 		t.Error("failed to verify leaf is descendant of root")
 	}
@@ -137,7 +137,7 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	extraBlock.Header.Hash()
 	bt.AddBlock(extraBlock)
 
-	longestPath := bt.LongestPath()
+	longestPath := bt.longestPath()
 
 	for i, n := range longestPath {
 		if n.hash != hashes[i] {
@@ -162,7 +162,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 	extraBlock.Header.Hash()
 	bt.AddBlock(extraBlock)
 
-	subChain := bt.SubChain(hashes[1], hashes[3])
+	subChain := bt.subChain(hashes[1], hashes[3])
 
 	for i, n := range subChain {
 		if n.hash != expectedPath[i] {
@@ -176,7 +176,7 @@ func TestBlockTree_ComputeSlotForNode(t *testing.T) {
 
 	expectedSlotNumber := uint64(9)
 
-	slotNumber := bt.computeSlotForNode(bt.GetNode(hashes[9]), 1000)
+	slotNumber := bt.computeSlotForNode(bt.getNode(hashes[9]), 1000)
 
 	if slotNumber != expectedSlotNumber {
 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)
