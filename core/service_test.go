@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
@@ -31,12 +30,11 @@ import (
 	"github.com/ChainSafe/gossamer/keystore"
 	"github.com/ChainSafe/gossamer/network"
 	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
 	"github.com/ChainSafe/gossamer/tests"
 	"github.com/ChainSafe/gossamer/trie"
 )
 
-var TestMessageTimeout = 2 * time.Second
+var TestMessageTimeout = 3 * time.Second
 
 func TestStartService(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
@@ -166,81 +164,6 @@ func TestAnnounceBlock(t *testing.T) {
 			t.Error(
 				"received unexpected message type",
 				"\nexpected:", network.BlockAnnounceMsgType,
-				"\nreceived:", msgType,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("timeout waiting for message")
-	}
-}
-
-func TestProcessBlockAnnounceMessage(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
-	msgRec := make(chan network.Message)
-	msgSend := make(chan network.Message)
-
-	dataDir, err := ioutil.TempDir("", "./test_data")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dbSrv := state.NewService(dataDir)
-
-	err = dbSrv.Initialize(&types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = dbSrv.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer func() {
-		err = dbSrv.Stop()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-
-	cfg := &Config{
-		Runtime:         rt,
-		MsgRec:          msgRec,
-		MsgSend:         msgSend,
-		Keystore:        keystore.NewKeystore(),
-		IsBabeAuthority: false,
-		BlockState:      dbSrv.Block,
-	}
-
-	s, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = s.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer s.Stop()
-
-	blockAnnounce := &network.BlockAnnounceMessage{
-		Number: big.NewInt(1),
-	}
-
-	// simulate mssage sent from network service
-	msgRec <- blockAnnounce
-
-	select {
-	case msg := <-msgSend:
-		msgType := msg.GetType()
-		if msgType != network.BlockRequestMsgType {
-			t.Error(
-				"received unexpected message type",
-				"\nexpected:", network.BlockRequestMsgType,
 				"\nreceived:", msgType,
 			)
 		}

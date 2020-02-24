@@ -24,18 +24,18 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 		msgType       int
 		msgTypeString string
 	}{
-		//{
-		//	name: "should respond with a BlockRequestMsgType",
-		//	blockAnnounce: &network.BlockAnnounceMessage{
-		//		Number:         big.NewInt(1),
-		//		ParentHash:     common.Hash{},
-		//		StateRoot:      common.Hash{},
-		//		ExtrinsicsRoot: common.Hash{},
-		//		Digest:         [][]byte{},
-		//	},
-		//	msgType:       network.BlockRequestMsgType, //1
-		//	msgTypeString: "BlockRequestMsgType",
-		//},
+		{
+			name: "should respond with a BlockRequestMsgType",
+			blockAnnounce: &network.BlockAnnounceMessage{
+				Number:         big.NewInt(1),
+				ParentHash:     common.Hash{},
+				StateRoot:      common.Hash{},
+				ExtrinsicsRoot: common.Hash{},
+				Digest:         [][]byte{},
+			},
+			msgType:       network.BlockRequestMsgType, //1
+			msgTypeString: "BlockRequestMsgType",
+		},
 		{
 			name: "should respond with a BlockAnnounceMessage",
 			blockAnnounce: &network.BlockAnnounceMessage{
@@ -50,20 +50,19 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 		},
 	}
 
-	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
 	for _, test := range testCases {
 
 		localTest := test
 		t.Run(test.name, func(t *testing.T) {
 
+			rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+
+			msgRec := make(chan network.Message)
 			msgSend := make(chan network.Message)
 			newBlocks := make(chan types.Block)
 
 			dataDir, err := ioutil.TempDir("", "./test_data")
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			blockState := state.NewService(dataDir)
 
@@ -71,21 +70,10 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 				Number:    big.NewInt(0),
 				StateRoot: trie.EmptyHash,
 			}, trie.NewEmptyTrie(nil))
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 
 			err = blockState.Start()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			defer func() {
-				err = blockState.Stop()
-				if err != nil {
-					t.Fatal(err)
-				}
-			}()
+			require.Nil(t, err)
 
 			// Create header
 			header0 := &types.Header{
@@ -100,9 +88,11 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 				Body:   &blockBody0,
 			}
 
-			// Add the block0 to the DB
-			err = blockState.Block.AddBlock(block0)
-			require.Nil(t, err)
+			if localTest.msgType == network.BlockAnnounceMsgType {
+				// Add the block0 to the DB
+				err = blockState.Block.AddBlock(block0)
+				require.Nil(t, err)
+			}
 
 			cfg := &Config{
 				Runtime:    rt,
@@ -112,16 +102,24 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 				NewBlocks:  newBlocks,
 			}
 
-			s, err := NewService(cfg)
-			if err != nil {
-				t.Fatal(err)
+			if localTest.msgType == network.BlockRequestMsgType {
+				cfg.IsBabeAuthority = false
+				cfg.NewBlocks = nil
+				cfg.MsgRec = msgRec
 			}
 
+			s, err := NewService(cfg)
+			require.Nil(t, err)
+
 			err = s.Start()
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer s.Stop()
+			require.Nil(t, err)
+
+			defer func() {
+				err := blockState.Stop()
+				require.Nil(t, err)
+				err = s.Stop()
+				require.Nil(t, err)
+			}()
 
 			if localTest.msgType == network.BlockAnnounceMsgType {
 				// simulate block sent from BABE session
@@ -130,6 +128,12 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 						Number: big.NewInt(1),
 					},
 				}
+			} else if localTest.msgType == network.BlockRequestMsgType {
+				blockAnnounce := &network.BlockAnnounceMessage{
+					Number: big.NewInt(1),
+				}
+				// simulate message sent from network service
+				msgRec <- blockAnnounce
 			}
 
 			select {

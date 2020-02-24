@@ -333,7 +333,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
-		return errors.New("could not cast p2p.Message to BlockAnnounceMessage")
+		return errors.New("could not cast network.Message to BlockAnnounceMessage")
 	}
 
 	if s.blockState == nil {
@@ -357,7 +357,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
-			RequestedData: 2,
+			RequestedData: 2,        // block body
 			StartingBlock: append([]byte{0}, currentHash...),
 			EndBlockHash:  optional.NewHash(true, blockAnnounceStateRootHash),
 			Direction:     1,
