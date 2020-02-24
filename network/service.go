@@ -182,7 +182,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	r := bufio.NewReader(stream)
 
 	for {
-		// TODO: re-add leb128 variable-length encoding
+		// TODO: re-add leb128 variable-length encoding #484
 
 		// decode message based on message type
 		msg, err := decodeMessage(r)

@@ -248,10 +248,7 @@ func (s *Service) receiveBlocks() {
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
-		if !ok {
-			// epoch complete
-			log.Debug("core: BABE session complete")
-		} else {
+		if ok {
 			err := s.handleReceivedBlock(block)
 			if err != nil {
 				log.Error("Failed to handle block from BABE session", "err", err)
