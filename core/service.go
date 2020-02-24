@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	mrand "math/rand"
 	"time"
 
@@ -341,10 +342,10 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	}
 
 	latestBlockNum := s.blockState.LatestHeader().Number
-	messageBlockNum := blockAnnounceMessage.Number
+	messageBlockNumMinusOne := big.NewInt(0).Sub(blockAnnounceMessage.Number, big.NewInt(1))
 
 	// check if we should send block request message
-	if latestBlockNum.Cmp(messageBlockNum) == -1 {
+	if latestBlockNum.Cmp(messageBlockNumMinusOne) == -1 {
 
 		//generate random ID
 		s1 := rand.NewSource(uint64(time.Now().UnixNano()))

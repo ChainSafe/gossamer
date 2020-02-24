@@ -130,7 +130,7 @@ func TestProcessBlockRequestMsgType(t *testing.T) {
 				}
 			} else if localTest.msgType == network.BlockRequestMsgType {
 				blockAnnounce := &network.BlockAnnounceMessage{
-					Number: big.NewInt(1),
+					Number: big.NewInt(2),
 				}
 				// simulate message sent from network service
 				msgRec <- blockAnnounce
