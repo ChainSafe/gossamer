@@ -371,7 +371,7 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
-// if the upated branch only has a value, it should be turned into a leaf
+// if the updated branch only has a value, it should be turned into a leaf
 func handleDeletion(p *branch, n node, key []byte) (nn node) {
 	nn = n
 	length := lenCommonPrefix(p.key, key)
