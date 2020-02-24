@@ -53,7 +53,7 @@ var TestGenesis = &genesis.Genesis{
 	ID:         "gossamer",
 	Bootnodes:  TestBootnodes,
 	ProtocolID: TestProtocolID,
-	Genesis:    genesis.GenesisFields{},
+	Genesis:    genesis.Fields{},
 }
 
 func teardown(tempFile *os.File) {
@@ -70,6 +70,7 @@ func removeTestDataDir() {
 
 func createTempConfigFile() (*os.File, *cfg.Config) {
 	testConfig := cfg.DefaultConfig()
+	testConfig.Global.Authority = false
 	testConfig.Global.DataDir = TestDataDir
 
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
@@ -113,9 +114,11 @@ func createTempGenesisFile(t *testing.T) string {
 	require.Nil(t, err)
 
 	testHex := hex.EncodeToString(testBytes)
-	testRaw := [2]map[string]string{}
-	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
-	TestGenesis.Genesis = genesis.GenesisFields{Raw: testRaw}
+	TestGenesis.Genesis.Raw = [2]map[string]string{}
+	if TestGenesis.Genesis.Raw[0] == nil {
+		TestGenesis.Genesis.Raw[0] = make(map[string]string)
+	}
+	TestGenesis.Genesis.Raw[0]["0x3a636f6465"] = "0x" + testHex
 
 	// Create temp file
 	file, err := ioutil.TempFile(os.TempDir(), "genesis-test")
@@ -203,7 +206,7 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.GenesisData{}, stateSrv)
+	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.Data{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
@@ -351,7 +354,6 @@ func TestStrToMods(t *testing.T) {
 }
 
 func TestMakeNode(t *testing.T) {
-	t.Skip()
 	tempFile, cfgClone := createTempConfigFile()
 	defer teardown(tempFile)
 	defer removeTestDataDir()
@@ -381,8 +383,9 @@ func TestMakeNode(t *testing.T) {
 			err = loadGenesis(context)
 			require.Nil(t, err)
 
-			node, _, err := makeNode(context)
+			node, cfg, err := makeNode(context)
 			require.Nil(t, err)
+			require.NotNil(t, cfg)
 
 			db := node.Services.Get(&state.Service{})
 
