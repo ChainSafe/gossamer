@@ -32,9 +32,6 @@ var (
 		IsSyncing:       false,
 		ShouldHavePeers: true,
 	}
-	testNetworkState = common.NetworkState{
-		PeerID: "12D3KooWMdRV3xJq3VPcnomVtA6yNjg4GpNMgyqeq42KqzUqnZTu",
-	}
 	testPeers = []common.PeerInfo{}
 )
 
@@ -76,7 +73,9 @@ func TestSystemModule_NetworkState(t *testing.T) {
 	res := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, res)
 
-	if res.NetworkState != testNetworkState {
+	testNetworkState := net.NetworkState()
+
+	if res.NetworkState != *testNetworkState {
 		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, res.NetworkState)
 	}
 }
