@@ -308,11 +308,7 @@ func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, network
 		Modules:    fig.Modules,
 	}
 
-	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		return rpc.NewHTTPServer(cfg)
-	}
-
-	return nil
+	return rpc.NewHTTPServer(cfg)
 }
 
 // dumpConfig is the dumpconfig command.
