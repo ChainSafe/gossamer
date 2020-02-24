@@ -37,7 +37,7 @@ type encodeTest struct {
 
 var encodeTests = []encodeTest{
 
-	//fixed width
+	// fixed width
 	{val: int8(1), output: []byte{0x01}, bytesEncoded: 1},
 	{val: uint8(1), output: []byte{0x01}, bytesEncoded: 1},
 

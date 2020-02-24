@@ -537,7 +537,7 @@ func TestDecodeArrays(t *testing.T) {
 	}
 }
 
-func TestDecodeHashs(t *testing.T) {
+func TestDecodeHashes(t *testing.T) {
 	for _, test := range decodeHashTests {
 		output, err := Decode(test.val, test.t)
 		if err != nil {
