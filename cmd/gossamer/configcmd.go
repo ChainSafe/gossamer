@@ -116,7 +116,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// RPC
 	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv, networkSrvc)
+		rpcSrvr := setupRPC(currentConfig.RPC, stateSrv, networkSrvc)
 		srvcs = append(srvcs, rpcSrvr)
 	}
 
@@ -297,7 +297,7 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service) *rpc.HTTPServer {
+func setupRPC(fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
 		BlockAPI:   stateSrv.Block,
 		StorageAPI: stateSrv.Storage,
