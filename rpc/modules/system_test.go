@@ -31,9 +31,6 @@ var (
 		IsSyncing:       false,
 		ShouldHavePeers: true,
 	}
-	testNetworkState = common.NetworkState{
-		PeerID: "12D3KooWMdRV3xJq3VPcnomVtA6yNjg4GpNMgyqeq42KqzUqnZTu",
-	}
 	testPeers = []common.PeerInfo{}
 )
 
