@@ -252,7 +252,7 @@ func (s *Service) receiveBlocks() {
 			// epoch complete
 			log.Debug("core: BABE session complete")
 		} else {
-			err := s.handleReceivedBlock(block)
+			err := s.handleReceivedBlock(&block)
 			if err != nil {
 				log.Error("Failed to handle block from BABE session", "err", err)
 			}
@@ -277,12 +277,12 @@ func (s *Service) receiveMessages() {
 }
 
 // handleReceivedBlock handles blocks from the BABE session
-func (s *Service) handleReceivedBlock(block types.Block) (err error) {
+func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	if s.blockState == nil {
 		return fmt.Errorf("blockState is nil")
 	}
 
-	err = s.blockState.SetHeader(block.Header)
+	err = s.blockState.AddBlock(block)
 	if err != nil {
 		return err
 	}

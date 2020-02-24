@@ -276,6 +276,7 @@ func createFlatBlockTree(t *testing.T, depth int, blockState BlockState) {
 }
 
 func TestSlotTime(t *testing.T) {
+	t.Skip()
 	dataDir, err := ioutil.TempDir("", "./test_data")
 	if err != nil {
 		t.Fatal(err)
