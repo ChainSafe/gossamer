@@ -25,12 +25,12 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/node"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -259,7 +259,7 @@ func keystoreDir(datadir string) (keystorepath string, err error) {
 		}
 	} else {
 		// datadir not specified, return ~/.gossamer/keystore as absolute path
-		datadir = dot.DefaultDataDir()
+		datadir = node.DefaultDataDir()
 
 		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {

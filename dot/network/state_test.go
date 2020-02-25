@@ -49,3 +49,6 @@ func (mbs *MockBlockState) LatestHeader() *types.Header {
 		Digest:         [][]byte{{}},
 	}
 }
+
+// MockNetworkState ...
+type MockNetworkState struct{}

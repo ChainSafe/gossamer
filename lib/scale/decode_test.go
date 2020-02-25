@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var byteArray32 = [32]byte{}

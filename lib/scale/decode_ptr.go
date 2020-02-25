@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/common"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // DecodeCustom check if interface has method Decode, if so use that, otherwise use regular scale decoding

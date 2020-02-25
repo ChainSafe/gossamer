@@ -19,10 +19,11 @@ package network
 import (
 	"context"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+
+	log "github.com/ChainSafe/log15"
 	ma "github.com/multiformats/go-multiaddr"
 )
 

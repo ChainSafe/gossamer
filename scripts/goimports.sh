@@ -20,7 +20,7 @@ find_files() {
   find . ! \( \
       \( \
         -path '.github' \
-        -o -path './build' \
+        -o -path './bin' \
       \) -prune \
     \) -name '*.go'
 }

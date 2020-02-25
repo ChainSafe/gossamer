@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -38,8 +39,9 @@ func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus: true,
-		DataDir:  testDir,
+		NoStatus:     true,
+		NetworkState: &state.NetworkState{},
+		DataDir:      testDir,
 	}
 
 	srv, err := network.NewService(cfg, nil, nil)

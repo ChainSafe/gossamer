@@ -21,12 +21,12 @@ import (
 	"math/big"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/node"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -131,6 +131,6 @@ func getGenesisPath(ctx *cli.Context) string {
 	} else if file := ctx.GlobalString(GenesisFlag.Name); file != "" {
 		return file
 	} else {
-		return dot.DefaultGenesisPath
+		return node.DefaultGenesisPath
 	}
 }
