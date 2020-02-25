@@ -27,56 +27,53 @@
 
 ## A Blockchain Framework
 
-Gossamer is a blockchain framework based on the specification for the [Polkadot Host](https://github.com/w3f/polkadot-spec) (formerly known as the "Polkadot Runtime Environment"). Gossamer can be used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem and expanded upon to support blockchain protocols outside the Polkadot ecosystem.
+Gossamer is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem.
 
-<!-- The Polkadot Host is a modular, customizable framework for building blockchains. It has a swappable WASM runtime (ie. state transition function) that can be replaced even after the blockchain has launched without hard forks. It also has a generic extrinsic and block format which are specified in the runtime. The runtime can be written in any language that compiles to WASM. -->
+Gossamer includes official node implementations for major networks within the Polkadot ecosystem and makes building node implementations for other networks trivial; blockchain protocols built with any implementation of the Polkadot Host can plug a runtime blob into Gossamer to create an additional node implementation in Go.
 
-<!-- For more information, check out the [Gossamer Wiki](https://github.com/ChainSafe/gossamer/wiki). -->
+For more information about Gossamer and the Polkadot Host, check out [Gossamer Wiki](https://github.com/ChainSafe/gossamer/wiki).
 
-## Gossamer Architecture
+## Package Architecture
 
-Gossamer includes official [node implementations](#node-implementations) used to support the Polkadot ecosystem, sets of shared [node services](#node-services) used to build node implementations, and a collection of [modular packages](#modular-packages) that make up the parts and pieces used to build node implementations, node services, and other supporting tools and services.
+Gossamer includes [node implementations](#node-implementations) for major networks within the Polkadot ecosystem, [node services](#node-services) that can be used to build and run node implementations, and a collection of [modular packages](#modular-packages) that can be used to build and run node services and other supporting tools.
 
 ### Node Implementations
 
-Gossamer includes a node implementation for the Gossamer Testnet and node implementations _in development_ for the Kusama Network and the Polkadot Network.
+Gossamer includes node implementations in development for Gossamer Testnet and Kusama Network.
 
 | package           | description |
 |-                  |-            |
 | `node/gssmr`      | a full node implementation and rpc server for Gossamer Testnet |
-| `node/ksmcc`      | a full node implementation and rpc server _in development_ for Kusama Network |
-| `node/plkdt`      | a full node implementation and rpc server _in development_ for Polakdot Network |
+| `node/ksmcc`      | a full node implementation and rpc server for Kusama Network |
 
 ### Node Services
 
-Gossamer includes shared node services used to build and run node implementations (currently each node implementation is using a set of shared node services that make up the base implementation for the Polkadot Host).
+Gossamer includes node services used to build and run node implementations with a shared base protocol (currently each node implementation uses a set of shared node services that make up the base implementation for the Polkadot Host).
 
 | package           | description |
 |-                  |-            |
-| `dot/core`        | orchestrates system interactions |
+| `dot/core`        | orchestrate service interactions |
 | `dot/network`     | peer-to-peer service using libp2p |
-| `dot/rpc`         | ... |
-| `dot/state`       | ... |
+| `dot/rpc`         | optional service for RPC server |
+| `dot/state`       | storage service for chain state |
 
 ### Modular Packages
 
-Gossamer includes a collection of modular packages that make up the parts and pieces used to build node implementations, node services, and other supporting tools and services.
+Gossamer includes a collection of modular packages used to build and run node services and other supporting tools.
 
 | package           | description |
 |-                  |-            |
 | `lib/babe`        | BABE implementation |
-| `lib/blocktree`   | ... |
+| `lib/blocktree`   | blocktree implementation |
 | `lib/common`      | common types and functions |
-| `lib/crypto`      | ... |
+| `lib/crypto`      | crypto keypair implementations |
 | `lib/database`    | generic database using badgerDB |
-| `lib/genesis`     | ... |
 | `lib/grandpa`     | GRANDPA implementation |
-| `lib/hexcodec`    | ... |
-| `lib/keystore`    | ... |
+| `lib/keystore`    | library for managing keystore |
 | `lib/runtime`     | WASM runtime integration using Wasmer |
 | `lib/scale`       | SCALE encoding and decoding |
-| `lib/services`    | ... |
-| `lib/transaction` | ... |
+| `lib/services`    | common interface for node services |
+| `lib/transaction` | library for transaction queue |
 | `lib/trie`        | modified merkle-patricia trie implementation |
 
 ## Running Gossamer
@@ -102,11 +99,11 @@ make gossamer
 ### Run Gossamer Node
 
 ```
-./build/bin/gossamer init
+./bin/gossamer init
 ```
 
 ```
-./build/bin/gossamer
+./bin/gossamer
 ```
 
 ## Contribute
