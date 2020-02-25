@@ -19,7 +19,12 @@
 set -e
 
 echo ">> Running tests..."
-go test -short -coverprofile c.out ./...
+go test -short -coverprofile c.out ./cmd/...
+go test -short -coverprofile c.out ./dot/core
+go test -short -coverprofile c.out ./dot/network
+go test -short -coverprofile c.out ./dot/rpc
+go test -short -coverprofile c.out ./dot/state
+go test -short -coverprofile c.out ./lib/...
 ./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
 # go test -short -race ./lib/runtime
