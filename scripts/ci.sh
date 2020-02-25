@@ -20,7 +20,7 @@ set -e
 
 echo ">> Running tests..."
 go test -short -coverprofile c.out ./cmd/...
-go test -short -coverprofile c.out ./dot/core
+# go test -short -coverprofile c.out ./dot/core
 go test -short -coverprofile c.out ./dot/network
 go test -short -coverprofile c.out ./dot/rpc
 go test -short -coverprofile c.out ./dot/state
