@@ -354,7 +354,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		currentHash, _ := common.HexToBytes(s.blockState.LatestHeader().Hash().String())
+		currentHash := s.blockState.LatestHeader().Hash()
 
 		header, err := types.NewHeader(blockAnnounceMessage.ParentHash, blockAnnounceMessage.Number, blockAnnounceMessage.StateRoot, blockAnnounceMessage.ExtrinsicsRoot, blockAnnounceMessage.Digest)
 		if err != nil {
@@ -362,15 +362,11 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 			return err
 		}
 
-		endBlock := &types.Block{
-			Header: header,
-		}
-
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,        // block body
-			StartingBlock: append([]byte{0}, currentHash...),
-			EndBlockHash:  optional.NewHash(true, endBlock.Header.Hash()),
+			StartingBlock: append([]byte{0}, currentHash[:]...),
+			EndBlockHash:  optional.NewHash(true, header.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
 		}
