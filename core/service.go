@@ -130,8 +130,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
 			log.Error("[core] could not start babe session", "error", err)
-			srv.isBabeAuthority = false
-			return srv, nil
+			return nil, err
 		}
 
 		srv.bs = bs
@@ -257,10 +256,7 @@ func (s *Service) receiveBlocks() {
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
-		if !ok {
-			// epoch complete
-			log.Debug("core: BABE session complete")
-		} else {
+		if ok {
 			err := s.handleReceivedBlock(block)
 			if err != nil {
 				log.Error("Failed to handle block from BABE session", "err", err)
@@ -286,9 +282,16 @@ func (s *Service) receiveMessages() {
 }
 
 // handleReceivedBlock handles blocks from the BABE session
-//TODO: remove nolint after `(*Service).handleReceivedBlock` - result `err` is no longer always `nil`
-//nolint
 func (s *Service) handleReceivedBlock(block types.Block) (err error) {
+	if s.blockState == nil {
+		return fmt.Errorf("blockState is nil")
+	}
+
+	err = s.blockState.SetHeader(block.Header)
+	if err != nil {
+		return err
+	}
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
