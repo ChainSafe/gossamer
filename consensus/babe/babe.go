@@ -128,16 +128,6 @@ func (b *Session) Start() error {
 	return nil
 }
 
-// // PushToTxQueue adds a ValidTransaction to BABE's transaction queue
-// func (b *Session) PushToTxQueue(vt *tx.ValidTransaction) {
-// 	b.txQueue.Insert(vt)
-// }
-
-// // PeekFromTxQueue returns ValidTransaction
-// func (b *Session) PeekFromTxQueue() *tx.ValidTransaction {
-// 	return b.txQueue.Peek()
-// }
-
 // AuthorityData returns the data related to the authority
 func (b *Session) AuthorityData() []*AuthorityData {
 	return b.authorityData
