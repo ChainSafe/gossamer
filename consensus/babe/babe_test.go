@@ -235,6 +235,7 @@ func TestSlotOffset(t *testing.T) {
 	}
 }
 
+//nolint:unused
 func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree {
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
