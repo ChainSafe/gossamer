@@ -353,13 +353,21 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 		currentHash, _ := common.HexToBytes(s.blockState.LatestHeader().Hash().String())
 
-		blockAnnounceStateRootHash, _ := common.HexToHash(blockAnnounceMessage.StateRoot.String())
+		header, err := types.NewHeader(blockAnnounceMessage.ParentHash, blockAnnounceMessage.Number, blockAnnounceMessage.StateRoot, blockAnnounceMessage.ExtrinsicsRoot, blockAnnounceMessage.Digest)
+		if err != nil {
+			log.Error("failed to create NewHeader from blockAnnounceMessage fields")
+			return err
+		}
+
+		endBlock := &types.Block{
+			Header: header,
+		}
 
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,        // block body
 			StartingBlock: append([]byte{0}, currentHash...),
-			EndBlockHash:  optional.NewHash(true, blockAnnounceStateRootHash),
+			EndBlockHash:  optional.NewHash(true, endBlock.Header.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
 		}
