@@ -35,6 +35,8 @@ type BlockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockData(hash common.Hash) (*types.BlockData, error)
+	SetBlockData(blockData *types.BlockData) error
 }
 
 // StorageState interface for storage state methods
