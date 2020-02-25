@@ -97,9 +97,10 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
 	pending := cm.txQueueAPI.Pending()
-
 	resp := [][]byte{}
 	for _, tx := range pending {
+		log.Info("pending", "Ext", tx.Extrinsic, "Validity", tx.Validity)
+
 		enc, err := tx.Encode()
 		if err != nil {
 			return err

@@ -22,14 +22,8 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
-// Pool ValidTransaction
+// Pool represents the transaction pool
 type Pool map[common.Hash]*ValidTransaction
-
-// Queue interface
-type Queue interface {
-	Pop() *ValidTransaction
-	Insert(vt *ValidTransaction)
-}
 
 // Validity struct see: https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/sr-primitives/src/transaction_validity.rs#L178
 type Validity struct {
