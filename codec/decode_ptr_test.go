@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/common"
+
 	"github.com/ChainSafe/gossamer/consensus/babe/types"
 	"github.com/ChainSafe/gossamer/crypto/sr25519"
 	"github.com/stretchr/testify/require"
@@ -146,6 +148,12 @@ func TestLargeDecodePtrByteArrays(t *testing.T) {
 	if testing.Short() {
 		t.Skip("\033[33mSkipping memory intesive test for TestDecodePtrByteArrays in short mode\033[0m")
 	} else {
+		// Causes memory leaks with the CI's
+		var largeDecodeByteArrayTests = []decodeByteArrayTest{
+			{val: append([]byte{0xfe, 0xff, 0xff, 0xff}, byteArray(1073741823)...), output: byteArray(1073741823)},
+			{val: append([]byte{0x03, 0x00, 0x00, 0x00, 0x40}, byteArray(1073741824)...), output: byteArray(1073741824)},
+		}
+
 		for _, test := range largeDecodeByteArrayTests {
 			var result = make([]byte, len(test.output))
 			err := DecodePtr(test.val, result)
@@ -210,6 +218,15 @@ func TestDecodePtrArrays(t *testing.T) {
 			t.Errorf("Fail: got %d expected %d", test.t, test.output)
 		}
 	}
+}
+
+func TestDecodePtr_DecodeCommonHash(t *testing.T) {
+	in := []byte{0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	decodedHash := common.NewHash([]byte{})
+	expectedHash := common.NewHash([]byte{0xff})
+	err := DecodePtr(in, &decodedHash)
+	require.Nil(t, err)
+	require.Equal(t, expectedHash, decodedHash)
 }
 
 // test decoding with DecodeCustom on BabeHeader type

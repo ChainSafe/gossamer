@@ -25,19 +25,33 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
+// DefaultKeyFile KeyFile key
 const DefaultKeyFile = "node.key"
-const DefaultDataDir = "~/.gossamer"
-const DefaultPort = uint32(7000)
-const DefaultRandSeed = int64(0) // random key
-const DefaultProtocolID = "/gossamer/dot/0"
-const DefaultRoles = byte(1) // full node
 
+// DefaultDataDir for the gossamer database and related blockchain files
+const DefaultDataDir = "~/.gossamer"
+
+// DefaultPort is the default por const
+const DefaultPort = uint32(7000)
+
+// DefaultRandSeed is a random key
+const DefaultRandSeed = int64(0)
+
+// DefaultProtocolID ID
+const DefaultProtocolID = "/gossamer/dot/0"
+
+// DefaultRoles full node
+const DefaultRoles = byte(1)
+
+// DefaultBootnodes holds the default bootnodes the client will always have
 var DefaultBootnodes = []string(nil)
 
 // Config is used to configure a network service
 type Config struct {
 	// BlockState interface
 	BlockState BlockState
+	// NetworkState interface
+	NetworkState NetworkState
 	// Global data directory
 	DataDir string
 	// Role is a bitmap value whose bits represent difierent roles for the sender node (see Table E.2)
@@ -110,6 +124,10 @@ func (c *Config) checkState() (err error) {
 	// set NoStatus to true if we don't need BlockState
 	if c.BlockState == nil && !c.NoStatus {
 		err = errors.New("Failed to build configuration: BlockState required")
+	}
+
+	if c.NetworkState == nil {
+		err = errors.New("Failed to build configuration: NetworkState required")
 	}
 
 	return err

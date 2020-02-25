@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/common"
 	"github.com/ChainSafe/gossamer/network"
+	"github.com/ChainSafe/gossamer/state"
 )
 
 var (
@@ -31,9 +32,6 @@ var (
 		IsSyncing:       false,
 		ShouldHavePeers: true,
 	}
-	testNetworkState = common.NetworkState{
-		PeerID: "12D3KooWMdRV3xJq3VPcnomVtA6yNjg4GpNMgyqeq42KqzUqnZTu",
-	}
 	testPeers = []common.PeerInfo{}
 )
 
@@ -41,8 +39,9 @@ func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus: true,
-		DataDir:  testDir,
+		NoStatus:     true,
+		NetworkState: &state.NetworkState{},
+		DataDir:      testDir,
 	}
 
 	srv, err := network.NewService(cfg, nil, nil)
@@ -74,7 +73,9 @@ func TestSystemModule_NetworkState(t *testing.T) {
 	res := &SystemNetworkStateResponse{}
 	sys.NetworkState(nil, nil, res)
 
-	if res.NetworkState != testNetworkState {
+	testNetworkState := net.NetworkState()
+
+	if res.NetworkState != *testNetworkState {
 		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, res.NetworkState)
 	}
 }

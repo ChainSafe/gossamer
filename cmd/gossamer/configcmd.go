@@ -105,7 +105,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 	coreConfig := &core.Config{
 		BlockState:      stateSrv.Block,
 		StorageState:    stateSrv.Storage,
-		TxQueue:         stateSrv.TxQueue,
+		TxQueue:         stateSrv.TransactionQueue,
 		Keystore:        ks,
 		Runtime:         rt,
 		MsgRec:          networkMsgSend, // message channel from network service to core service
@@ -117,7 +117,7 @@ func makeNode(ctx *cli.Context) (*dot.Dot, *cfg.Config, error) {
 
 	// RPC
 	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		rpcSrvr := setupRPC(ctx, currentConfig.RPC, stateSrv, networkSrvc, coreSrvc, stateSrv.TxQueue)
+		rpcSrvr := setupRPC(currentConfig.RPC, stateSrv, networkSrvc, coreSrvc, stateSrv.TransactionQueue)
 		srvcs = append(srvcs, rpcSrvr)
 	}
 
@@ -231,7 +231,7 @@ func setNetworkConfig(ctx *cli.Context, fig *cfg.NetworkCfg) {
 }
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+func createNetworkService(fig *cfg.Config, gendata *genesis.Data, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID
@@ -248,14 +248,15 @@ func createNetworkService(fig *cfg.Config, gendata *genesis.GenesisData, stateSe
 
 	// network service configuation
 	networkConfig := network.Config{
-		BlockState:  stateService.Block,
-		DataDir:     fig.Global.DataDir,
-		Roles:       fig.Global.Roles,
-		Port:        fig.Network.Port,
-		Bootnodes:   bootnodes,
-		ProtocolID:  protocolID,
-		NoBootstrap: fig.Network.NoBootstrap,
-		NoMdns:      fig.Network.NoMdns,
+		BlockState:   stateService.Block,
+		NetworkState: stateService.Network,
+		DataDir:      fig.Global.DataDir,
+		Roles:        fig.Global.Roles,
+		Port:         fig.Network.Port,
+		Bootnodes:    bootnodes,
+		ProtocolID:   protocolID,
+		NoBootstrap:  fig.Network.NoBootstrap,
+		NoMdns:       fig.Network.NoMdns,
 	}
 
 	networkMsgRec := make(chan network.Message)
@@ -298,7 +299,7 @@ func setRPCConfig(ctx *cli.Context, fig *cfg.RPCCfg) {
 
 }
 
-func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service, coreSrvc *core.Service, txQueue *state.TransactionQueue) *rpc.HTTPServer {
+func setupRPC(fig cfg.RPCCfg, stateSrv *state.Service, networkSrvc *network.Service, coreSrvc *core.Service, txQueue *state.TransactionQueue) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
 		BlockAPI:   stateSrv.Block,
 		StorageAPI: stateSrv.Storage,
@@ -311,11 +312,7 @@ func setupRPC(ctx *cli.Context, fig cfg.RPCCfg, stateSrv *state.Service, network
 		Modules:    fig.Modules,
 	}
 
-	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		return rpc.NewHTTPServer(cfg)
-	}
-
-	return nil
+	return rpc.NewHTTPServer(cfg)
 }
 
 // dumpConfig is the dumpconfig command.

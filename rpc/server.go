@@ -41,7 +41,7 @@ type CodecRequest interface {
 	WriteError(w http.ResponseWriter, status int, err error)
 }
 
-// ServerConfig ...
+// ServerConfig configures the server
 type ServerConfig struct {
 	BlockAPI   modules.BlockAPI
 	StorageAPI modules.StorageAPI

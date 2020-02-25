@@ -23,7 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
-// MockBlockState
+// MockBlockState ...
 type MockBlockState struct{}
 
 // LatestHeader for MockBlockState
@@ -49,3 +49,6 @@ func (mbs *MockBlockState) LatestHeader() *types.Header {
 		Digest:         [][]byte{{}},
 	}
 }
+
+// MockNetworkState ...
+type MockNetworkState struct{}

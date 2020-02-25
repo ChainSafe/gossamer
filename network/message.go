@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/core/types"
 )
 
+//nolint
 const (
 	StatusMsgType = iota
 	BlockRequestMsgType
@@ -280,6 +281,7 @@ func (bm *BlockAnnounceMessage) String() string {
 		bm.Digest)
 }
 
+// Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	enc, err := scale.Encode(bm)
 	if err != nil {
@@ -311,8 +313,8 @@ func (bm *BlockAnnounceMessage) IDString() string {
 
 // BlockResponseMessage struct
 type BlockResponseMessage struct {
-	ID   uint64
-	Data []byte // TODO: change this to BlockData type
+	ID        uint64
+	BlockData []*types.BlockData
 }
 
 // GetType int
@@ -322,7 +324,7 @@ func (bm *BlockResponseMessage) GetType() int {
 
 // String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
-	return fmt.Sprintf("BlockResponseMessage ID=%d Data=%x", bm.ID, bm.Data)
+	return fmt.Sprintf("BlockResponseMessage ID=%d BlockData=%v", bm.ID, bm.BlockData)
 }
 
 // Encode encodes a block response message using SCALE and appends the type byte to the start
@@ -333,7 +335,12 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	binary.LittleEndian.PutUint64(encID, bm.ID)
 	encMsg = append(encMsg, encID...)
 
-	return append(encMsg, bm.Data...), nil
+	encData, err := types.EncodeBlockDataArray(bm.BlockData)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(encMsg, encData...), nil
 }
 
 // Decode the message into a BlockResponseMessage, it assumes the type byte has been removed
@@ -344,16 +351,8 @@ func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 		return err
 	}
 
-	for {
-		b, err := common.ReadByte(r)
-		if err != nil {
-			break
-		}
-
-		bm.Data = append(bm.Data, b)
-	}
-
-	return nil
+	bm.BlockData, err = types.DecodeBlockDataArray(r)
+	return err
 }
 
 // IDString returns the ID of BlockResponseMessage
@@ -361,18 +360,22 @@ func (bm *BlockResponseMessage) IDString() string {
 	return string(bm.ID)
 }
 
+// TransactionMessage is a struct that holds reference to Extrinsics
 type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
+// GetType returns the TransactionMsgType
 func (tm *TransactionMessage) GetType() int {
 	return TransactionMsgType
 }
 
+// String returns the TransactionMessage extrinsics
 func (tm *TransactionMessage) String() string {
 	return fmt.Sprintf("TransactionMessage extrinsics=%x", tm.Extrinsics)
 }
 
+// Encode will encode TransactionMessage using scale.Encode
 func (tm *TransactionMessage) Encode() ([]byte, error) {
 	// scale encode each extrinsic
 	var encodedExtrinsics = make([]byte, 0)

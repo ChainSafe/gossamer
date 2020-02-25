@@ -10,14 +10,16 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// Service is the struct that holds storage, block and network states
 type Service struct {
-	dbPath  string
-	Storage *StorageState
-	Block   *BlockState
-	Network *NetworkState
-	TxQueue *TransactionQueue
+	dbPath           string
+	Storage          *StorageState
+	Block            *BlockState
+	Network          *NetworkState
+	TransactionQueue *TransactionQueue
 }
 
+// NewService create a new instance of Service
 func NewService(path string) *Service {
 	return &Service{
 		dbPath:  path,
@@ -46,7 +48,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	}
 
 	hash := genesisHeader.Hash()
-	err = storageState.Db.Db.Put(common.LatestHeaderHashKey, hash[:])
+	err = storageState.DB.DB.Put(common.LatestHeaderHashKey, hash[:])
 	if err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 		return err
 	}
 
-	return storageState.Db.Db.Close()
+	return storageState.DB.DB.Close()
 }
 
 // Start initializes the Storage database and the Block database.
@@ -89,7 +91,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot make storage state: %s", err)
 	}
 
-	latestHeaderHash, err := storageState.Db.Db.Get(common.LatestHeaderHashKey)
+	latestHeaderHash, err := storageState.DB.DB.Get(common.LatestHeaderHashKey)
 	if err != nil {
 		return fmt.Errorf("cannot get latest hash: %s", err)
 	}
@@ -114,7 +116,7 @@ func (s *Service) Start() error {
 	s.Storage = storageState
 	s.Block = blockState
 	s.Network = networkState
-	s.TxQueue = NewTransactionQueue()
+	s.TransactionQueue = NewTransactionQueue()
 
 	return nil
 }
@@ -126,7 +128,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	err = s.Storage.Db.Db.Close()
+	err = s.Storage.DB.DB.Close()
 	if err != nil {
 		return err
 	}

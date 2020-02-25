@@ -25,35 +25,45 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	coreAPI    CoreAPI
 	txQueueAPI TransactionQueueAPI
 }
 
+// KeyInsertRequest is used as model for the JSON
 type KeyInsertRequest struct {
 	KeyType   string `json:"keyType"`
 	Suri      string `json:"suri"`
 	PublicKey []byte `json:"publicKey"`
 }
 
+// Extrinsic represents a hex-encoded extrinsic
 type Extrinsic string
 
+// ExtrinsicOrHash is a type for Hash and Extrinsic array of bytes
 type ExtrinsicOrHash struct {
 	Hash      common.Hash
 	Extrinsic []byte
 }
+
+// ExtrinsicOrHashRequest is a array of ExtrinsicOrHash
 type ExtrinsicOrHashRequest []ExtrinsicOrHash
 
 // KeyInsertResponse []byte
 // TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type KeyInsertResponse []byte
 
+// PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
 type PendingExtrinsicsResponse [][]byte
 
+// RemoveExtrinsicsResponse is a array of hash used to Remove extrinsics
 type RemoveExtrinsicsResponse []common.Hash
 
+// KeyRotateResponse is a byte array used to rotate
 type KeyRotateResponse []byte
 
+// ExtrinsicStatus holds the actual valid statuses
 type ExtrinsicStatus struct {
 	IsFuture    bool
 	IsReady     bool
@@ -67,6 +77,7 @@ type ExtrinsicStatus struct {
 	IsInvalid   bool
 }
 
+// ExtrinsicHashResponse is used as Extrinsic hash response
 type ExtrinsicHashResponse common.Hash
 
 // NewAuthorModule creates a new Author module.
@@ -85,12 +96,18 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
-	pending, err := cm.txQueueAPI.Pending()
-	if err != nil {
-		return err
+	pending := cm.txQueueAPI.Pending()
+
+	resp := [][]byte{}
+	for _, tx := range pending {
+		enc, err := tx.Encode()
+		if err != nil {
+			return err
+		}
+		resp = append(resp, enc)
 	}
 
-	*res = PendingExtrinsicsResponse(pending)
+	*res = PendingExtrinsicsResponse(resp)
 	return nil
 }
 
