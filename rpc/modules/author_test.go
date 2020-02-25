@@ -13,7 +13,6 @@ import (
 var testExt = []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
 func TestAuthorModule_Pending(t *testing.T) {
-	t.Skip()
 	txQueue := state.NewTransactionQueue()
 	auth := NewAuthorModule(nil, txQueue)
 

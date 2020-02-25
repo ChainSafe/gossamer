@@ -594,7 +594,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	}
 
 	txc := babesession.txQueue.Peek()
-	if !bytes.Equal(*txc.Extrinsic, txa) {
+	if !bytes.Equal(txc.Extrinsic, txa) {
 		t.Fatal("did not readd valid transaction to queue")
 	}
 }

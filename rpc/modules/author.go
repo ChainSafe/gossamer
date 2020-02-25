@@ -143,7 +143,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	// TODO: form valid transaction by decoding tx bytes
 
 	vtx := &tx.ValidTransaction{
-		Extrinsic: &ext,
+		Extrinsic: ext,
 		Validity:  nil,
 	}
 

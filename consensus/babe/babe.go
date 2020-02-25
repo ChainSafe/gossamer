@@ -468,7 +468,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*tx.ValidTransaction, error
 	// TODO: check when block is full
 	for !hasSlotEnded(slot) && extrinsic != nil {
 		log.Trace("[babe] build block", "applying extrinsic", extrinsic)
-		ret, err := b.applyExtrinsic(*extrinsic)
+		ret, err := b.applyExtrinsic(extrinsic)
 		if err != nil {
 			return nil, err
 		}
@@ -532,7 +532,7 @@ func (b *Session) addToQueue(txs []*tx.ValidTransaction) {
 }
 
 // nextReadyExtrinsic peeks from the transaction queue. it does not remove any transactions from the queue
-func (b *Session) nextReadyExtrinsic() *types.Extrinsic {
+func (b *Session) nextReadyExtrinsic() types.Extrinsic {
 	transaction := b.txQueue.Peek()
 	if transaction == nil {
 		return nil
@@ -548,7 +548,7 @@ func extrinsicsToBody(txs []*tx.ValidTransaction) (*types.Body, error) {
 	extrinsics := []types.Extrinsic{}
 
 	for _, tx := range txs {
-		extrinsics = append(extrinsics, *tx.Extrinsic)
+		extrinsics = append(extrinsics, tx.Extrinsic)
 	}
 
 	return types.NewBodyFromExtrinsics(extrinsics)
