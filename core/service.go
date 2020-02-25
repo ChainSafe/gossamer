@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/common/optional"
 	"github.com/ChainSafe/gossamer/common/transaction"
 	"github.com/ChainSafe/gossamer/consensus/babe"
 	"github.com/ChainSafe/gossamer/core/types"
@@ -127,8 +126,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
 			log.Error("[core] could not start babe session", "error", err)
-			srv.isBabeAuthority = false
-			return srv, nil
+			return nil, err
 		}
 
 		srv.bs = bs
@@ -280,9 +278,16 @@ func (s *Service) receiveMessages() {
 }
 
 // handleReceivedBlock handles blocks from the BABE session
-//TODO: remove nolint after `(*Service).handleReceivedBlock` - result `err` is no longer always `nil`
-//nolint
 func (s *Service) handleReceivedBlock(block types.Block) (err error) {
+	if s.blockState == nil {
+		return fmt.Errorf("blockState is nil")
+	}
+
+	err = s.blockState.SetHeader(block.Header)
+	if err != nil {
+		return err
+	}
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -325,21 +330,25 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
+	data := msg.(*network.BlockAnnounceMessage)
 
-	// TODO: check if we should send block request message
-
-	// TODO: update message properties and use generated id
-	blockRequest := &network.BlockRequestMessage{
-		ID:            1,
-		RequestedData: 2,
-		StartingBlock: []byte{},
-		EndBlockHash:  optional.NewHash(true, common.Hash{}),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+	header, err := types.NewHeader(data.ParentHash, data.Number, data.StateRoot, data.ExtrinsicsRoot, data.Digest)
+	if err != nil {
+		return err
 	}
 
-	// send block request message to network service
-	s.msgSend <- blockRequest
+	// TODO: check if we should send block request message
+	_, err = s.blockState.GetHeader(header.Hash())
+	if err != nil && err.Error() == "Key not found" {
+		err = s.blockState.SetHeader(header)
+		if err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+
+	log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
 
 	return nil
 }

@@ -39,7 +39,7 @@ type StorageState interface {
 	SetStorage([]byte, []byte) error
 	GetStorage([]byte) ([]byte, error)
 	StoreInDB() error
-	SetLatestHeaderHash(hash []byte) error
+	SetLatestHeaderHash([]byte) error
 }
 
 // TransactionQueue is the interface for transaction queue methods
