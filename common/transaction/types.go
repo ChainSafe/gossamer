@@ -59,6 +59,7 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 	}
 }
 
+// Encode SCALE encodes the transaction
 func (vt *ValidTransaction) Encode() ([]byte, error) {
 	return scale.Encode(vt)
 }

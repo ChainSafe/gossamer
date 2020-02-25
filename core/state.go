@@ -42,6 +42,7 @@ type StorageState interface {
 	SetLatestHeaderHash(hash []byte) error
 }
 
+// TransactionQueue is the interface for transaction queue methods
 type TransactionQueue interface {
 	Push(vt *tx.ValidTransaction)
 	Pop() *tx.ValidTransaction
