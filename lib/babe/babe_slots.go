@@ -23,7 +23,7 @@ import (
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
-func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
+func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) { //nolint
 	// TODO: broken by blocktree updates, has been fixed in next PR
 	return 0, nil
 }
