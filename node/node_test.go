@@ -37,7 +37,7 @@ func createTestNode(t *testing.T, testDir string) *Node {
 	networkCfg := &network.Config{
 		BlockState:   &state.BlockState{},   // required
 		NetworkState: &state.NetworkState{}, // required
-		DataDir:      testDir,               // default "~/.gossamer"
+		DataDir:      testDir,               // default "~/.gossamer/gssmr"
 		Roles:        1,                     // required
 		RandSeed:     1,                     // default 0
 	}

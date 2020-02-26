@@ -247,20 +247,17 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 	return fp, nil
 }
 
-// keystoreDir returnns the absolute filepath of the keystore directory given gossamer's datadir
-// by default, it is ~/.gossamer/keystore/
-// otherwise, it is datadir/keystore/
+// keystoreDir returns the absolute filepath of the keystore directory
 func keystoreDir(datadir string) (keystorepath string, err error) {
-	// datadir specified, return datadir/keystore as absolute path
+	// datadir specified, set keystore filepath to absolute path of [datadir]/keystore
 	if datadir != "" {
 		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {
 			return "", err
 		}
 	} else {
-		// datadir not specified, return ~/.gossamer/keystore as absolute path
+		// datadir not specified, use default datadir and set keystore filepath to absolute path of [datadir]/keystore
 		datadir = node.DefaultDataDir()
-
 		keystorepath, err = filepath.Abs(datadir + "/keystore")
 		if err != nil {
 			return "", fmt.Errorf("could not create keystore file path: %s", err)
