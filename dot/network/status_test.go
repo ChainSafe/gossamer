@@ -108,6 +108,3 @@ func TestStatus(t *testing.T) {
 		t.Error("node B did not confirm status of node A")
 	}
 }
-
-//have a peer send a message status with a block ahead
-// check that the message returned is the expected

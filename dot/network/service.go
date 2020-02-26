@@ -232,7 +232,27 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
+
 		}
+
+		// check if peer status confirmed
+		if s.status.confirmed(peer) {
+
+			// get latest block header from block state
+			latestBlock := s.cfg.BlockState.LatestHeader()
+
+			// check if peer block number is greater than host block number
+			if msg.BestBlockNumber > latestBlock.Number {
+
+				// TODO: set block request message
+				brm := &BlockRequestMessage{}
+
+				// send block request message
+				s.host.send(peer, brm)
+
+			}
+		}
+
 	}
 }
 
