@@ -17,8 +17,9 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
-	"encoding/json"
+
 	"fmt"
 	"math/big"
 	"reflect"
@@ -138,7 +139,11 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, result)
+	err = result.Decode(data)
+	if err != nil {
+		return nil, err
+	}
+
 	if reflect.DeepEqual(result, new(types.Header)) {
 		return nil, fmt.Errorf("header does not exist")
 	}
@@ -156,9 +161,12 @@ func (bs *BlockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, result)
+	r := &bytes.Buffer{}
+	r.Write(data)
+
+	err = result.Decode(r)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
 
 	if result.Header == nil {
@@ -234,7 +242,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	hash := header.Hash()
 
 	// Write the encoded header
-	bh, err := json.Marshal(header)
+	bh, err := header.Encode()
 	if err != nil {
 		return err
 	}
@@ -265,7 +273,8 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 	defer bs.lock.Unlock()
 
 	// Write the encoded header
-	bh, err := json.Marshal(blockData)
+	bh, err := blockData.Encode()
+
 	if err != nil {
 		return err
 	}
@@ -318,7 +327,10 @@ func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 		return nil, err
 	}
 
-	err = json.Unmarshal(data, result)
+	err = result.Decode(data)
+	if err != nil {
+		return nil, err
+	}
 
 	return result, err
 }
@@ -326,11 +338,8 @@ func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 // SetBabeHeader sets a BabeHeader in the database
 func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *babetypes.BabeHeader) error {
 	// Write the encoded header
-	enc, err := json.Marshal(bh)
-	if err != nil {
-		return err
-	}
+	enc := bh.Encode()
 
-	err = bs.db.Db.Put(babeHeaderKey(epoch, slot), enc)
+	err := bs.db.Db.Put(babeHeaderKey(epoch, slot), enc)
 	return err
 }
