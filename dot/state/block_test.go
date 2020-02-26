@@ -88,6 +88,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	// Create a header & blockData
 	blockHeader := &types.Header{
 		Number: big.NewInt(1),
+		Digest: [][]byte{},
 	}
 	hash := blockHeader.Hash()
 
@@ -144,6 +145,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 		Number: big.NewInt(0),
+		Digest: [][]byte{},
 	}
 	// Create blockHash
 	blockHash0 := header0.Hash()
@@ -163,6 +165,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number: big.NewInt(1),
+		Digest: [][]byte{},
 	}
 	blockHash1 := header1.Hash()
 

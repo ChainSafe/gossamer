@@ -274,7 +274,6 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 
 	// Write the encoded header
 	bh, err := blockData.Encode()
-
 	if err != nil {
 		return err
 	}
