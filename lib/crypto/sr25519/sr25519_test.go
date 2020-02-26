@@ -136,16 +136,3 @@ func TestVrfSignAndVerify(t *testing.T) {
 		t.Fatal("Fail: did not verify vrf")
 	}
 }
-
-func TestGenerateKeypairs(t *testing.T) {
-	for i := 0; i < 8; i++ {
-		kp, err := GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		t.Logf("priv: %s", kp.private.Hex())
-		t.Logf("pub: %s", kp.public.Hex())
-	}
-
-}
