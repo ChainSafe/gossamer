@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/common"
-	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/keystore"
-	"github.com/ChainSafe/gossamer/network"
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests"
-	"github.com/ChainSafe/gossamer/trie"
 	"github.com/stretchr/testify/require"
 )
 
