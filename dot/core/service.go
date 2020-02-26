@@ -48,7 +48,7 @@ var _ services.Service = &Service{}
 type Service struct {
 	blockState        BlockState
 	storageState      StorageState
-	txQueue           TransactionQueue
+	transactionQueue  TransactionQueue
 	rt                *runtime.Runtime
 	bs                *babe.Session
 	keys              []crypto.Keypair
@@ -62,15 +62,15 @@ type Service struct {
 
 // Config holds the config obj
 type Config struct {
-	BlockState      BlockState
-	StorageState    StorageState
-	TxQueue         TransactionQueue
-	Keystore        *keystore.Keystore
-	Runtime         *runtime.Runtime
-	MsgRec          <-chan network.Message
-	MsgSend         chan<- network.Message
-	NewBlocks       chan types.Block // only used for testing purposes
-	IsBabeAuthority bool
+	BlockState       BlockState
+	StorageState     StorageState
+	TransactionQueue TransactionQueue
+	Keystore         *keystore.Keystore
+	Runtime          *runtime.Runtime
+	MsgRec           <-chan network.Message
+	MsgSend          chan<- network.Message
+	NewBlocks        chan types.Block // only used for testing purposes
+	IsBabeAuthority  bool
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -102,16 +102,16 @@ func NewService(cfg *Config) (*Service, error) {
 		epochDone := make(chan struct{})
 
 		srv = &Service{
-			rt:              cfg.Runtime,
-			keys:            keys,
-			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:          cfg.MsgRec,
-			msgSend:         cfg.MsgSend,
-			blockState:      cfg.BlockState,
-			storageState:    cfg.StorageState,
-			txQueue:         cfg.TxQueue,
-			epochDone:       epochDone,
-			isBabeAuthority: true,
+			rt:               cfg.Runtime,
+			keys:             keys,
+			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:           cfg.MsgRec,
+			msgSend:          cfg.MsgSend,
+			blockState:       cfg.BlockState,
+			storageState:     cfg.StorageState,
+			transactionQueue: cfg.TransactionQueue,
+			epochDone:        epochDone,
+			isBabeAuthority:  true,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -121,14 +121,14 @@ func NewService(cfg *Config) (*Service, error) {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:      keys[0].(*sr25519.Keypair),
-			Runtime:      cfg.Runtime,
-			NewBlocks:    cfg.NewBlocks, // becomes block send channel in BABE session
-			BlockState:   cfg.BlockState,
-			StorageState: cfg.StorageState,
-			AuthData:     authData,
-			Done:         epochDone,
-			TxQueue:      cfg.TxQueue,
+			Keypair:          keys[0].(*sr25519.Keypair),
+			Runtime:          cfg.Runtime,
+			NewBlocks:        cfg.NewBlocks, // becomes block send channel in BABE session
+			BlockState:       cfg.BlockState,
+			StorageState:     cfg.StorageState,
+			AuthData:         authData,
+			Done:             epochDone,
+			TransactionQueue: cfg.TransactionQueue,
 		}
 
 		// create a new BABE session
@@ -142,15 +142,15 @@ func NewService(cfg *Config) (*Service, error) {
 		srv.bs = bs
 	} else {
 		srv = &Service{
-			rt:              cfg.Runtime,
-			keys:            keys,
-			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:          cfg.MsgRec,
-			msgSend:         cfg.MsgSend,
-			blockState:      cfg.BlockState,
-			storageState:    cfg.StorageState,
-			txQueue:         cfg.TxQueue,
-			isBabeAuthority: false,
+			rt:               cfg.Runtime,
+			keys:             keys,
+			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:           cfg.MsgRec,
+			msgSend:          cfg.MsgSend,
+			blockState:       cfg.BlockState,
+			storageState:     cfg.StorageState,
+			transactionQueue: cfg.TransactionQueue,
+			isBabeAuthority:  false,
 		}
 	}
 
@@ -232,14 +232,14 @@ func (s *Service) handleBabeSession() {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:      s.keys[0].(*sr25519.Keypair),
-			Runtime:      s.rt,
-			NewBlocks:    newBlocks, // becomes block send channel in BABE session
-			BlockState:   s.blockState,
-			StorageState: s.storageState,
-			TxQueue:      s.txQueue,
-			AuthData:     s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
-			Done:         epochDone,
+			Keypair:          s.keys[0].(*sr25519.Keypair),
+			Runtime:          s.rt,
+			NewBlocks:        newBlocks, // becomes block send channel in BABE session
+			BlockState:       s.blockState,
+			StorageState:     s.storageState,
+			TransactionQueue: s.transactionQueue,
+			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
+			Done:             epochDone,
 		}
 
 		// create a new BABE session
@@ -520,7 +520,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 
 		if s.isBabeAuthority {
 			// push to the transaction queue of BABE session
-			s.txQueue.Push(vtx)
+			s.transactionQueue.Push(vtx)
 		}
 	}
 

@@ -34,26 +34,26 @@ type HTTPServer struct {
 
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
-	BlockAPI   modules.BlockAPI
-	StorageAPI modules.StorageAPI
-	NetworkAPI modules.NetworkAPI
-	CoreAPI    modules.CoreAPI
-	TxQueueAPI modules.TransactionQueueAPI
-	Codec      Codec
-	Host       string
-	Port       uint32
-	Modules    []string
+	BlockAPI            modules.BlockAPI
+	StorageAPI          modules.StorageAPI
+	NetworkAPI          modules.NetworkAPI
+	CoreAPI             modules.CoreAPI
+	TransactionQueueAPI modules.TransactionQueueAPI
+	Codec               Codec
+	Host                string
+	Port                uint32
+	Modules             []string
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	stateServerCfg := &ServerConfig{
-		BlockAPI:   cfg.BlockAPI,
-		StorageAPI: cfg.StorageAPI,
-		NetworkAPI: cfg.NetworkAPI,
-		CoreAPI:    cfg.CoreAPI,
-		TxQueueAPI: cfg.TxQueueAPI,
-		Modules:    cfg.Modules,
+		BlockAPI:            cfg.BlockAPI,
+		StorageAPI:          cfg.StorageAPI,
+		NetworkAPI:          cfg.NetworkAPI,
+		CoreAPI:             cfg.CoreAPI,
+		TransactionQueueAPI: cfg.TransactionQueueAPI,
+		Modules:             cfg.Modules,
 	}
 
 	server := &HTTPServer{

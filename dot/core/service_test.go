@@ -328,10 +328,10 @@ func TestProcessTransactionMessage(t *testing.T) {
 	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:         rt,
-		Keystore:        ks,
-		TxQueue:         transaction.NewPriorityQueue(),
-		IsBabeAuthority: true,
+		Runtime:          rt,
+		Keystore:         ks,
+		TransactionQueue: transaction.NewPriorityQueue(),
+		IsBabeAuthority:  true,
 	}
 
 	s, err := NewService(cfg)
@@ -350,7 +350,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bsTx := s.txQueue.Peek()
+	bsTx := s.transactionQueue.Peek()
 	bsTxExt := []byte(bsTx.Extrinsic)
 
 	if !reflect.DeepEqual(ext, bsTxExt) {

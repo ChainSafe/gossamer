@@ -104,14 +104,14 @@ func makeNode(ctx *cli.Context) (*node.Node, *node.Config, error) {
 
 	// Core
 	coreConfig := &core.Config{
-		BlockState:      stateSrv.Block,
-		StorageState:    stateSrv.Storage,
-		TxQueue:         stateSrv.TransactionQueue,
-		Keystore:        ks,
-		Runtime:         rt,
-		MsgRec:          networkMsgSend, // message channel from network service to core service
-		MsgSend:         networkMsgRec,  // message channel from core service to network service
-		IsBabeAuthority: currentConfig.Global.Authority,
+		BlockState:       stateSrv.Block,
+		StorageState:     stateSrv.Storage,
+		TransactionQueue: stateSrv.TransactionQueue,
+		Keystore:         ks,
+		Runtime:          rt,
+		MsgRec:           networkMsgSend, // message channel from network service to core service
+		MsgSend:          networkMsgRec,  // message channel from core service to network service
+		IsBabeAuthority:  currentConfig.Global.Authority,
 	}
 	coreSrvc := createCoreService(coreConfig)
 	srvcs = append(srvcs, coreSrvc)
@@ -302,15 +302,15 @@ func setRPCConfig(ctx *cli.Context, fig *node.RPCConfig) {
 
 func setupRPC(fig node.RPCConfig, stateSrv *state.Service, networkSrvc *network.Service, coreSrvc *core.Service, txQueue *state.TransactionQueue) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
-		BlockAPI:   stateSrv.Block,
-		StorageAPI: stateSrv.Storage,
-		NetworkAPI: networkSrvc,
-		CoreAPI:    coreSrvc,
-		TxQueueAPI: txQueue,
-		Codec:      &json2.Codec{},
-		Host:       fig.Host,
-		Port:       fig.Port,
-		Modules:    fig.Modules,
+		BlockAPI:            stateSrv.Block,
+		StorageAPI:          stateSrv.Storage,
+		NetworkAPI:          networkSrvc,
+		CoreAPI:             coreSrvc,
+		TransactionQueueAPI: txQueue,
+		Codec:               &json2.Codec{},
+		Host:                fig.Host,
+		Port:                fig.Port,
+		Modules:             fig.Modules,
 	}
 
 	return rpc.NewHTTPServer(cfg)

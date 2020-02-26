@@ -38,32 +38,32 @@ import (
 
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
-	blockState     BlockState
-	storageState   StorageState
-	keypair        *sr25519.Keypair
-	rt             *runtime.Runtime
-	config         *Configuration
-	randomness     [sr25519.VrfOutputLength]byte
-	authorityIndex uint64
-	authorityData  []*AuthorityData
-	epochThreshold *big.Int // validator threshold for this epoch
-	txQueue        TransactionQueue
-	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	newBlocks      chan<- types.Block            // send blocks to core service
-	done           chan<- struct{}               // lets core know when the epoch is done
+	blockState       BlockState
+	storageState     StorageState
+	keypair          *sr25519.Keypair
+	rt               *runtime.Runtime
+	config           *Configuration
+	randomness       [sr25519.VrfOutputLength]byte
+	authorityIndex   uint64
+	authorityData    []*AuthorityData
+	epochThreshold   *big.Int // validator threshold for this epoch
+	transactionQueue TransactionQueue
+	slotToProof      map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	newBlocks        chan<- types.Block            // send blocks to core service
+	done             chan<- struct{}               // lets core know when the epoch is done
 }
 
 // SessionConfig struct
 type SessionConfig struct {
-	BlockState     BlockState
-	StorageState   StorageState
-	TxQueue        TransactionQueue
-	Keypair        *sr25519.Keypair
-	Runtime        *runtime.Runtime
-	NewBlocks      chan<- types.Block
-	AuthData       []*AuthorityData
-	EpochThreshold *big.Int // should only be used for testing
-	Done           chan<- struct{}
+	BlockState       BlockState
+	StorageState     StorageState
+	TransactionQueue TransactionQueue
+	Keypair          *sr25519.Keypair
+	Runtime          *runtime.Runtime
+	NewBlocks        chan<- types.Block
+	AuthData         []*AuthorityData
+	EpochThreshold   *big.Int // should only be used for testing
+	Done             chan<- struct{}
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -73,16 +73,16 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	}
 
 	babeSession := &Session{
-		blockState:     cfg.BlockState,
-		storageState:   cfg.StorageState,
-		keypair:        cfg.Keypair,
-		rt:             cfg.Runtime,
-		txQueue:        cfg.TxQueue,
-		slotToProof:    make(map[uint64]*VrfOutputAndProof),
-		newBlocks:      cfg.NewBlocks,
-		authorityData:  cfg.AuthData,
-		epochThreshold: cfg.EpochThreshold,
-		done:           cfg.Done,
+		blockState:       cfg.BlockState,
+		storageState:     cfg.StorageState,
+		keypair:          cfg.Keypair,
+		rt:               cfg.Runtime,
+		transactionQueue: cfg.TransactionQueue,
+		slotToProof:      make(map[uint64]*VrfOutputAndProof),
+		newBlocks:        cfg.NewBlocks,
+		authorityData:    cfg.AuthData,
+		epochThreshold:   cfg.EpochThreshold,
+		done:             cfg.Done,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -482,7 +482,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			log.Error("[babe] build block apply extrinsic", "error", ret, "extrinsic", extrinsic)
 
 			// remove invalid extrinsic from queue
-			b.txQueue.Pop()
+			b.transactionQueue.Pop()
 
 			// re-add previously popped extrinsics back to queue
 			b.addToQueue(included)
@@ -492,7 +492,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 		log.Trace("[babe] build block applied extrinsic", "extrinsic", extrinsic)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
-		t := b.txQueue.Pop()
+		t := b.transactionQueue.Pop()
 		included = append(included, t)
 		extrinsic = b.nextReadyExtrinsic()
 	}
@@ -530,13 +530,13 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 
 func (b *Session) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
-		b.txQueue.Push(t)
+		b.transactionQueue.Push(t)
 	}
 }
 
 // nextReadyExtrinsic peeks from the transaction queue. it does not remove any transactions from the queue
 func (b *Session) nextReadyExtrinsic() types.Extrinsic {
-	transaction := b.txQueue.Peek()
+	transaction := b.transactionQueue.Peek()
 	if transaction == nil {
 		return nil
 	}
