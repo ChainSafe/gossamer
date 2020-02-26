@@ -27,11 +27,12 @@ import (
 	"strings"
 	"testing"
 
-	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/runtime"
-	"github.com/ChainSafe/gossamer/state"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/node"
 	"github.com/ChainSafe/gossamer/tests"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -66,18 +67,16 @@ func removeTestDataDir() {
 	}
 }
 
-func createTempConfigFile() (*os.File, *cfg.Config) {
-	testConfig := cfg.DefaultConfig()
+func createTempConfigFile() (*os.File, *node.Config) {
+	testConfig := node.DefaultConfig()
 	testConfig.Global.Authority = false
 	testConfig.Global.DataDir = TestDataDir
-
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
 		log.Crit("Cannot create temporary file", "err", err)
 		os.Exit(1)
 	}
-
-	f := cfg.ToTOML(tmpFile.Name(), testConfig)
+	f := node.ExportConfig(tmpFile.Name(), testConfig)
 	return f, testConfig
 }
 
@@ -141,22 +140,22 @@ func TestGetConfig(t *testing.T) {
 	cfgClone.Global.DataDir, err = filepath.Abs(cfgClone.Global.DataDir)
 	require.Nil(t, err)
 
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
+	thisapp := cli.NewApp()
+	thisapp.Writer = ioutil.Discard
 
 	tc := []struct {
 		name     string
 		value    string
-		expected *cfg.Config
+		expected *node.Config
 	}{
-		{"", "", cfg.DefaultConfig()},
+		{"", "", node.DefaultConfig()},
 		{"config", tempFile.Name(), cfgClone},
 	}
 
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, "")
-		context := cli.NewContext(app, set, nil)
+		context := cli.NewContext(thisapp, set, nil)
 
 		currentConfig, err := getConfig(context)
 		require.Nil(t, err)
@@ -167,23 +166,23 @@ func TestGetConfig(t *testing.T) {
 
 func TestSetGlobalConfig(t *testing.T) {
 	tempPath, _ := filepath.Abs("test1")
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
+	thisapp := cli.NewApp()
+	thisapp.Writer = ioutil.Discard
 	tc := []struct {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.GlobalConfig
+		expected    node.GlobalConfig
 	}{
 		{"datadir flag",
 			[]string{"datadir"},
 			[]interface{}{"test1"},
-			cfg.GlobalConfig{DataDir: tempPath},
+			node.GlobalConfig{DataDir: tempPath},
 		},
 		{"roles flag",
 			[]string{"datadir", "roles"},
 			[]interface{}{"test1", "1"},
-			cfg.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
+			node.GlobalConfig{DataDir: tempPath, Roles: byte(1)},
 		},
 	}
 
@@ -193,7 +192,7 @@ func TestSetGlobalConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			tCfg := &cfg.GlobalConfig{}
+			tCfg := &node.GlobalConfig{}
 
 			setGlobalConfig(context, tCfg)
 
@@ -204,19 +203,19 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(cfg.DefaultConfig(), &genesis.Data{}, stateSrv)
+	srv, _, _ := createNetworkService(node.DefaultConfig(), &genesis.Data{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
 func TestSetNetworkConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
+	thisapp := cli.NewApp()
+	thisapp.Writer = ioutil.Discard
 	tc := []struct {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.NetworkCfg
+		expected    node.NetworkConfig
 	}{
 		{
 			"config file",
@@ -228,10 +227,10 @@ func TestSetNetworkConfig(t *testing.T) {
 			"no bootstrap, no mdns",
 			[]string{"nobootstrap", "nomdns"},
 			[]interface{}{true, true},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
-				Port:        cfg.DefaultNetworkPort,
+			node.NetworkConfig{
+				Bootnodes:   node.DefaultNetworkBootnodes,
+				ProtocolID:  node.DefaultNetworkProtocolID,
+				Port:        node.DefaultNetworkPort,
 				NoBootstrap: true,
 				NoMdns:      true,
 			},
@@ -240,10 +239,10 @@ func TestSetNetworkConfig(t *testing.T) {
 			"bootstrap nodes",
 			[]string{"bootnodes"},
 			[]interface{}{strings.Join(TestBootnodes[:], ",")},
-			cfg.NetworkCfg{
+			node.NetworkConfig{
 				Bootnodes:   TestBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
-				Port:        cfg.DefaultNetworkPort,
+				ProtocolID:  node.DefaultNetworkProtocolID,
+				Port:        node.DefaultNetworkPort,
 				NoBootstrap: false,
 				NoMdns:      false,
 			},
@@ -252,9 +251,9 @@ func TestSetNetworkConfig(t *testing.T) {
 			"port",
 			[]string{"port"},
 			[]interface{}{uint(1337)},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				ProtocolID:  cfg.DefaultNetworkProtocolID,
+			node.NetworkConfig{
+				Bootnodes:   node.DefaultNetworkBootnodes,
+				ProtocolID:  node.DefaultNetworkProtocolID,
 				Port:        1337,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -264,9 +263,9 @@ func TestSetNetworkConfig(t *testing.T) {
 			"protocol id",
 			[]string{"protocol"},
 			[]interface{}{TestProtocolID},
-			cfg.NetworkCfg{
-				Bootnodes:   cfg.DefaultNetworkBootnodes,
-				Port:        cfg.DefaultNetworkPort,
+			node.NetworkConfig{
+				Bootnodes:   node.DefaultNetworkBootnodes,
+				Port:        node.DefaultNetworkPort,
 				ProtocolID:  TestProtocolID,
 				NoBootstrap: false,
 				NoMdns:      false,
@@ -280,7 +279,7 @@ func TestSetNetworkConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			input := cfg.DefaultConfig()
+			input := node.DefaultConfig()
 			// Must call global setup to set data dir
 			setNetworkConfig(context, &input.Network)
 
@@ -292,13 +291,13 @@ func TestSetNetworkConfig(t *testing.T) {
 func TestSetRPCConfig(t *testing.T) {
 	tempFile, cfgClone := createTempConfigFile()
 
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
+	thisapp := cli.NewApp()
+	thisapp.Writer = ioutil.Discard
 	tc := []struct {
 		description string
 		flags       []string
 		values      []interface{}
-		expected    cfg.RPCCfg
+		expected    node.RPCConfig
 	}{
 		{
 			"config file",
@@ -310,19 +309,19 @@ func TestSetRPCConfig(t *testing.T) {
 			"host and port",
 			[]string{"rpchost", "rpcport"},
 			[]interface{}{"someHost", uint(1337)},
-			cfg.RPCCfg{
+			node.RPCConfig{
 				Port:    1337,
 				Host:    "someHost",
-				Modules: cfg.DefaultRPCModules,
+				Modules: node.DefaultRPCModules,
 			},
 		},
 		{
 			"modules",
 			[]string{"rpcmods"},
 			[]interface{}{"system,state"},
-			cfg.RPCCfg{
-				Port:    cfg.DefaultRPCHTTPPort,
-				Host:    cfg.DefaultRPCHTTPHost,
+			node.RPCConfig{
+				Port:    node.DefaultRPCHTTPPort,
+				Host:    node.DefaultRPCHTTPHost,
 				Modules: []string{"system", "state"},
 			},
 		},
@@ -334,7 +333,7 @@ func TestSetRPCConfig(t *testing.T) {
 			context, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
-			input := cfg.DefaultConfig()
+			input := node.DefaultConfig()
 			setRPCConfig(context, &input.RPC)
 
 			require.Equal(t, c.expected, input.RPC)
@@ -350,13 +349,13 @@ func TestMakeNode(t *testing.T) {
 	genesisPath := createTempGenesisFile(t)
 	defer os.Remove(genesisPath)
 
-	app := cli.NewApp()
-	app.Writer = ioutil.Discard
+	thisapp := cli.NewApp()
+	thisapp.Writer = ioutil.Discard
 	tc := []struct {
 		name     string
 		flags    []string
 		values   []interface{}
-		expected *cfg.Config
+		expected *node.Config
 	}{
 		{"node from config (norpc)", []string{"config", "genesis"}, []interface{}{tempFile.Name(), genesisPath}, cfgClone},
 		{"default node (norpc)", []string{"genesis"}, []interface{}{genesisPath}, cfgClone},
@@ -402,8 +401,8 @@ func TestCommands(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 
-		app := cli.NewApp()
-		app.Writer = ioutil.Discard
+		thisapp := cli.NewApp()
+		thisapp.Writer = ioutil.Discard
 
 		context, err := createCliContext(c.description, c.flags, c.values)
 		require.Nil(t, err)
