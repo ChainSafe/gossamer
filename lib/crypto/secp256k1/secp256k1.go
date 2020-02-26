@@ -183,8 +183,8 @@ func (pk *PrivateKey) Decode(in []byte) error {
 }
 
 // Hex will return PrivateKey Hex
-func (k *PrivateKey) Hex() string {
-	enc := k.Encode()
+func (pk *PrivateKey) Hex() string {
+	enc := pk.Encode()
 	h := hex.EncodeToString(enc)
 	return "0x" + h
 }

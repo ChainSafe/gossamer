@@ -16,6 +16,7 @@ var privateKeys = []string{"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a
 	"0x1655133c8a0339b2456ea1ee7f2adca6015b5c56109b854ccf88ca4150d8bd0f",
 }
 
+// Keyring represents a test keyring
 type Keyring struct {
 	Alice   *sr25519.Keypair
 	Bob     *sr25519.Keypair
@@ -27,6 +28,7 @@ type Keyring struct {
 	Heather *sr25519.Keypair
 }
 
+// NewKeyring returns an initialized Keyring
 func NewKeyring() (*Keyring, error) {
 	kr := new(Keyring)
 
