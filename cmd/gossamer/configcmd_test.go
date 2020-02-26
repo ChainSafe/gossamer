@@ -203,7 +203,9 @@ func TestSetGlobalConfig(t *testing.T) {
 
 func TestCreateNetworkService(t *testing.T) {
 	stateSrv := state.NewService(TestDataDir)
-	srv, _, _ := createNetworkService(node.DefaultConfig(), &genesis.Data{}, stateSrv)
+	cfg := node.DefaultConfig()
+	cfg.Global.DataDir = TestDataDir
+	srv, _, _ := createNetworkService(cfg, &genesis.Data{}, stateSrv)
 	require.NotNil(t, srv, "failed to create network service")
 }
 
