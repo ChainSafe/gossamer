@@ -38,8 +38,8 @@ func (n *node) addChild(node *node) {
 	n.children = append(n.children, node)
 }
 
-// String returns stringified hash and depth of node
-func (n *node) String() string {
+// string returns stringified hash and depth of node
+func (n *node) string() string {
 	return fmt.Sprintf("{hash: %s, depth: %s, arrivalTime: %d}", n.hash.String(), n.depth, n.arrivalTime)
 }
 
@@ -47,7 +47,7 @@ func (n *node) String() string {
 // Note: this is strictly for BlockTree.String()
 func (n *node) createTree(tree gotree.Tree) {
 	for _, child := range n.children {
-		sub := tree.Add(child.String())
+		sub := tree.Add(child.string())
 		child.createTree(sub)
 	}
 }

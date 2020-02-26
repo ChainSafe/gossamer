@@ -279,22 +279,6 @@ func createFlatBlockTree(t *testing.T, depth int) *blocktree.BlockTree { //nolin
 	return bt
 }
 
-// func TestSlotTime(t *testing.T) {
-// 	bt := createFlatBlockTree(t, 100)
-// 	babesession := createTestSession(t, nil)
-
-// 	res, err := babesession.slotTime(103, bt, 20)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	var expected uint64 = 104000
-
-// 	if res != expected {
-// 		t.Errorf("Fail: got %v expected %v\n", res, expected)
-// 	}
-// }
-
 func TestBabeAnnounceMessage(t *testing.T) {
 	newBlocks := make(chan types.Block)
 

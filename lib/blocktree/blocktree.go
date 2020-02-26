@@ -94,7 +94,7 @@ func (bt *BlockTree) AddBlock(block *types.Block) error {
 	return nil
 }
 
-// GetNode finds and returns a node based on its Hash. Returns nil if not found.
+// getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) *node {
 	if bt.head.hash == h {
 		return bt.head
@@ -112,10 +112,10 @@ func (bt *BlockTree) getNode(h Hash) *node {
 // String utilizes github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
 	// Construct tree
-	tree := gotree.New(bt.head.String())
+	tree := gotree.New(bt.head.string())
 
 	for _, child := range bt.head.children {
-		sub := tree.Add(child.String())
+		sub := tree.Add(child.string())
 		child.createTree(sub)
 	}
 
