@@ -9,6 +9,7 @@ require (
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/dgraph-io/badger/v2 v2.0.0
 	github.com/disiqueira/gotree v1.0.0
+	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
 	github.com/golang/protobuf v1.3.2 // indirect
