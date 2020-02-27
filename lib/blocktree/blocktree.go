@@ -177,7 +177,7 @@ func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
 	}, sd)
 }
 
-// TODOge: not sure how correct this is, there isn't necessarily one block per slot
+// TODO: not sure how correct this is, there isn't necessarily one block per slot
 func (bt *BlockTree) computeSlotForNode(b *node, sd uint64) uint64 {
 	gt := bt.head.arrivalTime
 	nt := b.arrivalTime

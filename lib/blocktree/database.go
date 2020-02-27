@@ -44,6 +44,7 @@ func (bt *BlockTree) Encode() ([]byte, error) {
 	return encode(bt.head, []byte{})
 }
 
+// encode recursively encodes the blocktree by depth-first traversal
 func encode(n *node, enc []byte) ([]byte, error) {
 	if n == nil {
 		return enc, nil
@@ -103,6 +104,7 @@ func (bt *BlockTree) Decode(in []byte) error {
 	return bt.decode(r, bt.head)
 }
 
+// decode recursively decodes the blocktree
 func (bt *BlockTree) decode(r io.Reader, parent *node) error {
 	for i := range parent.children {
 		hash, err := common.ReadHash(r)
