@@ -89,7 +89,7 @@ func TestStoreBlockTree(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
-	bt := createTestBlockTree(header, 400, testDb)
+	bt := createTestBlockTree(header, 100, testDb)
 
 	err = bt.Store()
 	if err != nil {

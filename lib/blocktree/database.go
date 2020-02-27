@@ -61,7 +61,7 @@ func encodeRecursive(n *node, enc []byte) ([]byte, error) {
 
 	var err error
 	for _, child := range n.children {
-		enc, err = encode(child, enc)
+		enc, err = encodeRecursive(child, enc)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +130,7 @@ func (bt *BlockTree) decodeRecursive(r io.Reader, parent *node) error {
 
 		bt.leaves.Replace(parent, parent.children[i])
 
-		err = bt.decode(r, parent.children[i])
+		err = bt.decodeRecursive(r, parent.children[i])
 		if err != nil {
 			return err
 		}
