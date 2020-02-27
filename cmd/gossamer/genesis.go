@@ -1,16 +1,33 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
 	"fmt"
 	"math/big"
-	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/common"
-	cfg "github.com/ChainSafe/gossamer/config"
-	"github.com/ChainSafe/gossamer/config/genesis"
-	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/database"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/node/gssmr"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -52,22 +69,22 @@ func loadGenesis(ctx *cli.Context) error {
 		return fmt.Errorf("cannot initialize state service: %s", err)
 	}
 
-	stateDataDir := filepath.Join(dataDir, "state")
-	stateDb, err := state.NewStorageState(stateDataDir, t)
+	// initialize database with genesis storage state
+	db, err := database.NewBadgerDB(dataDir)
 	if err != nil {
-		return fmt.Errorf("cannot create state db: %s", err)
+		return err
 	}
 
 	defer func() {
-		err = stateDb.DB.DB.Close()
+		err = db.Close()
 		if err != nil {
-			log.Error("Loading genesis: cannot close stateDB", "error", err)
+			log.Error("Loading genesis: cannot close db", "error", err)
 		}
 	}()
 
 	// set up trie database
 	t.SetDb(&trie.Database{
-		DB: stateDb.DB.DB,
+		DB: db,
 	})
 
 	// write initial genesis data to DB
@@ -114,6 +131,6 @@ func getGenesisPath(ctx *cli.Context) string {
 	} else if file := ctx.GlobalString(GenesisFlag.Name); file != "" {
 		return file
 	} else {
-		return cfg.DefaultGenesisPath
+		return gssmr.DefaultGenesisPath
 	}
 }

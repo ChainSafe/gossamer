@@ -21,21 +21,22 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/internal/services"
+	"github.com/ChainSafe/gossamer/lib/services"
+
 	log "github.com/ChainSafe/log15"
 )
 
-// Dot is a container for all the components of a node.
-type Dot struct {
+// Node is a container for all the components of a node.
+type Node struct {
 	Name      string
 	Services  *services.ServiceRegistry // Registry of all core services
 	IsStarted chan struct{}             // Signals node startup complete
 	stop      chan struct{}             // Used to signal node shutdown
 }
 
-// NewDot initializes a Dot with provided components.
-func NewDot(name string, srvcs []services.Service) *Dot {
-	d := &Dot{
+// NewNode initializes a Node with provided components.
+func NewNode(name string, srvcs []services.Service) *Node {
+	n := &Node{
 		Name:      name,
 		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
@@ -43,42 +44,42 @@ func NewDot(name string, srvcs []services.Service) *Dot {
 	}
 
 	for _, srvc := range srvcs {
-		d.Services.RegisterService(srvc)
+		n.Services.RegisterService(srvc)
 	}
 
-	return d
+	return n
 }
 
 // Start starts all services. API service is started last.
-func (d *Dot) Start() {
+func (n *Node) Start() {
 	log.Debug("Starting core services.")
-	d.Services.StartAll()
+	n.Services.StartAll()
 
-	d.stop = make(chan struct{})
+	n.stop = make(chan struct{})
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
-		d.Stop()
+		n.Stop()
 		os.Exit(130)
 	}()
 
 	//Move on when routine catches SIGINT or SIGTERM calls
-	close(d.IsStarted)
-	d.Wait()
+	close(n.IsStarted)
+	n.Wait()
 }
 
-// Wait is used to force the node to stay alive until a signal is passed into `Dot.stop`
-func (d *Dot) Wait() {
-	<-d.stop
+// Wait is used to force the node to stay alive until a signal is passed into `Node.stop`
+func (n *Node) Wait() {
+	<-n.stop
 }
 
 //Stop all services first, then send stop signal for test
-func (d *Dot) Stop() {
-	d.Services.StopAll()
-	if d.stop != nil {
-		close(d.stop)
+func (n *Node) Stop() {
+	n.Services.StopAll()
+	if n.stop != nil {
+		close(n.stop)
 	}
 }

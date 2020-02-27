@@ -22,24 +22,24 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/core/types"
-	"github.com/ChainSafe/gossamer/internal/services"
-	"github.com/ChainSafe/gossamer/network"
-	"github.com/ChainSafe/gossamer/state"
-	"github.com/ChainSafe/gossamer/trie"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// Creates a Dot with default configurations. Does not include RPC server.
-func createTestDot(t *testing.T, testDir string) *Dot {
+// Creates a Node with default configurations. Does not include RPC server.
+func createTestNode(t *testing.T, testDir string) *Node {
 	var services []services.Service
 
 	// Network
 	networkCfg := &network.Config{
-		BlockState:   &state.BlockState{}, // required
-		NetworkState: &state.NetworkState{},
-		DataDir:      testDir, // default "~/.gossamer"
-		Roles:        1,       // required
-		RandSeed:     1,       // default 0
+		BlockState:   &state.BlockState{},   // required
+		NetworkState: &state.NetworkState{}, // required
+		DataDir:      testDir,               // default "~/.gossamer/gssmr"
+		Roles:        1,                     // required
+		RandSeed:     1,                     // default 0
 	}
 	networkSrvc, err := network.NewService(networkCfg, nil, nil)
 	if err != nil {
@@ -58,10 +58,10 @@ func createTestDot(t *testing.T, testDir string) *Dot {
 	}
 	services = append(services, dbSrv)
 
-	return NewDot("gossamer", services)
+	return NewNode("gossamer", services)
 }
 
-func TestDot_Start(t *testing.T) {
+func TestNode_Start(t *testing.T) {
 	testDir := path.Join(os.TempDir(), "gossamer-test")
 	defer os.RemoveAll(testDir)
 
@@ -70,7 +70,7 @@ func TestDot_Start(t *testing.T) {
 		&state.Service{},
 	}
 
-	dot := createTestDot(t, testDir)
+	dot := createTestNode(t, testDir)
 
 	go dot.Start()
 

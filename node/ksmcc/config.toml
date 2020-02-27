@@ -1,0 +1,14 @@
+[global]
+data-dir = "~/.gossamer/ksmcc"
+authority = false
+
+[network]
+bootstrap-nodes = []
+port = 7001
+no-bootstrap = false
+no-mdns = false
+
+[rpc]
+port = 8545
+host = "localhost"
+modules = ["system"]
