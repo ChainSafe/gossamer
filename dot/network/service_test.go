@@ -17,6 +17,7 @@
 package network
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"reflect"
@@ -44,12 +45,12 @@ var TestMessage = &BlockRequestMessage{
 var TestMessageTimeout = 3 * time.Second
 
 // helper method to create and start a new network service
-func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan Message, msgRec chan Message) {
+func createTestService(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
 	msgRec = make(chan Message)
 	msgSend = make(chan Message)
 
 	// same for all network tests use the createTestService helper method
-	cfg.BlockState = &MockBlockState{} // required
+	cfg.BlockState = blockState // required
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/dot/0"
 
@@ -78,7 +79,8 @@ func TestStartService(t *testing.T) {
 		NoBootstrap: true,
 		NoMdns:      true,
 	}
-	node, _, _ := createTestService(t, config)
+	blockState := newMockBlockState(big.NewInt(1))
+	node, _, _ := createTestService(t, config, blockState)
 	node.Stop()
 }
 
@@ -95,7 +97,8 @@ func TestBroadcastMessages(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeA, _, msgRecA := createTestService(t, configA)
+	blockState := newMockBlockState(big.NewInt(1))
+	nodeA, _, msgRecA := createTestService(t, configA, blockState)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -112,7 +115,8 @@ func TestBroadcastMessages(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, msgSendB, _ := createTestService(t, configB)
+	blockState = newMockBlockState(big.NewInt(1))
+	nodeB, msgSendB, _ := createTestService(t, configB, blockState)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
