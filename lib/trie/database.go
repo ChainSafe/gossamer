@@ -69,7 +69,7 @@ func (db *Database) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-// StoreHash stores the current root hash in the database at `LatestHashKey`
+// StoreHash stores the current root hash in the database at LatestStorageHashKey
 func (t *Trie) StoreHash() error {
 	hash, err := t.Hash()
 	if err != nil {
@@ -79,7 +79,7 @@ func (t *Trie) StoreHash() error {
 	return t.db.StoreLatestStorageHash(hash[:])
 }
 
-// LoadHash retrieves the hash stored at `LatestHashKey` from the DB
+// LoadHash retrieves the hash stored at LatestStorageHashKey from the DB
 func (t *Trie) LoadHash() (common.Hash, error) {
 	return t.db.LoadLatestStorageHash()
 }

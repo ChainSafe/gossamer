@@ -158,16 +158,11 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot get chain head from db: %s", err)
 	}
 
+	// load current storage state
 	err = s.Storage.LoadFromDB(headBlock.StateRoot)
 	if err != nil {
 		return fmt.Errorf("cannot load state from DB: %s", err)
 	}
-
-	// // load current storage state
-	// err = s.Storage.LoadFromDB(s.Block.latestHeader.StateRoot)
-	// if err != nil {
-	// 	return fmt.Errorf("cannot load state from DB: %s", err)
-	// }
 
 	// create network state
 	s.Network, err = NewNetworkState(db)
