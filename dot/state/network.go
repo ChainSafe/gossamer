@@ -36,15 +36,15 @@ type NetworkDB struct {
 }
 
 // Put appends `network` to the key and sets the key-value pair in the db
-func (db *NetworkDB) Put(key, value []byte) error {
+func (networkDB *NetworkDB) Put(key, value []byte) error {
 	key = append(networkPrefix, key...)
-	return db.db.Put(key, value)
+	return networkDB.db.Put(key, value)
 }
 
 // Get appends `network` to the key and retrieves the value from the db
-func (db *NetworkDB) Get(key []byte) ([]byte, error) {
+func (networkDB *NetworkDB) Get(key []byte) ([]byte, error) {
 	key = append(networkPrefix, key...)
-	return db.db.Get(key)
+	return networkDB.db.Get(key)
 }
 
 // NetworkState defines fields for manipulating the state of network

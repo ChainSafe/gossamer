@@ -34,15 +34,15 @@ type StorageDB struct {
 }
 
 // Put appends `storage` to the key and sets the key-value pair in the db
-func (db *StorageDB) Put(key, value []byte) error {
+func (storageDB *StorageDB) Put(key, value []byte) error {
 	key = append(storagePrefix, key...)
-	return db.db.Put(key, value)
+	return storageDB.db.Put(key, value)
 }
 
 // Get appends `storage` to the key and retrieves the value from the db
-func (db *StorageDB) Get(key []byte) ([]byte, error) {
+func (storageDB *StorageDB) Get(key []byte) ([]byte, error) {
 	key = append(storagePrefix, key...)
-	return db.db.Get(key)
+	return storageDB.db.Get(key)
 }
 
 // StorageState is the struct that holds the trie, db and lock

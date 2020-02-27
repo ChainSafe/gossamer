@@ -40,15 +40,15 @@ type BlockDB struct {
 }
 
 // Put appends `block` to the key and sets the key-value pair in the db
-func (db *BlockDB) Put(key, value []byte) error {
+func (blockDB *BlockDB) Put(key, value []byte) error {
 	key = append(blockPrefix, key...)
-	return db.db.Put(key, value)
+	return blockDB.db.Put(key, value)
 }
 
 // Get appends `block` to the key and retrieves the value from the db
-func (db *BlockDB) Get(key []byte) ([]byte, error) {
+func (blockDB *BlockDB) Get(key []byte) ([]byte, error) {
 	key = append(blockPrefix, key...)
-	return db.db.Get(key)
+	return blockDB.db.Get(key)
 }
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
