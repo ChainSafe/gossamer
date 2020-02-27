@@ -58,9 +58,10 @@ var (
 		Name:  "authority",
 		Usage: "Set to true if node is a BABE authority, false otherwise.",
 	}
+	// KeyFlag specifies a test keyring account to use
 	KeyFlag = cli.StringFlag{
 		Name:  "key",
-		Usage: "Specify a test keyring key to use: eg --key=alice",
+		Usage: "Specify a test keyring account to use: eg --key=alice",
 	}
 )
 
