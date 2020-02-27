@@ -27,7 +27,7 @@ import (
 type MockBlockState struct{}
 
 // LatestHeader for MockBlockState
-func (mbs *MockBlockState) ChainHeadAsHeader() (*types.Header, error) {
+func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	if err != nil {
 		return nil, err

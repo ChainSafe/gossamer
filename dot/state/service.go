@@ -153,7 +153,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot make block state: %s", err)
 	}
 
-	headBlock, err := s.Block.GetHeader(s.Block.ChainHead())
+	headBlock, err := s.Block.GetHeader(s.Block.BestBlockHash())
 	if err != nil {
 		return fmt.Errorf("cannot get chain head from db: %s", err)
 	}

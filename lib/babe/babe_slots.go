@@ -29,7 +29,7 @@ import (
 func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
 
-	head := b.blockState.ChainHead()
+	head := b.blockState.BestBlockHash()
 	bn := new(big.Int).SetUint64(slotTail)
 
 	deepestBlock, err := b.blockState.GetBlockByHash(head)

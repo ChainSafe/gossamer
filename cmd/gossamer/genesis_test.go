@@ -85,7 +85,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
 	}
 
-	genesisHeader, err := dbSrv.Block.ChainHeadAsHeader()
+	genesisHeader, err := dbSrv.Block.BestBlockHeader()
 	if err != nil {
 		t.Fatal(err)
 	}

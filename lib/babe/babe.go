@@ -190,7 +190,7 @@ func (b *Session) invokeBlockAuthoring() {
 }
 
 func (b *Session) handleSlot(slotNum uint64) {
-	parentHeader, err := b.blockState.ChainHeadAsHeader()
+	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		log.Error("BABE block authoring", "error", "parent header is nil")
 		return

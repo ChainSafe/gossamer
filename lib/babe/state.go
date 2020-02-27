@@ -26,8 +26,8 @@ import (
 
 // BlockState interface for block state methods
 type BlockState interface {
-	ChainHead() common.Hash
-	ChainHeadAsHeader() (*types.Header, error)
+	BestBlockHash() common.Hash
+	BestBlockHeader() (*types.Header, error)
 	SubChain(start, end common.Hash) []common.Hash
 	ComputeSlotForBlock(*types.Block, uint64) uint64
 	AddBlock(*types.Block) error

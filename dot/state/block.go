@@ -295,16 +295,14 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 	return err
 }
 
-// ChainHead returns the hash of the head of the current chain
-// rename BestBlockHash ?
-func (bs *BlockState) ChainHead() common.Hash {
+// BestBlockHash returns the hash of the head of the current chain
+func (bs *BlockState) BestBlockHash() common.Hash {
 	return bs.bt.DeepestBlockHash()
 }
 
-// ChainHeadAsHeader returns the block header of the current head of the chain
-// rename BestBlockHeader?
-func (bs *BlockState) ChainHeadAsHeader() (*types.Header, error) {
-	return bs.GetHeader(bs.ChainHead())
+// BestBlockHeader returns the block header of the current head of the chain
+func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
+	return bs.GetHeader(bs.BestBlockHash())
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
