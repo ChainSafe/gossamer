@@ -329,7 +329,6 @@ func TestSlotTime(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	t.Skip()
 	newBlocks := make(chan types.Block)
 
 	dataDir, err := ioutil.TempDir("", "./test_data")
