@@ -58,6 +58,10 @@ var (
 		Name:  "authority",
 		Usage: "Set to true if node is a BABE authority, false otherwise.",
 	}
+	KeyFlag = cli.StringFlag{
+		Name:  "key",
+		Usage: "Specify a test keyring key to use: eg --key=alice",
+	}
 )
 
 // Network flags
