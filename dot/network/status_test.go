@@ -23,6 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -126,7 +129,7 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 	}
 
 	blockState := newMockBlockState(big.NewInt(3))
-	nodeA, _, msgRecA := createTestService(t, configA, blockState)
+	nodeA, msgSendA, msgRecA := createTestService(t, configA, blockState)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -192,5 +195,37 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 
 	if !nodeB.status.confirmed(nodeA.host.h.ID()) {
 		t.Error("node B did not confirm status of node A")
+	}
+
+	// get latest block header from block state
+	latestHeader := blockState.LatestHeader()
+	currentHash := blockState.LatestHeader().Hash()
+
+	// expected block request message
+	var ThisTestMessage = &BlockRequestMessage{
+		RequestedData: 2,
+		StartingBlock: append([]byte{0}, currentHash[:]...),
+		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	select {
+	case msg := <-msgSendA:
+		require.NotNil(t, msg)
+
+		//assert correct cast
+		blockRequest, ok := msg.(*BlockRequestMessage)
+		require.True(t, ok)
+		require.NotNil(t, blockRequest)
+
+		//assign ID since its random
+		blockRequest.ID = ThisTestMessage.ID
+
+		// assert everything else
+		require.Equal(t, ThisTestMessage, blockRequest)
+
+	case <-time.After(TestMessageTimeout):
+		t.Error("node B timeout waiting for message from node A")
 	}
 }
