@@ -19,11 +19,6 @@ package network
 import (
 	"bufio"
 	"context"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"golang.org/x/exp/rand"
-	"math/big"
-	mrand "math/rand"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -238,50 +233,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
 
-			// check if peer status confirmed
-			if s.status.confirmed(peer) {
+			s.sendBlockRequestMessage(peer, msg)
 
-				// get latest block header from block state
-				latestHeader := s.cfg.BlockState.LatestHeader()
-
-				statusMessage, ok := msg.(*StatusMessage)
-				if !ok {
-					log.Error("(*Service).handleMessage, failed to cast blockAnnounceMessage from msg.(*BlockAnnounceMessage)")
-					return
-				}
-
-				bestBlockNum := big.NewInt(int64(statusMessage.BestBlockNumber))
-
-				// check if peer block number is greater than host block number
-				if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-
-					//generate random ID
-					s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-					seed := rand.New(s1).Uint64()
-					randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
-
-					currentHash := s.cfg.BlockState.LatestHeader().Hash()
-
-					blockRequest := &BlockRequestMessage{
-						ID:            randomID, // random
-						RequestedData: 2,        // block body
-						StartingBlock: append([]byte{0}, currentHash[:]...),
-						EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
-						Direction:     1,
-						Max:           optional.NewUint32(false, 0),
-					}
-
-					// send block request message
-					err := s.host.send(peer, blockRequest)
-					if err != nil {
-						log.Error("(*Service).handleMessage, failed to send blockRequest message to peer", "err", err)
-					} else {
-						log.Info("(*Service).handleMessage, sent blockRequest message to peer")
-					}
-				} else {
-					log.Debug("(*Service).handleMessage, nothing to do here", "latestHeader.Number", latestHeader.Number, "bestBlockNum", bestBlockNum)
-				}
-			}
 		}
 	}
 }
