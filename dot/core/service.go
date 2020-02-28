@@ -272,6 +272,7 @@ func (s *Service) receiveMessages() {
 	for {
 		// receive message from network service
 		msg, ok := <-s.msgRec
+		log.Info("[core]", "time", time.Now().UnixNano())
 		if !ok {
 			log.Error("[core] failed to receive message from network service")
 			return // exit
@@ -326,7 +327,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	case network.TransactionMsgType:
 		err = s.ProcessTransactionMessage(msg)
 	default:
-		err = fmt.Errorf("Received unsupported message type")
+		err = fmt.Errorf("Received unsupported message type %d", msgType)
 	}
 
 	return err

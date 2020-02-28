@@ -28,12 +28,15 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
+	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) []common.Hash
-	ComputeSlotForBlock(*types.Block, uint64) uint64
 	AddBlock(*types.Block) error
 	SetBlock(*types.Block) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetHeader(common.Hash) (*types.Header, error)
+	GetArrivalTime(common.Hash) (uint64, error)
+	GenesisHash() common.Hash
 }
 
 // StorageState interface for storage state methods

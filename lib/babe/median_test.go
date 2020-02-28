@@ -7,8 +7,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -69,26 +67,13 @@ func TestSlotOffset(t *testing.T) {
 	}
 }
 
-func createFlatBlockTree(t *testing.T, depth int, blockState BlockState) {
-	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	genesisBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: zeroHash,
-			Number:     big.NewInt(0),
-		},
-		Body: &types.Body{},
-	}
-	genesisBlock.SetBlockArrivalTime(uint64(1000))
-
-	bt := blocktree.NewBlockTreeFromGenesis(genesisBlock.Header, nil)
-	previousHash := genesisBlock.Header.Hash()
-	previousAT := genesisBlock.GetBlockArrivalTime()
-
-	blockState.SetBlock(genesisBlock)
+func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
+	previousHash := blockState.BestBlockHash()
+	// previousBlock, err := blockState.BestBlock()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	//previousAT := previousBlock.GetBlockArrivalTime()
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
@@ -99,13 +84,13 @@ func createFlatBlockTree(t *testing.T, depth int, blockState BlockState) {
 			Body: &types.Body{},
 		}
 
-		hash := block.Header.Hash()
-		block.SetBlockArrivalTime(previousAT + uint64(1000))
-
-		bt.AddBlock(block)
-		previousHash = hash
-		previousAT = block.GetBlockArrivalTime()
-		blockState.AddBlock(block)
+		//block.SetBlockArrivalTime(previousAT + uint64(1))
+		previousHash = block.Header.Hash()
+		//previousAT = block.GetBlockArrivalTime()
+		err := blockState.AddBlock(block)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -116,11 +101,13 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dbSrv := state.NewService(dataDir)
-	err = dbSrv.Initialize(&types.Header{
+	genesisHeader := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
+	}
+
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(genesisHeader, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,16 +131,29 @@ func TestSlotTime(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 
-	createFlatBlockTree(t, 100, dbSrv.Block)
+	addBlocksToState(t, 100, dbSrv.Block)
 
 	res, err := babesession.slotTime(103, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := uint64(104000)
+	expected := uint64(103000)
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 }
+
+// func TestBlockTree_ComputeSlotForNode(t *testing.T) {
+// 	bt, hashes := createFlatTree(t, 9)
+
+// 	expectedSlotNumber := uint64(9)
+
+// 	slotNumber := bt.computeSlotForNode(bt.getNode(hashes[9]), 1000)
+
+// 	if slotNumber != expectedSlotNumber {
+// 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)
+// 	}
+
+// }

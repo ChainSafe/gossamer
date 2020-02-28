@@ -63,6 +63,10 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 	}
 }
 
+func (bt *BlockTree) GenesisHash() Hash {
+	return bt.head.hash
+}
+
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block *types.Block) error {
@@ -81,11 +85,10 @@ func (bt *BlockTree) AddBlock(block *types.Block) error {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:        block.Header.Hash(),
-		parent:      parent,
-		children:    []*node{},
-		depth:       depth,
-		arrivalTime: block.GetBlockArrivalTime(),
+		hash:     block.Header.Hash(),
+		parent:   parent,
+		children: []*node{},
+		depth:    depth,
 	}
 	parent.addChild(n)
 
@@ -170,23 +173,23 @@ func (bt *BlockTree) DeepestBlockHash() Hash {
 	return bt.leaves.deepestLeaf().hash
 }
 
-// ComputeSlotForBlock computes the slot for a block from genesis
-func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
-	return bt.computeSlotForNode(&node{
-		arrivalTime: b.GetBlockArrivalTime(),
-	}, sd)
-}
+// // ComputeSlotForBlock computes the slot for a block from genesis
+// func (bt *BlockTree) ComputeSlotForBlock(b *types.Block, sd uint64) uint64 {
+// 	return bt.computeSlotForNode(&node{
+// 		arrivalTime: b.GetBlockArrivalTime(),
+// 	}, sd)
+// }
 
-// TODO: not sure how correct this is, there isn't necessarily one block per slot
-func (bt *BlockTree) computeSlotForNode(b *node, sd uint64) uint64 {
-	gt := bt.head.arrivalTime
-	nt := b.arrivalTime
+// // TODO: not sure how correct this is, there isn't necessarily one block per slot
+// func (bt *BlockTree) computeSlotForNode(b *node, sd uint64) uint64 {
+// 	gt := bt.head.arrivalTime
+// 	nt := b.arrivalTime
 
-	sp := uint64(0)
-	for gt < nt {
-		gt += sd
-		sp++
-	}
+// 	sp := uint64(0)
+// 	for gt < nt {
+// 		gt += sd
+// 		sp++
+// 	}
 
-	return sp
-}
+// 	return sp
+// }
