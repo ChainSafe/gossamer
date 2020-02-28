@@ -216,12 +216,6 @@ func (b *Session) handleSlot(slotNum uint64) {
 		log.Debug("BABE built block", "header", block.Header, "body", block.Body)
 
 		b.newBlocks <- *block
-
-		err = b.storageState.SetLatestHeaderHash(hash[:])
-		if err != nil {
-			log.Error("BABE block authoring", "error", err)
-		}
-
 	}
 }
 

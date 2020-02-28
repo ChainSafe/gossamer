@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -60,4 +61,44 @@ func TestService_Start(t *testing.T) {
 	}
 
 	state.Stop()
+}
+
+func TestService_BlockTree(t *testing.T) {
+	dir, err := ioutil.TempDir(os.TempDir(), "test_data")
+	if err != nil {
+		t.Fatal("failed to create temp dir: " + err.Error())
+	}
+
+	state := NewService(dir)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tr := trie.NewEmptyTrie(nil)
+	err = state.Initialize(genesisHeader, tr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = state.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state.Stop()
+
+	state2 := NewService(dir)
+
+	err = state2.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state2.Stop()
+
+	if !reflect.DeepEqual(state.Block.BestBlockHash(), state2.Block.BestBlockHash()) {
+		t.Fatalf("Fail: got %s expected %s", state.Block.BestBlockHash(), state2.Block.BestBlockHash())
+	}
 }

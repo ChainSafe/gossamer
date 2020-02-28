@@ -352,11 +352,12 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		if err != nil {
 			return err
 		}
+
+		log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+
 	} else {
 		return err
 	}
-
-	log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
 
 	chainHead, err := s.blockState.BestBlockHeader()
 	if err != nil {

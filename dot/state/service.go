@@ -78,10 +78,12 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 
 	// load genesis hash into db
 	hash := genesisHeader.Hash()
-	err = db.Put(common.LatestHeaderHashKey, hash[:])
+	err = db.Put(common.BestBlockHashKey, hash[:])
 	if err != nil {
 		return err
 	}
+
+	log.Trace("[state] initialize", "genesis hash", hash)
 
 	err = initializeBlockTree(db, genesisHeader)
 	if err != nil {
@@ -127,12 +129,12 @@ func (s *Service) Start() error {
 	s.db = db
 
 	// retrieve latest header
-	latestHeaderHash, err := s.db.Get(common.LatestHeaderHashKey)
+	bestHash, err := s.db.Get(common.BestBlockHashKey)
 	if err != nil {
 		return fmt.Errorf("cannot get latest hash: %s", err)
 	}
 
-	log.Trace("state service", "latestHeaderHash", latestHeaderHash)
+	log.Trace("[state] start", "best block hash", bestHash)
 
 	// create storage state
 	s.Storage, err = NewStorageState(db, trie.NewEmptyTrie(nil))
@@ -182,6 +184,13 @@ func (s *Service) Stop() error {
 	if err != nil {
 		return err
 	}
+
+	hash := s.Block.BestBlockHash()	
+	err = s.db.Put(common.BestBlockHashKey, hash[:])
+	if err != nil {
+		return err
+	}
+	log.Trace("[state] stop", "best block hash", hash)
 
 	return s.db.Close()
 }
