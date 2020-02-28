@@ -330,6 +330,8 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	switch msgType {
 	case network.BlockAnnounceMsgType:
 		err = s.ProcessBlockAnnounceMessage(msg)
+	case network.BlockRequestMsgType:
+		err = s.ProcessBlockRequestMessage(msg)
 	case network.BlockResponseMsgType:
 		err = s.ProcessBlockResponseMessage(msg)
 	case network.TransactionMsgType:
@@ -365,8 +367,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		currentHash := s.blockState.LatestHeader().Hash()
-
 		header, err := types.NewHeader(blockAnnounceMessage.ParentHash, blockAnnounceMessage.Number, blockAnnounceMessage.StateRoot, blockAnnounceMessage.ExtrinsicsRoot, blockAnnounceMessage.Digest)
 		if err != nil {
 			log.Error("failed to create NewHeader from blockAnnounceMessage fields")
@@ -376,7 +376,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,        // block body
-			StartingBlock: append([]byte{0}, currentHash[:]...),
+			StartingBlock: append([]byte{1}, s.blockState.LatestHeader().Number.Bytes()...),
 			EndBlockHash:  optional.NewHash(true, header.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
@@ -391,6 +391,29 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	}
 
+	return nil
+}
+
+// ProcessBlockRequestMessage processes a block request message, returning a block response message
+func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
+	blockRequest := msg.(*network.BlockRequestMessage)
+
+	latestBlockNum := s.blockState.LatestHeader().Number
+
+	if blockRequest.StartingBlock[0] == 1 {
+
+		startingBlock := big.NewInt(0).SetBytes(blockRequest.StartingBlock[1:])
+
+		if latestBlockNum.Cmp(startingBlock) >= 0 {
+			//we have the block
+			// lets send it then
+			blockResponse := &network.BlockResponseMessage{}
+
+			s.msgSend <- blockResponse
+		}
+	} else {
+		//not yet implemented
+	}
 	return nil
 }
 
