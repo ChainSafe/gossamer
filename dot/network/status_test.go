@@ -113,25 +113,21 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-// helper method to create and start a new network service
+// createTestServiceWithBlockState is a helper method to create and start a new network service
 func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
 	msgRec = make(chan Message)
 	msgSend = make(chan Message)
 
-	// same for all network tests use the createTestService helper method
-	cfg.BlockState = blockState // required
+	cfg.BlockState = blockState
 	cfg.NetworkState = &MockNetworkState{}
-	cfg.ProtocolID = TestProtocolID // default "/gossamer/dot/0"
+	cfg.ProtocolID = TestProtocolID
 
-	node, err := NewService(cfg, msgSend, msgRec)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var err error
+	node, err = NewService(cfg, msgSend, msgRec)
+	require.Nil(t, err)
 
 	err = node.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return node, msgSend, msgRec
 }
@@ -150,8 +146,8 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(3))
-	nodeA, msgSendA, msgRecA := createTestServiceWithBlockState(t, configA, blockState)
+	blockStateA := newMockBlockState(big.NewInt(3))
+	nodeA, msgSendA, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -190,8 +186,8 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState = newMockBlockState(big.NewInt(1))
-	nodeB, _, msgRecB := createTestServiceWithBlockState(t, configB, blockState)
+	blockStateB := newMockBlockState(big.NewInt(1))
+	nodeB, _, msgRecB := createTestServiceWithBlockState(t, configB, blockStateB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -220,11 +216,11 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 	}
 
 	// get latest block header from block state
-	latestHeader := blockState.LatestHeader()
-	currentHash := blockState.LatestHeader().Hash()
+	latestHeader := blockStateB.LatestHeader()
+	currentHash := blockStateB.LatestHeader().Hash()
 
 	// expected block request message
-	var ThisTestMessage = &BlockRequestMessage{
+	var expectedMessage = &BlockRequestMessage{
 		RequestedData: BlockResponseMsgType,
 		StartingBlock: append([]byte{0}, currentHash[:]...),
 		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
@@ -236,16 +232,16 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 	case msg := <-msgSendA:
 		require.NotNil(t, msg)
 
-		//assert correct cast
-		blockRequest, ok := msg.(*BlockRequestMessage)
+		// assert correct cast
+		actualBlockRequest, ok := msg.(*BlockRequestMessage)
 		require.True(t, ok)
-		require.NotNil(t, blockRequest)
+		require.NotNil(t, actualBlockRequest)
 
-		//assign ID since its random
-		blockRequest.ID = ThisTestMessage.ID
+		// assign ID since its random
+		actualBlockRequest.ID = expectedMessage.ID
 
 		// assert everything else
-		require.Equal(t, ThisTestMessage, blockRequest)
+		require.Equal(t, expectedMessage, actualBlockRequest)
 
 	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message from node A")

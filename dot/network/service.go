@@ -233,6 +233,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
 
+			// send a BlockRequestMessage if peer block is greater than our block number
 			s.sendBlockRequestMessage(peer, msg)
 
 		}
