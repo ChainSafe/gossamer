@@ -99,6 +99,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	return db.Close()
 }
 
+// initializeBlockTree creates a new block tree from genesis and stores it in the db
 func initializeBlockTree(db database.Database, genesisHeader *types.Header) error {
 	bt := blocktree.NewBlockTreeFromGenesis(genesisHeader, db)
 	err := bt.Store()
@@ -134,7 +135,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot get latest hash: %s", err)
 	}
 
-	log.Trace("[state] start", "best block hash", bestHash)
+	log.Trace("[state] start", "best block hash", fmt.Sprintf("0x%x", bestHash))
 
 	// create storage state
 	s.Storage, err = NewStorageState(db, trie.NewEmptyTrie(nil))
@@ -159,6 +160,8 @@ func (s *Service) Start() error {
 	if err != nil {
 		return fmt.Errorf("cannot get chain head from db: %s", err)
 	}
+
+	log.Trace("[state] start", "best block state root", headBlock.StateRoot)
 
 	// load current storage state
 	err = s.Storage.LoadFromDB(headBlock.StateRoot)
@@ -185,7 +188,12 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	hash := s.Block.BestBlockHash()	
+	err = s.Block.bt.Store()
+	if err != nil {
+		return err
+	}
+
+	hash := s.Block.BestBlockHash()
 	err = s.db.Put(common.BestBlockHashKey, hash[:])
 	if err != nil {
 		return err

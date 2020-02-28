@@ -285,6 +285,11 @@ func (bs *BlockState) AddBlock(block *types.Block) error {
 	}
 	hash := block.Header.Hash()
 
+	err = bs.setBestBlockHashKey(hash)
+	if err != nil {
+		return err
+	}
+
 	// add block data to the DB
 	bd := &types.BlockData{
 		Hash:   hash,
@@ -314,6 +319,10 @@ func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
 // TODO: can move this out of the blocktree into BABE
 func (bs *BlockState) ComputeSlotForBlock(block *types.Block, slotDuration uint64) uint64 {
 	return bs.bt.ComputeSlotForBlock(block, slotDuration)
+}
+
+func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
+	return bs.db.db.Put(common.BestBlockHashKey, hash[:])
 }
 
 // babeHeaderKey = babeHeaderPrefix || epoch || slice
