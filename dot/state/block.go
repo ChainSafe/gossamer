@@ -308,12 +308,7 @@ func (bs *BlockState) AddBlock(newBlock *types.Block) error {
 }
 
 func (bs *BlockState) setLatestHeaderKey(hash common.Hash) error {
-	err := bs.db.db.Put(common.LatestHeaderHashKey, hash[:])
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bs.db.db.Put(common.LatestHeaderHashKey, hash[:])
 }
 
 // babeHeaderKey = babeHeaderPrefix || epoch || slice
