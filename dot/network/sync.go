@@ -52,11 +52,14 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, msg Message) {
 			seed := rand.New(s1).Uint64()
 			randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
+			// keep track of the IDs in network state
+			s.requestedBlockIDs[randomID] = true
+
 			currentHash := s.cfg.BlockState.LatestHeader().Hash()
 
 			blockRequest := &BlockRequestMessage{
 				ID:            randomID, // random
-				RequestedData: 2,        // block body
+				RequestedData: 3,        // block body
 				StartingBlock: append([]byte{0}, currentHash[:]...),
 				EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
 				Direction:     1,
@@ -70,8 +73,6 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, msg Message) {
 			} else {
 				log.Trace("(*Service).sendBlockRequestMessage, sent blockRequest message to peer")
 			}
-		} else {
-			log.Debug("(*Service).sendBlockRequestMessage, nothing to do here", "latestHeader.Number", latestHeader.Number, "bestBlockNum", bestBlockNum)
 		}
 	}
 }

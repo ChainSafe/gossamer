@@ -17,21 +17,20 @@
 package network
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/stretchr/testify/require"
 )
 
-// wait time for status messages to be exchanged and handled
-var TestStatusTimeout = time.Second
-
-// test exchange status messages after peer connected
-func TestStatus(t *testing.T) {
+// have a peer send a message status with a block ahead
+// test exchanged messages after peer connected are correct
+func TestSendBlockRequestMessage(t *testing.T) {
 	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
 	defer os.RemoveAll(dataDirA)
 
@@ -43,7 +42,8 @@ func TestStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeA, _, msgRecA := createTestService(t, configA)
+	blockStateA := newMockBlockState(big.NewInt(3))
+	nodeA, msgSendA, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -82,7 +82,8 @@ func TestStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, _, msgRecB := createTestService(t, configB)
+	blockStateB := newMockBlockState(big.NewInt(1))
+	nodeB, _, msgRecB := createTestServiceWithBlockState(t, configB, blockStateB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -109,23 +110,36 @@ func TestStatus(t *testing.T) {
 	if !nodeB.status.confirmed(nodeA.host.h.ID()) {
 		t.Error("node B did not confirm status of node A")
 	}
-}
 
-// createTestServiceWithBlockState is a helper method to create and start a new network service
-func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
-	msgRec = make(chan Message)
-	msgSend = make(chan Message)
+	// get latest block header from block state
+	latestHeader := blockStateB.LatestHeader()
+	currentHash := blockStateB.LatestHeader().Hash()
 
-	cfg.BlockState = blockState
-	cfg.NetworkState = &MockNetworkState{}
-	cfg.ProtocolID = TestProtocolID
+	// expected block request message
+	var expectedMessage = &BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: append([]byte{0}, currentHash[:]...),
+		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
 
-	var err error
-	node, err = NewService(cfg, msgSend, msgRec)
-	require.Nil(t, err)
+	select {
+	case msg := <-msgSendA:
+		require.NotNil(t, msg)
 
-	err = node.Start()
-	require.Nil(t, err)
+		// assert correct cast
+		actualBlockRequest, ok := msg.(*BlockRequestMessage)
+		require.True(t, ok)
+		require.NotNil(t, actualBlockRequest)
 
-	return node, msgSend, msgRec
+		// assign ID since its random
+		actualBlockRequest.ID = expectedMessage.ID
+
+		// assert everything else
+		require.Equal(t, expectedMessage, actualBlockRequest)
+
+	case <-time.After(TestMessageTimeout):
+		t.Error("node B timeout waiting for message from node A")
+	}
 }
