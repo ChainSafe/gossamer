@@ -45,8 +45,7 @@ func TestStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, msgRecA := createTestService(t, configA, blockState)
+	nodeA, _, msgRecA := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -85,7 +84,7 @@ func TestStatus(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, _, msgRecB := createTestService(t, configB, blockState)
+	nodeB, _, msgRecB := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -114,6 +113,29 @@ func TestStatus(t *testing.T) {
 	}
 }
 
+// helper method to create and start a new network service
+func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
+	msgRec = make(chan Message)
+	msgSend = make(chan Message)
+
+	// same for all network tests use the createTestService helper method
+	cfg.BlockState = blockState // required
+	cfg.NetworkState = &MockNetworkState{}
+	cfg.ProtocolID = TestProtocolID // default "/gossamer/dot/0"
+
+	node, err := NewService(cfg, msgSend, msgRec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = node.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return node, msgSend, msgRec
+}
+
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestStatusAndBlockRequestMessage(t *testing.T) {
@@ -129,7 +151,7 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 	}
 
 	blockState := newMockBlockState(big.NewInt(3))
-	nodeA, msgSendA, msgRecA := createTestService(t, configA, blockState)
+	nodeA, msgSendA, msgRecA := createTestServiceWithBlockState(t, configA, blockState)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -169,7 +191,7 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 	}
 
 	blockState = newMockBlockState(big.NewInt(1))
-	nodeB, _, msgRecB := createTestService(t, configB, blockState)
+	nodeB, _, msgRecB := createTestServiceWithBlockState(t, configB, blockState)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -203,7 +225,7 @@ func TestStatusAndBlockRequestMessage(t *testing.T) {
 
 	// expected block request message
 	var ThisTestMessage = &BlockRequestMessage{
-		RequestedData: 2,
+		RequestedData: BlockResponseMsgType,
 		StartingBlock: append([]byte{0}, currentHash[:]...),
 		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
 		Direction:     1,

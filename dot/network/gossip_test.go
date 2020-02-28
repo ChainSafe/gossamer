@@ -17,7 +17,6 @@
 package network
 
 import (
-	"math/big"
 	"os"
 	"path"
 	"testing"
@@ -37,8 +36,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, msgSendA, _ := createTestService(t, configA, blockState)
+	nodeA, msgSendA, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noStatus = true
@@ -54,7 +52,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, msgSendB, _ := createTestService(t, configB, blockState)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noStatus = true
@@ -80,7 +78,7 @@ func TestGossip(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeC, msgSendC, _ := createTestService(t, configC, blockState)
+	nodeC, msgSendC, _ := createTestService(t, configC)
 	defer nodeC.Stop()
 
 	nodeC.noStatus = true

@@ -17,7 +17,6 @@
 package network
 
 import (
-	"math/big"
 	"os"
 	"path"
 	"reflect"
@@ -38,8 +37,7 @@ func TestConnect(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -56,7 +54,7 @@ func TestConnect(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, _, _ := createTestService(t, configB, blockState)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -105,8 +103,7 @@ func TestBootstrap(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -125,7 +122,7 @@ func TestBootstrap(t *testing.T) {
 		NoMdns:    true,
 	}
 
-	nodeB, _, _ := createTestService(t, configB, blockState)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -164,8 +161,7 @@ func TestPing(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -182,7 +178,7 @@ func TestPing(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, _, _ := createTestService(t, configB, blockState)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -227,8 +223,7 @@ func TestSend(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -245,7 +240,7 @@ func TestSend(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, msgSendB, _ := createTestService(t, configB, blockState)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -293,8 +288,7 @@ func TestBroadcast(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -311,7 +305,7 @@ func TestBroadcast(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, msgSendB, _ := createTestService(t, configB, blockState)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
@@ -338,7 +332,7 @@ func TestBroadcast(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeC, msgSendC, _ := createTestService(t, configC, blockState)
+	nodeC, msgSendC, _ := createTestService(t, configC)
 	defer nodeC.Stop()
 
 	nodeC.noGossip = true
@@ -397,8 +391,7 @@ func TestExistingStream(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, msgSendA, _ := createTestService(t, configA, blockState)
+	nodeA, msgSendA, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -420,7 +413,7 @@ func TestExistingStream(t *testing.T) {
 		NoMdns:      true,
 	}
 
-	nodeB, msgSendB, _ := createTestService(t, configB, blockState)
+	nodeB, msgSendB, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true

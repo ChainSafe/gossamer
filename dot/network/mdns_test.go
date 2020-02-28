@@ -17,7 +17,6 @@
 package network
 
 import (
-	"math/big"
 	"os"
 	"path"
 	"testing"
@@ -39,8 +38,7 @@ func TestMdns(t *testing.T) {
 		NoBootstrap: true,
 	}
 
-	blockState := newMockBlockState(big.NewInt(1))
-	nodeA, _, _ := createTestService(t, configA, blockState)
+	nodeA, _, _ := createTestService(t, configA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -56,7 +54,7 @@ func TestMdns(t *testing.T) {
 		NoBootstrap: true,
 	}
 
-	nodeB, _, _ := createTestService(t, configB, blockState)
+	nodeB, _, _ := createTestService(t, configB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true
