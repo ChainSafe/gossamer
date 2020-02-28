@@ -400,17 +400,47 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 
 	latestBlockNum := s.blockState.LatestHeader().Number
 
-	if blockRequest.StartingBlock[0] == 1 {
+	msgStartingBlockPrefix := blockRequest.StartingBlock[0]
+	msgStartingBlockBody := blockRequest.StartingBlock[1:]
 
-		startingBlock := big.NewInt(0).SetBytes(blockRequest.StartingBlock[1:])
+	var msgStartingBlockNum *big.Int
+	var msgBlockData *types.BlockData
+	var err error
 
-		if latestBlockNum.Cmp(startingBlock) >= 0 {
-			//we have the block
-			// lets send it then
-			blockResponse := &network.BlockResponseMessage{}
+	if msgStartingBlockPrefix == 1 {
+		msgStartingBlockNum = big.NewInt(0).SetBytes(msgStartingBlockBody)
+		// GetBlockData by block number ?
+	} else if msgStartingBlockPrefix == 1 {
 
-			s.msgSend <- blockResponse
+		msgBlockData, err = s.blockState.GetBlockData(common.NewHash(msgStartingBlockBody))
+		if err != nil {
+			log.Debug("(*Service).ProcessBlockRequestMessage failed to GetBlockData with StartingBlock", "StartingBlock", common.NewHash(blockRequest.StartingBlock[1:]))
+			return err
 		}
+	} else {
+		err = fmt.Errorf("(*Service).ProcessBlockRequestMessage blockRequest.StartingBlock not recognized")
+		log.Trace(err.Error())
+		return err
+	}
+
+	// for now we only care about body requests
+	if blockRequest.RequestedData == 1 && latestBlockNum.Cmp(msgStartingBlockNum) >= 0 {
+		// we have the block
+		// lets send it then
+
+		//generate random ID
+		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
+		seed := rand.New(s1).Uint64()
+		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+
+		blockDataArray := append([]*types.BlockData{}, msgBlockData)
+
+		blockResponse := &network.BlockResponseMessage{
+			ID:        randomID,
+			BlockData: blockDataArray,
+		}
+
+		s.msgSend <- blockResponse
 	} else {
 		//not yet implemented
 	}
