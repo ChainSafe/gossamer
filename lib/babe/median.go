@@ -43,9 +43,9 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 		return 0, fmt.Errorf("cannot calculate slot time: deepest block number %d less than or equal to slot tail %d", deepestBlock.Number, tail)
 	}
 
-	nf := tail.Sub(deepestBlock.Number, tail)
+	startNumber := tail.Sub(deepestBlock.Number, tail)
 
-	s, err := b.blockState.GetBlockByNumber(nf)
+	start, err := b.blockState.GetBlockByNumber(startNumber)
 	if err != nil {
 		return 0, err
 	}
@@ -57,12 +57,7 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 
 	sd := b.config.SlotDuration
 
-	for _, hash := range b.blockState.SubChain(s.Header.Hash(), deepestBlock.Hash()) {
-		// block, err := b.blockState.GetBlockByHash(hash)
-		// if err != nil {
-		// 	return 0, err
-		// }
-
+	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
 		currSlot, err := b.computeSlotForBlock(hash, sd)
 		if err != nil {
 			return 0, err
@@ -77,8 +72,6 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 		if err != nil {
 			return 0, err
 		}
-
-		fmt.Println("arrival time: ", arrivalTime)
 
 		st := uint64(arrivalTime) + (so * sd)
 		at = append(at, st)
@@ -118,11 +111,14 @@ func slotOffset(start uint64, end uint64) (uint64, error) {
 	return os, nil
 }
 
-// computeSlotForBlock computes the slot for a block from genesis
+// computeSlotForBlock computes the slot for a block
+// TODO: this is wrong, need to use the slot # as in the block's pre-digest
 func (b *Session) computeSlotForBlock(hash common.Hash, sd uint64) (uint64, error) {
-
-	// TODO: fix this, we shouldn't be using genesis time
-	gt, err := b.blockState.GetArrivalTime(b.blockState.GenesisHash())
+	start, err := b.blockState.GetBlockByNumber(big.NewInt(1))
+	if err != nil {
+		return 0, err
+	}
+	gt, err := b.blockState.GetArrivalTime(start.Header.Hash())
 	if err != nil {
 		return 0, err
 	}

@@ -69,11 +69,7 @@ func TestSlotOffset(t *testing.T) {
 
 func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
-	// previousBlock, err := blockState.BestBlock()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	//previousAT := previousBlock.GetBlockArrivalTime()
+	previousAT := uint64(0)
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
@@ -84,10 +80,11 @@ func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
 			Body: &types.Body{},
 		}
 
-		//block.SetBlockArrivalTime(previousAT + uint64(1))
+		arrivalTime := previousAT + uint64(1000)
 		previousHash = block.Header.Hash()
-		//previousAT = block.GetBlockArrivalTime()
-		err := blockState.AddBlock(block)
+		previousAT = arrivalTime
+
+		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +92,7 @@ func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func TestSlotTime(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	dataDir, err := ioutil.TempDir("", "./test_data")
 	if err != nil {
 		t.Fatal(err)
@@ -138,22 +135,9 @@ func TestSlotTime(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := uint64(103000)
+	expected := uint64(104000)
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 }
-
-// func TestBlockTree_ComputeSlotForNode(t *testing.T) {
-// 	bt, hashes := createFlatTree(t, 9)
-
-// 	expectedSlotNumber := uint64(9)
-
-// 	slotNumber := bt.computeSlotForNode(bt.getNode(hashes[9]), 1000)
-
-// 	if slotNumber != expectedSlotNumber {
-// 		t.Errorf("expected Slot Number: %d got: %d", expectedSlotNumber, slotNumber)
-// 	}
-
-// }

@@ -31,6 +31,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/database"
+
+	log "github.com/ChainSafe/log15"
 )
 
 var blockPrefix = []byte("block")
@@ -90,7 +92,7 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		db: NewBlockDB(db),
 	}
 
-	bs.setArrivalTime(header.Hash())
+	bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
 
 	err := bs.SetHeader(header)
 	if err != nil {
@@ -296,9 +298,13 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 	return err
 }
 
-// AddBlock adds a block to the blocktree and the DB
 func (bs *BlockState) AddBlock(block *types.Block) error {
-	err := bs.setArrivalTime(block.Header.Hash())
+	return bs.AddBlockWithArrivalTime(block, uint64(time.Now().Unix()))
+}
+
+// AddBlock adds a block to the blocktree and the DB
+func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime uint64) error {
+	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
 	if err != nil {
 		return err
 	}
@@ -366,10 +372,11 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (uint64, error) {
 	return binary.LittleEndian.Uint64(time), nil
 }
 
-func (bs *BlockState) setArrivalTime(hash common.Hash) error {
-	now := time.Now().Unix()
+func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime uint64) error {
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(now))
+	binary.LittleEndian.PutUint64(buf, arrivalTime)
+
+	//log.Debug("[state]", "arrivalTime", arrivalTime)
 	return bs.db.db.Put(arrivalTimeKey(hash), buf)
 }
 
