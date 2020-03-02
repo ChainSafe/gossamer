@@ -377,8 +377,6 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (uint64, error) {
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, arrivalTime)
-
-	//log.Debug("[state]", "arrivalTime", arrivalTime)
 	return bs.db.db.Put(arrivalTimeKey(hash), buf)
 }
 
