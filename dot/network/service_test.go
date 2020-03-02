@@ -60,23 +60,11 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/dot/0"
 
 	node, err := NewService(cfg, msgSend, msgRec)
-
-	// skip test if "failed to dial" error
-	if failedToDial(err) {
-		t.Skip()
-	}
-
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = node.Start()
-
-	// skip test if "failed to dial" error
-	if failedToDial(err) {
-		t.Skip()
-	}
-
 	if err != nil {
 		t.Fatal(err)
 	}
