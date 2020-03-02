@@ -18,7 +18,6 @@ package network
 
 import (
 	"os"
-	"path"
 	"reflect"
 	"testing"
 	"time"
@@ -26,7 +25,7 @@ import (
 
 // test host connect method
 func TestConnect(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -43,7 +42,7 @@ func TestConnect(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -97,7 +96,7 @@ func TestConnect(t *testing.T) {
 
 // test host bootstrap method on start
 func TestBootstrap(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", t.Name(), "nodeA") // TODO: ...
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -116,7 +115,7 @@ func TestBootstrap(t *testing.T) {
 
 	addrA := nodeA.host.multiaddrs()[0]
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -163,7 +162,7 @@ func TestBootstrap(t *testing.T) {
 
 // test host ping method
 func TestPing(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -180,7 +179,7 @@ func TestPing(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -230,7 +229,7 @@ func TestPing(t *testing.T) {
 
 // test host send method
 func TestSend(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -247,7 +246,7 @@ func TestSend(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -300,7 +299,7 @@ func TestSend(t *testing.T) {
 
 // test host broadcast method
 func TestBroadcast(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -317,7 +316,7 @@ func TestBroadcast(t *testing.T) {
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -349,7 +348,7 @@ func TestBroadcast(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDirC := path.Join(os.TempDir(), "gossamer-test", "nodeC")
+	dataDirC := newTestDataDir(t, "nodeC")
 	defer os.RemoveAll(dataDirC)
 
 	configC := &Config{
@@ -413,7 +412,7 @@ func TestBroadcast(t *testing.T) {
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -435,7 +434,7 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
