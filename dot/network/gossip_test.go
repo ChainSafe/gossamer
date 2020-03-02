@@ -63,9 +63,12 @@ func TestGossip(t *testing.T) {
 	}
 
 	err = nodeB.host.connect(*addrInfosA[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeB.host.connect(*addrInfosA[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -86,9 +89,12 @@ func TestGossip(t *testing.T) {
 	nodeC.noStatus = true
 
 	err = nodeC.host.connect(*addrInfosA[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeC.host.connect(*addrInfosA[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -98,9 +104,12 @@ func TestGossip(t *testing.T) {
 	}
 
 	err = nodeC.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeC.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 

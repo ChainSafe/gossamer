@@ -66,9 +66,12 @@ func TestConnect(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -200,9 +203,12 @@ func TestPing(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -264,9 +270,12 @@ func TestSend(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -331,9 +340,12 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -360,9 +372,12 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosC[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosC[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -443,9 +458,12 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 

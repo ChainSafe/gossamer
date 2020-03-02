@@ -94,9 +94,12 @@ func TestStatus(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 

@@ -44,6 +44,9 @@ var TestMessage = &BlockRequestMessage{
 // maximum wait time for non-status message to be handled
 var TestMessageTimeout = 3 * time.Second
 
+// time between connection retries (BackoffBase default 5 seconds)
+var TestBackoffTimeout = 5 * time.Second
+
 // failedToDial returns true if "failed to dial" error, otherwise false
 func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
@@ -130,9 +133,12 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
 	if failedToDial(err) {
-		t.Skip() // skip test if "failed to dial" error
-	} else if err != nil {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	if err != nil {
 		t.Fatal(err)
 	}
 
