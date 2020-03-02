@@ -147,6 +147,9 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 func (h *host) bootstrap() {
 	for _, addrInfo := range h.bootnodes {
 		err := h.connect(addrInfo)
+		// if err != nil && strings.Contains(err.Error(), "failed to dial") {
+		// 	err = h.connect(addrInfo)
+		// }
 		if err != nil {
 			log.Error("Failed to bootstrap peer", "err", err)
 		}

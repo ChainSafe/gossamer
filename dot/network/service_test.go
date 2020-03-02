@@ -20,6 +20,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,6 +44,11 @@ var TestMessage = &BlockRequestMessage{
 // maximum wait time for non-status message to be handled
 var TestMessageTimeout = 3 * time.Second
 
+// failedToDial returns true if "failed to dial" error, otherwise false
+func failedToDial(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "failed to dial")
+}
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan Message, msgRec chan Message) {
 	msgRec = make(chan Message)
@@ -54,11 +60,23 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/dot/0"
 
 	node, err := NewService(cfg, msgSend, msgRec)
+
+	// skip test if "failed to dial" error
+	if failedToDial(err) {
+		t.Skip()
+	}
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = node.Start()
+
+	// skip test if "failed to dial" error
+	if failedToDial(err) {
+		t.Skip()
+	}
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +142,9 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
-	if err != nil {
+	if failedToDial(err) {
+		t.Skip() // skip test if "failed to dial" error
+	} else if err != nil {
 		t.Fatal(err)
 	}
 
