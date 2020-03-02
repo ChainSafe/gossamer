@@ -202,20 +202,20 @@ func getConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	if name := ctx.GlobalString(NodeFlag.Name); name != "" {
 		switch name {
 		case "gssmr":
-			log.Trace("[cmd/gossamer] Using node implementation", "name", name)
+			log.Trace("[gossamer] Using node implementation", "name", name)
 			cfg = gssmr.DefaultConfig()
 		case "ksmcc":
-			log.Trace("[cmd/gossamer] Using node implementation", "name", name)
+			log.Trace("[gossamer] Using node implementation", "name", name)
 			cfg = ksmcc.DefaultConfig()
 		}
 	} else {
-		log.Trace("[cmd/gossamer] Using node implementation", "name", "gssmr")
+		log.Trace("[gossamer] Using node implementation", "name", "gssmr")
 		cfg = gssmr.DefaultConfig()
 	}
 
 	// check --config flag and apply toml configuration to config
 	if name := ctx.GlobalString(ConfigFlag.Name); name != "" {
-		log.Trace("[cmd/gossamer] Loading toml configuration file", "path", name)
+		log.Trace("[gossamer] Loading toml configuration file", "path", name)
 		err = loadConfig(name, cfg)
 		if err != nil {
 			return nil, err
@@ -224,9 +224,10 @@ func getConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// check --datadir flag and expand path of node data directory
 	if name := ctx.GlobalString(DataDirFlag.Name); name != "" {
-		log.Trace("[cmd/gossamer] Expanding data directory", "path", name)
+		log.Trace("[gossamer] Expanding data directory", "path", name)
 		cfg.Global.DataDir = utils.ExpandDir(name)
 	} else {
+		log.Trace("[gossamer] Expanding data directory", "path", cfg.Global.DataDir)
 		cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
 	}
 
@@ -245,7 +246,7 @@ func loadConfig(file string, config *dot.Config) error {
 		return err
 	}
 
-	log.Debug("[cmd/gossamer] Loading toml configuration", "path", filepath.Clean(fp))
+	log.Debug("[gossamer] Loading toml configuration", "path", filepath.Clean(fp))
 
 	f, err := os.Open(filepath.Clean(fp))
 	if err != nil {
