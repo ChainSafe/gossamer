@@ -58,18 +58,21 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	sd := b.config.SlotDuration
 
 	var currSlot uint64
+	var so uint64
+	var arrivalTime uint64
+	
 	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
 		currSlot, err = b.computeSlotForBlock(hash, sd)
 		if err != nil {
 			return 0, err
 		}
 
-		so, err := slotOffset(currSlot, slot)
+		so, err = slotOffset(currSlot, slot)
 		if err != nil {
 			return 0, err
 		}
 
-		arrivalTime, err := b.blockState.GetArrivalTime(hash)
+		arrivalTime, err = b.blockState.GetArrivalTime(hash)
 		if err != nil {
 			return 0, err
 		}
