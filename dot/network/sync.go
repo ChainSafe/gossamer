@@ -34,7 +34,11 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, msg Message) {
 	if s.status.confirmed(peer) {
 
 		// get latest block header from block state
-		latestHeader := s.cfg.BlockState.LatestHeader()
+		latestHeader, err := s.cfg.BlockState.BestBlockHeader()
+		if err != nil {
+			log.Error("(*Service).sendBlockRequestMessage, failed to BestBlockHeader")
+			return
+		}
 
 		statusMessage, ok := msg.(*StatusMessage)
 		if !ok {
@@ -55,7 +59,7 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, msg Message) {
 			// keep track of the IDs in network state
 			s.requestedBlockIDs[randomID] = true
 
-			currentHash := s.cfg.BlockState.LatestHeader().Hash()
+			currentHash := latestHeader.Hash()
 
 			blockRequest := &BlockRequestMessage{
 				ID:            randomID, // random

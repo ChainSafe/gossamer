@@ -112,8 +112,9 @@ func TestSendBlockRequestMessage(t *testing.T) {
 	}
 
 	// get latest block header from block state
-	latestHeader := blockStateB.LatestHeader()
-	currentHash := blockStateB.LatestHeader().Hash()
+	latestHeader, err := blockStateB.BestBlockHeader()
+	require.Nil(t, err)
+	currentHash := latestHeader.Hash()
 
 	// expected block request message
 	var expectedMessage = &BlockRequestMessage{
