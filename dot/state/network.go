@@ -17,7 +17,10 @@
 package state
 
 import (
-	"encoding/json"
+	//"encoding/json"
+	//"encoding/json"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
@@ -66,13 +69,13 @@ func (ns *NetworkState) GetHealth() (*common.Health, error) {
 	if err != nil {
 		return res, err
 	}
-	err = json.Unmarshal(data, res)
+	err = scale.DecodePtr(data, res)
 	return res, err
 }
 
 // SetHealth sets network health in the database
 func (ns *NetworkState) SetHealth(health *common.Health) error {
-	enc, err := json.Marshal(health)
+	enc, err := scale.Encode(health)
 	if err != nil {
 		return err
 	}
@@ -87,13 +90,13 @@ func (ns *NetworkState) GetNetworkState() (*common.NetworkState, error) {
 	if err != nil {
 		return res, err
 	}
-	err = json.Unmarshal(data, res)
+	err = scale.DecodePtr(data, res)
 	return res, err
 }
 
 // SetNetworkState sets network state in the database
 func (ns *NetworkState) SetNetworkState(networkState *common.NetworkState) error {
-	enc, err := json.Marshal(networkState)
+	enc, err := scale.Encode(networkState)
 	if err != nil {
 		return err
 	}
@@ -108,13 +111,16 @@ func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
 	if err != nil {
 		return res, err
 	}
-	err = json.Unmarshal(data, res)
+	log.Info("decode", "data", data)
+	err = scale.DecodePtr(data, *res)
 	return res, err
 }
 
 // SetPeers sets network state in the database
 func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
-	enc, err := json.Marshal(peers)
+	enc, err := scale.Encode(*peers)
+	log.Info("after custom", "aftre", enc)
+	//enc, err := scale.Encode(peers)
 	if err != nil {
 		return err
 	}

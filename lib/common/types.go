@@ -18,7 +18,9 @@ package common
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 )
 
 // Address represents a base58 encoded public key
@@ -48,6 +50,33 @@ type PeerInfo struct {
 	BestNumber      uint64
 }
 
+func (pi *PeerInfo) Decode(r io.Reader) (*PeerInfo, error) {
+	var pires  = new (PeerInfo)
+	//dcdr := scale.Decoder{r}
+	length, err := ReadUint32(r)
+	if err != nil {
+		return nil, err
+	}
+
+	b := make([]byte, length)
+	_, err = r.Read(b)
+	if err != nil {
+		return nil, errors.New("could not decode invalid byte array: reached early EOF")
+	}
+
+	pires.PeerID = string(b)
+	//res, err := ReadUint64(r)
+	//if err != nil {
+	//	return pires, err
+	//}
+	//pires.BestNumber = res
+
+	//res.Roles = 0x10
+
+	pi = pires
+	//return scale.DecodePtr(b, pi)
+	return pires, nil
+}
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes
 func NewHash(in []byte) (res Hash) {

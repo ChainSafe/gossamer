@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	log "github.com/ChainSafe/log15"
 	"io"
 	"math/big"
 	"reflect"
@@ -342,6 +343,8 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				copy(arr[:], buf)
 				*ptr = arr
 			}
+		case []*common.PeerInfo:
+			log.Info("stes")
 		default:
 			var res interface{}
 			res, err = sd.DecodeCustom(sl.Index(i).Interface())
@@ -361,6 +364,8 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		copy(t.([][]byte), sl.Interface().([][]byte))
 	case [][32]byte:
 		copy(t.([][32]byte), sl.Interface().([][32]byte))
+	case []*common.PeerInfo:
+		copy(t.([]*common.PeerInfo), sl.Interface().([]*common.PeerInfo))
 	}
 
 	return sl.Interface(), err

@@ -17,6 +17,7 @@
 package state
 
 import (
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"testing"
 
@@ -29,8 +30,10 @@ import (
 
 var testHealth = &common.Health{}
 var testNetworkState = &common.NetworkState{}
-var testPeers = &[]common.PeerInfo{}
-
+var testPeers = &[]common.PeerInfo{{ PeerID: "ID1", BestHash: common.Hash{}, BestNumber: 1, ProtocolVersion:2, Roles: 0x03},
+	{ PeerID: "ID40", BestHash: common.Hash{}, BestNumber: 50, ProtocolVersion:60, Roles: 0x70},
+}
+//var testPeers = &[]common.PeerInfo{}
 // test state.Network
 func TestNetworkState(t *testing.T) {
 	state := newTestService(t)
@@ -50,21 +53,21 @@ func TestNetworkState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = state.Network.SetHealth(testHealth)
-	require.Nil(t, err)
-
-	health, err := state.Network.GetHealth()
-	require.Nil(t, err)
-
-	require.Equal(t, health, testHealth)
-
-	err = state.Network.SetNetworkState(testNetworkState)
-	require.Nil(t, err)
-
-	networkState, err := state.Network.GetNetworkState()
-	require.Nil(t, err)
-
-	require.Equal(t, networkState, testNetworkState)
+	//err = state.Network.SetHealth(testHealth)
+	//require.Nil(t, err)
+	//
+	//health, err := state.Network.GetHealth()
+	//require.Nil(t, err)
+	//
+	//require.Equal(t, health, testHealth)
+	//
+	//err = state.Network.SetNetworkState(testNetworkState)
+	//require.Nil(t, err)
+	//
+	//networkState, err := state.Network.GetNetworkState()
+	//require.Nil(t, err)
+	//
+	//require.Equal(t, networkState, testNetworkState)
 
 	err = state.Network.SetPeers(testPeers)
 	require.Nil(t, err)
@@ -73,4 +76,22 @@ func TestNetworkState(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, peers, testPeers)
+}
+
+func TestEncodePeers(t *testing.T) {
+	t.Logf("before encoded %v", *testPeers)
+	res, err := scale.Encode(*testPeers)
+	t.Logf("encoded %v, err: %v", res, err)
+}
+
+func TestDecodePeer(t *testing.T) {
+	enc, err := scale.Encode(*testPeers)
+	if err != nil {
+		t.Fatal(err)
+	}
+	//var data = []byte{8, 12, 73, 68, 49, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 16, 73, 68, 52, 48, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
+	res := &[]common.PeerInfo{}
+	//reader := bytes.NewReader(data)
+	output, err := scale.Decode(enc, res)
+	t.Logf("decoded %v", output)
 }
