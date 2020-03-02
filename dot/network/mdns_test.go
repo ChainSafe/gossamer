@@ -24,7 +24,7 @@ import (
 )
 
 // wait time to discover and connect using mdns discovery
-var TestMdnsTimeout = 3 * time.Second
+var TestMdnsTimeout = time.Second
 
 // test mdns discovery service (discovers and connects)
 func TestMdns(t *testing.T) {
@@ -65,19 +65,27 @@ func TestMdns(t *testing.T) {
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
 
-	if peerCountA != 1 {
-		t.Error(
-			"node A does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountA,
-		)
+	if peerCountA == 0 {
+		// check peerstore for disconnected peers
+		peerCountA := len(nodeA.host.h.Peerstore().Peers())
+		if peerCountA == 0 {
+			t.Error(
+				"node A does not have expected peer count",
+				"\nexpected:", "not zero",
+				"\nreceived:", peerCountA,
+			)
+		}
 	}
 
-	if peerCountB != 1 {
-		t.Error(
-			"node B does not have expected peer count",
-			"\nexpected:", 1,
-			"\nreceived:", peerCountB,
-		)
+	if peerCountB == 0 {
+		// check peerstore for disconnected peers
+		peerCountB := len(nodeB.host.h.Peerstore().Peers())
+		if peerCountB == 0 {
+			t.Error(
+				"node B does not have expected peer count",
+				"\nexpected:", "not zero",
+				"\nreceived:", peerCountB,
+			)
+		}
 	}
 }
