@@ -95,5 +95,7 @@ func TestUnlockFlag(t *testing.T) {
 	}
 
 	_, _, err = makeNode(ctx)
+
+	// TODO: fix occasional error "could not unlock keys: number of accounts to unlock is greater than number of accounts in keystore"
 	require.Nil(t, err)
 }
