@@ -17,13 +17,10 @@
 package state
 
 import (
-	//"encoding/json"
-	//"encoding/json"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	log "github.com/ChainSafe/log15"
-
+	"encoding/json"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 var healthKey = []byte("health")
@@ -111,16 +108,17 @@ func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
 	if err != nil {
 		return res, err
 	}
-	log.Info("decode", "data", data)
-	err = scale.DecodePtr(data, *res)
+	// TODO: update to scale
+	// err = scale.DecodePtr(data, res)
+	err = json.Unmarshal(data, res)
 	return res, err
 }
 
 // SetPeers sets network state in the database
 func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
-	enc, err := scale.Encode(*peers)
-	log.Info("after custom", "aftre", enc)
-	//enc, err := scale.Encode(peers)
+	// TODO update to scale
+	// enc, err := scale.Encode(peers)
+	enc, err := json.Marshal(peers)
 	if err != nil {
 		return err
 	}

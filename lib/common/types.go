@@ -50,32 +50,39 @@ type PeerInfo struct {
 	BestNumber      uint64
 }
 
-func (pi *PeerInfo) Decode(r io.Reader) (*PeerInfo, error) {
+func (pi PeerInfo) Decode(r io.Reader) (PeerInfo, error) {
+	// This doesn't work because adding the scale package give an:
+	// import cycle not allowed
+	//package github.com/ChainSafe/gossamer/dot/state
+	//	imports github.com/ChainSafe/gossamer/dot/core/types
+	//	imports github.com/ChainSafe/gossamer/lib/common
+	//	imports github.com/ChainSafe/gossamer/lib/scale
+	//	imports github.com/ChainSafe/gossamer/lib/common
+	//
+	//return scale.DecodePtr(b, pi)
 	var pires  = new (PeerInfo)
-	//dcdr := scale.Decoder{r}
-	length, err := ReadUint32(r)
+	// TODO: this is wrong, should be the scale to read Integer
+	length, err := ReadByte(r)
 	if err != nil {
-		return nil, err
+		return *pires, err
 	}
 
+	// TODO: this will be ok when readInteger is implemented
 	b := make([]byte, length)
 	_, err = r.Read(b)
 	if err != nil {
-		return nil, errors.New("could not decode invalid byte array: reached early EOF")
+		return *pires, errors.New("could not decode invalid byte array: reached early EOF")
 	}
 
 	pires.PeerID = string(b)
-	//res, err := ReadUint64(r)
-	//if err != nil {
-	//	return pires, err
-	//}
-	//pires.BestNumber = res
 
-	//res.Roles = 0x10
+	// TODO: implement the rest of PeerInfo decoding
 
-	pi = pires
-	//return scale.DecodePtr(b, pi)
-	return pires, nil
+
+	// This doesn't seem to do anything, how do I get this decoding to pi?
+	pi = *pires
+
+	return *pires, nil
 }
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes

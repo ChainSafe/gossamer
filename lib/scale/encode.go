@@ -335,7 +335,7 @@ func (se *Encoder) encodeArray(t interface{}) (bytesEncoded int, err error) {
 		bytesEncoded += n
 		//var enc []byte
 		for _, elem := range arr {
-			log.Info("elem", "elem", elem)
+			log.Info("[encodeArray]", "PeerInfo element", elem)
 			n, err = se.Encode(elem)
 			bytesEncoded += n
 		}
