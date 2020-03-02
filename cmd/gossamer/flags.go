@@ -58,11 +58,6 @@ var (
 		Name:  "authority",
 		Usage: "Set to true if node is a BABE authority, false otherwise.",
 	}
-	// KeyFlag specifies a test keyring account to use
-	KeyFlag = cli.StringFlag{
-		Name:  "key",
-		Usage: "Specify a test keyring account to use: eg --key=alice",
-	}
 )
 
 // Network flags
@@ -120,6 +115,11 @@ var (
 
 // Account management flags
 var (
+	// KeyFlag specifies a test keyring account to use
+	KeyFlag = cli.StringFlag{
+		Name:  "key",
+		Usage: "Specify a test keyring account to use: eg --key=alice",
+	}
 	// GenerateFlag Generate a new keypair
 	GenerateFlag = cli.BoolFlag{
 		Name:  "generate",
@@ -178,6 +178,7 @@ var (
 	}
 	// AccountFlags account flags
 	AccountFlags = []cli.Flag{
+		KeyFlag,
 		GenerateFlag,
 		PasswordFlag,
 		UnlockFlag,
