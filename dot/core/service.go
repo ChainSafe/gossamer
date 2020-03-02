@@ -272,7 +272,6 @@ func (s *Service) receiveMessages() {
 	for {
 		// receive message from network service
 		msg, ok := <-s.msgRec
-		log.Info("[core]", "time", time.Now().UnixNano())
 		if !ok {
 			log.Error("[core] failed to receive message from network service")
 			return // exit

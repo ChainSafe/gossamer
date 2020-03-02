@@ -51,11 +51,9 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 
 		hash := block.Header.Hash()
 		hashes = append(hashes, hash)
-		//block.SetBlockArrivalTime(previousAT + uint64(1000))
 
 		bt.AddBlock(block)
 		previousHash = hash
-		//previousAT = block.GetBlockArrivalTime()
 	}
 
 	return bt, hashes

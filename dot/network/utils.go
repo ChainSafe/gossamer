@@ -26,8 +26,6 @@ import (
 	"path"
 	"path/filepath"
 
-	//"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/filecoin-project/go-leb128"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"

@@ -31,8 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/database"
-
-	log "github.com/ChainSafe/log15"
+	// log "github.com/ChainSafe/log15"
 )
 
 var blockPrefix = []byte("block")
@@ -148,6 +147,7 @@ func arrivalTimeKey(hash common.Hash) []byte {
 	return append(arrivalTimePrefix, hash.ToBytes()...)
 }
 
+// GenesisHash returns the hash of the genesis block
 func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
@@ -334,8 +334,6 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		Body:   block.Body.AsOptional(),
 	}
 	err = bs.SetBlockData(bd)
-
-	//log.Debug("[state] add block", "hash", hash, "number", block.Header.Number)
 	return err
 }
 
