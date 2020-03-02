@@ -31,7 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/database"
-	// log "github.com/ChainSafe/log15"
 )
 
 var blockPrefix = []byte("block")
@@ -91,9 +90,12 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		db: NewBlockDB(db),
 	}
 
-	bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
+	err := bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
+	if err != nil {
+		return nil, err
+	}
 
-	err := bs.SetHeader(header)
+	err = bs.SetHeader(header)
 	if err != nil {
 		return nil, err
 	}
@@ -298,11 +300,12 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 	return err
 }
 
+// AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
 	return bs.AddBlockWithArrivalTime(block, uint64(time.Now().Unix()))
 }
 
-// AddBlock adds a block to the blocktree and the DB
+// AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
 func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime uint64) error {
 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
 	if err != nil {
@@ -361,6 +364,7 @@ func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return bs.db.db.Put(common.BestBlockHashKey, hash[:])
 }
 
+// GetArrivalTime returns the arrival time of a block given its hash
 func (bs *BlockState) GetArrivalTime(hash common.Hash) (uint64, error) {
 	time, err := bs.db.db.Get(arrivalTimeKey(hash))
 	if err != nil {

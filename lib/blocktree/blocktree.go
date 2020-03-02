@@ -63,6 +63,7 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 	}
 }
 
+// GenesisHash returns the hash of the genesis block
 func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
 }
