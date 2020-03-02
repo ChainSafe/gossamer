@@ -32,9 +32,9 @@ func DataDir(name string) string {
 	home := HomeDir()
 	if home != "" {
 		if runtime.GOOS == "darwin" {
-			return filepath.Join(home, "Library", "Gossamer")
+			return filepath.Join(home, "Library", "Gossamer", name)
 		} else if runtime.GOOS == "windows" {
-			return filepath.Join(home, "AppData", "Roaming", "Gossamer")
+			return filepath.Join(home, "AppData", "Roaming", "Gossamer", name)
 		} else {
 			return filepath.Join(home, ".gossamer", name)
 		}
