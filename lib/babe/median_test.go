@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -67,16 +68,45 @@ func TestSlotOffset(t *testing.T) {
 	}
 }
 
-func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
+func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousAT := uint64(0)
 
 	for i := 1; i <= depth; i++ {
+
+		// create proof that we can authorize this block
+		babesession.epochThreshold = big.NewInt(0)
+		babesession.authorityIndex = 0
+		slotNumber := uint64(i)
+
+		outAndProof, err := babesession.runLottery(slotNumber)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if outAndProof == nil {
+			t.Fatal("proof was nil when over threshold")
+		}
+
+		babesession.slotToProof[slotNumber] = outAndProof
+
+		// create pre-digest
+		slot := Slot{
+			start:    uint64(time.Now().Unix()),
+			duration: uint64(10000000),
+			number:   slotNumber,
+		}
+
+		predigest, err := babesession.buildBlockPreDigest(slot)
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest: [][]byte{},
+				Digest:     [][]byte{predigest.Encode()},
 			},
 			Body: &types.Body{},
 		}
@@ -85,7 +115,7 @@ func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
 		previousHash = block.Header.Hash()
 		previousAT = arrivalTime
 
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -128,14 +158,14 @@ func TestSlotTime(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 
-	addBlocksToState(t, 100, dbSrv.Block)
+	addBlocksToState(t, babesession, 100, dbSrv.Block)
 
 	res, err := babesession.slotTime(103, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := uint64(104000)
+	expected := uint64(103000)
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
