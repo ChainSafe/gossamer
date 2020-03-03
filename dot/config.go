@@ -82,20 +82,20 @@ func (c *Config) String() string {
 }
 
 // LoadConfig loads the contents from config toml and inits Config object
-func LoadConfig(file string, config *Config) error {
-	fp, err := filepath.Abs(file)
+func LoadConfig(fp string, cfg *Config) error {
+	fp, err := filepath.Abs(fp)
 	if err != nil {
 		log.Error("[dot] Failed to create absolute filepath", "error", err)
 		return err
 	}
 
-	f, err := os.Open(filepath.Clean(fp))
+	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		log.Error("[dot] Failed to open file", "error", err)
 		return err
 	}
 
-	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
+	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
 		log.Error("[dot] Failed to decode configuration", "error", err)
 		return err
 	}
@@ -104,19 +104,19 @@ func LoadConfig(file string, config *Config) error {
 }
 
 // ExportConfig encodes a state type into a TOML file.
-func ExportConfig(file string, s *Config) *os.File {
+func ExportConfig(fp string, cfg *Config) *os.File {
 	var (
 		newFile *os.File
 		err     error
 		raw     []byte
 	)
 
-	if raw, err = toml.Marshal(*s); err != nil {
+	if raw, err = toml.Marshal(*cfg); err != nil {
 		log.Error("[dot] Failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
 
-	newFile, err = os.Create(file)
+	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
 		log.Error("[dot] Failed to create configuration file", "error", err)
 		os.Exit(1)

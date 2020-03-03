@@ -16,44 +16,57 @@
 
 package dot
 
-import "testing"
+import (
+	"os"
+	"path"
+	"testing"
 
-// TestFile test file
-var TestFile = "../node/gssmr/config.toml"
+	"github.com/stretchr/testify/require"
+)
 
-// TestConfig test config
-var TestConfig = &Config{
-	Global: GlobalConfig{
-		DataDir:   "test_data",
-		Roles:     byte(1),
-		Authority: false,
-	},
-	Network: NetworkConfig{
-		Bootnodes:   []string{},
-		ProtocolID:  "/gossamer/test/0",
-		Port:        7001,
-		NoBootstrap: false,
-		NoMdns:      false,
-	},
-	RPC: RPCConfig{
-		Host:    "localhost",
-		Port:    8545,
-		Modules: []string{"system"},
-	},
+// NewTestConfig returns a new test configuration using the provided datadir
+func NewTestConfig(datadir string) *Config {
+	return &Config{
+		Global: GlobalConfig{
+			DataDir:   datadir,
+			Roles:     byte(1),
+			Authority: false,
+		},
+		Network: NetworkConfig{
+			Bootnodes:   []string{},
+			ProtocolID:  "/gossamer/test/0",
+			Port:        7001,
+			NoBootstrap: false,
+			NoMdns:      false,
+		},
+		RPC: RPCConfig{
+			Host:    "localhost",
+			Port:    8545,
+			Modules: []string{"system"},
+		},
+	}
 }
 
-// TestLoadConfig tests loading toml configuration file
+// TestLoadConfig tests loading toml configuration file for ksmcc
 func TestLoadConfig(t *testing.T) {
-	err := LoadConfig(TestFile, TestConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := path.Join(os.TempDir(), "gossamer-test", t.Name())
+	defer os.RemoveAll(dir)
+
+	fp := "../tests/exports/config.toml"
+	cfg := NewTestConfig(dir)
+
+	err := LoadConfig(fp, cfg)
+	require.Nil(t, err)
 }
 
 // TestExportConfig tests exporting toml configuration file
 func TestExportConfig(t *testing.T) {
-	err := ExportConfig(TestFile, TestConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := path.Join(os.TempDir(), "gossamer-test", t.Name())
+	defer os.RemoveAll(dir)
+
+	fp := "../tests/exports/config.toml"
+	cfg := NewTestConfig(dir)
+
+	file := ExportConfig(fp, cfg)
+	require.NotNil(t, file)
 }
