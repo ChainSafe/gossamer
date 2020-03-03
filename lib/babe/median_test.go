@@ -171,3 +171,78 @@ func TestSlotTime(t *testing.T) {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
 	}
 }
+
+// func TestGetSlotForBlock(t *testing.T) {
+// 	dataDir, err := ioutil.TempDir("", "./test_data")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	genesisHeader := &types.Header{
+// 		Number:    big.NewInt(0),
+// 		StateRoot: trie.EmptyHash,
+// 	}
+
+// 	dbSrv := state.NewService(dataDir)
+// 	err = dbSrv.Initialize(genesisHeader, trie.NewEmptyTrie(nil))
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	err = dbSrv.Start()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	defer func() {
+// 		err = dbSrv.Stop()
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+// 	}()
+
+// 	cfg := &SessionConfig{
+// 		BlockState:   dbSrv.Block,
+// 		StorageState: dbSrv.Storage,
+// 	}
+
+// 	babesession := createTestSession(t, cfg)
+
+// 	// create proof that we can authorize this block
+// 	babesession.epochThreshold = big.NewInt(0)
+// 	babesession.authorityIndex = 0
+// 	slotNumber := uint64(17)
+
+// 	outAndProof, err := babesession.runLottery(slotNumber)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	if outAndProof == nil {
+// 		t.Fatal("proof was nil when over threshold")
+// 	}
+
+// 	babesession.slotToProof[slotNumber] = outAndProof
+
+// 	// create pre-digest
+// 	slot := Slot{
+// 		start:    uint64(time.Now().Unix()),
+// 		duration: uint64(10000000),
+// 		number:   slotNumber,
+// 	}
+
+// 	predigest, err := babesession.buildBlockPreDigest(slot)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	block := &types.Block{
+// 		Header: &types.Header{
+// 			ParentHash: previousHash,
+// 			Number:     big.NewInt(int64(i)),
+// 			Digest:     [][]byte{predigest.Encode()},
+// 		},
+// 		Body: &types.Body{},
+// 	}
+
+// }

@@ -21,11 +21,43 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+var slotTail = uint64(12)
+
+// returns the current slot number
+func (b *Session) findCurrentSlot(slotTail uint64) (uint64, error) {
+	 // find slot of chain head
+	head := b.blockState.BestBlockHash()
+
+	slot, err := b.getSlotForBlock(head)
+	if err != nil {
+		return 0, err
+	}
+
+	// find arrival time of chain head
+	// note: this assumes that the block arrived within the slot it was produced, may be off
+	arrivalTime, err := b.blockState.GetArrivalTime(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	// use slot duration to count up
+	for {
+		if (arrivalTime >= time.Now().Unix() - b.config.SlotDuration) {
+			return slot, nil
+		}
+
+		// increment slot, slot time
+		arrivalTime += b.config.SlotDuration
+		slot += 1
+	}
+}
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
