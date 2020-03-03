@@ -154,7 +154,7 @@ func (s *Service) handleConn(conn network.Conn) {
 
 		// get latest block header from block state
 		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
-		if err != nil {
+		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
 			log.Error("[network] could not get chain head", "err", err)
 			return
 		}
@@ -182,7 +182,12 @@ func (s *Service) handleConn(conn network.Conn) {
 // a matching protocol id that was opened by the connected peer) and continues
 // reading until the inbound message stream is closed or reset.
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
-	peer := stream.Conn().RemotePeer()
+	conn := stream.Conn()
+	if conn == nil {
+		log.Error("(*Service) handleStream conn is nil ?")
+		return
+	}
+	remotePeer := conn.RemotePeer()
 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -193,12 +198,12 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 		// decode message based on message type
 		msg, err := decodeMessage(r)
 		if err != nil {
-			log.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			log.Error("Failed to decode message from peer", "peer", remotePeer, "err", err)
 			return // exit
 		}
 
 		// handle message based on peer status and message type
-		s.handleMessage(peer, msg)
+		s.handleMessage(remotePeer, msg)
 	}
 
 	// the stream stays open until closed or reset
