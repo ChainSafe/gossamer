@@ -28,6 +28,7 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
+	BestBlockNumber() (*big.Int, error)
 	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) []common.Hash
 	AddBlock(*types.Block) error

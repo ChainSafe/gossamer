@@ -28,11 +28,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// slotTail is the number of blocks needed for us to run the median algorithm. in the spec, it's arbitrarily set to 1200.
+// TODO: will need to update this once finished simple slot time algo testing
 var slotTail = uint64(12)
 
-// returns the current slot number
-func (b *Session) findCurrentSlot(slotTail uint64) (uint64, error) {
-	 // find slot of chain head
+// returns the estimated current slot number, without median algorithm
+func (b *Session) estimateCurrentSlot() (uint64, error) {
+	// find slot of chain head
 	head := b.blockState.BestBlockHash()
 
 	slot, err := b.getSlotForBlock(head)
@@ -42,14 +44,14 @@ func (b *Session) findCurrentSlot(slotTail uint64) (uint64, error) {
 
 	// find arrival time of chain head
 	// note: this assumes that the block arrived within the slot it was produced, may be off
-	arrivalTime, err := b.blockState.GetArrivalTime(hash)
+	arrivalTime, err := b.blockState.GetArrivalTime(head)
 	if err != nil {
 		return 0, err
 	}
 
 	// use slot duration to count up
 	for {
-		if (arrivalTime >= time.Now().Unix() - b.config.SlotDuration) {
+		if arrivalTime >= uint64(time.Now().Unix()) {
 			return slot, nil
 		}
 
@@ -57,6 +59,29 @@ func (b *Session) findCurrentSlot(slotTail uint64) (uint64, error) {
 		arrivalTime += b.config.SlotDuration
 		slot += 1
 	}
+}
+
+// getCurrentSlot estimates the current slot, then uses the slotTime algorithm to determine the exact slot
+func (b *Session) getCurrentSlot() (uint64, error) {
+	estimate, err := b.estimateCurrentSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	for {
+		slotTime, err := b.slotTime(estimate, slotTail)
+		if err != nil {
+			return 0, err
+		}
+
+		if slotTime >= uint64(time.Now().Unix())-b.config.SlotDuration {
+			return estimate, nil
+		}
+
+		estimate += 1
+	}
+
+	return estimate, nil
 }
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
@@ -154,6 +179,10 @@ func (b *Session) getSlotForBlock(hash common.Hash) (uint64, error) {
 	header, err := b.blockState.GetHeader(hash)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("chain head missing digest")
 	}
 
 	preDigestBytes := header.Digest[0]

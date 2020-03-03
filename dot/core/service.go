@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -207,6 +208,42 @@ func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 	return s.grandpaAuthorities()
 }
 
+// getLatestSlot returns the slot for a block at the head of the chain
+func (s *Service) getLatestSlot() (uint64, error) {
+	header, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return 0, err
+	}
+
+	if header.Number.Cmp(big.NewInt(0)) == 0 {
+		return 1, nil
+	}
+
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("chain head missing digest")
+	}
+
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, fmt.Errorf("first digest item is not pre-digest")
+	}
+
+	babeHeader := new(babetypes.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+	}
+
+	return babeHeader.SlotNumber, nil
+}
+
 func (s *Service) handleBabeSession() {
 	for {
 		<-s.epochDone
@@ -224,6 +261,11 @@ func (s *Service) handleBabeSession() {
 		epochDone := make(chan struct{})
 		s.epochDone = epochDone
 
+		latestSlot, err := s.getLatestSlot()
+		if err != nil {
+			log.Error("[core]", "error", err)
+		}
+
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
 			Keypair:          s.keys[0].(*sr25519.Keypair),
@@ -234,6 +276,7 @@ func (s *Service) handleBabeSession() {
 			TransactionQueue: s.transactionQueue,
 			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:             epochDone,
+			StartSlot:        latestSlot,
 		}
 
 		// create a new BABE session

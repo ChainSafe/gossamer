@@ -350,6 +350,15 @@ func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 	return bs.GetHeader(bs.BestBlockHash())
 }
 
+func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
+	header, err := bs.GetHeader(bs.BestBlockHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return header.Number, nil
+}
+
 // BestBlock returns the current head of the chain
 func (bs *BlockState) BestBlock() (*types.Block, error) {
 	return bs.GetBlockByHash(bs.BestBlockHash())
