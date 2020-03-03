@@ -156,7 +156,7 @@ func (s *Service) handleConn(conn network.Conn) {
 
 		// get latest block header from block state
 		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
-		if err != nil {
+		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
 			log.Error("[network] could not get chain head", "err", err)
 			return
 		}
