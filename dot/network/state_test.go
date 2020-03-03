@@ -47,6 +47,10 @@ func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 		return nil, err
 	}
 
+	if mbs.number == nil {
+		mbs.number = big.NewInt(1)
+	}
+
 	return &types.Header{
 		ParentHash:     parentHash,
 		Number:         mbs.number,
