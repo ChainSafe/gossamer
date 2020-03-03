@@ -60,7 +60,7 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var currSlot uint64
 	var so uint64
 	var arrivalTime uint64
-	
+
 	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
 		currSlot, err = b.computeSlotForBlock(hash, sd)
 		if err != nil {
