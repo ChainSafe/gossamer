@@ -207,6 +207,8 @@ func getConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 		case "ksmcc":
 			log.Trace("[gossamer] Using node implementation", "name", name)
 			cfg = ksmcc.DefaultConfig()
+		default:
+			return nil, fmt.Errorf("unknown node implementation: %s", name)
 		}
 	} else {
 		log.Trace("[gossamer] Using node implementation", "name", "gssmr")
