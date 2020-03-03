@@ -18,10 +18,13 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"sort"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
+	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
@@ -30,20 +33,21 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
 
 	head := b.blockState.BestBlockHash()
-	bn := new(big.Int).SetUint64(slotTail)
+	tail := new(big.Int).SetUint64(slotTail)
 
-	deepestBlock, err := b.blockState.GetBlockByHash(head)
+	deepestBlock, err := b.blockState.GetHeader(head)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("cannot get deepest block: %s", err)
 	}
 
-	nf := bn.Sub(deepestBlock.Header.Number, bn)
 	// check to make sure we have enough blocks before the deepest block to accurately calculate slot time
-	if deepestBlock.Header.Number.Cmp(bn) <= 0 {
-		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
+	if deepestBlock.Number.Cmp(tail) == -1 {
+		return 0, fmt.Errorf("cannot calculate slot time: deepest block number %d less than or equal to slot tail %d", deepestBlock.Number, tail)
 	}
 
-	s, err := b.blockState.GetBlockByNumber(nf)
+	startNumber := tail.Sub(deepestBlock.Number, tail)
+
+	start, err := b.blockState.GetBlockByNumber(startNumber)
 	if err != nil {
 		return 0, err
 	}
@@ -55,18 +59,27 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 
 	sd := b.config.SlotDuration
 
-	var block *types.Block
-	for _, hash := range b.blockState.SubChain(s.Header.Hash(), deepestBlock.Header.Hash()) {
-		block, err = b.blockState.GetBlockByHash(hash)
+	var currSlot uint64
+	var so uint64
+	var arrivalTime uint64
+
+	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
+		currSlot, err = b.getSlotForBlock(hash)
 		if err != nil {
 			return 0, err
 		}
 
-		so, offsetErr := slotOffset(b.blockState.ComputeSlotForBlock(block, sd), slot)
-		if offsetErr != nil {
+		so, err = slotOffset(currSlot, slot)
+		if err != nil {
 			return 0, err
 		}
-		st := block.GetBlockArrivalTime() + (so * sd)
+
+		arrivalTime, err = b.blockState.GetArrivalTime(hash)
+		if err != nil {
+			return 0, err
+		}
+
+		st := arrivalTime + (so * sd)
 		at = append(at, st)
 	}
 
@@ -102,4 +115,32 @@ func slotOffset(start uint64, end uint64) (uint64, error) {
 		return 0, errors.New("cannot have negative Slot Offset! ")
 	}
 	return os, nil
+}
+
+// getSlotForBlock returns the slot for a block
+func (b *Session) getSlotForBlock(hash common.Hash) (uint64, error) {
+	header, err := b.blockState.GetHeader(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, fmt.Errorf("first digest item is not pre-digest")
+	}
+
+	babeHeader := new(babetypes.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+	}
+
+	return babeHeader.SlotNumber, nil
 }
