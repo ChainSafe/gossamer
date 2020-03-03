@@ -18,7 +18,6 @@ package network
 
 import (
 	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -32,7 +31,7 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -71,7 +70,7 @@ func TestStatus(t *testing.T) {
 	// simulate host status message sent from core service on startup
 	msgRecA <- testStatusMessage
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -96,6 +95,11 @@ func TestStatus(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
