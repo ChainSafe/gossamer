@@ -47,7 +47,7 @@ func (b *Session) estimateCurrentSlot() (uint64, error) {
 
 	// use slot duration to count up
 	for {
-		if arrivalTime >= uint64(time.Now().Unix()) {
+		if arrivalTime >= uint64(time.Now().Unix())-(b.config.SlotDuration/1000) {
 			return slot, nil
 		}
 
@@ -70,7 +70,7 @@ func (b *Session) getCurrentSlot() (uint64, error) {
 			return 0, err
 		}
 
-		if slotTime >= uint64(time.Now().Unix())-b.config.SlotDuration {
+		if slotTime > uint64(time.Now().Unix())-(b.config.SlotDuration/1000) {
 			return estimate, nil
 		}
 
@@ -80,8 +80,8 @@ func (b *Session) getCurrentSlot() (uint64, error) {
 	return estimate, nil
 }
 
-// slotTime calculates the slot time in the form of miliseconds since the unix epoch
-// for a given slot in miliseconds, returns 0 and an error if it can't be calculated
+// slotTime calculates the slot time in the form of seconds since the unix epoch
+// for a given slot in seconds, returns 0 and an error if it can't be calculated
 func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
 
@@ -110,7 +110,7 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 		return 0, err
 	}
 
-	sd := b.config.SlotDuration
+	sd := (b.config.SlotDuration / 1000)
 
 	var currSlot uint64
 	var so uint64
@@ -165,7 +165,7 @@ func median(l []uint64) (uint64, error) {
 func slotOffset(start uint64, end uint64) (uint64, error) {
 	os := end - start
 	if end < start {
-		return 0, errors.New("cannot have negative Slot Offset! ")
+		return 0, errors.New("cannot have negative Slot Offset")
 	}
 	return os, nil
 }

@@ -65,9 +65,9 @@ func TestSlotOffset(t *testing.T) {
 	}
 }
 
-func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState BlockState) {
+func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState BlockState, startTime uint64) {
 	previousHash := blockState.BestBlockHash()
-	previousAT := uint64(0)
+	previousAT := startTime
 
 	for i := 1; i <= depth; i++ {
 
@@ -90,7 +90,7 @@ func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState 
 		// create pre-digest
 		slot := Slot{
 			start:    uint64(time.Now().Unix()),
-			duration: uint64(10000000),
+			duration: uint64(1000),
 			number:   slotNumber,
 		}
 
@@ -108,7 +108,7 @@ func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState 
 			Body: &types.Body{},
 		}
 
-		arrivalTime := previousAT + uint64(1000)
+		arrivalTime := previousAT + uint64(1)
 		previousHash = block.Header.Hash()
 		previousAT = arrivalTime
 
@@ -128,14 +128,14 @@ func TestSlotTime(t *testing.T) {
 		}
 	}()
 
-	addBlocksToState(t, babesession, 100, dbSrv.Block)
+	addBlocksToState(t, babesession, 100, dbSrv.Block, uint64(0))
 
 	res, err := babesession.slotTime(103, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := uint64(103000)
+	expected := uint64(103)
 
 	if res != expected {
 		t.Errorf("Fail: got %v expected %v\n", res, expected)
@@ -207,13 +207,26 @@ func TestEstimateCurrentSlot(t *testing.T) {
 
 }
 
-// func TestGetCurrentSlot(t *testing.T) {
-// 	babesession, dbSrv := createTestSessionWithState(t, nil)
+func TestGetCurrentSlot(t *testing.T) {
+	babesession, dbSrv := createTestSessionWithState(t, nil)
 
-// 	defer func() {
-// 		err := dbSrv.Stop()
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-// 	}()
-// }
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	addBlocksToState(t, babesession, 100, dbSrv.Block, uint64(time.Now().Unix())-(babesession.config.SlotDuration/10))
+
+	res, err := babesession.getCurrentSlot()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := uint64(102)
+
+	if res != expected {
+		t.Fatalf("Fail: got %d expected %d", res, expected)
+	}
+}
