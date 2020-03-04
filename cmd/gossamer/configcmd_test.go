@@ -34,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/node/gssmr"
 	"github.com/ChainSafe/gossamer/tests"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -58,13 +57,13 @@ var TestGenesis = &genesis.Genesis{
 
 func teardown(tempFile *os.File) {
 	if err := os.Remove(tempFile.Name()); err != nil {
-		log.Warn("cannot remove temp file", "err", err)
+		fmt.Println("failed to remove temporary file", "error", err)
 	}
 }
 
 func removeTestDataDir() {
 	if err := os.RemoveAll(TestDataDir); err != nil {
-		log.Warn("cannot remove test data dir", "err", err)
+		fmt.Println("failed to remove test data directory", "error", err)
 	}
 }
 
@@ -74,7 +73,7 @@ func createTempConfigFile() (*os.File, *dot.Config) {
 	testConfig.Global.DataDir = TestDataDir
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "prefix-")
 	if err != nil {
-		log.Crit("Cannot create temporary file", "err", err)
+		fmt.Println("failed to create temporary file", "error", err)
 		os.Exit(1)
 	}
 	f := dot.ExportConfig(tmpFile.Name(), testConfig)
@@ -371,7 +370,7 @@ func TestMakeNode(t *testing.T) {
 			context, err := createCliContext(c.name, c.flags, c.values)
 			require.Nil(t, err)
 
-			err = loadGenesis(context)
+			err = initializeNode(context)
 			require.Nil(t, err)
 
 			node, cfg, err := makeNode(context)
