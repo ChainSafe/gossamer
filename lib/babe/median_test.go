@@ -204,7 +204,6 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	if estimatedSlot != slotNumber+1 {
 		t.Fatalf("Fail: got %d expected %d", estimatedSlot, slotNumber+1)
 	}
-
 }
 
 func TestGetCurrentSlot(t *testing.T) {
@@ -220,6 +219,8 @@ func TestGetCurrentSlot(t *testing.T) {
 	// 100 blocks / 1000 ms/s
 	// TODO: use time.Duration
 	addBlocksToState(t, babesession, 100, dbSrv.Block, uint64(time.Now().Unix())-(babesession.config.SlotDuration/10))
+
+	time.Sleep(time.Millisecond * 200)
 
 	res, err := babesession.getCurrentSlot()
 	if err != nil {
