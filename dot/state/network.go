@@ -17,7 +17,7 @@
 package state
 
 import (
-
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/scale"

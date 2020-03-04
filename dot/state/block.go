@@ -424,6 +424,6 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *babetypes.Bab
 	enc := bh.Encode()
 
 
-	err := bs.db.Db.Put(babeHeaderKey(epoch, slot), enc)
+	err := bs.db.Put(babeHeaderKey(epoch, slot), enc)
 	return err
 }
