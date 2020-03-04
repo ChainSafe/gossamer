@@ -423,7 +423,6 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *babetypes.Bab
 	// Write the encoded header
 	enc := bh.Encode()
 
-
 	err := bs.db.Put(babeHeaderKey(epoch, slot), enc)
 	return err
 }

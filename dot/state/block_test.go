@@ -131,8 +131,8 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 
-		Number: big.NewInt(0),
-		Digest: [][]byte{},
+		Number:     big.NewInt(0),
+		Digest:     [][]byte{},
 		ParentHash: genesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -151,8 +151,8 @@ func TestAddBlock(t *testing.T) {
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: [][]byte{},
+		Number:     big.NewInt(1),
+		Digest:     [][]byte{},
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
