@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/database"
+	//"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -38,6 +38,11 @@ import (
 )
 
 var TestMessageTimeout = 5 * time.Second
+
+var genesisHeader = &types.Header{
+	Number:    big.NewInt(0),
+	StateRoot: trie.EmptyHash,
+}
 
 func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 	if cfg == nil {
@@ -71,10 +76,7 @@ func newTestService(t *testing.T, cfg *Config) (*Service, *state.Service) {
 	}
 
 	dbSrv := state.NewService(dataDir)
-	err = dbSrv.Initialize(&types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}, trie.NewEmptyTrie(nil))
+	err = dbSrv.Initialize(genesisHeader, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,27 +225,19 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
 
-	header := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}
-
-	blockState, err := state.NewBlockStateFromGenesis(database.NewMemDatabase(), header)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	cfg := &Config{
 		Runtime:         rt,
 		Keystore:        ks,
-		BlockState:      blockState,
 		IsBabeAuthority: false,
 	}
 
-	s, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s, dbSrv := newTestService(t, cfg)
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	err = s.Start()
 	if err != nil {
@@ -269,7 +263,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	header = &types.Header{
+	header := &types.Header{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
@@ -302,7 +296,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := blockState.GetHeader(header.Hash())
+	res, err := s.blockState.GetHeader(header.Hash())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +331,15 @@ func TestProcessTransactionMessage(t *testing.T) {
 		IsBabeAuthority:  true,
 	}
 
-	s, err := NewService(cfg)
+	s, dbSrv := newTestService(t, cfg)
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	err = s.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -371,10 +373,13 @@ func TestService_NotAuthority(t *testing.T) {
 		IsBabeAuthority: false,
 	}
 
-	s, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	s, dbSrv := newTestService(t, cfg)
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	if s.bs != nil {
 		t.Fatal("Fail: should not have babe session")

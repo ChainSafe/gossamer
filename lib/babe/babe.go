@@ -47,6 +47,7 @@ type Session struct {
 	slotToProof      map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	newBlocks        chan<- types.Block            // send blocks to core service
 	done             chan<- struct{}               // lets core know when the epoch is done
+	kill             <-chan struct{}               // kill session if this is closed
 }
 
 // SessionConfig struct
@@ -60,6 +61,7 @@ type SessionConfig struct {
 	AuthData         []*AuthorityData
 	EpochThreshold   *big.Int // should only be used for testing
 	Done             chan<- struct{}
+	Kill             <-chan struct{}
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
