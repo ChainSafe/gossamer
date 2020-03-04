@@ -17,20 +17,38 @@
 package babe
 
 import (
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 // BlockState interface for block state methods
 type BlockState interface {
-	LatestHeader() *types.Header
+	BestBlockHash() common.Hash
+	BestBlockHeader() (*types.Header, error)
+	BestBlock() (*types.Block, error)
+	SubChain(start, end common.Hash) []common.Hash
 	AddBlock(*types.Block) error
+	AddBlockWithArrivalTime(*types.Block, uint64) error
 	SetBlock(*types.Block) error
+	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetHeader(common.Hash) (*types.Header, error)
+	GetArrivalTime(common.Hash) (uint64, error)
+	GenesisHash() common.Hash
 }
 
 // StorageState interface for storage state methods
 type StorageState interface {
 	StorageRoot() (common.Hash, error)
 	SetStorage([]byte, []byte) error
-	SetLatestHeaderHash(hash []byte) error
+}
+
+// TransactionQueue is the interface for transaction queue methods
+type TransactionQueue interface {
+	Push(vt *transaction.ValidTransaction)
+	Pop() *transaction.ValidTransaction
+	Peek() *transaction.ValidTransaction
 }

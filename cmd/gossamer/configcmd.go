@@ -19,13 +19,13 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"unicode"
 
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -33,10 +33,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keyring"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ChainSafe/gossamer/node"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/node/gssmr"
+	"github.com/ChainSafe/gossamer/node/ksmcc"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
@@ -44,7 +47,7 @@ import (
 )
 
 // makeNode sets up node; opening badgerDB instance and returning the Node container
-func makeNode(ctx *cli.Context) (*node.Node, *node.Config, error) {
+func makeNode(ctx *cli.Context) (*dot.Node, *dot.Config, error) {
 	currentConfig, err := getConfig(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -65,14 +68,9 @@ func makeNode(ctx *cli.Context) (*node.Node, *node.Config, error) {
 		return nil, nil, fmt.Errorf("cannot start db service: %s", err)
 	}
 
-	// load all static keys from keystore directory
-	ks := keystore.NewKeystore()
-	// unlock keys, if specified
-	if keyindices := ctx.String(UnlockFlag.Name); keyindices != "" {
-		err = unlockKeys(ctx, dataDir, ks)
-		if err != nil {
-			return nil, nil, fmt.Errorf("could not unlock keys: %s", err)
-		}
+	ks, err := loadKeystore(ctx, dataDir)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// Trie, runtime: load most recent state from DB, load runtime code from trie and create runtime executor
@@ -96,6 +94,10 @@ func makeNode(ctx *cli.Context) (*node.Node, *node.Config, error) {
 	// BABE authority configuration; flag overwrites config option
 	if auth := ctx.GlobalBool(AuthorityFlag.Name); auth && !currentConfig.Global.Authority {
 		currentConfig.Global.Authority = true
+		// if authority, should have at least 1 key in keystore
+		if ks.NumSr25519Keys() == 0 {
+			return nil, nil, fmt.Errorf("no keys provided for authority node")
+		}
 	} else if ctx.IsSet(AuthorityFlag.Name) && !auth && currentConfig.Global.Authority {
 		currentConfig.Global.Authority = false
 	}
@@ -104,24 +106,73 @@ func makeNode(ctx *cli.Context) (*node.Node, *node.Config, error) {
 
 	// Core
 	coreConfig := &core.Config{
-		BlockState:      stateSrv.Block,
-		StorageState:    stateSrv.Storage,
-		Keystore:        ks,
-		Runtime:         rt,
-		MsgRec:          networkMsgSend, // message channel from network service to core service
-		MsgSend:         networkMsgRec,  // message channel from core service to network service
-		IsBabeAuthority: currentConfig.Global.Authority,
+		BlockState:       stateSrv.Block,
+		StorageState:     stateSrv.Storage,
+		TransactionQueue: stateSrv.TransactionQueue,
+		Keystore:         ks,
+		Runtime:          rt,
+		MsgRec:           networkMsgSend, // message channel from network service to core service
+		MsgSend:          networkMsgRec,  // message channel from core service to network service
+		IsBabeAuthority:  currentConfig.Global.Authority,
 	}
-	coreSrvc := createCoreService(coreConfig)
+
+	coreSrvc, err := createCoreService(coreConfig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating core service: %s", err)
+	}
+
 	srvcs = append(srvcs, coreSrvc)
 
 	// RPC
 	if ctx.GlobalBool(RPCEnabledFlag.Name) {
-		rpcSrvr := setupRPC(currentConfig.RPC, stateSrv, networkSrvc)
+		rpcSrvr := setupRPC(currentConfig.RPC, stateSrv, networkSrvc, coreSrvc, stateSrv.TransactionQueue)
 		srvcs = append(srvcs, rpcSrvr)
 	}
 
-	return node.NewNode(gendata.Name, srvcs), currentConfig, nil
+	return dot.NewNode(gendata.Name, srvcs), currentConfig, nil
+}
+
+func loadKeystore(ctx *cli.Context, dataDir string) (*keystore.Keystore, error) {
+	ks := keystore.NewKeystore()
+
+	// load test keys if specified
+	if key := ctx.String(KeyFlag.Name); key != "" {
+		ring, err := keyring.NewKeyring()
+		if err != nil {
+			return nil, fmt.Errorf("cannot create test keyring")
+		}
+
+		switch strings.ToLower(key) {
+		case "alice":
+			ks.Insert(ring.Alice)
+		case "bob":
+			ks.Insert(ring.Bob)
+		case "charlie":
+			ks.Insert(ring.Charlie)
+		case "dave":
+			ks.Insert(ring.Dave)
+		case "eve":
+			ks.Insert(ring.Eve)
+		case "fred":
+			ks.Insert(ring.Fred)
+		case "george":
+			ks.Insert(ring.George)
+		case "heather":
+			ks.Insert(ring.Heather)
+		default:
+			log.Error(fmt.Sprintf("unknown test key %s: options: alice | bob | charlie | dave | eve | fred | george | heather", key))
+		}
+	}
+
+	// unlock keys, if specified
+	if keyindices := ctx.String(UnlockFlag.Name); keyindices != "" {
+		err := unlockKeys(ctx, dataDir, ks)
+		if err != nil {
+			return nil, fmt.Errorf("could not unlock keys: %s", err)
+		}
+	}
+
+	return ks, nil
 }
 
 func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtime.Runtime, error) {
@@ -143,53 +194,78 @@ func loadStateAndRuntime(ss *state.StorageState, ks *keystore.Keystore) (*runtim
 	return runtime.NewRuntime(code, ss, ks)
 }
 
-// getConfig checks for config.toml if --config flag is specified and sets CLI flags
-func getConfig(ctx *cli.Context) (*node.Config, error) {
-	currentConfig := node.DefaultConfig()
-	// Load config file.
-	if file := ctx.GlobalString(ConfigFileFlag.Name); file != "" {
-		configFile := ctx.GlobalString(ConfigFileFlag.Name)
-		err := loadConfig(configFile, currentConfig)
-		if err != nil {
-			log.Warn("err loading toml file", "err", err.Error())
-			return currentConfig, err
+// getConfig gets the configuration for the node using --node and/or --config,
+// then applies the remaining cli flag options to the configuration
+func getConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+
+	// check --node flag and apply node defaults to config
+	if name := ctx.GlobalString(NodeFlag.Name); name != "" {
+		switch name {
+		case "gssmr":
+			log.Trace("[gossamer] Using node implementation", "name", name)
+			cfg = gssmr.DefaultConfig()
+		case "ksmcc":
+			log.Trace("[gossamer] Using node implementation", "name", name)
+			cfg = ksmcc.DefaultConfig()
+		default:
+			return nil, fmt.Errorf("unknown node implementation: %s", name)
 		}
 	} else {
-		log.Debug("Config File is not set")
+		log.Trace("[gossamer] Using node implementation", "name", "gssmr")
+		cfg = gssmr.DefaultConfig()
 	}
 
-	//expand tilde or dot
-	newDataDir := expandTildeOrDot(currentConfig.Global.DataDir)
-	currentConfig.Global.DataDir = newDataDir
+	// check --config flag and apply toml configuration to config
+	if name := ctx.GlobalString(ConfigFlag.Name); name != "" {
+		log.Trace("[gossamer] Loading toml configuration file", "path", name)
+		err = loadConfig(name, cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	// Parse CLI flags
-	setGlobalConfig(ctx, &currentConfig.Global)
-	setNetworkConfig(ctx, &currentConfig.Network)
-	setRPCConfig(ctx, &currentConfig.RPC)
-	return currentConfig, nil
+	// check --datadir flag and expand path of node data directory
+	if name := ctx.GlobalString(DataDirFlag.Name); name != "" {
+		log.Trace("[gossamer] Expanding data directory", "path", name)
+		cfg.Global.DataDir = utils.ExpandDir(name)
+	} else {
+		log.Trace("[gossamer] Expanding data directory", "path", cfg.Global.DataDir)
+		cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
+	}
+
+	// parse remaining flags
+	setGlobalConfig(ctx, &cfg.Global)
+	setNetworkConfig(ctx, &cfg.Network)
+	setRPCConfig(ctx, &cfg.RPC)
+
+	return cfg, nil
 }
 
 // loadConfig loads the contents from config toml and inits Config object
-func loadConfig(file string, config *node.Config) error {
+func loadConfig(file string, config *dot.Config) error {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return err
 	}
-	log.Debug("Loading configuration", "path", filepath.Clean(fp))
+
+	log.Debug("[gossamer] Loading toml configuration", "path", filepath.Clean(fp))
+
 	f, err := os.Open(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}
+
 	if err = tomlSettings.NewDecoder(f).Decode(&config); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func setGlobalConfig(ctx *cli.Context, currentConfig *node.GlobalConfig) {
+func setGlobalConfig(ctx *cli.Context, currentConfig *dot.GlobalConfig) {
 	newDataDir := currentConfig.DataDir
 	if dir := ctx.GlobalString(DataDirFlag.Name); dir != "" {
-		newDataDir = expandTildeOrDot(dir)
+		newDataDir = utils.ExpandDir(dir)
 	}
 	currentConfig.DataDir, _ = filepath.Abs(newDataDir)
 
@@ -205,7 +281,7 @@ func setGlobalConfig(ctx *cli.Context, currentConfig *node.GlobalConfig) {
 	currentConfig.Roles = newRoles
 }
 
-func setNetworkConfig(ctx *cli.Context, fig *node.NetworkConfig) {
+func setNetworkConfig(ctx *cli.Context, fig *dot.NetworkConfig) {
 	// Bootnodes
 	if bnodes := ctx.GlobalString(BootnodesFlag.Name); bnodes != "" {
 		fig.Bootnodes = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
@@ -231,7 +307,7 @@ func setNetworkConfig(ctx *cli.Context, fig *node.NetworkConfig) {
 }
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(fig *node.Config, gendata *genesis.Data, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+func createNetworkService(fig *dot.Config, gendata *genesis.Data, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID
@@ -271,17 +347,17 @@ func createNetworkService(fig *node.Config, gendata *genesis.Data, stateService 
 }
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(coreConfig *core.Config) *core.Service {
+func createCoreService(coreConfig *core.Config) (*core.Service, error) {
 	coreService, err := core.NewService(coreConfig)
 	if err != nil {
 		log.Crit("Failed to create new core service", "err", err)
-		os.Exit(0)
+		return nil, err
 	}
 
-	return coreService
+	return coreService, nil
 }
 
-func setRPCConfig(ctx *cli.Context, fig *node.RPCConfig) {
+func setRPCConfig(ctx *cli.Context, fig *dot.RPCConfig) {
 	// Modules
 	if mods := ctx.GlobalString(RPCModuleFlag.Name); mods != "" {
 		fig.Modules = strings.Split(ctx.GlobalString(RPCModuleFlag.Name), ",")
@@ -299,15 +375,17 @@ func setRPCConfig(ctx *cli.Context, fig *node.RPCConfig) {
 
 }
 
-func setupRPC(fig node.RPCConfig, stateSrv *state.Service, networkSrvc *network.Service) *rpc.HTTPServer {
+func setupRPC(fig dot.RPCConfig, stateSrv *state.Service, networkSrvc *network.Service, coreSrvc *core.Service, txQueue *state.TransactionQueue) *rpc.HTTPServer {
 	cfg := &rpc.HTTPServerConfig{
-		BlockAPI:   stateSrv.Block,
-		StorageAPI: stateSrv.Storage,
-		NetworkAPI: networkSrvc,
-		Codec:      &json2.Codec{},
-		Host:       fig.Host,
-		Port:       fig.Port,
-		Modules:    fig.Modules,
+		BlockAPI:            stateSrv.Block,
+		StorageAPI:          stateSrv.Storage,
+		NetworkAPI:          networkSrvc,
+		CoreAPI:             coreSrvc,
+		TransactionQueueAPI: txQueue,
+		Codec:               &json2.Codec{},
+		Host:                fig.Host,
+		Port:                fig.Port,
+		Modules:             fig.Modules,
 	}
 
 	return rpc.NewHTTPServer(cfg)
@@ -368,16 +446,4 @@ var tomlSettings = toml.Config{
 		}
 		return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
 	},
-}
-
-// expandTildeOrDot will expand a tilde prefix path to full home path
-func expandTildeOrDot(targetPath string) string {
-	if strings.HasPrefix(targetPath, "~\\") || strings.HasPrefix(targetPath, "~/") {
-		if homeDir := node.HomeDir(); homeDir != "" {
-			targetPath = homeDir + targetPath[1:]
-		}
-	} else if strings.HasPrefix(targetPath, ".\\") || strings.HasPrefix(targetPath, "./") {
-		targetPath, _ = filepath.Abs(targetPath)
-	}
-	return path.Clean(os.ExpandEnv(targetPath))
 }

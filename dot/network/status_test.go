@@ -18,9 +18,10 @@ package network
 
 import (
 	"os"
-	"path"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -30,7 +31,7 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
+	dataDirA := newTestDataDir(t, "nodeA")
 	defer os.RemoveAll(dataDirA)
 
 	configA := &Config{
@@ -69,7 +70,7 @@ func TestStatus(t *testing.T) {
 	// simulate host status message sent from core service on startup
 	msgRecA <- testStatusMessage
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
+	dataDirB := newTestDataDir(t, "nodeB")
 	defer os.RemoveAll(dataDirB)
 
 	configB := &Config{
@@ -94,6 +95,11 @@ func TestStatus(t *testing.T) {
 	}
 
 	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,5 +115,21 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-//have a peer send a message status with a block ahead
-// check that the message returned is the expected
+// createTestServiceWithBlockState is a helper method to create and start a new network service
+func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
+	msgRec = make(chan Message)
+	msgSend = make(chan Message)
+
+	cfg.BlockState = blockState
+	cfg.NetworkState = &MockNetworkState{}
+	cfg.ProtocolID = TestProtocolID
+
+	var err error
+	node, err = NewService(cfg, msgSend, msgRec)
+	require.Nil(t, err)
+
+	err = node.Start()
+	require.Nil(t, err)
+
+	return node, msgSend, msgRec
+}

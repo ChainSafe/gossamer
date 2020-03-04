@@ -48,6 +48,7 @@ var _ services.Service = &Service{}
 type Service struct {
 	blockState        BlockState
 	storageState      StorageState
+	transactionQueue  TransactionQueue
 	rt                *runtime.Runtime
 	bs                *babe.Session
 	keys              []crypto.Keypair
@@ -61,14 +62,15 @@ type Service struct {
 
 // Config holds the config obj
 type Config struct {
-	BlockState      BlockState
-	StorageState    StorageState
-	Keystore        *keystore.Keystore
-	Runtime         *runtime.Runtime
-	MsgRec          <-chan network.Message
-	MsgSend         chan<- network.Message
-	NewBlocks       chan types.Block // only used for testing purposes
-	IsBabeAuthority bool
+	BlockState       BlockState
+	StorageState     StorageState
+	TransactionQueue TransactionQueue
+	Keystore         *keystore.Keystore
+	Runtime          *runtime.Runtime
+	MsgRec           <-chan network.Message
+	MsgSend          chan<- network.Message
+	NewBlocks        chan types.Block // only used for testing purposes
+	IsBabeAuthority  bool
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -80,16 +82,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 	keys := cfg.Keystore.Sr25519Keypairs()
 
-	// no validator keypair found, generate a new one
-	if len(keys) == 0 {
-		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			return nil, err
-		}
-		cfg.Keystore.Insert(kp)
-		keys = cfg.Keystore.Sr25519Keypairs()
-	}
-
 	if cfg.NewBlocks == nil {
 		cfg.NewBlocks = make(chan types.Block)
 	}
@@ -97,18 +89,23 @@ func NewService(cfg *Config) (*Service, error) {
 	var srv = &Service{}
 
 	if cfg.IsBabeAuthority {
+		if cfg.Keystore.NumSr25519Keys() == 0 {
+			return nil, fmt.Errorf("no keys provided for authority node")
+		}
+
 		epochDone := make(chan struct{})
 
 		srv = &Service{
-			rt:              cfg.Runtime,
-			keys:            keys,
-			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:          cfg.MsgRec,
-			msgSend:         cfg.MsgSend,
-			blockState:      cfg.BlockState,
-			storageState:    cfg.StorageState,
-			epochDone:       epochDone,
-			isBabeAuthority: true,
+			rt:               cfg.Runtime,
+			keys:             keys,
+			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:           cfg.MsgRec,
+			msgSend:          cfg.MsgSend,
+			blockState:       cfg.BlockState,
+			storageState:     cfg.StorageState,
+			transactionQueue: cfg.TransactionQueue,
+			epochDone:        epochDone,
+			isBabeAuthority:  true,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -118,34 +115,36 @@ func NewService(cfg *Config) (*Service, error) {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:      keys[0].(*sr25519.Keypair),
-			Runtime:      cfg.Runtime,
-			NewBlocks:    cfg.NewBlocks, // becomes block send channel in BABE session
-			BlockState:   cfg.BlockState,
-			StorageState: cfg.StorageState,
-			AuthData:     authData,
-			Done:         epochDone,
+			Keypair:          keys[0].(*sr25519.Keypair),
+			Runtime:          cfg.Runtime,
+			NewBlocks:        cfg.NewBlocks, // becomes block send channel in BABE session
+			BlockState:       cfg.BlockState,
+			StorageState:     cfg.StorageState,
+			AuthData:         authData,
+			Done:             epochDone,
+			TransactionQueue: cfg.TransactionQueue,
 		}
 
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			log.Error("[core] could not start babe session", "error", err)
 			srv.isBabeAuthority = false
+			log.Error("[core] could not start babe session", "error", err)
 			return srv, nil
 		}
 
 		srv.bs = bs
 	} else {
 		srv = &Service{
-			rt:              cfg.Runtime,
-			keys:            keys,
-			blkRec:          cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:          cfg.MsgRec,
-			msgSend:         cfg.MsgSend,
-			blockState:      cfg.BlockState,
-			storageState:    cfg.StorageState,
-			isBabeAuthority: false,
+			rt:               cfg.Runtime,
+			keys:             keys,
+			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
+			msgRec:           cfg.MsgRec,
+			msgSend:          cfg.MsgSend,
+			blockState:       cfg.BlockState,
+			storageState:     cfg.StorageState,
+			transactionQueue: cfg.TransactionQueue,
+			isBabeAuthority:  false,
 		}
 	}
 
@@ -170,7 +169,7 @@ func (s *Service) Start() error {
 
 		err := s.bs.Start()
 		if err != nil {
-			log.Error("core could not start BABE", "error", err)
+			log.Error("[core] could not start BABE", "error", err)
 		}
 
 		return err
@@ -211,12 +210,12 @@ func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 func (s *Service) handleBabeSession() {
 	for {
 		<-s.epochDone
-		log.Trace("core: BABE epoch complete, initializing new session")
+		log.Debug("[core] BABE epoch complete, initializing new session")
 
 		// commit the storage trie to the DB
 		err := s.storageState.StoreInDB()
 		if err != nil {
-			log.Error("core", "error", err)
+			log.Error("[core]", "error", err)
 		}
 
 		newBlocks := make(chan types.Block)
@@ -227,29 +226,30 @@ func (s *Service) handleBabeSession() {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:      s.keys[0].(*sr25519.Keypair),
-			Runtime:      s.rt,
-			NewBlocks:    newBlocks, // becomes block send channel in BABE session
-			BlockState:   s.blockState,
-			StorageState: s.storageState,
-			AuthData:     s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
-			Done:         epochDone,
+			Keypair:          s.keys[0].(*sr25519.Keypair),
+			Runtime:          s.rt,
+			NewBlocks:        newBlocks, // becomes block send channel in BABE session
+			BlockState:       s.blockState,
+			StorageState:     s.storageState,
+			TransactionQueue: s.transactionQueue,
+			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
+			Done:             epochDone,
 		}
 
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			log.Error("core could not initialize BABE", "error", err)
+			log.Error("[core] could not initialize BABE", "error", err)
 			return
 		}
 
 		err = bs.Start()
 		if err != nil {
-			log.Error("core could not start BABE", "error", err)
+			log.Error("[core] could not start BABE", "error", err)
 		}
 
 		s.bs = bs
-		log.Trace("core: BABE session initialized and started")
+		log.Trace("[core] BABE session initialized and started")
 	}
 }
 
@@ -259,9 +259,9 @@ func (s *Service) receiveBlocks() {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
 		if ok {
-			err := s.handleReceivedBlock(block)
+			err := s.handleReceivedBlock(&block)
 			if err != nil {
-				log.Error("Failed to handle block from BABE session", "err", err)
+				log.Error("[core] failed to handle block from BABE session", "err", err)
 			}
 		}
 	}
@@ -273,23 +273,23 @@ func (s *Service) receiveMessages() {
 		// receive message from network service
 		msg, ok := <-s.msgRec
 		if !ok {
-			log.Error("Failed to receive message from network service")
+			log.Error("[core] failed to receive message from network service")
 			return // exit
 		}
 		err := s.handleReceivedMessage(msg)
 		if err != nil {
-			log.Error("Failed to handle message from network service", "err", err)
+			log.Error("[core] failed to handle message from network service", "err", err)
 		}
 	}
 }
 
 // handleReceivedBlock handles blocks from the BABE session
-func (s *Service) handleReceivedBlock(block types.Block) (err error) {
+func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	if s.blockState == nil {
 		return fmt.Errorf("blockState is nil")
 	}
 
-	err = s.blockState.SetHeader(block.Header)
+	err = s.blockState.AddBlock(block)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	case network.TransactionMsgType:
 		err = s.ProcessTransactionMessage(msg)
 	default:
-		err = fmt.Errorf("Received unsupported message type")
+		err = fmt.Errorf("Received unsupported message type %d", msgType)
 	}
 
 	return err
@@ -341,11 +341,30 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		return errors.New("could not cast network.Message to BlockAnnounceMessage")
 	}
 
-	if s.blockState == nil {
-		return errors.New("ProcessBlockAnnounceMessage error: blockState is nil")
+	header, err := types.NewHeader(blockAnnounceMessage.ParentHash, blockAnnounceMessage.Number, blockAnnounceMessage.StateRoot, blockAnnounceMessage.ExtrinsicsRoot, blockAnnounceMessage.Digest)
+	if err != nil {
+		return err
 	}
 
-	latestBlockNum := s.blockState.LatestHeader().Number
+	_, err = s.blockState.GetHeader(header.Hash())
+	if err != nil && err.Error() == "Key not found" {
+		err = s.blockState.SetHeader(header)
+		if err != nil {
+			return err
+		}
+
+		log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+
+	} else {
+		return err
+	}
+
+	chainHead, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	latestBlockNum := chainHead.Number
 	messageBlockNumMinusOne := big.NewInt(0).Sub(blockAnnounceMessage.Number, big.NewInt(1))
 
 	// check if we should send block request message
@@ -356,13 +375,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		currentHash := s.blockState.LatestHeader().Hash()
-
-		header, err := types.NewHeader(blockAnnounceMessage.ParentHash, blockAnnounceMessage.Number, blockAnnounceMessage.StateRoot, blockAnnounceMessage.ExtrinsicsRoot, blockAnnounceMessage.Digest)
-		if err != nil {
-			log.Error("failed to create NewHeader from blockAnnounceMessage fields")
-			return err
-		}
+		currentHash := chainHead.Hash()
 
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
@@ -427,7 +440,7 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 
 			err = s.executeBlock(enc)
 			if err != nil {
-				log.Error("Failed to validate block", "err", err)
+				log.Error("[core] failed to validate block", "err", err)
 				return err
 			}
 
@@ -503,9 +516,9 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		tx := tx // pin
 
 		// validate each transaction
-		val, err := s.validateTransaction(tx)
+		val, err := s.ValidateTransaction(tx)
 		if err != nil {
-			log.Error("Failed to validate transaction", "err", err)
+			log.Error("[core] failed to validate transaction", "err", err)
 			return err // exit
 		}
 
@@ -514,7 +527,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 
 		if s.isBabeAuthority {
 			// push to the transaction queue of BABE session
-			s.bs.PushToTxQueue(vtx)
+			s.transactionQueue.Push(vtx)
 		}
 	}
 

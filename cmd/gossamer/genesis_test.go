@@ -24,13 +24,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/node"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -85,13 +85,17 @@ func TestStoreGenesisInfo(t *testing.T) {
 		t.Fatalf("Fail to get genesis data: got %s expected %s", gendata, expected)
 	}
 
-	stateRoot := dbSrv.Block.LatestHeader().StateRoot
+	genesisHeader, err := dbSrv.Block.BestBlockHeader()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	stateRoot := genesisHeader.StateRoot
 	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	genesisHeader := dbSrv.Block.LatestHeader()
 	if !genesisHeader.Hash().Equal(expectedHeader.Hash()) {
 		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
 	}
@@ -121,8 +125,8 @@ func TestGenesisStateLoading(t *testing.T) {
 	d, _, err := makeNode(context)
 	require.Nil(t, err)
 
-	if reflect.TypeOf(d) != reflect.TypeOf(&node.Node{}) {
-		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&node.Node{}))
+	if reflect.TypeOf(d) != reflect.TypeOf(&dot.Node{}) {
+		t.Fatalf("failed to return correct type: got %v expected %v", reflect.TypeOf(d), reflect.TypeOf(&dot.Node{}))
 	}
 
 	expected := &trie.Trie{}

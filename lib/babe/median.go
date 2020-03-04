@@ -18,43 +18,74 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"sort"
 
-	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // slotTime calculates the slot time in the form of miliseconds since the unix epoch
 // for a given slot in miliseconds, returns 0 and an error if it can't be calculated
-func (b *Session) slotTime(slot uint64, bt *blocktree.BlockTree, slotTail uint64) (uint64, error) {
+func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var at []uint64
-	dl := bt.DeepestBlock()
-	bn := new(big.Int).SetUint64(slotTail)
-	nf := bn.Sub(dl.Header.Number, bn)
-	// check to make sure we have enough blocks before the deepest block to accurately calculate slot time
-	if dl.Header.Number.Cmp(bn) <= 0 {
-		return 0, errors.New("Cannot calculate slot time, deepest leaf block number less than or equal to Slot Tail")
+
+	head := b.blockState.BestBlockHash()
+	tail := new(big.Int).SetUint64(slotTail)
+
+	deepestBlock, err := b.blockState.GetHeader(head)
+	if err != nil {
+		return 0, fmt.Errorf("cannot get deepest block: %s", err)
 	}
-	s := bt.GetBlockFromBlockNumber(nf)
-	err := b.configurationFromRuntime()
-	sd := b.config.SlotDuration
+
+	// check to make sure we have enough blocks before the deepest block to accurately calculate slot time
+	if deepestBlock.Number.Cmp(tail) == -1 {
+		return 0, fmt.Errorf("cannot calculate slot time: deepest block number %d less than or equal to slot tail %d", deepestBlock.Number, tail)
+	}
+
+	startNumber := tail.Sub(deepestBlock.Number, tail)
+
+	start, err := b.blockState.GetBlockByNumber(startNumber)
 	if err != nil {
 		return 0, err
 	}
-	for _, block := range bt.SubBlockchain(s.Header.Number, dl.Header.Number) {
-		so, offsetErr := slotOffset(bt.ComputeSlotForBlock(block, sd), slot)
-		if offsetErr != nil {
+
+	err = b.configurationFromRuntime()
+	if err != nil {
+		return 0, err
+	}
+
+	sd := b.config.SlotDuration
+
+	var currSlot uint64
+	var so uint64
+	var arrivalTime uint64
+
+	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
+		currSlot, err = b.computeSlotForBlock(hash, sd)
+		if err != nil {
 			return 0, err
 		}
-		st := block.GetBlockArrivalTime() + (so * sd)
+
+		so, err = slotOffset(currSlot, slot)
+		if err != nil {
+			return 0, err
+		}
+
+		arrivalTime, err = b.blockState.GetArrivalTime(hash)
+		if err != nil {
+			return 0, err
+		}
+
+		st := arrivalTime + (so * sd)
 		at = append(at, st)
 	}
+
 	st, err := median(at)
 	if err != nil {
 		return 0, err
 	}
 	return st, nil
-
 }
 
 // median calculates the median of a uint64 slice
@@ -82,4 +113,29 @@ func slotOffset(start uint64, end uint64) (uint64, error) {
 		return 0, errors.New("cannot have negative Slot Offset! ")
 	}
 	return os, nil
+}
+
+// computeSlotForBlock computes the slot for a block
+// TODO: this is wrong, need to use the slot # as in the block's pre-digest
+func (b *Session) computeSlotForBlock(hash common.Hash, sd uint64) (uint64, error) {
+	start, err := b.blockState.GetBlockByNumber(big.NewInt(1))
+	if err != nil {
+		return 0, err
+	}
+	gt, err := b.blockState.GetArrivalTime(start.Header.Hash())
+	if err != nil {
+		return 0, err
+	}
+	nt, err := b.blockState.GetArrivalTime(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	sp := uint64(0)
+	for gt < nt {
+		gt += sd
+		sp++
+	}
+
+	return sp, nil
 }

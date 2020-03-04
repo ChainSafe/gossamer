@@ -24,30 +24,40 @@ import (
 )
 
 // MockBlockState ...
-type MockBlockState struct{}
+type MockBlockState struct {
+	number *big.Int
+}
 
-// LatestHeader for MockBlockState
-func (mbs *MockBlockState) LatestHeader() *types.Header {
+func newMockBlockState(number *big.Int) *MockBlockState {
+	return &MockBlockState{number: number}
+}
+
+// BestBlockHeader for MockBlockState
+func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	stateRoot, err := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	if err != nil {
-		return nil
+		return nil, err
+	}
+
+	if mbs.number == nil {
+		mbs.number = big.NewInt(1)
 	}
 
 	return &types.Header{
 		ParentHash:     parentHash,
-		Number:         big.NewInt(1),
+		Number:         mbs.number,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
 		Digest:         [][]byte{{}},
-	}
+	}, nil
 }
 
 // MockNetworkState ...
