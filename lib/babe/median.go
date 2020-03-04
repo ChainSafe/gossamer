@@ -30,8 +30,9 @@ var slotTail = uint64(12)
 
 // returns the estimated current slot number, without median algorithm
 func (b *Session) estimateCurrentSlot() (uint64, error) {
-	// find slot of chain head
-	head := b.blockState.BestBlockHash()
+	// estimate slot of highest block we've received
+	// TODO: change this to BestBlockHash. however this requires us to have at least `slotTail` number of blocks in our state
+	head := b.blockState.HighestBlockHash()
 
 	slot, err := b.blockState.GetSlotForBlock(head)
 	if err != nil {
@@ -53,7 +54,7 @@ func (b *Session) estimateCurrentSlot() (uint64, error) {
 
 		// increment slot, slot time
 		arrivalTime += b.config.SlotDuration
-		slot += 1
+		slot++
 	}
 }
 
@@ -74,10 +75,8 @@ func (b *Session) getCurrentSlot() (uint64, error) {
 			return estimate, nil
 		}
 
-		estimate += 1
+		estimate++
 	}
-
-	return estimate, nil
 }
 
 // slotTime calculates the slot time in the form of seconds since the unix epoch

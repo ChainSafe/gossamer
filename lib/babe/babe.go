@@ -171,19 +171,15 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
-	slotNum := uint64(0)
+	slotNum := b.startSlot
 
-	bestNum, err := b.blockState.BestBlockNumber()
-	if err != nil {
-		log.Error("[babe] cannot get best block number", "error", err)
-		return
-	}
+	bestNum := b.blockState.HighestBlockNumber()
+	log.Debug("[babe]", "highest block num", bestNum)
 
-	log.Debug("[babe]", "best block num", bestNum)
-
+	var err error
 	// check if we are starting at genesis, if not, need to calculate slot
-	if bestNum.Cmp(big.NewInt(0)) == 1 {
-		// TODO: need to run median algorithm here, not just estimate. however this requires us to have at least `slotTail` number of blocks in our state
+	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
+		// TODO: change this to getCurrentSlot, once BlockResponse messages are implemented
 		slotNum, err = b.estimateCurrentSlot()
 		if err != nil {
 			log.Error("[babe] cannot estimate current slot", "error", err)

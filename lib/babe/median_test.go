@@ -217,6 +217,8 @@ func TestGetCurrentSlot(t *testing.T) {
 		}
 	}()
 
+	// 100 blocks / 1000 ms/s
+	// TODO: use time.Duration
 	addBlocksToState(t, babesession, 100, dbSrv.Block, uint64(time.Now().Unix())-(babesession.config.SlotDuration/10))
 
 	res, err := babesession.getCurrentSlot()

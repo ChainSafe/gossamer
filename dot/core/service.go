@@ -207,9 +207,9 @@ func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
 	return s.grandpaAuthorities()
 }
 
-// getLatestSlot returns the slot for a block at the head of the chain
+// getLatestSlot returns the slot for the block at the head of the chain
 func (s *Service) getLatestSlot() (uint64, error) {
-	return s.blockState.GetSlotForBlock(s.blockState.BestBlockHash())
+	return s.blockState.GetSlotForBlock(s.blockState.HighestBlockHash())
 }
 
 func (s *Service) handleBabeSession() {
@@ -244,7 +244,7 @@ func (s *Service) handleBabeSession() {
 			TransactionQueue: s.transactionQueue,
 			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:             epochDone,
-			StartSlot:        latestSlot,
+			StartSlot:        latestSlot + 1,
 		}
 
 		// create a new BABE session

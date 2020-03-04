@@ -40,6 +40,8 @@ type BlockState interface {
 	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
+	HighestBlockHash() common.Hash
+	HighestBlockNumber() *big.Int
 }
 
 // StorageState interface for storage state methods
