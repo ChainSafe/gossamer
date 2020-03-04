@@ -221,7 +221,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 		number:   slotNum,
 	}
 
-	// TODO: block authorization check
+	// TODO: move block authorization check here
 
 	block, err := b.buildBlock(parentHeader, currentSlot)
 	if err != nil {
