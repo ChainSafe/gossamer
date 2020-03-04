@@ -162,7 +162,10 @@ func (bs *BlockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
 	}
 
 	r := &bytes.Buffer{}
-	r.Write(data)
+	_, err = r.Write(data)
+	if err != nil {
+		return nil, err
+	}
 
 	err = result.Decode(r)
 	if err != nil {

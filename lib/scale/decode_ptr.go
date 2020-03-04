@@ -21,9 +21,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	log "github.com/ChainSafe/log15"
 	"math/big"
 	"reflect"
+
+	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )

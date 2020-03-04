@@ -343,7 +343,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 				*ptr = arr
 			}
 		case *common.PeerInfo:
-			_, err := sd.DecodeInterface(ptr)
+			_, err = sd.DecodeInterface(ptr)
 			if err != nil {
 				return nil, err
 			}

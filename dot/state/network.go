@@ -114,7 +114,7 @@ func (ns *NetworkState) GetPeers() ([]common.PeerInfo, error) {
 
 // SetPeers sets network state in the database
 func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
-	 enc, err := scale.Encode(*peers)
+	enc, err := scale.Encode(*peers)
 	if err != nil {
 		return err
 	}

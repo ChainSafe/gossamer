@@ -313,7 +313,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 		enc = append(enc, byte(0)) // None
 	}
 
-	if bd.MessageQueue != nil &&  bd.MessageQueue.Exists() {
+	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
 		venc, err := scale.Encode(bd.MessageQueue.Value())
 		if err != nil {
 			return nil, err
