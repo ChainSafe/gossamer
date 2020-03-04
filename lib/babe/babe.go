@@ -70,6 +70,10 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		return nil, errors.New("cannot create BABE session; no keypair provided")
 	}
 
+	if cfg.Kill == nil {
+		return nil, errors.New("kill channel is nil")
+	}
+
 	babeSession := &Session{
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
@@ -81,6 +85,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		authorityData:    cfg.AuthData,
 		epochThreshold:   cfg.EpochThreshold,
 		done:             cfg.Done,
+		kill:             cfg.Kill,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -127,6 +132,16 @@ func (b *Session) Start() error {
 	return nil
 }
 
+func (b *Session) Stop() {
+	if b.newBlocks != nil {
+		close(b.newBlocks)
+	}
+
+	if b.done != nil {
+		close(b.done)
+	}
+}
+
 // AuthorityData returns the data related to the authority
 func (b *Session) AuthorityData() []*AuthorityData {
 	return b.authorityData
@@ -154,6 +169,11 @@ func (b *Session) setAuthorityIndex() error {
 	return fmt.Errorf("key not in BABE authority data")
 }
 
+func (b *Session) checkForKill() {
+	<-b.kill
+	b.Stop()
+}
+
 func (b *Session) invokeBlockAuthoring() {
 	// TODO: we might not actually be starting at slot 0, need to run median algorithm here
 	var slotNum uint64 = 0
@@ -173,17 +193,15 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
+	defer b.Stop()
+
 	for ; slotNum < b.config.EpochLength; slotNum++ {
+		if b.kill == nil {
+			// session has been killed, exit
+			return
+		}
 		b.handleSlot(slotNum)
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
-	}
-
-	if b.newBlocks != nil {
-		close(b.newBlocks)
-	}
-
-	if b.done != nil {
-		close(b.done)
 	}
 }
 

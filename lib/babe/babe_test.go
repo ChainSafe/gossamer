@@ -40,6 +40,10 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 		}
 	}
 
+	if cfg.Kill == nil {
+		cfg.Kill = make(chan struct{})
+	}
+
 	if cfg.Runtime == nil {
 		cfg.Runtime = rt
 	}
@@ -70,6 +74,51 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 	}
 
 	return babesession
+}
+
+func TestKill(t *testing.T) {
+	killChan := make(chan struct{})
+	dataDir, err := ioutil.TempDir("", "./test_data")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dbSrv := state.NewService(dataDir)
+	err = dbSrv.Initialize(&types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}, trie.NewEmptyTrie(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		err = dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	cfg := &SessionConfig{
+		Kill: killChan,
+	}
+
+	babesession := createTestSession(t, cfg)
+	err = babesession.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	close(killChan)
+
+	if babesession.newBlocks != nil || babesession.done != nil {
+		t.Fatalf("did not kill session")
+	}
 }
 
 func TestCalculateThreshold(t *testing.T) {
