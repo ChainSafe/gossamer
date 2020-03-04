@@ -39,6 +39,7 @@ type BlockState interface {
 	GetHeader(common.Hash) (*types.Header, error)
 	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
+	GetSlotForBlock(common.Hash) (uint64, error)
 }
 
 // StorageState interface for storage state methods

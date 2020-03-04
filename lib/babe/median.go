@@ -22,10 +22,6 @@ import (
 	"math/big"
 	"sort"
 	"time"
-
-	"github.com/ChainSafe/gossamer/dot/core/types"
-	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // slotTail is the number of blocks needed for us to run the median algorithm. in the spec, it's arbitrarily set to 1200.
@@ -37,7 +33,7 @@ func (b *Session) estimateCurrentSlot() (uint64, error) {
 	// find slot of chain head
 	head := b.blockState.BestBlockHash()
 
-	slot, err := b.getSlotForBlock(head)
+	slot, err := b.blockState.GetSlotForBlock(head)
 	if err != nil {
 		return 0, err
 	}
@@ -121,7 +117,7 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 	var arrivalTime uint64
 
 	for _, hash := range b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash()) {
-		currSlot, err = b.getSlotForBlock(hash)
+		currSlot, err = b.blockState.GetSlotForBlock(hash)
 		if err != nil {
 			return 0, err
 		}
@@ -172,36 +168,4 @@ func slotOffset(start uint64, end uint64) (uint64, error) {
 		return 0, errors.New("cannot have negative Slot Offset! ")
 	}
 	return os, nil
-}
-
-// getSlotForBlock returns the slot for a block
-func (b *Session) getSlotForBlock(hash common.Hash) (uint64, error) {
-	header, err := b.blockState.GetHeader(hash)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(header.Digest) == 0 {
-		return 0, fmt.Errorf("chain head missing digest")
-	}
-
-	preDigestBytes := header.Digest[0]
-
-	digestItem, err := types.DecodeDigestItem(preDigestBytes)
-	if err != nil {
-		return 0, err
-	}
-
-	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
-	if !ok {
-		return 0, fmt.Errorf("first digest item is not pre-digest")
-	}
-
-	babeHeader := new(babetypes.BabeHeader)
-	err = babeHeader.Decode(preDigest.Data)
-	if err != nil {
-		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
-	}
-
-	return babeHeader.SlotNumber, nil
 }

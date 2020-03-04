@@ -365,6 +365,38 @@ func (bs *BlockState) BestBlock() (*types.Block, error) {
 	return bs.GetBlockByHash(bs.BestBlockHash())
 }
 
+// GetSlotForBlock returns the slot for a block
+func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
+	header, err := bs.GetHeader(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("chain head missing digest")
+	}
+
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, fmt.Errorf("first digest item is not pre-digest")
+	}
+
+	babeHeader := new(babetypes.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+	}
+
+	return babeHeader.SlotNumber, nil
+}
+
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
 	return bs.bt.SubBlockchain(start, end)

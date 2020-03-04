@@ -42,6 +42,7 @@ type BlockState interface {
 	SetBlockData(blockData *types.BlockData) error
 	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
+	GetSlotForBlock(common.Hash) (uint64, error)
 }
 
 // StorageState interface for storage state methods

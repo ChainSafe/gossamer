@@ -181,6 +181,7 @@ func (b *Session) invokeBlockAuthoring() {
 
 	log.Debug("[babe]", "best block num", bestNum)
 
+	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 {
 		// TODO: need to run median algorithm here, not just estimate. however this requires us to have at least `slotTail` number of blocks in our state
 		slotNum, err = b.estimateCurrentSlot()
