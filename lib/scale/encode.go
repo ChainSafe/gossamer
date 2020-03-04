@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	log "github.com/ChainSafe/log15"
 	"io"
 	"math/big"
 	"reflect"
@@ -333,13 +332,11 @@ func (se *Encoder) encodeArray(t interface{}) (bytesEncoded int, err error) {
 	case []common.PeerInfo:
 		n, err = se.encodeInteger(uint(len(arr)))
 		bytesEncoded += n
-		//var enc []byte
+
 		for _, elem := range arr {
-			log.Info("[encodeArray]", "PeerInfo element", elem)
 			n, err = se.Encode(elem)
 			bytesEncoded += n
 		}
-		log.Info("encode", "encode", n)
 	}
 
 	return bytesEncoded, err

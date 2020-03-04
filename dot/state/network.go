@@ -17,7 +17,6 @@
 package state
 
 import (
-	"encoding/json"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -102,23 +101,20 @@ func (ns *NetworkState) SetNetworkState(networkState *common.NetworkState) error
 }
 
 // GetPeers retrieves network state from the database
-func (ns *NetworkState) GetPeers() (*[]common.PeerInfo, error) {
-	res := new([]common.PeerInfo)
+func (ns *NetworkState) GetPeers() ([]common.PeerInfo, error) {
+	peerInfoType := new([]common.PeerInfo)
 	data, err := ns.db.Db.Get(peersKey)
 	if err != nil {
-		return res, err
+		return *peerInfoType, err
 	}
-	// TODO: update to scale
-	// err = scale.DecodePtr(data, res)
-	err = json.Unmarshal(data, res)
-	return res, err
+
+	output, err := scale.Decode(data, *peerInfoType)
+	return output.([]common.PeerInfo), err
 }
 
 // SetPeers sets network state in the database
 func (ns *NetworkState) SetPeers(peers *[]common.PeerInfo) error {
-	// TODO update to scale
-	// enc, err := scale.Encode(peers)
-	enc, err := json.Marshal(peers)
+	 enc, err := scale.Encode(*peers)
 	if err != nil {
 		return err
 	}

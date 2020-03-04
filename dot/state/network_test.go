@@ -33,7 +33,6 @@ var testNetworkState = &common.NetworkState{}
 var testPeers = &[]common.PeerInfo{{ PeerID: "ID1", BestHash: common.Hash{}, BestNumber: 1, ProtocolVersion:2, Roles: 0x03},
 	{ PeerID: "ID40", BestHash: common.Hash{}, BestNumber: 50, ProtocolVersion:60, Roles: 0x70},
 }
-//var testPeers = &[]common.PeerInfo{}
 
 
 // test state.Network
@@ -77,34 +76,24 @@ func TestNetworkState(t *testing.T) {
 	peers, err := state.Network.GetPeers()
 	require.Nil(t, err)
 
-	require.Equal(t, peers, testPeers)
+	require.Equal(t, &peers, testPeers)
 }
 
 func TestEncodePeers(t *testing.T) {
-	t.Logf("before encoded %v", testPeers)
-	// this fails with: panic: reflect: call of reflect.Value.NumField on slice Value
-	// at: encode.go 254
-	//res, err := scale.Encode(testPeers)
-	//t.Logf("encoded %v, err: %v", res, err)
+	expected := []byte{8, 12, 73, 68, 49, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 16, 73, 68, 52, 48, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
 
-	// this works, but should we be passing a pointer to this?
-	// and we had to update encode.go encodeArray
-	res, err := scale.Encode(*testPeers)
-	t.Logf("encoded %v, err: %v", res, err)
+	output, err := scale.Encode(*testPeers)
+	require.Nil(t, err)
+
+	require.Equal(t, expected, output)
 }
 
 func TestDecodePeer(t *testing.T) {
 	data := []byte{8, 12, 73, 68, 49, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 16, 73, 68, 52, 48, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
-	res := new ([]common.PeerInfo)
+	peerInfoType := new ([]common.PeerInfo)
 
-	// this fails with: panic: reflect.MakeSlice of non-slice type
-	// at decode.go 328
-	//err := scale.DecodePtr(data, res)
-	//t.Logf("decoded %v, err: %v", res, err)
+	output, err := scale.Decode(data, *peerInfoType)
+	require.Nil(t, err)
 
-	// This will call common.PeerInfo Decode method, see common.types.go for comments
-	// on that.
-	// It's not changing res
-	err := scale.DecodePtr(data, *res)
-	t.Logf("decoded %v, err: %v", *res, err)
+	require.Equal(t, *testPeers, output)
 }

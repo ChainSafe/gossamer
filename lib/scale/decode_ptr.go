@@ -71,7 +71,7 @@ func (sd *Decoder) DecodeCustom(t interface{}) (interface{}, error) {
 			return nil, err.(error)
 		}
 		t = res[0].Interface()
-		log.Info("[DecodeCustom]", "decoded", t)
+		log.Trace("[DecodeCustom]", "decoded", t)
 		return t, nil
 	}
 

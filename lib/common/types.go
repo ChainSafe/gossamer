@@ -18,9 +18,7 @@ package common
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 )
 
 // Address represents a base58 encoded public key
@@ -50,40 +48,6 @@ type PeerInfo struct {
 	BestNumber      uint64
 }
 
-func (pi PeerInfo) Decode(r io.Reader) (PeerInfo, error) {
-	// This doesn't work because adding the scale package give an:
-	// import cycle not allowed
-	//package github.com/ChainSafe/gossamer/dot/state
-	//	imports github.com/ChainSafe/gossamer/dot/core/types
-	//	imports github.com/ChainSafe/gossamer/lib/common
-	//	imports github.com/ChainSafe/gossamer/lib/scale
-	//	imports github.com/ChainSafe/gossamer/lib/common
-	//
-	//return scale.DecodePtr(b, pi)
-	var pires  = new (PeerInfo)
-	// TODO: this is wrong, should be the scale to read Integer
-	length, err := ReadByte(r)
-	if err != nil {
-		return *pires, err
-	}
-
-	// TODO: this will be ok when readInteger is implemented
-	b := make([]byte, length)
-	_, err = r.Read(b)
-	if err != nil {
-		return *pires, errors.New("could not decode invalid byte array: reached early EOF")
-	}
-
-	pires.PeerID = string(b)
-
-	// TODO: implement the rest of PeerInfo decoding
-
-
-	// This doesn't seem to do anything, how do I get this decoding to pi?
-	pi = *pires
-
-	return *pires, nil
-}
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes
 func NewHash(in []byte) (res Hash) {
