@@ -548,7 +548,7 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 	return s.blockState.SetBlockData(existingData)
 }
 
-// checkForRuntimeChanges checks if changes to the runtime code have occured; if so, load the new runtime
+// checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 func (s *Service) checkForRuntimeChanges() error {
 	currentCodeHash, err := s.storageState.LoadCodeHash()
 	if err != nil {

@@ -134,7 +134,7 @@ func (b *Session) Start() error {
 	return nil
 }
 
-func (b *Session) Stop() {
+func (b *Session) stop() {
 	if b.newBlocks != nil {
 		close(b.newBlocks)
 		b.newBlocks = nil
@@ -175,7 +175,7 @@ func (b *Session) setAuthorityIndex() error {
 
 func (b *Session) checkForKill() {
 	<-b.kill
-	b.Stop()
+	b.stop()
 }
 
 func (b *Session) invokeBlockAuthoring() {
@@ -197,7 +197,7 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
-	defer b.Stop()
+	defer b.stop()
 
 	for ; slotNum < b.config.EpochLength; slotNum++ {
 		if b.kill == nil {

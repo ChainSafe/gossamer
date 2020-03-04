@@ -53,7 +53,7 @@ type StorageState struct {
 	lock sync.RWMutex
 }
 
-// NewStateDB instantiates badgerDB instance for storing trie structure
+// NewStorageDB instantiates badgerDB instance for storing trie structure
 func NewStorageDB(db database.Database) *StorageDB {
 	return &StorageDB{
 		db,
@@ -191,7 +191,7 @@ func (s *StorageState) LoadCode() ([]byte, error) {
 	return s.GetStorage(codeKey)
 }
 
-// LoadCode returns the hash of the runtime code (located at :code)
+// LoadCodeHash returns the hash of the runtime code (located at :code)
 func (s *StorageState) LoadCodeHash() (common.Hash, error) {
 	code, err := s.LoadCode()
 	if err != nil {

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	allocator "github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -41,7 +40,6 @@ type Ctx struct {
 // Runtime struct
 type Runtime struct {
 	vm        wasm.Instance
-	hash      common.Hash
 	storage   Storage
 	keystore  *keystore.Keystore
 	mutex     sync.Mutex

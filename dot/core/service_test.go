@@ -232,7 +232,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 
 	s, dbSrv := newTestService(t, cfg)
 	defer func() {
-		err := dbSrv.Stop()
+		err = dbSrv.Stop()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -332,7 +332,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 
 	s, dbSrv := newTestService(t, cfg)
 	defer func() {
-		err := dbSrv.Stop()
+		err = dbSrv.Stop()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -412,7 +412,7 @@ func TestService_CheckForRuntimeChanges(t *testing.T) {
 
 	s, dbSrv := newTestService(t, cfg)
 	defer func() {
-		err := dbSrv.Stop()
+		err = dbSrv.Stop()
 		if err != nil {
 			t.Fatal(err)
 		}
