@@ -129,16 +129,20 @@ func (b *Session) Start() error {
 
 	go b.invokeBlockAuthoring()
 
+	go b.checkForKill()
+
 	return nil
 }
 
 func (b *Session) Stop() {
 	if b.newBlocks != nil {
 		close(b.newBlocks)
+		b.newBlocks = nil
 	}
 
 	if b.done != nil {
 		close(b.done)
+		b.done = nil
 	}
 }
 

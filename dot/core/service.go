@@ -209,6 +209,7 @@ func (s *Service) Stop() error {
 	// close message channel to network service
 	if s.msgSend != nil {
 		close(s.msgSend)
+		s.msgSend = nil
 	}
 
 	return nil
@@ -244,6 +245,9 @@ func (s *Service) handleBabeSession() {
 		epochDone := make(chan struct{})
 		s.epochDone = epochDone
 
+		babeKill := make(chan struct{})
+		s.babeKill = babeKill
+
 		keys := s.keys.Sr25519Keypairs()
 
 		// BABE session configuration
@@ -256,6 +260,7 @@ func (s *Service) handleBabeSession() {
 			TransactionQueue: s.transactionQueue,
 			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:             epochDone,
+			Kill:             babeKill,
 		}
 
 		// create a new BABE session
@@ -298,6 +303,7 @@ func (s *Service) receiveMessages() {
 			log.Error("[core] failed to receive message from network service")
 			return // exit
 		}
+
 		err := s.handleReceivedMessage(msg)
 		if err != nil {
 			log.Error("[core] failed to handle message from network service", "err", err)
@@ -325,6 +331,11 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	}
 
 	// send block announce message to network service
+	if s.msgSend == nil {
+		// service has been stopped, return
+		return nil
+	}
+
 	s.msgSend <- msg
 
 	// TODO: check if host status message needs to be updated based on new block
@@ -332,6 +343,11 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 
 	// TODO: send updated host status message to network service
 	// s.msgSend <- msg
+
+	err = s.checkForRuntimeChanges()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -467,6 +483,9 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			}
 
 			err = s.checkForRuntimeChanges()
+			if err != nil {
+				return err
+			}
 
 			// get block header; if exists, return
 			existingHeader, err := s.blockState.GetHeader(bd.Hash)
@@ -483,27 +502,6 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 		}
 
 		err := s.compareAndSetBlockData(bd)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *Service) checkForRuntimeChanges() error {
-	currentCodeHash, err := s.storageState.LoadCodeHash()
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		code, err := s.storageState.LoadCode()
-		if err != nil {
-			return err
-		}
-
-		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
 		if err != nil {
 			return err
 		}
@@ -548,6 +546,31 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 	}
 
 	return s.blockState.SetBlockData(existingData)
+}
+
+// checkForRuntimeChanges checks if changes to the runtime code have occured; if so, load the new runtime
+func (s *Service) checkForRuntimeChanges() error {
+	currentCodeHash, err := s.storageState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+		code, err := s.storageState.LoadCode()
+		if err != nil {
+			return err
+		}
+
+		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
+		if err != nil {
+			return err
+		}
+
+		// kill babe session, handleBabeSession will reload it with the new runtime
+		close(s.babeKill)
+	}
+
+	return nil
 }
 
 // ProcessTransactionMessage validates each transaction in the message and

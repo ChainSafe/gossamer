@@ -385,3 +385,63 @@ func TestService_NotAuthority(t *testing.T) {
 		t.Fatal("Fail: should not have babe session")
 	}
 }
+
+func TestService_CheckForRuntimeChanges(t *testing.T) {
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
+
+	cfg := &Config{
+		Runtime:          rt,
+		Keystore:         ks,
+		TransactionQueue: transaction.NewPriorityQueue(),
+		IsBabeAuthority:  true,
+	}
+
+	s, dbSrv := newTestService(t, cfg)
+	defer func() {
+		err := dbSrv.Stop()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	err = s.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Stop()
+
+	_, err = tests.GetRuntimeBlob(tests.TESTS_FP, tests.TEST_WASM_URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testRuntime, err := ioutil.ReadFile(tests.TESTS_FP)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dbSrv.Storage.SetStorage([]byte(":code"), testRuntime)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = s.checkForRuntimeChanges()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
