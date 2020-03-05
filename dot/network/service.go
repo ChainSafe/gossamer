@@ -33,18 +33,19 @@ var _ services.Service = &Service{}
 
 // Service describes a network service
 type Service struct {
-	ctx         context.Context
-	cfg         *Config
-	host        *host
-	mdns        *mdns
-	status      *status
-	gossip      *gossip
-	msgRec      <-chan Message
-	msgSend     chan<- Message
-	noBootstrap bool
-	noMdns      bool
-	noStatus    bool // internal option
-	noGossip    bool // internal option
+	ctx               context.Context
+	cfg               *Config
+	host              *host
+	mdns              *mdns
+	status            *status
+	gossip            *gossip
+	msgRec            <-chan Message
+	msgSend           chan<- Message
+	noBootstrap       bool
+	noMdns            bool
+	noStatus          bool            // internal option
+	noGossip          bool            // internal option
+	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -64,17 +65,18 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 	}
 
 	network := &Service{
-		ctx:         ctx,
-		cfg:         cfg,
-		host:        host,
-		mdns:        newMdns(host),
-		status:      newStatus(host),
-		gossip:      newGossip(host),
-		msgRec:      msgRec,
-		msgSend:     msgSend,
-		noBootstrap: cfg.NoBootstrap,
-		noMdns:      cfg.NoMdns,
-		noStatus:    cfg.NoStatus,
+		ctx:               ctx,
+		cfg:               cfg,
+		host:              host,
+		mdns:              newMdns(host),
+		status:            newStatus(host),
+		gossip:            newGossip(host),
+		msgRec:            msgRec,
+		msgSend:           msgSend,
+		noBootstrap:       cfg.NoBootstrap,
+		noMdns:            cfg.NoMdns,
+		noStatus:          cfg.NoStatus,
+		requestedBlockIDs: make(map[uint64]bool),
 	}
 
 	return network, err
@@ -166,7 +168,7 @@ func (s *Service) handleConn(conn network.Conn) {
 			Roles:               s.cfg.Roles,
 			BestBlockNumber:     latestBlock.Number.Uint64(),
 			BestBlockHash:       latestBlock.Hash(),
-			GenesisHash:         latestBlock.StateRoot,
+			GenesisHash:         s.cfg.BlockState.GenesisHash(),
 			ChainStatus:         []byte{0}, // TODO
 		}
 
@@ -241,6 +243,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
+
+			// send a BlockRequestMessage if peer block is greater than our block number
+			s.sendBlockRequestMessage(peer, msg)
+
 		}
 	}
 }
