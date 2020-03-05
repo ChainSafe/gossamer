@@ -80,7 +80,7 @@ func createTempConfigFile() (*os.File, *dot.Config) {
 	return f, testConfig
 }
 
-// Creates a cli context for a test given a set of flags and values
+// Creates a cli ctx for a test given a set of flags and values
 func createCliContext(description string, flags []string, values []interface{}) (*cli.Context, error) {
 	set := flag.NewFlagSet(description, 0)
 	for i := range values {
@@ -95,8 +95,8 @@ func createCliContext(description string, flags []string, values []interface{}) 
 			return nil, fmt.Errorf("unexpected cli value type: %T", values[i])
 		}
 	}
-	context := cli.NewContext(nil, set, nil)
-	return context, nil
+	ctx := cli.NewContext(nil, set, nil)
+	return ctx, nil
 }
 
 func createTempGenesisFile(t *testing.T) string {
@@ -155,9 +155,9 @@ func TestGetConfig(t *testing.T) {
 	for _, c := range tc {
 		set := flag.NewFlagSet(c.name, 0)
 		set.String(c.name, c.value, "")
-		context := cli.NewContext(thisapp, set, nil)
+		ctx := cli.NewContext(thisapp, set, nil)
 
-		currentConfig, err := getConfig(context)
+		currentConfig, err := getConfig(ctx)
 		require.Nil(t, err)
 
 		require.Equal(t, c.expected, currentConfig)
@@ -189,12 +189,12 @@ func TestSetGlobalConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			tCfg := &dot.GlobalConfig{}
 
-			setGlobalConfig(context, tCfg)
+			setGlobalConfig(ctx, tCfg)
 
 			require.Equal(t, c.expected, *tCfg)
 		})
@@ -278,12 +278,12 @@ func TestSetNetworkConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			input := gssmr.DefaultConfig()
 			// Must call global setup to set data dir
-			setNetworkConfig(context, &input.Network)
+			setNetworkConfig(ctx, &input.Network)
 
 			require.Equal(t, c.expected, input.Network)
 		})
@@ -332,11 +332,11 @@ func TestSetRPCConfig(t *testing.T) {
 	for _, c := range tc {
 		c := c // bypass scopelint false positive
 		t.Run(c.description, func(t *testing.T) {
-			context, err := createCliContext(c.description, c.flags, c.values)
+			ctx, err := createCliContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
 
 			input := gssmr.DefaultConfig()
-			setRPCConfig(context, &input.RPC)
+			setRPCConfig(ctx, &input.RPC)
 
 			require.Equal(t, c.expected, input.RPC)
 		})
@@ -367,13 +367,13 @@ func TestMakeNode(t *testing.T) {
 		c := c // bypass scopelint false positive
 
 		t.Run(c.name, func(t *testing.T) {
-			context, err := createCliContext(c.name, c.flags, c.values)
+			ctx, err := createCliContext(c.name, c.flags, c.values)
 			require.Nil(t, err)
 
-			err = initializeNode(context)
+			err = initializeNode(ctx)
 			require.Nil(t, err)
 
-			node, cfg, err := makeNode(context)
+			node, cfg, err := makeNode(ctx)
 			require.Nil(t, err)
 			require.NotNil(t, cfg)
 
@@ -406,12 +406,12 @@ func TestCommands(t *testing.T) {
 		thisapp := cli.NewApp()
 		thisapp.Writer = ioutil.Discard
 
-		context, err := createCliContext(c.description, c.flags, c.values)
+		ctx, err := createCliContext(c.description, c.flags, c.values)
 		require.Nil(t, err)
 
 		command := dumpConfigCommand
 
-		err = command.Run(context)
+		err = command.Run(ctx)
 		require.Nil(t, err, "should have ran dumpConfig command.")
 	}
 }
