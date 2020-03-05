@@ -186,9 +186,10 @@ func (s *Service) handleConn(conn network.Conn) {
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		log.Error("(*Service) handleStream conn is nil ?")
+		log.Error("[network] cannot get connection from stream")
 		return
 	}
+
 	remotePeer := conn.RemotePeer()
 
 	// create buffer stream for non-blocking read
