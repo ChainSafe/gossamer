@@ -502,7 +502,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 
 	blockResponse := &network.BlockResponseMessage{
 		ID:        blockRequest.ID,
-		BlockData: []*types.BlockData{},
+		BlockData: responseData,
 	}
 
 	s.msgSend <- blockResponse
