@@ -445,14 +445,12 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	fmt.Println("before")
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
 
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
-		fmt.Println(hash)
 		data, err := s.blockState.GetBlockData(hash)
 		if err != nil {
 			return err
