@@ -577,6 +577,8 @@ func (s *Service) checkForRuntimeChanges() error {
 			return err
 		}
 
+		s.rt.Stop()
+
 		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
 		if err != nil {
 			return err
