@@ -17,6 +17,7 @@
 package core
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -372,28 +373,28 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		return err
 	}
 
-	chainHead, err := s.blockState.BestBlockHeader()
+	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
 		return err
 	}
 
-	latestBlockNum := chainHead.Number
 	messageBlockNumMinusOne := big.NewInt(0).Sub(blockAnnounceMessage.Number, big.NewInt(1))
 
 	// check if we should send block request message
-	if latestBlockNum.Cmp(messageBlockNumMinusOne) == -1 {
+	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
 
 		//generate random ID
 		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 		seed := rand.New(s1).Uint64()
 		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		currentHash := chainHead.Hash()
+		buf := make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
 
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
 			RequestedData: 2,        // block body
-			StartingBlock: append([]byte{1}, s.blockState.LatestHeader().Number.Bytes()...),
+			StartingBlock: append([]byte{1}, buf...),
 			EndBlockHash:  optional.NewHash(true, header.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
@@ -415,52 +416,95 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	blockRequest := msg.(*network.BlockRequestMessage)
 
-	latestBlockNum := s.blockState.LatestHeader().Number
+	startPrefix := blockRequest.StartingBlock[0]
+	startData := blockRequest.StartingBlock[1:]
 
-	msgStartingBlockPrefix := blockRequest.StartingBlock[0]
-	msgStartingBlockBody := blockRequest.StartingBlock[1:]
+	var startHash common.Hash
+	var endHash common.Hash
 
-	var msgStartingBlockNum *big.Int
-	var msgBlockData *types.BlockData
-	var err error
+	// TODO: update BlockRequest starting block to be variadic type
+	if startPrefix == 1 {
+		start := binary.LittleEndian.Uint64(startData)
 
-	if msgStartingBlockPrefix == 1 {
-		msgStartingBlockNum = big.NewInt(0).SetBytes(msgStartingBlockBody)
-		// GetBlockData by block number ?
-	} else if msgStartingBlockPrefix == 1 {
-
-		msgBlockData, err = s.blockState.GetBlockData(common.NewHash(msgStartingBlockBody))
+		// check if we have start block
+		block, err := s.blockState.GetBlockByNumber(big.NewInt(int64(start)))
 		if err != nil {
-			log.Debug("(*Service).ProcessBlockRequestMessage failed to GetBlockData with StartingBlock", "StartingBlock", common.NewHash(blockRequest.StartingBlock[1:]))
 			return err
 		}
+
+		startHash = block.Header.Hash()
+	} else if startPrefix == 0 {
+		startHash = common.NewHash(startData)
 	} else {
-		err = fmt.Errorf("(*Service).ProcessBlockRequestMessage blockRequest.StartingBlock not recognized")
-		log.Trace(err.Error())
-		return err
+		return errors.New("invalid start block in BlockRequest")
 	}
 
-	// for now we only care about body requests
-	if blockRequest.RequestedData == 1 && latestBlockNum.Cmp(msgStartingBlockNum) >= 0 {
-		// we have the block
-		// lets send it then
+	if blockRequest.EndBlockHash.Exists() {
+		endHash = blockRequest.EndBlockHash.Value()
+	} else {
+		endHash = s.blockState.BestBlockHash()
+	}
 
-		//generate random ID
-		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-		seed := rand.New(s1).Uint64()
-		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+	// get sub-chain of block hashes
+	subchain := s.blockState.SubChain(startHash, endHash)
 
-		blockDataArray := append([]*types.BlockData{}, msgBlockData)
+	responseData := []*types.BlockData{}
 
-		blockResponse := &network.BlockResponseMessage{
-			ID:        randomID,
-			BlockData: blockDataArray,
+	for _, hash := range subchain {
+		data, err := s.blockState.GetBlockData(hash)
+		if err != nil {
+			return err
 		}
 
-		s.msgSend <- blockResponse
-	} else {
-		//not yet implemented
+		blockData := new(types.BlockData)
+
+		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
+
+		// header
+		if blockRequest.RequestedData&1 == 1 {
+			blockData.Header = data.Header
+		} else {
+			blockData.Header = optional.NewHeader(false, nil)
+		}
+
+		// body
+		if blockRequest.RequestedData&2 == 1 {
+			blockData.Body = data.Body
+		} else {
+			blockData.Body = optional.NewBody(false, nil)
+		}
+
+		// receipt
+		if blockRequest.RequestedData&4 == 1 {
+			blockData.Receipt = data.Receipt
+		} else {
+			blockData.Receipt = optional.NewBytes(false, nil)
+		}
+
+		// message queue
+		if blockRequest.RequestedData&8 == 1 {
+			blockData.MessageQueue = data.MessageQueue
+		} else {
+			blockData.MessageQueue = optional.NewBytes(false, nil)
+		}
+
+		// justification
+		if blockRequest.RequestedData&16 == 1 {
+			blockData.Justification = data.Justification
+		} else {
+			blockData.Justification = optional.NewBytes(false, nil)
+		}
+
+		responseData = append(responseData, blockData)
 	}
+
+	blockResponse := &network.BlockResponseMessage{
+		ID:        blockRequest.ID,
+		BlockData: responseData,
+	}
+
+	s.msgSend <- blockResponse
+
 	return nil
 }
 
