@@ -113,7 +113,7 @@ func initNode(ctx *cli.Context) error {
 
 	err = initializeNode(ctx)
 	if err != nil {
-		log.Error("[gossamer] Failed to load genesis data", "error", err)
+		log.Error("[gossamer] Failed to initialize node", "error", err)
 		return err
 	}
 
