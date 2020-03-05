@@ -381,7 +381,7 @@ func TestService_NotAuthority(t *testing.T) {
 	}
 }
 
-func addBlocksToState(t *testing.T, depth int, blockState BlockState) {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	if err != nil {
@@ -416,6 +416,7 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 	s, dbSrv := newTestService(t, cfg)
 
 	defer func() {
+		s.Stop()
 		err := dbSrv.Stop()
 		if err != nil {
 			t.Fatal(err)
@@ -426,7 +427,6 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Stop()
 
 	addBlocksToState(t, 1, dbSrv.Block)
 
