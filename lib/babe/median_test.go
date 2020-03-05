@@ -220,16 +220,14 @@ func TestGetCurrentSlot(t *testing.T) {
 	// TODO: use time.Duration
 	addBlocksToState(t, babesession, 100, dbSrv.Block, uint64(time.Now().Unix())-(babesession.config.SlotDuration/10))
 
-	time.Sleep(time.Millisecond * 500)
-
 	res, err := babesession.getCurrentSlot()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := uint64(102)
+	expected := uint64(101)
 
-	if res != expected {
+	if res != expected && res != expected+1 {
 		t.Fatalf("Fail: got %d expected %d", res, expected)
 	}
 }
