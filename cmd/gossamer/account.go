@@ -248,7 +248,7 @@ func generateKeypair(keytype, datadir string, password []byte) (string, error) {
 		return "", fmt.Errorf("failed to write key to file: %s", err)
 	}
 
-	log.Info("[gossamer] Generated key successfully", "type", keytype, "pubkey", pub, "file", fp)
+	log.Info("[gossamer] Generated key", "type", keytype, "pubkey", pub, "file", fp)
 
 	return fp, nil
 }

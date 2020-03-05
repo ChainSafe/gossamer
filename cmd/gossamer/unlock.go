@@ -91,7 +91,7 @@ func unlockKeys(ctx *cli.Context, datadir string, ks *keystore.Keystore) error {
 		}
 
 		ks.Insert(kp)
-		log.Info("[gossamer] Key unlocked successfully", "key", kp.Public().Hex())
+		log.Info("[gossamer] Key unlocked", "key", kp.Public().Hex())
 	}
 
 	return nil
