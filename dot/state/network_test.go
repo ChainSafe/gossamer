@@ -31,8 +31,8 @@ import (
 
 var testHealth = &common.Health{}
 var testNetworkState = &common.NetworkState{}
-var testPeers = &[]common.PeerInfo{{PeerID: "ID1", BestHash: common.Hash{}, BestNumber: 1, ProtocolVersion: 2, Roles: 0x03},
-	{PeerID: "ID40", BestHash: common.Hash{}, BestNumber: 50, ProtocolVersion: 60, Roles: 0x70},
+var testPeers = &[]common.PeerInfo{{PeerID: "alice", BestHash: common.Hash{}, BestNumber: 1, ProtocolVersion: 2, Roles: 0x03},
+	{PeerID: "bob", BestHash: common.Hash{}, BestNumber: 50, ProtocolVersion: 60, Roles: 0x70},
 }
 
 // test state.Network
@@ -80,7 +80,7 @@ func TestNetworkState(t *testing.T) {
 }
 
 func TestEncodePeers(t *testing.T) {
-	expected := []byte{8, 12, 73, 68, 49, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 16, 73, 68, 52, 48, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
+	expected := []byte{8, 20, 97, 108, 105, 99, 101, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 12, 98, 111, 98, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
 
 	output, err := scale.Encode(*testPeers)
 	require.Nil(t, err)
@@ -89,7 +89,7 @@ func TestEncodePeers(t *testing.T) {
 }
 
 func TestDecodePeer(t *testing.T) {
-	data := []byte{8, 12, 73, 68, 49, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 16, 73, 68, 52, 48, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
+	data := []byte{8, 20, 97, 108, 105, 99, 101, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 12, 98, 111, 98, 112, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0}
 	peerInfoType := new([]common.PeerInfo)
 
 	output, err := scale.Decode(data, *peerInfoType)
