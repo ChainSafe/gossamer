@@ -139,13 +139,15 @@ func (b *Session) Start() error {
 
 func (b *Session) stop() {
 	if b.newBlocks != nil {
-		close(b.newBlocks)
+		tmpChan := b.newBlocks
 		b.newBlocks = nil
+		close(tmpChan)
 	}
 
 	if b.done != nil {
-		close(b.done)
+		tmpChan := b.done
 		b.done = nil
+		close(tmpChan)
 	}
 }
 
@@ -178,6 +180,7 @@ func (b *Session) setAuthorityIndex() error {
 
 func (b *Session) checkForKill() {
 	<-b.kill
+	b.kill = nil
 	b.stop()
 }
 
@@ -222,17 +225,19 @@ func (b *Session) invokeBlockAuthoring() {
 		b.handleSlot(slotNum)
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
+
+	b.stop()
 }
 
 func (b *Session) handleSlot(slotNum uint64) {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		log.Error("BABE block authoring", "error", "parent header is nil")
+		log.Error("[babe] block authoring", "error", "parent header is nil")
 		return
 	}
 
 	if parentHeader == nil {
-		log.Error("BABE block authoring", "error", "parent header is nil")
+		log.Error("[babe] block authoring", "error", "parent header is nil")
 		return
 	}
 
@@ -246,13 +251,19 @@ func (b *Session) handleSlot(slotNum uint64) {
 
 	block, err := b.buildBlock(parentHeader, currentSlot)
 	if err != nil {
-		log.Error("BABE block authoring", "error", err)
+		log.Error("[babe] block authoring", "error", err)
 	} else {
 		// TODO: loop until slot is done, attempt to produce multiple blocks
 
 		hash := block.Header.Hash()
-		log.Info("BABE", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
-		log.Debug("BABE built block", "header", block.Header, "body", block.Body)
+		log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
+		log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
+
+		if b.newBlocks == nil {
+			// session killed, return
+			log.Warn("[babe] session killed before block could be sent to core")
+			return
+		}
 
 		b.newBlocks <- *block
 	}

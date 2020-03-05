@@ -440,6 +440,11 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 		// send block request message to network service
 		log.Debug("send blockRequest message to network service")
+
+		if s.msgSend == nil {
+			return nil
+		}
+
 		s.msgSend <- blockRequest
 
 	}
