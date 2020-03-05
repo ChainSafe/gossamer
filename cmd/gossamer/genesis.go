@@ -131,6 +131,40 @@ func newTrieFromGenesis(gen *genesis.Genesis) (*trie.Trie, error) {
 	return t, nil
 }
 
+// loadGenesisBlock generates the genesis block from the trie (assumes trie is
+// already loaded with the raw genesis data), and then loads the genesis block
+// header with state service (storing the genesis block in the state database)
+func loadGenesisBlock(t *trie.Trie, datadir string) error {
+	// create state root from trie hash
+	stateRoot, err := t.Hash()
+	if err != nil {
+		return fmt.Errorf("failed to create state root from trie hash: %s", err)
+	}
+
+	// create genesis block header
+	header, err := types.NewHeader(
+		common.NewHash([]byte{0}), // parentHash
+		big.NewInt(0),             // number
+		stateRoot,                 // stateRoot
+		trie.EmptyHash,            // extrinsicsRoot
+		[][]byte{},                // digest
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create genesis block header: %s", err)
+	}
+
+	// create new state service
+	stateSrv := state.NewService(datadir)
+
+	// initialize state service with genesis block header
+	err = stateSrv.Initialize(header, t)
+	if err != nil {
+		return fmt.Errorf("failed to initialize state service: %s", err)
+	}
+
+	return nil
+}
+
 // initializeTrieDatabase initializes trie database
 func initializeTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error {
 	// initialize database within data directory
@@ -178,40 +212,6 @@ func storeGenesisData(t *trie.Trie, gen *genesis.Genesis) error {
 	err = t.Db().StoreGenesisData(gen.GenesisData())
 	if err != nil {
 		return fmt.Errorf("failed to store genesis data in database: %s", err)
-	}
-
-	return nil
-}
-
-// loadGenesisBlock generates the genesis block from the trie (assumes trie is
-// already loaded with the raw genesis data), and then loads the genesis block
-// header with state service (storing the genesis block in the state database)
-func loadGenesisBlock(t *trie.Trie, datadir string) error {
-	// create state root from trie hash
-	stateRoot, err := t.Hash()
-	if err != nil {
-		return fmt.Errorf("failed to create state root from trie hash: %s", err)
-	}
-
-	// create genesis block header
-	header, err := types.NewHeader(
-		common.NewHash([]byte{0}), // parentHash
-		big.NewInt(0),             // number
-		stateRoot,                 // stateRoot
-		trie.EmptyHash,            // extrinsicsRoot
-		[][]byte{},                // digest
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create genesis block header: %s", err)
-	}
-
-	// create new state service
-	stateSrv := state.NewService(datadir)
-
-	// initialize state service with genesis block header
-	err = stateSrv.Initialize(header, t)
-	if err != nil {
-		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
 
 	return nil
