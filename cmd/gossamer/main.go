@@ -112,7 +112,7 @@ func initNode(ctx *cli.Context) error {
 		return err
 	}
 
-	// initialize node (load genesis data into database)
+	// initialize node (intialize databases and load genesis data)
 	err = initializeNode(ctx)
 	if err != nil {
 		log.Error("[gossamer] Failed to initialize node", "error", err)
@@ -138,7 +138,7 @@ func gossamer(ctx *cli.Context) error {
 	// check if node has been initialized
 	if !nodeInitialized(ctx) {
 
-		// initialize node (load genesis data into database)
+		// initialize node (intialize databases and load genesis data)
 		err = initializeNode(ctx)
 		if err != nil {
 			log.Error("[gossamer] Failed to initialize node", "error", err)
@@ -185,6 +185,8 @@ func nodeInitialized(ctx *cli.Context) bool {
 		log.Error("[gossamer] Failed to locate MANIFEST", "error", err)
 		return false
 	}
+
+	// TODO: investigate cheap way to confirm valid genesis data has been loaded
 
 	return true
 }
