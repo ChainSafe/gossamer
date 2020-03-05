@@ -113,8 +113,7 @@ func getGenesisPath(ctx *cli.Context) string {
 	}
 }
 
-// newTrieFromGenesis loads trie from raw genesis data, creates a genesis block
-// header from state root hash of trie with loaded genesis data
+// newTrieFromGenesis creates a new trie and loads it with the raw genesis data
 func newTrieFromGenesis(gen *genesis.Genesis) (*trie.Trie, error) {
 	// create new empty trie
 	t := trie.NewEmptyTrie(nil)
@@ -165,7 +164,8 @@ func loadGenesisBlock(t *trie.Trie, datadir string) error {
 	return nil
 }
 
-// initializeTrieDatabase initializes trie database
+// initializeTrieDatabase initializes and sets the trie database and then stores
+// the encoded trie, the genesis hash, and the gensis data in the trie database
 func initializeTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error {
 	// initialize database within data directory
 	db, err := database.NewBadgerDB(datadir)
@@ -194,7 +194,8 @@ func initializeTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) 
 	return nil
 }
 
-// storeGenesisData stores genesis data in trie database
+// storeGenesisData stores the encoded trie, the genesis hash, and the gensis
+// data in the trie database
 func storeGenesisData(t *trie.Trie, gen *genesis.Genesis) error {
 	// encode trie and write to trie database
 	err := t.StoreInDB()
