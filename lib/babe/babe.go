@@ -141,15 +141,13 @@ func (b *Session) Start() error {
 
 func (b *Session) stop() {
 	if b.newBlocks != nil {
-		tmpChan := b.newBlocks
+		close(b.newBlocks)
 		b.newBlocks = nil
-		close(tmpChan)
 	}
 
 	if b.done != nil {
-		tmpChan := b.done
+		close(b.done)
 		b.done = nil
-		close(tmpChan)
 	}
 }
 
@@ -183,7 +181,6 @@ func (b *Session) setAuthorityIndex() error {
 func (b *Session) checkForKill() {
 	<-b.kill
 	b.killed = true
-	b.stop()
 }
 
 func (b *Session) invokeBlockAuthoring() {
@@ -220,7 +217,7 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
-		if b.killed == true {
+		if b.killed {
 			// session has been killed, exit
 			return
 		}
@@ -261,7 +258,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 		log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
 		log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
 
-		if b.killed == true {
+		if b.killed {
 			// session killed, return
 			log.Warn("[babe] session killed before block could be sent to core")
 			return

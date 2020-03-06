@@ -66,6 +66,10 @@ func NewStorageState(db database.Database, t *trie.Trie) (*StorageState, error) 
 		return nil, fmt.Errorf("cannot have nil database")
 	}
 
+	if t == nil {
+		return nil, fmt.Errorf("cannot have nil trie")
+	}
+
 	triedb := trie.NewDatabase(db)
 	t.SetDb(triedb)
 

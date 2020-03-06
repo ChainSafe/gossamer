@@ -201,15 +201,15 @@ func (s *Service) Start() error {
 // Stop stops the core service
 func (s *Service) Stop() error {
 
-	// stop runtime
-	if s.rt != nil {
-		s.rt.Stop()
-	}
-
 	// close message channel to network service
 	if s.msgSend != nil {
 		close(s.msgSend)
 		s.msgSend = nil
+	}
+
+	if s.isBabeAuthority && s.babeKill != nil {
+		close(s.babeKill)
+		s.babeKill = nil
 	}
 
 	return nil
@@ -585,7 +585,10 @@ func (s *Service) checkForRuntimeChanges() error {
 		}
 
 		// kill babe session, handleBabeSession will reload it with the new runtime
-		close(s.babeKill)
+		if s.isBabeAuthority && s.babeKill == nil {
+			close(s.babeKill)
+		}
+		s.babeKill = nil
 	}
 
 	return nil
