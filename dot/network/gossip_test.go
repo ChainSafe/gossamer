@@ -124,10 +124,9 @@ func TestGossip(t *testing.T) {
 		t.Error("node A timeout waiting for message")
 	}
 
-	// node B gossips message to node A and node C
+	// node B gossips message to node C
 	for i := 0; i < 2; i++ {
 		select {
-		case <-msgSendA:
 		case <-msgSendC:
 		case <-time.After(TestMessageTimeout):
 			t.Error("node A timeout waiting for message")

@@ -75,7 +75,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		msgSend:           msgSend,
 		noBootstrap:       cfg.NoBootstrap,
 		noMdns:            cfg.NoMdns,
-		noStatus:          true, //cfg.NoStatus,
+		noStatus:          cfg.NoStatus,
 		requestedBlockIDs: make(map[uint64]bool),
 	}
 
@@ -210,16 +210,12 @@ func (s *Service) read(r *bufio.Reader, remotePeer peer.ID) {
 			return
 		}
 
-		log.Debug("[network]", "msglen", length)
-
-		msgBytes := make([]byte, uint64(length))
+		msgBytes := make([]byte, length)
 		n, err := r.Read(msgBytes)
 		if err != nil {
 			log.Error("[network]", "handle stream err", err)
 			return
 		}
-
-		log.Debug("[network]", "msg", msgBytes)
 
 		if uint64(n) != length {
 			log.Error("[network] could not read full msg", "length", length, "read", n)

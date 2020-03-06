@@ -43,7 +43,7 @@ import (
 
 var _ services.Service = &Service{}
 
-var MaxResponseSize = 8 // arbitrary
+var maxResponseSize = 8 // maximum number of block datas to reply with in a BlockResponse message.
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -454,8 +454,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 
 	responseData := []*types.BlockData{}
 
-	if len(subchain) > MaxResponseSize {
-		subchain = subchain[:MaxResponseSize]
+	if len(subchain) > maxResponseSize {
+		subchain = subchain[:maxResponseSize]
 	}
 
 	for _, hash := range subchain {
@@ -674,6 +674,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 }
 
 // handle authority and randomness changes over transitions from one epoch to the next
+//nolint
 func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 	var item types.DigestItem
 	for _, digest := range header.Digest {
