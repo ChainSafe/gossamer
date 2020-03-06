@@ -448,6 +448,10 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
 
+	if len(subchain) > maxResponseSize {
+		subchain = subchain[:maxResponseSize]
+	}
+
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
