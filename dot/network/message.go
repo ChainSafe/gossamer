@@ -95,32 +95,7 @@ func decodeMessageBytes(in []byte) (m Message, err error) {
 		return nil, err
 	}
 
-	msgType, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	switch msgType {
-	case StatusMsgType:
-		m = new(StatusMessage)
-		err = m.Decode(r)
-	case BlockRequestMsgType:
-		m = new(BlockRequestMessage)
-		err = m.Decode(r)
-	case BlockResponseMsgType:
-		m = new(BlockResponseMessage)
-		err = m.Decode(r)
-	case BlockAnnounceMsgType:
-		m = new(BlockAnnounceMessage)
-		err = m.Decode(r)
-	case TransactionMsgType:
-		m = new(TransactionMessage)
-		err = m.Decode(r)
-	default:
-		return nil, fmt.Errorf("unsupported message type %d", msgType)
-	}
-
-	return m, err
+	return decodeMessage(r)
 }
 
 // StatusMessage struct
