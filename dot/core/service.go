@@ -445,16 +445,10 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	log.Debug("[core] got block request msg", "start", startHash, "end", endHash, "requested data", blockRequest.RequestedData)
-
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
 
 	responseData := []*types.BlockData{}
-
-	if len(subchain) > maxResponseSize {
-		subchain = subchain[:maxResponseSize]
-	}
 
 	for _, hash := range subchain {
 		data, err := s.blockState.GetBlockData(hash)
@@ -463,10 +457,9 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		}
 
 		blockData := new(types.BlockData)
+		blockData.Hash = hash
 
 		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
-
-		blockData.Hash = hash
 
 		// header
 		if blockRequest.RequestedData&1 == 1 {

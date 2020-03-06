@@ -183,7 +183,7 @@ func (s *Service) handleConn(conn network.Conn) {
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		log.Error("[network] cannot get connection from stream")
+		log.Error("[network] Failed to get connection from stream")
 		return
 	}
 
@@ -220,7 +220,7 @@ func (s *Service) read(r *bufio.Reader, remotePeer peer.ID) {
 		// decode message based on message type
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
-			log.Error("Failed to decode message from peer", "peer", remotePeer, "err", err)
+			log.Error("[network] Failed to decode message from peer", "peer", remotePeer, "err", err)
 			return // exit
 		}
 
