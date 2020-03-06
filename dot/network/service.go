@@ -124,6 +124,7 @@ func (s *Service) Stop() error {
 		log.Error("Failed to close host", "err", err)
 	}
 
+	// TODO: close s.msgSend, need channel close handling
 	return nil
 }
 
@@ -155,8 +156,6 @@ func (s *Service) handleConn(conn network.Conn) {
 			log.Error("[network] could not get chain head", "err", err)
 			return
 		}
-
-		log.Info("[network]", "genesis hash", s.cfg.BlockState.GenesisHash())
 
 		// update host status message
 		msg := &StatusMessage{
@@ -201,19 +200,19 @@ func (s *Service) read(r *bufio.Reader, remotePeer peer.ID) {
 		// TODO: re-add leb128 variable-length encoding #484
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
-			log.Error("[network]", "handle stream err", err)
+			log.Error("[network] Failed to read LEB128 encoding", "error", err)
 			return
 		}
 
 		msgBytes := make([]byte, length)
 		n, err := r.Read(msgBytes)
 		if err != nil {
-			log.Error("[network]", "handle stream err", err)
+			log.Error("[network] Failed to read message from stream", "error", err)
 			return
 		}
 
 		if uint64(n) != length {
-			log.Error("[network] could not read full msg", "length", length, "read", n)
+			log.Error("[network] Failed to read entire message", "length", length, "read", n)
 			return
 		}
 
