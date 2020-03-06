@@ -91,7 +91,10 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(s.handleStream)
 
-	s.host.printHostAddresses()
+	// log listening addresses to console
+	for _, addr := range s.host.multiaddrs() {
+		log.Info("[network] Started listening", "address", addr)
+	}
 
 	if !s.noBootstrap {
 		s.host.bootstrap()
@@ -115,13 +118,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		log.Error("Failed to close mDNS discovery service", "err", err)
+		log.Error("[network] Failed to close mDNS discovery service", "err", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		log.Error("Failed to close host", "err", err)
+		log.Error("[network] Failed to close host", "err", err)
 	}
 
 	// close channel to core service
@@ -139,7 +142,7 @@ func (s *Service) receiveCoreMessages() {
 		msg := <-s.msgRec
 
 		log.Debug(
-			"Broadcasting message from core service",
+			"[network] Broadcasting message from core service",
 			"host", s.host.id(),
 			"type", msg.GetType(),
 		)
@@ -157,7 +160,7 @@ func (s *Service) handleConn(conn network.Conn) {
 		// get latest block header from block state
 		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			log.Error("[network] could not get chain head", "err", err)
+			log.Error("[network] Failed to get chain head", "err", err)
 			return
 		}
 
@@ -195,7 +198,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 		// decode message based on message type
 		msg, err := decodeMessage(r)
 		if err != nil {
-			log.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			log.Error("[network] Failed to decode message from peer", "peer", peer, "err", err)
 			return // exit
 		}
 
@@ -209,7 +212,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 // handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	log.Trace(
-		"Received message from peer",
+		"[network] Received message from peer",
 		"host", s.host.id(),
 		"peer", peer,
 		"type", msg.GetType(),
@@ -239,9 +242,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
 
-			// send a BlockRequestMessage if peer block is greater than our block number
-			s.sendBlockRequestMessage(peer, msg)
-
+			// send a block request message if peer best block number is greater than host best block number
+			s.sendBlockRequestMessage(peer, msg.(*StatusMessage))
 		}
 	}
 }

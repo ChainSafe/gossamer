@@ -70,7 +70,7 @@ func (status *status) handleConn(conn network.Conn) {
 		err := status.host.send(remotePeer, status.hostMessage)
 		if err != nil {
 			log.Error(
-				"Failed to send host status message to peer",
+				"[network] Failed to send status message to peer",
 				"peer", remotePeer,
 				"err", err,
 			)
@@ -81,7 +81,7 @@ func (status *status) handleConn(conn network.Conn) {
 
 	} else {
 		log.Error(
-			"Failed to send host status message to peer",
+			"[network] Failed to send status message to peer",
 			"peer", remotePeer,
 			"err", "host status message not set",
 		)
@@ -110,7 +110,7 @@ func (status *status) handleMessage(peer peer.ID, msg *StatusMessage) {
 		// close connection with peer if status message is not valid
 		err := status.closePeer(ctx, peer)
 		if err != nil {
-			log.Error("Failed to close peer with invalid status message", "err", err)
+			log.Error("[network] Failed to close peer with invalid status message", "err", err)
 		}
 	}
 }
@@ -123,13 +123,13 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 
 	switch {
 	case msg.GenesisHash != status.hostMessage.GenesisHash:
-		log.Error("Failed to validate status message", "err", "genesis hash")
+		log.Error("[network] Failed to validate status message", "err", "genesis hash")
 		return false
 	case msg.ProtocolVersion < status.hostMessage.MinSupportedVersion:
-		log.Error("Failed to validate status message", "err", "protocol version")
+		log.Error("[network] Failed to validate status message", "err", "protocol version")
 		return false
 	case msg.MinSupportedVersion > status.hostMessage.ProtocolVersion:
-		log.Error("Failed to validate status message", "err", "protocol version")
+		log.Error("[network] Failed to validate status message", "err", "protocol version")
 		return false
 	}
 	return true
@@ -154,7 +154,7 @@ func (status *status) sendNextMessage(ctx context.Context, peer peer.ID) {
 		err := status.host.send(peer, status.hostMessage)
 		if err != nil {
 			log.Error(
-				"Failed to send host status message to peer",
+				"[network] Failed to send host status message to peer",
 				"peer", peer,
 				"err", err,
 			)
@@ -189,7 +189,7 @@ func (status *status) expireStatus(ctx context.Context, peer peer.ID) {
 		// update peer information and close connection
 		err := status.closePeer(ctx, peer)
 		if err != nil {
-			log.Error("Failed to close peer with expired status message", "err", err)
+			log.Error("[network] Failed to close peer with expired status message", "err", err)
 		}
 	}
 }
