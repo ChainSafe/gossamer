@@ -57,7 +57,7 @@ func (m *mdns) start() {
 	)
 
 	// create and start service
-	mdns, err := discovery.NewMDNSService(
+	mdns, err := discovery.NewMdnsService(
 		m.host.ctx,
 		m.host.h,
 		MDNSPeriod,
