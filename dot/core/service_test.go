@@ -324,7 +324,6 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 }
 
 func TestProcessTransactionMessage(t *testing.T) {
-	t.Skip()
 	tt := trie.NewEmptyTrie(nil)
 	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
 

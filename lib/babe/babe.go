@@ -49,6 +49,7 @@ type Session struct {
 	newBlocks        chan<- types.Block            // send blocks to core service
 	done             chan<- struct{}               // lets core know when the epoch is done
 	kill             <-chan struct{}               // kill session if this is closed
+	killed           bool
 }
 
 // SessionConfig struct
@@ -89,6 +90,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		startSlot:        cfg.StartSlot,
 		done:             cfg.Done,
 		kill:             cfg.Kill,
+		killed:           false,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -180,7 +182,7 @@ func (b *Session) setAuthorityIndex() error {
 
 func (b *Session) checkForKill() {
 	<-b.kill
-	b.kill = nil
+	b.killed = true
 	b.stop()
 }
 
@@ -218,7 +220,7 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
-		if b.kill == nil {
+		if b.killed == true {
 			// session has been killed, exit
 			return
 		}
@@ -259,7 +261,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 		log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
 		log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
 
-		if b.newBlocks == nil {
+		if b.killed == true {
 			// session killed, return
 			log.Warn("[babe] session killed before block could be sent to core")
 			return
