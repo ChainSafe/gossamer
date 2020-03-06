@@ -138,6 +138,8 @@ func gossamer(ctx *cli.Context) error {
 	// check if node has been initialized
 	if !nodeInitialized(ctx) {
 
+		log.Warn("[gossamer] Node has not been initialized, initializing new node...")
+
 		// initialize node (initialize databases and load genesis data)
 		err = initializeNode(ctx)
 		if err != nil {

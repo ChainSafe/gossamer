@@ -123,13 +123,22 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 
 	switch {
 	case msg.GenesisHash != status.hostMessage.GenesisHash:
-		log.Error("[network] Failed to validate status message", "error", "genesis hash")
+		log.Error(
+			"[network] Failed to validate status message",
+			"error", "host and peer genesis hashes do not match",
+		)
 		return false
 	case msg.ProtocolVersion < status.hostMessage.MinSupportedVersion:
-		log.Error("[network] Failed to validate status message", "error", "protocol version")
+		log.Error(
+			"[network] Failed to validate status message",
+			"error", "protocol version less than minimum supported version",
+		)
 		return false
 	case msg.MinSupportedVersion > status.hostMessage.ProtocolVersion:
-		log.Error("[network] Failed to validate status message", "error", "protocol version")
+		log.Error(
+			"[network] Failed to validate status message",
+			"error", "minimum supported version greater than protocol version",
+		)
 		return false
 	}
 	return true

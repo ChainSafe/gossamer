@@ -52,9 +52,9 @@ var DefaultBootnodes = []string(nil)
 
 // Config is used to configure a network service
 type Config struct {
-	// BlockState the block state interface
+	// BlockState the block state's interface
 	BlockState BlockState
-	// NetworkState the network state interface
+	// NetworkState the network state's interface
 	NetworkState NetworkState
 	// DataDir the data directory for the node
 	DataDir string
