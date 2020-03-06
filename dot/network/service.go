@@ -75,7 +75,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		msgSend:           msgSend,
 		noBootstrap:       cfg.NoBootstrap,
 		noMdns:            cfg.NoMdns,
-		noStatus:          cfg.NoStatus,
+		noStatus:          true, //cfg.NoStatus,
 		requestedBlockIDs: make(map[uint64]bool),
 	}
 
@@ -161,6 +161,8 @@ func (s *Service) handleConn(conn network.Conn) {
 			return
 		}
 
+		log.Info("[network]", "genesis hash", s.cfg.BlockState.GenesisHash())
+
 		// update host status message
 		msg := &StatusMessage{
 			ProtocolVersion:     s.cfg.ProtocolVersion,
@@ -184,26 +186,57 @@ func (s *Service) handleConn(conn network.Conn) {
 // a matching protocol id that was opened by the connected peer) and continues
 // reading until the inbound message stream is closed or reset.
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
-	peer := stream.Conn().RemotePeer()
+	conn := stream.Conn()
+	if conn == nil {
+		log.Error("[network] cannot get connection from stream")
+		return
+	}
+
+	remotePeer := conn.RemotePeer()
 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
+	go s.read(r, remotePeer)
+	// the stream stays open until closed or reset
+}
+
+func (s *Service) read(r *bufio.Reader, remotePeer peer.ID) {
 	for {
 		// TODO: re-add leb128 variable-length encoding #484
+		length, err := readLEB128ToUint64(r)
+		if err != nil {
+			log.Error("[network]", "handle stream err", err)
+			return
+		}
+
+		log.Debug("[network]", "msglen", length)
+
+		msgBytes := make([]byte, uint64(length))
+		n, err := r.Read(msgBytes)
+		if err != nil {
+			log.Error("[network]", "handle stream err", err)
+			return
+		}
+
+		log.Debug("[network]", "msg", msgBytes)
+
+		if uint64(n) != length {
+			log.Error("[network] could not read full msg", "length", length, "read", n)
+			return
+		}
 
 		// decode message based on message type
-		msg, err := decodeMessage(r)
+		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
-			log.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			log.Error("Failed to decode message from peer", "peer", remotePeer, "err", err)
 			return // exit
 		}
 
 		// handle message based on peer status and message type
-		s.handleMessage(peer, msg)
+		s.handleMessage(remotePeer, msg)
 	}
 
-	// the stream stays open until closed or reset
 }
 
 // handleMessage handles the message based on peer status and message type
@@ -228,7 +261,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		if !s.noGossip {
 
 			// handle non-status message from peer with gossip submodule
-			s.gossip.handleMessage(msg)
+			s.gossip.handleMessage(msg, peer)
 		}
 
 	} else {

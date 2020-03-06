@@ -187,11 +187,15 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 		return err
 	}
 
-	// TODO: append leb128 variable-length encoding #484
+	lenBytes := uint64ToLEB128(uint64(len(encMsg)))
+	encMsg = append(lenBytes, encMsg...)
+
 	_, err = s.Write(encMsg)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("[network] sending", "msg", encMsg)
 
 	log.Trace(
 		"Sent message",
@@ -209,6 +213,18 @@ func (h *host) broadcast(msg Message) {
 		err := h.send(p, msg)
 		if err != nil {
 			log.Error("Failed to send message during broadcast", "peer", p, "err", err)
+		}
+	}
+}
+
+// broadcast sends a message to each connected peer except specified peer
+func (h *host) broadcastExcluding(msg Message, peer peer.ID) {
+	for _, p := range h.peers() {
+		if p != peer {
+			err := h.send(p, msg)
+			if err != nil {
+				log.Error("Failed to send message during broadcast", "peer", p, "err", err)
+			}
 		}
 	}
 }

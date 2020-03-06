@@ -17,8 +17,8 @@
 package network
 
 import (
+	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -31,21 +31,21 @@ import (
 
 //nolint
 const (
-	StatusMsgType = iota
-	BlockRequestMsgType
-	BlockResponseMsgType
-	BlockAnnounceMsgType
-	TransactionMsgType
-	ConsensusMsgType
-	RemoteCallRequestType
-	RemoteCallResponseType
-	RemoteReadRequestType
-	RemoteReadResponseType
-	RemoteHeaderRequestType
-	RemoteHeaderResponseType
-	RemoteChangesRequestType
-	RemoteChangesResponseType
-	ChainSpecificMsgType = 255
+	StatusMsgType             = 0
+	BlockRequestMsgType       = 1
+	BlockResponseMsgType      = 2
+	BlockAnnounceMsgType      = 3
+	TransactionMsgType        = 4
+	ConsensusMsgType          = 5
+	RemoteCallRequestType     = 6
+	RemoteCallResponseType    = 7
+	RemoteReadRequestType     = 8
+	RemoteReadResponseType    = 9
+	RemoteHeaderRequestType   = 10
+	RemoteHeaderResponseType  = 11
+	RemoteChangesRequestType  = 12
+	RemoteChangesResponseType = 13
+	ChainSpecificMsgType      = 255
 )
 
 // Message interface
@@ -81,7 +81,40 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 		m = new(TransactionMessage)
 		err = m.Decode(r)
 	default:
-		return nil, errors.New("unsupported message type")
+		return nil, fmt.Errorf("unsupported message type %d", msgType)
+	}
+
+	return m, err
+}
+
+// decodeMessageBytes decodes the message based on message type
+func decodeMessageBytes(in []byte) (m Message, err error) {
+	r := &bytes.Buffer{}
+	r.Write(in)
+
+	msgType, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	switch msgType {
+	case StatusMsgType:
+		m = new(StatusMessage)
+		err = m.Decode(r)
+	case BlockRequestMsgType:
+		m = new(BlockRequestMessage)
+		err = m.Decode(r)
+	case BlockResponseMsgType:
+		m = new(BlockResponseMessage)
+		err = m.Decode(r)
+	case BlockAnnounceMsgType:
+		m = new(BlockAnnounceMessage)
+		err = m.Decode(r)
+	case TransactionMsgType:
+		m = new(TransactionMessage)
+		err = m.Decode(r)
+	default:
+		return nil, fmt.Errorf("unsupported message type %d", msgType)
 	}
 
 	return m, err

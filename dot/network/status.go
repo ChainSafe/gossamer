@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -121,8 +122,10 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 		return false
 	}
 
+	log.Info("[network]", "peer's genesis hash", msg.GenesisHash)
+
 	switch {
-	case msg.GenesisHash != status.hostMessage.GenesisHash:
+	case !bytes.Equal(msg.GenesisHash[:], status.hostMessage.GenesisHash[:]):
 		log.Error("Failed to validate status message", "err", "genesis hash")
 		return false
 	case msg.ProtocolVersion < status.hostMessage.MinSupportedVersion:

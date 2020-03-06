@@ -3,6 +3,7 @@ module github.com/ChainSafe/gossamer
 replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wagon v0.3.1-0.20180825141017-f8cb99b55a39
 
 require (
+	bitbucket.org/sheran_gunasekera/leb128 v0.0.0-20140310100139-ab5288260bc3
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200115165343-aa45d48b5ed6
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
@@ -12,6 +13,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/filecoin-project/go-leb128 v0.0.0-20190212224330-8d79a5489543
+	github.com/go-interpreter/wagon v0.6.1-0.20200227184901-6803234760a6
 	github.com/golang/snappy v0.0.1
 	github.com/golangci/golangci-lint v1.23.1 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
