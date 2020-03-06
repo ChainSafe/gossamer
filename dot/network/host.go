@@ -195,8 +195,6 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 		return err
 	}
 
-	log.Debug("[network] sending", "msg", encMsg)
-
 	log.Trace(
 		"Sent message",
 		"host", h.id(),
@@ -217,7 +215,7 @@ func (h *host) broadcast(msg Message) {
 	}
 }
 
-// broadcast sends a message to each connected peer except specified peer
+// broadcastExcluding sends a message to each connected peer except specified peer
 func (h *host) broadcastExcluding(msg Message, peer peer.ID) {
 	for _, p := range h.peers() {
 		if p != peer {
