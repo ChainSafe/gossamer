@@ -428,7 +428,7 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	addBlocksToState(t, 1, dbSrv.Block)
+	addTestBlocksToState(t, 1, dbSrv.Block)
 
 	endHash := s.blockState.BestBlockHash()
 
