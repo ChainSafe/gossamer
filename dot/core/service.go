@@ -406,9 +406,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		s.requestedBlockIDs[randomID] = true
 
 		// send block request message to network service
-		log.Info("[core] sending blockRequest message to network service")
 		s.msgSend <- blockRequest
-
 	}
 
 	return nil
@@ -447,7 +445,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	log.Info("[core] got block request msg", "start", startHash, "end", endHash, "requested data", blockRequest.RequestedData)
+	log.Debug("[core] got block request msg", "start", startHash, "end", endHash, "requested data", blockRequest.RequestedData)
 
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
@@ -522,7 +520,6 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
-	log.Info("[core] got block response msg")
 	blockData := msg.(*network.BlockResponseMessage).BlockData
 
 	bestNum, err := s.blockState.BestBlockNumber()
