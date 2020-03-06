@@ -118,13 +118,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		log.Error("[network] Failed to close mDNS discovery service", "err", err)
+		log.Error("[network] Failed to close mDNS discovery service", "error", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		log.Error("[network] Failed to close host", "err", err)
+		log.Error("[network] Failed to close host", "error", err)
 	}
 
 	// close channel to core service
@@ -160,7 +160,7 @@ func (s *Service) handleConn(conn network.Conn) {
 		// get latest block header from block state
 		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			log.Error("[network] Failed to get chain head", "err", err)
+			log.Error("[network] Failed to get chain head", "error", err)
 			return
 		}
 
@@ -198,7 +198,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 		// decode message based on message type
 		msg, err := decodeMessage(r)
 		if err != nil {
-			log.Error("[network] Failed to decode message from peer", "peer", peer, "err", err)
+			log.Error("[network] Failed to decode message from peer", "peer", peer, "error", err)
 			return // exit
 		}
 

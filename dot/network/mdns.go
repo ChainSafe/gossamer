@@ -64,7 +64,7 @@ func (m *mdns) start() {
 		string(m.host.protocolID),
 	)
 	if err != nil {
-		log.Error("[network] Failed to start mDNS discovery service", "err", err)
+		log.Error("[network] Failed to start mDNS discovery service", "error", err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (m *mdns) close() error {
 		// close service
 		err := m.mdns.Close()
 		if err != nil {
-			log.Error("[network] Failed to close mDNS discovery service", "err", err)
+			log.Error("[network] Failed to close mDNS discovery service", "error", err)
 			return err
 		}
 	}
@@ -105,6 +105,6 @@ func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
 	// connect to found peer
 	err := n.host.connect(p)
 	if err != nil {
-		log.Error("[network] Failed to connect to peer using mDNS discovery", "err", err)
+		log.Error("[network] Failed to connect to peer using mDNS discovery", "error", err)
 	}
 }

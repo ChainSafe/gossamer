@@ -36,7 +36,7 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, statusMessage *StatusMes
 		// get latest block header from block state
 		latestHeader, err := s.cfg.BlockState.BestBlockHeader()
 		if err != nil {
-			log.Error("[network] Failed to get best block header from block state", "err", err)
+			log.Error("[network] Failed to get best block header from block state", "error", err)
 			return
 		}
 
@@ -67,7 +67,7 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, statusMessage *StatusMes
 			// send block request message
 			err := s.host.send(peer, blockRequest)
 			if err != nil {
-				log.Error("[network] Failed to send block request message to peer", "err", err)
+				log.Error("[network] Failed to send block request message to peer", "error", err)
 			} else {
 				log.Trace("[network] Sent block message to peer", "peer", peer, "type", blockRequest.GetType())
 			}

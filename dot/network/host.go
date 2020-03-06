@@ -104,14 +104,14 @@ func (h *host) close() error {
 	// close DHT service
 	err := h.dht.Close()
 	if err != nil {
-		log.Error("[network] Failed to close DHT service", "err", err)
+		log.Error("[network] Failed to close DHT service", "error", err)
 		return err
 	}
 
 	// close libp2p host
 	err = h.h.Close()
 	if err != nil {
-		log.Error("[network] Failed to close libp2p host", "err", err)
+		log.Error("[network] Failed to close libp2p host", "error", err)
 		return err
 	}
 
@@ -140,7 +140,7 @@ func (h *host) bootstrap() {
 	for _, addrInfo := range h.bootnodes {
 		err := h.connect(addrInfo)
 		if err != nil {
-			log.Error("[network] Failed to bootstrap peer", "err", err)
+			log.Error("[network] Failed to bootstrap peer", "error", err)
 		}
 	}
 }
@@ -200,7 +200,7 @@ func (h *host) broadcast(msg Message) {
 	for _, p := range h.peers() {
 		err := h.send(p, msg)
 		if err != nil {
-			log.Error("[network] Failed to broadcast message to peer", "peer", p, "err", err)
+			log.Error("[network] Failed to broadcast message to peer", "peer", p, "error", err)
 		}
 	}
 }
