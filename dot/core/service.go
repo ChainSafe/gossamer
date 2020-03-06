@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -31,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -53,11 +53,13 @@ type Service struct {
 	storageState      StorageState
 	transactionQueue  TransactionQueue
 	rt                *runtime.Runtime
+	codeHash          common.Hash
 	bs                *babe.Session
-	keys              []crypto.Keypair
+	keys              *keystore.Keystore
 	blkRec            <-chan types.Block     // receive blocks from BABE session
 	msgRec            <-chan network.Message // receive messages from network service
 	epochDone         <-chan struct{}        // receive from this channel when BABE epoch changes
+	babeKill          chan<- struct{}        // close this channel to kill current BABE session
 	msgSend           chan<- network.Message // send messages to network service
 	isBabeAuthority   bool
 	requestedBlockIDs map[uint64]bool // track requested block id messages
@@ -89,6 +91,19 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
+	if cfg.BlockState == nil {
+		return nil, fmt.Errorf("block state is nil")
+	}
+
+	if cfg.StorageState == nil {
+		return nil, fmt.Errorf("storage state is nil")
+	}
+
+	codeHash, err := cfg.StorageState.LoadCodeHash()
+	if err != nil {
+		return nil, err
+	}
+
 	var srv = &Service{}
 
 	if cfg.IsBabeAuthority {
@@ -97,10 +112,12 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 
 		epochDone := make(chan struct{})
+		babeKill := make(chan struct{})
 
 		srv = &Service{
 			rt:               cfg.Runtime,
-			keys:             keys,
+			codeHash:         codeHash,
+			keys:             cfg.Keystore,
 			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
 			msgRec:           cfg.MsgRec,
 			msgSend:          cfg.MsgSend,
@@ -108,6 +125,7 @@ func NewService(cfg *Config) (*Service, error) {
 			storageState:     cfg.StorageState,
 			transactionQueue: cfg.TransactionQueue,
 			epochDone:        epochDone,
+			babeKill:         babeKill,
 			isBabeAuthority:  true,
 		}
 
@@ -125,6 +143,7 @@ func NewService(cfg *Config) (*Service, error) {
 			StorageState:     cfg.StorageState,
 			AuthData:         authData,
 			Done:             epochDone,
+			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
 		}
 
@@ -140,7 +159,8 @@ func NewService(cfg *Config) (*Service, error) {
 	} else {
 		srv = &Service{
 			rt:               cfg.Runtime,
-			keys:             keys,
+			codeHash:         codeHash,
+			keys:             cfg.Keystore,
 			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
 			msgRec:           cfg.MsgRec,
 			msgSend:          cfg.MsgSend,
@@ -184,14 +204,15 @@ func (s *Service) Start() error {
 // Stop stops the core service
 func (s *Service) Stop() error {
 
-	// stop runtime
-	if s.rt != nil {
-		s.rt.Stop()
-	}
-
 	// close message channel to network service
 	if s.msgSend != nil {
 		close(s.msgSend)
+		s.msgSend = nil
+	}
+
+	if s.isBabeAuthority && s.babeKill != nil {
+		close(s.babeKill)
+		s.babeKill = nil
 	}
 
 	return nil
@@ -232,6 +253,11 @@ func (s *Service) handleBabeSession() {
 		epochDone := make(chan struct{})
 		s.epochDone = epochDone
 
+		babeKill := make(chan struct{})
+		s.babeKill = babeKill
+
+		keys := s.keys.Sr25519Keypairs()
+
 		latestSlot, err := s.getLatestSlot()
 		if err != nil {
 			log.Error("[core]", "error", err)
@@ -239,7 +265,7 @@ func (s *Service) handleBabeSession() {
 
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
-			Keypair:          s.keys[0].(*sr25519.Keypair),
+			Keypair:          keys[0].(*sr25519.Keypair),
 			Runtime:          s.rt,
 			NewBlocks:        newBlocks, // becomes block send channel in BABE session
 			BlockState:       s.blockState,
@@ -247,6 +273,7 @@ func (s *Service) handleBabeSession() {
 			TransactionQueue: s.transactionQueue,
 			AuthData:         s.bs.AuthorityData(), // AuthorityData will be updated when the NextEpochDescriptor arrives.
 			Done:             epochDone,
+			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
 		}
 
@@ -290,6 +317,7 @@ func (s *Service) receiveMessages() {
 			log.Error("[core] failed to receive message from network service")
 			return // exit
 		}
+
 		err := s.handleReceivedMessage(msg)
 		if err != nil {
 			log.Error("[core] failed to handle message from network service", "err", err)
@@ -317,6 +345,11 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	}
 
 	// send block announce message to network service
+	if s.msgSend == nil {
+		// service has been stopped, return
+		return nil
+	}
+
 	s.msgSend <- msg
 
 	// TODO: check if host status message needs to be updated based on new block
@@ -324,6 +357,11 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 
 	// TODO: send updated host status message to network service
 	// s.msgSend <- msg
+
+	err = s.checkForRuntimeChanges()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -406,6 +444,13 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		s.requestedBlockIDs[randomID] = true
 
 		// send block request message to network service
+		log.Debug("send blockRequest message to network service")
+
+		// TODO: safe channel checking
+		if s.msgSend == nil {
+			return nil
+		}
+
 		s.msgSend <- blockRequest
 	}
 
@@ -588,6 +633,11 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				}
 
 				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+
+				err = s.checkForRuntimeChanges()
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -636,6 +686,36 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 	}
 
 	return s.blockState.SetBlockData(existingData)
+}
+
+// checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
+func (s *Service) checkForRuntimeChanges() error {
+	currentCodeHash, err := s.storageState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+		code, err := s.storageState.LoadCode()
+		if err != nil {
+			return err
+		}
+
+		s.rt.Stop()
+
+		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
+		if err != nil {
+			return err
+		}
+
+		// kill babe session, handleBabeSession will reload it with the new runtime
+		if s.isBabeAuthority && s.babeKill == nil {
+			close(s.babeKill)
+		}
+		s.babeKill = nil
+	}
+
+	return nil
 }
 
 // ProcessTransactionMessage validates each transaction in the message and
