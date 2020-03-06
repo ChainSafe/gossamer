@@ -124,11 +124,6 @@ func (s *Service) Stop() error {
 		log.Error("Failed to close host", "err", err)
 	}
 
-	// close channel to core service
-	if s.msgSend != nil {
-		close(s.msgSend)
-	}
-
 	return nil
 }
 

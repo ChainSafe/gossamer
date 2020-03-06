@@ -90,7 +90,10 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 // decodeMessageBytes decodes the message based on message type
 func decodeMessageBytes(in []byte) (m Message, err error) {
 	r := &bytes.Buffer{}
-	r.Write(in)
+	_, err = r.Write(in)
+	if err != nil {
+		return nil, err
+	}
 
 	msgType, err := common.ReadByte(r)
 	if err != nil {

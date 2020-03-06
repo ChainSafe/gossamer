@@ -125,24 +125,17 @@ func TestGossip(t *testing.T) {
 	}
 
 	// node B gossips message to node C
-	for i := 0; i < 2; i++ {
-		select {
-		case <-msgSendC:
-		case <-time.After(TestMessageTimeout):
-			t.Error("node A timeout waiting for message")
-		}
+	select {
+	case <-msgSendC:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node A timeout waiting for message")
 	}
 
-	// node A gossips message to node B and node C
-	// node C gossips message to node A and node B
-	for i := 0; i < 4; i++ {
-		select {
-		case <-msgSendA:
-		case <-msgSendB:
-		case <-msgSendC:
-		case <-time.After(TestMessageTimeout):
-			t.Error("timeout waiting for messages")
-		}
+	// node C gossips message to node A
+	select {
+	case <-msgSendA:
+	case <-time.After(TestMessageTimeout):
+		t.Error("node A timeout waiting for message")
 	}
 
 	hasSeenB := nodeB.gossip.hasSeen[TestMessage.IDString()]
