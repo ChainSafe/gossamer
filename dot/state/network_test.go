@@ -39,8 +39,6 @@ var testPeers = &[]common.PeerInfo{{PeerID: "alice", BestHash: common.Hash{}, Be
 func TestNetworkState(t *testing.T) {
 	state := newTestMemDBService()
 
-	t.Log(state.Network)
-
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
@@ -50,14 +48,11 @@ func TestNetworkState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(state.Network)
 
 	err = state.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	t.Log(state.Network)
 
 	err = state.Network.SetHealth(testHealth)
 	require.Nil(t, err)
