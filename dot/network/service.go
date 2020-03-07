@@ -91,7 +91,10 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(s.handleStream)
 
-	s.host.printHostAddresses()
+	// log listening addresses to console
+	for _, addr := range s.host.multiaddrs() {
+		log.Info("[network] Started listening", "address", addr)
+	}
 
 	if !s.noBootstrap {
 		s.host.bootstrap()
@@ -115,13 +118,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		log.Error("Failed to close mDNS discovery service", "err", err)
+		log.Error("[network] Failed to close mDNS discovery service", "error", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		log.Error("Failed to close host", "err", err)
+		log.Error("[network] Failed to close host", "error", err)
 	}
 
 	// TODO: close s.msgSend, need channel close handling
@@ -135,7 +138,7 @@ func (s *Service) receiveCoreMessages() {
 		msg := <-s.msgRec
 
 		log.Debug(
-			"Broadcasting message from core service",
+			"[network] Broadcasting message from core service",
 			"host", s.host.id(),
 			"type", msg.GetType(),
 		)
@@ -153,7 +156,7 @@ func (s *Service) handleConn(conn network.Conn) {
 		// get latest block header from block state
 		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			log.Error("[network] could not get chain head", "err", err)
+			log.Error("[network] Failed to get chain head", "error", err)
 			return
 		}
 
@@ -186,16 +189,16 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	remotePeer := conn.RemotePeer()
+	peer := conn.RemotePeer()
 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
-	go s.readStream(r, remotePeer)
+	go s.readStream(r, peer)
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) readStream(r *bufio.Reader, remotePeer peer.ID) {
+func (s *Service) readStream(r *bufio.Reader, peer peer.ID) {
 	for {
 		// TODO: re-add leb128 variable-length encoding #484
 		length, err := readLEB128ToUint64(r)
@@ -219,12 +222,12 @@ func (s *Service) readStream(r *bufio.Reader, remotePeer peer.ID) {
 		// decode message based on message type
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
-			log.Error("[network] Failed to decode message from peer", "peer", remotePeer, "err", err)
+			log.Error("[network] Failed to decode message from peer", "peer", peer, "err", err)
 			return // exit
 		}
 
 		// handle message based on peer status and message type
-		s.handleMessage(remotePeer, msg)
+		s.handleMessage(peer, msg)
 	}
 
 }
@@ -232,7 +235,7 @@ func (s *Service) readStream(r *bufio.Reader, remotePeer peer.ID) {
 // handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	log.Trace(
-		"Received message from peer",
+		"[network] Received message from peer",
 		"host", s.host.id(),
 		"peer", peer,
 		"type", msg.GetType(),
@@ -262,9 +265,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
 
-			// send a BlockRequestMessage if peer block is greater than our block number
-			s.sendBlockRequestMessage(peer, msg)
-
+			// send a block request message if peer best block number is greater than host best block number
+			s.sendBlockRequestMessage(peer, msg.(*StatusMessage))
 		}
 	}
 }
