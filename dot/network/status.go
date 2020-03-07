@@ -122,7 +122,7 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 		return false
 	}
 
-	log.Debug("[network]", "peer's genesis hash", msg.GenesisHash)
+	log.Debug("[network] Validating peer status message", "GenesisHash", msg.GenesisHash)
 
 	switch {
 	case !bytes.Equal(msg.GenesisHash[:], status.hostMessage.GenesisHash[:]):

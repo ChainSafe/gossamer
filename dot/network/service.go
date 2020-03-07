@@ -191,11 +191,11 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
-	go s.read(r, remotePeer)
+	go s.readStream(r, remotePeer)
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) read(r *bufio.Reader, remotePeer peer.ID) {
+func (s *Service) readStream(r *bufio.Reader, remotePeer peer.ID) {
 	for {
 		// TODO: re-add leb128 variable-length encoding #484
 		length, err := readLEB128ToUint64(r)
