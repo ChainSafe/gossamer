@@ -33,6 +33,7 @@ import (
 type Service struct {
 	dbPath           string
 	db               database.Database
+	isMemDB          bool
 	Storage          *StorageState
 	Block            *BlockState
 	Network          *NetworkState
@@ -44,25 +45,36 @@ func NewService(path string) *Service {
 	return &Service{
 		dbPath:  path,
 		db:      nil,
+		isMemDB: false,
 		Storage: nil,
 		Block:   nil,
 		Network: nil,
 	}
 }
 
+func (s *Service) UseMemDB() {
+	s.isMemDB = true
+}
+
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // The trie does not need a backing DB, since the DB will be created during Service.Start().
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
-	datadir, err := filepath.Abs(s.dbPath)
-	if err != nil {
-		return err
-	}
+	var db database.Database
+	if s.isMemDB {
+		db = database.NewMemDatabase()
+		s.db = db
+	} else {
+		datadir, err := filepath.Abs(s.dbPath)
+		if err != nil {
+			return err
+		}
 
-	// initialize database
-	db, err := database.NewBadgerDB(datadir)
-	if err != nil {
-		return err
+		// initialize database
+		db, err = database.NewBadgerDB(datadir)
+		if err != nil {
+			return err
+		}
 	}
 
 	// load genesis storage state into db
@@ -91,9 +103,15 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 	}
 
 	// load genesis block into db
-	_, err = NewBlockStateFromGenesis(db, genesisHeader)
+	blockState, err := NewBlockStateFromGenesis(db, genesisHeader)
 	if err != nil {
 		return err
+	}
+
+	if s.isMemDB {
+		s.Storage = storageState
+		s.Block = blockState
+		return nil
 	}
 
 	return db.Close()
@@ -112,22 +130,21 @@ func initializeBlockTree(db database.Database, genesisHeader *types.Header) erro
 
 // Start initializes the Storage database and the Block database.
 func (s *Service) Start() error {
-	if s.Storage != nil || s.Block != nil || s.Network != nil {
-		return nil
-	}
+	db := s.db
+	if !s.isMemDB {
+		datadir, err := filepath.Abs(s.dbPath)
+		if err != nil {
+			return err
+		}
 
-	datadir, err := filepath.Abs(s.dbPath)
-	if err != nil {
-		return err
-	}
+		// initialize database
+		db, err = database.NewBadgerDB(datadir)
+		if err != nil {
+			return err
+		}
 
-	// initialize database
-	db, err := database.NewBadgerDB(datadir)
-	if err != nil {
-		return err
+		s.db = db
 	}
-
-	s.db = db
 
 	// retrieve latest header
 	bestHash, err := s.db.Get(common.BestBlockHashKey)

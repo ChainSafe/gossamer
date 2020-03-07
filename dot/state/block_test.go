@@ -17,7 +17,6 @@
 package state
 
 import (
-	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
@@ -32,13 +31,8 @@ import (
 )
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-	datadir, err := ioutil.TempDir("", "./test_data")
-	require.Nil(t, err)
-
-	db, err := database.NewBadgerDB(datadir)
-
+	db := database.NewMemDatabase()
 	blockDb := NewBlockDB(db)
-	require.Nil(t, err)
 
 	if header == nil {
 		return &BlockState{

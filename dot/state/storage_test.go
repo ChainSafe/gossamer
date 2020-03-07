@@ -2,7 +2,6 @@ package state
 
 import (
 	"bytes"
-	"io/ioutil"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -11,16 +10,7 @@ import (
 )
 
 func newTesStorageState(t *testing.T) *StorageState {
-	datadir, err := ioutil.TempDir("", "./test_data")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	db, err := database.NewBadgerDB(datadir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	db := database.NewMemDatabase()
 	s, err := NewStorageState(db, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
