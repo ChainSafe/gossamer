@@ -52,6 +52,8 @@ func NewService(path string) *Service {
 	}
 }
 
+// UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
+// This should be called after NewService, and before Initialize.
 func (s *Service) UseMemDB() {
 	s.isMemDB = true
 }
