@@ -200,7 +200,6 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 
 func (s *Service) readStream(r *bufio.Reader, peer peer.ID) {
 	for {
-		// TODO: re-add leb128 variable-length encoding #484
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
 			log.Error("[network] Failed to read LEB128 encoding", "error", err)

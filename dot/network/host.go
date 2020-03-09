@@ -179,7 +179,8 @@ func (h *host) send(p peer.ID, msg Message) (err error) {
 		return err
 	}
 
-	lenBytes := uint64ToLEB128(uint64(len(encMsg)))
+	msgLen := uint64(len(encMsg))
+	lenBytes := uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
 	_, err = s.Write(encMsg)
