@@ -33,7 +33,7 @@ import (
 type Service struct {
 	dbPath           string
 	db               database.Database
-	isMemDB          bool
+	isMemDB          bool // set to true if using an in-memory database; only used for testing.
 	Storage          *StorageState
 	Block            *BlockState
 	Network          *NetworkState
@@ -54,6 +54,7 @@ func NewService(path string) *Service {
 
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
 // This should be called after NewService, and before Initialize.
+// This should only be used for testing.
 func (s *Service) UseMemDB() {
 	s.isMemDB = true
 }
