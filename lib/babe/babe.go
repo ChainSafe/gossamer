@@ -165,7 +165,6 @@ func (b *Session) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if b.closed {
-		// session has been stopped
 		return errors.New("session has been stopped")
 	}
 	b.newBlocks <- msg

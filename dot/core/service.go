@@ -255,7 +255,6 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.closed {
-		// service has been stopped
 		return errors.New("service has been stopped")
 	}
 	s.msgSend <- msg
@@ -266,7 +265,6 @@ func (s *Service) safeBabeKill() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.closed {
-		// service has been stopped
 		return errors.New("service has been stopped")
 	}
 	close(s.babeKill)

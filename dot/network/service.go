@@ -19,6 +19,7 @@ package network
 import (
 	"bufio"
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -166,6 +167,16 @@ func (s *Service) receiveCoreMessages() {
 	}
 }
 
+func (s *Service) safeMsgSend(msg Message) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if s.closed {
+		return errors.New("service has been stopped")
+	}
+	s.msgSend <- msg
+	return nil
+}
+
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn network.Conn) {
 	// check if status is enabled
@@ -243,14 +254,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
 
-			s.lock.Lock()
-			if s.closed {
-				s.lock.Unlock()
-				return
+			err := s.safeMsgSend(msg)
+			if err != nil {
+				log.Error("[network] Failed to send message", "error", err)
 			}
-			// send non-status message from confirmed peer to core service
-			s.msgSend <- msg
-			s.lock.Unlock()
 
 		}
 
