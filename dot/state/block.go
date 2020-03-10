@@ -289,10 +289,6 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	}
 
 	return nil
-
-	// Add a mapping of [blocknumber : hash] for retrieving the block by number
-	//err = bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes())
-	//return err
 }
 
 // SetBlock will add a block to the DB

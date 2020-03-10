@@ -390,7 +390,8 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
-	log.Info("[core] got BlockAnnounceMessage")
+	log.Trace("[core] got BlockAnnounceMessage")
+
 	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
 		return errors.New("could not cast network.Message to BlockAnnounceMessage")
@@ -460,8 +461,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 // ProcessBlockRequestMessage processes a block request message, returning a block response message
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
-	log.Info("[core] got BlockRequestMessage")
-
 	blockRequest := msg.(*network.BlockRequestMessage)
 
 	startPrefix := blockRequest.StartingBlock[0]
@@ -494,7 +493,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	log.Info("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+	log.Trace("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
@@ -509,7 +508,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		data, err := s.blockState.GetBlockData(hash)
 		if err != nil && err.Error() == "Key not found" {
 			log.Error("[core] could not find block", "hash", hash)
-			//return err
+		} else if err != nil {
+			return err
 		} else {
 			blockData := new(types.BlockData)
 			blockData.Hash = hash
@@ -569,7 +569,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
-	log.Info("[core] got BlockResponseMessage")
+	log.Trace("[core] got BlockResponseMessage")
+
 	blockData := msg.(*network.BlockResponseMessage).BlockData
 
 	bestNum, err := s.blockState.BestBlockNumber()
