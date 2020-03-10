@@ -43,6 +43,8 @@ import (
 
 var _ services.Service = &Service{}
 
+var maxResponseSize = 8 // maximum number of block datas to reply with in a BlockResponse message.
+
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
@@ -388,6 +390,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
+	log.Info("[core] got BlockAnnounceMessage")
 	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
 		return errors.New("could not cast network.Message to BlockAnnounceMessage")
@@ -405,14 +408,14 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 			return err
 		}
 
-		log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
-
+		log.Info("[core] saved block", "number", header.Number, "hash", header.Hash())
 	} else {
 		return err
 	}
 
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
+		log.Error("[core] BlockAnnounceMessage", "error", err)
 		return err
 	}
 
@@ -431,7 +434,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 		blockRequest := &network.BlockRequestMessage{
 			ID:            randomID, // random
-			RequestedData: 2,        // block body
+			RequestedData: 3,        // block header + body
 			StartingBlock: append([]byte{1}, buf...),
 			EndBlockHash:  optional.NewHash(true, header.Hash()),
 			Direction:     1,
@@ -444,12 +447,12 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		// send block request message to network service
 		log.Debug("send blockRequest message to network service")
 
+		// TODO: safe channel checking
 		if s.msgSend == nil {
 			return nil
 		}
 
 		s.msgSend <- blockRequest
-
 	}
 
 	return nil
@@ -457,6 +460,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 // ProcessBlockRequestMessage processes a block request message, returning a block response message
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
+	log.Info("[core] got BlockRequestMessage")
+
 	blockRequest := msg.(*network.BlockRequestMessage)
 
 	startPrefix := blockRequest.StartingBlock[0]
@@ -472,6 +477,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		// check if we have start block
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(int64(start)))
 		if err != nil {
+			log.Error("[core] cannot get starting block", "number", start)
 			return err
 		}
 
@@ -488,58 +494,65 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
+	log.Info("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
+
+	if len(subchain) > maxResponseSize {
+		subchain = subchain[:maxResponseSize]
+	}
 
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
 		data, err := s.blockState.GetBlockData(hash)
-		if err != nil {
-			return err
-		}
-
-		blockData := new(types.BlockData)
-		blockData.Hash = hash
-
-		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
-
-		// header
-		if blockRequest.RequestedData&1 == 1 {
-			blockData.Header = data.Header
+		if err != nil && err.Error() == "Key not found" {
+			log.Error("[core] could not find block", "hash", hash)
+			//return err
 		} else {
-			blockData.Header = optional.NewHeader(false, nil)
-		}
+			blockData := new(types.BlockData)
+			blockData.Hash = hash
 
-		// body
-		if (blockRequest.RequestedData&2)>>1 == 1 {
-			blockData.Body = data.Body
-		} else {
-			blockData.Body = optional.NewBody(false, nil)
-		}
+			// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
 
-		// receipt
-		if (blockRequest.RequestedData&4)>>2 == 1 {
-			blockData.Receipt = data.Receipt
-		} else {
-			blockData.Receipt = optional.NewBytes(false, nil)
-		}
+			// header
+			if blockRequest.RequestedData&1 == 1 {
+				blockData.Header = data.Header
+			} else {
+				blockData.Header = optional.NewHeader(false, nil)
+			}
 
-		// message queue
-		if (blockRequest.RequestedData&8)>>3 == 1 {
-			blockData.MessageQueue = data.MessageQueue
-		} else {
-			blockData.MessageQueue = optional.NewBytes(false, nil)
-		}
+			// body
+			if (blockRequest.RequestedData&2)>>1 == 1 {
+				blockData.Body = data.Body
+			} else {
+				blockData.Body = optional.NewBody(false, nil)
+			}
 
-		// justification
-		if (blockRequest.RequestedData&16)>>4 == 1 {
-			blockData.Justification = data.Justification
-		} else {
-			blockData.Justification = optional.NewBytes(false, nil)
-		}
+			// receipt
+			if (blockRequest.RequestedData&4)>>2 == 1 {
+				blockData.Receipt = data.Receipt
+			} else {
+				blockData.Receipt = optional.NewBytes(false, nil)
+			}
 
-		responseData = append(responseData, blockData)
+			// message queue
+			if (blockRequest.RequestedData&8)>>3 == 1 {
+				blockData.MessageQueue = data.MessageQueue
+			} else {
+				blockData.MessageQueue = optional.NewBytes(false, nil)
+			}
+
+			// justification
+			if (blockRequest.RequestedData&16)>>4 == 1 {
+				blockData.Justification = data.Justification
+			} else {
+				blockData.Justification = optional.NewBytes(false, nil)
+			}
+
+			responseData = append(responseData, blockData)
+		}
 	}
 
 	blockResponse := &network.BlockResponseMessage{
@@ -556,7 +569,13 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
+	log.Info("[core] got BlockResponseMessage")
 	blockData := msg.(*network.BlockResponseMessage).BlockData
+
+	bestNum, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
 
 	for _, bd := range blockData {
 		if bd.Header.Exists() {
@@ -565,9 +584,21 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				return err
 			}
 
-			err = s.handleConsensusDigest(header)
-			if err != nil {
-				return err
+			// get block header; if exists, return
+			existingHeader, err := s.blockState.GetHeader(bd.Hash)
+			if err != nil && existingHeader == nil {
+				err = s.blockState.SetHeader(header)
+				if err != nil {
+					return err
+				}
+
+				log.Info("[core] saved block header", "hash", header.Hash(), "number", header.Number)
+
+				// TODO: handle consensus digest, if first in epoch
+				// err = s.handleConsensusDigest(header)
+				// if err != nil {
+				// 	return err
+				// }
 			}
 		}
 
@@ -587,33 +618,35 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				Body:   body,
 			}
 
-			enc, err := block.Encode()
-			if err != nil {
-				return err
-			}
+			// TODO: why doesn't execute block work with block we built?
 
-			err = s.executeBlock(enc)
-			if err != nil {
-				log.Error("[core] failed to validate block", "err", err)
-				return err
-			}
+			// blockWithoutDigests := block
+			// blockWithoutDigests.Header.Digest = [][]byte{{}}
 
-			err = s.checkForRuntimeChanges()
-			if err != nil {
-				return err
-			}
+			// enc, err := block.Encode()
+			// if err != nil {
+			// 	return err
+			// }
 
-			// get block header; if exists, return
-			existingHeader, err := s.blockState.GetHeader(bd.Hash)
-			if err == nil && existingHeader != nil {
-				// header exists, return
-				// TODO: store this block in the blocktree
-				return nil
-			}
+			// err = s.executeBlock(enc)
+			// if err != nil {
+			// 	log.Error("[core] failed to validate block", "err", err)
+			// 	return err
+			// }
 
-			err = s.blockState.SetHeader(header)
-			if err != nil {
-				return err
+			if header.Number.Cmp(bestNum) == 1 {
+				err = s.blockState.AddBlock(block)
+				if err != nil {
+					return err
+				}
+
+				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+
+				//if header.Number.Cmp(bestNum) == 1 {
+				err = s.checkForRuntimeChanges()
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -724,6 +757,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 }
 
 // handle authority and randomness changes over transitions from one epoch to the next
+//nolint
 func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 	var item types.DigestItem
 	for _, digest := range header.Digest {

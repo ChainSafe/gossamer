@@ -200,20 +200,23 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	slotNum := b.startSlot
-	bestNum := b.blockState.HighestBlockNumber()
-	log.Debug("[babe]", "highest block num", bestNum)
+	bestNum, err := b.blockState.BestBlockNumber()
+	log.Info("[babe]", "best block num", bestNum)
 
-	var err error
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// TODO: change this to getCurrentSlot, once BlockResponse messages are implemented
-		slotNum, err = b.estimateCurrentSlot()
-		if err != nil {
-			log.Error("[babe] cannot estimate current slot", "error", err)
+		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
+			slotNum, err = b.getCurrentSlot()
+			if err != nil {
+				log.Error("[babe] cannot get current slot", "error", err)
+				return
+			}
+
+			log.Info("[babe]", "calculated slot", slotNum)
+		} else {
+			log.Warn("[babe] Failed to calculate slot; not enough blocks synced")
 			return
 		}
-
-		log.Debug("[babe]", "estimated slot", slotNum)
 	}
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
