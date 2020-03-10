@@ -390,6 +390,8 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
+	log.Trace("[core] got BlockAnnounceMessage")
+
 	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
 		return errors.New("could not cast network.Message to BlockAnnounceMessage")
@@ -408,13 +410,13 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		}
 
 		log.Info("[core] saved block", "number", header.Number, "hash", header.Hash())
-
 	} else {
 		return err
 	}
 
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
+		log.Error("[core] BlockAnnounceMessage", "error", err)
 		return err
 	}
 
@@ -474,6 +476,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		// check if we have start block
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(int64(start)))
 		if err != nil {
+			log.Error("[core] cannot get starting block", "number", start)
 			return err
 		}
 
@@ -490,6 +493,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		endHash = s.blockState.BestBlockHash()
 	}
 
+	log.Trace("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
 
@@ -501,51 +506,53 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 
 	for _, hash := range subchain {
 		data, err := s.blockState.GetBlockData(hash)
-		if err != nil {
+		if err != nil && err.Error() == "Key not found" {
+			log.Error("[core] could not find block", "hash", hash)
+		} else if err != nil {
 			return err
-		}
-
-		blockData := new(types.BlockData)
-		blockData.Hash = hash
-
-		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
-
-		// header
-		if blockRequest.RequestedData&1 == 1 {
-			blockData.Header = data.Header
 		} else {
-			blockData.Header = optional.NewHeader(false, nil)
-		}
+			blockData := new(types.BlockData)
+			blockData.Hash = hash
 
-		// body
-		if (blockRequest.RequestedData&2)>>1 == 1 {
-			blockData.Body = data.Body
-		} else {
-			blockData.Body = optional.NewBody(false, nil)
-		}
+			// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
 
-		// receipt
-		if (blockRequest.RequestedData&4)>>2 == 1 {
-			blockData.Receipt = data.Receipt
-		} else {
-			blockData.Receipt = optional.NewBytes(false, nil)
-		}
+			// header
+			if blockRequest.RequestedData&1 == 1 {
+				blockData.Header = data.Header
+			} else {
+				blockData.Header = optional.NewHeader(false, nil)
+			}
 
-		// message queue
-		if (blockRequest.RequestedData&8)>>3 == 1 {
-			blockData.MessageQueue = data.MessageQueue
-		} else {
-			blockData.MessageQueue = optional.NewBytes(false, nil)
-		}
+			// body
+			if (blockRequest.RequestedData&2)>>1 == 1 {
+				blockData.Body = data.Body
+			} else {
+				blockData.Body = optional.NewBody(false, nil)
+			}
 
-		// justification
-		if (blockRequest.RequestedData&16)>>4 == 1 {
-			blockData.Justification = data.Justification
-		} else {
-			blockData.Justification = optional.NewBytes(false, nil)
-		}
+			// receipt
+			if (blockRequest.RequestedData&4)>>2 == 1 {
+				blockData.Receipt = data.Receipt
+			} else {
+				blockData.Receipt = optional.NewBytes(false, nil)
+			}
 
-		responseData = append(responseData, blockData)
+			// message queue
+			if (blockRequest.RequestedData&8)>>3 == 1 {
+				blockData.MessageQueue = data.MessageQueue
+			} else {
+				blockData.MessageQueue = optional.NewBytes(false, nil)
+			}
+
+			// justification
+			if (blockRequest.RequestedData&16)>>4 == 1 {
+				blockData.Justification = data.Justification
+			} else {
+				blockData.Justification = optional.NewBytes(false, nil)
+			}
+
+			responseData = append(responseData, blockData)
+		}
 	}
 
 	blockResponse := &network.BlockResponseMessage{
@@ -562,6 +569,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
+	log.Trace("[core] got BlockResponseMessage")
+
 	blockData := msg.(*network.BlockResponseMessage).BlockData
 
 	bestNum, err := s.blockState.BestBlockNumber()
