@@ -46,7 +46,7 @@ type Session struct {
 	// Current runtime
 	rt *runtime.Runtime
 
-	// Epock configuration data
+	// Epoch configuration data
 	config         *Configuration
 	randomness     [sr25519.VrfOutputLength]byte
 	authorityIndex uint64
@@ -204,6 +204,12 @@ func (b *Session) checkForKill() {
 	b.stop()
 }
 
+func (b *Session) isClosed() bool {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	return b.closed
+}
+
 func (b *Session) invokeBlockAuthoring() {
 	if b.config == nil {
 		log.Error("[babe] block authoring", "error", "config is nil")
@@ -238,12 +244,9 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
-		b.lock.Lock()
-		if b.closed {
-			b.lock.Unlock()
+		if b.isClosed() {
 			return
 		}
-		b.lock.Unlock()
 
 		b.handleSlot(slotNum)
 		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
