@@ -642,7 +642,6 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 
 				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
 
-				//if header.Number.Cmp(bestNum) == 1 {
 				err = s.checkForRuntimeChanges()
 				if err != nil {
 					return err
