@@ -143,7 +143,9 @@ func (s *Service) Stop() error {
 
 	// close channel to core service
 	if !s.closed {
-		close(s.msgSend)
+		if s.msgSend != nil {
+			close(s.msgSend)
+		}
 		s.closed = true
 	}
 
