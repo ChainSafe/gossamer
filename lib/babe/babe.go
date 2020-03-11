@@ -201,10 +201,10 @@ func (b *Session) invokeBlockAuthoring() {
 
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()
-	log.Info("[babe]", "best block num", bestNum)
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
+		// if we have at least slotTail blocks, we can run the slotTime algorithm
 		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
 			slotNum, err = b.getCurrentSlot()
 			if err != nil {
@@ -212,7 +212,7 @@ func (b *Session) invokeBlockAuthoring() {
 				return
 			}
 
-			log.Info("[babe]", "calculated slot", slotNum)
+			log.Debug("[babe]", "calculated slot", slotNum)
 		} else {
 			log.Warn("[babe] Failed to calculate slot; not enough blocks synced")
 			return
