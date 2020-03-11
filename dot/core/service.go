@@ -506,53 +506,51 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 
 	for _, hash := range subchain {
 		data, err := s.blockState.GetBlockData(hash)
-		if err != nil && err.Error() == "Key not found" {
-			log.Error("[core] could not find block", "hash", hash)
-		} else if err != nil {
+		if err != nil {
 			return err
-		} else {
-			blockData := new(types.BlockData)
-			blockData.Hash = hash
-
-			// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
-
-			// header
-			if blockRequest.RequestedData&1 == 1 {
-				blockData.Header = data.Header
-			} else {
-				blockData.Header = optional.NewHeader(false, nil)
-			}
-
-			// body
-			if (blockRequest.RequestedData&2)>>1 == 1 {
-				blockData.Body = data.Body
-			} else {
-				blockData.Body = optional.NewBody(false, nil)
-			}
-
-			// receipt
-			if (blockRequest.RequestedData&4)>>2 == 1 {
-				blockData.Receipt = data.Receipt
-			} else {
-				blockData.Receipt = optional.NewBytes(false, nil)
-			}
-
-			// message queue
-			if (blockRequest.RequestedData&8)>>3 == 1 {
-				blockData.MessageQueue = data.MessageQueue
-			} else {
-				blockData.MessageQueue = optional.NewBytes(false, nil)
-			}
-
-			// justification
-			if (blockRequest.RequestedData&16)>>4 == 1 {
-				blockData.Justification = data.Justification
-			} else {
-				blockData.Justification = optional.NewBytes(false, nil)
-			}
-
-			responseData = append(responseData, blockData)
 		}
+
+		blockData := new(types.BlockData)
+		blockData.Hash = hash
+
+		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
+
+		// header
+		if blockRequest.RequestedData&1 == 1 {
+			blockData.Header = data.Header
+		} else {
+			blockData.Header = optional.NewHeader(false, nil)
+		}
+
+		// body
+		if (blockRequest.RequestedData&2)>>1 == 1 {
+			blockData.Body = data.Body
+		} else {
+			blockData.Body = optional.NewBody(false, nil)
+		}
+
+		// receipt
+		if (blockRequest.RequestedData&4)>>2 == 1 {
+			blockData.Receipt = data.Receipt
+		} else {
+			blockData.Receipt = optional.NewBytes(false, nil)
+		}
+
+		// message queue
+		if (blockRequest.RequestedData&8)>>3 == 1 {
+			blockData.MessageQueue = data.MessageQueue
+		} else {
+			blockData.MessageQueue = optional.NewBytes(false, nil)
+		}
+
+		// justification
+		if (blockRequest.RequestedData&16)>>4 == 1 {
+			blockData.Justification = data.Justification
+		} else {
+			blockData.Justification = optional.NewBytes(false, nil)
+		}
+
+		responseData = append(responseData, blockData)
 	}
 
 	blockResponse := &network.BlockResponseMessage{
