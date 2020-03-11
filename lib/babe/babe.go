@@ -201,6 +201,10 @@ func (b *Session) invokeBlockAuthoring() {
 
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()
+	if err != nil {
+		log.Error("[babe] Failed to get best block number", "error", err)
+		return
+	}
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
