@@ -190,12 +190,20 @@ func (s *Service) Start() error {
 		// monitor babe session for epoch changes
 		go s.handleBabeSession()
 
-		err := s.bs.Start()
+		bestNum, err := s.blockState.BestBlockNumber()
 		if err != nil {
-			log.Error("[core] could not start BABE", "error", err)
+			return err
 		}
 
-		return err
+		if bestNum.Cmp(big.NewInt(0)) == 0 {
+			err := s.bs.Start()
+			if err != nil {
+				log.Error("[core] could not start BABE", "error", err)
+				return err
+			}		
+		} else {
+			// assme we need to sync blocks
+		}
 	}
 
 	return nil
