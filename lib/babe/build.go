@@ -166,10 +166,9 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			return nil, err
 		}
 
-		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
-		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
-			// TODO: specific error code checking
-			log.Error("[babe] build block apply extrinsic", "error", ret, "extrinsic", extrinsic)
+		// if ret != 0 there was an error
+		if ret[0] != byte(0) {
+			errTxt := determineError(ret)
 
 			// remove invalid extrinsic from queue
 			b.transactionQueue.Pop()
@@ -177,8 +176,10 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			// re-add previously popped extrinsics back to queue
 			b.addToQueue(included)
 
-			return nil, errors.New("could not apply extrinsic")
+			return nil, errors.New(errTxt)
+
 		}
+
 		log.Trace("[babe] build block applied extrinsic", "extrinsic", extrinsic)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
@@ -245,4 +246,50 @@ func extrinsicsToBody(txs []*transaction.ValidTransaction) (*types.Body, error) 
 	}
 
 	return types.NewBodyFromExtrinsics(extrinsics)
+}
+
+func determineError(res []byte) string {
+	log.Error("[babe] build block apply extrinsic", "error", res)
+	var errTxt string
+
+	// apply error
+	if res[0] == 1 {
+		switch res[1:] {
+		case []byte{0}:
+			errTxt = "NoPermission"
+		case []byte{1}:
+			errTxt = "BadState"
+		case []byte{2}:
+			errTxt = "Validity"
+		case []byte{2, 0, 0}:
+			errTxt = "Call"
+		case []byte{2, 0, 1}:
+			errTxt = "Payment"
+		case []byte{2, 0, 2}:
+			errTxt = "Future"
+		case []byte{2, 0, 3}:
+			errTxt = "Stale"
+		case []byte{2, 0, 4}:
+			errTxt = "BadProof"
+		case []byte{2, 0, 5}:
+			errTxt = "AncientBirthBlock"
+		case []byte{2, 0, 6}:
+			errTxt = "ExhaustsResources"
+		case []byte{2, 0, 7}:
+			errTxt = "Custom"
+		case []byte{2, 1, 0}:
+			errTxt = "CannotLookup"
+		case []byte{2, 1, 1}:
+			errTxt = "NoUnsignedValidator"
+		case []byte{2, 1, 2}:
+			errTxt = "Custom"
+		}
+	}
+	if bytes.Equal(res[:2], []byte{0, 1}) {
+		// dispatch error
+		mod := res[2:3]
+		err := res[3:4]
+		errTxt = "Dispatch Error, module: " + string(mod) + " error: " + string(err)
+	}
+	return errTxt
 }
