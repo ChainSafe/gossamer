@@ -35,8 +35,8 @@ func TestRequestedBlockIDs(t *testing.T) {
 
 	config := &Config{
 		DataDir:     dataDir,
-		Port:        7002,
-		RandSeed:    2,
+		Port:        7001,
+		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
