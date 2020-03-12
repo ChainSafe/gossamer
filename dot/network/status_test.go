@@ -27,7 +27,7 @@ import (
 )
 
 // wait time for status messages to be exchanged and handled
-var TestStatusTimeout = 2 * time.Second
+var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
