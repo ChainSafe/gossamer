@@ -21,7 +21,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
-
+	"sync"
+	
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
@@ -80,6 +81,8 @@ type Config struct {
 	NoStatus bool
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
+	// Condition variable for block synchronization
+	SyncCond 		*sync.Cond
 }
 
 // build checks the configuration, sets up the private key for the network service,

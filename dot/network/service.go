@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -32,6 +33,10 @@ import (
 )
 
 var _ services.Service = &Service{}
+
+// if no peer connects to us within this time, assume we are alone on the network
+// and tell any processes waiting to sync that we aren't going to sync
+var peerTimeout = time.Duration(time.Second*5)
 
 // Service describes a network service
 type Service struct {
@@ -54,6 +59,9 @@ type Service struct {
 	noMDNS      bool
 	noStatus    bool // internal option
 	noGossip    bool // internal option
+
+	// Block synchronization condition variable
+	syncCond	*sync.Cond
 
 	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
@@ -88,6 +96,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noMDNS:            cfg.NoMDNS,
 		noStatus:          cfg.NoStatus,
 		requestedBlockIDs: make(map[uint64]bool),
+		syncCond:			cfg.SyncCond,
 	}
 
 	return network, err
@@ -117,6 +126,13 @@ func (s *Service) Start() error {
 	if !s.noMDNS {
 		s.mdns.start()
 	}
+
+	if s.cfg.Roles == 0 {
+		// we aren't joining a network, so signal processes waiting to sync to begin
+		s.syncCond.Signal()
+	}
+
+	go s.waitForPeers()
 
 	return nil
 }
@@ -150,6 +166,23 @@ func (s *Service) Stop() error {
 	}
 
 	return nil
+}
+
+func (s *Service) waitForPeers() {
+	start := time.Now().Unix()
+	for {
+		curr := time.Now().Unix()
+
+		log.Info("[network]", "peer count", s.host.peerCount())
+
+		// if we've passed the timeout period and don't have any peers, wakeup processes
+		if s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout {
+			s.syncCond.Signal()
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
 }
 
 // receiveCoreMessages broadcasts messages from the core service

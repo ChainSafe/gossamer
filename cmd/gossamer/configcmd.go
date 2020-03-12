@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -88,10 +89,12 @@ func makeNode(ctx *cli.Context) (*dot.Node, *dot.Config, error) {
 		return nil, nil, fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
+	syncCond := sync.NewCond(&sync.Mutex{})
+
 	// TODO: Configure node based on Roles #601
 
 	// Network
-	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, gendata, stateSrv)
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, gendata, stateSrv, syncCond)
 	srvcs = append(srvcs, networkSrvc)
 
 	// BABE authority configuration; flag overwrites config option
@@ -115,6 +118,7 @@ func makeNode(ctx *cli.Context) (*dot.Node, *dot.Config, error) {
 		MsgRec:           networkMsgSend, // message channel from network service to core service
 		MsgSend:          networkMsgRec,  // message channel from core service to network service
 		IsBabeAuthority:  cfg.Global.Authority,
+		SyncCond: 			syncCond,
 	}
 
 	coreSrvc, err := createCoreService(coreConfig)
@@ -287,7 +291,7 @@ func setNetworkConfig(ctx *cli.Context, fig *dot.NetworkConfig) {
 }
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(fig *dot.Config, gendata *genesis.Data, stateService *state.Service) (*network.Service, chan network.Message, chan network.Message) {
+func createNetworkService(fig *dot.Config, gendata *genesis.Data, stateService *state.Service, syncCond *sync.Cond) (*network.Service, chan network.Message, chan network.Message) {
 	// Default bootnodes and protocol from genesis file
 	bootnodes := common.BytesToStringArray(gendata.Bootnodes)
 	protocolID := gendata.ProtocolID
@@ -320,6 +324,7 @@ func createNetworkService(fig *dot.Config, gendata *genesis.Data, stateService *
 		ProtocolID:   protocolID,
 		NoBootstrap:  fig.Network.NoBootstrap,
 		NoMDNS:       fig.Network.NoMDNS,
+		SyncCond:		syncCond,
 	}
 
 	networkMsgRec := make(chan network.Message, channelSize)

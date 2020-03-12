@@ -71,6 +71,9 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, statusMessage *StatusMes
 			} else {
 				log.Trace("[network] Sent block message to peer", "peer", peer, "type", blockRequest.GetType())
 			}
+		} else {
+			// we are all synced up, tell other processes to start
+			s.syncCond.Signal()
 		}
 	}
 }

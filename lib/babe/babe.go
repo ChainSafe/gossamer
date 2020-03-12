@@ -61,6 +61,9 @@ type Session struct {
 	kill      <-chan struct{}    // kill session if this is closed
 	lock      sync.Mutex
 	closed    bool
+
+	// Block synchronization condition variable
+	syncCond	*sync.Cond
 }
 
 // SessionConfig struct
@@ -76,6 +79,7 @@ type SessionConfig struct {
 	StartSlot        uint64   // slot to begin session at
 	Done             chan<- struct{}
 	Kill             <-chan struct{}
+	SyncCond 		*sync.Cond
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -102,6 +106,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		done:             cfg.Done,
 		kill:             cfg.Kill,
 		closed:           false,
+		syncCond:		cfg.SyncCond,
 	}
 
 	err := babeSession.configurationFromRuntime()
@@ -223,6 +228,13 @@ func (b *Session) invokeBlockAuthoring() {
 	if b.storageState == nil {
 		log.Error("[babe] block authoring", "error", "storageState is nil")
 		return
+	}
+
+	if b.syncCond != nil {
+		log.Info("[babe] waiting...")
+		b.syncCond.L.Lock()
+		b.syncCond.Wait()
+		log.Info("[babe] done waiting!")
 	}
 
 	slotNum := b.startSlot

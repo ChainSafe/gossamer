@@ -75,6 +75,9 @@ type Service struct {
 	lock      sync.Mutex
 	closed    bool
 
+	// Block synchronization condition variable
+	syncCond	*sync.Cond
+
 	// TODO: add to network state
 	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
@@ -90,6 +93,7 @@ type Config struct {
 	MsgSend          chan<- network.Message
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
+	SyncCond 		*sync.Cond
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -142,6 +146,7 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			closed:           false,
+			syncCond:		cfg.SyncCond,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -160,6 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Done:             epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
+			SyncCond:			cfg.SyncCond,
 		}
 
 		// create a new BABE session
@@ -184,6 +190,7 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			closed:           false,
+			syncCond:		cfg.SyncCond,
 		}
 	}
 
@@ -206,20 +213,11 @@ func (s *Service) Start() error {
 		// monitor babe session for epoch changes
 		go s.handleBabeSession()
 
-		bestNum, err := s.blockState.BestBlockNumber()
+		err := s.bs.Start()
 		if err != nil {
+			log.Error("[core] could not start BABE", "error", err)
 			return err
-		}
-
-		if bestNum.Cmp(big.NewInt(0)) == 0 {
-			err := s.bs.Start()
-			if err != nil {
-				log.Error("[core] could not start BABE", "error", err)
-				return err
-			}		
-		} else {
-			// assme we need to sync blocks
-		}
+		}	
 	}
 
 	return nil
@@ -322,6 +320,7 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
+			SyncCond:		nil, // assume we are already synced, since the previous session ended
 		}
 
 		// create a new BABE session
@@ -496,6 +495,9 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		// we are all synced up, tell BABE to start
+		s.syncCond.Signal()
 	}
 
 	return nil
