@@ -81,17 +81,17 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 // setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
 func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
-	// check --config flag and update node confifuration
+	// check --config flag and update node configuration
 	if config := ctx.GlobalString(ConfigFlag.Name); config != "" {
 		cfg.Config = config
 	}
 
-	// check --genesis flag and update node confifuration
+	// check --genesis flag and update node configuration
 	if genesis := ctx.GlobalString(GenesisFlag.Name); genesis != "" {
 		cfg.Genesis = genesis
 	}
 
-	// check --datadir flag and update node confifuration
+	// check --datadir flag and update node configuration
 	if datadir := ctx.GlobalString(DataDirFlag.Name); datadir != "" {
 		cfg.DataDir = datadir
 	}

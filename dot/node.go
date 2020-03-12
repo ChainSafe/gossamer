@@ -38,8 +38,8 @@ type Node struct {
 	stop      chan struct{}             // Used to signal node shutdown
 }
 
-// InitNode initialize a new dot node from the provided dot node configuration
-// and JSON formatted gensis file
+// InitNode initializes a new dot node from the provided dot node configuration
+// and JSON formatted genesis file
 func InitNode(cfg *Config) error {
 	dataDir := cfg.Global.DataDir
 	genPath := cfg.Global.Genesis
@@ -96,7 +96,7 @@ func InitNode(cfg *Config) error {
 }
 
 // NodeInitialized returns true if, within the configured data directory for the
-// node, the state database has been created and the gensis data has been loaded
+// node, the state database has been created and the genesis data has been loaded
 func NodeInitialized(cfg *Config) bool {
 
 	// check if key registry exists

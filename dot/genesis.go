@@ -78,7 +78,7 @@ func loadGenesisBlock(t *trie.Trie, datadir string) error {
 }
 
 // initTrieDatabase initializes and sets the trie database and then stores
-// the encoded trie, the genesis hash, and the gensis data in the trie database
+// the encoded trie, the genesis hash, and the genesis data in the trie database
 func initTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error {
 	// initialize database within data directory
 	db, err := database.NewBadgerDB(datadir)
@@ -107,7 +107,7 @@ func initTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error 
 	return nil
 }
 
-// storeGenesisData stores the encoded trie, the genesis hash, and the gensis
+// storeGenesisData stores the encoded trie, the genesis hash, and the genesis
 // data in the trie database
 func storeGenesisData(t *trie.Trie, gen *genesis.Genesis) error {
 	// encode trie and write to trie database

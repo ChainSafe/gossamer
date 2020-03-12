@@ -51,7 +51,7 @@ var (
 		ArgsUsage: "",
 		Flags:     AllFlags(),
 		Category:  "INITIALIZATION",
-		Description: "The init command initializes the node databases and loads the genesis data from the genesis confifuration file to state.\n" +
+		Description: "The init command initializes the node databases and loads the genesis data from the genesis configuration file to state.\n" +
 			"\tUsage: gossamer init --genesis genesis.json",
 	}
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
