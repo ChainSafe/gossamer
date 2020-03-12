@@ -28,49 +28,80 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-// sendBlockRequestMessage sends a block request message if peer best block number is greater than host best block number
-func (s *Service) sendBlockRequestMessage(peer peer.ID, statusMessage *StatusMessage) {
-	// check if peer status confirmed
-	if s.status.confirmed(peer) {
+// blockSync submodule
+type blockSync struct {
+	host              *host
+	blockState        BlockState
+	requestedBlockIDs map[uint64]bool // track requested block id messages
+}
 
-		// get latest block header from block state
-		latestHeader, err := s.cfg.BlockState.BestBlockHeader()
-		if err != nil {
-			log.Error("[network] Failed to get best block header from block state", "error", err)
-			return
+// newBlockSync creates a new blockSync instance from the host
+func newBlockSync(host *host, blockState BlockState) *blockSync {
+	return &blockSync{
+		host:              host,
+		blockState:        blockState,
+		requestedBlockIDs: make(map[uint64]bool),
+	}
+}
+
+// addRequestedBlockID adds a requested block id to non-persistent state
+func (bs *blockSync) addRequestedBlockID(blockID uint64) {
+	bs.requestedBlockIDs[blockID] = true
+	log.Trace("[network] Block added to blockSync", "block", blockID)
+}
+
+// hasRequestedBlockID returns true if the block id has been requested
+func (bs *blockSync) hasRequestedBlockID(blockID uint64) bool {
+	hasBeenRequested := bs.requestedBlockIDs[blockID]
+	log.Trace("[network] Check block request in blockSync", "block", blockID, "requested", hasBeenRequested)
+	return hasBeenRequested
+}
+
+// removeRequestedBlockID removes a requested block id from non-persistent state
+func (bs *blockSync) removeRequestedBlockID(blockID uint64) {
+	delete(bs.requestedBlockIDs, blockID)
+	log.Trace("[network] Block removed from blockSync", "block", blockID)
+}
+
+// handleStatusMesssage sends a block request message if peer best block
+// number is greater than host best block number
+func (bs *blockSync) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage) {
+
+	// get latest block header from block state
+	latestHeader, err := bs.blockState.BestBlockHeader()
+	if err != nil {
+		log.Error("[network] Failed to get best block header from block state", "error", err)
+		return
+	}
+
+	bestBlockNum := big.NewInt(int64(statusMessage.BestBlockNumber))
+
+	// check if peer block number is greater than host block number
+	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
+
+		// generate random ID
+		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
+		seed := rand.New(s1).Uint64()
+		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+
+		// store requested block ids in blockSync submodule (non-persistent state)
+		bs.addRequestedBlockID(randomID)
+
+		currentHash := latestHeader.Hash()
+
+		blockRequestMessage := &BlockRequestMessage{
+			ID:            randomID, // random
+			RequestedData: 3,        // block body
+			StartingBlock: append([]byte{0}, currentHash[:]...),
+			EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
+			Direction:     1,
+			Max:           optional.NewUint32(false, 0),
 		}
 
-		bestBlockNum := big.NewInt(int64(statusMessage.BestBlockNumber))
-
-		// check if peer block number is greater than host block number
-		if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-
-			//generate random ID
-			s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-			seed := rand.New(s1).Uint64()
-			randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
-
-			// keep track of the IDs in network state
-			s.requestedBlockIDs[randomID] = true
-
-			currentHash := latestHeader.Hash()
-
-			blockRequest := &BlockRequestMessage{
-				ID:            randomID, // random
-				RequestedData: 3,        // block body
-				StartingBlock: append([]byte{0}, currentHash[:]...),
-				EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
-				Direction:     1,
-				Max:           optional.NewUint32(false, 0),
-			}
-
-			// send block request message
-			err := s.host.send(peer, blockRequest)
-			if err != nil {
-				log.Error("[network] Failed to send block request message to peer", "error", err)
-			} else {
-				log.Trace("[network] Sent block message to peer", "peer", peer, "type", blockRequest.GetType())
-			}
+		// send block request message
+		err := bs.host.send(peer, blockRequestMessage)
+		if err != nil {
+			log.Error("[network] Failed to send block request message to peer", "error", err)
 		}
 	}
 }
