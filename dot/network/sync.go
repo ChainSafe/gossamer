@@ -18,14 +18,11 @@ package network
 
 import (
 	"math/big"
-	mrand "math/rand"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"golang.org/x/exp/rand"
 )
 
 // blockSync submodule
@@ -79,19 +76,14 @@ func (bs *blockSync) handleStatusMesssage(peer peer.ID, statusMessage *StatusMes
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
 
-		// generate random ID
-		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-		seed := rand.New(s1).Uint64()
-		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
-
 		// store requested block ids in blockSync submodule (non-persistent state)
-		bs.addRequestedBlockID(randomID)
+		bs.addRequestedBlockID(latestHeader.Number.Uint64())
 
 		currentHash := latestHeader.Hash()
 
 		blockRequestMessage := &BlockRequestMessage{
-			ID:            randomID, // random
-			RequestedData: 3,        // block body
+			ID:            latestHeader.Number.Uint64(), // block id
+			RequestedData: 3,                            // block body
 			StartingBlock: append([]byte{0}, currentHash[:]...),
 			EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
 			Direction:     1,
