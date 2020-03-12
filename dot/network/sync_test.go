@@ -31,6 +31,7 @@ import (
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestSendBlockRequestMessage(t *testing.T) {
+	t.Skip()
 	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
 	defer os.RemoveAll(dataDirA)
 

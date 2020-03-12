@@ -22,11 +22,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	mrand "math/rand"
+	//mrand "math/rand"
 	"sync"
-	"time"
+	//"time"
 
-	"golang.org/x/exp/rand"
+	//"golang.org/x/exp/rand"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -76,7 +76,7 @@ type Service struct {
 	closed    bool
 
 	// Block synchronization condition variable
-	syncCond *sync.Cond
+	//syncCond *sync.Cond
 
 	// TODO: add to network state
 	requestedBlockIDs map[uint64]bool // track requested block id messages
@@ -93,7 +93,7 @@ type Config struct {
 	MsgSend          chan<- network.Message
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
-	SyncCond         *sync.Cond
+	//SyncCond         *sync.Cond
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -146,7 +146,7 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			closed:           false,
-			syncCond:         cfg.SyncCond,
+			//syncCond:         cfg.SyncCond,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -165,7 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Done:             epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
-			SyncCond:         cfg.SyncCond,
+			//SyncCond:         cfg.SyncCond,
 		}
 
 		// create a new BABE session
@@ -190,7 +190,7 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			closed:           false,
-			syncCond:         cfg.SyncCond,
+			//syncCond:         cfg.SyncCond,
 		}
 	}
 
@@ -320,7 +320,7 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
-			SyncCond:         nil, // assume we are already synced, since the previous session ended
+			//SyncCond:         s.syncCond,
 		}
 
 		// create a new BABE session
@@ -468,38 +468,36 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	// check if we should send block request message
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
 
-		//generate random ID
-		s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-		seed := rand.New(s1).Uint64()
-		randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+		s.syncerIn <- blockAnnounceMessage.Number
 
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
+		// //generate random ID
+		// s1 := rand.NewSource(uint64(time.Now().UnixNano()))
+		// seed := rand.New(s1).Uint64()
+		// randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-		blockRequest := &network.BlockRequestMessage{
-			ID:            randomID, // random
-			RequestedData: 3,        // block header + body
-			StartingBlock: append([]byte{1}, buf...),
-			EndBlockHash:  optional.NewHash(true, header.Hash()),
-			Direction:     1,
-			Max:           optional.NewUint32(false, 0),
-		}
+		// buf := make([]byte, 8)
+		// binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
 
-		//track request
-		s.requestedBlockIDs[randomID] = true
+		// blockRequest := &network.BlockRequestMessage{
+		// 	ID:            randomID, // random
+		// 	// TODO: figure out what we actually want to request
+		// 	RequestedData: 3,        // block header + body
+		// 	StartingBlock: append([]byte{1}, buf...),
+		// 	EndBlockHash:  optional.NewHash(true, header.Hash()),
+		// 	Direction:     1,
+		// 	Max:           optional.NewUint32(false, 0),
+		// }
 
-		// send block request message to network service
-		log.Debug("send blockRequest message to network service")
+		// //track request
+		// s.requestedBlockIDs[randomID] = true
 
-		err = s.safeMsgSend(blockRequest)
-		if err != nil {
-			return err
-		}
-	} else {
-		// we are all synced up, tell BABE to start
-		s.syncCond.L.Lock()
-		s.syncCond.L.Unlock()
-		s.syncCond.Signal()
+		// // send block request message to network service
+		// log.Debug("send blockRequest message to network service")
+
+		// err = s.safeMsgSend(blockRequest)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil
@@ -686,6 +684,8 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				}
 
 				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+				// s.syncCond.L.Unlock()
+				// s.syncCond.Signal()
 
 				err = s.checkForRuntimeChanges()
 				if err != nil {

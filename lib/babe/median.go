@@ -103,11 +103,6 @@ func (b *Session) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 		return 0, err
 	}
 
-	// err = b.configurationFromRuntime()
-	// if err != nil {
-	// 	return 0, err
-	// }
-
 	sd := (b.config.SlotDuration / 1000)
 
 	var currSlot uint64

@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"math/big"
 	"sync"
 	"time"
 
@@ -61,7 +62,8 @@ type Service struct {
 	noGossip    bool // internal option
 
 	// Block synchronization condition variable
-	syncCond *sync.Cond
+	//syncCond *sync.Cond
+	syncChan chan<- *big.Int
 
 	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
@@ -96,7 +98,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noMDNS:            cfg.NoMDNS,
 		noStatus:          cfg.NoStatus,
 		requestedBlockIDs: make(map[uint64]bool),
-		syncCond:          cfg.SyncCond,
+		//syncCond:          cfg.SyncCond,
 	}
 
 	return network, err
@@ -129,7 +131,7 @@ func (s *Service) Start() error {
 
 	if s.cfg.Roles == 0 {
 		// we aren't joining a network, so signal processes waiting to sync to begin
-		s.syncCond.Signal()
+		//s.syncCond.Signal()
 	}
 
 	go s.waitForPeers()
@@ -173,14 +175,16 @@ func (s *Service) waitForPeers() {
 	for {
 		curr := time.Now().Unix()
 
-		log.Info("[network]", "peer count", s.host.peerCount())
+		//log.Info("[network]", "peer count", s.host.peerCount())
 
-		// if we've passed the timeout period and don't have any peers, wakeup processes
-		if s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout {
-			s.syncCond.L.Lock()
-			s.syncCond.L.Unlock()
-			s.syncCond.Signal()
-			break
+		// if we've passed the timeout period and don't have any peers, wakeup BABE
+		if (s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout) || s.host.peerCount() != 0 {
+			// TODO: signal syncer/BABE
+
+			// s.syncCond.L.Lock()
+			// s.syncCond.L.Unlock()
+			// s.syncCond.Signal()
+			//break
 		}
 
 		time.Sleep(time.Second)

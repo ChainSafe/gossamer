@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"reflect"
-	"sync"
+	//"sync"
 	"testing"
 	"time"
 
@@ -70,9 +70,9 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	if cfg.SyncCond == nil {
-		cfg.SyncCond = sync.NewCond(&sync.Mutex{})
-	}
+	// if cfg.SyncCond == nil {
+	// 	cfg.SyncCond = sync.NewCond(&sync.Mutex{})
+	// }
 
 	dbSrv := state.NewService("")
 	dbSrv.UseMemDB()
