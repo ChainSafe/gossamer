@@ -76,7 +76,7 @@ type Service struct {
 	closed    bool
 
 	// Block synchronization condition variable
-	syncCond	*sync.Cond
+	syncCond *sync.Cond
 
 	// TODO: add to network state
 	requestedBlockIDs map[uint64]bool // track requested block id messages
@@ -93,7 +93,7 @@ type Config struct {
 	MsgSend          chan<- network.Message
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
-	SyncCond 		*sync.Cond
+	SyncCond         *sync.Cond
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -146,7 +146,7 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			closed:           false,
-			syncCond:		cfg.SyncCond,
+			syncCond:         cfg.SyncCond,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -165,7 +165,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Done:             epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
-			SyncCond:			cfg.SyncCond,
+			SyncCond:         cfg.SyncCond,
 		}
 
 		// create a new BABE session
@@ -190,7 +190,7 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			closed:           false,
-			syncCond:		cfg.SyncCond,
+			syncCond:         cfg.SyncCond,
 		}
 	}
 
@@ -217,7 +217,7 @@ func (s *Service) Start() error {
 		if err != nil {
 			log.Error("[core] could not start BABE", "error", err)
 			return err
-		}	
+		}
 	}
 
 	return nil
@@ -320,7 +320,7 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
-			SyncCond:		nil, // assume we are already synced, since the previous session ended
+			SyncCond:         nil, // assume we are already synced, since the previous session ended
 		}
 
 		// create a new BABE session
@@ -497,6 +497,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		}
 	} else {
 		// we are all synced up, tell BABE to start
+		s.syncCond.L.Lock()
+		s.syncCond.L.Unlock()
 		s.syncCond.Signal()
 	}
 

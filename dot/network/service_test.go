@@ -102,7 +102,7 @@ func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *Mock
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	return node, msgSend, msgRec
 }
 

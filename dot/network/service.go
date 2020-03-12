@@ -36,7 +36,7 @@ var _ services.Service = &Service{}
 
 // if no peer connects to us within this time, assume we are alone on the network
 // and tell any processes waiting to sync that we aren't going to sync
-var peerTimeout = time.Duration(time.Second*5)
+var peerTimeout = time.Duration(time.Second * 5)
 
 // Service describes a network service
 type Service struct {
@@ -61,7 +61,7 @@ type Service struct {
 	noGossip    bool // internal option
 
 	// Block synchronization condition variable
-	syncCond	*sync.Cond
+	syncCond *sync.Cond
 
 	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
@@ -96,7 +96,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noMDNS:            cfg.NoMDNS,
 		noStatus:          cfg.NoStatus,
 		requestedBlockIDs: make(map[uint64]bool),
-		syncCond:			cfg.SyncCond,
+		syncCond:          cfg.SyncCond,
 	}
 
 	return network, err
@@ -177,6 +177,8 @@ func (s *Service) waitForPeers() {
 
 		// if we've passed the timeout period and don't have any peers, wakeup processes
 		if s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout {
+			s.syncCond.L.Lock()
+			s.syncCond.L.Unlock()
 			s.syncCond.Signal()
 			break
 		}
@@ -190,15 +192,18 @@ func (s *Service) receiveCoreMessages() {
 	for {
 		// receive message from core service
 		msg := <-s.msgRec
+		if msg != nil {
 
-		log.Debug(
-			"[network] Broadcasting message from core service",
-			"host", s.host.id(),
-			"type", msg.GetType(),
-		)
+			log.Debug(
+				"[network] Broadcasting message from core service",
+				"host", s.host.id(),
+				"type", msg.GetType(),
+			)
 
-		// broadcast message to connected peers
-		s.host.broadcast(msg)
+			// broadcast message to connected peers
+			s.host.broadcast(msg)
+
+		}
 	}
 }
 

@@ -73,6 +73,8 @@ func (s *Service) sendBlockRequestMessage(peer peer.ID, statusMessage *StatusMes
 			}
 		} else {
 			// we are all synced up, tell other processes to start
+			s.syncCond.L.Lock()
+			s.syncCond.L.Unlock()
 			s.syncCond.Signal()
 		}
 	}
