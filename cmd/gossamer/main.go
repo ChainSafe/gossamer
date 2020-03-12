@@ -130,12 +130,15 @@ func gossamerAction(ctx *cli.Context) error {
 
 	// check if node has not been initialized
 	if !dot.NodeInitialized(cfg) {
+
 		log.Warn("[cmd] Node has not been initialized, initializing new node...")
+
 		err = dot.InitNode(cfg)
 		if err != nil {
 			log.Error("[cmd] Failed to initialize node", "error", err)
 			return err
 		}
+
 	}
 
 	ks, err := keystore.LoadKeystore(cfg.Account.Key)
@@ -182,6 +185,14 @@ func initAction(ctx *cli.Context) error {
 	// expand data directory and update node configuration (performed separate
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
+
+	// check if node has been initialized
+	if dot.NodeInitialized(cfg) {
+
+		// TODO: do we want to handle initialized node differently?
+		log.Warn("[cmd] Node has already been initialized, reinitializing node")
+
+	}
 
 	// initialize node (initialize databases and load genesis data)
 	err = dot.InitNode(cfg)
