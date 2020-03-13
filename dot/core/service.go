@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"math/big"
 	mrand "math/rand"
 	"sync"
@@ -495,27 +496,24 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	blockRequest := msg.(*network.BlockRequestMessage)
 
-	startPrefix := blockRequest.StartingBlock[0]
-	startData := blockRequest.StartingBlock[1:]
-
 	var startHash common.Hash
 	var endHash common.Hash
 
-	// TODO: update BlockRequest starting block to be variadic type
-	if startPrefix == 1 {
-		start := binary.LittleEndian.Uint64(startData)
+	startingBlock, err := variadic.NewStartingBlock(blockRequest.StartingBlock)
+	if err != nil {
+		return err
+	}
 
-		// check if we have start block
-		block, err := s.blockState.GetBlockByNumber(big.NewInt(int64(start)))
+	switch c := startingBlock.Value().(type) {
+	case uint64:
+		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
 		if err != nil {
 			return err
 		}
-
 		startHash = block.Header.Hash()
-	} else if startPrefix == 0 {
-		startHash = common.NewHash(startData)
-	} else {
-		return errors.New("invalid start block in BlockRequest")
+		break
+	case common.Hash:
+		startHash = c
 	}
 
 	if blockRequest.EndBlockHash.Exists() {
