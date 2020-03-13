@@ -82,7 +82,7 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 	// Condition variable for block synchronization
-	SyncCond *sync.Cond
+	SyncLock sync.Mutex
 }
 
 // build checks the configuration, sets up the private key for the network service,

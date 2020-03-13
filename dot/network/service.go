@@ -62,7 +62,7 @@ type Service struct {
 	noGossip    bool // internal option
 
 	// Block synchronization condition variable
-	//syncCond *sync.Cond
+	syncLock sync.Mutex
 	syncChan chan<- *big.Int
 
 	requestedBlockIDs map[uint64]bool // track requested block id messages
@@ -171,6 +171,8 @@ func (s *Service) Stop() error {
 }
 
 func (s *Service) waitForPeers() {
+	s.syncLock.Lock()
+
 	start := time.Now().Unix()
 	for {
 		curr := time.Now().Unix()
@@ -179,12 +181,7 @@ func (s *Service) waitForPeers() {
 
 		// if we've passed the timeout period and don't have any peers, wakeup BABE
 		if (s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout) || s.host.peerCount() != 0 {
-			// TODO: signal syncer/BABE
-
-			// s.syncCond.L.Lock()
-			// s.syncCond.L.Unlock()
-			// s.syncCond.Signal()
-			//break
+			s.syncLock.Unlock()
 		}
 
 		time.Sleep(time.Second)

@@ -67,7 +67,7 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.BlockState = &MockBlockState{} // required
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
-	cfg.SyncCond = sync.NewCond(&sync.Mutex{})
+	cfg.SyncLock = sync.Mutex{}
 
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
@@ -90,7 +90,7 @@ func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *Mock
 	cfg.BlockState = blockState
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID
-	cfg.SyncCond = sync.NewCond(&sync.Mutex{})
+	cfg.SyncLock = sync.Mutex{}
 
 	var err error
 	node, err = NewService(cfg, msgSend, msgRec)
