@@ -510,7 +510,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	case uint64:
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
 		if err != nil {
-			log.Error("[core] cannot get starting block", "number", start)
+			log.Error("[core] cannot get starting block", "number", c)
 			return err
 		}
 		startHash = block.Header.Hash()
