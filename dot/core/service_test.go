@@ -70,9 +70,9 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	// if cfg.SyncCond == nil {
-	// 	cfg.SyncCond = sync.NewCond(&sync.Mutex{})
-	// }
+	if cfg.SyncerIn == nil {
+		cfg.SyncerIn = make(chan *big.Int)
+	}
 
 	dbSrv := state.NewService("")
 	dbSrv.UseMemDB()

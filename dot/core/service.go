@@ -75,8 +75,9 @@ type Service struct {
 	lock      sync.Mutex
 	closed    bool
 
-	// Block synchronization condition variable
-	//syncCond *sync.Cond
+	// Block synchronization
+	syncerIn chan<- *big.Int
+	syncer   *Syncer
 
 	// TODO: add to network state
 	requestedBlockIDs map[uint64]bool // track requested block id messages
@@ -93,7 +94,8 @@ type Config struct {
 	MsgSend          chan<- network.Message
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
-	//SyncCond         *sync.Cond
+
+	SyncerIn chan *big.Int
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -122,6 +124,20 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	syncerLock := sync.Mutex{}
+
+	syncerCfg := &SyncerConfig{
+		BlockState:    cfg.BlockState,
+		BlockNumberIn: cfg.SyncerIn,
+		MsgOut:        cfg.MsgSend,
+		Lock:          syncerLock,
+	}
+
+	syncer, err := NewSyncer(syncerCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	var srv = &Service{}
 
 	if cfg.IsBabeAuthority {
@@ -146,7 +162,7 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			closed:           false,
-			//syncCond:         cfg.SyncCond,
+			syncer:           syncer,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -190,7 +206,7 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			closed:           false,
-			//syncCond:         cfg.SyncCond,
+			syncer:           syncer,
 		}
 	}
 
@@ -320,7 +336,6 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
-			//SyncCond:         s.syncCond,
 		}
 
 		// create a new BABE session
@@ -684,8 +699,6 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				}
 
 				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
-				// s.syncCond.L.Unlock()
-				// s.syncCond.Signal()
 
 				err = s.checkForRuntimeChanges()
 				if err != nil {
