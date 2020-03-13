@@ -43,21 +43,21 @@ func newSyncer(host *host, blockState BlockState) *syncer {
 
 // addRequestedBlockID adds a requested block id to non-persistent state
 func (s *syncer) addRequestedBlockID(blockID uint64) {
+	log.Trace("[network] Adding block to network syncer...", "block", blockID)
 	s.requestedBlockIDs[blockID] = true
-	log.Trace("[network] Block added to syncer", "block", blockID)
 }
 
 // hasRequestedBlockID returns true if the block id has been requested
 func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
-	hasBeenRequested := s.requestedBlockIDs[blockID]
-	log.Trace("[network] Check block request in syncer", "block", blockID, "requested", hasBeenRequested)
-	return hasBeenRequested
+	requested := s.requestedBlockIDs[blockID]
+	log.Trace("[network] Checking block in network syncer...", "block", blockID, "requested", requested)
+	return requested
 }
 
 // removeRequestedBlockID removes a requested block id from non-persistent state
 func (s *syncer) removeRequestedBlockID(blockID uint64) {
+	log.Trace("[network] Removing block from network syncer...", "block", blockID)
 	delete(s.requestedBlockIDs, blockID)
-	log.Trace("[network] Block removed from syncer", "block", blockID)
 }
 
 // handleStatusMesssage sends a block request message if peer best block
