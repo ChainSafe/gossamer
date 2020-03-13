@@ -31,11 +31,13 @@ func TestNewTestDir(t *testing.T) {
 
 	require.Equal(t, expected, testDir)
 	require.Equal(t, PathExists(testDir), true)
+
+	RemoveTestDir(t)
 }
 
 // TestNewTestDataDir tests the NewTestDataDir method
 func TestNewTestDataDir(t *testing.T) {
-	dataDir := "testnode"
+	dataDir := "test"
 
 	testDir := NewTestDataDir(t, dataDir)
 
@@ -43,6 +45,8 @@ func TestNewTestDataDir(t *testing.T) {
 
 	require.Equal(t, expected, testDir)
 	require.Equal(t, PathExists(testDir), true)
+
+	RemoveTestDir(t)
 }
 
 // TestRemoveTestDir tests the RemoveTestDir method
