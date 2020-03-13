@@ -25,16 +25,16 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// blockSync submodule
-type blockSync struct {
+// syncer submodule
+type syncer struct {
 	host              *host
 	blockState        BlockState
 	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
 
-// newBlockSync creates a new blockSync instance from the host
-func newBlockSync(host *host, blockState BlockState) *blockSync {
-	return &blockSync{
+// newSyncer creates a new syncer instance from the host
+func newSyncer(host *host, blockState BlockState) *syncer {
+	return &syncer{
 		host:              host,
 		blockState:        blockState,
 		requestedBlockIDs: make(map[uint64]bool),
@@ -42,30 +42,30 @@ func newBlockSync(host *host, blockState BlockState) *blockSync {
 }
 
 // addRequestedBlockID adds a requested block id to non-persistent state
-func (bs *blockSync) addRequestedBlockID(blockID uint64) {
-	bs.requestedBlockIDs[blockID] = true
-	log.Trace("[network] Block added to blockSync", "block", blockID)
+func (s *syncer) addRequestedBlockID(blockID uint64) {
+	s.requestedBlockIDs[blockID] = true
+	log.Trace("[network] Block added to syncer", "block", blockID)
 }
 
 // hasRequestedBlockID returns true if the block id has been requested
-func (bs *blockSync) hasRequestedBlockID(blockID uint64) bool {
-	hasBeenRequested := bs.requestedBlockIDs[blockID]
-	log.Trace("[network] Check block request in blockSync", "block", blockID, "requested", hasBeenRequested)
+func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
+	hasBeenRequested := s.requestedBlockIDs[blockID]
+	log.Trace("[network] Check block request in syncer", "block", blockID, "requested", hasBeenRequested)
 	return hasBeenRequested
 }
 
 // removeRequestedBlockID removes a requested block id from non-persistent state
-func (bs *blockSync) removeRequestedBlockID(blockID uint64) {
-	delete(bs.requestedBlockIDs, blockID)
-	log.Trace("[network] Block removed from blockSync", "block", blockID)
+func (s *syncer) removeRequestedBlockID(blockID uint64) {
+	delete(s.requestedBlockIDs, blockID)
+	log.Trace("[network] Block removed from syncer", "block", blockID)
 }
 
 // handleStatusMesssage sends a block request message if peer best block
 // number is greater than host best block number
-func (bs *blockSync) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage) {
+func (s *syncer) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage) {
 
 	// get latest block header from block state
-	latestHeader, err := bs.blockState.BestBlockHeader()
+	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		log.Error("[network] Failed to get best block header from block state", "error", err)
 		return
@@ -76,8 +76,8 @@ func (bs *blockSync) handleStatusMesssage(peer peer.ID, statusMessage *StatusMes
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
 
-		// store requested block ids in blockSync submodule (non-persistent state)
-		bs.addRequestedBlockID(latestHeader.Number.Uint64())
+		// store requested block ids in syncer submodule (non-persistent state)
+		s.addRequestedBlockID(latestHeader.Number.Uint64())
 
 		currentHash := latestHeader.Hash()
 
@@ -91,7 +91,7 @@ func (bs *blockSync) handleStatusMesssage(peer peer.ID, statusMessage *StatusMes
 		}
 
 		// send block request message
-		err := bs.host.send(peer, blockRequestMessage)
+		err := s.host.send(peer, blockRequestMessage)
 		if err != nil {
 			log.Error("[network] Failed to send block request message to peer", "error", err)
 		}

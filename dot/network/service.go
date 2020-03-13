@@ -35,13 +35,13 @@ var _ services.Service = &Service{}
 
 // Service describes a network service
 type Service struct {
-	ctx       context.Context
-	cfg       *Config
-	host      *host
-	mdns      *mdns
-	status    *status
-	gossip    *gossip
-	blockSync *blockSync
+	ctx    context.Context
+	cfg    *Config
+	host   *host
+	mdns   *mdns
+	status *status
+	gossip *gossip
+	syncer *syncer
 
 	// State interfaces
 	blockState BlockState
@@ -83,7 +83,7 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		mdns:        newMDNS(host),
 		status:      newStatus(host),
 		gossip:      newGossip(host),
-		blockSync:   newBlockSync(host, cfg.BlockState),
+		syncer:      newSyncer(host, cfg.BlockState),
 		blockState:  cfg.BlockState,
 		msgRec:      msgRec,
 		msgSend:     msgSend,
@@ -165,9 +165,9 @@ func (s *Service) receiveCoreMessages() {
 			return // exit
 		}
 
-		// if block request message, add block id to blockSync's requestedBlockIds
+		// if block request message, add block id to syncer's requestedBlockIds
 		if msg.GetType() == BlockRequestMsgType {
-			s.blockSync.addRequestedBlockID(msg.(*BlockRequestMessage).ID)
+			s.syncer.addRequestedBlockID(msg.(*BlockRequestMessage).ID)
 		}
 
 		log.Debug(
@@ -314,7 +314,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			if s.status.confirmed(peer) {
 
 				// send a block request message if peer best block number is greater than host best block number
-				s.blockSync.handleStatusMesssage(peer, msg.(*StatusMessage))
+				s.syncer.handleStatusMesssage(peer, msg.(*StatusMessage))
 			}
 		}
 	}

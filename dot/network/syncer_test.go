@@ -43,17 +43,17 @@ func TestRequestedBlockIDs(t *testing.T) {
 
 	node, _, _ := createTestService(t, config)
 
-	hasRequestedBlockID := node.blockSync.hasRequestedBlockID(1)
+	hasRequestedBlockID := node.syncer.hasRequestedBlockID(1)
 	require.Equal(t, false, hasRequestedBlockID)
 
-	node.blockSync.addRequestedBlockID(1)
+	node.syncer.addRequestedBlockID(1)
 
-	hasRequestedBlockID = node.blockSync.hasRequestedBlockID(1)
+	hasRequestedBlockID = node.syncer.hasRequestedBlockID(1)
 	require.Equal(t, true, hasRequestedBlockID)
 
-	node.blockSync.removeRequestedBlockID(1)
+	node.syncer.removeRequestedBlockID(1)
 
-	hasRequestedBlockID = node.blockSync.hasRequestedBlockID(1)
+	hasRequestedBlockID = node.syncer.hasRequestedBlockID(1)
 	require.Equal(t, false, hasRequestedBlockID)
 }
 
