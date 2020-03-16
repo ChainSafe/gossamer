@@ -169,8 +169,10 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 
 		// if ret != 0 there was an error
 		if ret[0] != byte(0) {
-			errTxt := determineError(ret)
-
+			errTxt, err := determineError(ret)
+			if err != nil {
+				return nil, err
+			}
 			// remove invalid extrinsic from queue
 			b.transactionQueue.Pop()
 
@@ -249,62 +251,63 @@ func extrinsicsToBody(txs []*transaction.ValidTransaction) (*types.Body, error) 
 	return types.NewBodyFromExtrinsics(extrinsics)
 }
 
-func determineError(res []byte) string {
+func determineError(res []byte) (string, error) {
 	log.Error("[babe] build block apply extrinsic", "error", res)
 	var errTxt strings.Builder
+	var err error
 
 	// when res[0] == 0x01 it is an apply error
 	if res[0] == 1 {
-		errTxt.WriteString("Apply error, type: ")
+		_, err = errTxt.WriteString("Apply error, type: ")
 		if bytes.Equal(res[1:], []byte{0}) {
-			errTxt.WriteString("NoPermission")
+			_, err = errTxt.WriteString("NoPermission")
 		}
 		if bytes.Equal(res[1:], []byte{1}) {
-			errTxt.WriteString("BadState")
+			_, err = errTxt.WriteString("BadState")
 		}
 		if bytes.Equal(res[1:], []byte{2}) {
-			errTxt.WriteString("Validity")
+			_, err = errTxt.WriteString("Validity")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 0}) {
-			errTxt.WriteString("Call")
+			_, err = errTxt.WriteString("Call")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 1}) {
-			errTxt.WriteString("Payment")
+			_, err = errTxt.WriteString("Payment")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 2}) {
-			errTxt.WriteString("Future")
+			_, err = errTxt.WriteString("Future")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 3}) {
-			errTxt.WriteString("Stale")
+			_, err = errTxt.WriteString("Stale")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 4}) {
-			errTxt.WriteString("BadProof")
+			_, err = errTxt.WriteString("BadProof")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 5}) {
-			errTxt.WriteString("AncientBirthBlock")
+			_, err = errTxt.WriteString("AncientBirthBlock")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 6}) {
-			errTxt.WriteString("ExhaustsResources")
+			_, err = errTxt.WriteString("ExhaustsResources")
 		}
 		if bytes.Equal(res[1:], []byte{2, 0, 7}) {
-			errTxt.WriteString("Custom")
+			_, err = errTxt.WriteString("Custom")
 		}
 		if bytes.Equal(res[1:], []byte{2, 1, 0}) {
-			errTxt.WriteString("CannotLookup")
+			_, err = errTxt.WriteString("CannotLookup")
 		}
 		if bytes.Equal(res[1:], []byte{2, 1, 1}) {
-			errTxt.WriteString("NoUnsignedValidator")
+			_, err = errTxt.WriteString("NoUnsignedValidator")
 		}
 		if bytes.Equal(res[1:], []byte{2, 1, 2}) {
-			errTxt.WriteString("Custom")
+			_, err = errTxt.WriteString("Custom")
 		}
 	}
 
 	// when res[:2] == 0x0001 it's a dispatch error
 	if bytes.Equal(res[:2], []byte{0, 1}) {
 		mod := res[2:3]
-		err := res[3:4]
-		errTxt.WriteString("Dispatch Error, module: " + string(mod) + " error: " + string(err))
+		errID := res[3:4]
+		_, err = errTxt.WriteString("Dispatch Error, module: " + string(mod) + " error: " + string(errID))
 	}
-	return errTxt.String()
+	return errTxt.String(), err
 }

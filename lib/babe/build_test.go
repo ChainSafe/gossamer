@@ -238,7 +238,7 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal("should error when attempting to include invalid tx")
 	}
 	require.Equal(t, "cannot build extrinsics: Error during apply extrinsic: Apply error, type: Payment",
-		err.Error(), "Did not recieve expected error text")
+		err.Error(), "Did not receive expected error text")
 
 	txc := babesession.transactionQueue.Peek()
 	if !bytes.Equal(txc.Extrinsic, txa) {
