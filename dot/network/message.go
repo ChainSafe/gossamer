@@ -204,7 +204,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 
 		encMsg = append(encMsg, append([]byte{1}, startingBlockByteArray...)...)
 	case common.Hash:
-		encMsg = append(encMsg, append([]byte{0}, bm.StartingBlock...)...)
+		encMsg = append(encMsg, bm.StartingBlock...)
 	}
 
 	if bm.EndBlockHash == nil || !bm.EndBlockHash.Exists() {
