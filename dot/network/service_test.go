@@ -68,7 +68,7 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.BlockState = &MockBlockState{} // required
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
-	cfg.SyncLock = sync.Mutex{}
+	//cfg.SyncLock = sync.Mutex{}
 
 	if cfg.SyncChan == nil {
 		cfg.SyncChan = make(chan *big.Int)

@@ -179,7 +179,21 @@ func TestBlockTree_GetNode(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
-	bt := createTestBlockTree(header, 16, nil)
-	leaves := bt.leaves
-	t.Log(leaves)
+	bt, branches := createTestBlockTree(header, 16, nil)
+	//leaves := bt.leaves
+
+	for _, branch := range branches {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: branch.hash,
+				Number:     branch.depth,
+			},
+			Body: &types.Body{},
+		}
+
+		err := bt.AddBlock(block)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

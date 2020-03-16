@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -69,7 +70,7 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, nil)
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, make(chan *big.Int))
 	require.Nil(t, err)
 
 	// TODO: improve dot service tests
@@ -105,7 +106,7 @@ func TestCreateCoreService(t *testing.T) {
 	ks := keystore.NewKeystore()
 	require.NotNil(t, ks)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, nil)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, make(chan *big.Int))
 	require.Nil(t, err)
 
 	// TODO: improve dot service tests
@@ -133,12 +134,12 @@ func TestCreateRPCService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, nil)
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, make(chan *big.Int))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, nil)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, make(chan *big.Int))
 	require.Nil(t, err)
 
 	rpcSrvc := createRPCService(cfg, stateSrvc, networkSrvc, coreSrvc)

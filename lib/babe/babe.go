@@ -63,7 +63,7 @@ type Session struct {
 	closed    bool
 
 	// Block synchronization condition variable
-	//syncCond *sync.Cond
+	syncLock *sync.Mutex
 }
 
 // SessionConfig struct
@@ -79,7 +79,7 @@ type SessionConfig struct {
 	StartSlot        uint64   // slot to begin session at
 	Done             chan<- struct{}
 	Kill             <-chan struct{}
-	//SyncCond         *sync.Cond
+	SyncLock         *sync.Mutex
 }
 
 // NewSession returns a new Babe session using the provided VRF keys and runtime
@@ -90,6 +90,10 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	if cfg.Kill == nil {
 		return nil, errors.New("kill channel is nil")
+	}
+
+	if cfg.SyncLock == nil {
+		return nil, errors.New("syncLock is nil")
 	}
 
 	babeSession := &Session{
@@ -106,8 +110,11 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		done:             cfg.Done,
 		kill:             cfg.Kill,
 		closed:           false,
-		//syncCond:         cfg.SyncCond,
+		syncLock:         cfg.SyncLock,
 	}
+
+	thresholdBytes := []byte{0x6f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	babeSession.epochThreshold = big.NewInt(0).SetBytes(thresholdBytes)
 
 	err := babeSession.configurationFromRuntime()
 	if err != nil {
@@ -230,13 +237,6 @@ func (b *Session) invokeBlockAuthoring() {
 		return
 	}
 
-	// if b.syncCond != nil {
-	// 	log.Info("[babe] waiting...")
-	// 	b.syncCond.L.Lock()
-	// 	b.syncCond.Wait()
-	// 	log.Info("[babe] done waiting!")
-	// }
-
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()
 	if err != nil {
@@ -262,12 +262,28 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
-		if b.isClosed() {
-			return
+		start := time.Now().Unix()
+
+		//log.Info("[babe] locking...")
+		b.syncLock.Lock()
+
+		if uint64(time.Now().Unix()-start) > b.config.SlotDuration*1000000 {
+			b.syncLock.Unlock()
+		} else {
+			if b.isClosed() {
+				return
+			}
+
+			b.handleSlot(slotNum)
+
+			//log.Info("[babe] unlocking...")
+
+			b.syncLock.Unlock()
+
+			// TODO: change this to sleep until start + slotDuration
+			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 		}
 
-		b.handleSlot(slotNum)
-		time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 	}
 
 	b.stop()

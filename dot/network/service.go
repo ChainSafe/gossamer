@@ -66,7 +66,7 @@ type Service struct {
 	noGossip    bool // internal option
 
 	// Block synchronization condition variable
-	syncLock sync.Mutex
+	//syncLock sync.Mutex
 	syncChan chan<- *big.Int
 }
 
@@ -105,8 +105,8 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noBootstrap: cfg.NoBootstrap,
 		noMDNS:      cfg.NoMDNS,
 		noStatus:    cfg.NoStatus,
-		syncLock:    cfg.SyncLock,
-		syncChan:    cfg.SyncChan,
+		//syncLock:    cfg.SyncLock,
+		syncChan: cfg.SyncChan,
 	}
 
 	return network, err
@@ -179,7 +179,7 @@ func (s *Service) Stop() error {
 }
 
 func (s *Service) waitForPeers() {
-	s.syncLock.Lock()
+	//s.syncLock.Lock()
 
 	start := time.Now().Unix()
 	for {
@@ -189,7 +189,7 @@ func (s *Service) waitForPeers() {
 
 		// if we've passed the timeout period and don't have any peers, wakeup BABE
 		if (s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout) || s.host.peerCount() != 0 {
-			s.syncLock.Unlock()
+			//s.syncLock.Unlock()
 		}
 
 		time.Sleep(time.Second)

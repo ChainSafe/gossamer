@@ -75,6 +75,7 @@ type Service struct {
 
 	// Block synchronization
 	syncerIn chan<- *big.Int
+	syncLock *sync.Mutex
 	syncer   *Syncer
 }
 
@@ -119,7 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	syncerLock := sync.Mutex{}
+	syncerLock := &sync.Mutex{}
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
@@ -158,6 +159,8 @@ func NewService(cfg *Config) (*Service, error) {
 			isBabeAuthority:  true,
 			closed:           false,
 			syncer:           syncer,
+			syncLock:         syncerLock,
+			syncerIn:         cfg.SyncerIn,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -176,7 +179,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Done:             epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
-			//SyncCond:         cfg.SyncCond,
+			SyncLock:         syncerLock,
 		}
 
 		// create a new BABE session
@@ -202,6 +205,8 @@ func NewService(cfg *Config) (*Service, error) {
 			isBabeAuthority:  false,
 			closed:           false,
 			syncer:           syncer,
+			syncLock:         syncerLock,
+			syncerIn:         cfg.SyncerIn,
 		}
 	}
 
@@ -217,6 +222,9 @@ func (s *Service) Start() error {
 
 	// start receiving messages from network service
 	go s.receiveMessages()
+
+	// start syncer
+	s.syncer.Start()
 
 	if s.isBabeAuthority {
 		// monitor babe session for epoch changes
@@ -329,6 +337,7 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
+			SyncLock:         s.syncLock,
 		}
 
 		// create a new BABE session
@@ -475,6 +484,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// check if we should send block request message
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
+
+		log.Info("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
 		s.syncerIn <- blockAnnounceMessage.Number
 
 		// blockRequest := &network.BlockRequestMessage{
@@ -679,6 +690,7 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			if header.Number.Cmp(bestNum) == 1 {
 				err = s.blockState.AddBlock(block)
 				if err != nil {
+					log.Error("[core] ProcessBlockResponseMessage", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
 					return err
 				}
 

@@ -21,14 +21,15 @@ type Syncer struct {
 	blockState    BlockState             // retrieve our current head of chain from BlockState
 	blockNumberIn <-chan *big.Int        // incoming block numbers seen from other nodes that are higher than ours
 	msgOut        chan<- network.Message // channel to send message to network service
-	lock          sync.Mutex
+	lock          *sync.Mutex
+	synced        bool
 }
 
 type SyncerConfig struct {
 	BlockState    BlockState
 	BlockNumberIn <-chan *big.Int
 	MsgOut        chan<- network.Message
-	Lock          sync.Mutex
+	Lock          *sync.Mutex
 }
 
 func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
@@ -49,6 +50,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		blockNumberIn: cfg.BlockNumberIn,
 		msgOut:        cfg.MsgOut,
 		lock:          cfg.Lock,
+		synced:        true,
 	}, nil
 }
 
@@ -60,7 +62,14 @@ func (s *Syncer) watchForBlocks() {
 	for {
 		peerNum := <-s.blockNumberIn
 
-		s.lock.Lock()
+		log.Info("[sync]", "block num", peerNum)
+
+		//s.lock.Lock()
+
+		if s.synced == true {
+			s.synced = false
+			s.lock.Lock()
+		}
 
 		err := s.sendBlockRequest()
 		if err != nil {
@@ -77,14 +86,22 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 		if err != nil {
 			log.Error("[sync] watchForResponses", "error", err)
 
-			s.lock.Unlock()
+			if s.synced == false {
+				s.lock.Unlock()
+			}
+
 			return
 		}
 
-		if bestNum.Cmp(peerNum) == 0 {
+		if bestNum.Cmp(peerNum) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
 			log.Info("[sync] all synced up!", "number", bestNum)
 
-			s.lock.Unlock()
+			if s.synced == false {
+				s.lock.Unlock()
+			}
+
+			s.synced = true
+
 			return
 		}
 
@@ -104,13 +121,14 @@ func (s *Syncer) sendBlockRequest() error {
 	seed := rand.New(s1).Uint64()
 	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
+	// TODO: can't request from /our/ best block number, need to start requesting from the best block num we have of /theirs/
+	// otherwise there's a chance we might build a block, then miss a block of theirs, causing error="cannot find parent block in blocktree"
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
 
 	blockRequest := &network.BlockRequestMessage{
-		ID: randomID, // random
-		// TODO: figure out what we actually want to request
-		RequestedData: 3, // block header + body
+		ID:            randomID, // random
+		RequestedData: 3,        // block header + body
 		StartingBlock: append([]byte{1}, buf...),
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     1,

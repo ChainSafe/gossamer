@@ -77,8 +77,9 @@ func (s *syncer) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
+		log.Info("[network] sending new block to syncer", "number", statusMessage.BestBlockNumber)
 
-		s.syncChan <- latestHeader.Number
+		s.syncChan <- bestBlockNum
 
 		// // store requested block ids in syncer submodule (non-persistent state)
 		// s.addRequestedBlockID(latestHeader.Number.Uint64())

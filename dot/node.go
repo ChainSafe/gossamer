@@ -18,10 +18,11 @@ package dot
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"os/signal"
 	"path"
-	"sync"
+	//"sync"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -157,12 +158,12 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// TODO: Configure node based on Roles #601
 
-	syncCond := sync.NewCond(&sync.Mutex{})
+	syncerChan := make(chan *big.Int, 128)
 
 	// Network Service
 
 	// create network service and append network service to node services
-	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, syncCond)
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, syncerChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create network service: %s", err)
 	}
@@ -171,7 +172,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, syncCond)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, syncerChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
