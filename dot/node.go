@@ -158,7 +158,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// TODO: Configure node based on Roles #601
 
-	// TODO: dot should close this channel
 	syncChan := make(chan *big.Int, 128)
 
 	// Network Service

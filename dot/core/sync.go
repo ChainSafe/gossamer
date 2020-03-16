@@ -74,7 +74,7 @@ func (s *Syncer) watchForBlocks() {
 
 			err := s.sendBlockRequest()
 			if err != nil {
-				log.Error("[sync] watch for blocks", "error", err)
+				log.Error("[sync] Failed to send block request", "error", err)
 			}
 
 			go s.watchForResponses(peerNum)
@@ -96,7 +96,7 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 		}
 
 		if bestNum.Cmp(peerNum) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-			log.Debug("[sync] all synced up!", "number", bestNum)
+			log.Debug("[sync] All synced up!", "number", bestNum)
 
 			if s.synced == false {
 				s.lock.Unlock()
@@ -113,7 +113,7 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 func (s *Syncer) sendBlockRequest() error {
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
-		log.Error("[sync] sendBlockRequest", "error", err)
+		log.Error("[sync] Failed to get best block number", "error", err)
 		return err
 	}
 
@@ -137,8 +137,6 @@ func (s *Syncer) sendBlockRequest() error {
 	}
 
 	// send block request message to network service
-	log.Debug("send blockRequest message to network service")
-
 	s.msgOut <- blockRequest
 
 	return nil

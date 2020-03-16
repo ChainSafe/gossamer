@@ -113,9 +113,6 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		syncLock:         cfg.SyncLock,
 	}
 
-	thresholdBytes := []byte{0x6f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	babeSession.epochThreshold = big.NewInt(0).SetBytes(thresholdBytes)
-
 	err := babeSession.configurationFromRuntime()
 	if err != nil {
 		return nil, err
@@ -263,27 +260,20 @@ func (b *Session) invokeBlockAuthoring() {
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
 		start := time.Now().Unix()
-
-		//log.Info("[babe] locking...")
 		b.syncLock.Lock()
 
-		if uint64(time.Now().Unix()-start) > b.config.SlotDuration*1000000 {
-			b.syncLock.Unlock()
-		} else {
+		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
 			if b.isClosed() {
 				return
 			}
 
 			b.handleSlot(slotNum)
 
-			//log.Info("[babe] unlocking...")
-
-			b.syncLock.Unlock()
-
 			// TODO: change this to sleep until start + slotDuration
 			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
 		}
 
+		b.syncLock.Unlock()
 	}
 
 	b.stop()

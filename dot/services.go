@@ -19,7 +19,6 @@ package dot
 import (
 	"fmt"
 	"math/big"
-	//"sync"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"

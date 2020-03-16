@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"reflect"
-	//"sync"
 	"testing"
 	"time"
 

@@ -22,7 +22,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	//"sync"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
