@@ -169,8 +169,6 @@ func TestBlockTree_Subchain(t *testing.T) {
 
 // TODO: Need to define leftmost (see BlockTree.LongestPath)
 //func TestBlockTree_LongestPath_LeftMost(t *testing.T) {
-//	bt := createFlatTree(t, 1)
-
 //}
 
 func TestBlockTree_GetNode(t *testing.T) {
@@ -180,7 +178,6 @@ func TestBlockTree_GetNode(t *testing.T) {
 	}
 
 	bt, branches := createTestBlockTree(header, 16, nil)
-	//leaves := bt.leaves
 
 	for _, branch := range branches {
 		block := &types.Block{

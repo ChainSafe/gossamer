@@ -74,7 +74,7 @@ type Service struct {
 	closed    bool
 
 	// Block synchronization
-	syncerIn chan<- *big.Int
+	syncChan chan<- *big.Int
 	syncLock *sync.Mutex
 	syncer   *Syncer
 }
@@ -91,7 +91,7 @@ type Config struct {
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
 
-	SyncerIn chan *big.Int
+	SyncChan chan *big.Int
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -124,7 +124,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
-		BlockNumberIn: cfg.SyncerIn,
+		BlockNumberIn: cfg.SyncChan,
 		MsgOut:        cfg.MsgSend,
 		Lock:          syncerLock,
 	}
@@ -160,7 +160,7 @@ func NewService(cfg *Config) (*Service, error) {
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
-			syncerIn:         cfg.SyncerIn,
+			syncChan:         cfg.SyncChan,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -206,7 +206,7 @@ func NewService(cfg *Config) (*Service, error) {
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
-			syncerIn:         cfg.SyncerIn,
+			syncChan:         cfg.SyncChan,
 		}
 	}
 
@@ -486,7 +486,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
 
 		log.Info("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
-		s.syncerIn <- blockAnnounceMessage.Number
+		s.syncChan <- blockAnnounceMessage.Number
 
 		// blockRequest := &network.BlockRequestMessage{
 		//	ID:            header.Number.Uint64(), // best block id

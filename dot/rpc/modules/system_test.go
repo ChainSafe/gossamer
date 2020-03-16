@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"testing"
@@ -42,6 +43,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		NoStatus:     true,
 		NetworkState: &state.NetworkState{},
 		DataDir:      testDir,
+		SyncChan:     make(chan *big.Int),
 	}
 
 	srv, err := network.NewService(cfg, nil, nil)
@@ -75,7 +77,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 
 	testNetworkState := net.NetworkState()
 
-	if res.NetworkState != *testNetworkState {
+	if res.NetworkState != testNetworkState {
 		t.Errorf("System.NetworkState: expected: %+v got: %+v\n", testNetworkState, res.NetworkState)
 	}
 }

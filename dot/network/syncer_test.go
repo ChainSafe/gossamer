@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,9 +59,10 @@ func TestRequestedBlockIDs(t *testing.T) {
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestHandleStatusMessage(t *testing.T) {
-	t.Skip()
 	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
 	defer os.RemoveAll(dataDirA)
+
+	syncChan := make(chan *big.Int)
 
 	configA := &Config{
 		DataDir:     dataDirA,
@@ -70,10 +70,12 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
+		SyncChan:    syncChan,
 	}
 
-	blockStateA := newMockBlockState(big.NewInt(3))
-	nodeA, msgSendA, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
+	heightA := big.NewInt(3)
+	blockStateA := newMockBlockState(heightA)
+	nodeA, _, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -110,6 +112,7 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
+		SyncChan:    syncChan,
 	}
 
 	blockStateB := newMockBlockState(big.NewInt(1))
@@ -141,34 +144,13 @@ func TestHandleStatusMessage(t *testing.T) {
 		t.Error("node B did not confirm status of node A")
 	}
 
-	// get latest block header from block state
-	latestHeader, err := blockStateB.BestBlockHeader()
-	require.Nil(t, err)
-	currentHash := latestHeader.Hash()
-
-	// expected block request message
-	var expectedMessage = &BlockRequestMessage{
-		RequestedData: 3,
-		StartingBlock: append([]byte{0}, currentHash[:]...),
-		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
-	}
-
 	select {
-	case msg := <-msgSendA:
-		require.NotNil(t, msg)
+	case num := <-syncChan:
+		require.NotNil(t, num)
 
-		// assert correct cast
-		actualBlockRequest, ok := msg.(*BlockRequestMessage)
-		require.True(t, ok)
-		require.NotNil(t, actualBlockRequest)
-
-		// assign ID since its random
-		actualBlockRequest.ID = expectedMessage.ID
-
-		// assert everything else
-		require.Equal(t, expectedMessage, actualBlockRequest)
+		if num.Cmp(heightA) != 0 {
+			t.Fatalf("Fail: got %d expected %d", num, heightA)
+		}
 
 	case <-time.After(TestMessageTimeout):
 		t.Error("node B timeout waiting for message from node A")

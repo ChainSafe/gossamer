@@ -22,7 +22,6 @@ import (
 	"path"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -68,7 +67,6 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.BlockState = &MockBlockState{} // required
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
-	//cfg.SyncLock = sync.Mutex{}
 
 	if cfg.SyncChan == nil {
 		cfg.SyncChan = make(chan *big.Int)
@@ -95,7 +93,10 @@ func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *Mock
 	cfg.BlockState = blockState
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID
-	cfg.SyncLock = sync.Mutex{}
+
+	if cfg.SyncChan == nil {
+		cfg.SyncChan = make(chan *big.Int)
+	}
 
 	var err error
 	node, err = NewService(cfg, msgSend, msgRec)

@@ -62,7 +62,7 @@ type Session struct {
 	lock      sync.Mutex
 	closed    bool
 
-	// Block synchronization condition variable
+	// Chain synchronization; session is locked for block building while syncing
 	syncLock *sync.Mutex
 }
 

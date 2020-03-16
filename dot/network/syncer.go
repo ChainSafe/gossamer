@@ -19,8 +19,6 @@ package network
 import (
 	"math/big"
 
-	//"github.com/ChainSafe/gossamer/lib/common/optional"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -80,25 +78,5 @@ func (s *syncer) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage
 		log.Info("[network] sending new block to syncer", "number", statusMessage.BestBlockNumber)
 
 		s.syncChan <- bestBlockNum
-
-		// // store requested block ids in syncer submodule (non-persistent state)
-		// s.addRequestedBlockID(latestHeader.Number.Uint64())
-
-		// currentHash := latestHeader.Hash()
-
-		// blockRequestMessage := &BlockRequestMessage{
-		// 	ID:            latestHeader.Number.Uint64(), // block id
-		// 	RequestedData: 3,                            // block body
-		// 	StartingBlock: append([]byte{0}, currentHash[:]...),
-		// 	EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
-		// 	Direction:     1,
-		// 	Max:           optional.NewUint32(false, 0),
-		// }
-
-		// // send block request message
-		// err := s.host.send(peer, blockRequestMessage)
-		// if err != nil {
-		// 	log.Error("[network] Failed to send block request message to peer", "error", err)
-		// }
 	}
 }

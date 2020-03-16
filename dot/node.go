@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	//"sync"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -38,6 +37,7 @@ type Node struct {
 	Services  *services.ServiceRegistry // Registry of all core services
 	IsStarted chan struct{}             // Signals node startup complete
 	stop      chan struct{}             // Used to signal node shutdown
+	syncChan  chan *big.Int
 }
 
 // InitNode initializes a new dot node from the provided dot node configuration
@@ -158,12 +158,13 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// TODO: Configure node based on Roles #601
 
-	syncerChan := make(chan *big.Int, 128)
+	// TODO: dot should close this channel
+	syncChan := make(chan *big.Int, 128)
 
 	// Network Service
 
 	// create network service and append network service to node services
-	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, syncerChan)
+	networkSrvc, networkMsgSend, networkMsgRec := createNetworkService(cfg, stateSrvc, syncChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create network service: %s", err)
 	}
@@ -172,7 +173,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, syncerChan)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkMsgSend, networkMsgRec, syncChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
@@ -196,6 +197,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
 		stop:      nil,
+		syncChan:  syncChan,
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -242,4 +244,6 @@ func (n *Node) Stop() {
 	if n.stop != nil {
 		close(n.stop)
 	}
+
+	close(n.syncChan)
 }

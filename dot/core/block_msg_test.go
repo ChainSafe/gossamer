@@ -13,7 +13,6 @@ import (
 )
 
 func TestProcessBlockRequest(t *testing.T) {
-	t.Skip()
 	msgRec := make(chan network.Message)
 	msgSend := make(chan network.Message)
 

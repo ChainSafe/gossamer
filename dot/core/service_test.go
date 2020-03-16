@@ -70,8 +70,8 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	if cfg.SyncerIn == nil {
-		cfg.SyncerIn = make(chan *big.Int)
+	if cfg.SyncChan == nil {
+		cfg.SyncChan = make(chan *big.Int)
 	}
 
 	stateSrvc := state.NewService("")

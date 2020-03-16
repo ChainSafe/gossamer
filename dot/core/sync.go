@@ -17,6 +17,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// Syncer deals with chain syncing by sending block request messages and watching for responses.
 type Syncer struct {
 	blockState    BlockState             // retrieve our current head of chain from BlockState
 	blockNumberIn <-chan *big.Int        // incoming block numbers seen from other nodes that are higher than ours
@@ -25,6 +26,7 @@ type Syncer struct {
 	synced        bool
 }
 
+// SyncerConfig is the configuration for the Syncer.
 type SyncerConfig struct {
 	BlockState    BlockState
 	BlockNumberIn <-chan *big.Int
@@ -32,6 +34,7 @@ type SyncerConfig struct {
 	Lock          *sync.Mutex
 }
 
+// NewSyncer returns a new Syncer
 func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	if cfg.BlockState == nil {
 		return nil, errors.New("cannot have nil BlockState")
@@ -54,6 +57,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	}, nil
 }
 
+// Start begins the syncer
 func (s *Syncer) Start() {
 	go s.watchForBlocks()
 }
@@ -61,22 +65,20 @@ func (s *Syncer) Start() {
 func (s *Syncer) watchForBlocks() {
 	for {
 		peerNum := <-s.blockNumberIn
+		if peerNum != nil {
 
-		log.Info("[sync]", "block num", peerNum)
+			if s.synced == true {
+				s.synced = false
+				s.lock.Lock()
+			}
 
-		//s.lock.Lock()
+			err := s.sendBlockRequest()
+			if err != nil {
+				log.Error("[sync] watch for blocks", "error", err)
+			}
 
-		if s.synced == true {
-			s.synced = false
-			s.lock.Lock()
+			go s.watchForResponses(peerNum)
 		}
-
-		err := s.sendBlockRequest()
-		if err != nil {
-			log.Error("[sync] watch for blocks", "error", err)
-		}
-
-		go s.watchForResponses(peerNum)
 	}
 }
 
@@ -84,7 +86,7 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 	for {
 		bestNum, err := s.blockState.BestBlockNumber()
 		if err != nil {
-			log.Error("[sync] watchForResponses", "error", err)
+			log.Error("[sync] Failed to get best block number", "error", err)
 
 			if s.synced == false {
 				s.lock.Unlock()
@@ -94,14 +96,13 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 		}
 
 		if bestNum.Cmp(peerNum) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-			log.Info("[sync] all synced up!", "number", bestNum)
+			log.Debug("[sync] all synced up!", "number", bestNum)
 
 			if s.synced == false {
 				s.lock.Unlock()
 			}
 
 			s.synced = true
-
 			return
 		}
 

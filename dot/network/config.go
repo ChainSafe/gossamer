@@ -82,8 +82,7 @@ type Config struct {
 	NoStatus bool
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
-
-	//SyncLock sync.Mutex
+	// SyncChan is the channel for syncing
 	SyncChan chan<- *big.Int
 }
 

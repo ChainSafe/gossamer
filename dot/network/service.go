@@ -33,6 +33,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// NetworkStateTimeout is the set time interval that we update network state
+const NetworkStateTimeout = time.Minute
+
 var _ services.Service = &Service{}
 
 // if no peer connects to us within this time, assume we are alone on the network
@@ -50,7 +53,8 @@ type Service struct {
 	syncer *syncer
 
 	// State interfaces
-	blockState BlockState
+	blockState   BlockState
+	networkState NetworkState
 
 	// Channels for inter-process communication
 	// as well as a lock for safe channel closures
@@ -65,8 +69,8 @@ type Service struct {
 	noStatus    bool // internal option
 	noGossip    bool // internal option
 
-	// Block synchronization condition variable
-	//syncLock sync.Mutex
+	// Chain synchronization channel; send block numbers into this channel when a status message is received with
+	// a higher block number than ours
 	syncChan chan<- *big.Int
 }
 
@@ -91,22 +95,22 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 	}
 
 	network := &Service{
-		ctx:         ctx,
-		cfg:         cfg,
-		host:        host,
-		mdns:        newMDNS(host),
-		status:      newStatus(host),
-		gossip:      newGossip(host),
-		syncer:      newSyncer(host, cfg.BlockState, cfg.SyncChan),
-		blockState:  cfg.BlockState,
-		msgRec:      msgRec,
-		msgSend:     msgSend,
-		closed:      false,
-		noBootstrap: cfg.NoBootstrap,
-		noMDNS:      cfg.NoMDNS,
-		noStatus:    cfg.NoStatus,
-		//syncLock:    cfg.SyncLock,
-		syncChan: cfg.SyncChan,
+		ctx:          ctx,
+		cfg:          cfg,
+		host:         host,
+		mdns:         newMDNS(host),
+		status:       newStatus(host),
+		gossip:       newGossip(host),
+		syncer:       newSyncer(host, cfg.BlockState, cfg.SyncChan),
+		blockState:   cfg.BlockState,
+		networkState: cfg.NetworkState,
+		msgRec:       msgRec,
+		msgSend:      msgSend,
+		closed:       false,
+		noBootstrap:  cfg.NoBootstrap,
+		noMDNS:       cfg.NoMDNS,
+		noStatus:     cfg.NoStatus,
+		syncChan:     cfg.SyncChan,
 	}
 
 	return network, err
@@ -114,6 +118,9 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 
 // Start starts the network service
 func (s *Service) Start() error {
+
+	// update network state
+	go s.updateNetworkState()
 
 	// receive messages from core service
 	go s.receiveCoreMessages()
@@ -136,13 +143,6 @@ func (s *Service) Start() error {
 	if !s.noMDNS {
 		s.mdns.start()
 	}
-
-	if s.cfg.Roles == 0 {
-		// we aren't joining a network, so signal processes waiting to sync to begin
-		//s.syncCond.Signal()
-	}
-
-	go s.waitForPeers()
 
 	return nil
 }
@@ -178,21 +178,15 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-func (s *Service) waitForPeers() {
-	//s.syncLock.Lock()
-
-	start := time.Now().Unix()
+// updateNetworkState updates the network state at the set time interval
+func (s *Service) updateNetworkState() {
 	for {
-		curr := time.Now().Unix()
+		s.networkState.SetHealth(s.Health())
+		s.networkState.SetNetworkState(s.NetworkState())
+		s.networkState.SetPeers(s.Peers())
 
-		//log.Info("[network]", "peer count", s.host.peerCount())
-
-		// if we've passed the timeout period and don't have any peers, wakeup BABE
-		if (s.host.peerCount() == 0 && time.Duration(time.Second*time.Duration(curr-start)) >= peerTimeout) || s.host.peerCount() != 0 {
-			//s.syncLock.Unlock()
-		}
-
-		time.Sleep(time.Second)
+		// how frequently we update network state
+		time.Sleep(NetworkStateTimeout)
 	}
 }
 
@@ -362,8 +356,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 }
 
 // Health returns information about host needed for the rpc server
-func (s *Service) Health() *common.Health {
-	return &common.Health{
+func (s *Service) Health() common.Health {
+	return common.Health{
 		Peers:           s.host.peerCount(),
 		IsSyncing:       false, // TODO
 		ShouldHavePeers: !s.noBootstrap,
@@ -371,8 +365,8 @@ func (s *Service) Health() *common.Health {
 }
 
 // NetworkState returns information about host needed for the rpc server and the runtime
-func (s *Service) NetworkState() *common.NetworkState {
-	return &common.NetworkState{
+func (s *Service) NetworkState() common.NetworkState {
+	return common.NetworkState{
 		PeerID: s.host.id().String(),
 	}
 }
