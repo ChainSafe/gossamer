@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"math/big"
 	"path"
 	"strconv"
 	"strings"
@@ -83,6 +84,8 @@ type Config struct {
 	privateKey crypto.PrivKey
 	// Condition variable for block synchronization
 	SyncLock sync.Mutex
+
+	SyncChan chan<- *big.Int
 }
 
 // build checks the configuration, sets up the private key for the network service,

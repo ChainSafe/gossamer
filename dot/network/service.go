@@ -47,6 +47,10 @@ type Service struct {
 	mdns   *mdns
 	status *status
 	gossip *gossip
+	syncer *syncer
+
+	// State interfaces
+	blockState BlockState
 
 	// Channels for inter-process communication
 	// as well as a lock for safe channel closures
@@ -64,8 +68,6 @@ type Service struct {
 	// Block synchronization condition variable
 	syncLock sync.Mutex
 	syncChan chan<- *big.Int
-
-	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -84,21 +86,27 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		return nil, err
 	}
 
+	if cfg.SyncChan == nil {
+		return nil, errors.New("syncChan is nil")
+	}
+
 	network := &Service{
-		ctx:               ctx,
-		cfg:               cfg,
-		host:              host,
-		mdns:              newMDNS(host),
-		status:            newStatus(host),
-		gossip:            newGossip(host),
-		msgRec:            msgRec,
-		msgSend:           msgSend,
-		closed:            false,
-		noBootstrap:       cfg.NoBootstrap,
-		noMDNS:            cfg.NoMDNS,
-		noStatus:          cfg.NoStatus,
-		requestedBlockIDs: make(map[uint64]bool),
-		//syncCond:          cfg.SyncCond,
+		ctx:         ctx,
+		cfg:         cfg,
+		host:        host,
+		mdns:        newMDNS(host),
+		status:      newStatus(host),
+		gossip:      newGossip(host),
+		syncer:      newSyncer(host, cfg.BlockState, cfg.SyncChan),
+		blockState:  cfg.BlockState,
+		msgRec:      msgRec,
+		msgSend:     msgSend,
+		closed:      false,
+		noBootstrap: cfg.NoBootstrap,
+		noMDNS:      cfg.NoMDNS,
+		noStatus:    cfg.NoStatus,
+		syncLock:    cfg.SyncLock,
+		syncChan:    cfg.SyncChan,
 	}
 
 	return network, err
@@ -193,18 +201,24 @@ func (s *Service) receiveCoreMessages() {
 	for {
 		// receive message from core service
 		msg := <-s.msgRec
-		if msg != nil {
-
-			log.Debug(
-				"[network] Broadcasting message from core service",
-				"host", s.host.id(),
-				"type", msg.GetType(),
-			)
-
-			// broadcast message to connected peers
-			s.host.broadcast(msg)
-
+		if msg == nil {
+			log.Warn("[network] Received nil message from core service")
+			return // exit
 		}
+
+		// if block request message, add block id to syncer's requestedBlockIds
+		if msg.GetType() == BlockRequestMsgType {
+			s.syncer.addRequestedBlockID(msg.(*BlockRequestMessage).ID)
+		}
+
+		log.Debug(
+			"[network] Broadcasting message from core service",
+			"host", s.host.id(),
+			"type", msg.GetType(),
+		)
+
+		// broadcast message to connected peers
+		s.host.broadcast(msg)
 	}
 }
 
@@ -224,7 +238,7 @@ func (s *Service) handleConn(conn network.Conn) {
 	if !s.noStatus {
 
 		// get latest block header from block state
-		latestBlock, err := s.cfg.BlockState.BestBlockHeader()
+		latestBlock, err := s.blockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
 			log.Error("[network] Failed to get chain head", "error", err)
 			return
@@ -237,7 +251,7 @@ func (s *Service) handleConn(conn network.Conn) {
 			Roles:               s.cfg.Roles,
 			BestBlockNumber:     latestBlock.Number.Uint64(),
 			BestBlockHash:       latestBlock.Hash(),
-			GenesisHash:         s.cfg.BlockState.GenesisHash(),
+			GenesisHash:         s.blockState.GenesisHash(),
 			ChainStatus:         []byte{0}, // TODO
 		}
 
@@ -337,8 +351,12 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			// handle status message from peer with status submodule
 			s.status.handleMessage(peer, msg.(*StatusMessage))
 
-			// send a block request message if peer best block number is greater than host best block number
-			s.sendBlockRequestMessage(peer, msg.(*StatusMessage))
+			// check if peer status confirmed
+			if s.status.confirmed(peer) {
+
+				// send a block request message if peer best block number is greater than host best block number
+				s.syncer.handleStatusMesssage(peer, msg.(*StatusMessage))
+			}
 		}
 	}
 }

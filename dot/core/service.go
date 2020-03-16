@@ -26,8 +26,6 @@ import (
 	"sync"
 	//"time"
 
-	//"golang.org/x/exp/rand"
-
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -78,9 +76,6 @@ type Service struct {
 	// Block synchronization
 	syncerIn chan<- *big.Int
 	syncer   *Syncer
-
-	// TODO: add to network state
-	requestedBlockIDs map[uint64]bool // track requested block id messages
 }
 
 // Config holds the configuration for the core Service.
@@ -209,8 +204,6 @@ func NewService(cfg *Config) (*Service, error) {
 			syncer:           syncer,
 		}
 	}
-
-	srv.requestedBlockIDs = make(map[uint64]bool)
 
 	// core service
 	return srv, nil
@@ -482,19 +475,10 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// check if we should send block request message
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
-
 		s.syncerIn <- blockAnnounceMessage.Number
 
-		// //generate random ID
-		// s1 := rand.NewSource(uint64(time.Now().UnixNano()))
-		// seed := rand.New(s1).Uint64()
-		// randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
-
-		// buf := make([]byte, 8)
-		// binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
-
 		// blockRequest := &network.BlockRequestMessage{
-		// 	ID:            randomID, // random
+		//	ID:            header.Number.Uint64(), // best block id
 		// 	// TODO: figure out what we actually want to request
 		// 	RequestedData: 3,        // block header + body
 		// 	StartingBlock: append([]byte{1}, buf...),

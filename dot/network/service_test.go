@@ -17,6 +17,7 @@
 package network
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"reflect"
@@ -68,6 +69,10 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 	cfg.SyncLock = sync.Mutex{}
+
+	if cfg.SyncChan == nil {
+		cfg.SyncChan = make(chan *big.Int)
+	}
 
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
