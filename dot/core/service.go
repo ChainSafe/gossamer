@@ -482,7 +482,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// check if we should send block request message
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
-		log.Trace("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
+		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
 		s.syncChan <- blockAnnounceMessage.Number
 	}
 

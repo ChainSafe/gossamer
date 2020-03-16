@@ -64,9 +64,8 @@ func (s *Syncer) Start() {
 
 func (s *Syncer) watchForBlocks() {
 	for {
-		peerNum := <-s.blockNumberIn
-		if peerNum != nil {
-
+		blockNum := <-s.blockNumberIn
+		if blockNum != nil {
 			if s.synced {
 				s.synced = false
 				s.lock.Lock()
@@ -77,12 +76,12 @@ func (s *Syncer) watchForBlocks() {
 				log.Error("[sync] Failed to send block request", "error", err)
 			}
 
-			go s.watchForResponses(peerNum)
+			go s.watchForResponses(blockNum)
 		}
 	}
 }
 
-func (s *Syncer) watchForResponses(peerNum *big.Int) {
+func (s *Syncer) watchForResponses(blockNum *big.Int) {
 	for {
 		bestNum, err := s.blockState.BestBlockNumber()
 		if err != nil {
@@ -95,7 +94,7 @@ func (s *Syncer) watchForResponses(peerNum *big.Int) {
 			return
 		}
 
-		if bestNum.Cmp(peerNum) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
+		if bestNum.Cmp(blockNum) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
 			log.Debug("[sync] All synced up!", "number", bestNum)
 
 			if !s.synced {

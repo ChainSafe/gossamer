@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"math/big"
 	"sync"
 	"time"
 
@@ -64,10 +63,6 @@ type Service struct {
 	noMDNS      bool
 	noStatus    bool // internal option
 	noGossip    bool // internal option
-
-	// Chain synchronization channel; send block numbers into this channel when a status message is received with
-	// a higher block number than ours
-	syncChan chan<- *big.Int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -106,7 +101,6 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		noBootstrap:  cfg.NoBootstrap,
 		noMDNS:       cfg.NoMDNS,
 		noStatus:     cfg.NoStatus,
-		syncChan:     cfg.SyncChan,
 	}
 
 	return network, err

@@ -27,7 +27,10 @@ type syncer struct {
 	host              *host
 	blockState        BlockState
 	requestedBlockIDs map[uint64]bool // track requested block id messages
-	syncChan          chan<- *big.Int
+
+	// Chain synchronization channel; send block numbers into this channel when a status message is received with
+	// a higher block number than ours
+	syncChan chan<- *big.Int
 }
 
 // newSyncer creates a new syncer instance from the host
@@ -74,7 +77,7 @@ func (s *syncer) handleStatusMesssage(statusMessage *StatusMessage) {
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-		log.Trace("[network] sending new block to syncer", "number", statusMessage.BestBlockNumber)
+		log.Debug("[network] sending new block to syncer", "number", statusMessage.BestBlockNumber)
 		s.syncChan <- bestBlockNum
 	}
 }
