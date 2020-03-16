@@ -21,11 +21,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"math/big"
 	mrand "math/rand"
 	"sync"
 	"time"
+
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"golang.org/x/exp/rand"
 
@@ -501,7 +502,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	var startHash common.Hash
 	var endHash common.Hash
 
-	startingBlock, err := variadic.NewStartingBlock(blockRequest.StartingBlock)
+	startingBlock, err := variadic.NewUint64OrHash(blockRequest.StartingBlock)
 	if err != nil {
 		return err
 	}
@@ -514,7 +515,6 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 			return err
 		}
 		startHash = block.Header.Hash()
-		break
 	case common.Hash:
 		startHash = c
 	}

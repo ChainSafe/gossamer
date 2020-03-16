@@ -18,13 +18,13 @@ package variadic
 
 import (
 	"encoding/binary"
-	"github.com/ChainSafe/gossamer/dot/network"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
-func TestBlockRequestStartingBlock(t *testing.T) {
+func TestNewUint64OrHash(t *testing.T) {
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 	if err != nil || genesisHash == nil {
 		t.Fatal(err)
@@ -53,10 +53,9 @@ func TestBlockRequestStartingBlock(t *testing.T) {
 		},
 	} {
 		t.Run(x.description, func(t *testing.T) {
-			msg := network.BlockRequestMessage{
-				StartingBlock: append([]byte{x.targetFirstByte}, x.targetHash...),
-			}
-			StartingBlock, err := NewStartingBlock(msg.StartingBlock)
+			data := append([]byte{x.targetFirstByte}, x.targetHash...)
+
+			StartingBlock, err := NewUint64OrHash(data)
 			require.Nil(t, err)
 			require.NotNil(t, StartingBlock)
 			require.IsType(t, x.expectedType, StartingBlock.Value())

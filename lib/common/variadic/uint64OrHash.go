@@ -19,28 +19,29 @@ package variadic
 import (
 	"encoding/binary"
 	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// StartingBlock represents an optional interface type (int,hash).
-type StartingBlock struct {
+// Uint64OrHash represents an optional interface type (int,hash).
+type Uint64OrHash struct {
 	value interface{}
 }
 
-// NewStartingBlock returns a new optional.Uint32
-func NewStartingBlock(startingBlockMsg []byte) (*StartingBlock, error) {
-	firstByte := startingBlockMsg[0]
+// NewUint64OrHash returns a new optional.Uint32
+func NewUint64OrHash(data []byte) (*Uint64OrHash, error) {
+	firstByte := data[0]
 	if firstByte == 0 {
-		return &StartingBlock{
-			value: common.NewHash(startingBlockMsg[1:]),
+		return &Uint64OrHash{
+			value: common.NewHash(data[1:]),
 		}, nil
 	} else if firstByte == 1 {
-		num := startingBlockMsg[1:]
+		num := data[1:]
 		if len(num) < 8 {
 			num = common.AppendZeroes(num, 8)
 		}
 
-		return &StartingBlock{
+		return &Uint64OrHash{
 			value: binary.LittleEndian.Uint64(num),
 		}, nil
 	} else {
@@ -50,6 +51,6 @@ func NewStartingBlock(startingBlockMsg []byte) (*StartingBlock, error) {
 }
 
 // Value returns the interface value.
-func (x *StartingBlock) Value() interface{} {
+func (x *Uint64OrHash) Value() interface{} {
 	return x.value
 }
