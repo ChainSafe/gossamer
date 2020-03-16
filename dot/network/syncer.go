@@ -20,7 +20,6 @@ import (
 	"math/big"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // syncer submodule
@@ -62,7 +61,7 @@ func (s *syncer) removeRequestedBlockID(blockID uint64) {
 
 // handleStatusMesssage sends a block request message if peer best block
 // number is greater than host best block number
-func (s *syncer) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage) {
+func (s *syncer) handleStatusMesssage(statusMessage *StatusMessage) {
 
 	// get latest block header from block state
 	latestHeader, err := s.blockState.BestBlockHeader()

@@ -75,7 +75,7 @@ func TestHandleStatusMessage(t *testing.T) {
 
 	heightA := big.NewInt(3)
 	blockStateA := newMockBlockState(heightA)
-	nodeA, _, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
+	nodeA, msgRecA := createTestServiceWithBlockState(t, configA, blockStateA)
 	defer nodeA.Stop()
 
 	nodeA.noGossip = true
@@ -116,7 +116,7 @@ func TestHandleStatusMessage(t *testing.T) {
 	}
 
 	blockStateB := newMockBlockState(big.NewInt(1))
-	nodeB, _, msgRecB := createTestServiceWithBlockState(t, configB, blockStateB)
+	nodeB, msgRecB := createTestServiceWithBlockState(t, configB, blockStateB)
 	defer nodeB.Stop()
 
 	nodeB.noGossip = true

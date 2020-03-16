@@ -86,9 +86,9 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 }
 
 // createTestServiceWithBlockState is a helper method to create and start a new network service
-func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgSend chan Message, msgRec chan Message) {
+func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgRec chan Message) {
 	msgRec = make(chan Message)
-	msgSend = make(chan Message)
+	msgSend := make(chan Message)
 
 	cfg.BlockState = blockState
 	cfg.NetworkState = &MockNetworkState{}
@@ -109,7 +109,7 @@ func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *Mock
 		t.Fatal(err)
 	}
 
-	return node, msgSend, msgRec
+	return node, msgRec
 }
 
 // test network service starts

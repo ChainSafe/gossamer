@@ -349,7 +349,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			if s.status.confirmed(peer) {
 
 				// send a block request message if peer best block number is greater than host best block number
-				s.syncer.handleStatusMesssage(peer, msg.(*StatusMessage))
+				s.syncer.handleStatusMesssage(msg.(*StatusMessage))
 			}
 		}
 	}
