@@ -55,11 +55,17 @@ func TestNewUint64OrHash(t *testing.T) {
 		t.Run(x.description, func(t *testing.T) {
 			data := append([]byte{x.targetFirstByte}, x.targetHash...)
 
-			StartingBlock, err := NewUint64OrHash(data)
+			uint64OrHash, err := NewUint64OrHash(data)
 			require.Nil(t, err)
-			require.NotNil(t, StartingBlock)
-			require.IsType(t, x.expectedType, StartingBlock.Value())
-
+			require.NotNil(t, uint64OrHash)
+			require.IsType(t, x.expectedType, uint64OrHash.Value())
+			if x.expectedType == (uint64)(0) {
+				startingBlockByteArray := make([]byte, 8)
+				binary.LittleEndian.PutUint64(startingBlockByteArray, uint64OrHash.Value().(uint64))
+				require.Equal(t, x.targetHash, startingBlockByteArray)
+			} else {
+				require.Equal(t, common.NewHash(x.targetHash), uint64OrHash.Value())
+			}
 		})
 	}
 

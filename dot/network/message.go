@@ -23,6 +23,9 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	log "github.com/ChainSafe/log15"
+
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -188,15 +191,20 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		return nil, fmt.Errorf("invalid BlockRequestMessage")
 	}
 
-	if bm.StartingBlock[0] == 1 {
-		encMsg = append(encMsg, bm.StartingBlock[0])
-		num := bm.StartingBlock[1:]
-		if len(num) < 8 {
-			num = common.AppendZeroes(num, 8)
-		}
-		encMsg = append(encMsg, num...)
-	} else {
-		encMsg = append(encMsg, bm.StartingBlock...)
+	startingBlock, err := variadic.NewUint64OrHash(bm.StartingBlock)
+	if err != nil {
+		log.Error("could not process StartingBlock into variadic type")
+		return nil, fmt.Errorf("invalid BlockRequestMessage")
+	}
+
+	switch c := startingBlock.Value().(type) {
+	case uint64:
+		startingBlockByteArray := make([]byte, 8)
+		binary.LittleEndian.PutUint64(startingBlockByteArray, c)
+
+		encMsg = append(encMsg, append([]byte{1}, startingBlockByteArray...)...)
+	case common.Hash:
+		encMsg = append(encMsg, append([]byte{0}, bm.StartingBlock...)...)
 	}
 
 	if bm.EndBlockHash == nil || !bm.EndBlockHash.Exists() {
