@@ -38,10 +38,6 @@ const NetworkStateTimeout = time.Minute
 
 var _ services.Service = &Service{}
 
-// if no peer connects to us within this time, assume we are alone on the network
-// and tell any processes waiting to sync that we aren't going to sync
-var peerTimeout = time.Duration(time.Second * 5)
-
 // Service describes a network service
 type Service struct {
 	ctx    context.Context
