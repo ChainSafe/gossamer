@@ -24,7 +24,7 @@ type Syncer struct {
 	msgOut        chan<- network.Message // channel to send message to network service
 	lock          *sync.Mutex
 	synced        bool
-	blocksBuilt		uint64 // blocks built since last sync
+	blocksBuilt   uint64 // blocks built since last sync
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -55,7 +55,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		msgOut:        cfg.MsgOut,
 		lock:          cfg.Lock,
 		synced:        true,
-		blocksBuilt: 	0,
+		blocksBuilt:   0,
 	}, nil
 }
 
