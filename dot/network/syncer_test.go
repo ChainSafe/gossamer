@@ -18,19 +18,20 @@ package network
 
 import (
 	"math/big"
-	"os"
-	"path"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
 // TestRequestedBlockIDs tests adding and removing block ids from requestedBlockIDs
 func TestRequestedBlockIDs(t *testing.T) {
-	dataDir := path.Join(os.TempDir(), "gossamer-test", t.Name())
-	defer os.RemoveAll(dataDir)
+	dataDir := utils.NewTestDataDir(t, "node")
+
+	// removes all data directories created within test directory
+	defer utils.RemoveTestDir(t)
 
 	config := &Config{
 		DataDir:     dataDir,
@@ -59,8 +60,10 @@ func TestRequestedBlockIDs(t *testing.T) {
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestHandleStatusMessage(t *testing.T) {
-	dataDirA := path.Join(os.TempDir(), "gossamer-test", "nodeA")
-	defer os.RemoveAll(dataDirA)
+	dataDirA := utils.NewTestDataDir(t, "nodeA")
+
+	// removes all data directories created within test directory
+	defer utils.RemoveTestDir(t)
 
 	syncChan := make(chan *big.Int)
 
@@ -103,8 +106,7 @@ func TestHandleStatusMessage(t *testing.T) {
 	// simulate host status message sent from core service on startup
 	msgRecA <- testStatusMessage
 
-	dataDirB := path.Join(os.TempDir(), "gossamer-test", "nodeB")
-	defer os.RemoveAll(dataDirB)
+	dataDirB := utils.NewTestDataDir(t, "nodeB")
 
 	configB := &Config{
 		DataDir:     dataDirB,
