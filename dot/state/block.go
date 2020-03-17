@@ -107,7 +107,7 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		return nil, err
 	}
 
-	err = bs.SetBlock(&types.Block{
+	err = bs.SetBlockBody(&types.Block{
 		Header: header,
 		Body:   types.NewBody([]byte{}),
 	})
@@ -122,11 +122,14 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 
 var (
 	// Data prefixes
-	headerPrefix      = []byte("hdr") // headerPrefix + hash -> header
-	babeHeaderPrefix  = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
-	blockDataPrefix   = []byte("bld") // blockDataPrefix + hash -> blockData
-	headerHashPrefix  = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
-	arrivalTimePrefix = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
+	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
+	babeHeaderPrefix    = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
+	blockDataPrefix     = []byte("bld") // blockDataPrefix + hash -> blockData
+	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
+	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
+	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
+	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
+	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 )
 
 // encodeBlockNumber encodes a block number as big endian uint64
@@ -291,8 +294,8 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return nil
 }
 
-// SetBlock will add a block to the DB
-func (bs *BlockState) SetBlock(block *types.Block) error {
+// SetBlockBody will add a block body to the DB
+func (bs *BlockState) SetBlockBody(block *types.Block) error {
 	// Add the blockHeader to the DB
 	err := bs.SetHeader(block.Header)
 	if err != nil {
@@ -301,7 +304,7 @@ func (bs *BlockState) SetBlock(block *types.Block) error {
 
 	blockData := &types.BlockData{
 		Hash:   block.Header.Hash(),
-		Header: block.Header.AsOptional(),
+		Header: block.Header.AsOptional(), // TODO remove header from here ?
 		Body:   block.Body.AsOptional(),
 	}
 	return bs.SetBlockData(blockData)
