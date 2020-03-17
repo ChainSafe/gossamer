@@ -347,6 +347,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 	hash := block.Header.Hash()
 
+	// TODO: update to use leftmost path
+
 	err = bs.setBestBlockHashKey(hash)
 	if err != nil {
 		return err

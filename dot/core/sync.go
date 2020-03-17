@@ -24,6 +24,7 @@ type Syncer struct {
 	msgOut        chan<- network.Message // channel to send message to network service
 	lock          *sync.Mutex
 	synced        bool
+	blocksBuilt		uint64 // blocks built since last sync
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -54,12 +55,17 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		msgOut:        cfg.MsgOut,
 		lock:          cfg.Lock,
 		synced:        true,
+		blocksBuilt: 	0,
 	}, nil
 }
 
 // Start begins the syncer
 func (s *Syncer) Start() {
 	go s.watchForBlocks()
+}
+
+func (s *Syncer) addBlockBuilt() {
+	s.blocksBuilt++
 }
 
 func (s *Syncer) watchForBlocks() {
@@ -102,6 +108,7 @@ func (s *Syncer) watchForResponses(blockNum *big.Int) {
 			}
 
 			s.synced = true
+			s.blocksBuilt = 0
 			return
 		}
 
@@ -124,7 +131,14 @@ func (s *Syncer) sendBlockRequest() error {
 	// TODO: can't request from /our/ best block number, need to start requesting from the best block num we have of /theirs/
 	// otherwise there's a chance we might build a block, then miss a block of theirs, causing error="cannot find parent block in blocktree"
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
+	start := uint64(bestNum.Int64()) - s.blocksBuilt
+	if start == 0 {
+		start = 1
+	}
+
+	binary.LittleEndian.PutUint64(buf, start)
+
+	log.Info("[sync] block request start", "num", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
@@ -134,6 +148,8 @@ func (s *Syncer) sendBlockRequest() error {
 		Direction:     1,
 		Max:           optional.NewUint32(false, 0),
 	}
+
+	s.blocksBuilt = 0
 
 	// send block request message to network service
 	s.msgOut <- blockRequest

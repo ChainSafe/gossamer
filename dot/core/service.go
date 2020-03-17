@@ -397,6 +397,8 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
+	s.syncer.addBlockBuilt()
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -599,11 +601,6 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 
 	blockData := msg.(*network.BlockResponseMessage).BlockData
 
-	bestNum, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		return err
-	}
-
 	for _, bd := range blockData {
 		if bd.Header.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
@@ -661,19 +658,16 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			// 	return err
 			// }
 
-			if header.Number.Cmp(bestNum) == 1 {
-				err = s.blockState.AddBlock(block)
-				if err != nil {
-					log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
-					return err
-				}
-
+			err = s.blockState.AddBlock(block)
+			if err != nil {
+				log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
+			} else {
 				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+			}
 
-				err = s.checkForRuntimeChanges()
-				if err != nil {
-					return err
-				}
+			err = s.checkForRuntimeChanges()
+			if err != nil {
+				return err
 			}
 		}
 
