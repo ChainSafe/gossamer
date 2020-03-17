@@ -46,7 +46,7 @@ func newNetworkService(t *testing.T) *network.Service {
 		SyncChan:     make(chan *big.Int),
 	}
 
-	srv, err := network.NewService(cfg, nil, nil)
+	srv, err := network.NewService(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

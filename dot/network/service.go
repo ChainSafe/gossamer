@@ -66,7 +66,7 @@ type Service struct {
 }
 
 // NewService creates a new network service from the configuration and message channels
-func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Service, error) {
+func NewService(cfg *Config) (*Service, error) {
 	ctx := context.Background()
 
 	// build configuration
@@ -95,8 +95,8 @@ func NewService(cfg *Config, msgSend chan<- Message, msgRec <-chan Message) (*Se
 		syncer:       newSyncer(host, cfg.BlockState, cfg.SyncChan),
 		blockState:   cfg.BlockState,
 		networkState: cfg.NetworkState,
-		msgRec:       msgRec,
-		msgSend:      msgSend,
+		msgRec:       cfg.MsgRec,
+		msgSend:      cfg.MsgSend,
 		closed:       false,
 		noBootstrap:  cfg.NoBootstrap,
 		noMDNS:       cfg.NoMDNS,
