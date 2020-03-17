@@ -55,7 +55,7 @@ func TestNewUint64OrHash(t *testing.T) {
 		t.Run(x.description, func(t *testing.T) {
 			data := append([]byte{x.targetFirstByte}, x.targetHash...)
 
-			uint64OrHash, err := NewUint64OrHash(data)
+			uint64OrHash := NewUint64OrHash(data)
 			require.Nil(t, err)
 			require.NotNil(t, uint64OrHash)
 			require.IsType(t, x.expectedType, uint64OrHash.Value())

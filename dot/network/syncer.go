@@ -19,6 +19,8 @@ package network
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 
 	log "github.com/ChainSafe/log15"
@@ -84,7 +86,7 @@ func (s *syncer) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage
 		blockRequestMessage := &BlockRequestMessage{
 			ID:            latestHeader.Number.Uint64(), // block id
 			RequestedData: 3,                            // block body
-			StartingBlock: append([]byte{0}, currentHash[:]...),
+			StartingBlock: variadic.NewUint64OrHash(append([]byte{0}, currentHash[:]...)),
 			EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),

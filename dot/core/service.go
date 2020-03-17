@@ -459,7 +459,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		blockRequest := &network.BlockRequestMessage{
 			ID:            header.Number.Uint64(), // best block id
 			RequestedData: 3,                      // block header + body
-			StartingBlock: append([]byte{1}, buf...),
+			StartingBlock: variadic.NewUint64OrHash(append([]byte{1}, buf...)),
 			EndBlockHash:  optional.NewHash(true, header.Hash()),
 			Direction:     1,
 			Max:           optional.NewUint32(false, 0),
@@ -484,12 +484,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	var startHash common.Hash
 	var endHash common.Hash
 
-	startingBlock, err := variadic.NewUint64OrHash(blockRequest.StartingBlock)
-	if err != nil {
-		return err
-	}
-
-	switch c := startingBlock.Value().(type) {
+	switch c := blockRequest.StartingBlock.Value().(type) {
 	case uint64:
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
 		if err != nil {

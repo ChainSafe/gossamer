@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,14 +79,10 @@ func TestHandleStatusMessage(t *testing.T) {
 	nodeA.noGossip = true
 
 	genesisHash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	bestBlockHash, err := common.HexToHash("0x829de6be9a35b55c794c609c060698b549b3064c183504c18ab7517e41255569")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testStatusMessage := &StatusMessage{
 		ProtocolVersion:     uint32(2),
@@ -121,14 +118,10 @@ func TestHandleStatusMessage(t *testing.T) {
 	msgRecB <- testStatusMessage
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	time.Sleep(TestStatusTimeout)
 
@@ -148,7 +141,7 @@ func TestHandleStatusMessage(t *testing.T) {
 	// expected block request message
 	var expectedMessage = &BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: append([]byte{0}, currentHash[:]...),
+		StartingBlock: variadic.NewUint64OrHash(append([]byte{0}, currentHash[:]...)),
 		EndBlockHash:  optional.NewHash(true, latestHeader.Hash()),
 		Direction:     1,
 		Max:           optional.NewUint32(false, 0),
