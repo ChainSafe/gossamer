@@ -18,7 +18,6 @@ package core
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -29,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -71,6 +69,11 @@ type Service struct {
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      sync.Mutex
 	closed    bool
+
+	// Block synchronization
+	syncChan chan<- *big.Int
+	syncLock *sync.Mutex
+	syncer   *Syncer
 }
 
 // Config holds the configuration for the core Service.
@@ -84,6 +87,8 @@ type Config struct {
 	MsgSend          chan<- network.Message
 	NewBlocks        chan types.Block // only used for testing purposes
 	IsBabeAuthority  bool
+
+	SyncChan chan *big.Int
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -112,6 +117,20 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	syncerLock := &sync.Mutex{}
+
+	syncerCfg := &SyncerConfig{
+		BlockState:    cfg.BlockState,
+		BlockNumberIn: cfg.SyncChan,
+		MsgOut:        cfg.MsgSend,
+		Lock:          syncerLock,
+	}
+
+	syncer, err := NewSyncer(syncerCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	var srv = &Service{}
 
 	if cfg.IsBabeAuthority {
@@ -136,6 +155,9 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			closed:           false,
+			syncer:           syncer,
+			syncLock:         syncerLock,
+			syncChan:         cfg.SyncChan,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -154,6 +176,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Done:             epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
+			SyncLock:         syncerLock,
 		}
 
 		// create a new BABE session
@@ -178,6 +201,9 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			closed:           false,
+			syncer:           syncer,
+			syncLock:         syncerLock,
+			syncChan:         cfg.SyncChan,
 		}
 	}
 
@@ -194,6 +220,9 @@ func (s *Service) Start() error {
 	// start receiving messages from network service
 	go s.receiveMessages()
 
+	// start syncer
+	s.syncer.Start()
+
 	if s.isBabeAuthority {
 		// monitor babe session for epoch changes
 		go s.handleBabeSession()
@@ -201,9 +230,8 @@ func (s *Service) Start() error {
 		err := s.bs.Start()
 		if err != nil {
 			log.Error("[core] could not start BABE", "error", err)
+			return err
 		}
-
-		return err
 	}
 
 	return nil
@@ -306,6 +334,7 @@ func (s *Service) handleBabeSession() {
 			Done:             epochDone,
 			Kill:             babeKill,
 			StartSlot:        latestSlot + 1,
+			SyncLock:         s.syncLock,
 		}
 
 		// create a new BABE session
@@ -452,26 +481,8 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 	// check if we should send block request message
 	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
-
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, uint64(bestNum.Int64()))
-
-		blockRequest := &network.BlockRequestMessage{
-			ID:            header.Number.Uint64(), // best block id
-			RequestedData: 3,                      // block header + body
-			StartingBlock: variadic.NewUint64OrHash(append([]byte{1}, buf...)),
-			EndBlockHash:  optional.NewHash(true, header.Hash()),
-			Direction:     1,
-			Max:           optional.NewUint32(false, 0),
-		}
-
-		// send block request message to network service
-		log.Debug("send blockRequest message to network service")
-
-		err = s.safeMsgSend(blockRequest)
-		if err != nil {
-			return err
-		}
+		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
+		s.syncChan <- blockAnnounceMessage.Number
 	}
 
 	return nil
@@ -491,6 +502,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 			log.Error("[core] cannot get starting block", "number", c)
 			return err
 		}
+
 		startHash = block.Header.Hash()
 	case common.Hash:
 		startHash = c
@@ -643,6 +655,7 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			if header.Number.Cmp(bestNum) == 1 {
 				err = s.blockState.AddBlock(block)
 				if err != nil {
+					log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
 					return err
 				}
 

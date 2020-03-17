@@ -17,6 +17,7 @@
 package network
 
 import (
+	"math/big"
 	"reflect"
 	"strings"
 	"testing"
@@ -62,6 +63,10 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	cfg.NetworkState = &MockNetworkState{}
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
+	if cfg.SyncChan == nil {
+		cfg.SyncChan = make(chan *big.Int)
+	}
+
 	node, err := NewService(cfg, msgSend, msgRec)
 	if err != nil {
 		t.Fatal(err)
@@ -73,6 +78,33 @@ func createTestService(t *testing.T, cfg *Config) (node *Service, msgSend chan M
 	}
 
 	return node, msgSend, msgRec
+}
+
+// createTestServiceWithBlockState is a helper method to create and start a new network service
+func createTestServiceWithBlockState(t *testing.T, cfg *Config, blockState *MockBlockState) (node *Service, msgRec chan Message) {
+	msgRec = make(chan Message)
+	msgSend := make(chan Message)
+
+	cfg.BlockState = blockState
+	cfg.NetworkState = &MockNetworkState{}
+	cfg.ProtocolID = TestProtocolID
+
+	if cfg.SyncChan == nil {
+		cfg.SyncChan = make(chan *big.Int)
+	}
+
+	var err error
+	node, err = NewService(cfg, msgSend, msgRec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = node.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return node, msgRec
 }
 
 // test network service starts
