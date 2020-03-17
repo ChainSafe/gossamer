@@ -77,6 +77,8 @@ func (s *Syncer) watchForBlocks() {
 			}
 
 			go s.watchForResponses(blockNum)
+		} else {
+			log.Error("[sync] Failed to get block number", "error", "number is nil")
 		}
 	}
 }
