@@ -167,8 +167,8 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			return nil, err
 		}
 
-		// if ret != 0 there was an error
-		if ret[0] != byte(0) {
+		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
+		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
 			errTxt, err := determineError(ret)
 			if err != nil {
 				return nil, err
