@@ -81,8 +81,16 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	if cfg.MsgRec == nil {
+		return nil, errors.New("MsgRec is nil")
+	}
+
+	if cfg.MsgSend == nil {
+		return nil, errors.New("MsgSend is nil")
+	}
+
 	if cfg.SyncChan == nil {
-		return nil, errors.New("syncChan is nil")
+		return nil, errors.New("SyncChan is nil")
 	}
 
 	network := &Service{

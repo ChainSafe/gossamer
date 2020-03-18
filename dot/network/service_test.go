@@ -43,7 +43,7 @@ var TestMessage = &BlockRequestMessage{
 }
 
 // maximum wait time for non-status message to be handled
-var TestMessageTimeout = 3 * time.Second
+var TestMessageTimeout = time.Second
 
 // time between connection retries (BackoffBase default 5 seconds)
 var TestBackoffTimeout = 5 * time.Second

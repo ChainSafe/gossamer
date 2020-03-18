@@ -150,8 +150,8 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// Message Channels (send and receive messages between services)
 
-	coreMsgs := make(chan network.Message)
-	networkMsgs := make(chan network.Message)
+	coreMsgs := make(chan network.Message)    // message channel from core service to network service
+	networkMsgs := make(chan network.Message) // message channel from network service to core service
 
 	// State Service
 

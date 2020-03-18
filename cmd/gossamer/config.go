@@ -101,6 +101,9 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		b, err := strconv.Atoi(roles)
 		if err != nil {
 			log.Error("[cmd] Failed to convert Roles to byte", "error", err)
+		} else if byte(b) > 4 {
+			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
+			log.Error("[cmd] Invalid roles option provided", "roles", byte(b))
 		} else {
 			cfg.Roles = byte(b)
 		}
@@ -148,8 +151,12 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 			// if roles byte is 4, act as an authority (see Table D.2)
 			log.Debug("[cmd] Authority enabled", "roles", 4)
 			cfg.Authority = true
+		} else if byte(b) > 4 {
+			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
+			log.Error("[cmd] Invalid roles option provided, authority disabled", "roles", byte(b))
+			cfg.Authority = false
 		} else {
-			// if roles byte is not 4, do not act as an authority (see Table D.2)
+			// if roles byte is less than 4, do not act as an authority (see Table D.2)
 			log.Debug("[cmd] Authority disabled", "roles", byte(b))
 			cfg.Authority = false
 		}
