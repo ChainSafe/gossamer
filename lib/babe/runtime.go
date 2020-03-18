@@ -74,3 +74,8 @@ func (b *Session) finalizeBlock() (*types.Header, error) {
 	}
 	return bh, err
 }
+
+// calls runtime API function BlockBuilder_execute_block
+func (b *Session) executeBlock(data []byte) ([]byte, error) {
+	return b.rt.Exec(runtime.CoreExecuteBlock, data)
+}

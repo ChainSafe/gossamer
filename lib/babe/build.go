@@ -98,6 +98,22 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		Body:   body,
 	}
 
+	bd := &types.BlockData{
+		Hash:   block.Header.Hash(),
+		Header: block.Header.AsOptional(),
+		Body:   block.Body.AsOptional(),
+	}
+
+	bdEnc, err := bd.Encode()
+	fmt.Printf("res %v", bdEnc)
+	if err != nil {
+		return nil, err
+	}
+	//data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
+
+	res, err := b.executeBlock(bdEnc)
+	fmt.Printf("executeBlock res %v", res)
+
 	return block, nil
 }
 

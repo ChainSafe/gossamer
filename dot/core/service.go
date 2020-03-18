@@ -636,21 +636,33 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				Body:   body,
 			}
 
+			// ed testing
+			//bd := &types.BlockData{
+			//	Hash:   block.Header.Hash(),
+			//	Header: block.Header.AsOptional(),
+			//	Body:   block.Body.AsOptional(),
+			//}
+			//
+			//bdEnc, err := bd.Encode()
+			//if err != nil {
+			//	return err
+			//}
+
 			// TODO: why doesn't execute block work with block we built?
 
-			// blockWithoutDigests := block
-			// blockWithoutDigests.Header.Digest = [][]byte{{}}
-
-			// enc, err := block.Encode()
-			// if err != nil {
-			// 	return err
-			// }
-
-			// err = s.executeBlock(enc)
-			// if err != nil {
-			// 	log.Error("[core] failed to validate block", "err", err)
-			// 	return err
-			// }
+			//blockWithoutDigests := block
+			//blockWithoutDigests.Header.Digest = [][]byte{{}}
+			//
+			//enc, err := block.Encode()
+			//if err != nil {
+			//	return err
+			//}
+			//
+			//err = s.executeBlock(enc)
+			//if err != nil {
+			//	log.Error("[core] failed to validate block", "err", err)
+			//	return err
+			//}
 
 			if header.Number.Cmp(bestNum) == 1 {
 				err = s.blockState.AddBlock(block)
