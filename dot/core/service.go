@@ -39,7 +39,7 @@ import (
 
 var _ services.Service = &Service{}
 
-var maxResponseSize = 8 // maximum number of block datas to reply with in a BlockResponse message.
+var maxResponseSize int64 = 8 // maximum number of block datas to reply with in a BlockResponse message.
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -72,6 +72,7 @@ type Service struct {
 
 	// Block synchronization
 	syncChan chan<- *big.Int
+	respChan chan<- *network.BlockResponseMessage
 	syncLock *sync.Mutex
 	syncer   *Syncer
 }
@@ -118,10 +119,12 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	syncerLock := &sync.Mutex{}
+	respChan := make(chan *network.BlockResponseMessage, 128)
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
 		BlockNumberIn: cfg.SyncChan,
+		MsgIn:         respChan,
 		MsgOut:        cfg.MsgSend,
 		Lock:          syncerLock,
 	}
@@ -158,6 +161,7 @@ func NewService(cfg *Config) (*Service, error) {
 			syncer:           syncer,
 			syncLock:         syncerLock,
 			syncChan:         cfg.SyncChan,
+			respChan:         respChan,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -204,6 +208,7 @@ func NewService(cfg *Config) (*Service, error) {
 			syncer:           syncer,
 			syncLock:         syncerLock,
 			syncChan:         cfg.SyncChan,
+			respChan:         respChan,
 		}
 	}
 
@@ -396,8 +401,6 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
-	s.syncer.addBlockBuilt()
-
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -521,7 +524,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	// get sub-chain of block hashes
 	subchain := s.blockState.SubChain(startHash, endHash)
 
-	if len(subchain) > maxResponseSize {
+	if len(subchain) > int(maxResponseSize) {
 		subchain = subchain[:maxResponseSize]
 	}
 
@@ -588,85 +591,86 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
-	log.Trace("[core] got BlockResponseMessage")
+	log.Info("[core] got BlockResponseMessage")
+	s.respChan <- msg.(*network.BlockResponseMessage)
 
-	blockData := msg.(*network.BlockResponseMessage).BlockData
+	//blockData := msg.(*network.BlockResponseMessage).BlockData
 
-	for _, bd := range blockData {
-		if bd.Header.Exists() {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
+	// for _, bd := range blockData {
+	// 	if bd.Header.Exists() {
+	// 		header, err := types.NewHeaderFromOptional(bd.Header)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			// get block header; if exists, return
-			existingHeader, err := s.blockState.GetHeader(bd.Hash)
-			if err != nil && existingHeader == nil {
-				err = s.blockState.SetHeader(header)
-				if err != nil {
-					return err
-				}
+	// 		// get block header; if exists, return
+	// 		existingHeader, err := s.blockState.GetHeader(bd.Hash)
+	// 		if err != nil && existingHeader == nil {
+	// 			err = s.blockState.SetHeader(header)
+	// 			if err != nil {
+	// 				return err
+	// 			}
 
-				log.Info("[core] saved block header", "hash", header.Hash(), "number", header.Number)
+	// 			log.Info("[core] saved block header", "hash", header.Hash(), "number", header.Number)
 
-				// TODO: handle consensus digest, if first in epoch
-				// err = s.handleConsensusDigest(header)
-				// if err != nil {
-				// 	return err
-				// }
-			}
-		}
+	// 			// TODO: handle consensus digest, if first in epoch
+	// 			// err = s.handleConsensusDigest(header)
+	// 			// if err != nil {
+	// 			// 	return err
+	// 			// }
+	// 		}
+	// 	}
 
-		if bd.Header.Exists() && bd.Body.Exists {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
+	// 	if bd.Header.Exists() && bd.Body.Exists {
+	// 		header, err := types.NewHeaderFromOptional(bd.Header)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			body, err := types.NewBodyFromOptional(bd.Body)
-			if err != nil {
-				return err
-			}
+	// 		body, err := types.NewBodyFromOptional(bd.Body)
+	// 		if err != nil {
+	// 			return err
+	// 		}
 
-			block := &types.Block{
-				Header: header,
-				Body:   body,
-			}
+	// 		block := &types.Block{
+	// 			Header: header,
+	// 			Body:   body,
+	// 		}
 
-			// TODO: why doesn't execute block work with block we built?
+	// 		// TODO: why doesn't execute block work with block we built?
 
-			// blockWithoutDigests := block
-			// blockWithoutDigests.Header.Digest = [][]byte{{}}
+	// 		// blockWithoutDigests := block
+	// 		// blockWithoutDigests.Header.Digest = [][]byte{{}}
 
-			// enc, err := block.Encode()
-			// if err != nil {
-			// 	return err
-			// }
+	// 		// enc, err := block.Encode()
+	// 		// if err != nil {
+	// 		// 	return err
+	// 		// }
 
-			// err = s.executeBlock(enc)
-			// if err != nil {
-			// 	log.Error("[core] failed to validate block", "err", err)
-			// 	return err
-			// }
+	// 		// err = s.executeBlock(enc)
+	// 		// if err != nil {
+	// 		// 	log.Error("[core] failed to validate block", "err", err)
+	// 		// 	return err
+	// 		// }
 
-			err = s.blockState.AddBlock(block)
-			if err != nil {
-				log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
-			} else {
-				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
-			}
+	// 		err = s.blockState.AddBlock(block)
+	// 		if err != nil {
+	// 			log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
+	// 		} else {
+	// 			log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
+	// 		}
 
-			err = s.checkForRuntimeChanges()
-			if err != nil {
-				return err
-			}
-		}
+	// 		err = s.checkForRuntimeChanges()
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
 
-		err := s.compareAndSetBlockData(bd)
-		if err != nil {
-			return err
-		}
-	}
+	// 	err := s.compareAndSetBlockData(bd)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
