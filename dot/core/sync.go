@@ -73,18 +73,25 @@ func (s *Syncer) Start() {
 	go s.watchForResponses()
 }
 
+// Stop stops the syncer
+func (s *Syncer) Stop() {
+	// TODO: stop goroutines
+}
+
 func (s *Syncer) watchForBlocks() {
 	for {
 		blockNum := <-s.blockNumberIn
 		if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
-			s.highestSeenBlock = blockNum
-			s.requestStart = blockNum.Int64()
 
 			if s.synced {
+				s.requestStart = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
 				s.synced = false
 				s.lock.Lock()
+			} else {
+				s.requestStart = blockNum.Int64()
 			}
 
+			s.highestSeenBlock = blockNum
 			go s.sendBlockRequest()
 		}
 	}
@@ -93,7 +100,6 @@ func (s *Syncer) watchForBlocks() {
 func (s *Syncer) watchForResponses() {
 	for {
 		msg := <-s.msgIn
-		log.Info("[sync] got BlockResponseMessage")
 
 		// highestInResp will be the highest block in the response
 		// it's set to 0 if err != nil
@@ -108,7 +114,7 @@ func (s *Syncer) watchForResponses() {
 				if s.requestStart < 0 {
 					s.requestStart = 1
 				}
-				log.Info("[sync] retrying request", "start", s.requestStart)
+				log.Debug("[sync] Retrying block request", "start", s.requestStart)
 				go s.sendBlockRequest()
 			} else {
 				log.Error("[sync]", "error", err)
@@ -119,7 +125,7 @@ func (s *Syncer) watchForResponses() {
 
 			bestNum, err := s.blockState.BestBlockNumber()
 			if err != nil {
-				log.Error("[sync] Failed to get best block number", "error", err)
+				log.Crit("[sync] Failed to get best block number", "error", err)
 
 				if !s.synced {
 					s.lock.Unlock()
@@ -130,14 +136,12 @@ func (s *Syncer) watchForResponses() {
 
 			// check if we are synced or not
 			if bestNum.Cmp(s.highestSeenBlock) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-				log.Info("[sync] All synced up!", "number", bestNum)
+				log.Debug("[sync] All synced up!", "number", bestNum)
 
 				if !s.synced {
 					s.lock.Unlock()
 					s.synced = true
 				}
-
-				//return
 			} else {
 				// not yet synced, send another block request for the following blocks
 				s.requestStart = highestInResp + 1
@@ -159,7 +163,7 @@ func (s *Syncer) sendBlockRequest() {
 	start := uint64(s.requestStart)
 	binary.LittleEndian.PutUint64(buf, start)
 
-	log.Info("[sync] block request start", "num", start)
+	log.Debug("[sync] Block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random

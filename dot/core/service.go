@@ -452,7 +452,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
 func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
-	log.Trace("[core] got BlockAnnounceMessage")
+	log.Debug("[core] got BlockAnnounceMessage")
 
 	blockAnnounceMessage, ok := msg.(*network.BlockAnnounceMessage)
 	if !ok {
@@ -479,7 +479,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	_, err = s.blockState.GetBlockData(header.Hash())
 	if err != nil && err.Error() == "Key not found" {
 		// send block request message
-		log.Trace("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
+		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
 		s.syncChan <- blockAnnounceMessage.Number
 	} else if err != nil {
 		return err
@@ -586,7 +586,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
-	log.Info("[core] got BlockResponseMessage")
+	log.Debug("[core] received BlockResponseMessage")
 	s.respChan <- msg.(*network.BlockResponseMessage)
 
 	return s.checkForRuntimeChanges()
