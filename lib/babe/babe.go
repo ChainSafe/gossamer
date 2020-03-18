@@ -118,6 +118,9 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		return nil, err
 	}
 
+	thresholdBytes := []byte{0x6f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	babeSession.epochThreshold = big.NewInt(0).SetBytes(thresholdBytes)
+
 	log.Info("[babe] config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength (slots)", babeSession.config.EpochLength)
 
 	babeSession.randomness = [sr25519.VrfOutputLength]byte{babeSession.config.Randomness}

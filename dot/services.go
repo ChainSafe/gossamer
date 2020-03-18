@@ -132,8 +132,8 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncChan chan *
 		SyncChan:     syncChan,
 	}
 
-	networkMsgRec := make(chan network.Message)
-	networkMsgSend := make(chan network.Message)
+	networkMsgRec := make(chan network.Message, 256)
+	networkMsgSend := make(chan network.Message, 256)
 
 	networkSrvc, err := network.NewService(&networkConfig, networkMsgSend, networkMsgRec)
 	if err != nil {

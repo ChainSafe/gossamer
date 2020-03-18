@@ -119,7 +119,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	syncerLock := &sync.Mutex{}
-	respChan := make(chan *network.BlockResponseMessage, 128)
+	respChan := make(chan *network.BlockResponseMessage, 512)
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
@@ -476,18 +476,13 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		return err
 	}
 
-	bestNum, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		log.Error("[core] BlockAnnounceMessage", "error", err)
-		return err
-	}
-
-	messageBlockNumMinusOne := big.NewInt(0).Sub(blockAnnounceMessage.Number, big.NewInt(1))
-
-	// check if we should send block request message
-	if bestNum.Cmp(messageBlockNumMinusOne) == -1 {
-		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
+	_, err = s.blockState.GetBlockData(header.Hash())
+	if err != nil && err.Error() == "Key not found" {
+		// send block request message
+		log.Trace("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
 		s.syncChan <- blockAnnounceMessage.Number
+	} else if err != nil {
+		return err
 	}
 
 	return nil
@@ -594,123 +589,7 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 	log.Info("[core] got BlockResponseMessage")
 	s.respChan <- msg.(*network.BlockResponseMessage)
 
-	//blockData := msg.(*network.BlockResponseMessage).BlockData
-
-	// for _, bd := range blockData {
-	// 	if bd.Header.Exists() {
-	// 		header, err := types.NewHeaderFromOptional(bd.Header)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		// get block header; if exists, return
-	// 		existingHeader, err := s.blockState.GetHeader(bd.Hash)
-	// 		if err != nil && existingHeader == nil {
-	// 			err = s.blockState.SetHeader(header)
-	// 			if err != nil {
-	// 				return err
-	// 			}
-
-	// 			log.Info("[core] saved block header", "hash", header.Hash(), "number", header.Number)
-
-	// 			// TODO: handle consensus digest, if first in epoch
-	// 			// err = s.handleConsensusDigest(header)
-	// 			// if err != nil {
-	// 			// 	return err
-	// 			// }
-	// 		}
-	// 	}
-
-	// 	if bd.Header.Exists() && bd.Body.Exists {
-	// 		header, err := types.NewHeaderFromOptional(bd.Header)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		body, err := types.NewBodyFromOptional(bd.Body)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		block := &types.Block{
-	// 			Header: header,
-	// 			Body:   body,
-	// 		}
-
-	// 		// TODO: why doesn't execute block work with block we built?
-
-	// 		// blockWithoutDigests := block
-	// 		// blockWithoutDigests.Header.Digest = [][]byte{{}}
-
-	// 		// enc, err := block.Encode()
-	// 		// if err != nil {
-	// 		// 	return err
-	// 		// }
-
-	// 		// err = s.executeBlock(enc)
-	// 		// if err != nil {
-	// 		// 	log.Error("[core] failed to validate block", "err", err)
-	// 		// 	return err
-	// 		// }
-
-	// 		err = s.blockState.AddBlock(block)
-	// 		if err != nil {
-	// 			log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
-	// 		} else {
-	// 			log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
-	// 		}
-
-	// 		err = s.checkForRuntimeChanges()
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-
-	// 	err := s.compareAndSetBlockData(bd)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	return nil
-}
-
-func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
-	if s.blockState == nil {
-		return fmt.Errorf("no blockState")
-	}
-
-	existingData, err := s.blockState.GetBlockData(bd.Hash)
-	if err != nil {
-		// no block data exists, ok
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData == nil {
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
-		existingData.Header = bd.Header
-	}
-
-	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
-		existingData.Body = bd.Body
-	}
-
-	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
-		existingData.Receipt = bd.Receipt
-	}
-
-	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
-		existingData.MessageQueue = bd.MessageQueue
-	}
-
-	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
-		existingData.Justification = bd.Justification
-	}
-
-	return s.blockState.SetBlockData(existingData)
+	return s.checkForRuntimeChanges()
 }
 
 // checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime

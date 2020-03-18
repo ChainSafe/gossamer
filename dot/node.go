@@ -158,7 +158,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// TODO: Configure node based on Roles #601
 
-	syncChan := make(chan *big.Int, 128)
+	syncChan := make(chan *big.Int, 256)
 
 	// Network Service
 

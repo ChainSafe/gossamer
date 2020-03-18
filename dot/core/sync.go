@@ -3,9 +3,10 @@ package core
 import (
 	"encoding/binary"
 	"errors"
-	//"fmt"
+	"fmt"
 	"math/big"
 	mrand "math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,24 +78,14 @@ func (s *Syncer) watchForBlocks() {
 		blockNum := <-s.blockNumberIn
 		if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
 			s.highestSeenBlock = blockNum
+			s.requestStart = blockNum.Int64()
 
 			if s.synced {
 				s.synced = false
 				s.lock.Lock()
 			}
 
-			bestNum, err := s.blockState.BestBlockNumber()
-			if err != nil {
-				log.Error("[sync] Failed to get best block number", "error", err)
-				return
-			}
-
-			err = s.sendBlockRequest()
-			if err != nil {
-				log.Error("[sync] Failed to send block request", "error", err)
-			}
-
-			//go s.watchForResponses(blockNum)
+			go s.sendBlockRequest()
 		}
 	}
 }
@@ -102,21 +93,29 @@ func (s *Syncer) watchForBlocks() {
 func (s *Syncer) watchForResponses() {
 	for {
 		msg := <-s.msgIn
+		log.Info("[sync] got BlockResponseMessage")
 
+		// highestInResp will be the highest block in the response
+		// it's set to 0 if err != nil
 		highestInResp, err := s.handleBlockResponse(msg)
 		if err != nil {
+
+			// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
+			// blocks from farther back in the chain
 			if err.Error() == "cannot find parent block in blocktree" {
+				// set request start
 				s.requestStart = s.requestStart - maxResponseSize
 				if s.requestStart < 0 {
 					s.requestStart = 1
 				}
 				log.Info("[sync] retrying request", "start", s.requestStart)
-				s.sendBlockRequest()
+				go s.sendBlockRequest()
 			} else {
 				log.Error("[sync]", "error", err)
 			}
+
 		} else {
-			// TODO: max retries before unlocking
+			// TODO: max retries before unlocking, in case no response is received
 
 			bestNum, err := s.blockState.BestBlockNumber()
 			if err != nil {
@@ -129,19 +128,20 @@ func (s *Syncer) watchForResponses() {
 				return
 			}
 
+			// check if we are synced or not
 			if bestNum.Cmp(s.highestSeenBlock) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-				log.Debug("[sync] All synced up!", "number", bestNum)
+				log.Info("[sync] All synced up!", "number", bestNum)
 
 				if !s.synced {
 					s.lock.Unlock()
+					s.synced = true
 				}
 
-				s.synced = true
-				return
+				//return
 			} else {
-				// not yet synced
+				// not yet synced, send another block request for the following blocks
 				s.requestStart = highestInResp + 1
-				s.sendBlockRequest()
+				go s.sendBlockRequest()
 			}
 
 		}
@@ -149,13 +149,7 @@ func (s *Syncer) watchForResponses() {
 	}
 }
 
-func (s *Syncer) sendBlockRequest() error {
-	// bestNum, err := s.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	log.Error("[sync] Failed to get best block number", "error", err)
-	// 	return err
-	// }
-
+func (s *Syncer) sendBlockRequest() {
 	//generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
@@ -178,19 +172,13 @@ func (s *Syncer) sendBlockRequest() error {
 
 	// send block request message to network service
 	s.msgOut <- blockRequest
-
-	return nil
 }
 
 func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, error) {
-	log.Info("[sync] got BlockResponseMessage")
 	blockData := msg.BlockData
-
 	highestInResp := int64(0)
 
 	for _, bd := range blockData {
-		//fmt.Println(bd)
-
 		if bd.Header.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
@@ -208,10 +196,6 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				log.Info("[sync] saved block header", "hash", header.Hash(), "number", header.Number)
 
 				// TODO: handle consensus digest, if first in epoch
-				// err = s.handleConsensusDigest(header)
-				// if err != nil {
-				// 	return err
-				// }
 			}
 
 			if header.Number.Int64() > highestInResp {
@@ -235,44 +219,65 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				Body:   body,
 			}
 
-			// TODO: why doesn't execute block work with block we built?
-
-			// blockWithoutDigests := block
-			// blockWithoutDigests.Header.Digest = [][]byte{{}}
-
-			// enc, err := block.Encode()
-			// if err != nil {
-			// 	return err
-			// }
-
-			// err = s.executeBlock(enc)
-			// if err != nil {
-			// 	log.Error("[core] failed to validate block", "err", err)
-			// 	return err
-			// }
+			// TODO: execute block and verify authorship right
 
 			err = s.blockState.AddBlock(block)
 			if err != nil {
-				log.Error("[sync] Failed to add block to state", "error", err, "number", header.Number, "hash", header.Hash(), "parentHash", header.ParentHash)
-				//return highestInResp, err
 				if err.Error() == "cannot find parent block in blocktree" {
+					return 0, err
+				} else if strings.Contains(err.Error(), "cannot add block to blocktree that already exists") {
+					// this is fine
+				} else {
 					return 0, err
 				}
 			} else {
 				log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
 			}
-
-			// err = s.checkForRuntimeChanges()
-			// if err != nil {
-			// 	return err
-			// }
 		}
 
-		// err := s.compareAndSetBlockData(bd)
-		// if err != nil {
-		// 	return err
-		// }
+		err := s.compareAndSetBlockData(bd)
+		if err != nil {
+			return highestInResp, err
+		}
 	}
 
 	return highestInResp, nil
+}
+
+func (s *Syncer) compareAndSetBlockData(bd *types.BlockData) error {
+	if s.blockState == nil {
+		return fmt.Errorf("no blockState")
+	}
+
+	existingData, err := s.blockState.GetBlockData(bd.Hash)
+	if err != nil {
+		// no block data exists, ok
+		return s.blockState.SetBlockData(bd)
+	}
+
+	if existingData == nil {
+		return s.blockState.SetBlockData(bd)
+	}
+
+	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
+		existingData.Header = bd.Header
+	}
+
+	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
+		existingData.Body = bd.Body
+	}
+
+	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
+		existingData.Receipt = bd.Receipt
+	}
+
+	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
+		existingData.MessageQueue = bd.MessageQueue
+	}
+
+	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
+		existingData.Justification = bd.Justification
+	}
+
+	return s.blockState.SetBlockData(existingData)
 }
