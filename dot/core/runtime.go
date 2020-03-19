@@ -17,17 +17,27 @@
 package core
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
 )
+
+// StorageRoot returns the hash of the runtime storage root
+func (s *Service) StorageRoot() (common.Hash, error) {
+	if s.storageState == nil {
+		return common.Hash{}, fmt.Errorf("storage state is nil")
+	}
+	return s.storageState.StorageRoot()
+}
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
@@ -57,7 +67,39 @@ func (s *Service) executeBlock(b []byte) error {
 	return nil
 }
 
-// TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
+// checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
+func (s *Service) checkForRuntimeChanges() error {
+	currentCodeHash, err := s.storageState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+		code, err := s.storageState.LoadCode()
+		if err != nil {
+			return err
+		}
+
+		s.rt.Stop()
+
+		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
+		if err != nil {
+			return err
+		}
+
+		// kill babe session, handleBabeSession will reload it with the new runtime
+		if s.isAuthority {
+			err = s.safeBabeKill()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// TODO: update grandpaAuthorities runtime method, pass latest block number
 func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
 	ret, err := s.rt.Exec(runtime.AuraAPIAuthorities, []byte{})
 	if err != nil {

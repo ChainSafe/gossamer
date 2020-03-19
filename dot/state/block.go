@@ -322,6 +322,46 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 	return err
 }
 
+// CompareAndSetBlockData patches and updates the block data stored in the state
+// database with the block data provided
+func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
+	if bs == nil {
+		return fmt.Errorf("no blockState")
+	}
+
+	existingData, err := bs.GetBlockData(bd.Hash)
+	if err != nil {
+		// no block data exists, ok
+		return bs.SetBlockData(bd)
+	}
+
+	if existingData == nil {
+		return bs.SetBlockData(bd)
+	}
+
+	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
+		existingData.Header = bd.Header
+	}
+
+	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
+		existingData.Body = bd.Body
+	}
+
+	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
+		existingData.Receipt = bd.Receipt
+	}
+
+	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
+		existingData.MessageQueue = bd.MessageQueue
+	}
+
+	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
+		existingData.Justification = bd.Justification
+	}
+
+	return bs.SetBlockData(existingData)
+}
+
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
 	return bs.AddBlockWithArrivalTime(block, uint64(time.Now().Unix()))

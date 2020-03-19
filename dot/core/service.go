@@ -17,7 +17,6 @@
 package core
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -55,8 +54,8 @@ type Service struct {
 	codeHash common.Hash
 
 	// Current BABE session
-	bs              *babe.Session
-	isBabeAuthority bool
+	bs          *babe.Session
+	isAuthority bool
 
 	// Keystore
 	keys *keystore.Keystore
@@ -83,7 +82,7 @@ type Config struct {
 	TransactionQueue TransactionQueue
 	Keystore         *keystore.Keystore
 	Runtime          *runtime.Runtime
-	IsBabeAuthority  bool
+	IsAuthority      bool
 
 	NewBlocks chan types.Block // only used for testing purposes
 	MsgRec    <-chan network.Message
@@ -131,9 +130,9 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	var srv = &Service{}
+	var coreSrvc = &Service{}
 
-	if cfg.IsBabeAuthority {
+	if cfg.IsAuthority {
 		if cfg.Keystore.NumSr25519Keys() == 0 {
 			return nil, fmt.Errorf("no keys provided for authority node")
 		}
@@ -141,7 +140,7 @@ func NewService(cfg *Config) (*Service, error) {
 		epochDone := make(chan struct{})
 		babeKill := make(chan struct{})
 
-		srv = &Service{
+		coreSrvc = &Service{
 			rt:               cfg.Runtime,
 			codeHash:         codeHash,
 			keys:             cfg.Keystore,
@@ -153,14 +152,15 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			epochDone:        epochDone,
 			babeKill:         babeKill,
-			isBabeAuthority:  true,
+			isAuthority:      true,
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
 			syncChan:         cfg.SyncChan,
 		}
 
-		authData, err := srv.retrieveAuthorityData()
+		// TODO: update grandpaAuthorities runtime method, pass latest block number
+		authData, err := coreSrvc.grandpaAuthorities()
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve authority data: %s", err)
 		}
@@ -182,14 +182,14 @@ func NewService(cfg *Config) (*Service, error) {
 		// create a new BABE session
 		bs, err := babe.NewSession(bsConfig)
 		if err != nil {
-			srv.isBabeAuthority = false
+			coreSrvc.isAuthority = false
 			log.Error("[core] could not start babe session", "error", err)
-			return srv, nil
+			return coreSrvc, nil
 		}
 
-		srv.bs = bs
+		coreSrvc.bs = bs
 	} else {
-		srv = &Service{
+		coreSrvc = &Service{
 			rt:               cfg.Runtime,
 			codeHash:         codeHash,
 			keys:             cfg.Keystore,
@@ -199,7 +199,7 @@ func NewService(cfg *Config) (*Service, error) {
 			blockState:       cfg.BlockState,
 			storageState:     cfg.StorageState,
 			transactionQueue: cfg.TransactionQueue,
-			isBabeAuthority:  false,
+			isAuthority:      false,
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
@@ -207,8 +207,7 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 	}
 
-	// core service
-	return srv, nil
+	return coreSrvc, nil
 }
 
 // Start starts the core service
@@ -223,7 +222,7 @@ func (s *Service) Start() error {
 	// start syncer
 	s.syncer.Start()
 
-	if s.isBabeAuthority {
+	if s.isAuthority {
 		// monitor babe session for epoch changes
 		go s.handleBabeSession()
 
@@ -248,26 +247,13 @@ func (s *Service) Stop() error {
 		if s.msgSend != nil {
 			close(s.msgSend)
 		}
-		if s.isBabeAuthority {
+		if s.isAuthority {
 			close(s.babeKill)
 		}
 		s.closed = true
 	}
 
 	return nil
-}
-
-// StorageRoot returns the hash of the runtime storage root
-func (s *Service) StorageRoot() (common.Hash, error) {
-	if s.storageState == nil {
-		return common.Hash{}, fmt.Errorf("storage state is nil")
-	}
-	return s.storageState.StorageRoot()
-}
-
-func (s *Service) retrieveAuthorityData() ([]*babe.AuthorityData, error) {
-	// TODO: when we update to a new runtime, will need to pass in the latest block number
-	return s.grandpaAuthorities()
 }
 
 // getLatestSlot returns the slot for the block at the head of the chain
@@ -409,12 +395,6 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
-	// TODO: check if host status message needs to be updated based on new block
-	// information, if so, generate host status message and send to network service
-
-	// TODO: send updated host status message to network service
-	// s.msgSend <- msg
-
 	err = s.checkForRuntimeChanges()
 	if err != nil {
 		return err
@@ -428,16 +408,16 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.GetType()
 
 	switch msgType {
-	case network.BlockAnnounceMsgType:
-		err = s.ProcessBlockAnnounceMessage(msg)
-	case network.BlockRequestMsgType:
+	case network.BlockRequestMsgType: // 1
 		err = s.ProcessBlockRequestMessage(msg)
-	case network.BlockResponseMsgType:
+	case network.BlockResponseMsgType: // 2
 		err = s.ProcessBlockResponseMessage(msg)
-	case network.TransactionMsgType:
+	case network.BlockAnnounceMsgType: // 3
+		err = s.ProcessBlockAnnounceMessage(msg)
+	case network.TransactionMsgType: // 4
 		err = s.ProcessTransactionMessage(msg)
 	default:
-		err = fmt.Errorf("Received unsupported message type %d", msgType)
+		err = fmt.Errorf("received unsupported message type %d", msgType)
 	}
 
 	return err
@@ -668,79 +648,9 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			}
 		}
 
-		err := s.compareAndSetBlockData(bd)
+		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
-	if s.blockState == nil {
-		return fmt.Errorf("no blockState")
-	}
-
-	existingData, err := s.blockState.GetBlockData(bd.Hash)
-	if err != nil {
-		// no block data exists, ok
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData == nil {
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
-		existingData.Header = bd.Header
-	}
-
-	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
-		existingData.Body = bd.Body
-	}
-
-	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
-		existingData.Receipt = bd.Receipt
-	}
-
-	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
-		existingData.MessageQueue = bd.MessageQueue
-	}
-
-	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
-		existingData.Justification = bd.Justification
-	}
-
-	return s.blockState.SetBlockData(existingData)
-}
-
-// checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
-func (s *Service) checkForRuntimeChanges() error {
-	currentCodeHash, err := s.storageState.LoadCodeHash()
-	if err != nil {
-		return err
-	}
-
-	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		code, err := s.storageState.LoadCode()
-		if err != nil {
-			return err
-		}
-
-		s.rt.Stop()
-
-		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys)
-		if err != nil {
-			return err
-		}
-
-		// kill babe session, handleBabeSession will reload it with the new runtime
-		if s.isBabeAuthority {
-			err = s.safeBabeKill()
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -767,7 +677,7 @@ func (s *Service) ProcessTransactionMessage(msg network.Message) error {
 		// create new valid transaction
 		vtx := transaction.NewValidTransaction(tx, val)
 
-		if s.isBabeAuthority {
+		if s.isAuthority {
 			// push to the transaction queue of BABE session
 			s.transactionQueue.Push(vtx)
 		}
@@ -804,7 +714,7 @@ func (s *Service) handleConsensusDigest(header *types.Header) (err error) {
 		return err
 	}
 
-	if s.isBabeAuthority {
+	if s.isAuthority {
 		// TODO: if this block isn't the first in the epoch, and it has a consensus digest, this is an error
 		err = s.bs.SetEpochData(epochData)
 		if err != nil {

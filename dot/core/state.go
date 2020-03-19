@@ -41,6 +41,7 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetBlockData(hash common.Hash) (*types.BlockData, error)
 	SetBlockData(blockData *types.BlockData) error
+	CompareAndSetBlockData(blockData *types.BlockData) error
 	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)

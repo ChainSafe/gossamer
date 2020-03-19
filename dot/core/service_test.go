@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
@@ -52,8 +51,8 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
 		rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 		cfg = &Config{
-			Runtime:         rt,
-			IsBabeAuthority: false,
+			Runtime:     rt,
+			IsAuthority: false,
 		}
 	}
 
@@ -100,6 +99,27 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 	return s
 }
 
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+	previousHash := blockState.BestBlockHash()
+	previousNum, err := blockState.BestBlockNumber()
+	require.Nil(t, err)
+
+	for i := 1; i <= depth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+			},
+			Body: &types.Body{},
+		}
+
+		previousHash = block.Header.Hash()
+
+		err := blockState.AddBlock(block)
+		require.Nil(t, err)
+	}
+}
+
 func TestStartService(t *testing.T) {
 	s := newTestService(t, nil)
 	require.NotNil(t, s) // TODO: improve dot core tests
@@ -110,42 +130,15 @@ func TestStartService(t *testing.T) {
 	s.Stop()
 }
 
-func TestValidateBlock(t *testing.T) {
-	s := newTestService(t, nil)
-
-	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
-	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-
-	// `core_execute_block` will throw error, no expected result
-	err := s.executeBlock(data)
-	require.Nil(t, err)
-}
-
-func TestValidateTransaction(t *testing.T) {
-	s := newTestService(t, nil)
-
-	// https://github.com/paritytech/substrate/blob/5420de3face1349a97eb954ae71c5b0b940c31de/core/transaction-pool/src/tests.rs#L95
-	tx := []byte{1, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 216, 5, 113, 87, 87, 40, 221, 120, 247, 252, 137, 201, 74, 231, 222, 101, 85, 108, 102, 39, 31, 190, 210, 14, 215, 124, 19, 160, 180, 203, 54, 110, 167, 163, 149, 45, 12, 108, 80, 221, 65, 238, 57, 237, 199, 16, 10, 33, 185, 8, 244, 184, 243, 139, 5, 87, 252, 245, 24, 225, 37, 154, 163, 142}
-
-	validity, err := s.ValidateTransaction(tx)
-	require.Nil(t, err)
-
-	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
-	expected := &transaction.Validity{
-		Priority: 69,
-		Requires: [][]byte{},
-		// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L173
-		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
-		Longevity: 64,
-		Propagate: true,
+func TestNotAuthority(t *testing.T) {
+	cfg := &Config{
+		Keystore:    keystore.NewKeystore(),
+		IsAuthority: false,
 	}
 
-	if !reflect.DeepEqual(expected, validity) {
-		t.Error(
-			"received unexpected validity",
-			"\nexpected:", expected,
-			"\nreceived:", validity,
-		)
+	s := newTestService(t, cfg)
+	if s.bs != nil {
+		t.Fatal("Fail: should not have babe session")
 	}
 }
 
@@ -207,9 +200,9 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	ks.Insert(kp)
 
 	cfg := &Config{
-		Runtime:         rt,
-		Keystore:        ks,
-		IsBabeAuthority: false,
+		Runtime:     rt,
+		Keystore:    ks,
+		IsAuthority: false,
 	}
 
 	s := newTestService(t, cfg)
@@ -281,7 +274,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionQueue: transaction.NewPriorityQueue(),
-		IsBabeAuthority:  true,
+		IsAuthority:      true,
 	}
 
 	s := newTestService(t, cfg)
@@ -306,76 +299,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 	}
 }
 
-func TestNotAuthority(t *testing.T) {
-	cfg := &Config{
-		Keystore:        keystore.NewKeystore(),
-		IsBabeAuthority: false,
-	}
-
-	s := newTestService(t, cfg)
-	if s.bs != nil {
-		t.Fatal("Fail: should not have babe session")
-	}
-}
-
-func TestCheckForRuntimeChanges(t *testing.T) {
-	tt := trie.NewEmptyTrie(nil)
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
-
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	pubkey := kp.Public().Encode()
-	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
-	require.Nil(t, err)
-
-	ks := keystore.NewKeystore()
-	ks.Insert(kp)
-
-	cfg := &Config{
-		Runtime:          rt,
-		Keystore:         ks,
-		TransactionQueue: transaction.NewPriorityQueue(),
-		IsBabeAuthority:  false,
-	}
-
-	s := newTestService(t, cfg)
-
-	_, err = tests.GetRuntimeBlob(tests.TESTS_FP, tests.TEST_WASM_URL)
-	require.Nil(t, err)
-
-	testRuntime, err := ioutil.ReadFile(tests.TESTS_FP)
-	require.Nil(t, err)
-
-	err = s.storageState.SetStorage([]byte(":code"), testRuntime)
-	require.Nil(t, err)
-
-	err = s.checkForRuntimeChanges()
-	require.Nil(t, err)
-}
-
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
-	previousHash := blockState.BestBlockHash()
-	previousNum, err := blockState.BestBlockNumber()
-	require.Nil(t, err)
-
-	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-			},
-			Body: &types.Body{},
-		}
-
-		previousHash = block.Header.Hash()
-
-		err := blockState.AddBlock(block)
-		require.Nil(t, err)
-	}
-}
-
-func TestService_ProcessBlockRequest(t *testing.T) {
+func TestProcessBlockRequest(t *testing.T) {
 	msgSend := make(chan network.Message, 10)
 
 	cfg := &Config{
@@ -422,10 +346,10 @@ func TestProcessBlockAnnounce(t *testing.T) {
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		MsgSend:         msgSend,
-		Keystore:        keystore.NewKeystore(),
-		NewBlocks:       newBlocks,
-		IsBabeAuthority: false,
+		MsgSend:     msgSend,
+		Keystore:    keystore.NewKeystore(),
+		NewBlocks:   newBlocks,
+		IsAuthority: false,
 	}
 
 	s := newTestService(t, cfg)
