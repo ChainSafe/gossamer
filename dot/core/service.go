@@ -682,14 +682,9 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 		return fmt.Errorf("no blockState")
 	}
 
-	existingData, err := s.blockState.GetBlockDataAllFields(bd.Hash)
-	if err != nil {
-		// no block data exists, ok
-		return s.blockState.SetBlockDataSimple(bd.Hash, bd.Body)
-	}
-
+	existingData, _ := s.blockState.GetBlockDataAllFields(bd.Hash)
 	if existingData == nil {
-		return s.blockState.SetBlockDataSimple(bd.Hash, bd.Body)
+		existingData = new(types.BlockData)
 	}
 
 	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
