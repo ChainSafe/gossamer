@@ -119,3 +119,70 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 }
+
+func TestWatchForBlocks_GreaterThanHighestSeen(t *testing.T) {
+	blockNumberIn := make(chan *big.Int)
+	msgOut := make(chan network.Message)
+
+	cfg := &SyncerConfig{
+		BlockNumberIn: blockNumberIn,
+		MsgOut:        msgOut,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+	syncer.Start()
+
+	number := big.NewInt(12)
+	blockNumberIn <- number
+
+	if syncer.highestSeenBlock.Cmp(number) != 0 {
+		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
+	}
+
+	var msg network.Message
+
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+
+	number = big.NewInt(16)
+	blockNumberIn <- number
+
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+
+	if syncer.highestSeenBlock.Cmp(number) != 0 {
+		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
+	}
+
+	req, ok := msg.(*network.BlockRequestMessage)
+	if !ok {
+		t.Fatal("did not get BlockRequestMessage")
+	}
+
+	if req.StartingBlock.Value().(uint64) != 12 {
+		t.Fatalf("Fail: got %d expected %d", req.StartingBlock.Value(), 12)
+	}
+}
+
+func TestWatchForResponses(t *testing.T) {
+	blockNumberIn := make(chan *big.Int)
+	msgIn := make(chan *network.BlockResponseMessage)
+
+	cfg := &SyncerConfig{
+		BlockNumberIn: blockNumberIn,
+		MsgIn:        msgIn,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+	syncer.Start()
+
+	addTestBlocksToState(t, 16, syncer.blockState)
+
+
+}

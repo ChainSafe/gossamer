@@ -88,7 +88,7 @@ func (s *Syncer) watchForBlocks() {
 				s.synced = false
 				s.lock.Lock()
 			} else {
-				s.requestStart = blockNum.Int64()
+				s.requestStart = s.highestSeenBlock.Int64()
 			}
 
 			s.highestSeenBlock = blockNum

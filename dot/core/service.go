@@ -492,15 +492,24 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	blockRequest := msg.(*network.BlockRequestMessage)
 
+	blockResponse, err := s.createBlockResponse(blockRequest)
+	if err != nil {
+		return err
+	}
+
+	return s.safeMsgSend(blockResponse)
+}
+
+func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var startHash common.Hash
 	var endHash common.Hash
 
-	switch c := blockRequest.StartingBlock.Value().(type) {
+	switch c := msg.StartingBlock.Value().(type) {
 	case uint64:
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
 		if err != nil {
 			log.Error("[core] cannot get starting block", "number", c)
-			return err
+			return nil, err
 		}
 
 		startHash = block.Header.Hash()
@@ -508,8 +517,8 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		startHash = c
 	}
 
-	if blockRequest.EndBlockHash.Exists() {
-		endHash = blockRequest.EndBlockHash.Value()
+	if msg.EndBlockHash.Exists() {
+		endHash = msg.EndBlockHash.Value()
 	} else {
 		endHash = s.blockState.BestBlockHash()
 	}
@@ -528,7 +537,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	for _, hash := range subchain {
 		data, err := s.blockState.GetBlockData(hash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		blockData := new(types.BlockData)
@@ -537,35 +546,35 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
 
 		// header
-		if blockRequest.RequestedData&1 == 1 {
+		if msg.RequestedData&1 == 1 {
 			blockData.Header = data.Header
 		} else {
 			blockData.Header = optional.NewHeader(false, nil)
 		}
 
 		// body
-		if (blockRequest.RequestedData&2)>>1 == 1 {
+		if (msg.RequestedData&2)>>1 == 1 {
 			blockData.Body = data.Body
 		} else {
 			blockData.Body = optional.NewBody(false, nil)
 		}
 
 		// receipt
-		if (blockRequest.RequestedData&4)>>2 == 1 {
+		if (msg.RequestedData&4)>>2 == 1 {
 			blockData.Receipt = data.Receipt
 		} else {
 			blockData.Receipt = optional.NewBytes(false, nil)
 		}
 
 		// message queue
-		if (blockRequest.RequestedData&8)>>3 == 1 {
+		if (msg.RequestedData&8)>>3 == 1 {
 			blockData.MessageQueue = data.MessageQueue
 		} else {
 			blockData.MessageQueue = optional.NewBytes(false, nil)
 		}
 
 		// justification
-		if (blockRequest.RequestedData&16)>>4 == 1 {
+		if (msg.RequestedData&16)>>4 == 1 {
 			blockData.Justification = data.Justification
 		} else {
 			blockData.Justification = optional.NewBytes(false, nil)
@@ -574,12 +583,10 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 		responseData = append(responseData, blockData)
 	}
 
-	blockResponse := &network.BlockResponseMessage{
-		ID:        blockRequest.ID,
+	return &network.BlockResponseMessage{
+		ID:        msg.ID,
 		BlockData: responseData,
-	}
-
-	return s.safeMsgSend(blockResponse)
+	}, nil
 }
 
 // ProcessBlockResponseMessage attempts to validate and add the block to the
