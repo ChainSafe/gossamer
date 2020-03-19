@@ -193,7 +193,6 @@ func TestAnnounceBlock(t *testing.T) {
 }
 
 func TestProcessBlockResponseMessage(t *testing.T) {
-	t.Skip()
 	tt := trie.NewEmptyTrie(nil)
 	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
 
@@ -256,11 +255,18 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	err = s.ProcessBlockResponseMessage(blockResponse)
 	require.Nil(t, err)
 
-	res, err := s.blockState.GetHeader(header.Hash())
-	require.Nil(t, err)
-
-	if !reflect.DeepEqual(res, header) {
-		t.Fatalf("Fail: got %v expected %v", res, header)
+	select {
+	case resp := <-s.syncer.msgIn:
+		msgType := resp.GetType()
+		if !reflect.DeepEqual(msgType, network.BlockResponseMsgType) {
+			t.Error(
+				"received unexpected message type",
+				"\nexpected:", network.BlockResponseMsgType,
+				"\nreceived:", msgType,
+			)
+		}
+	case <-time.After(testMessageTimeout):
+		t.Error("timeout waiting for message")
 	}
 }
 

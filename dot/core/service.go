@@ -119,7 +119,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	syncerLock := &sync.Mutex{}
-	respChan := make(chan *network.BlockResponseMessage, 512)
+	respChan := make(chan *network.BlockResponseMessage, 128)
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
