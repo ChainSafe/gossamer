@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	//"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -176,7 +177,7 @@ func TestWatchForResponses(t *testing.T) {
 
 	cfg := &SyncerConfig{
 		BlockNumberIn: blockNumberIn,
-		MsgIn:        msgIn,
+		MsgIn:         msgIn,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -184,5 +185,26 @@ func TestWatchForResponses(t *testing.T) {
 
 	addTestBlocksToState(t, 16, syncer.blockState)
 
+	// coreCfg := &Config{
+	// 	BlockState: syncer.blockState,
+	// }
 
+	// coreSrv := newTestService(t, coreCfg)
+
+	// start, err := variadic.NewUint64OrHash(1)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// req := &network.BlockRequestMessage{
+	// 	ID: 1,
+	// 	RequestedData: 3,
+	// 	StartingBlock: start,
+	// }
+
+	// resp, err := coreSrv.createBlockResponse(req)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// t.Log(resp)
 }

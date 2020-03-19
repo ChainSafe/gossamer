@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -159,16 +158,18 @@ func (s *Syncer) sendBlockRequest() {
 	seed := rand.New(s1).Uint64()
 	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
 
-	buf := make([]byte, 8)
-	start := uint64(s.requestStart)
-	binary.LittleEndian.PutUint64(buf, start)
+	start, err := variadic.NewUint64OrHash(uint64(s.requestStart))
+	if err != nil {
+		log.Error("[sync] Failed to create StartingBlock", "error", err)
+		return
+	}
 
 	log.Debug("[sync] Block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
 		RequestedData: 3,        // block header + body
-		StartingBlock: variadic.NewUint64OrHash(append([]byte{1}, buf...)),
+		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     1,
 		Max:           optional.NewUint32(false, 0),

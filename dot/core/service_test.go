@@ -431,17 +431,21 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 	addTestBlocksToState(t, 1, s.blockState)
 
 	endHash := s.blockState.BestBlockHash()
+	start, err := variadic.NewUint64OrHash(uint64(1))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	request := &network.BlockRequestMessage{
 		ID:            1,
 		RequestedData: 3,
-		StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(true, endHash),
 		Direction:     1,
 		Max:           optional.NewUint32(false, 0),
 	}
 
-	err := s.ProcessBlockRequestMessage(request)
+	err = s.ProcessBlockRequestMessage(request)
 	if err != nil {
 		t.Fatal(err)
 	}
