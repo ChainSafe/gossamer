@@ -38,17 +38,19 @@ import (
 	"github.com/ChainSafe/gossamer/tests"
 )
 
-var TestMessageTimeout = 5 * time.Second
+// TestMessageTimeout is the wait time for messages to be exchanged
+var TestMessageTimeout = time.Second
 
-var genesisHeader = &types.Header{
+// TestHeader is a test block header
+var TestHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
 }
 
+// newTestService creates a new test core service
 func newTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
 		rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-
 		cfg = &Config{
 			Runtime:         rt,
 			IsBabeAuthority: false,
@@ -59,26 +61,26 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 		cfg.Keystore = keystore.NewKeystore()
 	}
 
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan network.Message)
-	}
-
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan network.Message)
-	}
-
 	if cfg.NewBlocks == nil {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
+	if cfg.MsgRec == nil {
+		cfg.MsgRec = make(chan network.Message, 10)
+	}
+
+	if cfg.MsgSend == nil {
+		cfg.MsgSend = make(chan network.Message, 10)
+	}
+
 	if cfg.SyncChan == nil {
-		cfg.SyncChan = make(chan *big.Int)
+		cfg.SyncChan = make(chan *big.Int, 10)
 	}
 
 	stateSrvc := state.NewService("")
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialize(genesisHeader, trie.NewEmptyTrie(nil))
+	err := stateSrvc.Initialize(TestHeader, trie.NewEmptyTrie(nil))
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
@@ -100,6 +102,8 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 
 func TestStartService(t *testing.T) {
 	s := newTestService(t, nil)
+	require.NotNil(t, s) // TODO: improve dot core tests
+
 	err := s.Start()
 	require.Nil(t, err)
 
@@ -151,7 +155,6 @@ func TestAnnounceBlock(t *testing.T) {
 	s := newTestService(t, cfg)
 	err := s.Start()
 	require.Nil(t, err)
-
 	defer s.Stop()
 
 	parent := &types.Header{
@@ -202,7 +205,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
 
-	parentHash := genesisHeader.Hash()
+	parentHash := TestHeader.Hash()
 	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
 	require.Nil(t, err)
 
@@ -241,6 +244,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	res, err := s.blockState.GetHeader(header.Hash())
+	require.Nil(t, err)
 	require.Nil(t, err)
 
 	require.Equal(t, header, res)
@@ -396,7 +400,7 @@ func TestProcessTransactionMessage(t *testing.T) {
 	require.Equal(t, ext, bsTxExt)
 }
 
-func TestService_NotAuthority(t *testing.T) {
+func TestNotAuthority(t *testing.T) {
 	cfg := &Config{
 		Keystore:        keystore.NewKeystore(),
 		IsBabeAuthority: false,
@@ -408,7 +412,7 @@ func TestService_NotAuthority(t *testing.T) {
 	}
 }
 
-func TestService_CheckForRuntimeChanges(t *testing.T) {
+func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie(nil)
 	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
 
@@ -447,9 +451,7 @@ func TestService_CheckForRuntimeChanges(t *testing.T) {
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
@@ -497,6 +499,48 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 		msgType := resp.GetType()
 		require.Equal(t, network.BlockResponseMsgType, msgType)
 
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+}
+
+func TestProcessBlockAnnounce(t *testing.T) {
+	msgSend := make(chan network.Message)
+	newBlocks := make(chan types.Block)
+
+	cfg := &Config{
+		MsgSend:         msgSend,
+		Keystore:        keystore.NewKeystore(),
+		NewBlocks:       newBlocks,
+		IsBabeAuthority: false,
+	}
+
+	s := newTestService(t, cfg)
+	err := s.Start()
+	require.Nil(t, err)
+
+	expected := &network.BlockAnnounceMessage{
+		Number:         big.NewInt(1),
+		ParentHash:     TestHeader.Hash(),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
+	}
+
+	// simulate block sent from BABE session
+	newBlocks <- types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(1),
+			ParentHash: TestHeader.Hash(),
+		},
+		Body: types.NewBody([]byte{}),
+	}
+
+	select {
+	case msg := <-msgSend:
+		msgType := msg.GetType()
+		require.Equal(t, network.BlockAnnounceMsgType, msgType)
+		require.Equal(t, expected, msg)
 	case <-time.After(TestMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
