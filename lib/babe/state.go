@@ -36,7 +36,11 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	AddBlockWithArrivalTime(*types.Block, uint64) error
 
-	SetBlockBody(*types.Block) error
+	SetBlockDataSimple(common.Hash, *optional.Body) error
+	GetBlockDataSimple(common.Hash) (*types.BlockData, error)
+
+	SetBlockDataAllFields(*types.BlockData) error
+	GetBlockDataAllFields(common.Hash) (*types.BlockData, error)
 
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)

@@ -526,7 +526,7 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
-		data, err := s.blockState.GetBlockData(hash)
+		data, err := s.blockState.GetBlockDataAllFields(hash)
 		if err != nil {
 			return err
 		}
@@ -682,14 +682,14 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 		return fmt.Errorf("no blockState")
 	}
 
-	existingData, err := s.blockState.GetBlockData(bd.Hash)
+	existingData, err := s.blockState.GetBlockDataAllFields(bd.Hash)
 	if err != nil {
 		// no block data exists, ok
-		return s.blockState.SetBlockData(bd)
+		return s.blockState.SetBlockDataSimple(bd.Hash, bd.Body)
 	}
 
 	if existingData == nil {
-		return s.blockState.SetBlockData(bd)
+		return s.blockState.SetBlockDataSimple(bd.Hash, bd.Body)
 	}
 
 	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
@@ -712,7 +712,7 @@ func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
 		existingData.Justification = bd.Justification
 	}
 
-	return s.blockState.SetBlockData(existingData)
+	return s.blockState.SetBlockDataAllFields(existingData)
 }
 
 // checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime

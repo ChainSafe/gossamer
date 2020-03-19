@@ -107,10 +107,8 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		return nil, err
 	}
 
-	err = bs.SetBlockBody(&types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
-	})
+	err = bs.SetBlockDataSimple(header.Hash(), types.NewBody([]byte{}).AsOptional())
+
 	if err != nil {
 		return nil, err
 	}
@@ -186,49 +184,6 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	return result, err
 }
 
-// GetBlockData returns a BlockData for a given hash
-func (bs *BlockState) GetBlockData(hash common.Hash) (*types.BlockData, error) {
-	result := new(types.BlockData)
-
-	data, err := bs.db.Get(blockDataKey(hash))
-	if err != nil {
-		return nil, err
-	}
-
-	r := &bytes.Buffer{}
-	_, err = r.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	err = result.Decode(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if result.Header == nil {
-		result.Header = optional.NewHeader(false, nil)
-	}
-
-	if result.Body == nil {
-		result.Body = optional.NewBody(false, nil)
-	}
-
-	if result.Receipt == nil {
-		result.Receipt = optional.NewBytes(false, nil)
-	}
-
-	if result.MessageQueue == nil {
-		result.MessageQueue = optional.NewBytes(false, nil)
-	}
-
-	if result.Justification == nil {
-		result.Justification = optional.NewBytes(false, nil)
-	}
-
-	return result, nil
-}
-
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	header, err := bs.GetHeader(hash)
@@ -236,16 +191,16 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 		return nil, err
 	}
 
-	blockData, err := bs.GetBlockData(hash)
+	blockData, err := bs.GetBlockDataSimple(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	body, err := types.NewBodyFromOptional(blockData.Body)
+	retBody, err := types.NewBodyFromOptional(blockData.Body)
 	if err != nil {
 		return nil, err
 	}
-	return &types.Block{Header: header, Body: body}, nil
+	return &types.Block{Header: header, Body: retBody}, nil
 }
 
 // GetBlockByNumber returns a block for a given blockNumber
@@ -294,28 +249,74 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return nil
 }
 
-// SetBlockBody will add a block body to the DB
-func (bs *BlockState) SetBlockBody(block *types.Block) error {
-	// Add the blockHeader to the DB
-	err := bs.SetHeader(block.Header)
+// GetBlockDataSimple will return BlockData (Header and Body) for a given hash
+func (bs *BlockState) GetBlockDataSimple(hash common.Hash) (*types.BlockData, error) {
+	result := new(types.BlockData)
+
+	data, err := bs.db.Get(blockDataKey(hash))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	blockData := &types.BlockData{
-		Hash:   block.Header.Hash(),
-		Header: block.Header.AsOptional(), // TODO remove header from here ?
-		Body:   block.Body.AsOptional(),
+	r := &bytes.Buffer{}
+	_, err = r.Write(data)
+	if err != nil {
+		return nil, err
 	}
-	return bs.SetBlockData(blockData)
+
+	err = result.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
-// SetBlockData will set the block data using given hash and blockData into DB
-func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
+// GetBlockDataAllFields will return what GetBlockDataSimple plus all other optional fields
+func (bs *BlockState) GetBlockDataAllFields(hash common.Hash) (*types.BlockData, error) {
+
+	blockData, err := bs.GetBlockDataSimple(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	blockDataHeader, err := bs.GetHeader(hash)
+	if err != nil {
+		return nil, err
+	} else if blockDataHeader != nil {
+		blockData.Header = blockDataHeader.AsOptional()
+	}
+
+	blockDataReceipt, err := bs.GetReceipt(hash)
+	if err != nil && blockDataReceipt != nil {
+		blockData.Receipt = blockDataReceipt
+	}
+
+	blockDataMessageQueue, err := bs.GetMessageQueue(hash)
+	if err != nil && blockDataMessageQueue != nil {
+		blockData.MessageQueue = blockDataMessageQueue
+	}
+
+	blockDataJustification, err := bs.GetJustification(hash)
+	if err != nil && blockDataJustification != nil {
+		blockData.Justification = blockDataJustification
+	}
+
+	return blockData, nil
+
+}
+
+// SetBlockDataSimple will add a block body and the hash to the db
+func (bs *BlockState) SetBlockDataSimple(hash common.Hash, body *optional.Body) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	// Write the encoded header
+	blockData := &types.BlockData{
+		Hash: hash,
+		Body: body,
+	}
+
+	// Write the encoded blockData
 	bh, err := blockData.Encode()
 	if err != nil {
 		return err
@@ -323,6 +324,37 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 
 	err = bs.db.Put(blockDataKey(blockData.Hash), bh)
 	return err
+}
+
+// SetBlockDataAllFields call SetBlockDataSimple and then set all optional fields to the db
+func (bs *BlockState) SetBlockDataAllFields(blockData *types.BlockData) error {
+	err := bs.SetBlockDataSimple(blockData.Hash, blockData.Body)
+	if err != nil {
+		return err
+	}
+
+	if blockData.Receipt != nil {
+		err = bs.SetReceipt(blockData.Hash, blockData.Receipt.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	if blockData.MessageQueue != nil {
+		err = bs.SetMessageQueue(blockData.Hash, blockData.MessageQueue.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	if blockData.Justification != nil {
+		err = bs.SetJustification(blockData.Hash, blockData.Justification.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
@@ -360,13 +392,10 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		return err
 	}
 
-	// add block data to the DB
-	bd := &types.BlockData{
-		Hash:   hash,
-		Header: block.Header.AsOptional(),
-		Body:   block.Body.AsOptional(),
+	err = bs.SetBlockDataSimple(block.Header.Hash(), block.Body.AsOptional())
+	if err != nil {
+		return err
 	}
-	err = bs.SetBlockData(bd)
 	return err
 }
 
