@@ -134,7 +134,7 @@ func (s *Syncer) watchForResponses() {
 			}
 
 			// check if we are synced or not
-			if bestNum.Cmp(s.highestSeenBlock) == 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
+			if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
 				log.Debug("[sync] All synced up!", "number", bestNum)
 
 				if !s.synced {

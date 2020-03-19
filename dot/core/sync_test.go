@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
-	//"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -121,7 +121,7 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	}
 }
 
-func TestWatchForBlocks_GreaterThanHighestSeen(t *testing.T) {
+func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
 	msgOut := make(chan network.Message)
 
@@ -171,40 +171,202 @@ func TestWatchForBlocks_GreaterThanHighestSeen(t *testing.T) {
 	}
 }
 
-func TestWatchForResponses(t *testing.T) {
+func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
-	msgIn := make(chan *network.BlockResponseMessage)
+	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
 		BlockNumberIn: blockNumberIn,
-		MsgIn:         msgIn,
+		MsgOut:        msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
 	syncer.Start()
 
-	addTestBlocksToState(t, 16, syncer.blockState)
+	number := big.NewInt(12)
+	blockNumberIn <- number
 
-	// coreCfg := &Config{
-	// 	BlockState: syncer.blockState,
-	// }
+	var msg network.Message
 
-	// coreSrv := newTestService(t, coreCfg)
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
 
-	// start, err := variadic.NewUint64OrHash(1)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+	if syncer.highestSeenBlock.Cmp(number) != 0 {
+		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
+	}
 
-	// req := &network.BlockRequestMessage{
-	// 	ID: 1,
-	// 	RequestedData: 3,
-	// 	StartingBlock: start,
-	// }
+	// synced to block 12
+	syncer.synced = true
+	syncer.lock.Unlock()
 
-	// resp, err := coreSrv.createBlockResponse(req)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// t.Log(resp)
+	number = big.NewInt(16)
+	blockNumberIn <- number
+
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+
+	if syncer.highestSeenBlock.Cmp(number) != 0 {
+		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
+	}
+
+	req, ok := msg.(*network.BlockRequestMessage)
+	if !ok {
+		t.Fatal("did not get BlockRequestMessage")
+	}
+
+	if req.StartingBlock.Value().(uint64) != 13 {
+		t.Fatalf("Fail: got %d expected %d", req.StartingBlock.Value(), 13)
+	}
+}
+
+func TestWatchForResponses(t *testing.T) {
+	blockNumberIn := make(chan *big.Int)
+	msgIn := make(chan *network.BlockResponseMessage)
+	msgOut := make(chan network.Message)
+
+	cfg := &SyncerConfig{
+		BlockNumberIn: blockNumberIn,
+		MsgIn:         msgIn,
+		MsgOut:        msgOut,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+	syncer.Start()
+
+	syncer.highestSeenBlock = big.NewInt(16)
+
+	coreSrv := newTestService(t, nil)
+	addTestBlocksToState(t, 16, coreSrv.blockState)
+
+	startNum := 1
+	start, err := variadic.NewUint64OrHash(startNum)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := &network.BlockRequestMessage{
+		ID:            1,
+		RequestedData: 3,
+		StartingBlock: start,
+	}
+
+	resp, err := coreSrv.createBlockResponse(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	syncer.lock.Lock()
+	syncer.synced = false
+
+	msgIn <- resp
+	time.Sleep(time.Second)
+
+	var msg network.Message
+
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+
+	// msg should contain blocks 1 to 8 (maxResponseSize # of blocks)
+	if syncer.synced {
+		t.Fatal("Fail: not yet synced")
+	}
+
+	req2, ok := msg.(*network.BlockRequestMessage)
+	if !ok {
+		t.Fatal("did not get BlockRequestMessage")
+	}
+
+	if req2.StartingBlock.Value().(uint64) != uint64(startNum+int(maxResponseSize)) {
+		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum+int(maxResponseSize))
+	}
+
+	resp2, err := coreSrv.createBlockResponse(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgIn <- resp2
+	time.Sleep(time.Second)
+
+	// response should contain blocks 9 to 16, and we should be synced
+	if !syncer.synced {
+		t.Fatal("Fail: should be synced")
+	}
+}
+
+func TestWatchForResponses_MissingBlocks(t *testing.T) {
+	blockNumberIn := make(chan *big.Int)
+	msgIn := make(chan *network.BlockResponseMessage)
+	msgOut := make(chan network.Message)
+
+	cfg := &SyncerConfig{
+		BlockNumberIn: blockNumberIn,
+		MsgIn:         msgIn,
+		MsgOut:        msgOut,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+	syncer.Start()
+
+	syncer.highestSeenBlock = big.NewInt(16)
+
+	coreSrv := newTestService(t, nil)
+	addTestBlocksToState(t, 16, coreSrv.blockState)
+
+	startNum := 16
+	syncer.requestStart = int64(startNum)
+
+	start, err := variadic.NewUint64OrHash(startNum)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := &network.BlockRequestMessage{
+		ID:            1,
+		RequestedData: 3,
+		StartingBlock: start,
+	}
+
+	resp, err := coreSrv.createBlockResponse(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	syncer.lock.Lock()
+	syncer.synced = false
+
+	msgIn <- resp
+	time.Sleep(time.Second)
+
+	var msg network.Message
+
+	select {
+	case msg = <-msgOut:
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+
+	// msg should contain block 16 (maxResponseSize # of blocks)
+	if syncer.synced {
+		t.Fatal("Fail: not yet synced")
+	}
+
+	req2, ok := msg.(*network.BlockRequestMessage)
+	if !ok {
+		t.Fatal("did not get BlockRequestMessage")
+	}
+
+	if req2.StartingBlock.Value().(uint64) != uint64(startNum-int(maxResponseSize)) {
+		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum-int(maxResponseSize))
+	}
+
 }
