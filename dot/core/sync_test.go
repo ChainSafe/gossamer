@@ -22,7 +22,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	stateSrvc := state.NewService("")
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialize(genesisHeader, trie.NewEmptyTrie(nil))
+	err := stateSrvc.Initialize(testGenesisHeader, trie.NewEmptyTrie(nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestWatchForBlocks(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -144,7 +144,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -153,7 +153,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -190,7 +190,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -207,7 +207,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -271,7 +271,7 @@ func TestWatchForResponses(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
@@ -351,7 +351,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 
 	select {
 	case msg = <-msgOut:
-	case <-time.After(TestMessageTimeout):
+	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 
