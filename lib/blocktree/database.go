@@ -8,6 +8,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 )
 
 // Store stores the blocktree in the underlying db
@@ -21,7 +22,7 @@ func (bt *BlockTree) Store() error {
 		return err
 	}
 
-	return bt.db.Put(common.BlockTreeKey, enc)
+	return bt.db.Put(dbutils.BlockTreeKey, enc)
 }
 
 // Load loads the blocktree from the underlying db
@@ -30,7 +31,7 @@ func (bt *BlockTree) Load() error {
 		return errors.New("blocktree db is nil")
 	}
 
-	enc, err := bt.db.Get(common.BlockTreeKey)
+	enc, err := bt.db.Get(dbutils.BlockTreeKey)
 	if err != nil {
 		return err
 	}

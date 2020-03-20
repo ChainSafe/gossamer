@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -69,13 +70,21 @@ func NewStorageState(db database.Database, t *trie.Trie) (*StorageState, error) 
 		return nil, fmt.Errorf("cannot have nil trie")
 	}
 
-	// triedb := trie.NewDatabase(db)
-	// t.SetDb(triedb)
-
 	return &StorageState{
 		trie: t,
 		db:   NewStorageDB(db),
 	}, nil
+}
+
+// StoreInDB encodes the entire trie and writes it to the DB
+// The key to the DB entry is the root hash of the trie
+func (s *StorageState) StoreInDB() error {
+	return dbutils.StoreTrie(s.db.db, s.trie)
+}
+
+// LoadFromDB loads an encoded trie from the DB where the key is `root`
+func (s *StorageState) LoadFromDB(root common.Hash) error {
+	return dbutils.LoadTrie(s.db.db, s.trie, root)
 }
 
 // ExistsStorage check if the key exists in the storage trie
@@ -126,66 +135,12 @@ func (s *StorageState) ClearStorage(key []byte) error {
 	return s.trie.Delete(key)
 }
 
-// // LoadHash returns the tire LoadHash and error
-// func (s *StorageState) LoadHash() (common.Hash, error) {
-// 	s.lock.RLock()
-// 	defer s.lock.RUnlock()
-// 	return s.trie.LoadHash()
-// }
-
-// // LoadFromDB loads the trie state with the given root from the database.
-// func (s *StorageState) LoadFromDB(root common.Hash) error {
-// 	s.lock.RLock()
-// 	defer s.lock.RUnlock()
-// 	return s.trie.LoadFromDB(root)
-// }
-
-// // StoreInDB stores the current trie state in the database.
-// func (s *StorageState) StoreInDB() error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	return s.trie.StoreInDB()
-// }
-
-// StoreInDB encodes the entire trie and writes it to the DB
-// The key to the DB entry is the root hash of the trie
-func (s *StorageState) StoreInDB() error {
-	enc, err := s.trie.Encode()
-	if err != nil {
-		return err
-	}
-
-	roothash, err := s.trie.Hash()
-	if err != nil {
-		return err
-	}
-
-	return s.db.Put(roothash[:], enc)
-}
-
-// LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *StorageState) LoadFromDB(root common.Hash) error {
-	enctrie, err := s.db.Get(root[:])
-	if err != nil {
-		return err
-	}
-
-	return s.trie.Decode(enctrie)
-}
-
 // Entries returns Entries from the trie
 func (s *StorageState) Entries() map[string][]byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.trie.Entries()
 }
-
-// // LoadGenesisData returns LoadGenesisData from the trie
-// func (s *StorageState) LoadGenesisData() (*genesis.Data, error) {
-// 	s.lock.RLock()
-// 	defer s.lock.RUnlock()
-// 	return s.trie.Db().LoadGenesisData()
-// }
 
 // SetStorageChild return PutChild from the trie
 func (s *StorageState) SetStorageChild(keyToChild []byte, child *trie.Trie) error {

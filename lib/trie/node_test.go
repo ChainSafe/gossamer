@@ -228,7 +228,7 @@ func TestEncodeRoot(t *testing.T) {
 	trie := NewEmptyTrie()
 
 	for i := 0; i < 20; i++ {
-		rt := generateRandomTests(16)
+		rt := GenerateRandomTests(16)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {

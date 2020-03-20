@@ -25,7 +25,7 @@ import (
 func TestEncodeAndDecode(t *testing.T) {
 	trie := &Trie{}
 
-	tests := []trieTest{
+	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},

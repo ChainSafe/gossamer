@@ -22,10 +22,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
+	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/database"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -59,6 +57,11 @@ func NewService(path string) *Service {
 // This should only be used for testing.
 func (s *Service) UseMemDB() {
 	s.isMemDB = true
+}
+
+// DB returns the Service's database
+func (s *Service) DB() database.Database {
+	return s.db
 }
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
@@ -95,7 +98,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 
 	// load genesis hash into db
 	hash := genesisHeader.Hash()
-	err = db.Put(common.BestBlockHashKey, hash[:])
+	err = dbutils.StoreBestBlockHash(db, hash)
 	if err != nil {
 		return err
 	}
@@ -156,7 +159,7 @@ func (s *Service) Start() error {
 	}
 
 	// retrieve latest header
-	bestHash, err := s.db.Get(common.BestBlockHashKey)
+	bestHash, err := dbutils.LoadBestBlockHash(db)
 	if err != nil {
 		return fmt.Errorf("cannot get latest hash: %s", err)
 	}
@@ -217,12 +220,12 @@ func (s *Service) Stop() error {
 	}
 
 	hash := s.Block.BestBlockHash()
-	err = s.db.Put(common.BestBlockHashKey, hash[:])
+	err = dbutils.StoreBestBlockHash(s.db, hash)
 	if err != nil {
 		return err
 	}
 
-	err = s.StoreHash()
+	err = s.storeHash()
 	if err != nil {
 		return err
 	}
@@ -232,49 +235,7 @@ func (s *Service) Stop() error {
 	return s.db.Close()
 }
 
-// The following are for storing/loading data at the known db keys
-
-// StoreLatestStorageHash stores the given hash at the known LatestStorageHashKey.
-func (s *Service) StoreLatestStorageHash(hash []byte) error {
-	return s.db.Put(common.LatestStorageHashKey, hash)
-}
-
-// LoadLatestStorageHash retrieves the hash stored at the known LatestStorageHashKey.
-func (s *Service) LoadLatestStorageHash() (common.Hash, error) {
-	hashbytes, err := s.db.Get(common.LatestStorageHashKey)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(hashbytes), nil
-}
-
 // StoreHash stores the current root hash in the database at LatestStorageHashKey
-func (s *Service) StoreHash() error {
-	hash, err := s.Storage.trie.Hash()
-	if err != nil {
-		return err
-	}
-
-	return s.StoreLatestStorageHash(hash[:])
-}
-
-// LoadHash retrieves the hash stored at LatestStorageHashKey from the DB
-func (s *Service) LoadHash() (common.Hash, error) {
-	return s.LoadLatestStorageHash()
-}
-
-// LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
-func (s *Service) LoadGenesisData() (*genesis.Data, error) {
-	enc, err := s.db.Get(common.GenesisDataKey)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := scale.Decode(enc, &genesis.Data{})
-	if err != nil {
-		return nil, err
-	}
-
-	return data.(*genesis.Data), nil
+func (s *Service) storeHash() error {
+	return dbutils.StoreLatestStorageHash(s.db, s.Storage.trie)
 }

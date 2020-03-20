@@ -44,7 +44,7 @@ func NewEmptyTrie() *Trie {
 	}
 }
 
-// NewTrie creates a trie with an existing root node 
+// NewTrie creates a trie with an existing root node
 func NewTrie(root node) *Trie {
 	return &Trie{
 		root:     root,
@@ -53,13 +53,13 @@ func NewTrie(root node) *Trie {
 }
 
 // Root returns the root of the trie
-func (t *Trie) rootNode() node {
+func (t *Trie) RootNode() node {
 	return t.root
 }
 
 // EncodeRoot returns the encoded root of the trie
 func (t *Trie) EncodeRoot() ([]byte, error) {
-	return encode(t.rootNode())
+	return encode(t.RootNode())
 }
 
 // Hash returns the hashed root of the trie
