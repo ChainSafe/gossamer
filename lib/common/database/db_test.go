@@ -151,6 +151,6 @@ func TestStoreAndLoadBestBlockHash(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(res, hash) {
-		t.Fatal("Fail: got %x expected %x", res, hash)
+		t.Fatalf("Fail: got %x expected %x", res, hash)
 	}
 }
