@@ -325,10 +325,6 @@ func (bs *BlockState) SetBlockData(blockData *types.BlockData) error {
 // CompareAndSetBlockData patches and updates the block data stored in the state
 // database with the block data provided
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
-	if bs == nil {
-		return fmt.Errorf("no blockState")
-	}
-
 	existingData, err := bs.GetBlockData(bd.Hash)
 	if err != nil {
 		// no block data exists, ok
