@@ -451,7 +451,6 @@ func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
 
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return dbutils.StoreBestBlockHash(bs.db.db, hash)
-	//return bs.db.db.Put(common.BestBlockHashKey, hash[:])
 }
 
 // GetArrivalTime returns the arrival time of a block given its hash
