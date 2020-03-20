@@ -26,10 +26,14 @@ type Syncer struct {
 	blockNumberIn    <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
 	msgOut           chan<- network.Message               // channel to send BlockRequest messages to network service
 	msgIn            <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
-	lock             *sync.Mutex
+	lock             *sync.Mutex                          // lock BABE session when syncing
 	synced           bool
-	requestStart     int64 // block number from which to begin block requests
-	highestSeenBlock *big.Int
+	requestStart     int64    // block number from which to begin block requests
+	highestSeenBlock *big.Int // highest block number we have seen
+
+	// Core service control
+	chanLock *sync.Mutex
+	stopped  bool
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -39,6 +43,7 @@ type SyncerConfig struct {
 	MsgIn         <-chan *network.BlockResponseMessage
 	MsgOut        chan<- network.Message
 	Lock          *sync.Mutex
+	ChanLock      *sync.Mutex
 }
 
 // NewSyncer returns a new Syncer
@@ -61,7 +66,9 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		msgIn:            cfg.MsgIn,
 		msgOut:           cfg.MsgOut,
 		lock:             cfg.Lock,
+		chanLock:         cfg.ChanLock,
 		synced:           true,
+		stopped:          false,
 		highestSeenBlock: big.NewInt(0),
 	}, nil
 }
@@ -74,12 +81,22 @@ func (s *Syncer) Start() {
 
 // Stop stops the syncer
 func (s *Syncer) Stop() {
-	// TODO: stop goroutines
+	// stop goroutines
+	s.stopped = true
 }
 
 func (s *Syncer) watchForBlocks() {
 	for {
-		blockNum := <-s.blockNumberIn
+		if s.stopped {
+			return
+		}
+
+		blockNum, ok := <-s.blockNumberIn
+		if !ok || blockNum == nil {
+			log.Warn("[sync] Failed to receive from blockNumberIn channel")
+			return
+		}
+
 		if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
 
 			if s.synced {
@@ -98,7 +115,15 @@ func (s *Syncer) watchForBlocks() {
 
 func (s *Syncer) watchForResponses() {
 	for {
-		msg := <-s.msgIn
+		if s.stopped {
+			return
+		}
+
+		msg, ok := <-s.msgIn
+		if !ok || msg == nil {
+			log.Warn("[sync] Failed to receive from msgIn channel")
+			return
+		}
 
 		// highestInResp will be the highest block in the response
 		// it's set to 0 if err != nil
@@ -125,31 +150,36 @@ func (s *Syncer) watchForResponses() {
 			bestNum, err := s.blockState.BestBlockNumber()
 			if err != nil {
 				log.Crit("[sync] Failed to get best block number", "error", err)
-
-				if !s.synced {
-					s.lock.Unlock()
-				}
-
-				return
-			}
-
-			// check if we are synced or not
-			if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-				log.Debug("[sync] All synced up!", "number", bestNum)
-
-				if !s.synced {
-					s.lock.Unlock()
-					s.synced = true
-				}
 			} else {
-				// not yet synced, send another block request for the following blocks
-				s.requestStart = highestInResp + 1
-				go s.sendBlockRequest()
-			}
 
+				// check if we are synced or not
+				if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
+					log.Debug("[sync] All synced up!", "number", bestNum)
+
+					if !s.synced {
+						s.lock.Unlock()
+						s.synced = true
+					}
+				} else {
+					// not yet synced, send another block request for the following blocks
+					s.requestStart = highestInResp + 1
+					go s.sendBlockRequest()
+				}
+
+			}
 		}
 
 	}
+}
+
+func (s *Syncer) safeMsgSend(msg network.Message) error {
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+	if s.stopped {
+		return errors.New("service has been stopped")
+	}
+	s.msgOut <- msg
+	return nil
 }
 
 func (s *Syncer) sendBlockRequest() {
@@ -176,7 +206,10 @@ func (s *Syncer) sendBlockRequest() {
 	}
 
 	// send block request message to network service
-	s.msgOut <- blockRequest
+	err = s.safeMsgSend(blockRequest)
+	if err != nil {
+		log.Error("[sync] Failed to send block request", "error", err)
+	}
 }
 
 func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, error) {

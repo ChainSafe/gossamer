@@ -67,7 +67,7 @@ type Service struct {
 	blkRec    <-chan types.Block     // receive blocks from BABE session
 	epochDone <-chan struct{}        // receive from this channel when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
-	lock      sync.Mutex
+	lock      *sync.Mutex
 	closed    bool
 
 	// Block synchronization
@@ -120,6 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	syncerLock := &sync.Mutex{}
 	respChan := make(chan *network.BlockResponseMessage, 128)
+	chanLock := &sync.Mutex{}
 
 	syncerCfg := &SyncerConfig{
 		BlockState:    cfg.BlockState,
@@ -127,6 +128,7 @@ func NewService(cfg *Config) (*Service, error) {
 		MsgIn:         respChan,
 		MsgOut:        cfg.MsgSend,
 		Lock:          syncerLock,
+		ChanLock:      chanLock,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)
@@ -157,6 +159,7 @@ func NewService(cfg *Config) (*Service, error) {
 			epochDone:        epochDone,
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
+			lock:             chanLock,
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
@@ -204,6 +207,7 @@ func NewService(cfg *Config) (*Service, error) {
 			storageState:     cfg.StorageState,
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
+			lock:             chanLock,
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
@@ -258,6 +262,8 @@ func (s *Service) Stop() error {
 		}
 		s.closed = true
 	}
+
+	s.syncer.Stop()
 
 	return nil
 }
@@ -526,7 +532,10 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 	log.Trace("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
-	subchain := s.blockState.SubChain(startHash, endHash)
+	subchain, err := s.blockState.SubChain(startHash, endHash)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(subchain) > int(maxResponseSize) {
 		subchain = subchain[:maxResponseSize]
