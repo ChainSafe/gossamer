@@ -53,7 +53,7 @@ func NewTrie(root node) *Trie {
 }
 
 // RootNode returns the root of the trie
-func (t *Trie) RootNode() node {
+func (t *Trie) RootNode() node { //nolint
 	return t.root
 }
 
