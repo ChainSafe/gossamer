@@ -16,7 +16,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := database.NewMemDatabase()
 	tt := trie.NewEmptyTrie()
 
-	rt := trie.GenerateRandomTests(1000)
+	rt := trie.GenerateRandomTests(t, 1000)
 	var val []byte
 	for _, test := range rt {
 		err := tt.Put(test.Key(), test.Value())

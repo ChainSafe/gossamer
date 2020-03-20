@@ -52,7 +52,7 @@ func NewTrie(root node) *Trie {
 	}
 }
 
-// Root returns the root of the trie
+// RootNode returns the root of the trie
 func (t *Trie) RootNode() node {
 	return t.root
 }

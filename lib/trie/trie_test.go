@@ -273,7 +273,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 func TestPutAndGet(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		trie := NewEmptyTrie()
-		rt := GenerateRandomTests(10000)
+		rt := GenerateRandomTests(t, 10000)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
 			if err != nil {
@@ -504,7 +504,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 func TestDelete(t *testing.T) {
 	trie := NewEmptyTrie()
 
-	rt := GenerateRandomTests(100)
+	rt := GenerateRandomTests(t, 100)
 	for _, test := range rt {
 		err := trie.Put(test.key, test.value)
 		if err != nil {
