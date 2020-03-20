@@ -17,48 +17,10 @@
 package trie
 
 import (
-	// "bytes"
-	// "fmt"
-	// "os"
 	"reflect"
 	"strings"
 	"testing"
-
-	// "github.com/ChainSafe/gossamer/lib/common"
-	// "github.com/ChainSafe/gossamer/lib/database"
-	// "github.com/ChainSafe/gossamer/lib/genesis"
 )
-
-// func newTrie() (*Trie, error) {
-// 	hasher, err := NewHasher()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	stateDB, err := database.NewBadgerDB("./test_data/state")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	trie := &Trie{
-// 		db: &Database{
-// 			DB:     stateDB,
-// 			Hasher: hasher,
-// 		},
-// 		root: nil,
-// 	}
-
-// 	trie.db.Batch = trie.db.DB.NewBatch()
-
-// 	return trie, nil
-// }
-
-// func (t *Trie) closeDb() {
-// 	t.db.DB.Close()
-// 	if err := os.RemoveAll("./test_data"); err != nil {
-// 		fmt.Println("removal of temp directory gossamer_data failed")
-// 	}
-// }
 
 func TestEncodeAndDecode(t *testing.T) {
 	trie := &Trie{}
@@ -81,13 +43,13 @@ func TestEncodeAndDecode(t *testing.T) {
 		}
 	}
 
-	enc, err := trie.encode()
+	enc, err := trie.Encode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	testTrie := &Trie{}
-	err = testTrie.decode(enc)
+	err = testTrie.Decode(enc)
 	if err != nil {
 		testTrie.Print()
 		t.Fatal(err)
@@ -101,84 +63,3 @@ func TestEncodeAndDecode(t *testing.T) {
 		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
 	}
 }
-
-// func TestStoreAndLoadHash(t *testing.T) {
-// 	trie, err := newTrie()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	defer trie.closeDb()
-
-// 	tests := []trieTest{
-// 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-// 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-// 		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-// 		{key: []byte{0xf2}, value: []byte("feather")},
-// 		{key: []byte{0xf2, 0x3}, value: []byte("f")},
-// 		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-// 		{key: []byte{0x07}, value: []byte("ramen")},
-// 		{key: []byte{0}, value: nil},
-// 	}
-
-// 	for _, test := range tests {
-// 		err = trie.Put(test.key, test.value)
-// 		if err != nil {
-// 			t.Fatal(err)
-// 		}
-// 	}
-
-// 	err = trie.StoreHash()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	hash, err := trie.LoadHash()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	expected, err := trie.Hash()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	if hash != expected {
-// 		t.Fatalf("Fail: got %x expected %x", hash, expected)
-// 	}
-// }
-
-// func TestStoreAndLoadGenesisData(t *testing.T) {
-// 	trie, err := newTrie()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	defer trie.closeDb()
-
-// 	bootnodes := common.StringArrayToBytes([]string{
-// 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
-// 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
-// 	})
-
-// 	expected := &genesis.Data{
-// 		Name:       "gossamer",
-// 		ID:         "gossamer",
-// 		Bootnodes:  bootnodes,
-// 		ProtocolID: "/gossamer/test/0",
-// 	}
-
-// 	err = trie.db.StoreGenesisData(expected)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	gen, err := trie.db.LoadGenesisData()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	if !reflect.DeepEqual(gen, expected) {
-// 		t.Fatalf("Fail: got %v expected %v", gen, expected)
-// 	}
-// }

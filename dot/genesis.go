@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -32,7 +33,7 @@ import (
 
 // newTrieFromGenesis creates a new trie and loads it with the raw genesis data
 func newTrieFromGenesis(gen *genesis.Genesis) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie(nil)
+	t := trie.NewEmptyTrie()
 
 	raw := gen.GenesisFields().Raw[0]
 
@@ -86,13 +87,13 @@ func initTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error 
 		return fmt.Errorf("failed to open database: %s", err)
 	}
 
-	// set trie database to initialized database
-	t.SetDb(&trie.Database{
-		DB: db,
-	})
+	// // set trie database to initialized database
+	// t.SetDb(&trie.Database{
+	// 	DB: db,
+	// })
 
 	// store genesis data in trie database
-	err = storeGenesisData(t, gen)
+	err = storeGenesisData(t, db, gen)
 	if err != nil {
 		log.Error("[dot] Failed to store genesis data in trie database", "error", err)
 		return err
@@ -109,24 +110,77 @@ func initTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error 
 
 // storeGenesisData stores the encoded trie, the genesis hash, and the genesis
 // data in the trie database
-func storeGenesisData(t *trie.Trie, gen *genesis.Genesis) error {
-	// encode trie and write to trie database
-	err := t.StoreInDB()
+func storeGenesisData(t *trie.Trie, db database.Database, gen *genesis.Genesis) error {
+	// encode trie and write to database
+	err := storeInDB(db, t)
 	if err != nil {
 		return fmt.Errorf("failed to encode trie and write to database: %s", err)
 	}
 
-	// store genesis hash in trie database
-	err = t.StoreHash()
+	// store genesis hash in database
+	err = storeHash(db, t)
 	if err != nil {
 		return fmt.Errorf("failed to store genesis hash in database: %s", err)
 	}
 
-	// store genesis data in trie database
-	err = t.Db().StoreGenesisData(gen.GenesisData())
+	// store genesis data in database
+	err = putGenesisData(db, gen.GenesisData())
 	if err != nil {
 		return fmt.Errorf("failed to store genesis data in database: %s", err)
 	}
 
 	return nil
+}
+
+// DB storage functions 
+
+// putGenesisData stores the given genesis data at the known GenesisDataKey.
+func putGenesisData(db database.Database, gen *genesis.Data) error {
+	enc, err := scale.Encode(gen)
+	if err != nil {
+		return fmt.Errorf("cannot scale encode genesis data: %s", err)
+	}
+
+	return db.Put(common.GenesisDataKey, enc)
+}
+
+// getGenesisData retrieves the genesis data stored at the known GenesisDataKey.
+func getGenesisData(db database.Database) (*genesis.Data, error) {
+	enc, err := db.Get(common.GenesisDataKey)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := scale.Decode(enc, &genesis.Data{})
+	if err != nil {
+		return nil, err
+	}
+
+	return data.(*genesis.Data), nil
+}
+
+// StoreHash stores the current root hash in the database at LatestStorageHashKey
+func storeHash(db database.Database, t *trie.Trie) error {
+	hash, err := t.Hash()
+	if err != nil {
+		return err
+	}
+
+	return db.Put(common.LatestStorageHashKey, hash[:])
+}
+
+// StoreInDB encodes the entire trie and writes it to the DB
+// The key to the DB entry is the root hash of the trie
+func storeInDB(db database.Database, t *trie.Trie) error {
+	enc, err := t.Encode()
+	if err != nil {
+		return err
+	}
+
+	roothash, err := t.Hash()
+	if err != nil {
+		return err
+	}
+
+	return db.Put(roothash[:], enc)
 }

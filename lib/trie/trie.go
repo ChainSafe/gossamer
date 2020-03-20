@@ -32,7 +32,6 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 // The zero value is an empty trie with no database.
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
-	//db       *Database
 	root     node
 	children map[common.Hash]*Trie
 }
@@ -40,7 +39,6 @@ type Trie struct {
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
 	return &Trie{
-		//db:       db,
 		root:     nil,
 		children: make(map[common.Hash]*Trie),
 	}
@@ -49,7 +47,6 @@ func NewEmptyTrie() *Trie {
 // NewTrie creates a trie with an existing root node 
 func NewTrie(root node) *Trie {
 	return &Trie{
-		//db:       db,
 		root:     root,
 		children: make(map[common.Hash]*Trie),
 	}
@@ -59,16 +56,6 @@ func NewTrie(root node) *Trie {
 func (t *Trie) rootNode() node {
 	return t.root
 }
-
-// // Db returns the trie's underlying database
-// func (t *Trie) Db() *Database {
-// 	return t.db
-// }
-
-// // SetDb sets the database backing the trie. This is used by the state service to set the database.
-// func (t *Trie) SetDb(db *Database) {
-// 	t.db = db
-// }
 
 // EncodeRoot returns the encoded root of the trie
 func (t *Trie) EncodeRoot() ([]byte, error) {

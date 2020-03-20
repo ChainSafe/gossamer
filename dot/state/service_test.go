@@ -52,7 +52,7 @@ func TestService_Start(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr := trie.NewEmptyTrie(nil)
+	tr := trie.NewEmptyTrie()
 
 	err = state.Initialize(genesisHeader, tr)
 	if err != nil {
@@ -75,7 +75,7 @@ func TestMemDB_Start(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr := trie.NewEmptyTrie(nil)
+	tr := trie.NewEmptyTrie()
 
 	err = state.Initialize(genesisHeader, tr)
 	if err != nil {
@@ -158,7 +158,7 @@ func TestService_BlockTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr := trie.NewEmptyTrie(nil)
+	tr := trie.NewEmptyTrie()
 	err = state.Initialize(genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
@@ -188,53 +188,129 @@ func TestService_BlockTree(t *testing.T) {
 	}
 }
 
-func TestTrie_StoreAndLoadFromDB(t *testing.T) {
+// func TestTrie_StoreAndLoadFromDB(t *testing.T) {
+// 	trie := trie.NewEmptyTrie()
+
+// 	rt := generateRandomTests(1000)
+// 	var val []byte
+// 	for _, test := range rt {
+// 		err = trie.Put(test.key, test.value)
+// 		if err != nil {
+// 			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+// 		}
+
+// 		val, err = trie.Get(test.key)
+// 		if err != nil {
+// 			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+// 		} else if !bytes.Equal(val, test.value) {
+// 			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+// 		}
+// 	}
+
+// 	err := trie.StoreInDB()
+// 	if err != nil {
+// 		t.Fatalf("Fail: could not write trie to DB: %s", err)
+// 	}
+
+// 	encroot, err := trie.Hash()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	expected := &Trie{root: trie.root}
+
+// 	trie.root = nil
+// 	err = trie.LoadFromDB(encroot)
+// 	if err != nil {
+// 		t.Errorf("Fail: could not load trie from DB: %s", err)
+// 	}
+
+// 	if strings.Compare(expected.String(), trie.String()) != 0 {
+// 		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+// 	}
+
+// 	if !reflect.DeepEqual(expected.root, trie.root) {
+// 		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+// 	}
+// }
+
+func TestStoreAndLoadHash(t *testing.T) {
 	trie, err := trie.NewEmptyTrie()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	//defer trie.closeDb()
+	defer trie.closeDb()
 
-	rt := generateRandomTests(1000)
-	var val []byte
-	for _, test := range rt {
+	tests := []trie.Test{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+	}
+
+	for _, test := range tests {
 		err = trie.Put(test.key, test.value)
 		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
-
-		val, err = trie.Get(test.key)
-		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-		} else if !bytes.Equal(val, test.value) {
-			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+			t.Fatal(err)
 		}
 	}
 
-	err = trie.StoreInDB()
-	if err != nil {
-		t.Fatalf("Fail: could not write trie to DB: %s", err)
-	}
-
-	encroot, err := trie.Hash()
+	err = trie.StoreHash()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &Trie{root: trie.root}
-
-	trie.root = nil
-	err = trie.LoadFromDB(encroot)
+	hash, err := trie.LoadHash()
 	if err != nil {
-		t.Errorf("Fail: could not load trie from DB: %s", err)
+		t.Fatal(err)
 	}
 
-	if strings.Compare(expected.String(), trie.String()) != 0 {
-		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+	expected, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(expected.root, trie.root) {
-		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+	if hash != expected {
+		t.Fatalf("Fail: got %x expected %x", hash, expected)
 	}
 }
+
+// func TestStoreAndLoadGenesisData(t *testing.T) {
+// 	trie, err := newTrie()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	defer trie.closeDb()
+
+// 	bootnodes := common.StringArrayToBytes([]string{
+// 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
+// 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
+// 	})
+
+// 	expected := &genesis.Data{
+// 		Name:       "gossamer",
+// 		ID:         "gossamer",
+// 		Bootnodes:  bootnodes,
+// 		ProtocolID: "/gossamer/test/0",
+// 	}
+
+// 	err = trie.db.StoreGenesisData(expected)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	gen, err := trie.db.LoadGenesisData()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	if !reflect.DeepEqual(gen, expected) {
+// 		t.Fatalf("Fail: got %v expected %v", gen, expected)
+// 	}
+// }

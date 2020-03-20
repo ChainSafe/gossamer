@@ -110,7 +110,7 @@ import (
 // }
 
 // Encode traverses the trie recursively, encodes each node, SCALE encodes the encoded node, and appends them all together
-func (t *Trie) encode() ([]byte, error) {
+func (t *Trie) Encode() ([]byte, error) {
 	return encodeRecursive(t.root, []byte{})
 }
 
@@ -148,7 +148,7 @@ func encodeRecursive(n node, enc []byte) ([]byte, error) {
 
 // Decode decodes a trie from the DB and sets the receiver to it
 // The encoded trie must have been encoded with t.Encode
-func (t *Trie) decode(enc []byte) error {
+func (t *Trie) Decode(enc []byte) error {
 	if bytes.Equal(enc, []byte{}) {
 		return nil
 	}

@@ -67,14 +67,6 @@ var (
 	GETLEAF = 3
 )
 
-// func newEmpty() *Trie {
-// 	db := &Database{
-// 		DB: database.NewMemDatabase(),
-// 	}
-// 	t := NewEmptyTrie(db)
-// 	return t
-// }
-
 func TestNewEmptyTrie(t *testing.T) {
 	trie := NewEmptyTrie()
 	if trie == nil {
@@ -83,9 +75,6 @@ func TestNewEmptyTrie(t *testing.T) {
 }
 
 func TestNewTrie(t *testing.T) {
-	// db := &Database{
-	// 	DB: database.NewMemDatabase(),
-	// }
 	trie := NewTrie(&leaf{key: []byte{0}, value: []byte{17}})
 	if trie == nil {
 		t.Error("did not initialize trie")

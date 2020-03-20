@@ -16,6 +16,10 @@
 
 package common
 
+import (
+	"github.com/ChainSafe/gossamer/lib/database"
+)
+
 var (
 	// BestBlockHashKey is the db location the hash of the best block header.
 	BestBlockHashKey = []byte("best_hash")
@@ -26,3 +30,4 @@ var (
 	// BlockTreeKey is the db location of the encoded block tree structure.
 	BlockTreeKey = []byte("block_tree")
 )
+
