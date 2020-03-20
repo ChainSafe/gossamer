@@ -347,11 +347,16 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 	hash := block.Header.Hash()
 
-	err = bs.setBestBlockHashKey(hash)
-	if err != nil {
-		return err
+	// set best block key if this is the highest block we've seen
+	// TODO: use leftmost path to set BestBlockHash
+	if block.Header.Number.Cmp(bs.highestBlockHeader.Number) == 1 {
+		err = bs.setBestBlockHashKey(hash)
+		if err != nil {
+			return err
+		}	
 	}
 
+	// store number to hash
 	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 	if err != nil {
 		return err

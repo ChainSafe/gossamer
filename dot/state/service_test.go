@@ -187,3 +187,54 @@ func TestService_BlockTree(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", state.Block.BestBlockHash(), state2.Block.BestBlockHash())
 	}
 }
+
+func TestTrie_StoreAndLoadFromDB(t *testing.T) {
+	trie, err := trie.NewEmptyTrie()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	//defer trie.closeDb()
+
+	rt := generateRandomTests(1000)
+	var val []byte
+	for _, test := range rt {
+		err = trie.Put(test.key, test.value)
+		if err != nil {
+			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
+		}
+
+		val, err = trie.Get(test.key)
+		if err != nil {
+			t.Errorf("Fail to get key %x: %s", test.key, err.Error())
+		} else if !bytes.Equal(val, test.value) {
+			t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
+		}
+	}
+
+	err = trie.StoreInDB()
+	if err != nil {
+		t.Fatalf("Fail: could not write trie to DB: %s", err)
+	}
+
+	encroot, err := trie.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &Trie{root: trie.root}
+
+	trie.root = nil
+	err = trie.LoadFromDB(encroot)
+	if err != nil {
+		t.Errorf("Fail: could not load trie from DB: %s", err)
+	}
+
+	if strings.Compare(expected.String(), trie.String()) != 0 {
+		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+	}
+
+	if !reflect.DeepEqual(expected.root, trie.root) {
+		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), trie.String())
+	}
+}

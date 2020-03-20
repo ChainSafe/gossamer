@@ -224,3 +224,86 @@ func (s *Service) Stop() error {
 
 	return s.db.Close()
 }
+
+// The following are for storing data at the known db keys
+
+// StoreGenesisData stores the given genesis data at the known GenesisDataKey.
+func (s *Service) StoreGenesisData(gen *genesis.Data) error {
+	enc, err := scale.Encode(gen)
+	if err != nil {
+		return fmt.Errorf("cannot scale encode genesis data: %s", err)
+	}
+
+	return s.db.Store(common.GenesisDataKey, enc)
+}
+
+// LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
+func (s *Service) LoadGenesisData() (*genesis.Data, error) {
+	enc, err := s.db.Load(common.GenesisDataKey)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := scale.Decode(enc, &genesis.Data{})
+	if err != nil {
+		return nil, err
+	}
+
+	return data.(*genesis.Data), nil
+}
+
+// StoreLatestStorageHash stores the given hash at the known LatestStorageHashKey.
+func (s *Service) StoreLatestStorageHash(hash []byte) error {
+	s.db.Put(common.LatestStorageHashKey, hash)
+}
+
+// LoadLatestStorageHash retrieves the hash stored at the known LatestStorageHashKey.
+func (s *Service) LoadLatestStorageHash() (common.Hash, error) {
+	hashbytes, err := s.db.Get(common.LatestStorageHashKey)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHash(hashbytes), nil
+}
+
+// StoreHash stores the current root hash in the database at LatestStorageHashKey
+func (s *Service) StoreHash() error {
+	hash, err := s.Storage.trie.Hash()
+	if err != nil {
+		return err
+	}
+
+	return s.db.StoreLatestStorageHash(hash[:])
+}
+
+// LoadHash retrieves the hash stored at LatestStorageHashKey from the DB
+func (s *Service) LoadHash() (common.Hash, error) {
+	return s.db.LoadLatestStorageHash()
+}
+
+// StoreInDB encodes the entire trie and writes it to the DB
+// The key to the DB entry is the root hash of the trie
+func (s *Service) StoreInDB() error {
+	enc, err := s.Storage.trie.encode()
+	if err != nil {
+		return err
+	}
+
+	roothash, err := s.Storage.trie.Hash()
+	if err != nil {
+		return err
+	}
+
+	return s.db.Store(roothash[:], enc)
+}
+
+// LoadFromDB loads an encoded trie from the DB where the key is `root`
+func (s *Service) LoadFromDB(root common.Hash) error {
+	enctrie, err := s.db.Load(root[:])
+	if err != nil {
+		return err
+	}
+
+	return s.Storage.trie.decode(enctrie)
+}

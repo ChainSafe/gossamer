@@ -30,7 +30,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/database"
 )
 
 type commonPrefixTest struct {
@@ -68,33 +67,33 @@ var (
 	GETLEAF = 3
 )
 
-func newEmpty() *Trie {
-	db := &Database{
-		DB: database.NewMemDatabase(),
-	}
-	t := NewEmptyTrie(db)
-	return t
-}
+// func newEmpty() *Trie {
+// 	db := &Database{
+// 		DB: database.NewMemDatabase(),
+// 	}
+// 	t := NewEmptyTrie(db)
+// 	return t
+// }
 
 func TestNewEmptyTrie(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 	if trie == nil {
 		t.Error("did not initialize trie")
 	}
 }
 
 func TestNewTrie(t *testing.T) {
-	db := &Database{
-		DB: database.NewMemDatabase(),
-	}
-	trie := NewTrie(db, &leaf{key: []byte{0}, value: []byte{17}})
+	// db := &Database{
+	// 	DB: database.NewMemDatabase(),
+	// }
+	trie := NewTrie(&leaf{key: []byte{0}, value: []byte{17}})
 	if trie == nil {
 		t.Error("did not initialize trie")
 	}
 }
 
 func TestEntries(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
@@ -191,7 +190,7 @@ func writeToTestFile(tests []trieTest) error {
 }
 
 func buildSmallTrie(t *testing.T) *Trie {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
@@ -290,7 +289,7 @@ func TestLoadTrie(t *testing.T) {
 }
 
 func TestPutAndGetBranch(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
@@ -309,7 +308,7 @@ func TestPutAndGetBranch(t *testing.T) {
 }
 
 func TestPutAndGetOddKeyLengths(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
@@ -329,7 +328,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 
 func TestPutAndGet(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		trie := newEmpty()
+		trie := NewEmptyTrie()
 		rt := generateRandomTests(10000)
 		for _, test := range rt {
 			err := trie.Put(test.key, test.value)
@@ -379,7 +378,7 @@ func TestFailingTests(t *testing.T) {
 		tests = append(tests, test)
 	}
 
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	hasFailed := false
 	passedFailingTest := false
@@ -429,7 +428,7 @@ func TestFailingTests(t *testing.T) {
 }
 
 func TestGetPartialKey(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: PUT},
@@ -511,7 +510,7 @@ func TestDeleteCombineBranch(t *testing.T) {
 }
 
 func TestDeleteFromBranch(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: PUT},
@@ -536,7 +535,7 @@ func TestDeleteFromBranch(t *testing.T) {
 }
 
 func TestDeleteOddKeyLengths(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	tests := []trieTest{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: PUT},
@@ -559,7 +558,7 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	rt := generateRandomTests(100)
 	for _, test := range rt {

@@ -225,7 +225,7 @@ func TestLeafEncode(t *testing.T) {
 }
 
 func TestEncodeRoot(t *testing.T) {
-	trie := newEmpty()
+	trie := NewEmptyTrie()
 
 	for i := 0; i < 20; i++ {
 		rt := generateRandomTests(16)
