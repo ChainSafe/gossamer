@@ -17,9 +17,7 @@
 package state
 
 import (
-	"bytes"
 	"encoding/binary"
-
 	"fmt"
 	"math/big"
 	"reflect"
@@ -107,7 +105,7 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		return nil, err
 	}
 
-	err = bs.SetBlockDataSimple(header.Hash(), types.NewBody([]byte{}).AsOptional())
+	err = bs.SetBlockBody(header.Hash(), types.NewBody([]byte{}).AsOptional())
 
 	if err != nil {
 		return nil, err
@@ -122,7 +120,7 @@ var (
 	// Data prefixes
 	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
 	babeHeaderPrefix    = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
-	blockDataPrefix     = []byte("bld") // blockDataPrefix + hash -> blockData
+	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
 	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
 	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
 	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
@@ -147,9 +145,9 @@ func headerHashKey(number uint64) []byte {
 	return append(headerHashPrefix, encodeBlockNumber(number)...)
 }
 
-// blockDataKey = blockDataPrefix + hash
-func blockDataKey(hash common.Hash) []byte {
-	return append(blockDataPrefix, hash.ToBytes()...)
+// blockBodyKey = blockDataPrefix + hash
+func blockBodyKey(hash common.Hash) []byte {
+	return append(blockBodyPrefix, hash.ToBytes()...)
 }
 
 // arrivalTimeKey = arrivalTimePrefix + hash
@@ -191,12 +189,12 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 		return nil, err
 	}
 
-	blockData, err := bs.GetBlockDataSimple(hash)
+	blockBody, err := bs.GetBlockBody(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	retBody, err := types.NewBodyFromOptional(blockData.Body)
+	retBody, err := types.NewBodyFromOptional(blockBody)
 	if err != nil {
 		return nil, err
 	}
@@ -249,106 +247,67 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return nil
 }
 
-// GetBlockDataSimple will return BlockData (Header and Body) for a given hash
-func (bs *BlockState) GetBlockDataSimple(hash common.Hash) (*types.BlockData, error) {
-	result := new(types.BlockData)
-
-	data, err := bs.db.Get(blockDataKey(hash))
+// GetBlockBody will return Body for a given hash
+func (bs *BlockState) GetBlockBody(hash common.Hash) (*optional.Body, error) {
+	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
 		return nil, err
 	}
 
-	r := &bytes.Buffer{}
-	_, err = r.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	err = result.Decode(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return &optional.Body{Exists: true, Value: data}, nil
 }
 
-// GetBlockDataAllFields will return what GetBlockDataSimple plus all other optional fields
-func (bs *BlockState) GetBlockDataAllFields(hash common.Hash) (*types.BlockData, error) {
-
-	blockData, err := bs.GetBlockDataSimple(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	blockDataHeader, err := bs.GetHeader(hash)
-	if err != nil {
-		return nil, err
-	} else if blockDataHeader != nil {
-		blockData.Header = blockDataHeader.AsOptional()
-	}
-
-	blockDataReceipt, err := bs.GetReceipt(hash)
-	if err != nil && blockDataReceipt != nil {
-		blockData.Receipt = blockDataReceipt
-	}
-
-	blockDataMessageQueue, err := bs.GetMessageQueue(hash)
-	if err != nil && blockDataMessageQueue != nil {
-		blockData.MessageQueue = blockDataMessageQueue
-	}
-
-	blockDataJustification, err := bs.GetJustification(hash)
-	if err != nil && blockDataJustification != nil {
-		blockData.Justification = blockDataJustification
-	}
-
-	return blockData, nil
-
-}
-
-// SetBlockDataSimple will add a block body and the hash to the db
-func (bs *BlockState) SetBlockDataSimple(hash common.Hash, body *optional.Body) error {
+// SetBlockBody will add a block body to the db
+func (bs *BlockState) SetBlockBody(hash common.Hash, body *optional.Body) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	blockData := &types.BlockData{
-		Hash: hash,
-		Body: body,
-	}
-
-	// Write the encoded blockData
-	bh, err := blockData.Encode()
-	if err != nil {
-		return err
-	}
-
-	err = bs.db.Put(blockDataKey(blockData.Hash), bh)
+	err := bs.db.Put(blockBodyKey(hash), body.Value)
 	return err
 }
 
-// SetBlockDataAllFields call SetBlockDataSimple and then set all optional fields to the db
-func (bs *BlockState) SetBlockDataAllFields(blockData *types.BlockData) error {
-	err := bs.SetBlockDataSimple(blockData.Hash, blockData.Body)
-	if err != nil {
-		return err
+// CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
+func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
+	var existingData = new(types.BlockData)
+
+	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
+		existingData.Header = bd.Header
+		header, err := types.NewHeaderFromOptional(existingData.Header)
+		if err != nil && header != nil {
+			err = bs.SetHeader(header)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	if blockData.Receipt != nil {
-		err = bs.SetReceipt(blockData.Hash, blockData.Receipt.Value())
+	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
+		existingData.Body = bd.Body
+		err := bs.SetBlockBody(bd.Hash, existingData.Body)
 		if err != nil {
 			return err
 		}
 	}
 
-	if blockData.MessageQueue != nil {
-		err = bs.SetMessageQueue(blockData.Hash, blockData.MessageQueue.Value())
+	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
+		existingData.Receipt = bd.Receipt
+		err := bs.SetReceipt(bd.Hash, existingData.Receipt.Value())
 		if err != nil {
 			return err
 		}
 	}
 
-	if blockData.Justification != nil {
-		err = bs.SetJustification(blockData.Hash, blockData.Justification.Value())
+	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
+		existingData.MessageQueue = bd.MessageQueue
+		err := bs.SetMessageQueue(bd.Hash, existingData.MessageQueue.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
+		existingData.Justification = bd.Justification
+		err := bs.SetJustification(bd.Hash, existingData.Justification.Value())
 		if err != nil {
 			return err
 		}
@@ -392,7 +351,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		return err
 	}
 
-	err = bs.SetBlockDataSimple(block.Header.Hash(), block.Body.AsOptional())
+	err = bs.SetBlockBody(block.Header.Hash(), block.Body.AsOptional())
 	if err != nil {
 		return err
 	}
@@ -481,12 +440,12 @@ func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 
 // GetArrivalTime returns the arrival time of a block given its hash
 func (bs *BlockState) GetArrivalTime(hash common.Hash) (uint64, error) {
-	time, err := bs.db.db.Get(arrivalTimeKey(hash))
+	arrivalTime, err := bs.db.db.Get(arrivalTimeKey(hash))
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint64(time), nil
+	return binary.LittleEndian.Uint64(arrivalTime), nil
 }
 
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime uint64) error {

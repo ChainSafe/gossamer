@@ -526,47 +526,64 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
-		data, err := s.blockState.GetBlockDataAllFields(hash)
+		dataBody, err := s.blockState.GetBlockBody(hash)
 		if err != nil {
 			return err
 		}
 
 		blockData := new(types.BlockData)
 		blockData.Hash = hash
+		blockData.Body = dataBody
 
 		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
 
 		// header
 		if blockRequest.RequestedData&1 == 1 {
-			blockData.Header = data.Header
+			retData, thisErr := s.blockState.GetHeader(hash)
+			if thisErr == nil && retData != nil {
+				blockData.Header = retData.AsOptional()
+			}
 		} else {
 			blockData.Header = optional.NewHeader(false, nil)
 		}
 
 		// body
 		if (blockRequest.RequestedData&2)>>1 == 1 {
-			blockData.Body = data.Body
+			retData, thisErr := s.blockState.GetBlockBody(hash)
+			if thisErr == nil && retData != nil {
+				blockData.Body = retData
+			}
 		} else {
 			blockData.Body = optional.NewBody(false, nil)
 		}
 
 		// receipt
 		if (blockRequest.RequestedData&4)>>2 == 1 {
-			blockData.Receipt = data.Receipt
+			blockData.Receipt, err = s.blockState.GetReceipt(hash)
+			if err != nil {
+				log.Error("[core] could not get Receipt for hash from db")
+			}
+
 		} else {
 			blockData.Receipt = optional.NewBytes(false, nil)
 		}
 
 		// message queue
 		if (blockRequest.RequestedData&8)>>3 == 1 {
-			blockData.MessageQueue = data.MessageQueue
+			blockData.MessageQueue, err = s.blockState.GetMessageQueue(hash)
+			if err != nil {
+				log.Error("[core] could not get MessageQueue for hash from db")
+			}
 		} else {
 			blockData.MessageQueue = optional.NewBytes(false, nil)
 		}
 
 		// justification
 		if (blockRequest.RequestedData&16)>>4 == 1 {
-			blockData.Justification = data.Justification
+			blockData.Justification, err = s.blockState.GetJustification(hash)
+			if err != nil {
+				log.Error("[core] could not get Justification for hash from db")
+			}
 		} else {
 			blockData.Justification = optional.NewBytes(false, nil)
 		}
@@ -668,46 +685,13 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 			}
 		}
 
-		err := s.compareAndSetBlockData(bd)
+		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
-	if s.blockState == nil {
-		return fmt.Errorf("no blockState")
-	}
-
-	existingData, _ := s.blockState.GetBlockDataAllFields(bd.Hash)
-	if existingData == nil {
-		existingData = new(types.BlockData)
-	}
-
-	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
-		existingData.Header = bd.Header
-	}
-
-	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
-		existingData.Body = bd.Body
-	}
-
-	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
-		existingData.Receipt = bd.Receipt
-	}
-
-	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
-		existingData.MessageQueue = bd.MessageQueue
-	}
-
-	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
-		existingData.Justification = bd.Justification
-	}
-
-	return s.blockState.SetBlockDataAllFields(existingData)
 }
 
 // checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime

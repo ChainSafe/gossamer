@@ -337,7 +337,7 @@ func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 
 	for _, blockdata := range bds {
 
-		err := s.blockState.SetBlockDataAllFields(blockdata)
+		err := s.blockState.CompareAndSetBlockData(blockdata)
 		require.Nil(t, err)
 
 		// test Receipt
