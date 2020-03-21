@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -120,6 +122,8 @@ func TestExecuteBlock(t *testing.T) {
 	// create new block header
 	number := big.NewInt(1)
 	extRootByte, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.Nil(t, err)
+
 	header, err := types.NewHeader(common.Hash{},
 		number,
 		common.NewHash(extRootByte),

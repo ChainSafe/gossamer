@@ -111,6 +111,9 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	bdEnc, err := bd.Encode()
+	if err != nil {
+		return nil, err
+	}
 
 	// execute block
 	_, err = b.executeBlock(bdEnc)
