@@ -50,7 +50,7 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 // doesn't return data, but will error if the call isn't successful
 func (s *Service) executeBlock(b []byte) error {
 	_, err := s.rt.Exec(runtime.CoreExecuteBlock, b)
-	//fmt.Printf("execute res %v", res)
+
 	if err != nil {
 		return err
 	}
