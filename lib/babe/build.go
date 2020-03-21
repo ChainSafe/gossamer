@@ -100,7 +100,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	// prepare block for sending to core_executeBlock,
 	//  core_executeBlock fails if Digest and Body data are sent
-	bd := types.Block{
+	blockData := types.Block{
 		Header: &types.Header{
 			ParentHash:     header.ParentHash,
 			Number:         header.Number,
@@ -110,7 +110,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		Body: types.NewBody([]byte{}),
 	}
 
-	bdEnc, err := bd.Encode()
+	bdEnc, err := blockData.Encode()
 	if err != nil {
 		return nil, err
 	}
