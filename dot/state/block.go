@@ -28,7 +28,6 @@ import (
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/database"
 )
 
@@ -105,7 +104,7 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 		return nil, err
 	}
 
-	err = bs.SetBlockBody(header.Hash(), types.NewBody([]byte{}).AsOptional())
+	err = bs.SetBlockBody(header.Hash(), types.NewBody([]byte{}))
 
 	if err != nil {
 		return nil, err
@@ -145,7 +144,7 @@ func headerHashKey(number uint64) []byte {
 	return append(headerHashPrefix, encodeBlockNumber(number)...)
 }
 
-// blockBodyKey = blockDataPrefix + hash
+// blockBodyKey = blockBodyPrefix + hash
 func blockBodyKey(hash common.Hash) []byte {
 	return append(blockBodyPrefix, hash.ToBytes()...)
 }
@@ -193,12 +192,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	retBody, err := types.NewBodyFromOptional(blockBody)
-	if err != nil {
-		return nil, err
-	}
-	return &types.Block{Header: header, Body: retBody}, nil
+	return &types.Block{Header: header, Body: blockBody}, nil
 }
 
 // GetBlockByNumber returns a block for a given blockNumber
@@ -248,21 +242,21 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 }
 
 // GetBlockBody will return Body for a given hash
-func (bs *BlockState) GetBlockBody(hash common.Hash) (*optional.Body, error) {
+func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	data, err := bs.db.Get(blockBodyKey(hash))
 	if err != nil {
 		return nil, err
 	}
 
-	return &optional.Body{Exists: true, Value: data}, nil
+	return types.NewBody(data), nil
 }
 
 // SetBlockBody will add a block body to the db
-func (bs *BlockState) SetBlockBody(hash common.Hash, body *optional.Body) error {
+func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	err := bs.db.Put(blockBodyKey(hash), body.Value)
+	err := bs.db.Put(blockBodyKey(hash), body.AsOptional().Value)
 	return err
 }
 
@@ -270,7 +264,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *optional.Body) error 
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	var existingData = new(types.BlockData)
 
-	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
+	if bd.Header != nil && (existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists())) {
 		existingData.Header = bd.Header
 		header, err := types.NewHeaderFromOptional(existingData.Header)
 		if err != nil && header != nil {
@@ -281,15 +275,15 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 		}
 	}
 
-	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
+	if bd.Body != nil && (existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists)) {
 		existingData.Body = bd.Body
-		err := bs.SetBlockBody(bd.Hash, existingData.Body)
+		err := bs.SetBlockBody(bd.Hash, types.NewBody(existingData.Body.Value))
 		if err != nil {
 			return err
 		}
 	}
 
-	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
+	if bd.Receipt != nil && (existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists())) {
 		existingData.Receipt = bd.Receipt
 		err := bs.SetReceipt(bd.Hash, existingData.Receipt.Value())
 		if err != nil {
@@ -297,7 +291,7 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 		}
 	}
 
-	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
+	if bd.MessageQueue != nil && (existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists())) {
 		existingData.MessageQueue = bd.MessageQueue
 		err := bs.SetMessageQueue(bd.Hash, existingData.MessageQueue.Value())
 		if err != nil {
@@ -305,7 +299,7 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 		}
 	}
 
-	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
+	if bd.Justification != nil && (existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists())) {
 		existingData.Justification = bd.Justification
 		err := bs.SetJustification(bd.Hash, existingData.Justification.Value())
 		if err != nil {
@@ -351,7 +345,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		return err
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), block.Body.AsOptional())
+	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value))
 	if err != nil {
 		return err
 	}

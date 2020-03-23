@@ -17,10 +17,7 @@
 package state
 
 import (
-	"bytes"
-
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 // SetReceipt sets a Receipt in the database
@@ -37,19 +34,13 @@ func (bs *BlockState) SetReceipt(hash common.Hash, data []byte) error {
 }
 
 // GetReceipt retrieves a Receipt from the database
-func (bs *BlockState) GetReceipt(hash common.Hash) (*optional.Bytes, error) {
+func (bs *BlockState) GetReceipt(hash common.Hash) ([]byte, error) {
 	data, err := bs.db.Get(prefixHash(hash, receiptPrefix))
 	if err != nil {
 		return nil, err
 	}
 
-	r := &bytes.Buffer{}
-	_, err = r.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return optional.NewBytes(true, data), nil
+	return data, nil
 }
 
 // SetMessageQueue sets a MessageQueue in the database
@@ -66,19 +57,13 @@ func (bs *BlockState) SetMessageQueue(hash common.Hash, data []byte) error {
 }
 
 // GetMessageQueue retrieves a MessageQueue from the database
-func (bs *BlockState) GetMessageQueue(hash common.Hash) (*optional.Bytes, error) {
+func (bs *BlockState) GetMessageQueue(hash common.Hash) ([]byte, error) {
 	data, err := bs.db.Get(prefixHash(hash, messageQueuePrefix))
 	if err != nil {
 		return nil, err
 	}
 
-	r := &bytes.Buffer{}
-	_, err = r.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return optional.NewBytes(true, data), nil
+	return data, nil
 }
 
 // SetJustification sets a Justification in the database
@@ -95,19 +80,13 @@ func (bs *BlockState) SetJustification(hash common.Hash, data []byte) error {
 }
 
 // GetJustification retrieves a Justification from the database
-func (bs *BlockState) GetJustification(hash common.Hash) (*optional.Bytes, error) {
+func (bs *BlockState) GetJustification(hash common.Hash) ([]byte, error) {
 	data, err := bs.db.Get(prefixHash(hash, justificationPrefix))
 	if err != nil {
 		return nil, err
 	}
 
-	r := &bytes.Buffer{}
-	_, err = r.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	return optional.NewBytes(true, data), nil
+	return data, nil
 }
 
 // prefixHash = prefix + hash

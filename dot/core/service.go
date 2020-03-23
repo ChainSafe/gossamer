@@ -526,66 +526,56 @@ func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
 	responseData := []*types.BlockData{}
 
 	for _, hash := range subchain {
-		dataBody, err := s.blockState.GetBlockBody(hash)
-		if err != nil {
-			return err
-		}
 
 		blockData := new(types.BlockData)
 		blockData.Hash = hash
-		blockData.Body = dataBody
 
-		// TODO: checks for the existence of the following fields should be implemented once #596 is addressed.
+		// set defaults
+		blockData.Header = optional.NewHeader(false, nil)
+		blockData.Body = optional.NewBody(false, nil)
+		blockData.Receipt = optional.NewBytes(false, nil)
+		blockData.MessageQueue = optional.NewBytes(false, nil)
+		blockData.Justification = optional.NewBytes(false, nil)
 
 		// header
 		if blockRequest.RequestedData&1 == 1 {
-			retData, thisErr := s.blockState.GetHeader(hash)
-			if thisErr == nil && retData != nil {
+			log.Debug("msg.RequestedData & 1, GetHeader")
+			retData, err := s.blockState.GetHeader(hash)
+			if err == nil && retData != nil {
 				blockData.Header = retData.AsOptional()
 			}
-		} else {
-			blockData.Header = optional.NewHeader(false, nil)
 		}
-
 		// body
-		if (blockRequest.RequestedData&2)>>1 == 1 {
-			retData, thisErr := s.blockState.GetBlockBody(hash)
-			if thisErr == nil && retData != nil {
-				blockData.Body = retData
+		if blockRequest.RequestedData&2>>1 == 1 {
+			log.Debug("msg.RequestedData & 2, GetBlockBody")
+			retData, err := s.blockState.GetBlockBody(hash)
+			if err == nil && retData != nil {
+				blockData.Body = retData.AsOptional()
 			}
-		} else {
-			blockData.Body = optional.NewBody(false, nil)
 		}
-
 		// receipt
 		if (blockRequest.RequestedData&4)>>2 == 1 {
-			blockData.Receipt, err = s.blockState.GetReceipt(hash)
-			if err != nil {
-				log.Error("[core] could not get Receipt for hash from db")
+			log.Debug("(msg.RequestedData&4)>>2, GetReceipt")
+			retData, err := s.blockState.GetReceipt(hash)
+			if err == nil && retData != nil {
+				blockData.Receipt = optional.NewBytes(true, retData)
 			}
-
-		} else {
-			blockData.Receipt = optional.NewBytes(false, nil)
 		}
-
 		// message queue
 		if (blockRequest.RequestedData&8)>>3 == 1 {
-			blockData.MessageQueue, err = s.blockState.GetMessageQueue(hash)
-			if err != nil {
-				log.Error("[core] could not get MessageQueue for hash from db")
+			log.Debug("(msg.RequestedData&8)>>3, GetMessageQueue")
+			retData, err := s.blockState.GetMessageQueue(hash)
+			if err == nil && retData != nil {
+				blockData.MessageQueue = optional.NewBytes(true, retData)
 			}
-		} else {
-			blockData.MessageQueue = optional.NewBytes(false, nil)
 		}
-
 		// justification
 		if (blockRequest.RequestedData&16)>>4 == 1 {
-			blockData.Justification, err = s.blockState.GetJustification(hash)
-			if err != nil {
-				log.Error("[core] could not get Justification for hash from db")
+			log.Debug("(msg.RequestedData&16)>>4, GetJustification")
+			retData, err := s.blockState.GetJustification(hash)
+			if err == nil && retData != nil {
+				blockData.Justification = optional.NewBytes(true, retData)
 			}
-		} else {
-			blockData.Justification = optional.NewBytes(false, nil)
 		}
 
 		responseData = append(responseData, blockData)

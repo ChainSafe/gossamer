@@ -19,8 +19,6 @@ package babe
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -36,20 +34,8 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	AddBlockWithArrivalTime(*types.Block, uint64) error
 
-	SetBlockBody(common.Hash, *optional.Body) error
-	GetBlockBody(common.Hash) (*optional.Body, error)
-
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
-
-	GetReceipt(common.Hash) (*optional.Bytes, error)
-	SetReceipt(common.Hash, []byte) error
-
-	GetMessageQueue(common.Hash) (*optional.Bytes, error)
-	SetMessageQueue(common.Hash, []byte) error
-
-	GetJustification(common.Hash) (*optional.Bytes, error)
-	SetJustification(common.Hash, []byte) error
 
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)

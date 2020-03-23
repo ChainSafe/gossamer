@@ -255,21 +255,21 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 		if blockdata.Receipt.Exists() {
 			receipt, err := s.blockState.GetReceipt(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.Receipt, receipt)
+			require.Equal(t, blockdata.Receipt.Value(), receipt)
 		}
 
 		// test MessageQueue
 		if blockdata.MessageQueue.Exists() {
 			messageQueue, err := s.blockState.GetMessageQueue(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.MessageQueue, messageQueue)
+			require.Equal(t, blockdata.MessageQueue.Value(), messageQueue)
 		}
 
 		// test Justification
 		if blockdata.Justification.Exists() {
 			justification, err := s.blockState.GetJustification(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.Justification, justification)
+			require.Equal(t, blockdata.Justification.Value(), justification)
 		}
 	}
 }
@@ -344,21 +344,21 @@ func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 		if blockdata.Receipt.Exists() {
 			receipt, err := s.blockState.GetReceipt(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.Receipt, receipt)
+			require.Equal(t, blockdata.Receipt.Value(), receipt)
 		}
 
 		// test MessageQueue
 		if blockdata.MessageQueue.Exists() {
 			messageQueue, err := s.blockState.GetMessageQueue(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.MessageQueue, messageQueue)
+			require.Equal(t, blockdata.MessageQueue.Value(), messageQueue)
 		}
 
 		// test Justification
 		if blockdata.Justification.Exists() {
 			justification, err := s.blockState.GetJustification(blockdata.Hash)
 			require.Nil(t, err)
-			require.Equal(t, blockdata.Justification, justification)
+			require.Equal(t, blockdata.Justification.Value(), justification)
 		}
 	}
 }
@@ -478,29 +478,189 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 
 	s := newTestService(t, cfg)
 
-	addTestBlocksToState(t, 1, s.blockState)
+	addTestBlocksToState(t, 2, s.blockState)
 
-	endHash := s.blockState.BestBlockHash()
+	bestHash := s.blockState.BestBlockHash()
+	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
 
-	request := &network.BlockRequestMessage{
-		ID:            1,
-		RequestedData: 3,
-		StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
-		EndBlockHash:  optional.NewHash(true, endHash),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+	//set some nils and check no error is thrown
+	bds := &types.BlockData{
+		Hash:          bestHash,
+		Header:        nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+	err = s.blockState.CompareAndSetBlockData(bds)
+
+	// set receipt message and justification
+	bds = &types.BlockData{
+		Hash:          bestHash,
+		Receipt:       optional.NewBytes(true, []byte("asdf")),
+		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+		Justification: optional.NewBytes(true, []byte("qwerty")),
 	}
 
-	err := s.ProcessBlockRequestMessage(request)
+	err = s.blockState.CompareAndSetBlockData(bds)
+
 	require.Nil(t, err)
 
-	select {
-	case resp := <-msgSend:
-		msgType := resp.GetType()
-		require.Equal(t, network.BlockResponseMsgType, msgType)
+	testsCases := []struct {
+		description      string
+		value            *network.BlockRequestMessage
+		expectedMsgType  int
+		expectedMsgValue *network.BlockResponseMessage
+	}{
+		{
+			description: "test get Header and Body",
+			value: &network.BlockRequestMessage{
+				ID:            1,
+				RequestedData: 3,
+				StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+				EndBlockHash:  optional.NewHash(true, bestHash),
+				Direction:     1,
+				Max:           optional.NewUint32(false, 0),
+			},
+			expectedMsgType: network.BlockResponseMsgType,
+			expectedMsgValue: &network.BlockResponseMessage{
+				ID: 1,
+				BlockData: []*types.BlockData{
+					{
+						Hash:   optional.NewHash(true, bestHash).Value(),
+						Header: bestBlock.Header.AsOptional(),
+						Body:   bestBlock.Body.AsOptional(),
+					},
+				},
+			},
+		},
+		{
+			description: "test get Header",
+			value: &network.BlockRequestMessage{
+				ID:            2,
+				RequestedData: 1,
+				StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+				EndBlockHash:  optional.NewHash(true, bestHash),
+				Direction:     1,
+				Max:           optional.NewUint32(false, 0),
+			},
+			expectedMsgType: network.BlockResponseMsgType,
+			expectedMsgValue: &network.BlockResponseMessage{
+				ID: 2,
+				BlockData: []*types.BlockData{
+					{
+						Hash:   optional.NewHash(true, bestHash).Value(),
+						Header: bestBlock.Header.AsOptional(),
+						Body:   optional.NewBody(false, nil),
+					},
+				},
+			},
+		},
+		{
+			description: "test get Receipt",
+			value: &network.BlockRequestMessage{
+				ID:            2,
+				RequestedData: 4,
+				StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+				EndBlockHash:  optional.NewHash(true, bestHash),
+				Direction:     1,
+				Max:           optional.NewUint32(false, 0),
+			},
+			expectedMsgType: network.BlockResponseMsgType,
+			expectedMsgValue: &network.BlockResponseMessage{
+				ID: 2,
+				BlockData: []*types.BlockData{
+					{
+						Hash:    optional.NewHash(true, bestHash).Value(),
+						Header:  optional.NewHeader(false, nil),
+						Body:    optional.NewBody(false, nil),
+						Receipt: bds.Receipt,
+					},
+				},
+			},
+		},
+		{
+			description: "test get MessageQueue",
+			value: &network.BlockRequestMessage{
+				ID:            2,
+				RequestedData: 8,
+				StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+				EndBlockHash:  optional.NewHash(true, bestHash),
+				Direction:     1,
+				Max:           optional.NewUint32(false, 0),
+			},
+			expectedMsgType: network.BlockResponseMsgType,
+			expectedMsgValue: &network.BlockResponseMessage{
+				ID: 2,
+				BlockData: []*types.BlockData{
+					{
+						Hash:         optional.NewHash(true, bestHash).Value(),
+						Header:       optional.NewHeader(false, nil),
+						Body:         optional.NewBody(false, nil),
+						MessageQueue: bds.MessageQueue,
+					},
+				},
+			},
+		},
+		{
+			description: "test get Justification",
+			value: &network.BlockRequestMessage{
+				ID:            2,
+				RequestedData: 16,
+				StartingBlock: variadic.NewUint64OrHash([]byte{1, 1, 0, 0, 0, 0, 0, 0, 0}),
+				EndBlockHash:  optional.NewHash(true, bestHash),
+				Direction:     1,
+				Max:           optional.NewUint32(false, 0),
+			},
+			expectedMsgType: network.BlockResponseMsgType,
+			expectedMsgValue: &network.BlockResponseMessage{
+				ID: 2,
+				BlockData: []*types.BlockData{
+					{
+						Hash:          optional.NewHash(true, bestHash).Value(),
+						Header:        optional.NewHeader(false, nil),
+						Body:          optional.NewBody(false, nil),
+						Justification: bds.Justification,
+					},
+				},
+			},
+		},
+	}
 
-	case <-time.After(TestMessageTimeout):
-		t.Error("timeout waiting for message")
+	for _, test := range testsCases {
+		t.Run(test.description, func(t *testing.T) {
+
+			err := s.ProcessBlockRequestMessage(test.value)
+			require.Nil(t, err)
+
+			select {
+			case resp := <-msgSend:
+				msgType := resp.GetType()
+
+				require.Equal(t, test.expectedMsgType, msgType)
+
+				require.Equal(t, test.expectedMsgValue.ID, resp.(*network.BlockResponseMessage).ID)
+
+				require.Len(t, resp.(*network.BlockResponseMessage).BlockData, 2)
+
+				require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
+				require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.(*network.BlockResponseMessage).BlockData[0].Header)
+				require.Equal(t, test.expectedMsgValue.BlockData[0].Body, resp.(*network.BlockResponseMessage).BlockData[0].Body)
+
+				if test.expectedMsgValue.BlockData[0].Receipt != nil {
+					require.Equal(t, test.expectedMsgValue.BlockData[0].Receipt, resp.(*network.BlockResponseMessage).BlockData[1].Receipt)
+				}
+
+				if test.expectedMsgValue.BlockData[0].MessageQueue != nil {
+					require.Equal(t, test.expectedMsgValue.BlockData[0].MessageQueue, resp.(*network.BlockResponseMessage).BlockData[1].MessageQueue)
+				}
+
+				if test.expectedMsgValue.BlockData[0].Justification != nil {
+					require.Equal(t, test.expectedMsgValue.BlockData[0].Justification, resp.(*network.BlockResponseMessage).BlockData[1].Justification)
+				}
+			case <-time.After(TestMessageTimeout):
+				t.Error("timeout waiting for message")
+			}
+		})
 	}
 }
 
