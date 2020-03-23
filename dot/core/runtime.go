@@ -47,7 +47,7 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 }
 
 // runs the block through runtime function Core_execute_block
-//  It doesn't seem to return data on success (althought the spec say it should return
+//  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
 func (s *Service) executeBlock(b []byte) ([]byte, error) {
 	res, err := s.rt.Exec(runtime.CoreExecuteBlock, b)
