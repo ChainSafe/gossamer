@@ -138,8 +138,9 @@ func TestExecuteBlock(t *testing.T) {
 	}
 
 	// `core_execute_block` will throw error, no expected result
-	err = s.executeBlock(bEnc)
+	res, err := s.executeBlock(bEnc)
 	require.Nil(t, err)
+	require.Equal(t, []byte{}, res)
 }
 
 func TestValidateTransaction(t *testing.T) {

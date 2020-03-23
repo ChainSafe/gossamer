@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"strings"
 	"time"
 
@@ -117,9 +118,13 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	// execute block
-	_, err = b.executeBlock(bdEnc)
+	res, err := b.executeBlock(bdEnc)
 	if err != nil {
 		return nil, err
+	}
+	// if execute block return a non-empty byte array, something when wrong
+	if !reflect.DeepEqual(res, []byte{}) {
+		return nil, errors.New("[babe] execute block failed")
 	}
 	log.Trace("[babe] execute block")
 

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -653,10 +654,14 @@ func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 				return err
 			}
 
-			err = s.executeBlock(bdEnc)
+			res, err := s.executeBlock(bdEnc)
 			if err != nil {
 				log.Error("[core] failed to validate block", "err", err)
 				return err
+			}
+			// if executeBlock return a non-empty byte array something when wrong
+			if !reflect.DeepEqual(res, []byte{}) {
+				log.Error("[core] execute block call failed", "err", res)
 			}
 
 			if header.Number.Cmp(bestNum) == 1 {
