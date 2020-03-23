@@ -496,8 +496,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 // ProcessBlockRequestMessage processes a block request message, returning a block response message
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
-	//return nil
-
 	blockRequest, ok := msg.(*network.BlockRequestMessage)
 	if !ok {
 		return fmt.Errorf("invalid BlockRequestMessage")
@@ -529,6 +527,12 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 
 	switch c := msg.StartingBlock.Value().(type) {
 	case uint64:
+		log.Info("[core] BlockRequest", "start", c)
+		if c == 0 {
+			log.Warn("[core] got BlockRequest with starting block=0")
+			//c = 1
+		}
+
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
 		if err != nil || block == nil {
 			log.Error("[core] cannot get starting block", "number", c)
@@ -546,7 +550,7 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	log.Trace("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+	log.Debug("[core] got BlockRequestMessage", "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
 	subchain, err := s.blockState.SubChain(startHash, endHash)
@@ -557,6 +561,8 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 	if len(subchain) > int(maxResponseSize) {
 		subchain = subchain[:maxResponseSize]
 	}
+
+	log.Info("[core] subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
 
 	responseData := []*types.BlockData{}
 

@@ -347,13 +347,13 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 	hash := block.Header.Hash()
 
-	// TODO: update to use leftmost path
-
+	// TODO: update to use canonical path
 	err = bs.setBestBlockHashKey(hash)
 	if err != nil {
 		return err
 	}
 
+	// TODO: only set number->hash mapping for our canonical chain, otherwise, this messes up BlockResponses
 	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 	if err != nil {
 		return err

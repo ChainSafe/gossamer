@@ -69,6 +69,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		chanLock:         cfg.ChanLock,
 		synced:           true,
 		stopped:          false,
+		requestStart:     1,
 		highestSeenBlock: big.NewInt(0),
 	}, nil
 }
@@ -135,7 +136,7 @@ func (s *Syncer) watchForResponses() {
 			if err.Error() == "cannot find parent block in blocktree" {
 				// set request start
 				s.requestStart = s.requestStart - maxResponseSize
-				if s.requestStart < 0 {
+				if s.requestStart <= 0 {
 					s.requestStart = 1
 				}
 				log.Debug("[sync] Retrying block request", "start", s.requestStart)
@@ -217,10 +218,15 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 	highestInResp := int64(0)
 
 	for _, bd := range blockData {
+
 		if bd.Header.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return 0, err
+			}
+
+			if header.Number.Cmp(big.NewInt(0)) == 0 {
+
 			}
 
 			// get block header; if exists, return
@@ -259,18 +265,22 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 
 			// TODO: execute block and verify authorship right
 
+			log.Debug("[sync] trying to import block", "num", header.Number)
+
 			err = s.blockState.AddBlock(block)
 			if err != nil {
-				if err.Error() == "cannot find parent block in blocktree" {
+				if err.Error() == "cannot find parent block in blocktree" && header.Number.Cmp(big.NewInt(0)) != 0 {
 					return 0, err
 				} else if strings.Contains(err.Error(), "cannot add block to blocktree that already exists") {
+					// this is fine
+				} else if header.Number.Cmp(big.NewInt(0)) == 0 {
 					// this is fine
 				} else {
 					return 0, err
 				}
-			} else {
-				log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
 			}
+
+			log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
 		}
 
 		err := s.compareAndSetBlockData(bd)
