@@ -23,9 +23,9 @@ import (
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
 type Syncer struct {
 	blockState       BlockState                           // retrieve our current head of chain from BlockState
-	blockNumberIn    <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
+	blockNumIn       <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
 	msgOut           chan<- network.Message               // channel to send BlockRequest messages to network service
-	msgIn            <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
+	respIn           <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
 	lock             *sync.Mutex                          // lock BABE session when syncing
 	synced           bool
 	requestStart     int64    // block number from which to begin block requests
@@ -38,12 +38,12 @@ type Syncer struct {
 
 // SyncerConfig is the configuration for the Syncer.
 type SyncerConfig struct {
-	BlockState    BlockState
-	BlockNumberIn <-chan *big.Int
-	MsgIn         <-chan *network.BlockResponseMessage
-	MsgOut        chan<- network.Message
-	Lock          *sync.Mutex
-	ChanLock      *sync.Mutex
+	BlockState BlockState
+	BlockNumIn <-chan *big.Int
+	RespIn     <-chan *network.BlockResponseMessage
+	MsgOut     chan<- network.Message
+	Lock       *sync.Mutex
+	ChanLock   *sync.Mutex
 }
 
 // NewSyncer returns a new Syncer
@@ -52,8 +52,8 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		return nil, errors.New("cannot have nil BlockState")
 	}
 
-	if cfg.BlockNumberIn == nil {
-		return nil, errors.New("cannot have nil BlockNumberIn channel")
+	if cfg.BlockNumIn == nil {
+		return nil, errors.New("cannot have nil BlockNumIn channel")
 	}
 
 	if cfg.MsgOut == nil {
@@ -62,8 +62,8 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 
 	return &Syncer{
 		blockState:       cfg.BlockState,
-		blockNumberIn:    cfg.BlockNumberIn,
-		msgIn:            cfg.MsgIn,
+		blockNumIn:       cfg.BlockNumIn,
+		respIn:           cfg.RespIn,
 		msgOut:           cfg.MsgOut,
 		lock:             cfg.Lock,
 		chanLock:         cfg.ChanLock,
@@ -91,9 +91,9 @@ func (s *Syncer) watchForBlocks() {
 			return
 		}
 
-		blockNum, ok := <-s.blockNumberIn
+		blockNum, ok := <-s.blockNumIn
 		if !ok || blockNum == nil {
-			log.Warn("[sync] Failed to receive from blockNumberIn channel")
+			log.Warn("[sync] Failed to receive from blockNumIn channel")
 			return
 		}
 
@@ -119,9 +119,9 @@ func (s *Syncer) watchForResponses() {
 			return
 		}
 
-		msg, ok := <-s.msgIn
+		msg, ok := <-s.respIn
 		if !ok || msg == nil {
-			log.Warn("[sync] Failed to receive from msgIn channel")
+			log.Warn("[sync] Failed to receive from respIn channel")
 			return
 		}
 

@@ -37,12 +37,12 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg.BlockState = stateSrvc.Block
 	}
 
-	if cfg.BlockNumberIn == nil {
-		cfg.BlockNumberIn = make(chan *big.Int)
+	if cfg.BlockNumIn == nil {
+		cfg.BlockNumIn = make(chan *big.Int)
 	}
 
-	if cfg.MsgIn == nil {
-		cfg.MsgIn = make(chan *network.BlockResponseMessage)
+	if cfg.RespIn == nil {
+		cfg.RespIn = make(chan *network.BlockResponseMessage)
 	}
 
 	if cfg.MsgOut == nil {
@@ -62,8 +62,8 @@ func TestWatchForBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
-		MsgOut:        msgOut,
+		BlockNumIn: blockNumberIn,
+		MsgOut:     msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -102,7 +102,7 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
+		BlockNumIn: blockNumberIn,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -127,8 +127,8 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
-		MsgOut:        msgOut,
+		BlockNumIn: blockNumberIn,
+		MsgOut:     msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -177,8 +177,8 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
-		MsgOut:        msgOut,
+		BlockNumIn: blockNumberIn,
+		MsgOut:     msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -228,13 +228,13 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 
 func TestWatchForResponses(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
-	msgIn := make(chan *network.BlockResponseMessage)
+	respIn := make(chan *network.BlockResponseMessage)
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
-		MsgIn:         msgIn,
-		MsgOut:        msgOut,
+		BlockNumIn: blockNumberIn,
+		RespIn:     respIn,
+		MsgOut:     msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -265,7 +265,7 @@ func TestWatchForResponses(t *testing.T) {
 	syncer.lock.Lock()
 	syncer.synced = false
 
-	msgIn <- resp
+	respIn <- resp
 	time.Sleep(time.Second)
 
 	var msg network.Message
@@ -295,7 +295,7 @@ func TestWatchForResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msgIn <- resp2
+	respIn <- resp2
 	time.Sleep(time.Second)
 
 	// response should contain blocks 9 to 16, and we should be synced
@@ -306,13 +306,13 @@ func TestWatchForResponses(t *testing.T) {
 
 func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
-	msgIn := make(chan *network.BlockResponseMessage)
+	respIn := make(chan *network.BlockResponseMessage)
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		BlockNumberIn: blockNumberIn,
-		MsgIn:         msgIn,
-		MsgOut:        msgOut,
+		BlockNumIn: blockNumberIn,
+		RespIn:     respIn,
+		MsgOut:     msgOut,
 	}
 
 	syncer := newTestSyncer(t, cfg)
@@ -345,7 +345,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	syncer.lock.Lock()
 	syncer.synced = false
 
-	msgIn <- resp
+	respIn <- resp
 	time.Sleep(time.Second)
 
 	var msg network.Message

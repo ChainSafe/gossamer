@@ -256,7 +256,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	select {
-	case resp := <-s.syncer.msgIn:
+	case resp := <-s.syncer.respIn:
 		msgType := resp.GetType()
 		if !reflect.DeepEqual(msgType, network.BlockResponseMsgType) {
 			t.Error(

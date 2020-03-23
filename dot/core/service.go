@@ -71,10 +71,10 @@ type Service struct {
 	closed    bool
 
 	// Block synchronization
-	syncChan chan<- *big.Int
-	respChan chan<- *network.BlockResponseMessage
-	syncLock *sync.Mutex
-	syncer   *Syncer
+	blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
+	respOut     chan<- *network.BlockResponseMessage // send incoming BlockResponseMessags to Syncer
+	syncLock    *sync.Mutex
+	syncer      *Syncer
 }
 
 // Config holds the configuration for the core Service.
@@ -123,12 +123,12 @@ func NewService(cfg *Config) (*Service, error) {
 	chanLock := &sync.Mutex{}
 
 	syncerCfg := &SyncerConfig{
-		BlockState:    cfg.BlockState,
-		BlockNumberIn: cfg.SyncChan,
-		MsgIn:         respChan,
-		MsgOut:        cfg.MsgSend,
-		Lock:          syncerLock,
-		ChanLock:      chanLock,
+		BlockState: cfg.BlockState,
+		BlockNumIn: cfg.SyncChan,
+		RespIn:     respChan,
+		MsgOut:     cfg.MsgSend,
+		Lock:       syncerLock,
+		ChanLock:   chanLock,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)
@@ -163,8 +163,8 @@ func NewService(cfg *Config) (*Service, error) {
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
-			syncChan:         cfg.SyncChan,
-			respChan:         respChan,
+			blockNumOut:      cfg.SyncChan,
+			respOut:          respChan,
 		}
 
 		authData, err := srv.retrieveAuthorityData()
@@ -211,8 +211,8 @@ func NewService(cfg *Config) (*Service, error) {
 			closed:           false,
 			syncer:           syncer,
 			syncLock:         syncerLock,
-			syncChan:         cfg.SyncChan,
-			respChan:         respChan,
+			blockNumOut:      cfg.SyncChan,
+			respOut:          respChan,
 		}
 	}
 
@@ -486,7 +486,7 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 	if err != nil && err.Error() == "Key not found" {
 		// send block request message
 		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
-		s.syncChan <- blockAnnounceMessage.Number
+		s.blockNumOut <- blockAnnounceMessage.Number
 	} else if err != nil {
 		return err
 	}
@@ -603,7 +603,7 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
 	log.Debug("[core] received BlockResponseMessage")
-	s.respChan <- msg.(*network.BlockResponseMessage)
+	s.respOut <- msg.(*network.BlockResponseMessage)
 
 	return s.checkForRuntimeChanges()
 }
