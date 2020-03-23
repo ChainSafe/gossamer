@@ -496,7 +496,12 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 
 // ProcessBlockRequestMessage processes a block request message, returning a block response message
 func (s *Service) ProcessBlockRequestMessage(msg network.Message) error {
-	blockRequest := msg.(*network.BlockRequestMessage)
+	//return nil
+
+	blockRequest, ok := msg.(*network.BlockRequestMessage)
+	if !ok {
+		return fmt.Errorf("invalid BlockRequestMessage")
+	}
 
 	blockResponse, err := s.createBlockResponse(blockRequest)
 	if err != nil {
@@ -510,10 +515,22 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 	var startHash common.Hash
 	var endHash common.Hash
 
+	if msg.StartingBlock == nil {
+		return nil, fmt.Errorf("msg.StartingBlock is nil")
+	}
+
+	if msg.EndBlockHash == nil {
+		return nil, fmt.Errorf("msg.EndBlockHash is nil")
+	}
+
+	if msg.StartingBlock.Value() == nil {
+		return nil, fmt.Errorf("msg.StartingBlock.Value is nil")
+	}
+
 	switch c := msg.StartingBlock.Value().(type) {
 	case uint64:
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
-		if err != nil {
+		if err != nil || block == nil {
 			log.Error("[core] cannot get starting block", "number", c)
 			return nil, err
 		}

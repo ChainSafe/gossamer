@@ -75,6 +75,10 @@ func (n *node) subChain(descendant *node) []*node {
 	}
 	var path []*node
 	for curr := descendant; ; curr = curr.parent {
+		if curr == nil {
+			return path
+		}
+
 		path = append([]*node{curr}, path...)
 		if curr == n {
 			return path

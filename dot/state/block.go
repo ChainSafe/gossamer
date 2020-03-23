@@ -442,6 +442,10 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
+	if bs.bt == nil {
+		return nil, fmt.Errorf("blocktree is nil")
+	}
+
 	return bs.bt.SubBlockchain(start, end)
 }
 

@@ -192,8 +192,8 @@ func (s *Service) updateNetworkState() {
 func (s *Service) receiveCoreMessages() {
 	for {
 		// receive message from core service
-		msg := <-s.msgRec
-		if msg == nil {
+		msg, ok := <-s.msgRec
+		if !ok || msg == nil {
 			log.Warn("[network] Received nil message from core service")
 			return // exit
 		}
