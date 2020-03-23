@@ -482,6 +482,7 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 
 	bestHash := s.blockState.BestBlockHash()
 	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
+	require.Nil(t, err)
 
 	//set some nils and check no error is thrown
 	bds := &types.BlockData{
@@ -492,6 +493,7 @@ func TestService_ProcessBlockRequest(t *testing.T) {
 		Justification: nil,
 	}
 	err = s.blockState.CompareAndSetBlockData(bds)
+	require.Nil(t, err)
 
 	// set receipt message and justification
 	bds = &types.BlockData{
