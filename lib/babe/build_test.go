@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/tests"
+
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -243,5 +246,51 @@ func TestBuildBlock_failing(t *testing.T) {
 	txc := babesession.transactionQueue.Peek()
 	if !bytes.Equal(txc.Extrinsic, txa) {
 		t.Fatal("did not readd valid transaction to queue")
+	}
+}
+
+func TestCoreExecuteBlock(t *testing.T) {
+	transactionQueue := state.NewTransactionQueue()
+
+	cfg := &SessionConfig{
+		TransactionQueue: transactionQueue,
+	}
+
+	babesession := createTestSession(t, cfg)
+	err := babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exts := [][]byte{}
+	block, _ := createTestBlock(babesession, exts, t)
+
+	// prepare block for sending to core_executeBlock,
+	//  core_executeBlock fails if Digest and Body data are sent
+	blockData := types.Block{
+		Header: &types.Header{
+			ParentHash:     block.Header.ParentHash,
+			Number:         block.Header.Number,
+			StateRoot:      block.Header.StateRoot,
+			ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+		},
+		Body: types.NewBody([]byte{}),
+	}
+
+	bdEnc, err := blockData.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create runtime and call execute block
+	rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+	res, err := rt.Exec(runtime.CoreExecuteBlock, bdEnc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// if execute block return a non-empty byte array, something when wrong
+	if !reflect.DeepEqual(res, []byte{}) {
+		t.Fatalf("execute block returned unexpected value, received: %v", res)
 	}
 }

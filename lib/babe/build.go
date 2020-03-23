@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"strings"
 	"time"
 
@@ -99,34 +98,6 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		Header: header,
 		Body:   body,
 	}
-
-	// prepare block for sending to core_executeBlock,
-	//  core_executeBlock fails if Digest and Body data are sent
-	blockData := types.Block{
-		Header: &types.Header{
-			ParentHash:     header.ParentHash,
-			Number:         header.Number,
-			StateRoot:      header.StateRoot,
-			ExtrinsicsRoot: header.ExtrinsicsRoot,
-		},
-		Body: types.NewBody([]byte{}),
-	}
-
-	bdEnc, err := blockData.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	// execute block
-	res, err := b.executeBlock(bdEnc)
-	if err != nil {
-		return nil, err
-	}
-	// if execute block return a non-empty byte array, something when wrong
-	if !reflect.DeepEqual(res, []byte{}) {
-		return nil, errors.New("[babe] execute block failed")
-	}
-	log.Trace("[babe] execute block")
 
 	return block, nil
 }

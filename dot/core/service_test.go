@@ -17,7 +17,6 @@
 package core
 
 import (
-	"encoding/hex"
 	"io/ioutil"
 	"math/big"
 	"reflect"
@@ -109,38 +108,6 @@ func TestStartService(t *testing.T) {
 	require.Nil(t, err)
 
 	s.Stop()
-}
-
-func TestExecuteBlock(t *testing.T) {
-	s := newTestService(t, nil)
-
-	// create new block header
-	number := big.NewInt(1)
-	extRootByte, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
-
-	header, err := types.NewHeader(common.Hash{},
-		number,
-		common.NewHash(extRootByte),
-		common.NewHash(extRootByte), [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	block := types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
-	}
-
-	bEnc, err := block.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// `core_execute_block` will throw error, no expected result
-	res, err := s.executeBlock(bEnc)
-	require.Nil(t, err)
-	require.Equal(t, []byte{}, res)
 }
 
 func TestValidateTransaction(t *testing.T) {

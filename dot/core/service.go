@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -130,6 +129,7 @@ func NewService(cfg *Config) (*Service, error) {
 		MsgOut:     cfg.MsgSend,
 		Lock:       syncerLock,
 		ChanLock:   chanLock,
+		Runtime:    cfg.Runtime,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)
@@ -603,142 +603,6 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 // chain by calling `core_execute_block`. Valid blocks are stored in the block
 // database to become part of the canonical chain.
 func (s *Service) ProcessBlockResponseMessage(msg network.Message) error {
-	log.Trace("[core] got BlockResponseMessage")
-
-	blockData := msg.(*network.BlockResponseMessage).BlockData
-
-	bestNum, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		return err
-	}
-
-	for _, bd := range blockData {
-		if bd.Header.Exists() {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
-
-			// get block header; if exists, return
-			existingHeader, err := s.blockState.GetHeader(bd.Hash)
-			if err != nil && existingHeader == nil {
-				err = s.blockState.SetHeader(header)
-				if err != nil {
-					return err
-				}
-
-				log.Info("[core] saved block header", "hash", header.Hash(), "number", header.Number)
-
-				// TODO: handle consensus digest, if first in epoch
-				// err = s.handleConsensusDigest(header)
-				// if err != nil {
-				// 	return err
-				// }
-			}
-		}
-
-		if bd.Header.Exists() && bd.Body.Exists {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
-
-			body, err := types.NewBodyFromOptional(bd.Body)
-			if err != nil {
-				return err
-			}
-
-			block := &types.Block{
-				Header: header,
-				Body:   body,
-			}
-
-			// prepare block for sending to core_executeBlock,
-			//  core_executeBlock fails if Digest and Body data are sent
-			blockData := types.Block{
-				Header: &types.Header{
-					ParentHash:     header.ParentHash,
-					Number:         header.Number,
-					StateRoot:      header.StateRoot,
-					ExtrinsicsRoot: header.ExtrinsicsRoot,
-				},
-				Body: types.NewBody([]byte{}),
-			}
-
-			bdEnc, err := blockData.Encode()
-			if err != nil {
-				return err
-			}
-
-			res, err := s.executeBlock(bdEnc)
-			if err != nil {
-				log.Error("[core] failed to validate block", "err", err)
-				return err
-			}
-			// if executeBlock return a non-empty byte array something when wrong
-			if !reflect.DeepEqual(res, []byte{}) {
-				log.Error("[core] execute block call failed", "err", res)
-			}
-
-			if header.Number.Cmp(bestNum) == 1 {
-				err = s.blockState.AddBlock(block)
-				if err != nil {
-					log.Error("[core] Failed to add block to state", "error", err, "hash", header.Hash(), "parentHash", header.ParentHash)
-					return err
-				}
-
-				log.Info("[core] imported block", "number", header.Number, "hash", header.Hash())
-
-				err = s.checkForRuntimeChanges()
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		err := s.compareAndSetBlockData(bd)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *Service) compareAndSetBlockData(bd *types.BlockData) error {
-	if s.blockState == nil {
-		return fmt.Errorf("no blockState")
-	}
-
-	existingData, err := s.blockState.GetBlockData(bd.Hash)
-	if err != nil {
-		// no block data exists, ok
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData == nil {
-		return s.blockState.SetBlockData(bd)
-	}
-
-	if existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists()) {
-		existingData.Header = bd.Header
-	}
-
-	if existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists) {
-		existingData.Body = bd.Body
-	}
-
-	if existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists()) {
-		existingData.Receipt = bd.Receipt
-	}
-
-	if existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists()) {
-		existingData.MessageQueue = bd.MessageQueue
-	}
-
-	if existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists()) {
-		existingData.Justification = bd.Justification
-	}
 	log.Debug("[core] received BlockResponseMessage")
 	s.respOut <- msg.(*network.BlockResponseMessage)
 

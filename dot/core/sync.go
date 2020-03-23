@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"math/big"
 	mrand "math/rand"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	"golang.org/x/exp/rand"
 
@@ -28,8 +31,9 @@ type Syncer struct {
 	respIn           <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
 	lock             *sync.Mutex                          // lock BABE session when syncing
 	synced           bool
-	requestStart     int64    // block number from which to begin block requests
-	highestSeenBlock *big.Int // highest block number we have seen
+	requestStart     int64            // block number from which to begin block requests
+	highestSeenBlock *big.Int         // highest block number we have seen
+	runtime          *runtime.Runtime // reference to runtime
 
 	// Core service control
 	chanLock *sync.Mutex
@@ -44,6 +48,7 @@ type SyncerConfig struct {
 	MsgOut     chan<- network.Message
 	Lock       *sync.Mutex
 	ChanLock   *sync.Mutex
+	Runtime    *runtime.Runtime
 }
 
 // NewSyncer returns a new Syncer
@@ -70,6 +75,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		synced:           true,
 		stopped:          false,
 		highestSeenBlock: big.NewInt(0),
+		runtime:          cfg.Runtime,
 	}, nil
 }
 
@@ -257,7 +263,33 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				Body:   body,
 			}
 
-			// TODO: execute block and verify authorship right
+			// prepare block for sending to core_executeBlock,
+			//  core_executeBlock fails if Digest and Body data are sent
+			blockData := types.Block{
+				Header: &types.Header{
+					ParentHash:     header.ParentHash,
+					Number:         header.Number,
+					StateRoot:      header.StateRoot,
+					ExtrinsicsRoot: header.ExtrinsicsRoot,
+				},
+				Body: types.NewBody([]byte{}),
+			}
+
+			bdEnc, err := blockData.Encode()
+			if err != nil {
+				return 0, err
+			}
+
+			res, err := s.executeBlock(bdEnc)
+			if err != nil {
+				log.Error("[core] failed to validate block", "err", err)
+				return 0, err
+			}
+			// if executeBlock return a non-empty byte array something when wrong
+			if !reflect.DeepEqual(res, []byte{}) {
+				log.Error("[core] execute block call failed", "err", res)
+				return 0, errors.New("[sync] execute block call failed")
+			}
 
 			err = s.blockState.AddBlock(block)
 			if err != nil {
@@ -280,6 +312,18 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 	}
 
 	return highestInResp, nil
+}
+
+// runs the block through runtime function Core_execute_block
+//  It doesn't seem to return data on success (although the spec say it should return
+//  a boolean value that indicate success.  will error if the call isn't successful
+func (s *Syncer) executeBlock(b []byte) ([]byte, error) {
+	res, err := s.runtime.Exec(runtime.CoreExecuteBlock, b)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (s *Syncer) compareAndSetBlockData(bd *types.BlockData) error {

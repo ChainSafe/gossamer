@@ -46,18 +46,6 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 	return v, err
 }
 
-// runs the block through runtime function Core_execute_block
-//  It doesn't seem to return data on success (although the spec say it should return
-//  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Service) executeBlock(b []byte) ([]byte, error) {
-	res, err := s.rt.Exec(runtime.CoreExecuteBlock, b)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
 // TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
 func (s *Service) grandpaAuthorities() ([]*babe.AuthorityData, error) {
 	ret, err := s.rt.Exec(runtime.AuraAPIAuthorities, []byte{})

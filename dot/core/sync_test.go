@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/tests"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -47,6 +50,10 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	if cfg.MsgOut == nil {
 		cfg.MsgOut = make(chan network.Message)
+	}
+
+	if cfg.Runtime == nil {
+		cfg.Runtime = runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
 	}
 
 	syncer, err := NewSyncer(cfg)
