@@ -193,11 +193,13 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
+	msgSend := make(chan network.Message, 10)
 
 	cfg := &Config{
 		Runtime:         rt,
 		Keystore:        ks,
 		IsBabeAuthority: false,
+		MsgSend:         msgSend,
 	}
 
 	s := newTestService(t, cfg)
@@ -243,13 +245,80 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 	err = s.ProcessBlockResponseMessage(blockResponse)
 	require.Nil(t, err)
 
-	res, err := s.blockState.GetHeader(header.Hash())
-	require.Nil(t, err)
+	select {
+	case resp := <-s.syncer.respIn:
+		msgType := resp.GetType()
+		require.Equal(t, network.BlockResponseMsgType, msgType)
+	case <-time.After(testMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
+}
+
+func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
+	tt := trie.NewEmptyTrie(nil)
+	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+
+	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	require.Equal(t, header, res)
+	pubkey := kp.Public().Encode()
+	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	require.Nil(t, err)
+
+	ks := keystore.NewKeystore()
+	ks.Insert(kp)
+
+	cfg := &Config{
+		Runtime:         rt,
+		Keystore:        ks,
+		IsBabeAuthority: false,
+	}
+
+	s := newTestService(t, cfg)
+
+	var genesisHeader = &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	hash := common.NewHash([]byte{0})
+	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+
+	parentHash := genesisHeader.Hash()
+	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+	require.Nil(t, err)
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.Nil(t, err)
+
+	header := &types.Header{
+		ParentHash:     parentHash,
+		Number:         big.NewInt(1),
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         [][]byte{},
+	}
+
+	bds := []*types.BlockData{{
+		Hash:          header.Hash(),
+		Header:        header.AsOptional(),
+		Body:          types.NewBody([]byte{}).AsOptional(),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}, {
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(true, []byte("asdf")),
+		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+		Justification: optional.NewBytes(true, []byte("qwerty")),
+	}}
 
 	for _, blockdata := range bds {
+
+		err := s.blockState.CompareAndSetBlockData(blockdata)
+		require.Nil(t, err)
 
 		// test Receipt
 		if blockdata.Receipt.Exists() {
@@ -271,20 +340,6 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, blockdata.Justification.Value(), justification)
 		}
-	}
-
-	select {
-	case resp := <-s.syncer.respIn:
-		msgType := resp.GetType()
-		if !reflect.DeepEqual(msgType, network.BlockResponseMsgType) {
-			t.Error(
-				"received unexpected message type",
-				"\nexpected:", network.BlockResponseMsgType,
-				"\nreceived:", msgType,
-			)
-		}
-	case <-time.After(testMessageTimeout):
-		t.Error("timeout waiting for message")
 	}
 }
 
