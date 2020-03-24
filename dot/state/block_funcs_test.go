@@ -17,14 +17,11 @@
 package state
 
 import (
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/core/types"
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests"
 	"github.com/stretchr/testify/require"
@@ -32,68 +29,8 @@ import (
 	"testing"
 )
 
-// testGenesisHeader is a test block header
-var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
-}
-
-// newTestCoreService creates a new test core service
-func newTestCoreService(t *testing.T, cfg *core.Config) *core.Service {
-	if cfg == nil {
-		rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-		cfg = &core.Config{
-			Runtime:         rt,
-			IsBabeAuthority: false,
-		}
-	}
-
-	if cfg.Keystore == nil {
-		cfg.Keystore = keystore.NewKeystore()
-	}
-
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
-	}
-
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan network.Message, 10)
-	}
-
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan network.Message, 10)
-	}
-
-	if cfg.SyncChan == nil {
-		cfg.SyncChan = make(chan *big.Int, 10)
-	}
-
-	stateSrvc := NewService("")
-	stateSrvc.UseMemDB()
-
-	err := stateSrvc.Initialize(testGenesisHeader, trie.NewEmptyTrie(nil))
-	require.Nil(t, err)
-
-	err = stateSrvc.Start()
-	require.Nil(t, err)
-
-	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
-	}
-
-	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
-	}
-
-	s, err := core.NewService(cfg)
-	require.Nil(t, err)
-
-	return s
-}
-
 func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 	tt := trie.NewEmptyTrie(nil)
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -105,13 +42,7 @@ func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
 
-	cfg := &core.Config{
-		Runtime:         rt,
-		Keystore:        ks,
-		IsBabeAuthority: false,
-	}
-
-	s := newTestCoreService(t, cfg)
+	s := newTestBlockState(nil)
 	require.NotNil(t, s)
 
 	var genesisHeader = &types.Header{
@@ -155,26 +86,26 @@ func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 
 	for _, blockdata := range bds {
 
-		err := cfg.BlockState.CompareAndSetBlockData(blockdata)
+		err := s.CompareAndSetBlockData(blockdata)
 		require.Nil(t, err)
 
 		// test Receipt
 		if blockdata.Receipt.Exists() {
-			receipt, err := cfg.BlockState.GetReceipt(blockdata.Hash)
+			receipt, err := s.GetReceipt(blockdata.Hash)
 			require.Nil(t, err)
 			require.Equal(t, blockdata.Receipt.Value(), receipt)
 		}
 
 		// test MessageQueue
 		if blockdata.MessageQueue.Exists() {
-			messageQueue, err := cfg.BlockState.GetMessageQueue(blockdata.Hash)
+			messageQueue, err := s.GetMessageQueue(blockdata.Hash)
 			require.Nil(t, err)
 			require.Equal(t, blockdata.MessageQueue.Value(), messageQueue)
 		}
 
 		// test Justification
 		if blockdata.Justification.Exists() {
-			justification, err := cfg.BlockState.GetJustification(blockdata.Hash)
+			justification, err := s.GetJustification(blockdata.Hash)
 			require.Nil(t, err)
 			require.Equal(t, blockdata.Justification.Value(), justification)
 		}
