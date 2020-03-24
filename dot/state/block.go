@@ -335,6 +335,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 	hash := block.Header.Hash()
 
+	// TODO: update to use leftmost path
+
 	err = bs.setBestBlockHashKey(hash)
 	if err != nil {
 		return err
@@ -424,7 +426,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
-func (bs *BlockState) SubChain(start, end common.Hash) []common.Hash {
+func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	return bs.bt.SubBlockchain(start, end)
 }
 
