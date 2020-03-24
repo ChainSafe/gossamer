@@ -557,7 +557,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 
 		// header
 		if (blockRequest.RequestedData & 1) == 1 {
-			log.Debug("msg.RequestedData & 1, GetHeader")
 			retData, err := s.blockState.GetHeader(hash)
 			if err == nil && retData != nil {
 				blockData.Header = retData.AsOptional()
@@ -565,7 +564,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		}
 		// body
 		if (blockRequest.RequestedData & 2 >> 1) == 1 {
-			log.Debug("msg.RequestedData & 2, GetBlockBody")
 			retData, err := s.blockState.GetBlockBody(hash)
 			if err == nil && retData != nil {
 				blockData.Body = retData.AsOptional()
@@ -573,7 +571,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		}
 		// receipt
 		if (blockRequest.RequestedData&4)>>2 == 1 {
-			log.Debug("(msg.RequestedData&4)>>2, GetReceipt")
 			retData, err := s.blockState.GetReceipt(hash)
 			if err == nil && retData != nil {
 				blockData.Receipt = optional.NewBytes(true, retData)
@@ -581,7 +578,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		}
 		// message queue
 		if (blockRequest.RequestedData&8)>>3 == 1 {
-			log.Debug("(msg.RequestedData&8)>>3, GetMessageQueue")
 			retData, err := s.blockState.GetMessageQueue(hash)
 			if err == nil && retData != nil {
 				blockData.MessageQueue = optional.NewBytes(true, retData)
@@ -589,7 +585,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		}
 		// justification
 		if (blockRequest.RequestedData&16)>>4 == 1 {
-			log.Debug("(msg.RequestedData&16)>>4, GetJustification")
 			retData, err := s.blockState.GetJustification(hash)
 			if err == nil && retData != nil {
 				blockData.Justification = optional.NewBytes(true, retData)
