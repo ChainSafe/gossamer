@@ -40,6 +40,7 @@ func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
 	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
 
 	parentHash := genesisHeader.Hash()
+
 	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
 	require.Nil(t, err)
 
