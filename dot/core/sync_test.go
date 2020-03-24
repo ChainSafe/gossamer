@@ -1,12 +1,13 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/stretchr/testify/require"
@@ -388,7 +389,7 @@ func TestCoreExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t, nil)
 
 	cHeader := &optional.CoreHeader{
-		ParentHash:     common.Hash{1},   // executeBlock fails empty or 0 hash
+		ParentHash:     common.Hash{1}, // executeBlock fails empty or 0 hash
 		Number:         big.NewInt(0),
 		StateRoot:      common.Hash{},
 		ExtrinsicsRoot: common.Hash{},
