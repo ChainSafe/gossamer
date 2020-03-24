@@ -1,14 +1,14 @@
 package core
 
 import (
-	"encoding/hex"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -385,29 +385,24 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 }
 
 func TestCoreExecuteBlock(t *testing.T) {
-	blockNumberIn := make(chan *big.Int)
-	msgOut := make(chan network.Message)
+	syncer := newTestSyncer(t, nil)
 
-	cfg := &SyncerConfig{
-		BlockNumIn: blockNumberIn,
-		MsgOut:     msgOut,
+	cHeader := &optional.CoreHeader{
+		ParentHash:     common.Hash{1},   // executeBlock fails empty or 0 hash
+		Number:         big.NewInt(0),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
 	}
+	header := optional.NewHeader(true, cHeader)
 
-	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
-
-	// prepare block for sending to core_executeBlock,
-	//  core_executeBlock fails if Digest and Body data are sent
-	testHash, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
-	blockData := &types.Block{
-		Header: &types.Header{
-			ParentHash:     common.BytesToHash(testHash),
-			Number:         big.NewInt(1),
-			StateRoot:      common.BytesToHash(testHash),
-			ExtrinsicsRoot: common.BytesToHash(testHash),
-		},
-		Body: types.NewBody([]byte{}),
+	blockData := &types.BlockData{
+		Hash:          common.Hash{},
+		Header:        header,
+		Body:          optional.NewBody(true, optional.CoreBody{}),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
 	}
 
 	res, err := syncer.executeBlock(blockData)
