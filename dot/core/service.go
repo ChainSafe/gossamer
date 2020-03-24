@@ -482,6 +482,15 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		return err
 	}
 
+	_, err = s.blockState.GetBlockBody(header.Hash())
+	if err != nil && err.Error() == "Key not found" {
+		// send block request message
+		log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
+		s.blockNumOut <- blockAnnounceMessage.Number
+	} else if err != nil {
+		return err
+	}
+
 	// send block request message
 	log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
 	s.blockNumOut <- blockAnnounceMessage.Number
