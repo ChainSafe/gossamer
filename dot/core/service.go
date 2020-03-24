@@ -563,7 +563,7 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 		}
 		// body
-		if (blockRequest.RequestedData & 2 >> 1) == 1 {
+		if (blockRequest.RequestedData&2)>>1 == 1 {
 			retData, err := s.blockState.GetBlockBody(hash)
 			if err == nil && retData != nil {
 				blockData.Body = retData.AsOptional()
