@@ -33,10 +33,7 @@ type BlockState interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	AddBlock(*types.Block) error
 	AddBlockWithArrivalTime(*types.Block, uint64) error
-
-	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
-
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (uint64, error)
