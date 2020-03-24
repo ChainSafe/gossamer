@@ -30,7 +30,6 @@ import (
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/database"
 )
@@ -450,7 +449,7 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 }
 
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
-	return dbutils.StoreBestBlockHash(bs.db.db, hash)
+	return StoreBestBlockHash(bs.db.db, hash)
 }
 
 // GetArrivalTime returns the arrival time of a block given its hash

@@ -22,7 +22,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -98,7 +97,7 @@ func (s *Service) Initialize(genesisHeader *types.Header, t *trie.Trie) error {
 
 	// load genesis hash into db
 	hash := genesisHeader.Hash()
-	err = dbutils.StoreBestBlockHash(db, hash)
+	err = StoreBestBlockHash(db, hash)
 	if err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func (s *Service) Start() error {
 	}
 
 	// retrieve latest header
-	bestHash, err := dbutils.LoadBestBlockHash(db)
+	bestHash, err := LoadBestBlockHash(db)
 	if err != nil {
 		return fmt.Errorf("cannot get latest hash: %s", err)
 	}
@@ -220,7 +219,7 @@ func (s *Service) Stop() error {
 	}
 
 	hash := s.Block.BestBlockHash()
-	err = dbutils.StoreBestBlockHash(s.db, hash)
+	err = StoreBestBlockHash(s.db, hash)
 	if err != nil {
 		return err
 	}
@@ -237,5 +236,5 @@ func (s *Service) Stop() error {
 
 // StoreHash stores the current root hash in the database at LatestStorageHashKey
 func (s *Service) storeHash() error {
-	return dbutils.StoreLatestStorageHash(s.db, s.Storage.trie)
+	return StoreLatestStorageHash(s.db, s.Storage.trie)
 }

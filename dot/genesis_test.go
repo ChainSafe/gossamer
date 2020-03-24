@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -102,7 +101,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 
 	defer stateSrvc.Stop()
 
-	gendata, err := dbutils.LoadGenesisData(stateSrvc.DB())
+	gendata, err := state.LoadGenesisData(stateSrvc.DB())
 	require.Nil(t, err)
 
 	testGenesis := NewTestGenesis(t)

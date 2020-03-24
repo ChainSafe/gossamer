@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -79,12 +78,12 @@ func NewStorageState(db database.Database, t *trie.Trie) (*StorageState, error) 
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
 func (s *StorageState) StoreInDB() error {
-	return dbutils.StoreTrie(s.db.db, s.trie)
+	return StoreTrie(s.db.db, s.trie)
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) error {
-	return dbutils.LoadTrie(s.db.db, s.trie, root)
+	return LoadTrie(s.db.db, s.trie, root)
 }
 
 // ExistsStorage check if the key exists in the storage trie

@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	"github.com/ChainSafe/gossamer/dot/state"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
@@ -47,7 +46,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	// load most recent state from database
-	latestState, err := dbutils.LoadLatestStorageHash(stateSrvc.DB())
+	latestState, err := state.LoadLatestStorageHash(stateSrvc.DB())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load latest state root hash: %s", err)
 	}

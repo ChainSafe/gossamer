@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package database
+package state
 
 import (
 	"fmt"
@@ -26,27 +26,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-var (
-	// BestBlockHashKey is the db location the hash of the best block header.
-	BestBlockHashKey = []byte("best_hash")
-	// LatestStorageHashKey is the db location of the hash of the latest storage trie.
-	LatestStorageHashKey = []byte("latest_storage_hash")
-	// GenesisDataKey is the db location of the genesis data.
-	GenesisDataKey = []byte("genesis_data")
-	// BlockTreeKey is the db location of the encoded block tree structure.
-	BlockTreeKey = []byte("block_tree")
-)
-
-// DB storage functions
-
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
 func StoreBestBlockHash(db database.Database, hash common.Hash) error {
-	return db.Put(BestBlockHashKey, hash[:])
+	return db.Put(common.BestBlockHashKey, hash[:])
 }
 
 // LoadBestBlockHash loads the hash stored at BestBlockHashKey
 func LoadBestBlockHash(db database.Database) (common.Hash, error) {
-	hash, err := db.Get(BestBlockHashKey)
+	hash, err := db.Get(common.BestBlockHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -61,12 +48,12 @@ func StoreGenesisData(db database.Database, gen *genesis.Data) error {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
 
-	return db.Put(GenesisDataKey, enc)
+	return db.Put(common.GenesisDataKey, enc)
 }
 
 // LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
 func LoadGenesisData(db database.Database) (*genesis.Data, error) {
-	enc, err := db.Get(GenesisDataKey)
+	enc, err := db.Get(common.GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +73,12 @@ func StoreLatestStorageHash(db database.Database, t *trie.Trie) error {
 		return err
 	}
 
-	return db.Put(LatestStorageHashKey, hash[:])
+	return db.Put(common.LatestStorageHashKey, hash[:])
 }
 
 // LoadLatestStorageHash retrieves the hash stored at LatestStorageHashKey from the DB
 func LoadLatestStorageHash(db database.Database) (common.Hash, error) {
-	hashbytes, err := db.Get(LatestStorageHashKey)
+	hashbytes, err := db.Get(common.LatestStorageHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}

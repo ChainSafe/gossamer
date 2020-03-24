@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
-	dbutils "github.com/ChainSafe/gossamer/lib/common/database"
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -107,19 +106,19 @@ func initTrieDatabase(t *trie.Trie, datadir string, gen *genesis.Genesis) error 
 // data in the trie database
 func storeGenesisData(t *trie.Trie, db database.Database, gen *genesis.Genesis) error {
 	// encode trie and write to database
-	err := dbutils.StoreTrie(db, t)
+	err := state.StoreTrie(db, t)
 	if err != nil {
 		return fmt.Errorf("failed to encode trie and write to database: %s", err)
 	}
 
 	// store genesis hash in database
-	err = dbutils.StoreLatestStorageHash(db, t)
+	err = state.StoreLatestStorageHash(db, t)
 	if err != nil {
 		return fmt.Errorf("failed to store genesis hash in database: %s", err)
 	}
 
 	// store genesis data in database
-	err = dbutils.StoreGenesisData(db, gen.GenesisData())
+	err = state.StoreGenesisData(db, gen.GenesisData())
 	if err != nil {
 		return fmt.Errorf("failed to store genesis data in database: %s", err)
 	}
