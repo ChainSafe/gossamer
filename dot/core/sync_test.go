@@ -400,7 +400,7 @@ func TestCoreExecuteBlock(t *testing.T) {
 	//  core_executeBlock fails if Digest and Body data are sent
 	testHash, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.Nil(t, err)
-	blockData := types.Block{
+	blockData := &types.Block{
 		Header: &types.Header{
 			ParentHash:     common.BytesToHash(testHash),
 			Number:         big.NewInt(1),
@@ -410,10 +410,7 @@ func TestCoreExecuteBlock(t *testing.T) {
 		Body: types.NewBody([]byte{}),
 	}
 
-	bdEnc, err := blockData.Encode()
-	require.Nil(t, err)
-
-	res, err := syncer.executeBlock(bdEnc)
+	res, err := syncer.executeBlock(blockData)
 	require.Nil(t, err)
 
 	// if execute block return a non-empty byte array, something when wrong
