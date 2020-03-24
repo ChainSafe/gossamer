@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	mrand "math/rand"
 	"reflect"
@@ -288,7 +287,7 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 			}
 		}
 
-		err := s.compareAndSetBlockData(bd)
+		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
 			return highestInResp, err
 		}
