@@ -491,10 +491,6 @@ func (s *Service) ProcessBlockAnnounceMessage(msg network.Message) error {
 		return err
 	}
 
-	// send block request message
-	log.Debug("[core] sending new block to syncer", "number", blockAnnounceMessage.Number)
-	s.blockNumOut <- blockAnnounceMessage.Number
-
 	return nil
 }
 
@@ -560,7 +556,7 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		blockData.Justification = optional.NewBytes(false, nil)
 
 		// header
-		if blockRequest.RequestedData&1 == 1 {
+		if (blockRequest.RequestedData & 1) == 1 {
 			log.Debug("msg.RequestedData & 1, GetHeader")
 			retData, err := s.blockState.GetHeader(hash)
 			if err == nil && retData != nil {
@@ -568,7 +564,7 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 		}
 		// body
-		if blockRequest.RequestedData&2>>1 == 1 {
+		if (blockRequest.RequestedData & 2 >> 1) == 1 {
 			log.Debug("msg.RequestedData & 2, GetBlockBody")
 			retData, err := s.blockState.GetBlockBody(hash)
 			if err == nil && retData != nil {
