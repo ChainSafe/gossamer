@@ -513,18 +513,6 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 	var startHash common.Hash
 	var endHash common.Hash
 
-	if msg.StartingBlock == nil {
-		return nil, fmt.Errorf("msg.StartingBlock is nil")
-	}
-
-	if msg.EndBlockHash == nil {
-		return nil, fmt.Errorf("msg.EndBlockHash is nil")
-	}
-
-	if msg.StartingBlock.Value() == nil {
-		return nil, fmt.Errorf("msg.StartingBlock.Value is nil")
-	}
-
 	switch c := msg.StartingBlock.Value().(type) {
 	case uint64:
 		if c == 0 {

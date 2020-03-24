@@ -21,7 +21,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	log "github.com/ChainSafe/log15"
 	"github.com/disiqueira/gotree"
 )
 
@@ -83,16 +82,6 @@ func (n *node) subChain(descendant *node) ([]*node, error) {
 	}
 
 	for curr := descendant; curr != nil; curr = curr.parent {
-		// if curr == nil {
-		// 	return nil, fmt.Errorf("could not find descendant node")
-		// }
-
-		// if curr.depth == n.depth {
-		// 	return path
-		// }
-
-		log.Trace("[subchain]", "depth", curr.depth, "hash", curr.hash)
-
 		path = append([]*node{curr}, path...)
 		if curr.hash == n.hash {
 			return path, nil

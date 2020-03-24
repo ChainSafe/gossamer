@@ -225,10 +225,6 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				return 0, err
 			}
 
-			if header.Number.Cmp(big.NewInt(0)) == 0 {
-
-			}
-
 			// get block header; if exists, return
 			existingHeader, err := s.blockState.GetHeader(bd.Hash)
 			if err != nil && existingHeader == nil {
@@ -264,8 +260,6 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 			}
 
 			// TODO: execute block and verify authorship right
-
-			log.Debug("[sync] trying to import block", "num", header.Number)
 
 			err = s.blockState.AddBlock(block)
 			if err != nil {

@@ -388,14 +388,17 @@ func (s *Service) Peers() []common.PeerInfo {
 
 	for _, p := range s.host.peers() {
 		if s.status.confirmed(p) {
-			msg := s.status.peerMessage[p]
-			peers = append(peers, common.PeerInfo{
-				PeerID:          p.String(),
-				Roles:           msg.Roles,
-				ProtocolVersion: msg.ProtocolVersion,
-				BestHash:        msg.BestBlockHash,
-				BestNumber:      msg.BestBlockNumber,
-			})
+			m, ok := s.status.peerMessage.Load(p)
+			msg := m.(*StatusMessage)
+			if ok {
+				peers = append(peers, common.PeerInfo{
+					PeerID:          p.String(),
+					Roles:           msg.Roles,
+					ProtocolVersion: msg.ProtocolVersion,
+					BestHash:        msg.BestBlockHash,
+					BestNumber:      msg.BestBlockNumber,
+				})
+			}
 		}
 	}
 	return peers
