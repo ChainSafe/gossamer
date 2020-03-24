@@ -1,10 +1,15 @@
 package core
 
 import (
+	"encoding/hex"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/tests"
@@ -377,4 +382,40 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum-int(maxResponseSize))
 	}
 
+}
+
+func TestCoreExecuteBlock(t *testing.T) {
+	blockNumberIn := make(chan *big.Int)
+	msgOut := make(chan network.Message)
+
+	cfg := &SyncerConfig{
+		BlockNumIn: blockNumberIn,
+		MsgOut:     msgOut,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+	syncer.Start()
+
+	// prepare block for sending to core_executeBlock,
+	//  core_executeBlock fails if Digest and Body data are sent
+	testHash, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.Nil(t, err)
+	blockData := types.Block{
+		Header: &types.Header{
+			ParentHash:     common.BytesToHash(testHash),
+			Number:         big.NewInt(1),
+			StateRoot:      common.BytesToHash(testHash),
+			ExtrinsicsRoot: common.BytesToHash(testHash),
+		},
+		Body: types.NewBody([]byte{}),
+	}
+
+	bdEnc, err := blockData.Encode()
+	require.Nil(t, err)
+
+	res, err := syncer.executeBlock(bdEnc)
+	require.Nil(t, err)
+
+	// if execute block return a non-empty byte array, something when wrong
+	require.Equal(t, []byte{}, res)
 }
