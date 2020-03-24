@@ -278,9 +278,9 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				} else {
 					return 0, err
 				}
+			} else {
+				log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
 			}
-
-			log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
 		}
 
 		err := s.compareAndSetBlockData(bd)

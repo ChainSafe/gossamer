@@ -321,9 +321,22 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
 
-			err := s.safeMsgSend(msg)
-			if err != nil {
-				log.Error("[network] Failed to send message", "error", err)
+			if resp, ok := msg.(*BlockResponseMessage); ok {
+				if s.syncer.hasRequestedBlockID(resp.ID) {
+					err := s.safeMsgSend(msg)
+					if err != nil {
+						log.Error("[network] Failed to send message", "error", err)
+					}
+
+					s.syncer.removeRequestedBlockID(resp.ID)
+				} else {
+					// ignore for now, but eventually we want to re-gossip once gossip is improved
+				}
+			} else {
+				err := s.safeMsgSend(msg)
+				if err != nil {
+					log.Error("[network] Failed to send message", "error", err)
+				}
 			}
 
 		}

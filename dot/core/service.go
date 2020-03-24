@@ -527,10 +527,8 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 
 	switch c := msg.StartingBlock.Value().(type) {
 	case uint64:
-		log.Info("[core] BlockRequest", "start", c)
 		if c == 0 {
-			log.Warn("[core] got BlockRequest with starting block=0")
-			//c = 1
+			c = 1
 		}
 
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(c))
@@ -562,7 +560,7 @@ func (s *Service) createBlockResponse(msg *network.BlockRequestMessage) (*networ
 		subchain = subchain[:maxResponseSize]
 	}
 
-	log.Info("[core] subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
+	log.Trace("[core] subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
 
 	responseData := []*types.BlockData{}
 
