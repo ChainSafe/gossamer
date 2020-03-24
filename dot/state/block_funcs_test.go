@@ -17,31 +17,17 @@
 package state
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/tests"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 func TestGetSetReceiptMessageQueueJustification(t *testing.T) {
-	tt := trie.NewEmptyTrie(nil)
-
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	pubkey := kp.Public().Encode()
-	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
-	require.Nil(t, err)
-
-	ks := keystore.NewKeystore()
-	ks.Insert(kp)
-
 	s := newTestBlockState(nil)
 	require.NotNil(t, s)
 
