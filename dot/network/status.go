@@ -52,12 +52,11 @@ func newStatus(host *host) *status {
 
 // confirmed returns true if peer is confirmed
 func (status *status) confirmed(peer peer.ID) bool {
-	t, ok := status.peerConfirmed.Load(peer)
-	if !ok {
-		return false
+	if t, ok := status.peerConfirmed.Load(peer); ok {
+		return !t.(time.Time).IsZero()
 	}
 
-	return !t.(time.Time).IsZero()
+	return false
 }
 
 // setHostMessage sets the host status message

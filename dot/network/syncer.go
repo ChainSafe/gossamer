@@ -52,12 +52,12 @@ func (s *syncer) addRequestedBlockID(blockID uint64) {
 
 // hasRequestedBlockID returns true if the block id has been requested
 func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
-	requested, ok := s.requestedBlockIDs.Load(blockID)
-	if !ok {
-		return false
+	if requested, ok := s.requestedBlockIDs.Load(blockID); ok {
+		log.Trace("[network] Checking block in network syncer...", "block", blockID, "requested", requested)
+		return requested.(bool)
 	}
-	log.Trace("[network] Checking block in network syncer...", "block", blockID, "requested", requested)
-	return requested.(bool)
+
+	return false
 }
 
 // removeRequestedBlockID removes a requested block id from non-persistent state

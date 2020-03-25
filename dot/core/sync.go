@@ -266,8 +266,10 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 					return 0, err
 				} else if strings.Contains(err.Error(), "cannot add block to blocktree that already exists") {
 					// this is fine
+					continue
 				} else if header.Number.Cmp(big.NewInt(0)) == 0 {
 					// this is fine
+					continue
 				} else {
 					return 0, err
 				}

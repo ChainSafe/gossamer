@@ -325,7 +325,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 				if s.syncer.hasRequestedBlockID(resp.ID) {
 					err := s.safeMsgSend(msg)
 					if err != nil {
-						log.Error("[network] Failed to send message", "error", err)
+						log.Error("[network] Failed to send message", "ID", resp.ID, "error", err)
 					}
 
 					s.syncer.removeRequestedBlockID(resp.ID)
@@ -388,9 +388,12 @@ func (s *Service) Peers() []common.PeerInfo {
 
 	for _, p := range s.host.peers() {
 		if s.status.confirmed(p) {
-			m, ok := s.status.peerMessage.Load(p)
-			msg := m.(*StatusMessage)
-			if ok {
+			if m, ok := s.status.peerMessage.Load(p); ok {
+				msg, ok := m.(*StatusMessage)
+				if !ok {
+					return peers
+				}
+
 				peers = append(peers, common.PeerInfo{
 					PeerID:          p.String(),
 					Roles:           msg.Roles,
