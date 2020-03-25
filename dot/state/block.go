@@ -323,7 +323,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 
 	// add block to blocktree
-	err = bs.bt.AddBlock(block)
+	err = bs.bt.AddBlock(block, arrivalTime)
 	if err != nil {
 		return err
 	}
@@ -335,13 +335,17 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 	hash := block.Header.Hash()
 
+	// set best block key if this is the highest block we've seen
 	// TODO: update to use canonical path
-	err = bs.setBestBlockHashKey(hash)
-	if err != nil {
-		return err
+	if block.Header.Number.Cmp(bs.highestBlockHeader.Number) == 1 {
+		err = bs.setBestBlockHashKey(hash)
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO: only set number->hash mapping for our canonical chain, otherwise, this messes up BlockResponses
+	// store number to hash
 	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 	if err != nil {
 		return err
@@ -435,7 +439,7 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 }
 
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
-	return bs.db.db.Put(common.BestBlockHashKey, hash[:])
+	return StoreBestBlockHash(bs.db.db, hash)
 }
 
 // GetArrivalTime returns the arrival time of a block given its hash
