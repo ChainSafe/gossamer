@@ -385,7 +385,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 
 }
 
-func TestCoreExecuteBlock(t *testing.T) {
+func TestCoreExecuteBlock_ok(t *testing.T) {
 	syncer := newTestSyncer(t, nil)
 
 	cHeader := &optional.CoreHeader{
@@ -411,4 +411,32 @@ func TestCoreExecuteBlock(t *testing.T) {
 
 	// if execute block return a non-empty byte array, something when wrong
 	require.Equal(t, []byte{}, res)
+}
+
+func TestCoreExecuteBlock_fails(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+
+	cHeader := &optional.CoreHeader{
+		ParentHash:     common.Hash{}, // executeBlock fails empty or 0 hash
+		Number:         big.NewInt(0),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
+	}
+	header := optional.NewHeader(true, cHeader)
+
+	blockData := &types.BlockData{
+		Hash:          common.Hash{},
+		Header:        header,
+		Body:          optional.NewBody(true, optional.CoreBody{}),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}
+
+	res, err := syncer.executeBlock(blockData)
+	require.Error(t, err)  // expect error since header.ParentHash is empty
+
+	// if execute block return a non-empty byte array, something when wrong
+	require.Equal(t, []byte(nil), res)
 }
