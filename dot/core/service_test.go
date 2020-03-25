@@ -593,3 +593,20 @@ func TestProcessBlockAnnounce(t *testing.T) {
 		t.Error("timeout waiting for message")
 	}
 }
+
+func TestService_ProcessBlockAnnounceMessageRequest(t *testing.T) {
+	s := newTestService(t, nil)
+	err := s.Start()
+	require.Nil(t, err)
+
+	msg := &network.BlockAnnounceMessage{
+		Number:         big.NewInt(1),
+		ParentHash:     testGenesisHeader.Hash(),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
+	}
+
+	err = s.ProcessBlockAnnounceMessage(msg)
+	require.Nil(t, err)
+}
