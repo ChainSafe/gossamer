@@ -440,3 +440,44 @@ func TestCoreExecuteBlock_fails(t *testing.T) {
 	// if execute block return a non-empty byte array, something when wrong
 	require.Equal(t, []byte(nil), res)
 }
+
+func TestHandleBlockResponse_NoBlockData(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+	msg := &network.BlockResponseMessage{
+		ID:        0,
+		BlockData: nil,
+	}
+	res, err := syncer.handleBlockResponse(msg)
+	require.Nil(t, err)
+
+	t.Logf("res %v", res)
+}
+
+func TestHandleBlockResponse_BadBlockData(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+
+	cHeader := &optional.CoreHeader{
+		ParentHash:     common.Hash{}, // executeBlock fails empty or 0 hash
+		Number:         big.NewInt(0),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
+	}
+	header := optional.NewHeader(true, cHeader)
+	bd := []*types.BlockData{{
+		Hash:          common.Hash{},
+		Header:        header,
+		Body:          optional.NewBody(true, optional.CoreBody{}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}}
+	msg := &network.BlockResponseMessage{
+		ID:        0,
+		BlockData: bd,
+	}
+	res, err := syncer.handleBlockResponse(msg)
+	require.Error(t, err)
+
+	require.Equal(t, int64(0), res)
+}
