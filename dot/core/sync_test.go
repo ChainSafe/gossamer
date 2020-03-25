@@ -435,7 +435,7 @@ func TestCoreExecuteBlock_fails(t *testing.T) {
 	}
 
 	res, err := syncer.executeBlock(blockData)
-	require.Error(t, err)  // expect error since header.ParentHash is empty
+	require.Error(t, err) // expect error since header.ParentHash is empty
 
 	// if execute block return a non-empty byte array, something when wrong
 	require.Equal(t, []byte(nil), res)
