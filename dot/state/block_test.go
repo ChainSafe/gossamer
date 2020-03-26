@@ -48,7 +48,6 @@ func newTestBlockState(header *types.Header) *BlockState {
 
 func TestSetAndGetHeader(t *testing.T) {
 	bs := newTestBlockState(nil)
-	defer bs.db.db.Close()
 
 	header := &types.Header{
 		Number:    big.NewInt(0),
@@ -106,11 +105,9 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	bs := newTestBlockState(genesisHeader)
-	defer bs.db.db.Close()
 
 	// Create header
 	header0 := &types.Header{
-
 		Number:     big.NewInt(0),
 		Digest:     [][]byte{},
 		ParentHash: genesisHeader.Hash(),
@@ -182,7 +179,6 @@ func TestGetSlotForBlock(t *testing.T) {
 	}
 
 	bs := newTestBlockState(genesisHeader)
-	defer bs.db.db.Close()
 
 	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
 	if err != nil {
@@ -212,5 +208,50 @@ func TestGetSlotForBlock(t *testing.T) {
 
 	if !reflect.DeepEqual(res, expectedSlot) {
 		t.Fatalf("Fail: got %x expected %x", res, expectedSlot)
+	}
+}
+
+func TestAddBlock_BlockNumberToHash(t *testing.T) {
+	genesisHeader := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	bs := newTestBlockState(genesisHeader)
+	//branches := addBlocksToState(bs, 8)
+	addBlocksToState(bs, 8)
+
+	bestHash := bs.BestBlockHash()
+	bestHeader, err := bs.BestBlockHeader()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	currHash := bestHash
+
+	for num := bestHeader.Number; num.Cmp(big.NewInt(1)) > 0; num.Sub(num, big.NewInt(1)) {
+		block, err := bs.GetBlockByNumber(num)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if currHash != block.Header.Hash() {
+			t.Fatalf("Fail: got %s expected %s for block %d", currHash, block.Header.Hash(), num)
+		}
+
+		currHash = block.Header.ParentHash
+	}
+
+	newBlock := &types.Block{
+		Header: &types.Header{
+			ParentHash: bestHash,
+			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
+		},
+		Body: &types.Body{},
+	}
+
+	err = bs.AddBlock(newBlock)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

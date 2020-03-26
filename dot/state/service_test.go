@@ -90,14 +90,14 @@ func TestMemDB_Start(t *testing.T) {
 	state.Stop()
 }
 
-func addBlocksToState(blockState *BlockState, depth int) {
-	previousHash := blockState.BestBlockHash()
+// branch tree randomly
+type testBranch struct {
+	hash  common.Hash
+	depth int
+}
 
-	// branch tree randomly
-	type testBranch struct {
-		hash  common.Hash
-		depth int
-	}
+func addBlocksToState(blockState *BlockState, depth int) []testBranch {
+	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
 	r := *rand.New(rand.NewSource(rand.Int63()))
@@ -143,6 +143,8 @@ func addBlocksToState(blockState *BlockState, depth int) {
 			previousHash = hash
 		}
 	}
+
+	return branches
 }
 
 func TestService_BlockTree(t *testing.T) {

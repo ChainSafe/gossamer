@@ -344,9 +344,11 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	}
 
 	// store number to hash
-	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
-	if err != nil {
-		return err
+	if ok, err := bs.isBlockOnCurrentChain(block.Header); ok && err == nil {
+		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value))
