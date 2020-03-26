@@ -268,7 +268,6 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 					// this is fine
 					continue
 				} else if header.Number.Cmp(big.NewInt(0)) == 0 {
-					// this is fine
 					continue
 				} else {
 					return 0, err
