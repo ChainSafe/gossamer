@@ -242,4 +242,20 @@ func TestHandleMessage_BlockResponse(t *testing.T) {
 	case <-time.After(TestMessageTimeout):
 		// expected
 	}
+
+	reqMsg := &BlockRequestMessage{}
+	s.handleMessage(peerID, reqMsg)
+
+	select {
+	case recv := <-msgSend:
+		if !reflect.DeepEqual(recv, reqMsg) {
+			t.Error(
+				"node B received unexpected message",
+				"\nexpected:", reqMsg,
+				"\nreceived:", recv,
+			)
+		}
+	case <-time.After(TestMessageTimeout):
+		t.Error("timeout waiting for message")
+	}
 }
