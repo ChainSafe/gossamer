@@ -220,7 +220,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 
 	bs := newTestBlockState(genesisHeader)
 	branches := addBlocksToState(bs, 8)
-	
+
 	for _, branch := range branches {
 		fmt.Printf("branch hash=%s depth=%d\n", branch.hash, branch.depth)
 	}

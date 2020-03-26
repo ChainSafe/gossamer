@@ -114,7 +114,6 @@ func addBlocksToState(blockState *BlockState, depth int) []testBranch {
 			Body: &types.Body{},
 		}
 
-
 		fmt.Printf("hash=%s number=%d\n", block.Header.Hash(), block.Header.Number)
 		hash := block.Header.Hash()
 		blockState.AddBlock(block)
