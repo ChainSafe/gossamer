@@ -17,6 +17,7 @@
 package state
 
 import (
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -211,6 +212,20 @@ func TestGetSlotForBlock(t *testing.T) {
 	}
 }
 
+func TestIsBlockOnCurrentChain(t *testing.T) {
+	genesisHeader := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	bs := newTestBlockState(genesisHeader)
+	branches := addBlocksToState(bs, 8)
+	
+	for _, branch := range branches {
+		fmt.Printf("branch hash=%s depth=%d\n", branch.hash, branch.depth)
+	}
+}
+
 func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	genesisHeader := &types.Header{
 		Number:    big.NewInt(0),
@@ -218,7 +233,9 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	bs := newTestBlockState(genesisHeader)
-	//branches := addBlocksToState(bs, 8)
+	branches := addBlocksToState(bs, 8)
+	t.Log(branches)
+
 	addBlocksToState(bs, 8)
 
 	bestHash := bs.BestBlockHash()
