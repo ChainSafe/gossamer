@@ -343,7 +343,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		}
 	}
 
-	// Tonly set number->hash mapping for our current chain
+	// only set number->hash mapping for our current chain
 	if ok, err := bs.isBlockOnCurrentChain(block.Header); ok && err == nil {
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
