@@ -93,7 +93,6 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 		arrivalTime: arrivalTime,
 	}
 	parent.addChild(n)
-
 	bt.leaves.replace(parent, n)
 
 	return nil

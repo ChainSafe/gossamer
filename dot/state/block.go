@@ -336,15 +336,14 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	hash := block.Header.Hash()
 
 	// set best block key if this is the highest block we've seen
-	if block.Header.Number.Cmp(bs.highestBlockHeader.Number) == 1 || hash == bs.BestBlockHash() {
+	if hash == bs.BestBlockHash() {
 		err = bs.setBestBlockHashKey(hash)
 		if err != nil {
 			return err
 		}
 	}
 
-	// TODO: only set number->hash mapping for our canonical chain, otherwise, this messes up BlockResponses
-	// store number to hash
+	// Tonly set number->hash mapping for our current chain
 	if ok, err := bs.isBlockOnCurrentChain(block.Header); ok && err == nil {
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {

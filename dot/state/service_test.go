@@ -17,7 +17,6 @@
 package state
 
 import (
-	"fmt"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -97,11 +96,15 @@ type testBranch struct {
 	depth int
 }
 
-func addBlocksToState(blockState *BlockState, depth int) []testBranch {
+func addBlocksToState(blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
 	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
 	r := *rand.New(rand.NewSource(rand.Int63()))
+
+	arrivalTime := uint64(1)
+	currentChain := []*types.Header{}
+	branchChains := []*types.Header{}
 
 	// create base tree
 	for i := 1; i <= depth; i++ {
@@ -114,9 +117,10 @@ func addBlocksToState(blockState *BlockState, depth int) []testBranch {
 			Body: &types.Body{},
 		}
 
-		fmt.Printf("hash=%s number=%d\n", block.Header.Hash(), block.Header.Number)
+		currentChain = append(currentChain, block.Header)
+
 		hash := block.Header.Hash()
-		blockState.AddBlock(block)
+		blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		previousHash = hash
 
 		isBranch := r.Intn(2)
@@ -126,27 +130,34 @@ func addBlocksToState(blockState *BlockState, depth int) []testBranch {
 				depth: i,
 			})
 		}
+
+		arrivalTime++
 	}
 
 	// create tree branches
 	for _, branch := range branches {
-		for i := branch.depth; i <= depth; i++ {
+		for i := branch.depth; i < depth; i++ {
 			block := &types.Block{
 				Header: &types.Header{
-					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i)),
+					ParentHash: branch.hash,
+					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
+					Digest:     [][]byte{{byte(i)}},
 				},
 				Body: &types.Body{},
 			}
 
+			branchChains = append(branchChains, block.Header)
+
 			hash := block.Header.Hash()
-			blockState.AddBlock(block)
+			blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			previousHash = hash
+
+			arrivalTime++
 		}
 	}
 
-	return branches
+	return currentChain, branchChains
 }
 
 func TestService_BlockTree(t *testing.T) {

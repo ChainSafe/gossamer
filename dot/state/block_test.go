@@ -17,7 +17,6 @@
 package state
 
 import (
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -219,10 +218,26 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	}
 
 	bs := newTestBlockState(genesisHeader)
-	branches := addBlocksToState(bs, 8)
+	currChain, branchChains := addBlocksToState(bs, 8)
 
-	for _, branch := range branches {
-		fmt.Printf("branch hash=%s depth=%d\n", branch.hash, branch.depth)
+	for _, header := range currChain {
+		ok, err := bs.isBlockOnCurrentChain(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok {
+			t.Fatalf("Fail: expected block %s to be on current chain", header.Hash())
+		}
+	}
+
+	for _, header := range branchChains {
+		ok, err := bs.isBlockOnCurrentChain(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ok {
+			t.Fatalf("Fail: expected block %s not to be on current chain", header.Hash())
+		}
 	}
 }
 
@@ -233,10 +248,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	bs := newTestBlockState(genesisHeader)
-	branches := addBlocksToState(bs, 8)
-	t.Log(branches)
-
-	addBlocksToState(bs, 8)
+	currChain, branchChains := addBlocksToState(bs, 8)
 
 	bestHash := bs.BestBlockHash()
 	bestHeader, err := bs.BestBlockHeader()
@@ -244,19 +256,26 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	currHash := bestHash
-
-	for num := bestHeader.Number; num.Cmp(big.NewInt(1)) > 0; num.Sub(num, big.NewInt(1)) {
-		block, err := bs.GetBlockByNumber(num)
+	for _, header := range currChain {
+		resBlock, err := bs.GetBlockByNumber(header.Number)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if currHash != block.Header.Hash() {
-			t.Fatalf("Fail: got %s expected %s for block %d", currHash, block.Header.Hash(), num)
+		if resBlock.Header.Hash() != header.Hash() {
+			t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), header.Hash(), header.Number)
+		}
+	}
+
+	for _, header := range branchChains {
+		resBlock, err := bs.GetBlockByNumber(header.Number)
+		if err != nil {
+			t.Fatal(err)
 		}
 
-		currHash = block.Header.ParentHash
+		if resBlock.Header.Hash() == header.Hash() {
+			t.Fatalf("Fail: should not have gotten block %s for branch block num=%d", header.Hash(), header.Number)
+		}
 	}
 
 	newBlock := &types.Block{
@@ -270,5 +289,14 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	err = bs.AddBlock(newBlock)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	resBlock, err := bs.GetBlockByNumber(newBlock.Header.Number)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resBlock.Header.Hash() != newBlock.Header.Hash() {
+		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)
 	}
 }
