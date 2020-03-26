@@ -136,10 +136,12 @@ func addBlocksToState(blockState *BlockState, depth int) ([]*types.Header, []*ty
 
 	// create tree branches
 	for _, branch := range branches {
+		previousHash = branch.hash
+
 		for i := branch.depth; i < depth; i++ {
 			block := &types.Block{
 				Header: &types.Header{
-					ParentHash: branch.hash,
+					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
 					Digest:     [][]byte{{byte(i)}},

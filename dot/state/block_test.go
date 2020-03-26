@@ -256,8 +256,9 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	var resBlock *types.Block
 	for _, header := range currChain {
-		resBlock, err := bs.GetBlockByNumber(header.Number)
+		resBlock, err = bs.GetBlockByNumber(header.Number)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -268,7 +269,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	for _, header := range branchChains {
-		resBlock, err := bs.GetBlockByNumber(header.Number)
+		resBlock, err = bs.GetBlockByNumber(header.Number)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -291,7 +292,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resBlock, err := bs.GetBlockByNumber(newBlock.Header.Number)
+	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
 	if err != nil {
 		t.Fatal(err)
 	}
