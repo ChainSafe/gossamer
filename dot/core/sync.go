@@ -262,7 +262,18 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				Body:   body,
 			}
 
-			res, err := s.executeBlock(bd)
+			aBlock := &types.Block{
+				Header: &types.Header{
+					ParentHash:     block.Header.ParentHash,
+					Number:         block.Header.Number,
+					StateRoot:      block.Header.StateRoot,
+					ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+					Digest:         nil,
+				},
+				Body:   types.NewBody([]byte{}),
+			}
+
+			res, err := s.executeBlock(aBlock)
 			if err != nil {
 				log.Error("[core] failed to validate block", "err", err)
 				return 0, err
@@ -299,11 +310,14 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 // runs the block through runtime function Core_execute_block
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Syncer) executeBlock(bd *types.BlockData) ([]byte, error) {
-
+func (s *Syncer) executeBlock(bd *types.Block) ([]byte, error) {
 	bdEnc, err := bd.Encode()
 	if err != nil {
 		return nil, err
 	}
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
+}
+
+func (s *Syncer) executeBlockBytes(bd []byte) ([]byte, error) {
+	return s.runtime.Exec(runtime.CoreExecuteBlock, bd)
 }
