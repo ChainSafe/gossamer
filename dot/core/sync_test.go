@@ -2,12 +2,13 @@ package core
 
 import (
 	"encoding/hex"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/tests"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -421,8 +422,8 @@ func TestCoreExecuteBlock(t *testing.T) {
 	}
 
 	block := &types.Block{
-		Header:        cHeader,
-		Body:          types.NewBody([]byte{}),
+		Header: cHeader,
+		Body:   types.NewBody([]byte{}),
 	}
 
 	res, err := syncer.executeBlock(block)

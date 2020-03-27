@@ -272,7 +272,7 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 					ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 					Digest:         nil,
 				},
-				Body:   types.NewBody([]byte{}),
+				Body: types.NewBody([]byte{}),
 			}
 
 			res, err := s.executeBlock(aBlock)
