@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"math/big"
 	mrand "math/rand"
 	"sync"
