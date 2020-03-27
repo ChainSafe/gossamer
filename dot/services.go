@@ -76,7 +76,7 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 	}
 
 	// create runtime executor
-	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks)
+	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImportsOld)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	//"github.com/ChainSafe/gossamer/tests"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,7 @@ func NewTestRuntime(t *testing.T, targetRuntime string) *Runtime {
 
 // NewTestRuntimeWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
 func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Runtime {
-	testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(targetRuntime)
+	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
@@ -50,7 +51,7 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
-	r, err := NewRuntimeFromFile(fp, rs, keystore.NewKeystore(), registerImports)
+	r, err := NewRuntimeFromFile(fp, rs, keystore.NewKeystore(), importsFunc)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 
@@ -59,13 +60,13 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *
 
 //nolint
 const (
-	POLKADOT_RUNTIME     = "polkadot_runtime"
-	POLKADOT_RUNTIME_FP  = "substrate_test_runtime_old.compact.wasm"
-	POLKADOT_RUNTIME_URL = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	POLKADOT_RUNTIME_OLD     = "polkadot_runtime"
+	POLKADOT_RUNTIME_FP_OLD  = "substrate_test_runtime_old.compact.wasm"
+	POLKADOT_RUNTIME_URL_OLD = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
-	POLKADOT_RUNTIME_2     = "polkadot_runtime_2"
-	POLKADOT_RUNTIME_FP_2  = "substrate_test_runtime.compact.wasm"
-	POLKADOT_RUNTIME_URL_2 = "https://github.com/noot/substrate/blob/add-blob-032720/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	POLKADOT_RUNTIME     = "polkadot_runtime_2"
+	POLKADOT_RUNTIME_FP  = "substrate_test_runtime.compact.wasm"
+	POLKADOT_RUNTIME_URL = "https://github.com/noot/substrate/blob/add-blob-032720/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 	TEST_RUNTIME  = "test_runtime"
 	TESTS_FP      = "test_wasm.wasm"
@@ -85,14 +86,24 @@ func GetAbsolutePath(targetDir string) string {
 }
 
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
-func GetRuntimeVars(targetRuntime string) (string, string) {
+func GetRuntimeVars(targetRuntime string) (string, string, func() (*wasm.Imports, error)) {
 	testRuntimeFilePath, testRuntimeURL := GetAbsolutePath(TESTS_FP), TEST_WASM_URL
 
 	// If target runtime is polkadot, re-assign vars
 	if targetRuntime == POLKADOT_RUNTIME {
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	}
-	return testRuntimeFilePath, testRuntimeURL
+
+	var registerImports func() (*wasm.Imports, error)
+	switch targetRuntime {
+	case POLKADOT_RUNTIME_OLD:
+		registerImports = RegisterImportsOld
+	case POLKADOT_RUNTIME:
+		registerImports = RegisterImports
+	default:
+		registerImports = RegisterImports
+	}
+	return testRuntimeFilePath, testRuntimeURL, registerImports
 }
 
 // GetRuntimeBlob checks if the test wasm @testRuntimeFilePath exists and if not, it fetches it from @testRuntimeURL
