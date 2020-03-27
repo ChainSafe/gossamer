@@ -30,8 +30,12 @@ import (
 //nolint
 const (
 	POLKADOT_RUNTIME     = "polkadot_runtime"
-	POLKADOT_RUNTIME_FP  = "substrate_test_runtime.compact.wasm"
+	POLKADOT_RUNTIME_FP  = "substrate_test_runtime_old.compact.wasm"
 	POLKADOT_RUNTIME_URL = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+
+	POLKADOT_RUNTIME_2     = "polkadot_runtime_2"
+	POLKADOT_RUNTIME_FP_2  = "substrate_test_runtime.compact.wasm"
+	POLKADOT_RUNTIME_URL_2 = "https://github.com/noot/substrate/blob/add-blob-032720/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 	TEST_RUNTIME  = "test_runtime"
 	TESTS_FP      = "test_wasm.wasm"

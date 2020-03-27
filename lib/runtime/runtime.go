@@ -47,18 +47,18 @@ type Runtime struct {
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, s Storage, ks *keystore.Keystore) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, s Storage, ks *keystore.Keystore, registerImports func() (*wasm.Imports, error)) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, s, ks)
+	return NewRuntime(bytes, s, ks, registerImports)
 }
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, s Storage, ks *keystore.Keystore) (*Runtime, error) {
+func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports func() (*wasm.Imports, error)) (*Runtime, error) {
 	if s == nil {
 		return nil, errors.New("runtime does not have storage trie")
 	}
