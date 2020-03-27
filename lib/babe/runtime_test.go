@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/tests"
+	//"github.com/ChainSafe/gossamer/tests"
 )
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {
@@ -68,7 +68,7 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {

@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	allocator "github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	log "github.com/ChainSafe/log15"
@@ -33,7 +32,7 @@ import (
 // Ctx struct
 type Ctx struct {
 	storage   Storage
-	allocator *allocator.FreeingBumpHeapAllocator
+	allocator *FreeingBumpHeapAllocator
 	keystore  *keystore.Keystore
 }
 
@@ -43,7 +42,7 @@ type Runtime struct {
 	storage   Storage
 	keystore  *keystore.Keystore
 	mutex     sync.Mutex
-	allocator *allocator.FreeingBumpHeapAllocator
+	allocator *FreeingBumpHeapAllocator
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
@@ -74,7 +73,7 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 		return nil, err
 	}
 
-	memAllocator := allocator.NewAllocator(instance.Memory, 0)
+	memAllocator := NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := Ctx{
 		storage:   s,
