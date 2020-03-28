@@ -61,7 +61,7 @@ func TestSeal(t *testing.T) {
 	}
 }
 
-func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.Block, Slot) {
+func createTestBlock(babesession *Session, exts [][]byte, t *testing.T, parentHeader *types.Header) (*types.Block, Slot) {
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
 	babesession.authorityIndex = 0
@@ -79,18 +79,21 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 	babesession.slotToProof[slotNumber] = outAndProof
 
 	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(types.Extrinsic(ext), &transaction.Validity{})
+		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		babesession.transactionQueue.Push(vtx)
 	}
 
-	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
+	if parentHeader == nil {
+		zeroHash, err := common.HexToHash("0x00")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	parentHeader := &types.Header{
-		ParentHash: zeroHash,
-		Number:     big.NewInt(0),
+		parentHeader = &types.Header{
+			ParentHash: zeroHash,
+			Number:     big.NewInt(0),
+		}
+
 	}
 
 	slot := Slot{
@@ -124,7 +127,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	exts := [][]byte{txb}
 
-	block, slot := createTestBlock(babesession, exts, t)
+	block, slot := createTestBlock(babesession, exts, t, nil)
 
 	// hash of parent header
 	parentHash, err := common.HexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a")

@@ -53,7 +53,8 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 		hash := block.Header.Hash()
 		hashes = append(hashes, hash)
 
-		bt.AddBlock(block, 0)
+		err := bt.AddBlock(block, 0)
+		require.Nil(t, err)
 		previousHash = hash
 	}
 
@@ -87,7 +88,8 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	}
 
 	hash := block.Header.Hash()
-	bt.AddBlock(block, 0)
+	err := bt.AddBlock(block, 0)
+	require.Nil(t, err)
 
 	n := bt.getNode(hash)
 
@@ -132,7 +134,9 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	}
 
 	extraBlock.Header.Hash()
-	bt.AddBlock(extraBlock, 0)
+	err := bt.AddBlock(extraBlock, 0)
+	//TODO are we really expecting a err here ?
+	require.NotNil(t, err)
 
 	longestPath := bt.longestPath()
 
@@ -157,7 +161,9 @@ func TestBlockTree_Subchain(t *testing.T) {
 	}
 
 	extraBlock.Header.Hash()
-	bt.AddBlock(extraBlock, 0)
+	err := bt.AddBlock(extraBlock, 0)
+	//TODO are we really expecting a err here ?
+	require.NotNil(t, err)
 
 	subChain, err := bt.subChain(hashes[1], hashes[3])
 	if err != nil {
@@ -231,8 +237,6 @@ func TestBlockTree_GetNode(t *testing.T) {
 		}
 
 		err := bt.AddBlock(block, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 	}
 }

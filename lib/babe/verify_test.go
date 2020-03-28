@@ -17,6 +17,10 @@
 package babe
 
 import (
+	"errors"
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 	"time"
@@ -84,23 +88,47 @@ func TestVerifySlotWinner(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight(t *testing.T) {
-	babesession := createTestSession(t, nil)
-	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
+	testsCases := []struct {
+		description     string
+		parentHeader    *types.Header
+		expectedErr     error
+		authorshipRight bool
+	}{
+		{
+			description:     "test verify block with existing parent",
+			parentHeader:    genesisHeader,
+			expectedErr:     nil,
+			authorshipRight: true,
+		},
+		{
+			description:     "test verify block with not existing parent",
+			parentHeader:    nil,
+			expectedErr:     errors.New("cannot find parent block in blocktree"),
+			authorshipRight: false,
+		},
 	}
 
-	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+	for _, test := range testsCases {
+		t.Run(test.description, func(t *testing.T) {
 
-	block, slot := createTestBlock(babesession, [][]byte{txb}, t)
+			babesession := createTestSession(t, nil)
+			err := babesession.configurationFromRuntime()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
-	if err != nil {
-		t.Fatal(err)
-	}
+			// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+			txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	if !ok {
-		t.Fatal("did not verify authorship right")
+			genesisHashStr := genesisHeader.Hash().String()
+			log.Warn("TestVerifyAuthorshipRight, ", "genesisHashStr", genesisHashStr)
+
+			block, slot := createTestBlock(babesession, [][]byte{txb}, t, test.parentHeader)
+
+			ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
+			require.Equal(t, test.expectedErr, err)
+
+			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
+		})
 	}
 }

@@ -357,6 +357,11 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	return err
 }
 
+func (bs *BlockState) VerifyHeaderValid(header *types.Header) error {
+
+	return bs.bt.VerifyHeaderValid(header)
+}
+
 // HighestBlockHash returns the hash of the block with the highest number we have received
 // This block may not necessarily be in the blocktree.
 // TODO: can probably remove this once BlockResponses are implemented

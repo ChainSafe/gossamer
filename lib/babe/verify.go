@@ -109,6 +109,11 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		return false, fmt.Errorf("could not verify signature")
 	}
 
-	// TODO: check if the producer has equivocated, ie. have they produced a conflicting block?
+	// #553 check if the producer has equivocated, ie. have they produced a conflicting block?
+	err = b.blockState.VerifyHeaderValid(header)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }

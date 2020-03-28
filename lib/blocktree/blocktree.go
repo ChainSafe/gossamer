@@ -18,6 +18,7 @@ package blocktree
 
 import (
 	"fmt"
+	log "github.com/ChainSafe/log15"
 	"math/big"
 	"time"
 
@@ -47,7 +48,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
-// Currently passes in arrival time as a parameter instead of setting it as time of instanciation
+// Currently passes in arrival time as a parameter instead of setting it as time of instantiation
 func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *BlockTree {
 	head := &node{
 		hash:        genesis.Hash(),
@@ -66,6 +67,28 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 // GenesisHash returns the hash of the genesis block
 func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
+}
+
+// VerifyBlockExists inserts the block as child of its parent node
+// Note: Assumes block has no children
+func (bt *BlockTree) VerifyHeaderValid(header *types.Header) error {
+	genesisHashStr := header.ParentHash.String()
+	log.Warn("VerifyHeaderValid, genesisHashStr,", genesisHashStr)
+
+	parent := bt.getNode(header.ParentHash)
+	if parent == nil {
+		err := fmt.Errorf("cannot find parent block in blocktree")
+		log.Error("Could not getNode for ParentHash", "header.ParentHash", header.ParentHash, "err", err)
+		return err
+	}
+
+	// Check if it already exists
+	n := bt.getNode(header.Hash())
+	if n != nil {
+		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
+	}
+
+	return nil
 }
 
 // AddBlock inserts the block as child of its parent node

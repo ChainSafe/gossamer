@@ -17,6 +17,7 @@
 package state
 
 import (
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -90,7 +91,7 @@ func TestMemDB_Start(t *testing.T) {
 	state.Stop()
 }
 
-func addBlocksToState(blockState *BlockState, depth int) {
+func addBlocksToState(t *testing.T, blockState *BlockState, depth int) {
 	previousHash := blockState.BestBlockHash()
 
 	// branch tree randomly
@@ -114,7 +115,9 @@ func addBlocksToState(blockState *BlockState, depth int) {
 		}
 
 		hash := block.Header.Hash()
-		blockState.AddBlock(block)
+		err := blockState.AddBlock(block)
+		require.Nil(t, err)
+
 		previousHash = hash
 
 		isBranch := r.Intn(2)
@@ -139,7 +142,9 @@ func addBlocksToState(blockState *BlockState, depth int) {
 			}
 
 			hash := block.Header.Hash()
-			blockState.AddBlock(block)
+			err := blockState.AddBlock(block)
+			require.Nil(t, err)
+
 			previousHash = hash
 		}
 	}
@@ -170,7 +175,7 @@ func TestService_BlockTree(t *testing.T) {
 	}
 
 	// add blocks to state
-	addBlocksToState(state.Block, 10)
+	addBlocksToState(t, state.Block, 10)
 
 	state.Stop()
 
