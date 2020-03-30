@@ -22,9 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	//"github.com/ChainSafe/gossamer/tests"
-
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testdify/require"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 

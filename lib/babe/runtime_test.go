@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	//"github.com/ChainSafe/gossamer/tests"
 )
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {
