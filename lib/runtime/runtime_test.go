@@ -28,8 +28,8 @@ func TestExecVersion(t *testing.T) {
 		Spec_name:         []byte("test"),
 		Impl_name:         []byte("parity-test"),
 		Authoring_version: 1,
-		Spec_version:      1,
-		Impl_version:      1,
+		Spec_version:      2,
+		Impl_version:      2,
 	}
 
 	runtime := NewTestRuntime(t, POLKADOT_RUNTIME)
