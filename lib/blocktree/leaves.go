@@ -18,23 +18,50 @@ package blocktree
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // leafMap provides quick lookup for existing leaves
-type leafMap map[common.Hash]*node
+type leafMap struct {
+	smap *sync.Map // map[common.Hash]*node
+}
+
+func NewLeafMap() *leafMap {
+	return &leafMap{
+		smap: &sync.Map{},
+	}
+}
+
+func (ls *leafMap) store(key Hash, value *node) {
+	ls.smap.Store(key, value)
+}
+
+func (ls *leafMap) load(key Hash) (*node, error) {
+	v, ok := ls.smap.Lead(key)
+	if !ok {
+		return errors.New("Key not found")
+	}
+
+	return v.(*node), nil
+}
 
 // Replace deletes the old node from the map and inserts the new one
-func (ls leafMap) replace(old, new *node) {
-	delete(ls, old.hash)
-	ls[new.hash] = new
+func (ls *leafMap) replace(old, new *node) {
+	ls.Delete(old.hash)
+	ls.Store(new.hash, new)
 }
 
 // DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
 // If there are two leaves with the same depth, choose the one with the earliest arrival time.
-func (ls leafMap) deepestLeaf() *node {
+func (ls *leafMap) deepestLeaf() *node {
 	max := big.NewInt(-1)
+
+	ls.Range(func(hash, node) bool {
+
+	}())
+
 	var dLeaf *node
 	for _, n := range ls {
 		if max.Cmp(n.depth) < 0 {

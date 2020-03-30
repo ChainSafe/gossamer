@@ -33,7 +33,7 @@ type Hash = common.Hash
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
 	head   *node // genesis node
-	leaves leafMap
+	leaves *leafMap
 	db     database.Database
 }
 
@@ -41,7 +41,7 @@ type BlockTree struct {
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
 		head:   nil,
-		leaves: make(leafMap),
+		leaves: NewLeafMap(),
 		db:     db,
 	}
 }
@@ -56,9 +56,13 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 		depth:       big.NewInt(0),
 		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
 	}
+
+	lm := NewLeafMap()
+	lm.store(head.hash, head)
+
 	return &BlockTree{
 		head:   head,
-		leaves: leafMap{head.hash: head},
+		leaves: lm,
 		db:     db,
 	}
 }
