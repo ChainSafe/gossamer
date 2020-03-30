@@ -87,22 +87,24 @@ func GetAbsolutePath(targetDir string) string {
 
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
 func GetRuntimeVars(targetRuntime string) (string, string, func() (*wasm.Imports, error)) {
-	testRuntimeFilePath, testRuntimeURL := GetAbsolutePath(TESTS_FP), TEST_WASM_URL
-
-	// If target runtime is polkadot, re-assign vars
-	if targetRuntime == POLKADOT_RUNTIME {
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
-	}
-
+	var testRuntimeFilePath string
+	var testRuntimeURL string
 	var registerImports func() (*wasm.Imports, error)
+
 	switch targetRuntime {
 	case POLKADOT_RUNTIME_OLD:
 		registerImports = RegisterImportsOld
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_OLD), POLKADOT_RUNTIME_URL
 	case POLKADOT_RUNTIME:
 		registerImports = RegisterImports
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
+	case TEST_RUNTIME:
+		registerImports = RegisterImportsOld
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(TESTS_FP), TEST_WASM_URL
 	default:
 		registerImports = RegisterImports
 	}
+
 	return testRuntimeFilePath, testRuntimeURL, registerImports
 }
 

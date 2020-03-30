@@ -750,10 +750,10 @@ func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, val
 }
 
 func RegisterImportsOld() (*wasm.Imports, error) {
-	return registerImports()
+	return registerImportsOld()
 }
 
-func registerImports() (*wasm.Imports, error) {
+func registerImportsOld() (*wasm.Imports, error) {
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err

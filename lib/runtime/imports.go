@@ -1,7 +1,5 @@
 package runtime
 
-import "C"
-
 // #include <stdlib.h>
 //
 // extern int32_t ext_allocator_malloc_version_1(void *context, int32_t size);
@@ -41,6 +39,8 @@ import "C"
 // extern void ext_set_child_storage(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
 // extern int32_t ext_get_child_storage_into(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
 */
+import "C"
+
 import (
 	// "bytes"
 	// "encoding/binary"
@@ -96,4 +96,16 @@ func ext_allocator_free_version_1(context unsafe.Pointer, addr int32) {
 
 func RegisterImports() (*wasm.Imports, error) {
 	return registerImports()
+}
+
+func registerImports() (*wasm.Imports, error) {
+	imports, err := wasm.NewImports().Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1)
+	if err != nil {
+		return nil, err
+	}
+	return imports, nil
 }
