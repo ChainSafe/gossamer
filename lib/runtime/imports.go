@@ -51,7 +51,7 @@ import (
 )
 
 //export memory
-var memory, _ = wasm.NewMemory(0, 17*128)
+var memory, err = wasm.NewMemory(17, 0)
 
 //export ext_misc_print_utf8_version_1
 func ext_misc_print_utf8_version_1(context unsafe.Pointer, a C.int64_t) {
@@ -216,6 +216,11 @@ func RegisterImports() (*wasm.Imports, error) {
 }
 
 func registerImports() (*wasm.Imports, error) {
+	// check for memory error
+	if err != nil {
+		return nil, err
+	}
+
 	imports, err := wasm.NewImports().Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
 	if err != nil {
 		return nil, err

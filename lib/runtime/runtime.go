@@ -73,6 +73,10 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 		return nil, err
 	}
 
+	if instance.Memory == nil {
+		instance.Memory = memory
+	}
+
 	memAllocator := NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := Ctx{
