@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	//"github.com/ChainSafe/gossamer/tests"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 
