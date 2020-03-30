@@ -221,21 +221,21 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	currChain, branchChains := addBlocksToState(bs, 8)
 
 	for _, header := range currChain {
-		ok, err := bs.isBlockOnCurrentChain(header)
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !ok {
+		if !onChain {
 			t.Fatalf("Fail: expected block %s to be on current chain", header.Hash())
 		}
 	}
 
 	for _, header := range branchChains {
-		ok, err := bs.isBlockOnCurrentChain(header)
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if ok {
+		if onChain {
 			t.Fatalf("Fail: expected block %s not to be on current chain", header.Hash())
 		}
 	}
