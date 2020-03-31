@@ -99,7 +99,7 @@ func (bt *BlockTree) Decode(in []byte) error {
 		arrivalTime: arrivalTime,
 	}
 
-	bt.leaves = leafMap{bt.head.hash: bt.head}
+	bt.leaves = NewLeafMap(bt.head)
 
 	return bt.decodeRecursive(r, bt.head)
 }

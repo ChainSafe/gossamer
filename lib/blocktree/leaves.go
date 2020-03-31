@@ -17,6 +17,7 @@
 package blocktree
 
 import (
+	"errors"
 	"math/big"
 	"sync"
 
@@ -28,9 +29,17 @@ type leafMap struct {
 	smap *sync.Map // map[common.Hash]*node
 }
 
-func NewLeafMap() *leafMap {
+func NewEmptyLeafMap() *leafMap {
 	return &leafMap{
 		smap: &sync.Map{},
+	}
+}
+
+func NewLeafMap(n *node) *leafMap {
+	smap := &sync.Map{}
+	smap.Store(n.hash, n)
+	return &leafMap{
+		smap: smap,
 	}
 }
 
@@ -39,9 +48,9 @@ func (ls *leafMap) store(key Hash, value *node) {
 }
 
 func (ls *leafMap) load(key Hash) (*node, error) {
-	v, ok := ls.smap.Lead(key)
+	v, ok := ls.smap.Load(key)
 	if !ok {
-		return errors.New("Key not found")
+		return nil, errors.New("Key not found")
 	}
 
 	return v.(*node), nil
@@ -49,8 +58,8 @@ func (ls *leafMap) load(key Hash) (*node, error) {
 
 // Replace deletes the old node from the map and inserts the new one
 func (ls *leafMap) replace(old, new *node) {
-	ls.Delete(old.hash)
-	ls.Store(new.hash, new)
+	ls.smap.Delete(old.hash)
+	ls.store(new.hash, new)
 }
 
 // DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
@@ -58,18 +67,31 @@ func (ls *leafMap) replace(old, new *node) {
 func (ls *leafMap) deepestLeaf() *node {
 	max := big.NewInt(-1)
 
-	ls.Range(func(hash, node) bool {
-
-	}())
-
 	var dLeaf *node
-	for _, n := range ls {
-		if max.Cmp(n.depth) < 0 {
-			max = n.depth
-			dLeaf = n
-		} else if max.Cmp(n.depth) == 0 && n.arrivalTime > dLeaf.arrivalTime {
-			dLeaf = n
+	ls.smap.Range(func(h, n interface{}) bool {
+		node := n.(*node)
+		if max.Cmp(node.depth) < 0 {
+			max = node.depth
+			dLeaf = node
+		} else if max.Cmp(node.depth) == 0 && node.arrivalTime > dLeaf.arrivalTime {
+			dLeaf = node
 		}
-	}
+
+		return true
+	})
+
 	return dLeaf
+}
+
+func (ls *leafMap) toMap() map[common.Hash]*node {
+	mmap := make(map[common.Hash]*node)
+
+	ls.smap.Range(func(h, n interface{}) bool {
+		hash := h.(Hash)
+		node := n.(*node)
+		mmap[hash] = node
+		return true
+	})
+
+	return mmap
 }
