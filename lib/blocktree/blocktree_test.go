@@ -89,9 +89,9 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	hash := block.Header.Hash()
 	bt.AddBlock(block, 0)
 
-	n := bt.getNode(hash)
+	node := bt.getNode(hash)
 
-	if n, err := bt.leaves.load(n.hash); n == nil || err != nil {
+	if n, err := bt.leaves.load(node.hash); n == nil || err != nil {
 		t.Errorf("expected %x to be a leaf", n.hash)
 	}
 
