@@ -41,7 +41,7 @@ type BlockTree struct {
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
 		head:   nil,
-		leaves: NewEmptyLeafMap(),
+		leaves: newEmptyLeafMap(),
 		db:     db,
 	}
 }
@@ -57,11 +57,9 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
 	}
 
-	lm := NewLeafMap(head)
-
 	return &BlockTree{
 		head:   head,
-		leaves: lm,
+		leaves: newLeafMap(head),
 		db:     db,
 	}
 }
