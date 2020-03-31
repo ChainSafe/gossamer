@@ -45,7 +45,7 @@ type SyncerConfig struct {
 	ChanLock   *sync.Mutex
 }
 
-var responseTimeout = 3*time.Second
+var responseTimeout = 3 * time.Second
 
 // NewSyncer returns a new Syncer
 func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
@@ -138,7 +138,7 @@ func (s *Syncer) watchForResponses() {
 			if !s.synced {
 				s.lock.Unlock()
 				s.synced = true
-			}		
+			}
 		}
 
 		// msg, ok := <-s.respIn
