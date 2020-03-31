@@ -93,7 +93,7 @@ func GetRuntimeVars(targetRuntime string) (string, string, func() (*wasm.Imports
 	switch targetRuntime {
 	case POLKADOT_RUNTIME_OLD:
 		registerImports = RegisterImportsOld
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_OLD), POLKADOT_RUNTIME_URL
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_OLD), POLKADOT_RUNTIME_URL_OLD
 	case POLKADOT_RUNTIME:
 		registerImports = RegisterImports
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL

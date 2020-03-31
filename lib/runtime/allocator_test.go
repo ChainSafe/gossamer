@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testdify/require"
+	"github.com/stretchr/testify/require"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 

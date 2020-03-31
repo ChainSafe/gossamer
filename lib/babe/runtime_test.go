@@ -67,7 +67,7 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_OLD, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {

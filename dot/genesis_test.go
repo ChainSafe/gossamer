@@ -43,8 +43,8 @@ import (
 func newTestGenesisAndRuntime(t *testing.T) string {
 	dir := utils.NewTestDir(t)
 
-	_ = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME)
-	runtimeFilePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP)
+	_ = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_OLD)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_OLD)
 
 	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
 	require.Nil(t, err)

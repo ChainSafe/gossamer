@@ -50,7 +50,7 @@ var testGenesisHeader = &types.Header{
 // newTestService creates a new test core service
 func newTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME)
+		rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_OLD)
 		cfg = &Config{
 			Runtime:         rt,
 			IsBabeAuthority: false,
@@ -182,7 +182,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestProcessBlockResponseMessage(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_OLD, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -256,7 +256,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 
 func TestProcessTransactionMessage(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_OLD, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -305,7 +305,7 @@ func TestNotAuthority(t *testing.T) {
 
 func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_OLD, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)

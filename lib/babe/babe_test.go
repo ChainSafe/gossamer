@@ -36,7 +36,7 @@ var genesisHeader = &types.Header{
 }
 
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
-	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME)
+	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_OLD)
 
 	if cfg == nil {
 		cfg = &SessionConfig{
