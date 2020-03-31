@@ -18,9 +18,10 @@ package blocktree
 
 import (
 	"fmt"
-	log "github.com/ChainSafe/log15"
 	"math/big"
 	"time"
+
+	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -69,26 +70,48 @@ func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
 }
 
-// VerifyBlockExists inserts the block as child of its parent node
-// Note: Assumes block has no children
-func (bt *BlockTree) VerifyHeaderValid(header *types.Header) error {
-	genesisHashStr := header.ParentHash.String()
-	log.Warn("VerifyHeaderValid, genesisHashStr,", genesisHashStr)
+// GetAllHashesForParentDepth will get all hashes with the same dept for a given header
+func (bt *BlockTree) GetAllHashesForParentDepth(header *types.Header) (map[common.Hash]*big.Int, error) {
+	hashes := map[common.Hash]*big.Int{}
 
 	parent := bt.getNode(header.ParentHash)
 	if parent == nil {
 		err := fmt.Errorf("cannot find parent block in blocktree")
 		log.Error("Could not getNode for ParentHash", "header.ParentHash", header.ParentHash, "err", err)
-		return err
+		return hashes, err
 	}
 
-	// Check if it already exists
-	n := bt.getNode(header.Hash())
-	if n != nil {
-		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
-	}
+	for _, child := range bt.head.children {
+		if child.depth.Cmp(parent.depth) == -1 {
+			log.Debug("breaking range bt.head.children", "child.hash", child.hash.String(), "child.depth", child.depth)
+			break
+		} else if child.depth.Cmp(parent.depth) == 0 {
+			if hashes[child.hash] != nil {
+				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
+				hashes[child.hash] = parent.depth
+			}
+		}
 
-	return nil
+		hashes = bt.getHashes(child, hashes)
+	}
+	return hashes, nil
+}
+
+func (bt *BlockTree) getHashes(n *node, hashes map[common.Hash]*big.Int) map[common.Hash]*big.Int {
+
+	for _, child := range n.children {
+		if child.depth.Cmp(node{}.depth) == -1 {
+			log.Debug("breaking getHashes", "child.hash", child.hash.String(), "child.depth", child.depth)
+			break
+		} else if child.depth.Cmp(n.depth) == 0 {
+			if hashes[child.hash] != nil {
+				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
+				hashes[child.hash] = child.depth
+			}
+		}
+		bt.getHashes(child, hashes)
+	}
+	return hashes
 }
 
 // AddBlock inserts the block as child of its parent node

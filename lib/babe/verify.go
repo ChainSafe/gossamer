@@ -19,6 +19,7 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
@@ -110,9 +111,21 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	// #553 check if the producer has equivocated, ie. have they produced a conflicting block?
-	err = b.blockState.VerifyHeaderValid(header)
+	hashes, err := b.blockState.GetAllHashesForParentDepth(header)
 	if err != nil {
 		return false, err
+	}
+
+	for key, v := range hashes {
+		//get header
+		h, err := b.blockState.GetHeader(key)
+		if err != nil {
+			return false, fmt.Errorf("could not verify digests, key %s, depth, %d", key, v)
+		}
+		//compare digest
+		if reflect.DeepEqual(h.Digest, header.Digest) {
+			return false, fmt.Errorf("duplicated digest")
+		}
 	}
 
 	return true, nil

@@ -84,9 +84,9 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T, parentHe
 	}
 
 	if parentHeader == nil {
-		zeroHash, err := common.HexToHash("0x00")
-		if err != nil {
-			t.Fatal(err)
+		zeroHash, err1 := common.HexToHash("0x00")
+		if err1 != nil {
+			t.Fatal(err1)
 		}
 
 		parentHeader = &types.Header{

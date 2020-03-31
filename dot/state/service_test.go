@@ -17,11 +17,12 @@
 package state
 
 import (
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"

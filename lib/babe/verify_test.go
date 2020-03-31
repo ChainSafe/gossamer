@@ -18,12 +18,13 @@ package babe
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/dot/core/types"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
