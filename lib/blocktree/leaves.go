@@ -73,7 +73,7 @@ func (ls *leafMap) deepestLeaf() *node {
 		if max.Cmp(node.depth) < 0 {
 			max = node.depth
 			dLeaf = node
-		} else if max.Cmp(node.depth) == 0 && node.arrivalTime > dLeaf.arrivalTime {
+		} else if max.Cmp(node.depth) == 0 && node.arrivalTime < dLeaf.arrivalTime {
 			dLeaf = node
 		}
 
