@@ -17,25 +17,29 @@
 package rpc
 
 import (
-	"github.com/gorilla/rpc/v2"
-	"github.com/gorilla/rpc/v2/json"
 	"log"
 	"net/http"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/rpc/v2/json"
 )
 
-type DotUpCodec struct {}
+// DotUpCodec for overridding default jsonCodec
+type DotUpCodec struct{}
 
+// NewDotUpCodec for creating instance of DocUpCodec
 func NewDotUpCodec() *DotUpCodec {
 	return &DotUpCodec{}
 }
 
+// NewRequest is overridden to inject our codec handler
 func (c *DotUpCodec) NewRequest(r *http.Request) rpc.CodecRequest {
-	outerCR := &DotUpCodecRequest{}   // Our custom CR
-	jsonC := json.NewCodec()       // json Codec to create json CR
-	innerCR := jsonC.NewRequest(r) // create the json CR, sort of.
+	outerCR := &DotUpCodecRequest{} // Our custom CR
+	jsonC := json.NewCodec()        // json Codec to create json CR
+	innerCR := jsonC.NewRequest(r)  // create the json CR, sort of.
 
 	// NOTE - innerCR is of the interface type rpc.CodecRequest.
 	// Because innerCR is of the rpc.CR interface type, we need a
@@ -46,10 +50,10 @@ func (c *DotUpCodec) NewRequest(r *http.Request) rpc.CodecRequest {
 	return outerCR
 }
 
-// UpCodecRequest decodes and encodes a single request. UpCodecRequest
+// DotUpCodecRequest decodes and encodes a single request. UpCodecRequest
 // implements gorilla/rpc.CodecRequest interface primarily by embedding
 // the CodecRequest from gorilla/rpc/json. By selectively adding
-// CodecRequest methods to UpCodecRequest, we can modify that behaviour
+// CodecRequest methods to UpCodecRequest, we can modify that behavior
 // while maintaining all the other remaining CodecRequest methods from
 // gorilla's rpc/json implementation
 type DotUpCodecRequest struct {

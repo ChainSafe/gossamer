@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"fmt"
+
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
 
@@ -30,7 +31,7 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	rpcServer *rpc.Server // Actual RPC call handler
+	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 }
 
@@ -49,7 +50,7 @@ type HTTPServerConfig struct {
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	server := &HTTPServer{
-		rpcServer: rpc.NewServer(),
+		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
 	}
 
@@ -58,22 +59,22 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 }
 
 // RegisterModules registers the RPC services associated with the given API modules
-func (s *HTTPServer) RegisterModules(mods []string) {
+func (h *HTTPServer) RegisterModules(mods []string) {
 
 	for _, mod := range mods {
 		log.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(s.serverConfig.NetworkAPI)
+			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(s.serverConfig.CoreAPI, s.serverConfig.TransactionQueueAPI)
+			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.TransactionQueueAPI)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
 		}
 
-		err := s.rpcServer.RegisterService(srvc, mod)
+		err := h.rpcServer.RegisterService(srvc, mod)
 
 		if err != nil {
 			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
@@ -81,7 +82,6 @@ func (s *HTTPServer) RegisterModules(mods []string) {
 
 	}
 }
-
 
 // Start registers the rpc handler function and starts the server listening on `h.port`
 func (h *HTTPServer) Start() error {
