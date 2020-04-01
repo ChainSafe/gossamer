@@ -159,7 +159,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
-		//Codec:               &json2.Codec{},
 		Host:                cfg.RPC.Host,
 		Port:                cfg.RPC.Port,
 		Modules:             cfg.RPC.Modules,

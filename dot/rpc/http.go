@@ -19,6 +19,7 @@ package rpc
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc/v2"
 
 	"net/http"
 
@@ -27,11 +28,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// HTTPServer acts as gateway to an RPC server
+// HTTPServer gateway for RPC server
 type HTTPServer struct {
-	Port      uint32  // Listening port
-	Host      string  // Listening hostname
-	rpcServer *Server // Actual RPC call handler
+	rpcServer *rpc.Server // Actual RPC call handler
+	serverConfig *HTTPServerConfig
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -41,7 +41,6 @@ type HTTPServerConfig struct {
 	NetworkAPI          modules.NetworkAPI
 	CoreAPI             modules.CoreAPI
 	TransactionQueueAPI modules.TransactionQueueAPI
-	//Codec               Codec
 	Host                string
 	Port                uint32
 	Modules             []string
@@ -49,34 +48,54 @@ type HTTPServerConfig struct {
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
-	stateServerCfg := &ServerConfig{
-		BlockAPI:            cfg.BlockAPI,
-		StorageAPI:          cfg.StorageAPI,
-		NetworkAPI:          cfg.NetworkAPI,
-		CoreAPI:             cfg.CoreAPI,
-		TransactionQueueAPI: cfg.TransactionQueueAPI,
-		Modules:             cfg.Modules,
-	}
-
 	server := &HTTPServer{
-		Port:      cfg.Port,
-		Host:      cfg.Host,
-		rpcServer: NewStateServer(stateServerCfg),
+		rpcServer: rpc.NewServer(),
+		serverConfig: cfg,
 	}
 
-	//server.rpcServer.RegisterCodec()  // todo ed, update to use new rpc server and codec
-
+	server.RegisterModules(cfg.Modules)
 	return server
 }
 
+// RegisterModules registers the RPC services associated with the given API modules
+func (s *HTTPServer) RegisterModules(mods []string) {
+
+	for _, mod := range mods {
+		log.Debug("[rpc] Enabling rpc module", "module", mod)
+		var srvc interface{}
+		switch mod {
+		case "system":
+			srvc = modules.NewSystemModule(s.serverConfig.NetworkAPI)
+		case "author":
+			srvc = modules.NewAuthorModule(s.serverConfig.CoreAPI, s.serverConfig.TransactionQueueAPI)
+		default:
+			log.Warn("[rpc] Unrecognized module", "module", mod)
+			continue
+		}
+
+		err := s.rpcServer.RegisterService(srvc, mod)
+
+		if err != nil {
+			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
+		}
+
+	}
+}
+
+
 // Start registers the rpc handler function and starts the server listening on `h.port`
 func (h *HTTPServer) Start() error {
-	log.Debug("[rpc] Starting HTTP Server...", "host", h.Host, "port", h.Port)
-	//http.HandleFunc("/", h.rpcServer.ServeHTTP)
+	// use our DotUpCodec which will capture methods passed in json as _x that is
+	//  underscore followed by lower case letter, instead of default RPC calls which
+	//  use . followed by Upper case letter
+	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
+	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
+
+	log.Debug("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.Port)
 	r := mux.NewRouter()
-	r.Handle("/", h.rpcServer.rpcServer)
+	r.Handle("/", h.rpcServer)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.Port), r)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.Port), r)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)
 		}
