@@ -89,9 +89,9 @@ func TestBlockTree_AddBlock(t *testing.T) {
 	hash := block.Header.Hash()
 	bt.AddBlock(block, 0)
 
-	n := bt.getNode(hash)
+	node := bt.getNode(hash)
 
-	if n, err := bt.leaves.load(n.hash); n == nil || err != nil {
+	if n, err := bt.leaves.load(node.hash); n == nil || err != nil {
 		t.Errorf("expected %x to be a leaf", n.hash)
 	}
 
@@ -177,7 +177,7 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
-	arrivalTime := uint64(1)
+	arrivalTime := uint64(256)
 	var expected Hash
 
 	bt, _ := createTestBlockTree(header, 8, nil)
@@ -186,7 +186,7 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 		leaf := h.(Hash)
 		node := n.(*node)
 		node.arrivalTime = arrivalTime
-		arrivalTime++
+		arrivalTime--
 		expected = leaf
 		t.Logf("leaf=%s depth=%d arrivalTime=%d", leaf, node.depth, node.arrivalTime)
 		return true
@@ -198,14 +198,14 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 	}
 
 	r := *rand.New(rand.NewSource(rand.Int63()))
-	greatestTime := uint64(0)
+	earliestTime := uint64(1 << 63)
 
 	bt.leaves.smap.Range(func(h, n interface{}) bool {
 		leaf := h.(Hash)
 		node := n.(*node)
 		node.arrivalTime = uint64(r.Intn(256))
-		if node.arrivalTime > greatestTime {
-			greatestTime = node.arrivalTime
+		if node.arrivalTime < earliestTime {
+			earliestTime = node.arrivalTime
 			expected = node.hash
 		}
 		t.Logf("leaf=%s depth=%d arrivalTime=%d", leaf, node.depth, node.arrivalTime)

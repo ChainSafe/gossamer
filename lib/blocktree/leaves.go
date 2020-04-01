@@ -29,13 +29,13 @@ type leafMap struct {
 	smap *sync.Map // map[common.Hash]*node
 }
 
-func NewEmptyLeafMap() *leafMap {
+func newEmptyLeafMap() *leafMap {
 	return &leafMap{
 		smap: &sync.Map{},
 	}
 }
 
-func NewLeafMap(n *node) *leafMap {
+func newLeafMap(n *node) *leafMap {
 	smap := &sync.Map{}
 	smap.Store(n.hash, n)
 	return &leafMap{
@@ -73,7 +73,7 @@ func (ls *leafMap) deepestLeaf() *node {
 		if max.Cmp(node.depth) < 0 {
 			max = node.depth
 			dLeaf = node
-		} else if max.Cmp(node.depth) == 0 && node.arrivalTime > dLeaf.arrivalTime {
+		} else if max.Cmp(node.depth) == 0 && node.arrivalTime < dLeaf.arrivalTime {
 			dLeaf = node
 		}
 
