@@ -37,6 +37,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+
 var _ services.Service = &Service{}
 
 var maxResponseSize int64 = 8 // maximum number of block datas to reply with in a BlockResponse message.
