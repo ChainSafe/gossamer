@@ -90,16 +90,18 @@ func TestVerifySlotWinner(t *testing.T) {
 
 func TestVerifyAuthorshipRight(t *testing.T) {
 	testsCases := []struct {
-		description     string
-		parentHeader    *types.Header
-		expectedErr     error
-		authorshipRight bool
+		description                     string
+		parentHeader                    *types.Header
+		expectedErr                     error
+		authorshipRight                 bool
+		expectedErrAfterAuthorshipRight error
 	}{
 		{
-			description:     "test verify block with existing parent",
-			parentHeader:    genesisHeader,
-			expectedErr:     nil,
-			authorshipRight: true,
+			description:                     "test verify block with existing parent",
+			parentHeader:                    genesisHeader,
+			expectedErr:                     nil,
+			authorshipRight:                 true,
+			expectedErrAfterAuthorshipRight: errors.New("duplicated digest"),
 		},
 		{
 			description:     "test verify block with not existing parent",
@@ -130,6 +132,33 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 			require.Equal(t, test.expectedErr, err)
 
 			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
+
+			if test.authorshipRight {
+				//save block
+				arrivalTime := uint64(time.Now().Unix()) - slot.duration
+
+				err = babesession.blockState.AddBlockWithArrivalTime(block, arrivalTime)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				//create new block
+				blockNew, slotNew := createTestBlock(babesession, [][]byte{txb}, t, test.parentHeader)
+
+				//update blockNumber to previous block
+				blockNew.Header.Number = block.Header.Number
+
+				//update slot number to previous slot
+				slotNew.number = slot.number
+
+				//verifyAuthorshipRight
+				ok, err := babesession.verifyAuthorshipRight(slotNew.number, blockNew.Header)
+				require.False(t, ok)
+
+				require.NotNil(t, err)
+				require.Equal(t, test.expectedErrAfterAuthorshipRight, err)
+
+			}
 		})
 	}
 }
