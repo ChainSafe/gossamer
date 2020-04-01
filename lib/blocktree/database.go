@@ -3,7 +3,6 @@ package blocktree
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
 	"math/big"
 
@@ -13,7 +12,7 @@ import (
 // Store stores the blocktree in the underlying db
 func (bt *BlockTree) Store() error {
 	if bt.db == nil {
-		return errors.New("blocktree db is nil")
+		return ErrNilDatabase
 	}
 
 	enc, err := bt.Encode()
@@ -27,7 +26,7 @@ func (bt *BlockTree) Store() error {
 // Load loads the blocktree from the underlying db
 func (bt *BlockTree) Load() error {
 	if bt.db == nil {
-		return errors.New("blocktree db is nil")
+		return ErrNilDatabase
 	}
 
 	enc, err := bt.db.Get(common.BlockTreeKey)
@@ -99,7 +98,7 @@ func (bt *BlockTree) Decode(in []byte) error {
 		arrivalTime: arrivalTime,
 	}
 
-	bt.leaves = leafMap{bt.head.hash: bt.head}
+	bt.leaves = newLeafMap(bt.head)
 
 	return bt.decodeRecursive(r, bt.head)
 }

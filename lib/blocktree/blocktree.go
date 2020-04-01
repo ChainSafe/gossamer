@@ -33,7 +33,7 @@ type Hash = common.Hash
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
 	head   *node // genesis node
-	leaves leafMap
+	leaves *leafMap
 	db     database.Database
 }
 
@@ -41,7 +41,7 @@ type BlockTree struct {
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
 		head:   nil,
-		leaves: make(leafMap),
+		leaves: newEmptyLeafMap(),
 		db:     db,
 	}
 }
@@ -56,9 +56,10 @@ func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *Block
 		depth:       big.NewInt(0),
 		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
 	}
+
 	return &BlockTree{
 		head:   head,
-		leaves: leafMap{head.hash: head},
+		leaves: newLeafMap(head),
 		db:     db,
 	}
 }
@@ -73,13 +74,13 @@ func (bt *BlockTree) GenesisHash() Hash {
 func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	parent := bt.getNode(block.Header.ParentHash)
 	if parent == nil {
-		return fmt.Errorf("cannot find parent block in blocktree")
+		return ErrParentNotFound
 	}
 
 	// Check if it already exists
 	n := bt.getNode(block.Header.Hash())
 	if n != nil {
-		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
+		return ErrBlockExists
 	}
 
 	depth := big.NewInt(0)
@@ -93,7 +94,6 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 		arrivalTime: arrivalTime,
 	}
 	parent.addChild(n)
-
 	bt.leaves.replace(parent, n)
 
 	return nil
@@ -126,9 +126,10 @@ func (bt *BlockTree) String() string {
 
 	// Format leaves
 	var leaves string
-	for k := range bt.leaves {
-		leaves = leaves + fmt.Sprintf("0x%s ", k)
-	}
+	bt.leaves.smap.Range(func(hash, node interface{}) bool {
+		leaves = leaves + fmt.Sprintf("%s\n", hash.(Hash))
+		return true
+	})
 
 	metadata := fmt.Sprintf("Leaves: %s", leaves)
 
@@ -151,11 +152,11 @@ func (bt *BlockTree) longestPath() []*node {
 func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
 	if sn == nil {
-		return nil, fmt.Errorf("start node does not exist")
+		return nil, ErrStartNodeNotFound
 	}
 	en := bt.getNode(end)
 	if en == nil {
-		return nil, fmt.Errorf("end node does not exist")
+		return nil, ErrEndNodeNotFound
 	}
 	return sn.subChain(en)
 }
@@ -179,7 +180,8 @@ func (bt *BlockTree) deepestLeaf() *node {
 	return bt.leaves.deepestLeaf()
 }
 
-// DeepestBlockHash returns the hash of the leftmost deepest block in the blocktree
+// DeepestBlockHash returns the hash of the deepest block in the blocktree
+// If there is multiple deepest blocks, it returns the one with the earliest arrival time.
 func (bt *BlockTree) DeepestBlockHash() Hash {
 	return bt.leaves.deepestLeaf().hash
 }
