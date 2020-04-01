@@ -51,7 +51,7 @@ import (
 )
 
 //export memory
-var memory, err = wasm.NewMemory(17, 0)
+var memory, memErr = wasm.NewMemory(17, 0)
 
 //export ext_misc_print_utf8_version_1
 func ext_misc_print_utf8_version_1(context unsafe.Pointer, a C.int64_t) {
@@ -218,7 +218,6 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, a C.int64_t) C.i
 //export ext_storage_child_set_version_1
 func ext_storage_child_set_version_1(context unsafe.Pointer, a, b C.int64_t, c C.int32_t, d, e C.int64_t) {
 	log.Trace("[ext_storage_child_set_version_1] executing...")
-	return
 }
 
 //export ext_storage_child_read_version_1
@@ -233,14 +232,15 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	return 0
 }
 
+// RegisterImports registers the wasm imports for the most recent substrate test runtime.
 func RegisterImports() (*wasm.Imports, error) {
 	return registerImports()
 }
 
 func registerImports() (*wasm.Imports, error) {
 	// check for memory error
-	if err != nil {
-		return nil, err
+	if memErr != nil {
+		return nil, memErr
 	}
 
 	imports, err := wasm.NewImports().Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
