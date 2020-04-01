@@ -17,28 +17,12 @@
 package rpc
 
 import (
-	"fmt"
-	"net/http"
-	"reflect"
-	"strings"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-
 	log "github.com/ChainSafe/log15"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc/v2"
 )
 
-// Codec defines the interface for creating a CodecRequest.
-type Codec interface {
-	NewRequest(*http.Request) CodecRequest
-}
-
-// CodecRequest is the interface for a request generated from a codec.
-type CodecRequest interface {
-	Method() (string, error)
-	ReadRequest(interface{}) error
-	WriteResponse(http.ResponseWriter, interface{})
-	WriteError(w http.ResponseWriter, status int, err error)
-}
 
 // ServerConfig configures the server
 type ServerConfig struct {
@@ -52,40 +36,38 @@ type ServerConfig struct {
 
 // Server is an RPC server.
 type Server struct {
-	codec               Codec       // Codec for requests/responses (default JSON)
-	services            *serviceMap // Maps requests to actual procedure calls
 	blockAPI            modules.BlockAPI
 	storageAPI          modules.StorageAPI
 	networkAPI          modules.NetworkAPI
 	coreAPI             modules.CoreAPI
 	transactionQueueAPI modules.TransactionQueueAPI
+	rpcServer *rpc.Server
 }
 
 // NewServer creates a new Server.
 func NewServer() *Server {
-	return &Server{
-		services: new(serviceMap),
-	}
+	return &Server{	}
 }
 
 // NewStateServer creates a new Server that interfaces with the state service.
 func NewStateServer(cfg *ServerConfig) *Server {
 	s := &Server{
-		services:            new(serviceMap),
+		//services:            new(serviceMap),
 		blockAPI:            cfg.BlockAPI,
 		storageAPI:          cfg.StorageAPI,
 		networkAPI:          cfg.NetworkAPI,
 		coreAPI:             cfg.CoreAPI,
 		transactionQueueAPI: cfg.TransactionQueueAPI,
+		rpcServer: rpc.NewServer(),
 	}
-
 	s.RegisterModules(cfg.Modules)
-
+	s.RegisterCodec()
 	return s
 }
 
 // RegisterModules registers the RPC services associated with the given API modules
 func (s *Server) RegisterModules(mods []string) {
+
 	for _, mod := range mods {
 		log.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
@@ -104,78 +86,21 @@ func (s *Server) RegisterModules(mods []string) {
 		if err != nil {
 			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
 		}
+		r := mux.NewRouter()
+		r.Handle("/", s.rpcServer)
 	}
 }
 
 // RegisterCodec set the codec for the server.
-// TODO: deal with contentType
-func (s *Server) RegisterCodec(codec Codec) {
-	s.codec = codec
+func (s *Server) RegisterCodec() {
+	// use our DotUpCodec which will capture methods passed in json as _x that is
+	//  underscore followed by lower case letter, instead of default RPC calls which
+	//  use . followed by Upper case letter
+	s.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
+	s.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 }
 
 // RegisterService adds a service to the servers service map.
 func (s *Server) RegisterService(receiver interface{}, name string) error {
-	return s.services.register(receiver, name)
-}
-
-// ServeHTTP handles http requests to the RPC server.
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debug("[rpc] Serving HTTP request...")
-	if r.Method != "POST" {
-		WriteError(w, http.StatusMethodNotAllowed, "rpc: Only accepts POST requests, got: "+r.Method)
-	}
-	contentType := r.Header.Get("Content-Type")
-	idx := strings.Index(contentType, ";")
-	if idx != -1 {
-		contentType = contentType[:idx]
-	}
-	if contentType != "application/json" {
-		WriteError(w, http.StatusUnsupportedMediaType, "rpc: Only application/json content allowed, got: "+r.Header.Get("Content-Type"))
-	}
-	log.Debug("[rpc] Got application/json request, proceeding...")
-	codecReq := s.codec.NewRequest(r)
-	method, errMethod := codecReq.Method()
-	if errMethod != nil {
-		codecReq.WriteError(w, http.StatusBadRequest, errMethod)
-	}
-	serviceSpec, methodSpec, errGet := s.services.get(method)
-	if errGet != nil {
-		codecReq.WriteError(w, http.StatusBadRequest, errGet)
-		return
-	}
-
-	args := reflect.New(methodSpec.argsType)
-	if errRead := codecReq.ReadRequest(args.Interface()); errRead != nil {
-		codecReq.WriteError(w, http.StatusBadRequest, errRead)
-	}
-
-	reply := reflect.New(methodSpec.replyType)
-	errValue := methodSpec.method.Func.Call([]reflect.Value{
-		serviceSpec.rcvr,
-		reflect.ValueOf(r),
-		args,
-		reply,
-	})
-
-	var errResult error
-	statusCode := http.StatusOK
-	errInter := errValue[0].Interface()
-	if errInter != nil {
-		statusCode = http.StatusBadRequest
-		errResult = errInter.(error)
-	}
-
-	// Encode the response.
-	if errResult == nil {
-		codecReq.WriteResponse(w, reply.Interface())
-	} else {
-		codecReq.WriteError(w, statusCode, errResult)
-	}
-}
-
-// WriteError writes a status and message as the response to a request
-func WriteError(w http.ResponseWriter, status int, msg string) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(status)
-	fmt.Fprint(w, msg)
+	return s.rpcServer.RegisterService(receiver, name)
 }

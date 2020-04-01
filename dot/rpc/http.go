@@ -18,6 +18,8 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
+
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -39,7 +41,7 @@ type HTTPServerConfig struct {
 	NetworkAPI          modules.NetworkAPI
 	CoreAPI             modules.CoreAPI
 	TransactionQueueAPI modules.TransactionQueueAPI
-	Codec               Codec
+	//Codec               Codec
 	Host                string
 	Port                uint32
 	Modules             []string
@@ -62,7 +64,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		rpcServer: NewStateServer(stateServerCfg),
 	}
 
-	server.rpcServer.RegisterCodec(cfg.Codec)
+	//server.rpcServer.RegisterCodec()  // todo ed, update to use new rpc server and codec
 
 	return server
 }
@@ -70,10 +72,11 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 // Start registers the rpc handler function and starts the server listening on `h.port`
 func (h *HTTPServer) Start() error {
 	log.Debug("[rpc] Starting HTTP Server...", "host", h.Host, "port", h.Port)
-	http.HandleFunc("/", h.rpcServer.ServeHTTP)
-
+	//http.HandleFunc("/", h.rpcServer.ServeHTTP)
+	r := mux.NewRouter()
+	r.Handle("/", h.rpcServer.rpcServer)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.Port), nil)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", h.Port), r)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)
 		}
