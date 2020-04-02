@@ -17,7 +17,6 @@
 package rpc
 
 import (
-	"log"
 	"net/http"
 	"strings"
 	"unicode"
@@ -77,7 +76,6 @@ func (c *DotUpCodecRequest) Method() (string, error) {
 		r, n := utf8.DecodeRuneInString(method) // get the first rune, and it's length
 		if unicode.IsLower(r) {
 			upMethod := service + "." + string(unicode.ToUpper(r)) + method[n:]
-			log.Printf("lowercase method %s requested: treated as %s\n", m, upMethod)
 			return upMethod, err
 		}
 	}
