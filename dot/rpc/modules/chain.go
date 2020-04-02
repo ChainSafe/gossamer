@@ -24,7 +24,8 @@ import (
 )
 
 // ChainHashRequest Hash
-type ChainHashRequest common.Hash
+//type ChainHashRequest common.Hash
+type ChainHashRequest string
 
 // ChainBlockNumberRequest Int
 type ChainBlockNumberRequest *big.Int
@@ -34,7 +35,13 @@ type ChainBlockNumberRequest *big.Int
 type ChainBlockResponse struct{}
 
 // ChainBlockHeaderResponse struct
-type ChainBlockHeaderResponse struct{}
+type ChainBlockHeaderResponse struct{
+	ParentHash     string `json:"parentHash"`
+	Number         *big.Int `json:"number"`
+	StateRoot      string `json:"stateRoot"`
+	ExtrinsicsRoot string `json:"extrinsicsRoot""`
+	Digest         [][]byte `json:"digest"`
+}
 
 // ChainHashResponse struct
 type ChainHashResponse struct {
@@ -66,8 +73,31 @@ func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberReques
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
 }
 
-//GetHeader DB isn't implemented properly yet. Doesn't return block headers
-func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) {
+//GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
+func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
+	var hash common.Hash
+	var err error
+	if len(*req) == 0 {
+		hash = cm.blockAPI.HighestBlockHash()
+	} else {
+		hash, err = common.HexToHash(string(*req))
+		if err != nil {
+			return err
+		}
+	}
+
+	header, err := cm.blockAPI.GetHeader(hash)
+	if err != nil {
+		return err
+	}
+
+	res.ParentHash = header.ParentHash.String()
+	res.Number = header.Number
+	res.StateRoot = header.StateRoot.String()
+	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
+	res.Digest = header.Digest  // TODO: figure out how to get Digest to be a json object
+
+	return nil
 }
 
 // SubscribeFinalizedHeads isn't implemented properly yet.
