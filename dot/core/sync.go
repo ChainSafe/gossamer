@@ -32,16 +32,20 @@ type Syncer struct {
 	// Core service control
 	chanLock *sync.Mutex
 	stopped  bool
+
+	//
+	transactionQueue TransactionQueue
 }
 
 // SyncerConfig is the configuration for the Syncer.
 type SyncerConfig struct {
-	BlockState BlockState
-	BlockNumIn <-chan *big.Int
-	RespIn     <-chan *network.BlockResponseMessage
-	MsgOut     chan<- network.Message
-	Lock       *sync.Mutex
-	ChanLock   *sync.Mutex
+	BlockState       BlockState
+	BlockNumIn       <-chan *big.Int
+	RespIn           <-chan *network.BlockResponseMessage
+	MsgOut           chan<- network.Message
+	Lock             *sync.Mutex
+	ChanLock         *sync.Mutex
+	TransactionQueue TransactionQueue
 }
 
 // NewSyncer returns a new Syncer
@@ -69,6 +73,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		stopped:          false,
 		requestStart:     1,
 		highestSeenBlock: big.NewInt(0),
+		transactionQueue: cfg.TransactionQueue,
 	}, nil
 }
 
@@ -216,7 +221,6 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 	highestInResp := int64(0)
 
 	for _, bd := range blockData {
-
 		if bd.Header.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
@@ -273,6 +277,26 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				}
 			} else {
 				log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
+			}
+		}
+
+		if bd.Body.Exists {
+
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return 0, err
+			}
+
+			exts, err := body.AsExtrinsics()
+			if err != nil {
+				return 0, err
+			}
+
+			pool := s.transactionQueue.Pool()
+
+			for _, ext := range exts {
+
+				delete(pool, ext)
 			}
 		}
 

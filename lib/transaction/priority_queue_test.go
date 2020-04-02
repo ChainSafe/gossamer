@@ -27,7 +27,7 @@ func TestPriorityQueue(t *testing.T) {
 			Validity: &Validity{Priority: 1},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Validity: &Validity{Priority: 4},
 		},
 		{
 			Validity: &Validity{Priority: 2},
@@ -47,10 +47,12 @@ func TestPriorityQueue(t *testing.T) {
 		pq.Push(node)
 	}
 
-	for _, exp := range expected {
+	for i, exp := range expected {
 		n := pq.Pop()
 		if !reflect.DeepEqual(n, tests[exp]) {
-			t.Fatalf("Fail: got %v expected %v", n, tests[exp])
+			t.Log(n.Validity)
+			t.Log(tests[exp].Validity)
+			t.Fatalf("Fail: iteration %d got %v expected %v", i, n, tests[exp])
 		}
 	}
 }
@@ -81,10 +83,10 @@ func TestPriorityQueueAgain(t *testing.T) {
 		pq.Push(node)
 	}
 
-	for _, exp := range expected {
+	for i, exp := range expected {
 		n := pq.Pop()
 		if !reflect.DeepEqual(n, tests[exp]) {
-			t.Fatalf("Fail: got %v expected %v", n, tests[exp])
+			t.Fatalf("Fail: iteration %d got %v expected %v", i, n, tests[exp])
 		}
 	}
 }
@@ -111,8 +113,8 @@ func TestPriorityQueue_Pop(t *testing.T) {
 	}
 
 	pq.Push(&ValidTransaction{
-		Extrinsic: nil,
-		Validity:  nil,
+		Extrinsic: []byte{},
+		Validity:  new(Validity),
 	})
 
 	peek := pq.Peek()
@@ -166,7 +168,6 @@ func TestPeek(t *testing.T) {
 }
 
 func TestPriorityQueueConcurrentCalls(t *testing.T) {
-
 	pq := NewPriorityQueue()
 
 	go func() {

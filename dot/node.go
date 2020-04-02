@@ -259,10 +259,10 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 
+	close(n.syncChan)
+
 	// close node stop channel if not already closed
 	if n.stop != nil {
 		close(n.stop)
 	}
-
-	close(n.syncChan)
 }

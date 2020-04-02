@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -17,8 +18,8 @@ func NewTransactionQueue() *TransactionQueue {
 }
 
 // Push pushes a transaction to the queue, ordered by priority
-func (q *TransactionQueue) Push(vt *transaction.ValidTransaction) {
-	q.queue.Push(vt)
+func (q *TransactionQueue) Push(vt *transaction.ValidTransaction) (common.Hash, error) {
+	return q.queue.Push(vt)
 }
 
 // Pop removes and returns the head of the queue
@@ -34,4 +35,9 @@ func (q *TransactionQueue) Peek() *transaction.ValidTransaction {
 // Pending returns the current transactions in the queue
 func (q *TransactionQueue) Pending() []*transaction.ValidTransaction {
 	return q.queue.Pending()
+}
+
+// Pool returns a map of transaction hashes to ValidTransactions
+func (q *TransactionQueue) Pool() map[common.Hash]*transaction.ValidTransaction {
+	return q.Pool()
 }

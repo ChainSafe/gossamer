@@ -16,18 +16,24 @@
 
 package transaction
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
 // PriorityQueue implements a priority queue using a double linked list
 type PriorityQueue struct {
 	head  *node
 	mutex sync.Mutex
+	pool  Pool
 }
 
 type node struct {
 	data   *ValidTransaction
 	parent *node
 	child  *node
+	hash   common.Hash
 }
 
 // NewPriorityQueue creates new instance of PriorityQueue
@@ -35,6 +41,7 @@ func NewPriorityQueue() *PriorityQueue {
 	pq := PriorityQueue{
 		head:  nil,
 		mutex: sync.Mutex{},
+		pool:  make(map[common.Hash]*ValidTransaction),
 	}
 
 	return &pq
@@ -49,6 +56,9 @@ func (q *PriorityQueue) Pop() *ValidTransaction {
 	}
 	head := q.head
 	q.head = head.child
+
+	delete(q.pool, head.hash)
+
 	return head.data
 }
 
@@ -60,6 +70,11 @@ func (q *PriorityQueue) Peek() *ValidTransaction {
 		return nil
 	}
 	return q.head.data
+}
+
+// Pool returns the queue's underlying transaction pool
+func (q *PriorityQueue) Pool() map[common.Hash]*ValidTransaction {
+	return q.pool
 }
 
 // Pending returns all the transactions currently in the queue
@@ -83,13 +98,20 @@ func (q *PriorityQueue) Pending() []*ValidTransaction {
 // Push traverses the list and places a valid transaction with priority p directly before the
 // first node with priority p-1. If there are other nodes with priority p, the new node is placed
 // behind them.
-func (q *PriorityQueue) Push(vt *ValidTransaction) {
+func (q *PriorityQueue) Push(vt *ValidTransaction) (common.Hash, error) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 	curr := q.head
+
+	hash, err := vt.Hash()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
 	if curr == nil {
-		q.head = &node{data: vt}
-		return
+		q.head = &node{data: vt, hash: hash}
+		q.pool[hash] = vt
+		return hash, nil
 	}
 
 	for ; curr != nil; curr = curr.child {
@@ -99,6 +121,7 @@ func (q *PriorityQueue) Push(vt *ValidTransaction) {
 				data:   vt,
 				parent: curr.parent,
 				child:  curr,
+				hash:   hash,
 			}
 
 			if curr.parent == nil {
@@ -108,14 +131,20 @@ func (q *PriorityQueue) Push(vt *ValidTransaction) {
 			}
 			curr.parent = newNode
 
-			return
+			q.pool[hash] = vt
+			return hash, nil
 		} else if curr.child == nil {
 			newNode := &node{
 				data:   vt,
 				parent: curr,
+				hash:   hash,
 			}
 			curr.child = newNode
-			return
+
+			q.pool[hash] = vt
+			return hash, nil
 		}
 	}
+
+	return common.Hash{}, nil
 }
