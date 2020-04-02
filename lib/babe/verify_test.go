@@ -23,11 +23,23 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
+
+func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
+	outAndProof, err := babesession.runLottery(slotNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
+	}
+
+	babesession.slotToProof[slotNumber] = outAndProof	
+}
 
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
@@ -50,16 +62,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	babesession.authorityIndex = 0
 	var slotNumber uint64 = 1
 
-	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
-	}
-
-	babesession.slotToProof[slotNumber] = outAndProof
+	addAuthorshipProof(t, babesession, slotNumber)
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
@@ -129,78 +132,36 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			babesession.authorityData = make([]*AuthorityData, 1)
+			babesession.authorityData[0] = &AuthorityData{
+				ID: kp.Public().(*sr25519.PublicKey),
+			}			
+
+			slotNumber := uint64(1)
+
 			// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 			txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-			genesisHashStr := genesisHeader.Hash().String()
-			log.Warn("TestVerifyAuthorshipRight, ", "genesisHashStr", genesisHashStr)
+			// genesisHashStr := genesisHeader.Hash().String()
+			// log.Warn("TestVerifyAuthorshipRight, ", "genesisHashStr", genesisHashStr)
 
-			block, slot := createTestBlock(babesession, [][]byte{txb}, t, test.parentHeader)
+			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{txb}, t, test.parentHeader)
 
-			ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
+			ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
 			require.Equal(t, test.expectedErr, err)
-
 			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
 
 			if test.authorshipRight {
 				//save block
-				arrivalTime := uint64(time.Now().Unix()) - slot.duration
-
-				err = babesession.blockState.AddBlockWithArrivalTime(block, arrivalTime)
+				err = babesession.blockState.AddBlock(block)
 				if err != nil {
 					t.Fatal(err)
-				}
-
-				// create proof that we can authorize this block
-				babesession.epochThreshold = big.NewInt(2)
-				babesession.authorityIndex = 2
-				var slotNumber uint64 = 2
-
-				outAndProof, err := babesession.runLottery(slotNumber)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if outAndProof == nil {
-					t.Fatal("proof was nil when over threshold")
-				}
-
-				babesession.slotToProof[slotNumber] = outAndProof
-
-				slotNew := Slot{
-					start:    uint64(time.Now().Unix()),
-					duration: uint64(10000000),
-					number:   slotNumber,
 				}
 
 				//create new block
-				blockNew, _ := createTestBlock(babesession, [][]byte{txb}, t, test.parentHeader)
+				blockNew, _ := createTestBlock(babesession, false, slotNumber, [][]byte{}, t, test.parentHeader)
 
-				// create babe header
-				babeHeader, err := babesession.buildBlockBabeHeader(slot)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				babesession.authorityData = make([]*AuthorityData, 1)
-				babesession.authorityData[0] = &AuthorityData{
-					ID: kp.Public().(*sr25519.PublicKey),
-				}
-
-				ok, err := babesession.verifySlotWinner(slotNew.number, babeHeader)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if !ok {
-					t.Fatal("did not verify slot winner")
-				}
-
-				//update blockNumber to previous block
-				//blockNew.Header.Number = block.Header.Number
-
-				//verifyAuthorshipRight
-				ok, err = babesession.verifyAuthorshipRight(slotNew.number, blockNew.Header)
+				ok, err = babesession.verifyAuthorshipRight(slotNumber, blockNew.Header)
 				require.False(t, ok)
 
 				require.NotNil(t, err)
