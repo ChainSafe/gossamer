@@ -4,6 +4,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"math/big"
 )
 
 // StorageAPI is the interface for the storage state
@@ -13,6 +14,8 @@ type StorageAPI interface{}
 type BlockAPI interface{
 	GetHeader(hash common.Hash) (*types.Header, error)
 	HighestBlockHash() common.Hash
+	GetBlockByHash(hash common.Hash) (*types.Block, error)
+	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
 }
 
 // NetworkAPI interface for network state methods
