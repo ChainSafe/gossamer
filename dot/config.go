@@ -38,16 +38,19 @@ type Config struct {
 	Core    CoreConfig    `toml:"core"`
 	Network NetworkConfig `toml:"network"`
 	RPC     RPCConfig     `toml:"rpc"`
+	Init    InitConfig    `toml:"init"`
 }
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
 type GlobalConfig struct {
 	Name    string `toml:"name"`
 	ID      string `toml:"id"`
-	Config  string `toml:"config"`
-	Genesis string `toml:"genesis"`
 	DataDir string `toml:"datadir"`
 	Roles   byte   `toml:"roles"`
+}
+
+type InitConfig struct {
+	Genesis string `toml:"genesis"`
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
@@ -100,10 +103,11 @@ func GssmrConfig() *Config {
 		Global: GlobalConfig{
 			Name:    gssmr.DefaultName,
 			ID:      gssmr.DefaultID,
-			Config:  gssmr.DefaultConfig,
-			Genesis: gssmr.DefaultGenesis,
 			DataDir: gssmr.DefaultDataDir,
 			Roles:   gssmr.DefaultRoles,
+		},
+		Init: InitConfig{
+			Genesis: gssmr.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    gssmr.DefaultKey,
@@ -133,10 +137,11 @@ func KsmccConfig() *Config {
 		Global: GlobalConfig{
 			Name:    ksmcc.DefaultName,
 			ID:      ksmcc.DefaultID,
-			Config:  ksmcc.DefaultConfig,
-			Genesis: ksmcc.DefaultGenesis,
 			DataDir: ksmcc.DefaultDataDir,
 			Roles:   ksmcc.DefaultRoles,
+		},
+		Init: InitConfig{
+			Genesis: gssmr.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    ksmcc.DefaultKey,

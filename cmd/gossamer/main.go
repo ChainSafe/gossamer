@@ -170,7 +170,7 @@ func initAction(ctx *cli.Context) error {
 		return err
 	}
 
-	cfg, err := createDotConfig(ctx)
+	cfg, err := createInitConfig(ctx)
 	if err != nil {
 		log.Error("[cmd] Failed to create node configuration", "error", err)
 		return err

@@ -38,9 +38,10 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:    string("test"),
 			ID:      string("test"),
 			DataDir: dir,
-			Config:  string(""),
-			Genesis: string(""),
 			Roles:   byte(4), // authority node
+		},
+		Init: InitConfig{
+			Genesis: string(""),
 		},
 		Account: AccountConfig{
 			Key:    string(""),

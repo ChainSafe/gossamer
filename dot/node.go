@@ -45,7 +45,7 @@ type Node struct {
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
 	dataDir := cfg.Global.DataDir
-	genPath := cfg.Global.Genesis
+	genPath := cfg.Init.Genesis
 
 	log.Info(
 		"[dot] Initializing node...",
