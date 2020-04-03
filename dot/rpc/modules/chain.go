@@ -86,7 +86,7 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	res.Block.Header.Number = block.Header.Number
 	res.Block.Header.StateRoot = block.Header.StateRoot.String()
 	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-	res.Block.Header.Digest = block.Header.Digest
+	res.Block.Header.Digest = block.Header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
 		if err != nil {
@@ -133,7 +133,7 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	res.Number = header.Number
 	res.StateRoot = header.StateRoot.String()
 	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object
+	res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
 
 	return nil
 }
