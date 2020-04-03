@@ -309,11 +309,8 @@ func (s *Syncer) handleBody(body *types.Body) error {
 		return err
 	}
 
-	pool := s.transactionQueue.Pool()
-
 	for _, ext := range exts {
-		hash := ext.Hash()
-		delete(pool, hash)
+		s.transactionQueue.RemoveExtrinsic(ext)
 	}
 
 	return err

@@ -70,5 +70,5 @@ type TransactionQueue interface {
 	Push(vt *transaction.ValidTransaction) (common.Hash, error)
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
-	Pool() map[common.Hash]*transaction.ValidTransaction
+	RemoveExtrinsic(ext types.Extrinsic)
 }

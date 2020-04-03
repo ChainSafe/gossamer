@@ -24,19 +24,24 @@ import (
 func TestPriorityQueue(t *testing.T) {
 	tests := []*ValidTransaction{
 		{
-			Validity: &Validity{Priority: 1},
+			Extrinsic: []byte("a"),
+			Validity:  &Validity{Priority: 1},
 		},
 		{
-			Validity: &Validity{Priority: 4},
+			Extrinsic: []byte("b"),
+			Validity:  &Validity{Priority: 4},
 		},
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("c"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 17},
+			Extrinsic: []byte("d"),
+			Validity:  &Validity{Priority: 17},
 		},
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("e"),
+			Validity:  &Validity{Priority: 2},
 		},
 	}
 
@@ -60,19 +65,24 @@ func TestPriorityQueue(t *testing.T) {
 func TestPriorityQueueAgain(t *testing.T) {
 	tests := []*ValidTransaction{
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("a"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Extrinsic: []byte("b"),
+			Validity:  &Validity{Priority: 3},
 		},
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("c"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Extrinsic: []byte("d"),
+			Validity:  &Validity{Priority: 3},
 		},
 		{
-			Validity: &Validity{Priority: 1},
+			Extrinsic: []byte("e"),
+			Validity:  &Validity{Priority: 1},
 		},
 	}
 
@@ -135,19 +145,24 @@ func TestPriorityQueue_Pop(t *testing.T) {
 func TestPeek(t *testing.T) {
 	tests := []*ValidTransaction{
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("a"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Extrinsic: []byte("b"),
+			Validity:  &Validity{Priority: 3},
 		},
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("c"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Extrinsic: []byte("d"),
+			Validity:  &Validity{Priority: 3},
 		},
 		{
-			Validity: &Validity{Priority: 1},
+			Extrinsic: []byte("e"),
+			Validity:  &Validity{Priority: 1},
 		},
 	}
 
@@ -186,19 +201,24 @@ func TestPriorityQueueConcurrentCalls(t *testing.T) {
 func TestPending(t *testing.T) {
 	tests := []*ValidTransaction{
 		{
-			Validity: &Validity{Priority: 5},
+			Extrinsic: []byte("a"),
+			Validity:  &Validity{Priority: 5},
 		},
 		{
-			Validity: &Validity{Priority: 4},
+			Extrinsic: []byte("b"),
+			Validity:  &Validity{Priority: 4},
 		},
 		{
-			Validity: &Validity{Priority: 3},
+			Extrinsic: []byte("c"),
+			Validity:  &Validity{Priority: 3},
 		},
 		{
-			Validity: &Validity{Priority: 2},
+			Extrinsic: []byte("d"),
+			Validity:  &Validity{Priority: 2},
 		},
 		{
-			Validity: &Validity{Priority: 1},
+			Extrinsic: []byte("e"),
+			Validity:  &Validity{Priority: 1},
 		},
 	}
 
@@ -211,5 +231,31 @@ func TestPending(t *testing.T) {
 	pending := pq.Pending()
 	if !reflect.DeepEqual(pending, tests) {
 		t.Fatalf("Fail: got %v expected %v", pending, tests)
+	}
+}
+
+func TestRemoveExtrinsic(t *testing.T) {
+	tests := []*ValidTransaction{
+		{
+			Extrinsic: []byte("rats"),
+			Validity:  &Validity{Priority: 5},
+		},
+		{
+			Extrinsic: []byte("arecool"),
+			Validity:  &Validity{Priority: 4},
+		},
+	}
+
+	pq := NewPriorityQueue()
+
+	for _, node := range tests {
+		pq.Push(node)
+	}
+
+	pq.RemoveExtrinsic(tests[0].Extrinsic)
+
+	res := pq.Pop()
+	if !reflect.DeepEqual(res, tests[1]) {
+		t.Fatalf("Fail: got %v expected %v", res, tests[1])
 	}
 }

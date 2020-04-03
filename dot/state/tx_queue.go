@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -37,7 +38,7 @@ func (q *TransactionQueue) Pending() []*transaction.ValidTransaction {
 	return q.queue.Pending()
 }
 
-// Pool returns a map of transaction hashes to ValidTransactions
-func (q *TransactionQueue) Pool() map[common.Hash]*transaction.ValidTransaction {
-	return q.queue.Pool()
+// RemoveExtrinsic removes an extrinsic from the queue
+func (q *TransactionQueue) RemoveExtrinsic(ext types.Extrinsic) {
+	q.queue.RemoveExtrinsic(ext)
 }

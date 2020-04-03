@@ -17,10 +17,14 @@
 package transaction
 
 import (
+	"errors"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+var ErrTransactionExists = errors.New("transaction is already in pool")
 
 // PriorityQueue implements a priority queue using a double linked list
 type PriorityQueue struct {
@@ -47,6 +51,36 @@ func NewPriorityQueue() *PriorityQueue {
 	return &pq
 }
 
+// RemoveExtrinsic removes an extrinsic from the queue
+func (q *PriorityQueue) RemoveExtrinsic(ext types.Extrinsic) {
+	hash := ext.Hash()
+
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
+	if q.pool[hash] == nil {
+		return
+	}
+
+	curr := q.head
+	for ; curr != nil; curr = curr.child {
+		if curr.data.Extrinsic.Hash() == hash {
+			if curr.parent != nil {
+				curr.parent.child = curr.child
+			} else {
+				// head of queue
+				q.head = curr.child
+			}
+
+			if curr.child != nil {
+				curr.child.parent = curr.parent
+			}
+		}
+	}
+
+	delete(q.pool, hash)
+}
+
 // Pop removes the head of the queue and returns it
 func (q *PriorityQueue) Pop() *ValidTransaction {
 	q.mutex.Lock()
@@ -70,11 +104,6 @@ func (q *PriorityQueue) Peek() *ValidTransaction {
 		return nil
 	}
 	return q.head.data
-}
-
-// Pool returns the queue's underlying transaction pool
-func (q *PriorityQueue) Pool() map[common.Hash]*ValidTransaction {
-	return q.pool
 }
 
 // Pending returns all the transactions currently in the queue
@@ -104,6 +133,9 @@ func (q *PriorityQueue) Push(vt *ValidTransaction) (common.Hash, error) {
 	curr := q.head
 
 	hash := vt.Extrinsic.Hash()
+	if q.pool[hash] != nil {
+		return hash, ErrTransactionExists
+	}
 
 	if curr == nil {
 		q.head = &node{data: vt, hash: hash}
