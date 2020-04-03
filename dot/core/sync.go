@@ -20,7 +20,11 @@ import (
 
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
 type Syncer struct {
-	blockState       BlockState                           // retrieve our current head of chain from BlockState
+	// State interfaces
+	blockState       BlockState // retrieve our current head of chain from BlockState
+	transactionQueue TransactionQueue
+
+	// Synchronization channels and variables
 	blockNumIn       <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
 	msgOut           chan<- network.Message               // channel to send BlockRequest messages to network service
 	respIn           <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
@@ -32,9 +36,6 @@ type Syncer struct {
 	// Core service control
 	chanLock *sync.Mutex
 	stopped  bool
-
-	//
-	transactionQueue TransactionQueue
 }
 
 // SyncerConfig is the configuration for the Syncer.
