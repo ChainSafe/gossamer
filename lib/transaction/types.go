@@ -63,13 +63,3 @@ func NewValidTransaction(extrinsic types.Extrinsic, validity *Validity) *ValidTr
 func (vt *ValidTransaction) Encode() ([]byte, error) {
 	return scale.Encode(vt)
 }
-
-// Hash returns the transaction hash
-func (vt *ValidTransaction) Hash() (common.Hash, error) {
-	enc, err := vt.Encode()
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.Blake2bHash(enc)
-}

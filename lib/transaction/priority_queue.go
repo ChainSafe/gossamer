@@ -103,10 +103,7 @@ func (q *PriorityQueue) Push(vt *ValidTransaction) (common.Hash, error) {
 	defer q.mutex.Unlock()
 	curr := q.head
 
-	hash, err := vt.Hash()
-	if err != nil {
-		return common.Hash{}, err
-	}
+	hash := vt.Extrinsic.Hash()
 
 	if curr == nil {
 		q.head = &node{data: vt, hash: hash}

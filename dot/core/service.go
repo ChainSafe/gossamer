@@ -122,12 +122,13 @@ func NewService(cfg *Config) (*Service, error) {
 	chanLock := &sync.Mutex{}
 
 	syncerCfg := &SyncerConfig{
-		BlockState: cfg.BlockState,
-		BlockNumIn: cfg.SyncChan,
-		RespIn:     respChan,
-		MsgOut:     cfg.MsgSend,
-		Lock:       syncerLock,
-		ChanLock:   chanLock,
+		BlockState:       cfg.BlockState,
+		BlockNumIn:       cfg.SyncChan,
+		RespIn:           respChan,
+		MsgOut:           cfg.MsgSend,
+		Lock:             syncerLock,
+		ChanLock:         chanLock,
+		TransactionQueue: cfg.TransactionQueue,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)

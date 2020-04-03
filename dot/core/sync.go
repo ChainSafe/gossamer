@@ -227,21 +227,21 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				return 0, err
 			}
 
-			// get block header; if exists, return
-			existingHeader, err := s.blockState.GetHeader(bd.Hash)
-			if err != nil && existingHeader == nil {
-				err = s.blockState.SetHeader(header)
-				if err != nil {
-					return 0, err
-				}
+			highestInResp, err = s.handleHeader(header)
+			if err != nil {
+				return 0, err
+			}
+		}
 
-				log.Info("[sync] saved block header", "hash", header.Hash(), "number", header.Number)
-
-				// TODO: handle consensus digest, if first in epoch
+		if bd.Body.Exists {
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return 0, err
 			}
 
-			if header.Number.Int64() > highestInResp {
-				highestInResp = header.Number.Int64()
+			err = s.handleBody(body)
+			if err != nil {
+				return 0, err
 			}
 		}
 
@@ -261,42 +261,9 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 				Body:   body,
 			}
 
-			// TODO: execute block and verify authorship right
-
-			err = s.blockState.AddBlock(block)
-			if err != nil {
-				if err == blocktree.ErrParentNotFound && header.Number.Cmp(big.NewInt(0)) != 0 {
-					return 0, err
-				} else if err == blocktree.ErrBlockExists {
-					// this is fine
-					continue
-				} else if header.Number.Cmp(big.NewInt(0)) == 0 {
-					continue
-				} else {
-					return 0, err
-				}
-			} else {
-				log.Info("[sync] imported block", "number", header.Number, "hash", header.Hash())
-			}
-		}
-
-		if bd.Body.Exists {
-
-			body, err := types.NewBodyFromOptional(bd.Body)
+			err = s.handleBlock(block)
 			if err != nil {
 				return 0, err
-			}
-
-			exts, err := body.AsExtrinsics()
-			if err != nil {
-				return 0, err
-			}
-
-			pool := s.transactionQueue.Pool()
-
-			for _, ext := range exts {
-
-				delete(pool, ext)
 			}
 		}
 
@@ -307,4 +274,67 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 	}
 
 	return highestInResp, nil
+}
+
+// handleHeader handles headers included in BlockResponses
+func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
+	highestInResp := int64(0)
+
+	// get block header; if exists, return
+	// TODO: update blockState to include Has function
+	existingHeader, err := s.blockState.GetHeader(header.Hash())
+	if err != nil && existingHeader == nil {
+		err = s.blockState.SetHeader(header)
+		if err != nil {
+			return 0, err
+		}
+
+		log.Info("[sync] saved block header", "hash", header.Hash(), "number", header.Number)
+
+		// TODO: handle consensus digest, if first in epoch
+	}
+
+	if header.Number.Int64() > highestInResp {
+		highestInResp = header.Number.Int64()
+	}
+
+	return highestInResp, nil
+}
+
+// handleHeader handles block bodies included in BlockResponses
+func (s *Syncer) handleBody(body *types.Body) error {
+	exts, err := body.AsExtrinsics()
+	if err != nil {
+		log.Error("[sync] cannot parse body as extrinsics", "error", err)
+		return err
+	}
+
+	pool := s.transactionQueue.Pool()
+
+	for _, ext := range exts {
+		hash := ext.Hash()
+		delete(pool, hash)
+	}
+
+	return err
+}
+
+// handleHeader handles blocks (header+body) included in BlockResponses
+func (s *Syncer) handleBlock(block *types.Block) error {
+	// TODO: execute block and verify authorship right
+
+	err := s.blockState.AddBlock(block)
+	if err != nil {
+		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+			return err
+		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+			// this is fine
+		} else {
+			return err
+		}
+	} else {
+		log.Info("[sync] imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+	}
+
+	return nil
 }

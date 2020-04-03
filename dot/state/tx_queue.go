@@ -39,5 +39,5 @@ func (q *TransactionQueue) Pending() []*transaction.ValidTransaction {
 
 // Pool returns a map of transaction hashes to ValidTransactions
 func (q *TransactionQueue) Pool() map[common.Hash]*transaction.ValidTransaction {
-	return q.Pool()
+	return q.queue.Pool()
 }

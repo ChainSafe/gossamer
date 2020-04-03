@@ -49,6 +49,10 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg.MsgOut = make(chan network.Message)
 	}
 
+	if cfg.TransactionQueue == nil {
+		cfg.TransactionQueue = stateSrvc.TransactionQueue
+	}
+
 	syncer, err := NewSyncer(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -370,4 +374,8 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum-int(maxResponseSize))
 	}
 
+}
+
+func TestRemoveIncludedExtrinsics(t *testing.T) {
+	
 }
