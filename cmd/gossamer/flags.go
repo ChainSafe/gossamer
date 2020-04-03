@@ -215,7 +215,9 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 		for _, flagName := range ctx.FlagNames() {
 			if ctx.IsSet(flagName) {
 				if err := ctx.Set(flagName, ctx.String(flagName)); err != nil {
-					log.Error("[cmd] Failed to fix flag order", "flag", flagName)
+					if err := ctx.GlobalSet(flagName, ctx.String(flagName)); err != nil {
+						log.Trace("[cmd] Failed to fix flag order", "flag", flagName)
+					}
 				}
 			}
 		}
