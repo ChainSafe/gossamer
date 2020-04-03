@@ -2,10 +2,6 @@
 name = "gssmr"
 id = "gssmr"
 datadir = "~/.gossamer/gssmr"
-roles = 4
-
-[init]
-genesis = "./node/gssmr/genesis.json"
 
 [account]
 key = ""
@@ -13,9 +9,10 @@ unlock = ""
 
 [core]
 authority = true
+roles = 4
 
 [network]
-port = 7002
+port = 7001
 bootnodes = []
 protocol = "/gossamer/gssmr/0"
 nobootstrap = false
@@ -26,3 +23,6 @@ enabled = false
 port = 8545
 host = "localhost"
 modules = ["system", "author"]
+
+[init]
+genesis = "./node/gssmr/genesis.json"
