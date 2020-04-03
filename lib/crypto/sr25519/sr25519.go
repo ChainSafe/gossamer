@@ -19,7 +19,6 @@ package sr25519
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -302,10 +301,6 @@ func (k *PublicKey) VrfVerify(msg []byte, out []byte, proof []byte) (bool, error
 	}
 
 	inout := o.AttachInput(k.key, t)
-
-	fmt.Println(k.key)
-	fmt.Printf("%x\n", proofb)
-	fmt.Printf("%x\n", msg)
 
 	return k.key.VrfVerify(t, inout, p)
 }

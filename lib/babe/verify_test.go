@@ -38,7 +38,7 @@ func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
 		t.Fatal("proof was nil when over threshold")
 	}
 
-	babesession.slotToProof[slotNumber] = outAndProof	
+	babesession.slotToProof[slotNumber] = outAndProof
 }
 
 func TestVerifySlotWinner(t *testing.T) {
@@ -135,7 +135,9 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 			babesession.authorityData = make([]*AuthorityData, 1)
 			babesession.authorityData[0] = &AuthorityData{
 				ID: kp.Public().(*sr25519.PublicKey),
-			}			
+			}
+
+			t.Log(babesession.authorityData[0].ID.Encode())
 
 			slotNumber := uint64(1)
 
@@ -147,9 +149,13 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{txb}, t, test.parentHeader)
 
+			t.Log(babesession.authorityData[0].ID.Encode())
+
 			ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
 			require.Equal(t, test.expectedErr, err)
 			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
+
+			t.Log(babesession.authorityData[0].ID.Encode())
 
 			if test.authorshipRight {
 				//save block
@@ -158,8 +164,10 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 					t.Fatal(err)
 				}
 
+				t.Log(babesession.authorityData[0].ID.Encode())
+
 				//create new block
-				blockNew, _ := createTestBlock(babesession, false, slotNumber, [][]byte{}, t, test.parentHeader)
+				blockNew, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
 
 				ok, err = babesession.verifyAuthorshipRight(slotNumber, blockNew.Header)
 				require.False(t, ok)

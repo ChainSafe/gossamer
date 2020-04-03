@@ -63,6 +63,7 @@ func TestSeal(t *testing.T) {
 
 func createTestBlock(babesession *Session, createProof bool, slotNumber uint64, exts [][]byte, t *testing.T, parentHeader *types.Header) (*types.Block, Slot) {
 	if createProof {
+
 		// create proof that we can authorize this block
 		babesession.epochThreshold = big.NewInt(0)
 		babesession.authorityIndex = 0
@@ -76,8 +77,11 @@ func createTestBlock(babesession *Session, createProof bool, slotNumber uint64, 
 			t.Fatal("proof was nil when over threshold")
 		}
 
-		babesession.slotToProof[slotNumber] = outAndProof		
+		babesession.slotToProof[slotNumber] = outAndProof
 	}
+
+	//t.Log(babesession.authorityData[0].ID.Encode())
+	//t.Log(babesession.keypair.Public().Encode())
 
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})

@@ -37,11 +37,6 @@ func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (b
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.config.Randomness)
 
-	// fmt.Println(vrfInput)
-	// fmt.Println(pub)
-	// fmt.Println(header.VrfOutput)
-	// fmt.Println(header.VrfProof)
-
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
