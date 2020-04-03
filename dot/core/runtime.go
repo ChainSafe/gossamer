@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -36,7 +37,7 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 	}
 
 	if ret[0] != 0 {
-		return nil, ErrCannotValidateTx
+		return nil, errors.New("could not validate transaction")
 	}
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)

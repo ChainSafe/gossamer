@@ -50,7 +50,7 @@ var testGenesisHeader = &types.Header{
 // newTestService creates a new test core service
 func newTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		rt := runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
+		rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
 		cfg = &Config{
 			Runtime:         rt,
 			IsBabeAuthority: false,
@@ -182,7 +182,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestProcessBlockResponseMessage(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -256,7 +256,7 @@ func TestProcessBlockResponseMessage(t *testing.T) {
 
 func TestProcessTransactionMessage(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -305,7 +305,7 @@ func TestNotAuthority(t *testing.T) {
 
 func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -326,10 +326,10 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 
 	s := newTestService(t, cfg)
 
-	_, err = tests.GetRuntimeBlob(tests.TESTS_FP, tests.TEST_WASM_URL)
+	_, err = runtime.GetRuntimeBlob(runtime.TESTS_FP, runtime.TEST_WASM_URL)
 	require.Nil(t, err)
 
-	testRuntime, err := ioutil.ReadFile(tests.TESTS_FP)
+	testRuntime, err := ioutil.ReadFile(runtime.TESTS_FP)
 	require.Nil(t, err)
 
 	err = s.storageState.SetStorage([]byte(":code"), testRuntime)

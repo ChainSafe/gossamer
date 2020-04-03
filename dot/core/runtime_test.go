@@ -41,7 +41,7 @@ func TestRetrieveAuthorityData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 	s := &Service{
 		rt: rt,
 	}

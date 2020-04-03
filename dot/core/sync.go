@@ -1,8 +1,10 @@
 package core
 
 import (
+	"errors"
 	"math/big"
 	mrand "math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,7 +12,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -47,15 +48,15 @@ type SyncerConfig struct {
 // NewSyncer returns a new Syncer
 func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errors.New("cannot have nil BlockState")
 	}
 
 	if cfg.BlockNumIn == nil {
-		return nil, ErrNilChannel("BlockNumIn")
+		return nil, errors.New("cannot have nil BlockNumIn channel")
 	}
 
 	if cfg.MsgOut == nil {
-		return nil, ErrNilChannel("MsgOut")
+		return nil, errors.New("cannot have nil MsgOut channel")
 	}
 
 	return &Syncer{
@@ -131,7 +132,7 @@ func (s *Syncer) watchForResponses() {
 
 			// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 			// blocks from farther back in the chain
-			if err == blocktree.ErrParentNotFound {
+			if err.Error() == "cannot find parent block in blocktree" {
 				// set request start
 				s.requestStart = s.requestStart - maxResponseSize
 				if s.requestStart <= 0 {
@@ -175,7 +176,7 @@ func (s *Syncer) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 	if s.stopped {
-		return ErrServiceStopped
+		return errors.New("service has been stopped")
 	}
 	s.msgOut <- msg
 	return nil
@@ -261,9 +262,9 @@ func (s *Syncer) handleBlockResponse(msg *network.BlockResponseMessage) (int64, 
 
 			err = s.blockState.AddBlock(block)
 			if err != nil {
-				if err == blocktree.ErrParentNotFound && header.Number.Cmp(big.NewInt(0)) != 0 {
+				if err.Error() == "cannot find parent block in blocktree" && header.Number.Cmp(big.NewInt(0)) != 0 {
 					return 0, err
-				} else if err == blocktree.ErrBlockExists {
+				} else if strings.Contains(err.Error(), "cannot add block to blocktree that already exists") {
 					// this is fine
 					continue
 				} else if header.Number.Cmp(big.NewInt(0)) == 0 {
