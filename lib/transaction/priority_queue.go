@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// ErrTransactionExists is returned when trying to add a transaction to the pool that already exists
 var ErrTransactionExists = errors.New("transaction is already in pool")
 
 // PriorityQueue implements a priority queue using a double linked list

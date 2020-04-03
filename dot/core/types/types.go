@@ -34,6 +34,7 @@ func NewExtrinsic(e []byte) Extrinsic {
 	return Extrinsic(e)
 }
 
+// Hash returns the blake2b hash of the extrinsic
 func (e Extrinsic) Hash() common.Hash {
 	hash, err := common.Blake2bHash(e)
 	if err != nil {
