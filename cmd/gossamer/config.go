@@ -76,6 +76,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	cfg, err = loadConfigFile(ctx)
 	if err != nil {
 		log.Error("[cmd] Failed to load toml configuration", "error", err)
+		return nil, err
 	}
 
 	// set dot configuration values
@@ -93,6 +94,7 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	cfg, err = loadConfigFile(ctx)
 	if err != nil {
 		log.Error("[cmd] Failed to load toml configuration", "error", err)
+		return nil, err
 	}
 
 	setDotInitConfig(ctx, &cfg.Init)

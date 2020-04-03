@@ -48,6 +48,7 @@ type GlobalConfig struct {
 	DataDir string `toml:"datadir"`
 }
 
+// InitConfig is the configuration for the node initialization
 type InitConfig struct {
 	Genesis string `toml:"genesis"`
 }
