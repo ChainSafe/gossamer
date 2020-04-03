@@ -31,7 +31,7 @@ import (
 // or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// check --node flag and load node configuration from defaults.go
-	if name := ctx.String(NodeFlag.Name); name != "" {
+	if name := ctx.GlobalString(NodeFlag.Name); name != "" {
 		switch name {
 		case "gssmr":
 			log.Debug("[cmd] Loading node implementation...", "name", name)
@@ -45,7 +45,7 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	}
 
 	// check --config flag and load toml configuration from config.toml
-	if config := ctx.String(ConfigFlag.Name); config != "" {
+	if config := ctx.GlobalString(ConfigFlag.Name); config != "" {
 		log.Info("[cmd] Loading toml configuration...", "config", config)
 		if cfg == nil {
 			cfg = &dot.Config{} // if configuration has not been set, create empty dot configuration
@@ -96,6 +96,8 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	}
 
 	setDotInitConfig(ctx, &cfg.Init)
+	setDotGlobalConfig(ctx, &cfg.Global)
+
 	return cfg, nil
 }
 

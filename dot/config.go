@@ -141,7 +141,7 @@ func KsmccConfig() *Config {
 			Roles:   ksmcc.DefaultRoles,
 		},
 		Init: InitConfig{
-			Genesis: gssmr.DefaultGenesis,
+			Genesis: ksmcc.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    ksmcc.DefaultKey,

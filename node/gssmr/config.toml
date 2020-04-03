@@ -1,10 +1,11 @@
 [global]
 name = "gssmr"
 id = "gssmr"
-config = "./node/gssmr/config.toml"
-genesis = "./node/gssmr/genesis.json"
 datadir = "~/.gossamer/gssmr"
 roles = 4
+
+[init]
+genesis = "./node/gssmr/genesis.json"
 
 [account]
 key = ""
@@ -14,7 +15,7 @@ unlock = ""
 authority = true
 
 [network]
-port = 7001
+port = 7002
 bootnodes = []
 protocol = "/gossamer/gssmr/0"
 nobootstrap = false
