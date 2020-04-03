@@ -17,8 +17,10 @@
 package modules
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -28,23 +30,25 @@ import (
 type ChainHashRequest string
 
 // ChainBlockNumberRequest Int
-type ChainBlockNumberRequest *big.Int
+type ChainBlockNumberRequest interface{}
 
 // ChainBlockResponse struct
-type ChainBlockResponse struct{
+type ChainBlockResponse struct {
 	Block ChainBlock `json:"block"`
 }
 
+// ChainBlock struct to hold json instance of a block
 type ChainBlock struct {
-	Header ChainBlockHeaderResponse `json:"header""`
-	Body []string `json:"extrinsics"`
+	Header ChainBlockHeaderResponse `json:"header"`
+	Body   []string                 `json:"extrinsics"`
 }
+
 // ChainBlockHeaderResponse struct
-type ChainBlockHeaderResponse struct{
-	ParentHash     string `json:"parentHash"`
+type ChainBlockHeaderResponse struct {
+	ParentHash     string   `json:"parentHash"`
 	Number         *big.Int `json:"number"`
-	StateRoot      string `json:"stateRoot"`
-	ExtrinsicsRoot string `json:"extrinsicsRoot""`
+	StateRoot      string   `json:"stateRoot"`
+	ExtrinsicsRoot string   `json:"extrinsicsRoot"`
 	Digest         [][]byte `json:"digest"`
 }
 
@@ -83,22 +87,30 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	res.Block.Header.StateRoot = block.Header.StateRoot.String()
 	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
 	res.Block.Header.Digest = block.Header.Digest
-	ext, err := block.Body.AsExtrinsics()
-	for _, e := range ext {
-		res.Block.Body = append(res.Block.Body, string(e))
+	if *block.Body != nil {
+		ext, err := block.Body.AsExtrinsics()
+		if err != nil {
+			return err
+		}
+		for _, e := range ext {
+			res.Block.Body = append(res.Block.Body, string(e))
+		}
 	}
-
 	return nil
 }
 
 // GetBlockHash isn't implemented properly yet.
+// TODO finish this
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
+	// TODO get values from req
+	fmt.Printf("blockHash %s\n", *req)
+	fmt.Printf("type %v\n", reflect.TypeOf(req))
 	hash, err := cm.blockAPI.GetBlockHash(big.NewInt(1))
 	if err != nil {
 		return err
 	}
 	res.ChainHash = *hash
-	return nil
+	return fmt.Errorf("not implemented yet")
 }
 
 // GetFinalizedHead isn't implemented properly yet.
@@ -121,7 +133,7 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	res.Number = header.Number
 	res.StateRoot = header.StateRoot.String()
 	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	res.Digest = header.Digest  // TODO: figure out how to get Digest to be a json object
+	res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object
 
 	return nil
 }
@@ -134,10 +146,10 @@ func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyReques
 func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
 }
 
-func (cm *ChainModule) hashLookup( req * ChainHashRequest) (common.Hash, error) {
+func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {
 	if len(*req) == 0 {
 		hash := cm.blockAPI.HighestBlockHash()
 		return hash, nil
 	}
-	return  common.HexToHash(string(*req))
+	return common.HexToHash(string(*req))
 }
