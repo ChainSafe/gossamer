@@ -18,6 +18,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
 type Syncer struct {
 	// State interfaces
