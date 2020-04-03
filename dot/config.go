@@ -46,7 +46,6 @@ type GlobalConfig struct {
 	Name    string `toml:"name"`
 	ID      string `toml:"id"`
 	DataDir string `toml:"datadir"`
-	Roles   byte   `toml:"roles"`
 }
 
 type InitConfig struct {
@@ -71,6 +70,7 @@ type NetworkConfig struct {
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
 	Authority bool `toml:"authority"`
+	Roles     byte `toml:"roles"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -89,7 +89,7 @@ func (c *Config) String() string {
 
 // NetworkServiceEnabled returns true if the network service is enabled
 func NetworkServiceEnabled(cfg *Config) bool {
-	return cfg.Global.Roles != byte(0)
+	return cfg.Core.Roles != byte(0)
 }
 
 // RPCServiceEnabled returns true if the rpc service is enabled
@@ -104,7 +104,6 @@ func GssmrConfig() *Config {
 			Name:    gssmr.DefaultName,
 			ID:      gssmr.DefaultID,
 			DataDir: gssmr.DefaultDataDir,
-			Roles:   gssmr.DefaultRoles,
 		},
 		Init: InitConfig{
 			Genesis: gssmr.DefaultGenesis,
@@ -115,6 +114,7 @@ func GssmrConfig() *Config {
 		},
 		Core: CoreConfig{
 			Authority: gssmr.DefaultAuthority,
+			Roles:     gssmr.DefaultRoles,
 		},
 		Network: NetworkConfig{
 			Port:        gssmr.DefaultNetworkPort,
@@ -138,7 +138,6 @@ func KsmccConfig() *Config {
 			Name:    ksmcc.DefaultName,
 			ID:      ksmcc.DefaultID,
 			DataDir: ksmcc.DefaultDataDir,
-			Roles:   ksmcc.DefaultRoles,
 		},
 		Init: InitConfig{
 			Genesis: ksmcc.DefaultGenesis,
@@ -149,6 +148,7 @@ func KsmccConfig() *Config {
 		},
 		Core: CoreConfig{
 			Authority: ksmcc.DefaultAuthority,
+			Roles:     ksmcc.DefaultRoles,
 		},
 		Network: NetworkConfig{
 			Port:        ksmcc.DefaultNetworkPort,

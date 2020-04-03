@@ -38,7 +38,6 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:    string("test"),
 			ID:      string("test"),
 			DataDir: dir,
-			Roles:   byte(4), // authority node
 		},
 		Init: InitConfig{
 			Genesis: string(""),
@@ -48,7 +47,8 @@ func NewTestConfig(t *testing.T) *Config {
 			Unlock: string(""),
 		},
 		Core: CoreConfig{
-			Authority: true, // BABE block producer
+			Authority: true,    // BABE block producer
+			Roles:     byte(4), // authority node
 		},
 		Network: NetworkConfig{
 			Port:        uint32(7001),

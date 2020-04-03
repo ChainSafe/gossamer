@@ -115,25 +115,11 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.DataDir = datadir
 	}
 
-	// check --roles flag and update node configuration
-	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
-		b, err := strconv.Atoi(roles)
-		if err != nil {
-			log.Error("[cmd] Failed to convert Roles to byte", "error", err)
-		} else if byte(b) > 4 {
-			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
-			log.Error("[cmd] Invalid roles option provided", "roles", byte(b))
-		} else {
-			cfg.Roles = byte(b)
-		}
-	}
-
 	log.Debug(
 		"[cmd] Global configuration",
 		"name", cfg.Name,
 		"id", cfg.ID,
 		"datadir", cfg.DataDir,
-		"roles", cfg.Roles,
 	)
 }
 
@@ -179,9 +165,23 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 		}
 	}
 
+	// check --roles flag and update node configuration
+	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
+		b, err := strconv.Atoi(roles)
+		if err != nil {
+			log.Error("[cmd] Failed to convert Roles to byte", "error", err)
+		} else if byte(b) > 4 {
+			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
+			log.Error("[cmd] Invalid roles option provided", "roles", byte(b))
+		} else {
+			cfg.Roles = byte(b)
+		}
+	}
+
 	log.Debug(
 		"[cmd] Core configuration",
 		"authority", cfg.Authority,
+		"roles", cfg.Roles,
 	)
 }
 

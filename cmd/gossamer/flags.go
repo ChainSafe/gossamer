@@ -21,14 +21,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-// CLI flags
+// Node flags
 var (
-	// VerbosityFlag cli service settings
-	VerbosityFlag = cli.StringFlag{
-		Name:  "verbosity",
-		Usage: "Supports levels crit (silent) to trce (trace)",
-		Value: log.LvlInfo.String(),
-	}
 	// UnlockFlag keystore
 	UnlockFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -48,6 +42,12 @@ var (
 
 // Global node configuration flags
 var (
+	// VerbosityFlag cli service settings
+	VerbosityFlag = cli.StringFlag{
+		Name:  "verbosity",
+		Usage: "Supports levels crit (silent) to trce (trace)",
+		Value: log.LvlInfo.String(),
+	}
 	// NodeFlag node implementation name
 	NodeFlag = cli.StringFlag{
 		Name:  "node",
