@@ -129,7 +129,7 @@ func TestService(t *testing.T) {
 		t.Fatalf("response value incorrect. expected: %d got: %d", 10, res.Result)
 	}
 
-	// Exepected to return error
+	// Expected to return error
 	res = ServiceResponse{}
 	err = exec(s, "Service_Fail", &ServiceRequest{1337}, &res)
 	if err == nil {

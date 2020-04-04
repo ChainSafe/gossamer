@@ -26,6 +26,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -46,7 +49,7 @@ type serverResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
 	// Resulting values
-	Result interface{} `json:"result"`
+	Result json.RawMessage `json:"result"`
 	// Any generated errors
 	Error *json2.Error `json:"error"`
 	// Request id
@@ -57,23 +60,27 @@ func TestStableRPC(t *testing.T) {
 	if GOSSAMER_INTEGRATION_TEST_MODE != "stable" {
 		t.Skip("Integration tests are disabled, going to skip.")
 	}
-
 	log.Info("Going to run tests",
 		"GOSSAMER_INTEGRATION_TEST_MODE", GOSSAMER_INTEGRATION_TEST_MODE,
 		"GOSSAMER_NODE_HOST", GOSSAMER_NODE_HOST)
 
-	method := "system_Health"
-
-	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":{},"id":1}`)
-	buf := &bytes.Buffer{}
-	_, err := buf.Write(data)
-	require.Nil(t, err)
-
-	r, err := http.NewRequest("POST", GOSSAMER_NODE_HOST, buf)
-	require.Nil(t, err)
-
-	r.Header.Set("Content-Type", ContentTypeJSON)
-	r.Header.Set("Accept", ContentTypeJSON)
+	testsCases := []struct {
+		description string
+		method      string
+		expected    interface{}
+	}{
+		{
+			description: "test system_Health",
+			method:      "system_Health",
+			expected: modules.SystemHealthResponse{
+				Health: common.Health{
+					Peers:           0,
+					IsSyncing:       false,
+					ShouldHavePeers: true,
+				},
+			},
+		},
+	}
 
 	transport := &http.Transport{
 		Dial: (&net.Dialer{
@@ -85,29 +92,55 @@ func TestStableRPC(t *testing.T) {
 		Timeout:   httpClientTimeout,
 	}
 
-	resp, err := httpClient.Do(r)
-	require.Nil(t, err)
-	require.Equal(t, resp.StatusCode, http.StatusOK)
+	for _, test := range testsCases {
+		t.Run(test.description, func(t *testing.T) {
 
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+			data := []byte(`{"jsonrpc":"2.0","method":"` + test.method + `","params":{},"id":1}`)
+			buf := &bytes.Buffer{}
+			_, err := buf.Write(data)
+			require.Nil(t, err)
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	require.Nil(t, err)
+			r, err := http.NewRequest("POST", GOSSAMER_NODE_HOST, buf)
+			require.Nil(t, err)
 
-	decoder := json.NewDecoder(bytes.NewReader(respBody))
-	decoder.DisallowUnknownFields()
+			r.Header.Set("Content-Type", ContentTypeJSON)
+			r.Header.Set("Accept", ContentTypeJSON)
 
-	var response serverResponse
-	err = decoder.Decode(&response)
-	require.Nil(t, err)
+			resp, err := httpClient.Do(r)
+			require.Nil(t, err)
+			require.Equal(t, resp.StatusCode, http.StatusOK)
 
-	log.Debug("Got payload from RPC request", "serverResponse", response)
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
-	require.Equal(t, response.Version, "2.0")
+			respBody, err := ioutil.ReadAll(resp.Body)
+			require.Nil(t, err)
 
-	//TODO: add further assertions
-	require.Nil(t, response.Error)
+			decoder := json.NewDecoder(bytes.NewReader(respBody))
+			decoder.DisallowUnknownFields()
+
+			var response serverResponse
+			err = decoder.Decode(&response)
+			require.Nil(t, err)
+			log.Debug("Got payload from RPC request", "serverResponse", response)
+
+			require.Nil(t, response.Error)
+			require.Equal(t, response.Version, "2.0")
+
+			decoder = json.NewDecoder(bytes.NewReader(response.Result))
+			decoder.DisallowUnknownFields()
+
+			switch test.method {
+
+			case "system_Health":
+				var target modules.SystemHealthResponse
+				err = decoder.Decode(&target)
+				require.Nil(t, err)
+				require.Equal(t, target, test.expected)
+			}
+
+		})
+	}
 
 }
