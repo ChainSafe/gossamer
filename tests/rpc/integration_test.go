@@ -19,15 +19,16 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/dot/rpc/json2"
-	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/json2"
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -91,13 +92,13 @@ func TestStableRPC(t *testing.T) {
 	decoder := json.NewDecoder(bytes.NewReader(respBody))
 	decoder.DisallowUnknownFields()
 
-	var serverResponse serverResponse
-	err = decoder.Decode(&serverResponse)
+	var response serverResponse
+	err = decoder.Decode(&response)
 	require.Nil(t, err)
 
-	log.Debug("Got payload from RPC request", "serverResponse", serverResponse)
+	log.Debug("Got payload from RPC request", "serverResponse", response)
 
-	require.Equal(t, serverResponse.Version, "2.0")
+	require.Equal(t, response.Version, "2.0")
 
 	//TODO: add further assertions
 	//require.Nil(t, serverResponse.Error)
