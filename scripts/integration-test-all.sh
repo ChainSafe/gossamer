@@ -52,7 +52,7 @@ make build
 echo "starting gossamer node in background with http listener on $HOST_RPC"
 
 $PWD/bin/gossamer --port=$PORT --key=$KEY --datadir=$DATA_DIR \
-                  --rpc --rpchost=$IP_ADDR --rpcport=$RPC_PORT &
+                  --rpc --rpchost=$IP_ADDR --rpcport=$RPC_PORT --rpcmods=system,author &
 
 GOSSAMER_PID=$!
 

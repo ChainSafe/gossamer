@@ -62,7 +62,14 @@ func TestStableRPC(t *testing.T) {
 		"GOSSAMER_INTEGRATION_TEST_MODE", GOSSAMER_INTEGRATION_TEST_MODE,
 		"GOSSAMER_NODE_HOST", GOSSAMER_NODE_HOST)
 
-	r, err := http.NewRequest("POST", GOSSAMER_NODE_HOST, nil)
+	method := "system_Health"
+
+	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":{},"id":1}`)
+	buf := &bytes.Buffer{}
+	_, err := buf.Write(data)
+	require.Nil(t, err)
+
+	r, err := http.NewRequest("POST", GOSSAMER_NODE_HOST, buf)
 	require.Nil(t, err)
 
 	r.Header.Set("Content-Type", ContentTypeJSON)
@@ -101,6 +108,6 @@ func TestStableRPC(t *testing.T) {
 	require.Equal(t, response.Version, "2.0")
 
 	//TODO: add further assertions
-	//require.Nil(t, serverResponse.Error)
+	require.Nil(t, response.Error)
 
 }
