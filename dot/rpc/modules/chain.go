@@ -18,9 +18,10 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"math/big"
 	"net/http"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // ChainHashRequest Hash
