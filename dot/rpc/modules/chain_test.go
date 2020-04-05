@@ -34,7 +34,7 @@ func newChainService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func TestChainGetHeader_Gensis(t *testing.T) {
+func TestChainGetHeader_Genesis(t *testing.T) {
 	chain := newChainService(t)
 	svc := NewChainModule(chain.Block)
 	expected := &ChainBlockHeaderResponse{
@@ -90,7 +90,7 @@ func TestChainGetHeader_Error(t *testing.T) {
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
 }
 
-func TestChainGetBlock_Gensis(t *testing.T) {
+func TestChainGetBlock_Genesis(t *testing.T) {
 	chain := newChainService(t)
 	svc := NewChainModule(chain.Block)
 	header := &ChainBlockHeaderResponse{

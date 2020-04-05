@@ -18,11 +18,9 @@ package modules
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"math/big"
 	"net/http"
-	"reflect"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // ChainHashRequest Hash
@@ -103,13 +101,6 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 // TODO finish this
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
 	// TODO get values from req
-	fmt.Printf("blockHash %s\n", *req)
-	fmt.Printf("type %v\n", reflect.TypeOf(req))
-	hash, err := cm.blockAPI.GetBlockHash(big.NewInt(1))
-	if err != nil {
-		return err
-	}
-	res.ChainHash = *hash
 	return fmt.Errorf("not implemented yet")
 }
 
