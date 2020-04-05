@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+
 	log "github.com/ChainSafe/log15"
 )
 
@@ -35,16 +36,17 @@ func (s *Service) finalizeBabeSession() error {
 		// TODO: NextEpochDescriptor is included in first block of an epoch #662
 		// return fmt.Errorf("first block not set for current epoch")
 
-		log.Error("[core] first block not set for current epoch")
+		log.Error("[core] first block not set for current epoch") // TODO: remove
 	}
 
-	// verify best block is from current epoch
+	// get epoch number for best block
 	bestHash := s.blockState.BestBlockHash()
 	currentEpoch, err := s.blockFromCurrentEpoch(bestHash)
 	if err != nil {
-		return fmt.Errorf("failed to check block from current epoch: %s", err)
+		return fmt.Errorf("failed to check best block from current epoch: %s", err)
 	}
 
+	// verify best block is from current epoch
 	if !currentEpoch {
 		return fmt.Errorf("best block is not from current epoch: %s", err)
 	}

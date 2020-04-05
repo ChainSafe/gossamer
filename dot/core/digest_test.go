@@ -67,3 +67,26 @@ func TestHandleConsensusDigest(t *testing.T) {
 
 	require.Equal(t, number, s.firstBlock)
 }
+
+// test setNextEpochDescriptor
+func TestSetNextEpochDescriptor(t *testing.T) {
+	s := newTestServiceWithFirstBlock(t)
+
+	header, err := s.blockState.BestBlockHeader()
+	require.Nil(t, err)
+
+	var item types.DigestItem
+
+	for _, digest := range header.Digest {
+		item, err = types.DecodeDigestItem(digest)
+		require.Nil(t, err)
+	}
+
+	// check if digest item is consensus digest type
+	if item.Type() == types.ConsensusDigestType {
+		digest := item.(*types.ConsensusDigest)
+
+		err = s.setNextEpochDescriptor(digest.Data)
+		require.Nil(t, err)
+	}
+}
