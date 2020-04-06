@@ -17,6 +17,7 @@
 package core
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -38,6 +39,24 @@ func TestHandleBlockDigest(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, number, s.firstBlock)
+
+	// test two blocks claiming to be first block
+	s.firstBlock = big.NewInt(1)
+
+	err = s.handleBlockDigest(header)
+	require.NotNil(t, err) // expect error: "first block already set for current epoch"
+
+	// expect first block not to be updated
+	require.Equal(t, s.firstBlock, big.NewInt(1))
+
+	// test two blocks claiming to be first block
+	s.firstBlock = big.NewInt(99)
+
+	err = s.handleBlockDigest(header)
+	require.Nil(t, err)
+
+	// expect first block to be updated
+	require.Equal(t, s.firstBlock, number)
 }
 
 // test handleConsensusDigest

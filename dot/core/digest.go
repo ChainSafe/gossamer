@@ -81,13 +81,15 @@ func (s *Service) handleConsensusDigest(header *types.Header, digest *types.Cons
 	// check if first block has been set for current epoch
 	if s.firstBlock != nil {
 
-		// check if first block has lower block number than block header
-		if s.firstBlock.Cmp(header.Number) != -1 {
+		// check if block header has lower block number than current first block
+		if header.Number.Cmp(s.firstBlock) >= 0 {
+
+			// error if block header does not have lower block number
 			return fmt.Errorf("first block already set for current epoch")
 		}
 
-		// log error if BABE produced two first blocks or received false first block from connected peer
-		log.Error("[core] received first block header with lower block number than current first block")
+		// either BABE produced two first blocks or we received invalid first block from connected peer
+		log.Warn("[core] received first block header with lower block number than current first block")
 	}
 
 	err = s.setNextEpochDescriptor(digest.Data)
