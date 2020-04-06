@@ -13,12 +13,6 @@ permalink: /
 </div>
 <br/>
 
-## What is Gossamer?
-
-_work in progress_ - [gossamer/wiki](https://github.com/ChainSafe/gossamer/wiki)
-
-## What is Gossamer Wiki?
-
 _work in progress_ - [gossamer/wiki](https://github.com/ChainSafe/gossamer/wiki)
 
 ## Table of Contents
