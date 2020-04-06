@@ -403,7 +403,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 		BlockData: []*types.BlockData{bd},
 	}
 
-	_, err = syncer.handleBlockResponse(msg)
+	_, err = syncer.processBlockResponseData(msg)
 	if err != nil {
 		t.Fatal(err)
 	}
