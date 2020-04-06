@@ -25,13 +25,76 @@
 </div>
 <br />
 
-## Gossamer: A Go implementation of the Polkadot Host
+## Gossamer: A Go Implementation of the Polkadot Host
 
 Gossamer is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem.
 
 Gossamer includes official node implementations for major blockchains within the Polkadot ecosystem and makes building node implementations for other blockchains trivial; blockchains built with [Substrate](https://github.com/paritytech/substrate) can plug their compiled runtime into Gossamer to create a node implementation in Go.
 
 For more information about Gossamer, the Polkadot ecosystem, and how to use Gossamer to build and run node implementations for different blockchain protocols within the Polkadot ecosystem, check out [Gossamer Wiki](https://github.com/ChainSafe/gossamer/wiki).
+
+## Get Started
+
+### Prerequisites
+
+install go version `1.13.7`
+
+### Installation
+
+get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
+```
+go get -u github.com/ChainSafe/gossamer
+```
+
+### Build Command
+
+build gossamer node:
+```
+make gossamer
+```
+
+### Run Default Node
+
+initialize default node:
+```
+./bin/gossamer --key alice init
+```
+
+start default node:
+```
+./bin/gossamer --key alice
+```
+
+### Run Gossamer Node
+
+initialize gossamer node:
+```
+./bin/gossamer --node gssmr --key alice init
+```
+
+start gossamer node:
+```
+./bin/gossamer --node gssmr --key alice
+```
+
+### Run Kusama Node
+
+initialize kusama node:
+```
+./bin/gossamer --node ksmcc --key alice init
+```
+
+start kusama node:
+```
+./bin/gossamer --node ksmcc --key alice
+```
+
+### Run Tests
+
+run all package tests:
+```
+go test ./... -short
+```
 
 ## Contribute
 
