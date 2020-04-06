@@ -221,7 +221,7 @@ func TestChainGetBlockHash_Latest(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest(nil )
+	req := ChainBlockNumberRequest(nil)
 	err := svc.GetBlockHash(nil, &req, &res)
 
 	require.Nil(t, err)
@@ -235,7 +235,7 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest("1" )
+	req := ChainBlockNumberRequest("1")
 	err := svc.GetBlockHash(nil, &req, &res)
 
 	require.Nil(t, err)
@@ -249,7 +249,7 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest("0x01" )
+	req := ChainBlockNumberRequest("0x01")
 	err := svc.GetBlockHash(nil, &req, &res)
 
 	require.Nil(t, err)
@@ -264,12 +264,12 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	resString := string("")
 	res := ChainHashResponse(resString)
 	nums := make([]interface{}, 2)
-	nums[0] = float64(0) // as number
-	nums[1] = string("0x01")  // as hex string
+	nums[0] = float64(0)     // as number
+	nums[1] = string("0x01") // as hex string
 	req := ChainBlockNumberRequest(nums)
 	err := svc.GetBlockHash(nil, &req, &res)
 
 	require.Nil(t, err)
 
-	require.Equal(t, []string{"0xdbfdd87392d9ee52f499610582737daceecf83dc3ad7946fcadeb01c86e1ef75" ,"0x80d653de440352760f89366c302c02a92ab059f396e2bfbf7f860e6e256cd698"}, res)
+	require.Equal(t, []string{"0xdbfdd87392d9ee52f499610582737daceecf83dc3ad7946fcadeb01c86e1ef75", "0x80d653de440352760f89366c302c02a92ab059f396e2bfbf7f860e6e256cd698"}, res)
 }

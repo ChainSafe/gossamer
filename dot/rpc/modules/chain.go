@@ -54,7 +54,7 @@ type ChainBlockHeaderResponse struct {
 }
 
 // ChainHashResponse interface to handle response
-type ChainHashResponse interface { }
+type ChainHashResponse interface{}
 
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
