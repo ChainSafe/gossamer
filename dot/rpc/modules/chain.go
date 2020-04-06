@@ -26,8 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// ChainHashRequest Hash
-//type ChainHashRequest common.Hash
+// ChainHashRequest Hash as a string
 type ChainHashRequest string
 
 // ChainBlockNumberRequest interface is it can accept string or float64 or []

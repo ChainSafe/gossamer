@@ -70,7 +70,6 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 		Digest:     [][]byte{},
 		ParentHash: blockHash0,
 	}
-	//blockHash1 := header1.Hash()
 
 	// Create Block with fake extrinsics
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
