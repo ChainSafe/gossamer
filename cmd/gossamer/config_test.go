@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -417,6 +418,65 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
 			require.Equal(t, c.expected, cfg.RPC)
+		})
+	}
+}
+
+// TestUpdateConfigFromGenesis tests UpdateConfigFromGenesis
+func TestUpdateConfigFromGenesis(t *testing.T) {
+	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	require.NotNil(t, testCfg)
+	require.NotNil(t, testCfgFile)
+
+	testGenFile := dot.NewTestGenesisFile(t, testCfg)
+
+	defer utils.RemoveTestDir(t)
+
+	testGen, err := genesis.LoadGenesisFromJSON(testGenFile.Name())
+	require.Nil(t, err)
+
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    dot.Config
+	}{
+		{
+			"Test gossamer --genesis",
+			[]string{"config", "genesis"},
+			[]interface{}{testCfgFile.Name(), testGenFile.Name()},
+			dot.Config{
+				Global: dot.GlobalConfig{
+					Name:    testGen.Name, // genesis name
+					ID:      testGen.ID,   // genesis id
+					DataDir: testCfg.Global.DataDir,
+				},
+				Account: testCfg.Account,
+				Core:    testCfg.Core,
+				Network: dot.NetworkConfig{
+					Port:        testCfg.Network.Port,
+					Bootnodes:   testGen.Bootnodes,  // genesis bootnodes
+					ProtocolID:  testGen.ProtocolID, // genesis protocol id
+					NoBootstrap: testCfg.Network.NoBootstrap,
+					NoMDNS:      testCfg.Network.NoMDNS,
+				},
+				RPC: testCfg.RPC,
+			},
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+			cfg, err := createDotConfig(ctx)
+			require.Nil(t, err)
+
+			require.Equal(t, &c.expected, cfg)
 		})
 	}
 }
