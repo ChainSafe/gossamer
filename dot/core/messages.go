@@ -54,7 +54,6 @@ func (s *Service) createBlockResponse(blockRequest *network.BlockRequestMessage)
 		}
 		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock))
 		if err != nil {
-			log.Error("[core] failed to get starting block", "number", startBlock)
 			return nil, err
 		}
 
@@ -273,7 +272,12 @@ func (s *Service) ProcessTransactionMessage(msg *network.TransactionMessage) err
 
 		if s.isBabeAuthority {
 			// push to the transaction queue of BABE session
-			s.transactionQueue.Push(vtx)
+			hash, err := s.transactionQueue.Push(vtx)
+			if err != nil {
+				log.Trace("[core] Failed to push transaction to queue", "error", err)
+			} else {
+				log.Trace("[core] Added transaction to queue", "hash", hash)
+			}
 		}
 	}
 
