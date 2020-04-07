@@ -6,12 +6,10 @@
 
 SCRIPT=`basename ${BASH_SOURCE[0]}`
 TEST=""
-BINARY="$PWD/bin/gossamer"
 
 PORT="7001"
 RPC_PORT="8545"
 IP_ADDR="0.0.0.0"
-HOST="http://$IP_ADDR:$PORT"
 HOST_RPC="http://$IP_ADDR:$RPC_PORT"
 MODE="stable"
 

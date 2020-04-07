@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -51,9 +50,23 @@ type serverResponse struct {
 	// Resulting values
 	Result json.RawMessage `json:"result"`
 	// Any generated errors
-	Error *json2.Error `json:"error"`
+	Error *Error `json:"error"`
 	// Request id
 	ID *json.RawMessage `json:"id"`
+}
+
+// ErrCode is a int type used for the rpc error codes
+type ErrCode int
+
+// Error is a struct that holds the error message and the error code for a error
+type Error struct {
+	Message   string
+	ErrorCode ErrCode
+}
+
+// Error returns the error Message string
+func (e *Error) Error() string {
+	return e.Message
 }
 
 func TestStableRPC(t *testing.T) {
@@ -71,7 +84,7 @@ func TestStableRPC(t *testing.T) {
 	}{
 		{
 			description: "test system_Health",
-			method:      "system_Health",
+			method:      "system_health",
 			expected: modules.SystemHealthResponse{
 				Health: common.Health{
 					Peers:           0,
