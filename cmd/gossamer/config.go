@@ -80,13 +80,8 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 		return nil, err
 	}
 
-	// set global configuration values
-	setDotGlobalConfig(ctx, &cfg.Global)
-
-	// ensure configuration values match genesis and overwrite with genesis
-	updateDotConfigFromGenesis(ctx, cfg)
-
 	// set cli configuration values
+	setDotGlobalConfig(ctx, &cfg.Global)
 	setDotAccountConfig(ctx, &cfg.Account)
 	setDotCoreConfig(ctx, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
