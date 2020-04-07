@@ -152,7 +152,7 @@ func (b *Session) Start() error {
 		}
 	}
 
-	go b.invokeBlockAuthoring()
+	//go b.invokeBlockAuthoring()
 
 	go b.checkForKill()
 

@@ -117,7 +117,7 @@ func (s *Syncer) watchForBlocks() {
 		blockNum, ok := <-s.blockNumIn
 		if !ok || blockNum == nil {
 			log.Warn("[sync] Failed to receive from blockNumIn channel")
-			return
+			continue
 		}
 
 		if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
@@ -150,7 +150,7 @@ func (s *Syncer) watchForResponses() {
 			// handle response
 			if !ok || msg == nil {
 				log.Warn("[sync] Failed to receive from respIn channel")
-				return
+				continue
 			}
 
 			s.processBlockResponse(msg)

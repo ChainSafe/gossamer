@@ -24,7 +24,8 @@ import (
 
 // test finalizeBabeSession
 func TestFinalizeBabeSession(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+	s := newTestService(t, nil)
+	addTestBlocksToStateWithDigest(t, 1, s.blockState, s.bs)
 
 	number, err := s.blockState.BestBlockNumber()
 	require.Nil(t, err)
@@ -45,7 +46,8 @@ func TestFinalizeBabeSession(t *testing.T) {
 
 // test initializeBabeSession
 func TestInitializeBabeSession(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+	s := newTestService(t, nil)
+	addTestBlocksToStateWithDigest(t, 1, s.blockState, s.bs)
 
 	number, err := s.blockState.BestBlockNumber()
 	require.Nil(t, err)

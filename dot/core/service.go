@@ -369,7 +369,7 @@ func (s *Service) receiveBlocks() {
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
-		if ok {
+		if ok && block.Header != nil {
 			err := s.handleReceivedBlock(&block)
 			if err != nil {
 				log.Error("[core] failed to handle block from BABE session", "err", err)
@@ -383,9 +383,9 @@ func (s *Service) receiveMessages() {
 	for {
 		// receive message from network service
 		msg, ok := <-s.msgRec
-		if !ok {
+		if !ok || msg != nil {
 			log.Error("[core] failed to receive message from network service")
-			return // exit
+			continue
 		}
 
 		err := s.handleReceivedMessage(msg)
