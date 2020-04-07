@@ -65,7 +65,6 @@ func (s *Service) DB() database.Database {
 }
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// The trie does not need a backing DB, since the DB will be created during Service.Start().
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie) error {
 	var db database.Database
@@ -94,14 +93,14 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 	// write initial genesis values to database
 	err := s.storeInitialValues(db, data, header, t)
 	if err != nil {
-		return fmt.Errorf("failed to write initial values to database: %s", err)
+		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
 	// create and store blockree from genesis block
 	bt := blocktree.NewBlockTreeFromGenesis(header, db)
 	err = bt.Store()
 	if err != nil {
-		return fmt.Errorf("failed to wrtie blocktree to database: %s", err)
+		return fmt.Errorf("failed to write blocktree to database: %s", err)
 	}
 
 	// create storage state from genesis trie
