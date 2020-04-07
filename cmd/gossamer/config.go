@@ -72,26 +72,6 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	return cfg, nil
 }
 
-// createInitConfig creates the configuration required to initialize a dot node
-func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
-	cfg, err = loadConfigFile(ctx)
-	if err != nil {
-		log.Error("[cmd] Failed to load toml configuration", "error", err)
-		return nil, err
-	}
-
-	// set global configuration values
-	setDotGlobalConfig(ctx, &cfg.Global)
-
-	// set init configuration values
-	setDotInitConfig(ctx, &cfg.Init)
-
-	// ensure configuration values match genesis and overwrite with genesis
-	updateDotConfigFromGenesis(ctx, cfg)
-
-	return cfg, nil
-}
-
 // createDotConfig creates a new dot configuration from the provided flag values
 func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	cfg, err = loadConfigFile(ctx)
@@ -113,6 +93,39 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotRPCConfig(ctx, &cfg.RPC)
 
 	return cfg, nil
+}
+
+// createInitConfig creates the configuration required to initialize a dot node
+func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+	cfg, err = loadConfigFile(ctx)
+	if err != nil {
+		log.Error("[cmd] Failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, &cfg.Global)
+
+	// set init configuration values
+	setDotInitConfig(ctx, &cfg.Init)
+
+	// ensure configuration values match genesis and overwrite with genesis
+	updateDotConfigFromGenesis(ctx, cfg)
+
+	return cfg, nil
+}
+
+// setDotInitConfig sets dot.InitConfig using flag values from the cli context
+func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
+	// check --genesis flag and update init configuration
+	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+		cfg.Genesis = genesis
+	}
+
+	log.Debug(
+		"[cmd] Init configuration",
+		"genesis", cfg.Genesis,
+	)
 }
 
 // setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
@@ -137,18 +150,6 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		"name", cfg.Name,
 		"id", cfg.ID,
 		"datadir", cfg.DataDir,
-	)
-}
-
-func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
-	// check --genesis flag and update init configuration
-	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-		cfg.Genesis = genesis
-	}
-
-	log.Debug(
-		"[cmd] Init configuration",
-		"genesis", cfg.Genesis,
 	)
 }
 
