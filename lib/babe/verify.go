@@ -19,6 +19,7 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
+	log "github.com/ChainSafe/log15"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -118,13 +119,20 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 
 	for key, v := range hashes {
 		//get header
-		h, err := b.blockState.GetHeader(key)
+		currentHeader, err := b.blockState.GetHeader(key)
 		if err != nil {
 			return false, fmt.Errorf("could not verify digests, key %s, depth, %d", key, v)
 		}
-		//compare digest
-		if reflect.DeepEqual(h.Digest, header.Digest) {
-			return false, fmt.Errorf("duplicated digest")
+
+		currentSeal := currentHeader.Digest[len(currentHeader.Digest)-1][:32]
+		existingSeal := header.Digest[len(header.Digest)-1][:32]
+
+		log.Debug("compare SealDigest",
+			"\nc.SealDigest", fmt.Sprintf("0x%x", currentSeal),
+			"\nh.SealDigest", fmt.Sprintf("0x%x", existingSeal))
+
+		if reflect.DeepEqual(currentSeal, existingSeal) {
+			return false, fmt.Errorf("duplicated SealDigest")
 		}
 	}
 

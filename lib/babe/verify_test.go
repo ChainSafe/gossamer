@@ -104,7 +104,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 			parentHeader:                    genesisHeader,
 			expectedErr:                     nil,
 			authorshipRight:                 true,
-			expectedErrAfterAuthorshipRight: errors.New("duplicated digest"),
+			expectedErrAfterAuthorshipRight: errors.New("duplicated SealDigest"),
 		},
 		//{
 		//	description:     "test verify block with not existing parent",
@@ -139,15 +139,9 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 			t.Log(babesession.authorityData[0].ID.Encode())
 
-			slotNumber := uint64(1)
+			slotNumber := uint64(0)
 
-			// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-			txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
-
-			// genesisHashStr := genesisHeader.Hash().String()
-			// log.Warn("TestVerifyAuthorshipRight, ", "genesisHashStr", genesisHashStr)
-
-			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{txb}, t, test.parentHeader)
+			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
 
 			t.Log(babesession.authorityData[0].ID.Encode())
 
@@ -169,10 +163,13 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 				//create new block
 				blockNew, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
 
+				//update blockNumber to previous block
+				blockNew.Header.Number = block.Header.Number
+
 				ok, err = babesession.verifyAuthorshipRight(slotNumber, blockNew.Header)
+				require.NotNil(t, err)
 				require.False(t, ok)
 
-				require.NotNil(t, err)
 				require.Equal(t, test.expectedErrAfterAuthorshipRight, err)
 
 			}
