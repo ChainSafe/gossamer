@@ -117,6 +117,8 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		return false, err
 	}
 
+	log.Debug("Got AllHashesForParentDepth", "len(hashes)", len(hashes))
+
 	for key, v := range hashes {
 		//get header
 		currentHeader, err := b.blockState.GetHeader(key)
@@ -125,14 +127,13 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		}
 
 		//compare digest
-		currentSeal := getSeal(currentHeader)
-		existingSeal := getSeal(header)
+		currentBlockProducerIndex := getBlockProducerIndex(currentHeader)
+		existingBlockProducerIndex := babeHeader.BlockProducerIndex
 
-		log.Debug("compare SealDigest",
-			"\nc.SealDigest", fmt.Sprintf("0x%x", currentSeal),
-			"\nh.SealDigest", fmt.Sprintf("0x%x", existingSeal))
+		log.Debug("compare Digest", "currentBlockProducerIndex", currentBlockProducerIndex,
+			"existingBlockProducerIndex", existingBlockProducerIndex)
 
-		if reflect.DeepEqual(currentSeal, existingSeal) {
+		if reflect.DeepEqual(currentBlockProducerIndex, existingBlockProducerIndex) {
 			return false, fmt.Errorf("duplicated SealDigest")
 		}
 	}
@@ -140,7 +141,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	return true, nil
 }
 
-func getSeal(header *types.Header) (blockProducerIndex uint64) {
+func getBlockProducerIndex(header *types.Header) (blockProducerIndex uint64) {
 	preDigestBytes := header.Digest[0]
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)

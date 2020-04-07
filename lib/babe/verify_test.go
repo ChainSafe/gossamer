@@ -106,12 +106,12 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 			authorshipRight:                 true,
 			expectedErrAfterAuthorshipRight: errors.New("duplicated SealDigest"),
 		},
-		//{
-		//	description:     "test verify block with not existing parent",
-		//	parentHeader:    nil,
-		//	expectedErr:     errors.New("cannot find parent block in blocktree"),
-		//	authorshipRight: false,
-		//},
+		{
+			description:     "test verify block with not existing parent",
+			parentHeader:    nil,
+			expectedErr:     errors.New("cannot find parent block in blocktree"),
+			authorshipRight: false,
+		},
 	}
 
 	for _, test := range testsCases {
@@ -137,19 +137,13 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 				ID: kp.Public().(*sr25519.PublicKey),
 			}
 
-			t.Log(babesession.authorityData[0].ID.Encode())
-
 			slotNumber := uint64(0)
 
 			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
 
-			t.Log(babesession.authorityData[0].ID.Encode())
-
 			ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
 			require.Equal(t, test.expectedErr, err)
 			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
-
-			t.Log(babesession.authorityData[0].ID.Encode())
 
 			if test.authorshipRight {
 				//save block
@@ -157,8 +151,6 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-
-				t.Log(babesession.authorityData[0].ID.Encode())
 
 				//create new block
 				blockNew, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)

@@ -91,37 +91,15 @@ func (bt *BlockTree) GetAllHashesForParentDepth(header *types.Header) (map[commo
 			"hashes", len(hashes),
 			"bt.head.children", len(bt.head.children))
 
-		if child.depth.Cmp(parentDepthPlusOne) == -1 {
-			log.Debug("breaking range bt.head.children", "child.hash", child.hash.String(), "child.depth", child.depth)
-			break
-		} else if child.depth.Cmp(parentDepthPlusOne) == 0 {
+		if child.depth.Cmp(parentDepthPlusOne) == 0 {
 			if hashes[child.hash] == nil {
 				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
 				hashes[child.hash] = child.depth
 			}
 		}
-
-		//hashes = bt.getHashes(child, hashes)
 	}
 	return hashes, nil
 }
-
-//func (bt *BlockTree) getHashes(n *node, hashes map[common.Hash]*big.Int) map[common.Hash]*big.Int {
-//
-//	for _, child := range n.children {
-//		if child.depth.Cmp(node{}.depth) == -1 {
-//			log.Debug("breaking getHashes", "child.hash", child.hash.String(), "child.depth", child.depth)
-//			break
-//		} else if child.depth.Cmp(n.depth) == 0 {
-//			if hashes[child.hash] != nil {
-//				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
-//				hashes[child.hash] = child.depth
-//			}
-//		}
-//		bt.getHashes(child, hashes)
-//	}
-//	return hashes
-//}
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
