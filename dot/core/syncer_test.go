@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -6,9 +22,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -47,6 +65,10 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	if cfg.MsgOut == nil {
 		cfg.MsgOut = make(chan network.Message)
+	}
+
+	if cfg.TransactionQueue == nil {
+		cfg.TransactionQueue = stateSrvc.TransactionQueue
 	}
 
 	syncer, err := NewSyncer(cfg)
@@ -369,5 +391,42 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	if req2.StartingBlock.Value().(uint64) != uint64(startNum-int(maxResponseSize)) {
 		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum-int(maxResponseSize))
 	}
+}
 
+func TestRemoveIncludedExtrinsics(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+	syncer.Start()
+
+	ext := []byte("nootwashere")
+	tx := &transaction.ValidTransaction{
+		Extrinsic: ext,
+		Validity:  nil,
+	}
+
+	syncer.transactionQueue.Push(tx)
+
+	exts := []types.Extrinsic{ext}
+	body, err := types.NewBodyFromExtrinsics(exts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bd := &types.BlockData{
+		Body: body.AsOptional(),
+	}
+
+	msg := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{bd},
+	}
+
+	_, err = syncer.processBlockResponseData(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inQueue := syncer.transactionQueue.Pop()
+	if inQueue != nil {
+		t.Log(inQueue)
+		t.Fatal("Fail: queue should be empty")
+	}
 }
