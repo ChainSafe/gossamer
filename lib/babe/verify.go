@@ -124,8 +124,9 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 			return false, fmt.Errorf("could not verify digests, key %s, depth, %d", key, v)
 		}
 
-		currentSeal := currentHeader.Digest[len(currentHeader.Digest)-1][:32]
-		existingSeal := header.Digest[len(header.Digest)-1][:32]
+		//compare digest
+		currentSeal := getSeal(currentHeader)
+		existingSeal := getSeal(header)
 
 		log.Debug("compare SealDigest",
 			"\nc.SealDigest", fmt.Sprintf("0x%x", currentSeal),
@@ -137,4 +138,26 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	return true, nil
+}
+
+func getSeal(header *types.Header) (blockProducerIndex uint64) {
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return
+	}
+
+	babeHeader := new(babetypes.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return
+	}
+
+	return babeHeader.BlockProducerIndex
 }
