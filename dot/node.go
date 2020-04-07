@@ -25,6 +25,7 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -53,46 +54,38 @@ func InitNode(cfg *Config) error {
 		"genesis", genPath,
 	)
 
-	// load Genesis from genesis configuration file
-	gen, err := genesis.LoadGenesisFromJSON(genPath)
+	// create genesis from configuration file
+	gen, err := genesis.NewGenesisFromJSON(genPath)
 	if err != nil {
-		log.Error("[dot] Failed to load genesis from file", "error", err)
-		return err
+		return fmt.Errorf("failed to load genesis from file: %s", err)
 	}
 
-	log.Info(
-		"[dot] Loading genesis...",
-		"name", gen.Name,
-		"id", gen.ID,
-		"protocol", gen.ProtocolID,
-		"bootnodes", gen.Bootnodes,
-	)
-
-	// create and load trie from genesis
-	t, err := newTrieFromGenesis(gen)
+	// create trie from genesis
+	t, err := genesis.NewTrieFromGenesis(gen)
 	if err != nil {
-		log.Error("[dot] Failed to create trie from genesis", "error", err)
-		return err
+		return fmt.Errorf("failed to create trie from genesis: %s", err)
 	}
 
-	// generates genesis block header from trie and store it in state database
-	err = loadGenesisBlock(t, dataDir)
+	// create genesis block from trie
+	header, err := genesis.NewGenesisBlockFromTrie(t)
 	if err != nil {
-		log.Error("[dot] Failed to load genesis block with state service", "error", err)
-		return err
+		return fmt.Errorf("failed to create genesis block from trie: %s", err)
 	}
 
-	// initialize trie database
-	err = initTrieDatabase(t, dataDir, gen)
+	// create new state service
+	stateSrvc := state.NewService(dataDir)
+
+	// initialize state service with genesis data, block, and trie
+	err = stateSrvc.Initialize(gen.GenesisData(), header, t)
 	if err != nil {
-		log.Error("[dot] Failed to initialize trie database", "error", err)
-		return err
+		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
 
 	log.Info(
 		"[dot] Node initialized",
 		"datadir", dataDir,
 		"genesis", genPath,
+		"block", header.Number,
 	)
 
 	return nil

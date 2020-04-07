@@ -294,7 +294,7 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 func updateDotConfigFromGenesis(ctx *cli.Context, cfg *dot.Config) {
 
 	// load Genesis from genesis configuration file
-	gen, err := genesis.LoadGenesisFromJSON(cfg.Init.Genesis)
+	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	if err != nil {
 		log.Error("[cmd] failed to load genesis from file", "error", err)
 		return // exit
