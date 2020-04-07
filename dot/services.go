@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
-	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -110,7 +109,7 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*network.Service, error) {
 	log.Info(
 		"[dot] Creating network service...",
-		"roles", cfg.Global.Roles,
+		"roles", cfg.Core.Roles,
 		"port", cfg.Network.Port,
 		"bootnodes", cfg.Network.Bootnodes,
 		"protocol", cfg.Network.ProtocolID,
@@ -123,7 +122,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 		BlockState:   stateSrvc.Block,
 		NetworkState: stateSrvc.Network,
 		DataDir:      cfg.Global.DataDir,
-		Roles:        cfg.Global.Roles,
+		Roles:        cfg.Core.Roles,
 		Port:         cfg.Network.Port,
 		Bootnodes:    cfg.Network.Bootnodes,
 		ProtocolID:   cfg.Network.ProtocolID,
@@ -160,7 +159,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
-		Codec:               &json2.Codec{},
 		Host:                cfg.RPC.Host,
 		Port:                cfg.RPC.Port,
 		Modules:             cfg.RPC.Modules,
