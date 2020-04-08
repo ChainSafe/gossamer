@@ -375,7 +375,6 @@ func (bs *BlockState) GetAllHashesForParentDepth(header *types.Header) (map[comm
 	return bs.bt.GetAllHashesForParentDepth(header)
 }
 
-
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
 	bestBlock, err := bs.BestBlockHeader()
 	if err != nil {

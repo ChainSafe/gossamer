@@ -19,8 +19,9 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
-	log "github.com/ChainSafe/log15"
 	"reflect"
+
+	log "github.com/ChainSafe/log15"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
