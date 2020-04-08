@@ -46,7 +46,7 @@ func TestRetrieveAuthorityData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 	s := &Service{
 		rt: rt,
 	}
@@ -70,17 +70,6 @@ func TestRetrieveAuthorityData(t *testing.T) {
 	if !reflect.DeepEqual(auths, expected) {
 		t.Fatalf("Fail: got %v expected %v", auths, expected)
 	}
-}
-
-func TestValidateBlock(t *testing.T) {
-	s := newTestService(t, nil)
-
-	// https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/test-runtime/src/system.rs#L371
-	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 179, 38, 109, 225, 55, 210, 10, 93, 15, 243, 166, 64, 30, 181, 113, 39, 82, 95, 217, 178, 105, 55, 1, 240, 191, 90, 138, 133, 63, 163, 235, 224, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-
-	// `core_execute_block` will throw error, no expected result
-	err := s.executeBlock(data)
-	require.Nil(t, err)
 }
 
 func TestValidateTransaction(t *testing.T) {
@@ -107,7 +96,7 @@ func TestValidateTransaction(t *testing.T) {
 
 func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, tests.POLKADOT_RUNTIME, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -128,10 +117,10 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 
 	s := newTestService(t, cfg)
 
-	_, err = tests.GetRuntimeBlob(tests.TESTS_FP, tests.TEST_WASM_URL)
+	_, err = runtime.GetRuntimeBlob(runtime.TESTS_FP, runtime.TEST_WASM_URL)
 	require.Nil(t, err)
 
-	testRuntime, err := ioutil.ReadFile(tests.TESTS_FP)
+	testRuntime, err := ioutil.ReadFile(runtime.TESTS_FP)
 	require.Nil(t, err)
 
 	err = s.storageState.SetStorage([]byte(":code"), testRuntime)
