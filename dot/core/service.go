@@ -19,6 +19,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"math/big"
 	"sync"
 
@@ -518,4 +519,10 @@ func (s *Service) checkForRuntimeChanges() error {
 	}
 
 	return nil
+}
+
+func (s *Service) InsertKey(kp crypto.Keypair)  {
+
+	s.keys.Insert(kp)
+	fmt.Printf("in Insert Keys\n")
 }

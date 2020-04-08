@@ -17,6 +17,8 @@
 package modules
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
@@ -32,11 +34,7 @@ type AuthorModule struct {
 }
 
 // KeyInsertRequest is used as model for the JSON
-type KeyInsertRequest struct {
-	KeyType   string `json:"keyType"`
-	Suri      string `json:"suri"`
-	PublicKey []byte `json:"publicKey"`
-}
+type KeyInsertRequest []string
 
 // Extrinsic represents a hex-encoded extrinsic
 type Extrinsic string
@@ -90,7 +88,19 @@ func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorMod
 
 // InsertKey inserts a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
-	_ = cm.coreAPI
+	keyReq := *req
+	fmt.Printf("KeyReq %v\n", *req)
+	//fmt.Printf("Key req len %v\n", len(*req))
+	fmt.Printf("foo %v\n", keyReq[0])
+
+	kp, err := sr25519.NewKeypairFromPrivateKeyString(keyReq[1])
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("KeyPAir %v\n", kp)
+	//crypto.Keypair()
+	cm.coreAPI.InsertKey(kp)
 	return nil
 }
 
