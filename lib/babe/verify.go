@@ -24,8 +24,20 @@ import (
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
 
+type Verifier struct {
+	authorityData []*AuthorityData
+	randomness    byte // TODO: update to [32]byte when runtime is updated
+}
+
+func NewVerifier(authorityData []*AuthorityData, randomness byte) *Verifier {
+	return &Verifier{
+		authorityData: authorityData,
+		randomness:    randomness,
+	}
+}
+
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
-func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
+func (b *Verifier) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
@@ -34,13 +46,13 @@ func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (b
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.config.Randomness)
+	vrfInput := append(slotBytes, b.randomness)
 
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool, error) {
+func (b *Verifier) verifyAuthorshipRight(slot uint64, header *types.Header) (bool, error) {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {

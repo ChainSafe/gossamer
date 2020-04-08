@@ -48,7 +48,7 @@ type Session struct {
 
 	// Epoch configuration data
 	config         *Configuration
-	randomness     [sr25519.VrfOutputLength]byte
+	randomness     [32]byte
 	authorityIndex uint64
 	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch

@@ -68,12 +68,14 @@ func TestVerifySlotWinner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	babesession.authorityData = make([]*AuthorityData, 1)
-	babesession.authorityData[0] = &AuthorityData{
+	authorityData := make([]*AuthorityData, 1)
+	authorityData[0] = &AuthorityData{
 		ID: kp.Public().(*sr25519.PublicKey),
 	}
 
-	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
+	verifier := NewVerifier(authorityData, babesession.config.Randomness)
+
+	ok, err := verifier.verifySlotWinner(slot.number, babeHeader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +97,9 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 	block, slot := createTestBlock(babesession, [][]byte{txb}, t)
 
-	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
+	verifier := NewVerifier(babesession.authorityData, babesession.config.Randomness)
+
+	ok, err := verifier.verifyAuthorshipRight(slot.number, block.Header)
 	if err != nil {
 		t.Fatal(err)
 	}
