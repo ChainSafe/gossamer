@@ -18,8 +18,10 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"net/http"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -89,18 +91,28 @@ func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorMod
 // InsertKey inserts a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
-	fmt.Printf("KeyReq %v\n", *req)
-	//fmt.Printf("Key req len %v\n", len(*req))
-	fmt.Printf("foo %v\n", keyReq[0])
 
-	kp, err := sr25519.NewKeypairFromPrivateKeyString(keyReq[1])
+	pkDec, err := common.HexToHash(keyReq[1])
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("KeyPAir %v\n", kp)
-	//crypto.Keypair()
-	cm.coreAPI.InsertKey(kp)
+	privateKey, err := keystore.DecodePrivateKey(pkDec.ToBytes(), determineKeyType(keyReq[0]))
+	if err != nil {
+		return err
+	}
+
+	keyPair, err := keystore.PrivateKeyToKeypair(privateKey)
+	if err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq[2]) {
+		return fmt.Errorf("generated public key does not equal provide public key")
+	}
+
+	cm.coreAPI.InsertKey(keyPair)
+	log.Info("[rpc] inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
 
@@ -163,4 +175,22 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	*res = ExtrinsicHashResponse(hash)
 	log.Info("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
 	return nil
+}
+
+// determineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
+//  and returns the crypto.KeyType
+func determineKeyType(t string) crypto.KeyType {
+	// TODO: since dot/core/service's keystore uses Sr25519 key types we'll treat all keytypes
+	//  as that, research how these other keytypes should be handled
+	switch t {
+	case "babe":
+	case "gran":
+	case "acco":
+	case "aura":
+	case "imon":
+	case "audi":
+	case "dumy":
+		return crypto.Sr25519Type
+	}
+	return crypto.Sr25519Type
 }
