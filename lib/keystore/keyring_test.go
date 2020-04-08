@@ -14,19 +14,26 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package genesis
+package keystore
 
-const TestProtocolID = "/gossamer/test/0"
+import (
+	"reflect"
+	"testing"
 
-var TestBootnodes = []string{
-	"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
-	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
-}
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+)
 
-var TestGenesis = &Genesis{
-	Name:       "gossamer",
-	ID:         "gossamer",
-	Bootnodes:  TestBootnodes,
-	ProtocolID: TestProtocolID,
-	Genesis:    Fields{},
+func TestNewKeyring(t *testing.T) {
+	kr, err := NewKeyring()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v := reflect.ValueOf(kr).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Field(i).Interface().(*sr25519.Keypair).Private().Hex()
+		if key != privateKeys[i] {
+			t.Fatalf("Fail: got %s expected %s", key, privateKeys[i])
+		}
+	}
 }
