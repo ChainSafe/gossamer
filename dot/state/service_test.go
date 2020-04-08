@@ -33,7 +33,6 @@ import (
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
 
 	state = NewService(testDir)
 
@@ -48,6 +47,7 @@ func newTestMemDBService() *Service {
 
 func TestService_Start(t *testing.T) {
 	state := newTestService(t)
+	defer utils.RemoveTestDir(t)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
 	if err != nil {
@@ -92,17 +92,21 @@ func TestMemDB_Start(t *testing.T) {
 	state.Stop()
 }
 
-func addBlocksToState(t *testing.T, blockState *BlockState, depth int) {
-	previousHash := blockState.BestBlockHash()
+// branch tree randomly
+type testBranch struct {
+	hash  common.Hash
+	depth int
+}
 
-	// branch tree randomly
-	type testBranch struct {
-		hash  common.Hash
-		depth int
-	}
+func addBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
+	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
 	r := *rand.New(rand.NewSource(rand.Int63()))
+
+	arrivalTime := uint64(1)
+	currentChain := []*types.Header{}
+	branchChains := []*types.Header{}
 
 	// create base tree
 	for i := 1; i <= depth; i++ {
@@ -115,8 +119,10 @@ func addBlocksToState(t *testing.T, blockState *BlockState, depth int) {
 			Body: &types.Body{},
 		}
 
+		currentChain = append(currentChain, block.Header)
+
 		hash := block.Header.Hash()
-		err := blockState.AddBlock(block)
+		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		previousHash = hash
@@ -128,27 +134,38 @@ func addBlocksToState(t *testing.T, blockState *BlockState, depth int) {
 				depth: i,
 			})
 		}
+
+		arrivalTime++
 	}
 
 	// create tree branches
 	for _, branch := range branches {
-		for i := branch.depth; i <= depth; i++ {
+		previousHash = branch.hash
+
+		for i := branch.depth; i < depth; i++ {
 			block := &types.Block{
 				Header: &types.Header{
 					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i)),
+					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
+					Digest:     [][]byte{{byte(i)}},
 				},
 				Body: &types.Body{},
 			}
 
+			branchChains = append(branchChains, block.Header)
+
 			hash := block.Header.Hash()
-			err := blockState.AddBlock(block)
+			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
 			previousHash = hash
+
+			arrivalTime++
 		}
 	}
+
+	return currentChain, branchChains
 }
 
 func TestService_BlockTree(t *testing.T) {

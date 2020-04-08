@@ -22,21 +22,23 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
-// createDotConfig creates a new dot configuration from the provided flag values
-func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+// loadConfigFile loads a default config file if --node is specified, a specific
+// config if --config is specified, or the default gossamer config otherwise.
+func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// check --node flag and load node configuration from defaults.go
 	if name := ctx.GlobalString(NodeFlag.Name); name != "" {
 		switch name {
 		case "gssmr":
-			log.Info("[cmd] Loading node implementation...", "name", name)
+			log.Debug("[cmd] Loading node implementation...", "name", name)
 			cfg = dot.GssmrConfig() // "gssmr" = dot.GssmrConfig()
 		case "ksmcc":
-			log.Info("[cmd] Loading node implementation...", "name", name)
+			log.Debug("[cmd] Loading node implementation...", "name", name)
 			cfg = dot.KsmccConfig() // "ksmcc" = dot.KsmccConfig()
 		default:
 			return nil, fmt.Errorf("unknown node implementation: %s", name)
@@ -57,7 +59,6 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 		}
 		err = dot.LoadConfig(cfg, config) // load toml configuration values into dot configuration
 		if err != nil {
-			log.Error("[cmd] Failed to load toml configuration", "error", err)
 			return nil, err
 		}
 	}
@@ -68,27 +69,70 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 		cfg = dot.GssmrConfig()
 	}
 
-	// set dot configuration values
+	return cfg, nil
+}
+
+// createDotConfig creates a new dot configuration from the provided flag values
+func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+	cfg, err = loadConfigFile(ctx)
+	if err != nil {
+		log.Error("[cmd] Failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// set cli configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
 	setDotAccountConfig(ctx, &cfg.Account)
-	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotCoreConfig(ctx, &cfg.Core)
+	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
 
-	// return dot configuration ready for node initialization
 	return cfg, nil
+}
+
+// createInitConfig creates the configuration required to initialize a dot node
+func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+	cfg, err = loadConfigFile(ctx)
+	if err != nil {
+		log.Error("[cmd] Failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, &cfg.Global)
+
+	// set init configuration values
+	setDotInitConfig(ctx, &cfg.Init)
+
+	// ensure configuration values match genesis and overwrite with genesis
+	updateDotConfigFromGenesis(ctx, cfg)
+
+	return cfg, nil
+}
+
+// setDotInitConfig sets dot.InitConfig using flag values from the cli context
+func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
+	// check --genesis flag and update init configuration
+	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+		cfg.Genesis = genesis
+	}
+
+	log.Debug(
+		"[cmd] Init configuration",
+		"genesis", cfg.Genesis,
+	)
 }
 
 // setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
 func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
-	// check --config flag and update node configuration
-	if config := ctx.GlobalString(ConfigFlag.Name); config != "" {
-		cfg.Config = config
+	// check --name flag and update node configuration
+	if name := ctx.GlobalString(NameFlag.Name); name != "" {
+		cfg.Name = name
 	}
 
-	// check --genesis flag and update node configuration
-	if genesis := ctx.GlobalString(GenesisFlag.Name); genesis != "" {
-		cfg.Genesis = genesis
+	// check --node flag and update node configuration
+	if id := ctx.GlobalString(NodeFlag.Name); id != "" {
+		cfg.ID = id
 	}
 
 	// check --datadir flag and update node configuration
@@ -96,27 +140,11 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.DataDir = datadir
 	}
 
-	// check --roles flag and update node configuration
-	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
-		b, err := strconv.Atoi(roles)
-		if err != nil {
-			log.Error("[cmd] Failed to convert Roles to byte", "error", err)
-		} else if byte(b) > 4 {
-			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
-			log.Error("[cmd] Invalid roles option provided", "roles", byte(b))
-		} else {
-			cfg.Roles = byte(b)
-		}
-	}
-
 	log.Debug(
 		"[cmd] Global configuration",
 		"name", cfg.Name,
 		"id", cfg.ID,
-		"config", cfg.Config,
-		"genesis", cfg.Genesis,
 		"datadir", cfg.DataDir,
-		"roles", cfg.Roles,
 	)
 }
 
@@ -162,9 +190,23 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 		}
 	}
 
+	// check --roles flag and update node configuration
+	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
+		b, err := strconv.Atoi(roles)
+		if err != nil {
+			log.Error("[cmd] Failed to convert Roles to byte", "error", err)
+		} else if byte(b) > 4 {
+			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
+			log.Error("[cmd] Invalid roles option provided", "roles", byte(b))
+		} else {
+			cfg.Roles = byte(b)
+		}
+	}
+
 	log.Debug(
 		"[cmd] Core configuration",
 		"authority", cfg.Authority,
+		"roles", cfg.Roles,
 	)
 }
 
@@ -246,4 +288,51 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		"host", cfg.Host,
 		"modules", cfg.Modules,
 	)
+}
+
+// updateDotConfigFromGenesis updates the configuration based on the genesis file values
+func updateDotConfigFromGenesis(ctx *cli.Context, cfg *dot.Config) {
+
+	// load Genesis from genesis configuration file
+	gen, err := genesis.LoadGenesisFromJSON(cfg.Init.Genesis)
+	if err != nil {
+		log.Error("[cmd] failed to load genesis from file", "error", err)
+		return // exit
+	}
+
+	// check genesis name and use genesis name if configuration does not match
+	if gen.Name != cfg.Global.Name && !ctx.IsSet(NameFlag.Name) {
+		log.Warn("[cmd] genesis mismatch, overwriting name", "name", gen.Name)
+		cfg.Global.Name = gen.Name
+	}
+
+	// check genesis id and use genesis id if configuration does not match
+	if gen.ID != cfg.Global.ID && !ctx.IsSet(NodeFlag.Name) {
+		log.Warn("[cmd] genesis mismatch, overwriting id", "id", gen.ID)
+		cfg.Global.ID = gen.ID
+	}
+
+	// ensure matching bootnodes
+	matchingBootnodes := true
+	if len(gen.Bootnodes) != len(cfg.Network.Bootnodes) {
+		matchingBootnodes = false
+	} else {
+		for i, gb := range gen.Bootnodes {
+			if gb != cfg.Network.Bootnodes[i] {
+				matchingBootnodes = false
+			}
+		}
+	}
+
+	// check genesis bootnodes and use genesis bootnodes if configuration does not match
+	if !matchingBootnodes && !ctx.IsSet(BootnodesFlag.Name) {
+		log.Warn("[cmd] genesis mismatch, overwriting bootnodes", "bootnodes", gen.Bootnodes)
+		cfg.Network.Bootnodes = gen.Bootnodes
+	}
+
+	// check genesis protocol and use genesis protocol if configuration does not match
+	if gen.ProtocolID != cfg.Network.ProtocolID && !ctx.IsSet(ProtocolFlag.Name) {
+		log.Warn("[cmd] genesis mismatch, overwriting protocol", "protocol", gen.ProtocolID)
+		cfg.Network.ProtocolID = gen.ProtocolID
+	}
 }

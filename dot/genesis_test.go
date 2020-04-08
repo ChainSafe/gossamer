@@ -34,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/stretchr/testify/require"
 )
@@ -44,8 +43,8 @@ import (
 func newTestGenesisAndRuntime(t *testing.T) string {
 	dir := utils.NewTestDir(t)
 
-	_ = runtime.NewTestRuntime(t, tests.POLKADOT_RUNTIME)
-	runtimeFilePath := tests.GetAbsolutePath(tests.POLKADOT_RUNTIME_FP)
+	_ = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_c768a7e4c70e)
 
 	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
 	require.Nil(t, err)
@@ -81,7 +80,7 @@ func TestStoreGenesisInfo(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Global.Genesis = genPath
+	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -144,7 +143,7 @@ func TestGenesisStateLoading(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	cfg.Core.Authority = false // TODO: improve dot genesis tests
-	cfg.Global.Genesis = genPath
+	cfg.Init.Genesis = genPath
 
 	gen, err := genesis.LoadGenesisFromJSON(genPath)
 	if err != nil {

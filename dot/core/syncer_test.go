@@ -1,14 +1,39 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
+	"encoding/hex"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
+	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -47,6 +72,13 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	if cfg.MsgOut == nil {
 		cfg.MsgOut = make(chan network.Message)
+	}
+
+	if cfg.Runtime == nil {
+		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	}
+	if cfg.TransactionQueue == nil {
+		cfg.TransactionQueue = stateSrvc.TransactionQueue
 	}
 
 	syncer, err := NewSyncer(cfg)
@@ -369,5 +401,128 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	if req2.StartingBlock.Value().(uint64) != uint64(startNum-int(maxResponseSize)) {
 		t.Fatalf("Fail: got %d expected %d", req2.StartingBlock.Value(), startNum-int(maxResponseSize))
 	}
+}
 
+func TestRemoveIncludedExtrinsics(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+	syncer.Start()
+
+	ext := []byte("nootwashere")
+	tx := &transaction.ValidTransaction{
+		Extrinsic: ext,
+		Validity:  nil,
+	}
+
+	syncer.transactionQueue.Push(tx)
+
+	exts := []types.Extrinsic{ext}
+	body, err := types.NewBodyFromExtrinsics(exts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bd := &types.BlockData{
+		Body: body.AsOptional(),
+	}
+
+	msg := &network.BlockResponseMessage{
+		BlockData: []*types.BlockData{bd},
+	}
+
+	_, err = syncer.processBlockResponseData(msg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inQueue := syncer.transactionQueue.Pop()
+	if inQueue != nil {
+		t.Log(inQueue)
+		t.Fatal("Fail: queue should be empty")
+	}
+}
+
+func TestCoreExecuteBlockData_bytes(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+
+	// from bob test
+	data, err := hex.DecodeString("ac558d2fa7ea8924147de3ede2ab0ff83ba4ad50b388ef14cfee21887e87185ff00812e3eb9ccf2955b647062349e0e33cbb0d9e936f8185f11a545236d2b41aaf03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
+
+	// from TestWatchForResponses
+	//data, err := hex.DecodeString("a0bc81cac20fbff59e86f0bf373782757db7016a9b3b07c343a81841facc4f82017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000")
+	require.Nil(t, err)
+
+	res, err := syncer.executeBlockBytes(data)
+	require.Nil(t, err) // expect error since header.ParentHash is empty
+
+	// if execute block return a non-empty byte array, something when wrong
+	require.Equal(t, []byte{}, res)
+}
+
+func TestCoreExecuteBlock(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+	ph, err := hex.DecodeString("972a70b03bb1764fa0c9b631cb825860567ae6098f1ef2261f3cbbd34b000057")
+	require.Nil(t, err)
+	sr, err := hex.DecodeString("0812e3eb9ccf2955b647062349e0e33cbb0d9e936f8185f11a545236d2b41aaf")
+	require.Nil(t, err)
+	er, err := hex.DecodeString("03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.Nil(t, err)
+
+	cHeader := &types.Header{
+		ParentHash:     common.BytesToHash(ph), // executeBlock fails empty or 0 hash
+		Number:         big.NewInt(341),
+		StateRoot:      common.BytesToHash(sr),
+		ExtrinsicsRoot: common.BytesToHash(er),
+		Digest:         nil,
+	}
+
+	block := &types.Block{
+		Header: cHeader,
+		Body:   types.NewBody([]byte{}),
+	}
+
+	res, err := syncer.executeBlock(block)
+	require.Nil(t, err)
+
+	// if execute block return a non-empty byte array, something when wrong
+	require.Equal(t, []byte{}, res)
+}
+
+func TestHandleBlockResponse_NoBlockData(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+	msg := &network.BlockResponseMessage{
+		ID:        0,
+		BlockData: nil,
+	}
+	_, err := syncer.processBlockResponseData(msg)
+	require.Nil(t, err)
+
+}
+
+func TestHandleBlockResponse_BlockData(t *testing.T) {
+	syncer := newTestSyncer(t, nil)
+
+	cHeader := &optional.CoreHeader{
+		ParentHash:     common.Hash{}, // executeBlock fails empty or 0 hash
+		Number:         big.NewInt(0),
+		StateRoot:      common.Hash{},
+		ExtrinsicsRoot: common.Hash{},
+		Digest:         nil,
+	}
+	header := optional.NewHeader(true, cHeader)
+	bd := []*types.BlockData{{
+		Hash:          common.Hash{},
+		Header:        header,
+		Body:          optional.NewBody(true, optional.CoreBody{}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}}
+	msg := &network.BlockResponseMessage{
+		ID:        0,
+		BlockData: bd,
+	}
+	res, err := syncer.processBlockResponseData(msg)
+	require.Nil(t, err)
+
+	require.Equal(t, int64(0), res)
 }

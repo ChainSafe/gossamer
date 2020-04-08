@@ -213,6 +213,17 @@ func (bs *BlockState) GetBlockByNumber(blockNumber *big.Int) (*types.Block, erro
 	return block, nil
 }
 
+// GetBlockHash returns block hash for a given blockNumber
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
+	// First retrieve the block hash in a byte array based on the block number from the database
+	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
+	if err != nil {
+		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
+	}
+	hash := common.NewHash(byteHash)
+	return &hash, nil
+}
+
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
 	bs.lock.Lock()
@@ -336,18 +347,20 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	hash := block.Header.Hash()
 
 	// set best block key if this is the highest block we've seen
-	// TODO: use leftmost path to set BestBlockHash
-	if block.Header.Number.Cmp(bs.highestBlockHeader.Number) == 1 {
+	if hash == bs.BestBlockHash() {
 		err = bs.setBestBlockHashKey(hash)
 		if err != nil {
 			return err
 		}
 	}
 
-	// store number to hash
-	err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
-	if err != nil {
-		return err
+	// only set number->hash mapping for our current chain
+	var onChain bool
+	if onChain, err = bs.isBlockOnCurrentChain(block.Header); onChain && err == nil {
+		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value))
@@ -360,6 +373,28 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 // GetAllHashesForParentDepth is a wrapper around blockTree GetAllHashesForParentDepth
 func (bs *BlockState) GetAllHashesForParentDepth(header *types.Header) (map[common.Hash]*big.Int, error) {
 	return bs.bt.GetAllHashesForParentDepth(header)
+}
+
+
+func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
+	bestBlock, err := bs.BestBlockHeader()
+	if err != nil {
+		return false, err
+	}
+
+	// if the new block is ahead of our best block, then it is on our current chain.
+	if header.Number.Cmp(bestBlock.Number) == 1 {
+		return true, nil
+	}
+
+	_, err = bs.SubChain(header.Hash(), bestBlock.Hash())
+	if err != nil {
+		// subchain function will error if the new block is not a precessor of our best block,
+		// thus it is not on our current chain
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // HighestBlockHash returns the hash of the block with the highest number we have received
@@ -435,6 +470,10 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree
 func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
+	if bs.bt == nil {
+		return nil, fmt.Errorf("blocktree is nil")
+	}
+
 	return bs.bt.SubBlockchain(start, end)
 }
 
