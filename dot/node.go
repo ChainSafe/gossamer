@@ -45,17 +45,16 @@ type Node struct {
 // InitNode initializes a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	dataDir := cfg.Global.DataDir
-	genPath := cfg.Init.Genesis
-
 	log.Info(
 		"[dot] Initializing node...",
-		"datadir", dataDir,
-		"genesis", genPath,
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
+		"datadir", cfg.Global.DataDir,
+		"genesis", cfg.Init.Genesis,
 	)
 
 	// create genesis from configuration file
-	gen, err := genesis.NewGenesisFromJSON(genPath)
+	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis from file: %s", err)
 	}
@@ -73,7 +72,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(dataDir)
+	stateSrvc := state.NewService(cfg.Global.DataDir)
 
 	// initialize state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(gen.GenesisData(), header, t)
@@ -83,8 +82,10 @@ func InitNode(cfg *Config) error {
 
 	log.Info(
 		"[dot] Node initialized",
-		"datadir", dataDir,
-		"genesis", genPath,
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
+		"datadir", cfg.Global.DataDir,
+		"genesis", cfg.Init.Genesis,
 		"block", header.Number,
 	)
 
