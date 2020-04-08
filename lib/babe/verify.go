@@ -18,12 +18,57 @@ package babe
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
 
+// ErrNilNextEpochDescriptor is returned when attempting to get a NextEpochDescriptor that isn't set for an epoch
+var ErrNilNextEpochDescriptor = errors.New("nil NextEpochDescriptor for epoch")
+
+// VerificationManager assists the syncer in keeping track of what epoch is it currently syncing and verifying,
+// as well as keep track of the NextEpochDesciptor which is required to create a Verifier.
+type VerificationManager struct {
+	epochToNextEpochDescriptor map[uint64]*NextEpochDescriptor
+	currentEpoch               uint64
+}
+
+func NewVerificationManager(currentEpoch uint64) *VerificationManager {
+	return &VerificationManager{
+		epochToNextEpochDescriptor: make(map[uint64]*NextEpochDescriptor),
+		currentEpoch:               currentEpoch,
+	}
+}
+
+func (v *VerificationManager) CurrentEpoch() uint64 {
+	return v.currentEpoch
+}
+
+func (v *VerificationManager) IncrementEpoch() {
+	v.currentEpoch++
+}
+
+func (v *VerificationManager) SetNextEpochDescriptor(epoch uint64, descriptor *NextEpochDescriptor) {
+	v.epochToNextEpochDescriptor[epoch] = descriptor
+}
+
+func (v *VerificationManager) GetNextEpochDescriptor(epoch uint64) *NextEpochDescriptor {
+	return v.epochToNextEpochDescriptor[epoch]
+}
+
+// Verifier returns a Verifier for the given epoch.
+func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
+	descriptor := v.epochToNextEpochDescriptor[epoch]
+	if descriptor == nil {
+		return nil, ErrNilNextEpochDescriptor
+	}
+
+	return NewVerifier(descriptor.Authorities, descriptor.Randomness[0]), nil
+}
+
+// Verifier represents a BABE verifier for a specific epoch
 type Verifier struct {
 	authorityData []*AuthorityData
 	randomness    byte // TODO: update to [32]byte when runtime is updated
@@ -32,7 +77,7 @@ type Verifier struct {
 func NewVerifier(authorityData []*AuthorityData, randomness byte) *Verifier {
 	return &Verifier{
 		authorityData: authorityData,
-		randomness:    randomness,
+		randomness:    randomness, // TODO: update to [32]byte when runtime is updated
 	}
 }
 

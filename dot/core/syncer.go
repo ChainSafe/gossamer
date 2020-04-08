@@ -26,6 +26,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -52,6 +53,9 @@ type Syncer struct {
 	// Core service control
 	chanLock *sync.Mutex
 	stopped  bool
+
+	// BABE verification
+	verificationManager *babe.VerificationManager
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -81,18 +85,22 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		return nil, ErrNilChannel("MsgOut")
 	}
 
+	// TODO: load current epoch from database, save upon shutdown
+	verificationManager := babe.NewVerificationManager(0)
+
 	return &Syncer{
-		blockState:       cfg.BlockState,
-		blockNumIn:       cfg.BlockNumIn,
-		respIn:           cfg.RespIn,
-		msgOut:           cfg.MsgOut,
-		lock:             cfg.Lock,
-		chanLock:         cfg.ChanLock,
-		synced:           true,
-		stopped:          false,
-		requestStart:     1,
-		highestSeenBlock: big.NewInt(0),
-		transactionQueue: cfg.TransactionQueue,
+		blockState:          cfg.BlockState,
+		blockNumIn:          cfg.BlockNumIn,
+		respIn:              cfg.RespIn,
+		msgOut:              cfg.MsgOut,
+		lock:                cfg.Lock,
+		chanLock:            cfg.ChanLock,
+		synced:              true,
+		stopped:             false,
+		requestStart:        1,
+		highestSeenBlock:    big.NewInt(0),
+		transactionQueue:    cfg.TransactionQueue,
+		verificationManager: verificationManager,
 	}, nil
 }
 
@@ -326,6 +334,8 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 
 		// TODO: handle consensus digest, if first in epoch
 	}
+
+	err = s.checkForConsensusDigest(header)
 
 	if header.Number.Int64() > highestInResp {
 		highestInResp = header.Number.Int64()

@@ -149,13 +149,13 @@ type Slot struct {
 // It is broadcast as part of the consensus digest in the first block of the epoch.
 type NextEpochDescriptor struct {
 	Authorities []*AuthorityData
-	Randomness  [sr25519.VrfOutputLength]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
+	Randomness  [32]byte // TODO: discrepancy between current BabeConfiguration from runtime and this
 }
 
 // NextEpochDescriptorRaw contains information about the next epoch.
 type NextEpochDescriptorRaw struct {
 	Authorities []*AuthorityDataRaw
-	Randomness  [sr25519.VrfOutputLength]byte
+	Randomness  [32]byte
 }
 
 // Encode returns the SCALE encoding of the NextEpochDescriptor.

@@ -71,6 +71,23 @@ func (s *Service) finalizeBabeSession() error {
 	return nil
 }
 
+// setNextEpochDescriptor sets the epoch data for the next epoch from the data
+// included in the ConsensusDigest of the first block of each epoch
+func (s *Service) setNextEpochDescriptor(data []byte) error {
+
+	// initialize epoch data interface for next epoch
+	nextEpochData := new(babe.NextEpochDescriptor)
+
+	// decode consensus digest data for next epoch
+	err := nextEpochData.Decode(data)
+	if err != nil {
+		return err
+	}
+
+	// set epoch data for next epoch
+	return s.bs.SetEpochData(nextEpochData)
+}
+
 // initializeBabeSession creates a new BABE session
 func (s *Service) initializeBabeSession() (*babe.Session, error) {
 	log.Debug(
@@ -78,7 +95,7 @@ func (s *Service) initializeBabeSession() (*babe.Session, error) {
 		"epoch", s.epochNumber,
 	)
 
-	// AuthorityData comes from NextEpochDescriptor within the ConsensusDigest
+	// TODO: AuthorityData comes from NextEpochDescriptor within the ConsensusDigest
 	// of the block Digest, which is included in the first block of each epoch
 	authData := s.bs.AuthorityData()
 	if len(authData) == 0 {

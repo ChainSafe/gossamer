@@ -29,7 +29,7 @@ import (
 // handleBlockDigest checks if the provided header is the block header for
 // the first block of the current epoch, finds and decodes the consensus digest
 // item from the block digest, and then sets the epoch data for the next epoch
-func (s *Service) handleBlockDigest(header *types.Header) (err error) {
+func (s *Syncer) checkForConsensusDigest(header *types.Header) (err error) {
 
 	// check if block header digest items exist
 	if header.Digest == nil || len(header.Digest) == 0 {
@@ -68,7 +68,7 @@ func (s *Service) handleBlockDigest(header *types.Header) (err error) {
 // handleConsensusDigest checks if the first block has been set for the current
 // epoch, if first block has not been set or the block header has a lower block
 // number, sets epoch data for the next epoch using data in the ConsensusDigest
-func (s *Service) handleConsensusDigest(header *types.Header, digest *types.ConsensusDigest) error {
+func (s *Syncer) handleConsensusDigest(header *types.Header, digest *types.ConsensusDigest) error {
 
 	// check if block header is from current epoch
 	currentEpoch, err := s.blockFromCurrentEpoch(header.Hash())
@@ -92,30 +92,14 @@ func (s *Service) handleConsensusDigest(header *types.Header, digest *types.Cons
 		log.Warn("[core] received first block header with lower block number than current first block")
 	}
 
-	err = s.setNextEpochDescriptor(digest.Data)
-	if err != nil {
-		return fmt.Errorf("failed to set next epoch descriptor: %s", err)
-	}
+	// TODO: set this after creating next session
+	// err = s.setNextEpochDescriptor(digest.Data)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to set next epoch descriptor: %s", err)
+	// }
 
 	// set first block in current epoch
 	s.firstBlock = header.Number
 
 	return nil
-}
-
-// setNextEpochDescriptor sets the epoch data for the next epoch from the data
-// included in the ConsensusDigest of the first block of each epoch
-func (s *Service) setNextEpochDescriptor(data []byte) error {
-
-	// initialize epoch data interface for next epoch
-	nextEpochData := new(babe.NextEpochDescriptor)
-
-	// decode consensus digest data for next epoch
-	err := nextEpochData.Decode(data)
-	if err != nil {
-		return err
-	}
-
-	// set epoch data for next epoch
-	return s.bs.SetEpochData(nextEpochData)
 }
