@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -472,61 +474,56 @@ func TestRPCConfigFromFlags(t *testing.T) {
 	}
 }
 
-// TestUpdateConfigFromGenesis tests updateDotConfigFromGenesis
-func TestUpdateConfigFromGenesis(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
+// TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
+func TestUpdateConfigFromGenesisJSON(t *testing.T) {
+	cfg := dot.NewTestConfig(t)
+	require.NotNil(t, cfg)
 
-	testGenFile := dot.NewTestGenesisFile(t, testCfg)
+	cfg.Network.Bootnodes = []string{"test"}
+	cfg.Network.ProtocolID = "test"
+
+	genFile := dot.NewTestGenesisFile(t, cfg)
 
 	defer utils.RemoveTestDir(t)
 
-	testGen, err := genesis.NewGenesisFromJSON(testGenFile.Name())
+	gen, err := genesis.NewGenesisFromJSON(genFile.Name())
 	require.Nil(t, err)
 
-	testApp := cli.NewApp()
-	testApp.Writer = ioutil.Discard
+	require.Equal(t, gen.Name, cfg.Global.Name)
+	require.Equal(t, gen.ID, cfg.Global.ID)
+	require.Equal(t, gen.Bootnodes, cfg.Network.Bootnodes)
+	require.Equal(t, gen.ProtocolID, cfg.Network.ProtocolID)
+}
 
-	testcases := []struct {
-		description string
-		flags       []string
-		values      []interface{}
-		expected    dot.Config
-	}{
-		{
-			"Test gossamer --genesis",
-			[]string{"config", "genesis"},
-			[]interface{}{testCfgFile.Name(), testGenFile.Name()},
-			dot.Config{
-				Global: dot.GlobalConfig{
-					Name:    testGen.Name, // genesis name
-					ID:      testGen.ID,   // genesis id
-					DataDir: testCfg.Global.DataDir,
-				},
-				Account: testCfg.Account,
-				Core:    testCfg.Core,
-				Network: dot.NetworkConfig{
-					Port:        testCfg.Network.Port,
-					Bootnodes:   testGen.Bootnodes,  // genesis bootnodes
-					ProtocolID:  testGen.ProtocolID, // genesis protocol id
-					NoBootstrap: testCfg.Network.NoBootstrap,
-					NoMDNS:      testCfg.Network.NoMDNS,
-				},
-				RPC: testCfg.RPC,
-			},
-		},
-	}
+// TestUpdateConfigFromGenesisData tests updateDotConfigFromGenesisData
+func TestUpdateConfigFromGenesisData(t *testing.T) {
+	cfg := dot.NewTestConfig(t)
+	require.NotNil(t, cfg)
 
-	for _, c := range testcases {
-		c := c // bypass scopelint false positive
-		t.Run(c.description, func(t *testing.T) {
-			ctx, err := newTestContext(c.description, c.flags, c.values)
-			require.Nil(t, err)
-			cfg, err := createDotConfig(ctx)
-			require.Nil(t, err)
+	cfg.Network.Bootnodes = []string{"test"}
+	cfg.Network.ProtocolID = "test"
 
-			require.Equal(t, &c.expected, cfg)
-		})
-	}
+	genFile := dot.NewTestGenesisFile(t, cfg)
+
+	defer utils.RemoveTestDir(t)
+
+	gen, err := genesis.NewGenesisFromJSON(genFile.Name())
+	require.Nil(t, err)
+
+	db, err := database.NewBadgerDB(cfg.Global.DataDir)
+	require.Nil(t, err)
+
+	err = state.StoreGenesisData(db, gen.GenesisData())
+	require.Nil(t, err)
+
+	err = db.Close()
+	require.Nil(t, err)
+
+	err = updateDotConfigFromGenesisData(cfg)
+	require.Nil(t, err)
+
+	require.Equal(t, cfg.Global.Name, gen.Name)
+	require.Equal(t, cfg.Global.ID, gen.ID)
+	require.Equal(t, cfg.Network.Bootnodes, gen.Bootnodes)
+	require.Equal(t, cfg.Network.ProtocolID, gen.ProtocolID)
 }

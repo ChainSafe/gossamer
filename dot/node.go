@@ -26,6 +26,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -74,8 +75,18 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.DataDir)
 
+	// declare genesis data
+	data := gen.GenesisData()
+
+	// set genesis data using configuration values (assumes the genesis values
+	// have already been loaded into the configuration)
+	data.Name = cfg.Global.Name
+	data.ID = cfg.Global.ID
+	data.Bootnodes = common.StringArrayToBytes(cfg.Network.Bootnodes)
+	data.ProtocolID = cfg.Network.ProtocolID
+
 	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(gen.GenesisData(), header, t)
+	err = stateSrvc.Initialize(data, header, t)
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
