@@ -56,6 +56,7 @@ type Syncer struct {
 
 	// BABE verification
 	verificationManager *babe.VerificationManager
+	firstBlock *types.Header // first block of current epoch, maybe change over course of epoch
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -114,6 +115,10 @@ func (s *Syncer) Start() {
 func (s *Syncer) Stop() {
 	// stop goroutines
 	s.stopped = true
+}
+
+func (s *Syncer) currentEpoch() uint64 {
+	return s.verificationManager.CurrentEpoch()
 }
 
 func (s *Syncer) watchForBlocks() {
@@ -333,6 +338,8 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 		log.Info("[sync] saved block header", "hash", header.Hash(), "number", header.Number)
 
 		// TODO: handle consensus digest, if first in epoch
+
+		// TODO: verify authorship right
 	}
 
 	err = s.checkForConsensusDigest(header)
@@ -361,7 +368,7 @@ func (s *Syncer) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Syncer) handleBlock(block *types.Block) error {
-	// TODO: execute block and verify authorship right
+	// TODO: execute block
 
 	err := s.blockState.AddBlock(block)
 	if err != nil {

@@ -25,9 +25,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// test handleBlockDigest
-func TestHandleBlockDigest(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+// test checkForConsensusDigest
+func TestCheckForConsensusDigest(t *testing.T) {
+	s := newTestSyncer(t, nil)
+	addTestBlocksToState(t, 1, s.blockState)
 
 	number, err := s.blockState.BestBlockNumber()
 	require.Nil(t, err)
@@ -35,13 +36,13 @@ func TestHandleBlockDigest(t *testing.T) {
 	header, err := s.blockState.BestBlockHeader()
 	require.Nil(t, err)
 
-	err = s.handleBlockDigest(header)
+	err = s.checkForConsensusDigest(header)
 	require.Nil(t, err)
 
 	require.Equal(t, number, s.firstBlock)
 
 	// test two blocks claiming to be first block
-	err = s.handleBlockDigest(header)
+	err = s.checkForConsensusDigest(header)
 	require.NotNil(t, err) // expect error: "first block already set for current epoch"
 
 	// expect first block not to be updated
@@ -49,9 +50,9 @@ func TestHandleBlockDigest(t *testing.T) {
 
 	// test two blocks claiming to be first block
 	// block with lower number than existing `firstBlock` should be chosen
-	s.firstBlock = big.NewInt(99)
+	s.firstBlock.Number = big.NewInt(99)
 
-	err = s.handleBlockDigest(header)
+	err = s.checkForConsensusDigest(header)
 	require.Nil(t, err)
 
 	// expect first block to be updated
@@ -60,7 +61,8 @@ func TestHandleBlockDigest(t *testing.T) {
 
 // test handleConsensusDigest
 func TestHandleConsensusDigest(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+	s := newTestSyncer(t, nil)
+	addTestBlocksToState(t, 1, s.blockState)
 
 	number, err := s.blockState.BestBlockNumber()
 	require.Nil(t, err)
@@ -77,7 +79,10 @@ func TestHandleConsensusDigest(t *testing.T) {
 
 	// check if digest item is consensus digest type
 	if item.Type() == types.ConsensusDigestType {
-		digest := item.(*types.ConsensusDigest)
+		digest, ok := item.(*types.ConsensusDigest)
+		if !ok {
+			break
+		}
 
 		err = s.handleConsensusDigest(header, digest)
 		require.Nil(t, err)

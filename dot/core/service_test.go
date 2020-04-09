@@ -234,19 +234,21 @@ func TestAnnounceBlock(t *testing.T) {
 
 // test getBlockEpoch
 func TestGetBlockEpoch(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+	s := newTestSyncer(t, nil)
+	addTestBlocksToState(t, 1, s.blockState)
 
 	blockHash := s.blockState.BestBlockHash()
 
 	epoch, err := s.getBlockEpoch(blockHash)
 	require.Nil(t, err)
 
-	require.Equal(t, s.epochNumber, epoch)
+	require.Equal(t, s.currentEpoch(), epoch)
 }
 
 // test blockFromCurrentEpoch
 func TestVerifyCurrentEpoch(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+	s := newTestSyncer(t, nil)
+	addTestBlocksToState(t, 1, s.blockState)
 
 	blockHash := s.blockState.BestBlockHash()
 

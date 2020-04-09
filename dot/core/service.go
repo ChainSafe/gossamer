@@ -18,7 +18,7 @@ package core
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"math/big"
 	"sync"
 
@@ -58,6 +58,7 @@ type Service struct {
 	isBabeAuthority bool
 	epochNumber     uint64   // epoch number of current epoch
 	firstBlock      *big.Int // block number of first block in current epoch
+	
 
 	// Keystore
 	keys *keystore.Keystore
@@ -280,40 +281,6 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
 }
 
-// getBlockEpoch gets the epoch number using the provided block hash
-func (s *Service) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
-
-	// get slot number to determine epoch number
-	slot, err := s.blockState.GetSlotForBlock(hash)
-	if err != nil {
-		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
-	}
-
-	if slot != 0 {
-		// epoch number = (slot - genesis slot) / epoch length
-		epoch = (slot - 1) / 6 // TODO: use epoch length from babe or core config
-	}
-
-	return epoch, nil
-}
-
-// blockFromCurrentEpoch verifies the provided block hash is from current epoch
-func (s *Service) blockFromCurrentEpoch(hash common.Hash) (bool, error) {
-
-	// get epoch number of block header
-	epoch, err := s.getBlockEpoch(hash)
-	if err != nil {
-		return false, fmt.Errorf("[core] failed to get epoch from block header: %s", err)
-	}
-
-	// check if block epoch number matches current epoch number
-	if epoch != s.epochNumber {
-		return false, nil
-	}
-
-	return true, nil
-}
-
 func (s *Service) safeMsgSend(msg network.Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -340,7 +307,7 @@ func (s *Service) handleBabeSession() {
 		<-s.epochDone
 
 		// finalize BABE session
-		err := s.finalizeBabeSession()
+		err := s.syncer.finalizeBabeEpoch()
 		if err != nil {
 			log.Error("[core] failed to finalize BABE session", "error", err)
 		}

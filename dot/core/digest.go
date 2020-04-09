@@ -21,10 +21,57 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
+	//"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	log "github.com/ChainSafe/log15"
 )
+
+// finalizeBabeSession finalizes the BABE session by ensuring the first block
+// was set and first block and epoch number are reset for the next epoch
+func (s *Syncer) finalizeBabeEpoch() error {
+
+	// check if first block was set for current epoch
+	if s.firstBlock == nil {
+
+		// TODO: NextEpochDescriptor is included in first block of an epoch #662
+		// return fmt.Errorf("first block not set for current epoch")
+
+		log.Error("[core] first block not set for current epoch") // TODO: remove
+	}
+
+	// get epoch number for best block
+	bestHash := s.blockState.BestBlockHash()
+	currentEpoch, err := s.blockFromCurrentEpoch(bestHash)
+	if err != nil {
+		return fmt.Errorf("failed to check best block from current epoch: %s", err)
+	}
+
+	// verify best block is from current epoch
+	if !currentEpoch {
+		return fmt.Errorf("best block is not from current epoch")
+	}
+
+	// get best epoch number from best header
+	bestEpoch, err := s.getBlockEpoch(bestHash)
+	if err != nil {
+		return fmt.Errorf("failed to get epoch number for best block: %s", err)
+	}
+
+	// verify current epoch number matches best epoch number
+	if s.currentEpoch() != bestEpoch {
+		return fmt.Errorf("block epoch does not match current epoch")
+	}
+
+	// set next epoch number
+	//s.epochNumber = bestEpoch + 1
+	s.verificationManager.IncrementEpoch()
+
+	// reset first block number
+	s.firstBlock = nil
+
+	return nil
+}
 
 // handleBlockDigest checks if the provided header is the block header for
 // the first block of the current epoch, finds and decodes the consensus digest
@@ -82,7 +129,7 @@ func (s *Syncer) handleConsensusDigest(header *types.Header, digest *types.Conse
 	if s.firstBlock != nil {
 
 		// check if block header has lower block number than current first block
-		if header.Number.Cmp(s.firstBlock) >= 0 {
+		if header.Number.Cmp(s.firstBlock.Number) >= 0 {
 
 			// error if block header does not have lower block number
 			return fmt.Errorf("first block already set for current epoch")
@@ -99,7 +146,41 @@ func (s *Syncer) handleConsensusDigest(header *types.Header, digest *types.Conse
 	// }
 
 	// set first block in current epoch
-	s.firstBlock = header.Number
+	s.firstBlock = header
 
 	return nil
+}
+
+// getBlockEpoch gets the epoch number using the provided block hash
+func (s *Syncer) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
+
+	// get slot number to determine epoch number
+	slot, err := s.blockState.GetSlotForBlock(hash)
+	if err != nil {
+		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
+	}
+
+	if slot != 0 {
+		// epoch number = (slot - genesis slot) / epoch length
+		epoch = (slot - 1) / 6 // TODO: use epoch length from babe or core config
+	}
+
+	return epoch, nil
+}
+
+// blockFromCurrentEpoch verifies the provided block hash is from current epoch
+func (s *Syncer) blockFromCurrentEpoch(hash common.Hash) (bool, error) {
+
+	// get epoch number of block header
+	epoch, err := s.getBlockEpoch(hash)
+	if err != nil {
+		return false, fmt.Errorf("[core] failed to get epoch from block header: %s", err)
+	}
+
+	// check if block epoch number matches current epoch number
+	if epoch != s.currentEpoch() {
+		return false, nil
+	}
+
+	return true, nil
 }
