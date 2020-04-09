@@ -19,7 +19,6 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
-	"reflect"
 
 	log "github.com/ChainSafe/log15"
 
@@ -118,48 +117,50 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		return false, err
 	}
 
-	log.Debug("Got AllHashesForParentDepth", "len(hashes)", len(hashes))
-
-	for key, v := range hashes {
+	for key := range hashes {
 		//get header
 		currentHeader, err := b.blockState.GetHeader(key)
 		if err != nil {
-			return false, fmt.Errorf("could not verify digests, key %s, depth, %d", key, v)
+			continue
 		}
 
 		//compare digest
-		currentBlockProducerIndex := getBlockProducerIndex(currentHeader)
+		currentBlockProducerIndex, err := getBlockProducerIndex(currentHeader)
+		if err != nil {
+			continue
+		}
+
 		existingBlockProducerIndex := babeHeader.BlockProducerIndex
 
-		log.Debug("compare Digest", "currentBlockProducerIndex", currentBlockProducerIndex,
+		log.Trace("compare Digest", "currentBlockProducerIndex", currentBlockProducerIndex,
 			"existingBlockProducerIndex", existingBlockProducerIndex)
 
-		if reflect.DeepEqual(currentBlockProducerIndex, existingBlockProducerIndex) {
-			return false, fmt.Errorf("duplicated SealDigest")
+		if currentBlockProducerIndex == existingBlockProducerIndex {
+			return false, fmt.Errorf("block producer equivocated")
 		}
 	}
 
 	return true, nil
 }
 
-func getBlockProducerIndex(header *types.Header) (blockProducerIndex uint64) {
+func getBlockProducerIndex(header *types.Header) (uint64, error) {
 	preDigestBytes := header.Digest[0]
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
-		return
+		return 0, err
 	}
 
 	babeHeader := new(babetypes.BabeHeader)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
-		return
+		return 0, err
 	}
 
-	return babeHeader.BlockProducerIndex
+	return babeHeader.BlockProducerIndex, nil
 }

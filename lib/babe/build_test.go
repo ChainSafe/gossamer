@@ -80,12 +80,9 @@ func createTestBlock(babesession *Session, createProof bool, slotNumber uint64, 
 		babesession.slotToProof[slotNumber] = outAndProof
 	}
 
-	//t.Log(babesession.authorityData[0].ID.Encode())
-	//t.Log(babesession.keypair.Public().Encode())
-
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		babesession.transactionQueue.Push(vtx)
+		_, _ = babesession.transactionQueue.Push(vtx)
 	}
 
 	if parentHeader == nil {

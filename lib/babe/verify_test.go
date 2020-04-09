@@ -104,7 +104,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 			parentHeader:                    genesisHeader,
 			expectedErr:                     nil,
 			authorshipRight:                 true,
-			expectedErrAfterAuthorshipRight: errors.New("duplicated SealDigest"),
+			expectedErrAfterAuthorshipRight: errors.New("block producer equivocated"),
 		},
 		{
 			description:     "test verify block with not existing parent",
