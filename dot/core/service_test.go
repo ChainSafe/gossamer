@@ -21,12 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -77,7 +78,9 @@ func newTestService(t *testing.T, cfg *Config) *Service {
 	stateSrvc := state.NewService("")
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialize(testGenesisHeader, trie.NewEmptyTrie())
+	genesisData := new(genesis.Data)
+
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
@@ -175,7 +178,9 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 func TestStartService(t *testing.T) {
 	s := newTestService(t, nil)
-	require.NotNil(t, s) // TODO: improve dot core tests
+
+	// TODO: improve dot tests #687
+	require.NotNil(t, s)
 
 	err := s.Start()
 	require.Nil(t, err)

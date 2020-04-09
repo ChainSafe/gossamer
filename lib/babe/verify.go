@@ -22,7 +22,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
 

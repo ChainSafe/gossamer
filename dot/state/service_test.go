@@ -22,20 +22,23 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
+// branch tree randomly
+type testBranch struct {
+	hash  common.Hash
+	depth int
+}
+
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
-
 	state = NewService(testDir)
-
 	return state
 }
 
@@ -56,7 +59,9 @@ func TestService_Start(t *testing.T) {
 
 	tr := trie.NewEmptyTrie()
 
-	err = state.Initialize(genesisHeader, tr)
+	genesisData := new(genesis.Data)
+
+	err = state.Initialize(genesisData, genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +84,9 @@ func TestMemDB_Start(t *testing.T) {
 
 	tr := trie.NewEmptyTrie()
 
-	err = state.Initialize(genesisHeader, tr)
+	genesisData := new(genesis.Data)
+
+	err = state.Initialize(genesisData, genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,12 +97,6 @@ func TestMemDB_Start(t *testing.T) {
 	}
 
 	state.Stop()
-}
-
-// branch tree randomly
-type testBranch struct {
-	hash  common.Hash
-	depth int
 }
 
 func addBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
@@ -174,39 +175,41 @@ func TestService_BlockTree(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	state := NewService(testDir)
+	stateA := NewService(testDir)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	genesisData := new(genesis.Data)
+
 	tr := trie.NewEmptyTrie()
-	err = state.Initialize(genesisHeader, tr)
+	err = stateA.Initialize(genesisData, genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = state.Start()
+	err = stateA.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// add blocks to state
-	addBlocksToState(t, state.Block, 10)
+	addBlocksToState(t, stateA.Block, 10)
 
-	state.Stop()
+	stateA.Stop()
 
-	state2 := NewService(testDir)
+	stateB := NewService(testDir)
 
-	err = state2.Start()
+	err = stateB.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	state2.Stop()
+	stateB.Stop()
 
-	if !reflect.DeepEqual(state.Block.BestBlockHash(), state2.Block.BestBlockHash()) {
-		t.Fatalf("Fail: got %s expected %s", state.Block.BestBlockHash(), state2.Block.BestBlockHash())
+	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
+		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
 	}
 }

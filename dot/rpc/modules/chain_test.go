@@ -4,11 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +27,9 @@ func newChainService(t *testing.T) *state.Service {
 
 	stateSrvc.UseMemDB()
 
-	err = stateSrvc.Initialize(genesisHeader, tr)
+	genesisData := new(genesis.Data)
+
+	err = stateSrvc.Initialize(genesisData, genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}
