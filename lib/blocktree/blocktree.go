@@ -92,7 +92,7 @@ func (bt *BlockTree) GetAllHashesForParentDepth(header *types.Header) (map[commo
 			"hashes", len(hashes),
 			"bt.head.children", len(bt.head.children))
 
-		if child.depth.Cmp(parentDepthPlusOne) == 0 {
+		if found := child.getNodeByDepth(parentDepthPlusOne); found != nil {
 			if hashes[child.hash] == nil {
 				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
 				hashes[child.hash] = child.depth
