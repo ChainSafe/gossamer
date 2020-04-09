@@ -18,10 +18,11 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"net/http"
 	"reflect"
+
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -184,13 +185,19 @@ func determineKeyType(t string) crypto.KeyType {
 	//  as that, research how these other keytypes should be handled
 	switch t {
 	case "babe":
+		return crypto.Sr25519Type
 	case "gran":
+		return crypto.Sr25519Type
 	case "acco":
+		return crypto.Sr25519Type
 	case "aura":
+		return crypto.Sr25519Type
 	case "imon":
+		return crypto.Sr25519Type
 	case "audi":
+		return crypto.Sr25519Type
 	case "dumy":
 		return crypto.Sr25519Type
 	}
-	return crypto.Sr25519Type
+	return "unknown keytype"
 }

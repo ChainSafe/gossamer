@@ -1,8 +1,9 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"math/big"
+
+	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -36,6 +37,6 @@ type TransactionQueueAPI interface {
 }
 
 // CoreAPI is the interface for the core methods
-type CoreAPI interface{
+type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 }
