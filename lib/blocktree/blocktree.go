@@ -100,11 +100,16 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	return nil
 }
 
-// GetAllBlocksAtDepth will return all blocks hashes with the same depth as the given block hash
+// GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
+// To find all blocks at a depth matching a certain block, pass in that block's parent hash
 func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	hashes := []common.Hash{}
 
-	depth := bt.getNode(hash).depth
+	if bt.getNode(hash) == nil {
+		return hashes
+	}
+
+	depth := big.NewInt(0).Add(bt.getNode(hash).depth, big.NewInt(1))
 
 	if bt.head.depth.Cmp(depth) == 0 {
 		hashes = append(hashes, bt.head.hash)
@@ -112,25 +117,6 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	}
 
 	return bt.head.getNodesWithDepth(depth, hashes)
-}
-
-// getNodesWithDepth returns all descendent nodes with the desired depth
-func (n *node) getNodesWithDepth(depth *big.Int, hashes []common.Hash) []common.Hash {
-	for _, child := range n.children {
-		// depth matches
-		if child.depth.Cmp(depth) == 0 {
-			hashes = append(hashes, child.hash)
-		}
-
-		// are deeper than desired depth, return
-		if child.depth.Cmp(depth) > 0 {
-			return hashes
-		}
-
-		hashes = child.getNodesWithDepth(depth, hashes)
-	}
-
-	return hashes
 }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.

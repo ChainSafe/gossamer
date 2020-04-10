@@ -17,12 +17,10 @@
 package babe
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -92,79 +90,81 @@ func TestVerifySlotWinner(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight(t *testing.T) {
-	testsCases := []struct {
-		description                     string
-		parentHeader                    *types.Header
-		expectedErr                     error
-		authorshipRight                 bool
-		expectedErrAfterAuthorshipRight error
-	}{
-		{
-			description:                     "test verify block with existing parent",
-			parentHeader:                    genesisHeader,
-			expectedErr:                     nil,
-			authorshipRight:                 true,
-			expectedErrAfterAuthorshipRight: errors.New("block producer equivocated"),
-		},
-		{
-			description:     "test verify block with not existing parent",
-			parentHeader:    nil,
-			expectedErr:     errors.New("cannot find parent block in blocktree"),
-			authorshipRight: false,
-		},
+	babesession := createTestSession(t, nil)
+	err := babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, test := range testsCases {
-		t.Run(test.description, func(t *testing.T) {
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-			kp, err := sr25519.GenerateKeypair()
-			if err != nil {
-				t.Fatal(err)
-			}
+	block, slot := createTestBlock(babesession, true, 1, [][]byte{txb}, t, genesisHeader)
 
-			cfg := &SessionConfig{
-				Keypair: kp,
-			}
-
-			babesession := createTestSession(t, cfg)
-			err = babesession.configurationFromRuntime()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			babesession.authorityData = make([]*AuthorityData, 1)
-			babesession.authorityData[0] = &AuthorityData{
-				ID: kp.Public().(*sr25519.PublicKey),
-			}
-
-			slotNumber := uint64(0)
-
-			block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
-
-			ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
-			require.Equal(t, test.expectedErr, err)
-			require.Equal(t, test.authorshipRight, ok, "did not verify authorship right")
-
-			if test.authorshipRight {
-				//save block
-				err = babesession.blockState.AddBlock(block)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				//create new block
-				blockNew, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, test.parentHeader)
-
-				//update blockNumber to previous block
-				blockNew.Header.Number = block.Header.Number
-
-				ok, err = babesession.verifyAuthorshipRight(slotNumber, blockNew.Header)
-				require.NotNil(t, err)
-				require.False(t, ok)
-
-				require.Equal(t, test.expectedErrAfterAuthorshipRight, err)
-
-			}
-		})
+	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
+	if err != nil {
+		t.Fatal(err)
 	}
+
+	if !ok {
+		t.Fatal("did not verify authorship right")
+	}
+}
+
+func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Keypair: kp,
+	}
+
+	babesession := createTestSession(t, cfg)
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	babesession.authorityData = make([]*AuthorityData, 1)
+	babesession.authorityData[0] = &AuthorityData{
+		ID: kp.Public().(*sr25519.PublicKey),
+	}
+
+	slotNumber := uint64(1)
+
+	// create and add first block
+	block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, genesisHeader)
+	block.Header.Hash()
+
+	t.Log(block.Header)
+
+	err = babesession.blockState.AddBlock(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	// create new block
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+
+	block2, _ := createTestBlock(babesession, false, slotNumber, [][]byte{txb}, t, genesisHeader)
+	block2.Header.Hash()
+
+	t.Log(block2.Header)
+
+	err = babesession.blockState.AddBlock(block2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err = babesession.verifyAuthorshipRight(slotNumber, block2.Header)
+	require.NotNil(t, err)
+	require.False(t, ok)
+	require.Equal(t, ErrProducerEquivocated, err)
 }

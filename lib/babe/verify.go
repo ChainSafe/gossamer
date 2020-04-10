@@ -20,11 +20,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	log "github.com/ChainSafe/log15"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
+
+var ErrProducerEquivocated = fmt.Errorf("block producer equivocated")
 
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
 func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
@@ -111,20 +111,15 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		return false, fmt.Errorf("could not verify signature")
 	}
 
-	// #553 check if the producer has equivocated, ie. have they produced a conflicting block?
-	hashes, err := b.blockState.GetAllHashesForParentDepth(header)
-	if err != nil {
-		return false, err
-	}
+	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
-	for key := range hashes {
-		//get header
-		currentHeader, err := b.blockState.GetHeader(key)
+	for _, hash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(hash)
 		if err != nil {
 			continue
 		}
 
-		//compare digest
 		currentBlockProducerIndex, err := getBlockProducerIndex(currentHeader)
 		if err != nil {
 			continue
@@ -132,11 +127,8 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 
 		existingBlockProducerIndex := babeHeader.BlockProducerIndex
 
-		log.Trace("compare Digest", "currentBlockProducerIndex", currentBlockProducerIndex,
-			"existingBlockProducerIndex", existingBlockProducerIndex)
-
-		if currentBlockProducerIndex == existingBlockProducerIndex {
-			return false, fmt.Errorf("block producer equivocated")
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+			return false, ErrProducerEquivocated
 		}
 	}
 

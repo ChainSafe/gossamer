@@ -371,8 +371,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 }
 
 // GetAllHashesForParentDepth is a wrapper around blockTree GetAllHashesForParentDepth
-func (bs *BlockState) GetAllHashesForParentDepth(header *types.Header) (map[common.Hash]*big.Int, error) {
-	return bs.bt.GetAllHashesForParentDepth(header)
+func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+	return bs.bt.GetAllBlocksAtDepth(hash)
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
