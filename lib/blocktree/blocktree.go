@@ -21,8 +21,6 @@ import (
 	"math/big"
 	"time"
 
-	log "github.com/ChainSafe/log15"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
@@ -72,37 +70,6 @@ func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
 }
 
-// GetAllHashesForParentDepth will get all hashes with the same dept for a given header
-func (bt *BlockTree) GetAllHashesForParentDepth(header *types.Header) (map[common.Hash]*big.Int, error) {
-	hashes := map[common.Hash]*big.Int{}
-
-	parent := bt.getNode(header.ParentHash)
-	if parent == nil {
-		err := fmt.Errorf("cannot find parent block in blocktree")
-		log.Error("Could not getNode for ParentHash", "header.ParentHash", header.ParentHash, "err", err)
-		return hashes, err
-	}
-
-	parentDepthPlusOne := big.NewInt(0).Add(parent.depth, big.NewInt(1))
-
-	for _, child := range bt.head.children {
-		log.Debug("going to iterate ", "child.depth", child.depth.Int64(),
-			"parent.depth", parent.depth.Int64(),
-			"child.depth.Cmp(parent.depth)", child.depth.Cmp(parent.depth),
-			"child.hash.String()", child.hash.String(),
-			"hashes", len(hashes),
-			"bt.head.children", len(bt.head.children))
-
-		if found := child.getNodeByDepth(parentDepthPlusOne); found != nil {
-			if hashes[child.hash] == nil {
-				log.Debug("adding child.hash", "child.hash", child.hash.String(), "child.depth", child.depth)
-				hashes[child.hash] = child.depth
-			}
-		}
-	}
-	return hashes, nil
-}
-
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
@@ -131,6 +98,39 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	bt.leaves.replace(parent, n)
 
 	return nil
+}
+
+// GetAllBlocksAtDepth will return all blocks hashes with the same depth as the given block hash
+func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+	hashes := []common.Hash{}
+
+	depth := bt.getNode(hash).depth
+
+	if bt.head.depth.Cmp(depth) == 0 {
+		hashes = append(hashes, bt.head.hash)
+		return hashes
+	}
+
+	return bt.head.getNodesWithDepth(depth, hashes)
+}
+
+// getNodesWithDepth returns all descendent nodes with the desired depth
+func (n *node) getNodesWithDepth(depth *big.Int, hashes []common.Hash) []common.Hash {
+	for _, child := range n.children {
+		// depth matches
+		if child.depth.Cmp(depth) == 0 {
+			hashes = append(hashes, child.hash)
+		}
+
+		// are deeper than desired depth, return
+		if child.depth.Cmp(depth) > 0 {
+			return hashes
+		}
+
+		hashes = child.getNodesWithDepth(depth, hashes)
+	}
+
+	return hashes
 }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.

@@ -68,22 +68,6 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
-// getNodeByDepth recursively searches for a node with a given depth
-func (n *node) getNodeByDepth(depth *big.Int) *node {
-	if n.depth.Cmp(depth) == 0 {
-		return n
-	} else if len(n.children) == 0 {
-		return nil
-	} else {
-		for _, child := range n.children {
-			if n := child.getNodeByDepth(depth); n != nil {
-				return n
-			}
-		}
-	}
-	return nil
-}
-
 // subChain recursively searches for a chain with head n and end descendant
 func (n *node) subChain(descendant *node) ([]*node, error) {
 	if descendant == nil {

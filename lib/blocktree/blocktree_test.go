@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"math/big"
 	"math/rand"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -245,5 +246,78 @@ func TestBlockTree_GetNode(t *testing.T) {
 
 		err := bt.AddBlock(block, 0)
 		require.Nil(t, err)
+	}
+}
+
+func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	bt, _ := createTestBlockTree(header, 8, nil)
+	hashes := bt.head.getNodesWithDepth(big.NewInt(10), []common.Hash{})
+
+	expected := []common.Hash{}
+
+	if !reflect.DeepEqual(hashes, expected) {
+		t.Fatalf("Fail: expected empty array")
+	}
+
+	// create one-path tree
+	btDepth := 8
+	desiredDepth := 6
+	bt, btHashes := createFlatTree(t, btDepth)
+
+	expected = []common.Hash{btHashes[desiredDepth]}
+
+	// add branch
+	previousHash := btHashes[4]
+
+	for i := 4; i <= btDepth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)),
+				Digest:     [][]byte{{9}},
+			},
+			Body: &types.Body{},
+		}
+
+		hash := block.Header.Hash()
+		bt.AddBlock(block, 0)
+		previousHash = hash
+
+		if i == desiredDepth-1 {
+			expected = append(expected, hash)
+		}
+	}
+
+	// add another branch
+	previousHash = btHashes[2]
+
+	for i := 2; i <= btDepth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)),
+				Digest:     [][]byte{{7}},
+			},
+			Body: &types.Body{},
+		}
+
+		hash := block.Header.Hash()
+		bt.AddBlock(block, 0)
+		previousHash = hash
+
+		if i == desiredDepth-1 {
+			expected = append(expected, hash)
+		}
+	}
+
+	hashes = bt.head.getNodesWithDepth(big.NewInt(int64(desiredDepth)), []common.Hash{})
+
+	if !reflect.DeepEqual(hashes, expected) {
+		t.Fatalf("Fail: did not get all expected hashes got %v expected %v", hashes, expected)
 	}
 }
