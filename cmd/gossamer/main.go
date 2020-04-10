@@ -135,7 +135,7 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	// ensure configuration matches genesis data stored during node initialization
-	// and overwrite with flag values if flag values are provided
+	// but do not overwrite configuration if the corresponding flag value is set
 	err = updateDotConfigFromGenesisData(ctx, cfg)
 	if err != nil {
 		log.Error("[cmd] Failed to update config from genesis data", "error", err)
