@@ -86,7 +86,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block, slot := createTestBlock(t, babesession, 1, [][]byte{txb})
+	block, slot := createTestBlock(t, babesession, [][]byte{txb})
 
 	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	slotNumber := uint64(1)
 
 	// create and add first block
-	block, _ := createTestBlock(t, babesession, slotNumber, [][]byte{})
+	block, _ := createTestBlock(t, babesession, [][]byte{})
 	block.Header.Hash()
 
 	err = babesession.blockState.AddBlock(block)
@@ -138,7 +138,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block2, _ := createTestBlock(t, babesession, slotNumber, [][]byte{txb})
+	block2, _ := createTestBlock(t, babesession, [][]byte{txb})
 	block2.Header.Hash()
 
 	t.Log(block2.Header)

@@ -91,10 +91,12 @@ func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
 	babesession.slotToProof[slotNumber] = outAndProof
 }
 
-func createTestBlock(t *testing.T, babesession *Session, slotNumber uint64, exts [][]byte) (*types.Block, Slot) {
+func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.Block, Slot) {
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
 	babesession.authorityIndex = 0
+
+	slotNumber := uint64(1)
 
 	addAuthorshipProof(t, babesession, slotNumber)
 
@@ -136,7 +138,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	exts := [][]byte{txb}
 
-	block, slot := createTestBlock(t, babesession, 1, exts)
+	block, slot := createTestBlock(t, babesession, exts)
 
 	stateRoot, err := common.HexToHash("0x31ce5e74d7141520abc11b8a68f884cb1d01b5476a6376a659d93a199c4884e0")
 	if err != nil {

@@ -15,6 +15,11 @@ package babe
 
 import "errors"
 
+// ErrBadSlotClaim is returned when a slot claim is invalid
 var ErrBadSlotClaim = errors.New("could not verify slot claim")
+
+// ErrBadSignature is returned when a seal is invalid
 var ErrBadSignature = errors.New("could not verify signature")
+
+// ErrProducerEquivocated is returned when a block producer has produced conflicting blocks
 var ErrProducerEquivocated = errors.New("block producer equivocated")
