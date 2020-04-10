@@ -70,9 +70,6 @@ func confirm(msg string) bool {
 	for {
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
-		if strings.Compare("Y", text) == 0 {
-			return true
-		}
-		return false
+		return strings.Compare("Y", text) == 0
 	}
 }
