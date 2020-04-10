@@ -26,19 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
-	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
-	}
-
-	babesession.slotToProof[slotNumber] = outAndProof
-}
-
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
@@ -99,7 +86,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block, slot := createTestBlock(babesession, true, 1, [][]byte{txb}, t, genesisHeader)
+	block, slot := createTestBlock(t, babesession, 1, [][]byte{txb})
 
 	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
 	if err != nil {
@@ -135,7 +122,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	slotNumber := uint64(1)
 
 	// create and add first block
-	block, _ := createTestBlock(babesession, true, slotNumber, [][]byte{}, t, genesisHeader)
+	block, _ := createTestBlock(t, babesession, slotNumber, [][]byte{})
 	block.Header.Hash()
 
 	t.Log(block.Header)
@@ -153,7 +140,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block2, _ := createTestBlock(babesession, false, slotNumber, [][]byte{txb}, t, genesisHeader)
+	block2, _ := createTestBlock(t, babesession, slotNumber, [][]byte{txb})
 	block2.Header.Hash()
 
 	t.Log(block2.Header)
