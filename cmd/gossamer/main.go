@@ -193,7 +193,7 @@ func initAction(ctx *cli.Context) error {
 		// prompt user to confirm reinitialization
 		if confirm("Are you sure you want to reinitialize the node? [Y/n]") {
 
-			log.Info("[cmd] Reinitializing node...")
+			log.Info("[cmd] Reinitializing node...", "datadir", cfg.Global.DataDir)
 
 			// initialize node (initialize state database and load genesis data)
 			err = dot.InitNode(cfg)
