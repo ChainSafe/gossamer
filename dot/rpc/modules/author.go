@@ -52,7 +52,6 @@ type ExtrinsicOrHash struct {
 type ExtrinsicOrHashRequest []ExtrinsicOrHash
 
 // KeyInsertResponse []byte
-// TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type KeyInsertResponse []byte
 
 // PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
@@ -181,8 +180,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 // determineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
 //  and returns the crypto.KeyType
 func determineKeyType(t string) crypto.KeyType {
-	// TODO: since dot/core/service's keystore uses Sr25519 key types we'll treat all keytypes
-	//  as that, research how these other keytypes should be handled
+	// TODO: create separate keystores for different key types, issue #768
 	switch t {
 	case "babe":
 		return crypto.Sr25519Type
