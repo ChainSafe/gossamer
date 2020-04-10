@@ -17,8 +17,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"syscall"
 
 	log "github.com/ChainSafe/log15"
@@ -56,5 +59,20 @@ func getPassword(msg string) []byte {
 			fmt.Printf("\n")
 			return password
 		}
+	}
+}
+
+// prompt user to confirm message
+func confirm(msg string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println(msg)
+	fmt.Print("> ")
+	for {
+		text, _ := reader.ReadString('\n')
+		text = strings.Replace(text, "\n", "", -1)
+		if strings.Compare("Y", text) == 0 {
+			return true
+		}
+		return false
 	}
 }
