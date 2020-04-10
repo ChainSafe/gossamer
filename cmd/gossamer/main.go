@@ -119,12 +119,12 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	// expand data directory and update node configuration (performed separate
+	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
 
-	// check if node has not been initialized
-	if !dot.NodeInitialized(cfg) {
+	// check if node has not been initialized (expected true - add warning log)
+	if !dot.NodeInitialized(cfg, true) {
 
 		// initialize node (initialize databases and load genesis data)
 		err = dot.InitNode(cfg)
@@ -134,7 +134,9 @@ func gossamerAction(ctx *cli.Context) error {
 		}
 	}
 
-	err = updateDotConfigFromGenesisData(cfg)
+	// ensure configuration matches genesis data stored during node initialization
+	// and overwrite with flag values if flag values are provided
+	err = updateDotConfigFromGenesisData(ctx, cfg)
 	if err != nil {
 		log.Error("[cmd] Failed to update config from genesis data", "error", err)
 		return err
@@ -181,12 +183,12 @@ func initAction(ctx *cli.Context) error {
 		return err
 	}
 
-	// expand data directory and update node configuration (performed separate
+	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
 
-	// check if node has been initialized
-	if dot.NodeInitialized(cfg) {
+	// check if node has been initialized (expected false - no warning log)
+	if dot.NodeInitialized(cfg, false) {
 
 		// TODO: prompt user to confirm when reinitializing a node #760
 		log.Warn("[cmd] Node has already been initialized, reinitializing node...")

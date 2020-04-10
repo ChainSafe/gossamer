@@ -345,7 +345,7 @@ func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 	}
 
 	log.Debug(
-		"[cmd] Updated config from genesis json",
+		"[cmd] Configuration after genesis json",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"bootnodes", cfg.Network.Bootnodes,
@@ -354,7 +354,7 @@ func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 }
 
 // updateDotConfigFromGenesisData updates the configuration from genesis data of an initialized node
-func updateDotConfigFromGenesisData(cfg *dot.Config) error {
+func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 
 	// initialize database using data directory
 	db, err := database.NewBadgerDB(cfg.Global.DataDir)
@@ -368,11 +368,25 @@ func updateDotConfigFromGenesisData(cfg *dot.Config) error {
 		return fmt.Errorf("failed to load genesis data: %s", err)
 	}
 
-	// update configuration values
-	cfg.Global.Name = gen.Name
-	cfg.Global.ID = gen.ID
-	cfg.Network.Bootnodes = common.BytesToStringArray(gen.Bootnodes)
-	cfg.Network.ProtocolID = gen.ProtocolID
+	// check genesis name and use genesis name if --name flag not set
+	if !ctx.GlobalIsSet(NameFlag.Name) {
+		cfg.Global.Name = gen.Name
+	}
+
+	// check genesis id and use genesis id if --node flag not set
+	if !ctx.GlobalIsSet(NodeFlag.Name) {
+		cfg.Global.ID = gen.ID
+	}
+
+	// check genesis bootnodes and use genesis --bootnodes if name flag not set
+	if !ctx.GlobalIsSet(BootnodesFlag.Name) {
+		cfg.Network.Bootnodes = common.BytesToStringArray(gen.Bootnodes)
+	}
+
+	// check genesis protocol and use genesis --protocol if name flag not set
+	if !ctx.GlobalIsSet(ProtocolFlag.Name) {
+		cfg.Network.ProtocolID = gen.ProtocolID
+	}
 
 	// close database
 	err = db.Close()
@@ -381,7 +395,7 @@ func updateDotConfigFromGenesisData(cfg *dot.Config) error {
 	}
 
 	log.Debug(
-		"[cmd] Updated config from genesis data",
+		"[cmd] Configuration after genesis data",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"bootnodes", cfg.Network.Bootnodes,

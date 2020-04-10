@@ -105,17 +105,19 @@ func InitNode(cfg *Config) error {
 
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(cfg *Config) bool {
+func NodeInitialized(cfg *Config, expected bool) bool {
 
 	// check if key registry exists
 	registry := path.Join(cfg.Global.DataDir, "KEYREGISTRY")
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		log.Warn(
-			"[dot] Node has not been initialized",
-			"datadir", cfg.Global.DataDir,
-			"error", "failed to locate KEYREGISTRY file in data directory",
-		)
+		if expected {
+			log.Warn(
+				"[dot] Node has not been initialized",
+				"datadir", cfg.Global.DataDir,
+				"error", "failed to locate KEYREGISTRY file in data directory",
+			)
+		}
 		return false
 	}
 
@@ -123,11 +125,13 @@ func NodeInitialized(cfg *Config) bool {
 	manifest := path.Join(cfg.Global.DataDir, "MANIFEST")
 	_, err = os.Stat(manifest)
 	if os.IsNotExist(err) {
-		log.Warn(
-			"[dot] Node has not been initialized",
-			"datadir", cfg.Global.DataDir,
-			"error", "failed to locate MANIFEST file in data directory",
-		)
+		if expected {
+			log.Warn(
+				"[dot] Node has not been initialized",
+				"datadir", cfg.Global.DataDir,
+				"error", "failed to locate MANIFEST file in data directory",
+			)
+		}
 		return false
 	}
 
@@ -148,7 +152,11 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	log.Info(
 		"[dot] Creating node services...",
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
 		"datadir", cfg.Global.DataDir,
+		"bootnodes", cfg.Network.Bootnodes,
+		"protocol", cfg.Network.ProtocolID,
 	)
 
 	var nodeSrvcs []services.Service
