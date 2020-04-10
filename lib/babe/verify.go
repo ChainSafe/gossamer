@@ -46,6 +46,10 @@ func (v *VerificationManager) CurrentEpoch() uint64 {
 	return v.currentEpoch
 }
 
+func (v *VerificationManager) SetCurrentEpoch(epoch uint64) {
+	v.currentEpoch = epoch
+}
+
 func (v *VerificationManager) IncrementEpoch() {
 	v.currentEpoch++
 }

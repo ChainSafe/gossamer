@@ -81,7 +81,7 @@ func TestHandleConsensusDigest(t *testing.T) {
 	if item.Type() == types.ConsensusDigestType {
 		digest, ok := item.(*types.ConsensusDigest)
 		if !ok {
-			break
+			t.Fatal("digest was not consensus digest")
 		}
 
 		err = s.handleConsensusDigest(header, digest)

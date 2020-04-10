@@ -157,11 +157,30 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
 
+	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
+	require.Nil(t, err)
+
+	//s.epochNumber = uint64(2) // test preDigest item is for block in slot 17 epoch 2
+
+	authorityData := []*babe.AuthorityData{}
+
+	nextEpochData := &babe.NextEpochDescriptor{
+		Authorities: authorityData,
+	}
+
+	consensusDigest := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              nextEpochData.Encode(),
+	}
+
+	conDigest := consensusDigest.Encode()
+
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+				Digest:     [][]byte{preDigest, conDigest},
 			},
 			Body: &types.Body{},
 		}
@@ -237,6 +256,8 @@ func TestGetBlockEpoch(t *testing.T) {
 	s := newTestSyncer(t, nil)
 	addTestBlocksToState(t, 1, s.blockState)
 
+	s.verificationManager.SetCurrentEpoch(2)
+
 	blockHash := s.blockState.BestBlockHash()
 
 	epoch, err := s.getBlockEpoch(blockHash)
@@ -249,6 +270,8 @@ func TestGetBlockEpoch(t *testing.T) {
 func TestVerifyCurrentEpoch(t *testing.T) {
 	s := newTestSyncer(t, nil)
 	addTestBlocksToState(t, 1, s.blockState)
+
+	s.verificationManager.SetCurrentEpoch(2)
 
 	blockHash := s.blockState.BestBlockHash()
 
