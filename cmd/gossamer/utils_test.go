@@ -54,21 +54,31 @@ func TestStartLogger(t *testing.T) {
 		description string
 		flags       []string
 		values      []interface{}
+		expected    error
 	}{
 		{
 			"Test gossamer --verbosity info",
 			[]string{"verbosity"},
 			[]interface{}{"info"},
+			nil,
 		},
 		{
 			"Test gossamer --verbosity debug",
 			[]string{"verbosity"},
 			[]interface{}{"debug"},
+			nil,
 		},
 		{
 			"Test gossamer --verbosity trace",
 			[]string{"verbosity"},
 			[]interface{}{"trace"},
+			nil,
+		},
+		{
+			"Test gossamer --verbosity blah",
+			[]string{"verbosity"},
+			[]interface{}{"blah"},
+			fmt.Errorf("Unknown level: blah"),
 		},
 	}
 
@@ -79,8 +89,7 @@ func TestStartLogger(t *testing.T) {
 			require.Nil(t, err)
 
 			err = startLogger(ctx)
-			require.Nil(t, err)
+			require.Equal(t, c.expected, err)
 		})
 	}
-
 }
