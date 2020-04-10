@@ -6,7 +6,7 @@
 SCRIPT=$(basename ${BASH_SOURCE[0]})
 TEST=""
 QTD=1
-TIMEOUT=5
+SLEEP_TIMEOUT=5
 
 PORT="700"
 RPC_PORT="854"
@@ -20,18 +20,18 @@ usage() {
   echo "Optional command line arguments"
   echo "-t <string>  -- Test to run. eg: rpc"
   echo "-q <number>  -- Quantity of nodes to run. eg: 3"
-  echo "-o <number>  -- Timeout in secs to wait. eg: 5"
+  echo "-s <number>  -- Sleep between operations in secs. eg: 5"
   exit 1
 }
 
-while getopts "h?t:q:o:" args; do
+while getopts "h?t:q:s:" args; do
 case $args in
     h|\?)
       usage;
       exit;;
     t ) TEST=${OPTARG};;
     q ) QTD=${OPTARG};;
-    o ) TIMEOUT=${OPTARG};;
+    s ) SLEEP_TIMEOUT=${OPTARG};;
   esac
 done
 
@@ -58,21 +58,21 @@ start_func() {
 
   GOSSAMER_PID=$!
   echo "started gossamer node, pid=$GOSSAMER_PID"
-  #add PID to array
+  # add PID to array
   arr+=("$GOSSAMER_PID")
 }
 
 # Run node with static blockchain database
 # For loop N times
 for i in $(seq 1 "$QTD"); do
-  start_func "$i" #&# Put a function in the background
-  echo "sleeping $TIMEOUT seconds for startup"
-  sleep "$TIMEOUT"
+  start_func "$i"
+  echo "sleeping $SLEEP_TIMEOUT seconds for startup"
+  sleep "$SLEEP_TIMEOUT"
   echo "done sleeping"
 done
 
-echo "sleeping $TIMEOUT seconds before running tests ... "
-sleep "$TIMEOUT"
+echo "sleeping $SLEEP_TIMEOUT seconds before running tests ... "
+sleep "$SLEEP_TIMEOUT"
 echo "done sleeping"
 
 set +e
@@ -100,7 +100,7 @@ stop_func() {
 
 
 for i in "${arr[@]}"; do
-  stop_func "$i" #&
+  stop_func "$i"
 done
 
 if [[ (-z $TEST || $TEST == "rpc") && $RPC_FAIL -ne 0 ]]; then
