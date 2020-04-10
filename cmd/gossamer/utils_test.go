@@ -19,7 +19,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
 
@@ -40,4 +43,44 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 	}
 	ctx := cli.NewContext(nil, set, nil)
 	return ctx, nil
+}
+
+// TestStartLogger
+func TestStartLogger(t *testing.T) {
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+	}{
+		{
+			"Test gossamer --verbosity info",
+			[]string{"verbosity"},
+			[]interface{}{"info"},
+		},
+		{
+			"Test gossamer --verbosity debug",
+			[]string{"verbosity"},
+			[]interface{}{"debug"},
+		},
+		{
+			"Test gossamer --verbosity trace",
+			[]string{"verbosity"},
+			[]interface{}{"trace"},
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+
+			err = startLogger(ctx)
+			require.Nil(t, err)
+		})
+	}
+
 }
