@@ -125,8 +125,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	block, _ := createTestBlock(t, babesession, slotNumber, [][]byte{})
 	block.Header.Hash()
 
-	t.Log(block.Header)
-
 	err = babesession.blockState.AddBlock(block)
 	if err != nil {
 		t.Fatal(err)

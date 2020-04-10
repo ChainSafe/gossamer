@@ -24,8 +24,6 @@ import (
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
 
-var ErrProducerEquivocated = fmt.Errorf("block producer equivocated")
-
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
 func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
@@ -98,7 +96,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify slot claim")
+		return false, ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
@@ -108,7 +106,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify signature")
+		return false, ErrBadSignature
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
