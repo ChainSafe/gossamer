@@ -71,16 +71,21 @@ for i in $(seq 1 "$QTD"); do
   echo "done sleeping"
 done
 
-set +e
+echo "sleeping $TIMEOUT seconds before running tests ... "
+sleep "$TIMEOUT"
+echo "done sleeping"
 
-# TODO: iterate and test all nodes ?
-HOST_RPC=http://$IP_ADDR:$RPC_PORT"1"
+set +e
 
 if [[ -z $TEST || $TEST == "rpc" ]]; then
 
-  GOSSAMER_INTEGRATION_TEST_MODE=$MODE GOSSAMER_NODE_HOST=$HOST_RPC go test ./tests/rpc/... -timeout=60s -v -count=1
+  for i in $(seq 1 "$QTD"); do
+    HOST_RPC=http://$IP_ADDR:$RPC_PORT"$i"
+    echo "going to test gossamer node $HOST_RPC ..."
+    GOSSAMER_INTEGRATION_TEST_MODE=$MODE GOSSAMER_NODE_HOST=$HOST_RPC go test ./tests/rpc/... -timeout=60s -v -count=1
 
-  RPC_FAIL=$?
+    RPC_FAIL=$?
+  done
 
 fi
 
