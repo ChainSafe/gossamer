@@ -19,7 +19,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
@@ -48,7 +48,7 @@ func (s *Service) finalizeBabeSession() error {
 
 	// verify best block is from current epoch
 	if !currentEpoch {
-		return fmt.Errorf("best block is not from current epoch: %s", err)
+		return fmt.Errorf("best block is not from current epoch")
 	}
 
 	// get best epoch number from best header

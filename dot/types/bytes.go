@@ -14,47 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package database
+package types
 
-import "io"
+import (
+	"io"
 
-// Database wraps all database operations. All methods are safe for concurrent use.
-type Database interface {
-	Reader
-	Writer
-	io.Closer
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/scale"
+)
 
-	NewBatch() Batch
-	Path() string
-	NewIterator() Iterator
-}
+// decodeOptionalBytes decodes SCALE encoded optional bytes into an *optional.Bytes
+func decodeOptionalBytes(r io.Reader) (*optional.Bytes, error) {
+	sd := scale.Decoder{Reader: r}
 
-// Batch is a write-only operation.
-type Batch interface {
-	Writer
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
 
-	ValueSize() int
-	Write() error
-	Reset()
-}
+	if exists == 1 {
+		b, err := sd.Decode([]byte{})
+		if err != nil {
+			return nil, err
+		}
 
-// Iterator iterates over key/value pairs in ascending key order.
-// Must be released after use.
-type Iterator interface {
-	Next() bool
-	Key() []byte
-	Value() []byte
-	Release()
-}
+		return optional.NewBytes(true, b.([]byte)), nil
+	}
 
-// Reader interface
-type Reader interface {
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-}
-
-// Writer interface
-type Writer interface {
-	Put(key []byte, value []byte) error
-	Del(key []byte) error
+	return optional.NewBytes(false, nil), nil
 }

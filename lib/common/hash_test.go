@@ -14,47 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package database
-
-import "io"
-
-// Database wraps all database operations. All methods are safe for concurrent use.
-type Database interface {
-	Reader
-	Writer
-	io.Closer
-
-	NewBatch() Batch
-	Path() string
-	NewIterator() Iterator
-}
-
-// Batch is a write-only operation.
-type Batch interface {
-	Writer
-
-	ValueSize() int
-	Write() error
-	Reset()
-}
-
-// Iterator iterates over key/value pairs in ascending key order.
-// Must be released after use.
-type Iterator interface {
-	Next() bool
-	Key() []byte
-	Value() []byte
-	Release()
-}
-
-// Reader interface
-type Reader interface {
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-}
-
-// Writer interface
-type Writer interface {
-	Put(key []byte, value []byte) error
-	Del(key []byte) error
-}
+package common

@@ -14,47 +14,27 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package database
+package types
 
-import "io"
+import (
+	"reflect"
+	"testing"
+)
 
-// Database wraps all database operations. All methods are safe for concurrent use.
-type Database interface {
-	Reader
-	Writer
-	io.Closer
+func TestBodyToExtrinsics(t *testing.T) {
+	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
-	NewBatch() Batch
-	Path() string
-	NewIterator() Iterator
-}
+	body, err := NewBodyFromExtrinsics(exts)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// Batch is a write-only operation.
-type Batch interface {
-	Writer
+	res, err := body.AsExtrinsics()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	ValueSize() int
-	Write() error
-	Reset()
-}
-
-// Iterator iterates over key/value pairs in ascending key order.
-// Must be released after use.
-type Iterator interface {
-	Next() bool
-	Key() []byte
-	Value() []byte
-	Release()
-}
-
-// Reader interface
-type Reader interface {
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
-}
-
-// Writer interface
-type Writer interface {
-	Put(key []byte, value []byte) error
-	Del(key []byte) error
+	if !reflect.DeepEqual(res, exts) {
+		t.Fatalf("Fail: got %x expected %x", res, exts)
+	}
 }
