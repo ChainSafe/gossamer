@@ -31,7 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/tests"
 
 	"github.com/stretchr/testify/require"
 )
@@ -253,7 +252,7 @@ func TestService_ProcessBlockResponseMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -272,7 +271,7 @@ func TestService_ProcessBlockResponseMessage(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
 
-	parentHash := testGenesisHeader.Hash()
+	parentHash := TestGenesisHeader.Hash()
 	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
 	require.Nil(t, err)
 
@@ -347,7 +346,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 
 	expected := &network.BlockAnnounceMessage{
 		Number:         big.NewInt(1),
-		ParentHash:     testGenesisHeader.Hash(),
+		ParentHash:     TestGenesisHeader.Hash(),
 		StateRoot:      common.Hash{},
 		ExtrinsicsRoot: common.Hash{},
 		Digest:         nil,
@@ -357,7 +356,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	newBlocks <- types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: TestGenesisHeader.Hash(),
 		},
 		Body: types.NewBody([]byte{}),
 	}
@@ -383,7 +382,7 @@ func TestService_ProcessTransactionMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()

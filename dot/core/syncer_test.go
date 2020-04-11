@@ -50,7 +50,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
+	err := stateSrvc.Initialize(genesisData, TestGenesisHeader, trie.NewEmptyTrie())
 	if err != nil {
 		t.Fatal(err)
 	}
