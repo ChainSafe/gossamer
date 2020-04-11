@@ -1,6 +1,6 @@
 <!---
 
-TO ENSURE THE FASTEST RESPONSE POSSIBLE, PLEASE READ INSTRUCTIONS CAREFULLY.
+PLEASE READ CAREFULLY
 
 -->
 
@@ -41,7 +41,7 @@ the box after completing the task.
 - [ ] I have read [CONTRIBUTING](CONTRIBUTING.md) and [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md)
 - [ ] I have provided as much information as possible and necessary
 - [ ] I have reviewed my own pull request before requesting a review
-- [ ] I have opened issues and linked issues in pull request comments
+- [ ] I have linked any relevant issues in my pull request comments
 - [ ] All required integration and code climate tests are passing
 
 ### Issues:

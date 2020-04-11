@@ -1,6 +1,6 @@
 <!---
 
-TO ENSURE THE FASTEST RESPONSE POSSIBLE, PLEASE READ INSTRUCTIONS CAREFULLY.
+PLEASE READ CAREFULLY
 
 -->
 
@@ -14,6 +14,8 @@ If you're suggesting a change/improvement, tell us how it should work.
 
 -->
 
+-
+
 ## Current Behavior
 
 <!---
@@ -25,6 +27,8 @@ suggestion and current behavior.
 
 -->
 
+-
+
 ## Possible Solution
 
 <!---
@@ -35,6 +39,8 @@ addition or change. We'll be sure to credit your ideas in the commit log,
 or better yet, submit a PR and you'll get credit for the whole thing.
 
 -->
+
+-
 
 ## Steps to Reproduce
 
@@ -89,7 +95,7 @@ the box after completing the task.
 --->
 
 - [ ] I have read [CONTRIBUTING](CONTRIBUTING.md) and [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md)
-- [ ] I provided as much information as possible and necessary
-- [ ] I intend to submit a pull request to fix this issue
+- [ ] I have provided as much information as possible and necessary
+- [ ] I am planning to submit a pull request to fix this issue myself
 
 <!--- Modified from trufflesuite/ganache -->
