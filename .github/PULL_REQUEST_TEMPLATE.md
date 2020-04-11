@@ -1,26 +1,58 @@
-<!--
- Before submitting a PR please ensure all code is commented and all tests are passing. Make sure to review the changes and ensure that only required changes are included (eg. no unnecessary reformatting by your editor)
+<!---
+
+TO ENSURE THE FASTEST RESPONSE POSSIBLE, PLEASE READ INSTRUCTIONS CAREFULLY.
+
 -->
 
-<!-- Please begin the title of this PR with a list of the packages touched (eg. "cmd, rpc: Add Literal Bells and Whistles") -->
-
-
-<!-- Brief but specific list of changes made, describe the change in functionality rather than the change in code -->
 ## Changes
-- 
-- 
-- 
 
-<!-- Details on how to run only the tests for the changes in the PR -->
-## Tests:
-```
+<!--
 
-```
+Please provide a brief but specific list of changes made, describe the change
+in functionality rather than the change in code.
 
-<!-- Issues that this PR will close -->
-<!-- 
-    NOTE: you must say 'closes #xx' or 'fixes #xx' for EACH issue this closes. 
-    eg: 'closes #1 and closes #2'
-    See: https://help.github.com/en/articles/closing-issues-using-keywords
 -->
+
+-
+-
+-
+
+## Tests:
+
+<!--
+
+Details on how to run tests relevant to the changes within this pull request.
+
+-->
+
+```
+
+```
+
+## Checklist:
+
+<!--
+
+Each empty square brackets below is a checkbox. Replace [ ] with [x] to check
+the box after completing the task.
+
+-->
+
+- [ ] I have read [CONTRIBUTING](CONTRIBUTING.md) and [CODE_OF_CONDUCT](CODE_OF_CONDUCT.md)
+- [ ] I have provided as much information as possible and necessary
+- [ ] I have reviewed my own pull request before requesting a review
+- [ ] I have opened issues and linked issues in pull request comments
+- [ ] All required integration and code climate tests are passing
+
 ### Issues:
+
+<!--
+
+Please link any issues that this pull request is related to and use the GitHub
+supported format for automatically closing issues (ie, closes #123, fixes #123)
+
+See: https://help.github.com/en/articles/closing-issues-using-keywords
+
+-->
+
+-
