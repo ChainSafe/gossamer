@@ -44,7 +44,7 @@ the box after completing the task.
 - [ ] I have linked any relevant issues in my pull request comments
 - [ ] All required integration and code climate tests are passing
 
-### Issues:
+## Issues:
 
 <!--
 
