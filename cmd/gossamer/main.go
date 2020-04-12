@@ -191,7 +191,7 @@ func initAction(ctx *cli.Context) error {
 	if dot.NodeInitialized(cfg.Global.DataDir, false) {
 
 		// prompt user to confirm reinitialization
-		if confirm("Are you sure you want to reinitialize the node? [Y/n]") {
+		if confirmMessage("Are you sure you want to reinitialize the node? [Y/n]") {
 
 			log.Info("[cmd] Reinitializing node...", "datadir", cfg.Global.DataDir)
 

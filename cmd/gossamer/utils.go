@@ -47,7 +47,7 @@ func startLogger(ctx *cli.Context) error {
 	return nil
 }
 
-// prompt user to enter password for encrypted keystore
+// getPassword prompts user to enter password
 func getPassword(msg string) []byte {
 	for {
 		fmt.Println(msg)
@@ -62,8 +62,8 @@ func getPassword(msg string) []byte {
 	}
 }
 
-// prompt user to confirm message
-func confirm(msg string) bool {
+// confirmMessage prompts user to confirm message and returns true if "Y"
+func confirmMessage(msg string) bool {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println(msg)
 	fmt.Print("> ")
