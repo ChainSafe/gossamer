@@ -31,6 +31,9 @@ import (
 	"github.com/urfave/cli"
 )
 
+// DefaultCfg is the default configuration
+var DefaultCfg = dot.GssmrConfig()
+
 // loadConfigFile loads a default config file if --node is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
@@ -69,7 +72,7 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// if configuration has not been set, load "gssmr" node implemenetation from node/gssmr/defaults.go
 	if cfg == nil {
 		log.Info("[cmd] Loading default implementation...", "id", "gssmr")
-		cfg = dot.GssmrConfig()
+		cfg = DefaultCfg
 	}
 
 	return cfg, nil
@@ -116,6 +119,28 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	updateDotConfigFromGenesisJSON(ctx, cfg)
 
 	return cfg, nil
+}
+
+// createExportConfig creates a new dot configuration from the provided flag values
+func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
+	cfg = DefaultCfg // start with default configuration
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, &cfg.Global)
+
+	// set init configuration values
+	setDotInitConfig(ctx, &cfg.Init)
+
+	// ensure configuration values match genesis and overwrite with genesis
+	updateDotConfigFromGenesisJSON(ctx, cfg)
+
+	// set cli configuration values
+	setDotAccountConfig(ctx, &cfg.Account)
+	setDotCoreConfig(ctx, &cfg.Core)
+	setDotNetworkConfig(ctx, &cfg.Network)
+	setDotRPCConfig(ctx, &cfg.RPC)
+
+	return cfg
 }
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context

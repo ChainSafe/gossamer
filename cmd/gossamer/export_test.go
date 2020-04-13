@@ -16,4 +16,49 @@
 
 package main
 
-// TODO: add cmd export tests
+import (
+	"path"
+	"testing"
+
+	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
+)
+
+// TestExportCommand test "gossamer export --config"
+func TestExportCommand(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	testConfig := path.Join(testDir, "config.toml")
+
+	testName := "testnode"
+	testBootnode := "bootnode"
+	testProtocol := "/gossamer/test/0"
+
+	ctx, err := newTestContext(
+		"Test gossamer export --config --name --bootnodes --protocol",
+		[]string{"config", "name", "bootnodes", "protocol"},
+		[]interface{}{testConfig, testName, testBootnode, testProtocol},
+	)
+	require.Nil(t, err)
+
+	err = exportCommand.Run(ctx)
+	require.Nil(t, err)
+
+	configExists := utils.PathExists(testConfig)
+	require.Equal(t, true, configExists)
+
+	testCfg := new(dot.Config)
+
+	err = dot.LoadConfig(testCfg, testConfig)
+	require.Nil(t, err)
+
+	expected := DefaultCfg
+	expected.Global.Name = testName
+	expected.Network.Bootnodes = []string{testBootnode}
+	expected.Network.ProtocolID = testProtocol
+
+	require.Equal(t, expected, testCfg)
+}

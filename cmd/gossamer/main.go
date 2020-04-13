@@ -38,10 +38,10 @@ var (
 		Name:      "export",
 		Usage:     "Export configuration values to TOML configuration file",
 		ArgsUsage: "",
-		Flags:     CLIFlags,
-		Category:  "CONFIGURATION",
+		Flags:     ExportFlags,
+		Category:  "EXPORT",
 		Description: "The export command exports configuration values from the command flags to a TOML configuration file.\n" +
-			"\tUsage: gossamer export --config node/custom/config.toml --datadir ~/.gossamer/custom --protocol /gossamer/custom/0",
+			"\tUsage: gossamer export --config node/test/config.toml --datadir ~/.gossamer/test",
 	}
 	// initCommand defines the "init" subcommand (ie, `gossamer init`)
 	initCommand = cli.Command{
@@ -83,7 +83,7 @@ func init() {
 		initCommand,
 		accountCommand,
 	}
-	app.Flags = CLIFlags
+	app.Flags = GossamerFlags
 }
 
 // main runs the cli application

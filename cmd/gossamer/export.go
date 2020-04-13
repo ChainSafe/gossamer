@@ -17,11 +17,12 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/naoina/toml"
 	"github.com/urfave/cli"
 )
 
@@ -33,43 +34,31 @@ func exportAction(ctx *cli.Context) error {
 		return err
 	}
 
-	cfg, err := createDotConfig(ctx)
-	if err != nil {
-		return err
+	// use --config value as export destination
+	config := ctx.GlobalString(ConfigFlag.Name)
+
+	// check if --config value is set
+	if config == "" {
+		return fmt.Errorf("export destination undefined: --config value is required")
 	}
 
-	comment := ""
+	// check if configuration file already exists at export destination
+	if utils.PathExists(config) {
 
-	out, err := toml.Marshal(cfg)
-	if err != nil {
-		return err
+		// TODO: confirm once #767 is merged
+
+		log.Warn(
+			"[cmd] Overwriting toml configuration file",
+			"config", config,
+		)
 	}
 
-	export := os.Stdout
+	cfg := createExportConfig(ctx)
 
-	if ctx.NArg() > 0 {
-		/* #nosec */
-		export, err = os.OpenFile(filepath.Clean(ctx.Args().Get(0)), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			err = export.Close()
-			if err != nil {
-				log.Error("[cmd] Failed to close connection", "error", err)
-			}
-		}()
-	}
+	file := dot.ExportConfig(cfg, config)
+	// export config will exit and log error on error
 
-	_, err = export.WriteString(comment)
-	if err != nil {
-		log.Error("[cmd] Failed to write output for export command", "error", err)
-	}
-
-	_, err = export.Write(out)
-	if err != nil {
-		log.Error("[cmd] Failed to write output for export command", "error", err)
-	}
+	log.Info("[cmd] Exported toml configuration file", "path", file.Name())
 
 	return nil
 }
