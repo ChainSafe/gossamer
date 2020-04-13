@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -36,6 +37,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+type MockVerifier struct{}
+
+func (v *MockVerifier) VerifyBlock(header *types.Header) (bool, error) {
+	return true, nil
+}
 
 func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	if cfg == nil {
@@ -79,8 +86,13 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	if cfg.Runtime == nil {
 		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
 	}
+
 	if cfg.TransactionQueue == nil {
 		cfg.TransactionQueue = stateSrvc.TransactionQueue
+	}
+
+	if cfg.Verifier == nil {
+		cfg.Verifier = &MockVerifier{}
 	}
 
 	syncer, err := NewSyncer(cfg)
@@ -277,7 +289,11 @@ func TestWatchForResponses(t *testing.T) {
 	syncer.highestSeenBlock = big.NewInt(16)
 
 	coreSrv := NewTestService(t, nil)
-	addTestBlocksToState(t, 16, coreSrv.blockState)
+
+	keys := coreSrv.keys.Sr25519Keypairs()
+	keypair := keys[0].(*sr25519.Keypair)
+
+	addTestBlocksToState(t, 16, coreSrv.blockState, keypair)
 
 	startNum := 1
 	start, err := variadic.NewUint64OrHash(startNum)
@@ -355,7 +371,11 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	syncer.highestSeenBlock = big.NewInt(16)
 
 	coreSrv := NewTestService(t, nil)
-	addTestBlocksToState(t, 16, coreSrv.blockState)
+
+	keys := coreSrv.keys.Sr25519Keypairs()
+	keypair := keys[0].(*sr25519.Keypair)
+
+	addTestBlocksToState(t, 16, coreSrv.blockState, keypair)
 
 	startNum := 16
 	syncer.requestStart = int64(startNum)

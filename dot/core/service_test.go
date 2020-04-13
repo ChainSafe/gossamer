@@ -92,7 +92,7 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	return s
 }
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState, keypair *sr25519.Keypair) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
@@ -123,6 +123,27 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 				Digest:     [][]byte{preDigest, conDigest},
 			},
 			Body: &types.Body{},
+		}
+
+		if keypair != nil {
+			// build seal
+			encHeader, err := block.Header.Encode()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			sig, err := keypair.Sign(encHeader)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			seal := &types.SealDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              sig,
+			}
+
+			encSeal := seal.Encode()
+			block.Header.Digest = append(block.Header.Digest, encSeal)
 		}
 
 		previousHash = block.Header.Hash()

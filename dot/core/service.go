@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-
 package core
 
 import (
@@ -89,9 +88,11 @@ type Config struct {
 	IsBabeAuthority  bool
 
 	NewBlocks chan types.Block // only used for testing purposes
-	MsgRec    <-chan network.Message
-	MsgSend   chan<- network.Message
-	SyncChan  chan *big.Int
+	Verifier  Verifier         // only used for testing purposes
+
+	MsgRec   <-chan network.Message
+	MsgSend  chan<- network.Message
+	SyncChan chan *big.Int
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -124,22 +125,9 @@ func NewService(cfg *Config) (*Service, error) {
 	respChan := make(chan *network.BlockResponseMessage, 128)
 	chanLock := &sync.Mutex{}
 
-	syncerCfg := &SyncerConfig{
-		BlockState:       cfg.BlockState,
-		BlockNumIn:       cfg.SyncChan,
-		RespIn:           respChan,
-		MsgOut:           cfg.MsgSend,
-		Lock:             syncerLock,
-		ChanLock:         chanLock,
-		TransactionQueue: cfg.TransactionQueue,
-	}
-
-	syncer, err := NewSyncer(syncerCfg)
-	if err != nil {
-		return nil, err
-	}
-
 	var srv = &Service{}
+
+	var authData []*babe.AuthorityData
 
 	if cfg.IsBabeAuthority {
 		if cfg.Keystore.NumSr25519Keys() == 0 {
@@ -166,13 +154,12 @@ func NewService(cfg *Config) (*Service, error) {
 			isBabeAuthority:  true,
 			lock:             chanLock,
 			closed:           false,
-			syncer:           syncer,
 			syncLock:         syncerLock,
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
 		}
 
-		authData, err := srv.grandpaAuthorities()
+		authData, err = srv.grandpaAuthorities()
 		if err != nil {
 			return nil, err
 		}
@@ -214,12 +201,48 @@ func NewService(cfg *Config) (*Service, error) {
 			isBabeAuthority:  false,
 			lock:             chanLock,
 			closed:           false,
-			syncer:           syncer,
 			syncLock:         syncerLock,
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
 		}
 	}
+
+	// if authData == nil {
+	// 	authData, err = srv.grandpaAuthorities()
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
+	if cfg.Verifier == nil {
+		currentDescriptor := &babe.NextEpochDescriptor{
+			Authorities: authData,
+			Randomness:  [32]byte{}, // TODO
+		}
+
+		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 0, currentDescriptor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	syncerCfg := &SyncerConfig{
+		BlockState:       cfg.BlockState,
+		BlockNumIn:       cfg.SyncChan,
+		RespIn:           respChan,
+		MsgOut:           cfg.MsgSend,
+		Lock:             syncerLock,
+		ChanLock:         chanLock,
+		TransactionQueue: cfg.TransactionQueue,
+		Verifier:         cfg.Verifier,
+	}
+
+	syncer, err := NewSyncer(syncerCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	srv.syncer = syncer
 
 	// core service
 	return srv, nil
@@ -306,11 +329,11 @@ func (s *Service) handleBabeSession() {
 		// wait for BABE epoch to complete
 		<-s.epochDone
 
-		// finalize BABE session
-		err := s.syncer.finalizeBabeEpoch()
-		if err != nil {
-			log.Error("[core] failed to finalize BABE session", "error", err)
-		}
+		// // finalize BABE session
+		// err := s.syncer.finalizeBabeEpoch()
+		// if err != nil {
+		// 	log.Error("[core] failed to finalize BABE session", "error", err)
+		// }
 
 		// create new BABE session
 		bs, err := s.initializeBabeSession()

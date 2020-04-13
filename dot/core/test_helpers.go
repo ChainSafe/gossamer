@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -48,6 +49,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewKeystore()
+		kp, err := sr25519.GenerateKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg.Keystore.Insert(kp)
 	}
 
 	if cfg.NewBlocks == nil {
@@ -65,6 +71,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.SyncChan == nil {
 		cfg.SyncChan = make(chan *big.Int, 10)
 	}
+
+	cfg.Verifier = &MockVerifier{}
 
 	stateSrvc := state.NewService("")
 	stateSrvc.UseMemDB()

@@ -42,17 +42,24 @@ type VerificationManager struct {
 	verifier     *Verifier
 }
 
-func NewVerificationManager(blockState BlockState, currentEpoch uint64) *VerificationManager {
+var ErrNilBlockState = errors.New("cannot have nil BlockState")
+
+func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentDescriptor *NextEpochDescriptor) (*VerificationManager, error) {
 	if blockState == nil {
-		return nil
+		return nil, ErrNilBlockState
+	}
+
+	verifier, err := NewVerifier(blockState, currentDescriptor)
+	if err != nil {
+		return nil, err
 	}
 
 	return &VerificationManager{
 		blockState:                 blockState,
 		epochToNextEpochDescriptor: make(map[uint64]*NextEpochDescriptor),
 		currentEpoch:               currentEpoch,
-		verifier:                   &Verifier{},
-	}
+		verifier:                   verifier,
+	}, nil
 }
 
 func (v *VerificationManager) CurrentEpoch() uint64 {
@@ -81,7 +88,7 @@ func (v *VerificationManager) IncrementEpoch() error {
 		}
 
 		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
-		v.verifier, err = NewVerifier(v.blockState, nextEpochDescriptor.Authorities, nextEpochDescriptor.Randomness[0])
+		v.verifier, err = NewVerifier(v.blockState, nextEpochDescriptor)
 		if err != nil {
 			return err
 		}
@@ -107,7 +114,7 @@ func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
 		return nil, ErrNilNextEpochDescriptor
 	}
 
-	return NewVerifier(v.blockState, descriptor.Authorities, descriptor.Randomness[0])
+	return NewVerifier(v.blockState, descriptor)
 }
 
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
@@ -217,15 +224,15 @@ type Verifier struct {
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
-func NewVerifier(blockState BlockState, authorityData []*AuthorityData, randomness byte) (*Verifier, error) {
+func NewVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*Verifier, error) {
 	if blockState == nil {
-		return nil, errors.New("cannot have nil BlockState")
+		return nil, ErrNilBlockState
 	}
 
 	return &Verifier{
 		blockState:    blockState,
-		authorityData: authorityData,
-		randomness:    randomness, // TODO: update to [32]byte when runtime is updated
+		authorityData: descriptor.Authorities,
+		randomness:    descriptor.Randomness[0], // TODO: update to [32]byte when runtime is updated
 	}, nil
 }
 

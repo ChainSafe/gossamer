@@ -24,7 +24,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -34,6 +33,10 @@ import (
 	log "github.com/ChainSafe/log15"
 	"golang.org/x/exp/rand"
 )
+
+type Verifier interface {
+	VerifyBlock(header *types.Header) (bool, error)
+}
 
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
 type Syncer struct {
@@ -56,8 +59,8 @@ type Syncer struct {
 	stopped  bool
 
 	// BABE verification
-	verificationManager *babe.VerificationManager // manager deals with NextEpochDescriptor
-	verifier            *babe.Verifier            // verifier for current epoch
+	verifier Verifier // manager deals with NextEpochDescriptor
+	//verifier            *babe.Verifier            // verifier for current epoch
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -70,6 +73,8 @@ type SyncerConfig struct {
 	ChanLock         *sync.Mutex
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
+	Verifier         Verifier
+	//CurrentDescriptor *babe.NextEpochDescriptor
 }
 
 var responseTimeout = 3 * time.Second
@@ -88,23 +93,30 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		return nil, ErrNilChannel("MsgOut")
 	}
 
-	// TODO: load current epoch from database, save upon shutdown
-	verificationManager := babe.NewVerificationManager(cfg.BlockState, 0)
+	if cfg.Verifier == nil {
+		return nil, ErrNilVerifier
+	}
+
+	// // TODO: load current epoch from database, save upon shutdown
+	// verificationManager, err := babe.NewVerificationManager(cfg.BlockState, 0, cfg.CurrentDescriptor)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &Syncer{
-		blockState:          cfg.BlockState,
-		blockNumIn:          cfg.BlockNumIn,
-		respIn:              cfg.RespIn,
-		msgOut:              cfg.MsgOut,
-		lock:                cfg.Lock,
-		chanLock:            cfg.ChanLock,
-		synced:              true,
-		stopped:             false,
-		requestStart:        1,
-		highestSeenBlock:    big.NewInt(0),
-		transactionQueue:    cfg.TransactionQueue,
-		runtime:             cfg.Runtime,
-		verificationManager: verificationManager,
+		blockState:       cfg.BlockState,
+		blockNumIn:       cfg.BlockNumIn,
+		respIn:           cfg.RespIn,
+		msgOut:           cfg.MsgOut,
+		lock:             cfg.Lock,
+		chanLock:         cfg.ChanLock,
+		synced:           true,
+		stopped:          false,
+		requestStart:     1,
+		highestSeenBlock: big.NewInt(0),
+		transactionQueue: cfg.TransactionQueue,
+		runtime:          cfg.Runtime,
+		verifier:         cfg.Verifier,
 	}, nil
 }
 
@@ -120,9 +132,9 @@ func (s *Syncer) Stop() {
 	s.stopped = true
 }
 
-func (s *Syncer) currentEpoch() uint64 {
-	return s.verificationManager.CurrentEpoch()
-}
+// func (s *Syncer) currentEpoch() uint64 {
+// 	return s.verificationManager.CurrentEpoch()
+// }
 
 func (s *Syncer) watchForBlocks() {
 	for {
@@ -345,14 +357,14 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 		// TODO: verify authorship right
 	}
 
-	// err = s.checkForConsensusDigest(header)
-	// if err != nil {
-	// 	// not first block, ok
-	// }
+	ok, err := s.verifier.VerifyBlock(header)
+	if err != nil {
+		return 0, err
+	}
 
-	// TODO:
-	// if epoch change, update BABE verifier, set manager NextEpochDescriptor for current epoch
-	// else, put block into verification manager and verifier
+	if !ok {
+		return 0, ErrInvalidBlock
+	}
 
 	if header.Number.Int64() > highestInResp {
 		highestInResp = header.Number.Int64()
