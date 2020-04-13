@@ -27,6 +27,8 @@ type MemDatabase struct {
 	lock sync.RWMutex
 }
 
+var _ Database = (*MemDatabase)(nil)
+
 // NewMemDatabase returns an initialized mapping used for test database
 func NewMemDatabase() *MemDatabase {
 	return &MemDatabase{
@@ -96,8 +98,8 @@ func (db *MemDatabase) NewBatch() Batch {
 }
 
 // NewIterator ...
-func (db *MemDatabase) NewIterator() Iterable {
-	return Iterable{}
+func (db *MemDatabase) NewIterator() Iterator {
+	return nil
 }
 
 // Path ...

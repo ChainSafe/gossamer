@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -42,8 +42,13 @@ type VerificationManager struct {
 	verifier     *Verifier
 }
 
-func NewVerificationManager(currentEpoch uint64) *VerificationManager {
+func NewVerificationManager(blockState BlockState, currentEpoch uint64) *VerificationManager {
+	if blockState == nil {
+		return nil
+	}
+
 	return &VerificationManager{
+		blockState:                 blockState,
 		epochToNextEpochDescriptor: make(map[uint64]*NextEpochDescriptor),
 		currentEpoch:               currentEpoch,
 		verifier:                   &Verifier{},
@@ -76,7 +81,10 @@ func (v *VerificationManager) IncrementEpoch() error {
 		}
 
 		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
-		v.verifier = NewVerifier(nextEpochDescriptor.Authorities, nextEpochDescriptor.Randomness[0])
+		v.verifier, err = NewVerifier(v.blockState, nextEpochDescriptor.Authorities, nextEpochDescriptor.Randomness[0])
+		if err != nil {
+			return err
+		}
 	}
 
 	v.firstBlock = nil
@@ -99,7 +107,7 @@ func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
 		return nil, ErrNilNextEpochDescriptor
 	}
 
-	return NewVerifier(descriptor.Authorities, descriptor.Randomness[0]), nil
+	return NewVerifier(v.blockState, descriptor.Authorities, descriptor.Randomness[0])
 }
 
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
@@ -204,15 +212,21 @@ func (v *VerificationManager) getBlockEpoch(hash common.Hash) (epoch uint64, err
 
 // Verifier represents a BABE verifier for a specific epoch
 type Verifier struct {
+	blockState    BlockState
 	authorityData []*AuthorityData
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
-func NewVerifier(authorityData []*AuthorityData, randomness byte) *Verifier {
+func NewVerifier(blockState BlockState, authorityData []*AuthorityData, randomness byte) (*Verifier, error) {
+	if blockState == nil {
+		return nil, errors.New("cannot have nil BlockState")
+	}
+
 	return &Verifier{
+		blockState:    blockState,
 		authorityData: authorityData,
 		randomness:    randomness, // TODO: update to [32]byte when runtime is updated
-	}
+	}, nil
 }
 
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
@@ -289,7 +303,7 @@ func (b *Verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify slot claim")
+		return false, ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
@@ -299,9 +313,51 @@ func (b *Verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify signature")
+		return false, ErrBadSignature
 	}
 
-	// TODO: check if the producer has equivocated, ie. have they produced a conflicting block?
+	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
+
+	for _, hash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(hash)
+		if err != nil {
+			continue
+		}
+
+		currentBlockProducerIndex, err := getBlockProducerIndex(currentHeader)
+		if err != nil {
+			continue
+		}
+
+		existingBlockProducerIndex := babeHeader.BlockProducerIndex
+
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+			return false, ErrProducerEquivocated
+		}
+	}
+
 	return true, nil
+}
+
+func getBlockProducerIndex(header *types.Header) (uint64, error) {
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, err
+	}
+
+	babeHeader := new(babetypes.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, err
+	}
+
+	return babeHeader.BlockProducerIndex, nil
 }

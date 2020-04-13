@@ -166,7 +166,7 @@ func testBatchPut(db Database, t *testing.T) {
 		if size == 0 {
 			t.Fatalf("failed to set size of data in each batch, got %v", size)
 		}
-		err = b.Delete(k(i))
+		err = b.Del(k(i))
 		if err != nil {
 			t.Fatalf("failed to delete batch key %v", k(i))
 		}
@@ -204,7 +204,7 @@ func testIteratorSetup(db Database, t *testing.T) {
 func testNewIterator(db Database, t *testing.T) {
 	testIteratorSetup(db, t)
 
-	it := db.NewIterator()
+	it := db.NewIterator().(*BadgerIterator)
 	defer func() {
 		if it.Released() != true {
 			it.Release()
@@ -229,7 +229,7 @@ func testNewIterator(db Database, t *testing.T) {
 func testNextKeyIterator(db Database, t *testing.T) {
 	testIteratorSetup(db, t)
 
-	it := db.NewIterator()
+	it := db.NewIterator().(*BadgerIterator)
 	defer func() {
 		if it.Released() != true {
 			it.Release()
@@ -262,7 +262,7 @@ func testSeekKeyValueIterator(db Database, t *testing.T) {
 	testIteratorSetup(db, t)
 	kv := testKVData()
 
-	it := db.NewIterator()
+	it := db.NewIterator().(*BadgerIterator)
 	defer func() {
 		if it.Released() != true {
 			it.Release()

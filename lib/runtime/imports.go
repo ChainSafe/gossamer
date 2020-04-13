@@ -248,7 +248,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 
 //export ext_storage_changes_root
 func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
-	log.Trace("[ext_storage_changes_root] executing...")
+	log.Trace("[ext_storage_changes_root] executing...", "a", a, "b", b, "c", c)
 	log.Warn("[ext_storage_changes_root] Not yet implemented.")
 	return 0
 }
@@ -749,7 +749,8 @@ func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, val
 	log.Warn("[ext_local_storage_set] Not yet implemented.")
 }
 
-func registerImports() (*wasm.Imports, error) {
+// RegisterImports registers the wasm imports for the old version of the substrate test runtime.
+func RegisterImports() (*wasm.Imports, error) {
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err

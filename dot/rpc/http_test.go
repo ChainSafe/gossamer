@@ -13,12 +13,14 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package rpc
 
 import (
 	"bytes"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,6 +34,8 @@ func TestNewHTTPServer(t *testing.T) {
 	s := NewHTTPServer(cfg)
 	err := s.Start()
 	require.Nil(t, err)
+
+	time.Sleep(time.Second) // give server a second to start
 
 	// Valid request
 	client := &http.Client{}

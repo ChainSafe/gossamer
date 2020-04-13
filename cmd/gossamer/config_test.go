@@ -21,6 +21,9 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/database"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -74,7 +77,47 @@ func TestConfigFromNodeFlag(t *testing.T) {
 	}
 }
 
-// TestGlobalConfigFromFlags tests createDotConfig using relevant global flags
+// TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
+func TestInitConfigFromFlags(t *testing.T) {
+	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	require.NotNil(t, testCfg)
+	require.NotNil(t, testCfgFile)
+
+	defer utils.RemoveTestDir(t)
+
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    dot.InitConfig
+	}{
+		{
+			"Test gossamer --genesis",
+			[]string{"config", "genesis"},
+			[]interface{}{testCfgFile.Name(), "test_genesis"},
+			dot.InitConfig{
+				Genesis: "test_genesis",
+			},
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+			cfg, err := createInitConfig(ctx)
+			require.Nil(t, err)
+
+			require.Equal(t, c.expected, cfg.Init)
+		})
+	}
+}
+
+// TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
@@ -102,11 +145,21 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --genesis",
-			[]string{"config", "genesis"},
-			[]interface{}{testCfgFile.Name(), "test_genesis"},
+			"Test gossamer --node",
+			[]string{"config", "node"},
+			[]interface{}{testCfgFile.Name(), "ksmcc"},
 			dot.GlobalConfig{
 				Name:    testCfg.Global.Name,
+				ID:      "ksmcc",
+				DataDir: testCfg.Global.DataDir,
+			},
+		},
+		{
+			"Test gossamer --node",
+			[]string{"config", "name"},
+			[]interface{}{testCfgFile.Name(), "test_name"},
+			dot.GlobalConfig{
+				Name:    "test_name",
 				ID:      testCfg.Global.ID,
 				DataDir: testCfg.Global.DataDir,
 			},
@@ -146,7 +199,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	}
 }
 
-// TestAccountConfigFromFlags tests createDotConfig using relevant account flags
+// TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
@@ -195,7 +248,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 	}
 }
 
-// TestCoreConfigFromFlags tests createDotConfig using relevant core flags
+// TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
@@ -244,7 +297,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 	}
 }
 
-// TestNetworkConfigFromFlags tests createDotConfig using relevant network flags
+// TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
@@ -335,7 +388,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 	}
 }
 
-// TestRPCConfigFromFlags tests createDotConfig using relevant rpc flags
+// TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
@@ -419,4 +472,86 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			require.Equal(t, c.expected, cfg.RPC)
 		})
 	}
+}
+
+// TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
+func TestUpdateConfigFromGenesisJSON(t *testing.T) {
+	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+
+	defer utils.RemoveTestDir(t)
+
+	ctx, err := newTestContext(
+		t.Name(),
+		[]string{"config", "name"},
+		[]interface{}{testCfgFile.Name(), "TESTNODE"},
+	)
+	require.Nil(t, err)
+
+	expected := &dot.Config{
+		Global: dot.GlobalConfig{
+			Name:    "TESTNODE",
+			ID:      testCfg.Global.ID,
+			DataDir: testCfg.Global.DataDir,
+		},
+		Account: testCfg.Account,
+		Core:    testCfg.Core,
+		Network: testCfg.Network,
+		RPC:     testCfg.RPC,
+	}
+
+	cfg, err := createDotConfig(ctx)
+	require.Nil(t, err)
+
+	updateDotConfigFromGenesisJSON(ctx, cfg)
+
+	require.Equal(t, expected, cfg)
+}
+
+func TestUpdateConfigFromGenesisData(t *testing.T) {
+	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+
+	defer utils.RemoveTestDir(t)
+
+	ctx, err := newTestContext(
+		t.Name(),
+		[]string{"config", "name"},
+		[]interface{}{testCfgFile.Name(), "TESTNODE"},
+	)
+	require.Nil(t, err)
+
+	expected := &dot.Config{
+		Global: dot.GlobalConfig{
+			Name:    "TESTNODE",
+			ID:      testCfg.Global.ID,
+			DataDir: testCfg.Global.DataDir,
+		},
+		Account: testCfg.Account,
+		Core:    testCfg.Core,
+		Network: testCfg.Network,
+		RPC:     testCfg.RPC,
+	}
+
+	cfg, err := createDotConfig(ctx)
+	require.Nil(t, err)
+
+	db, err := database.NewBadgerDB(cfg.Global.DataDir)
+	require.Nil(t, err)
+
+	genFile := dot.NewTestGenesisFile(t, testCfg)
+
+	gen, err := genesis.NewGenesisFromJSON(genFile.Name())
+	require.Nil(t, err)
+
+	gen.Name = "TESTNODE" // simulate initialized node with name
+
+	err = state.StoreGenesisData(db, gen.GenesisData())
+	require.Nil(t, err)
+
+	err = db.Close()
+	require.Nil(t, err)
+
+	err = updateDotConfigFromGenesisData(ctx, cfg) // name should not be updated if provided as flag value
+	require.Nil(t, err)
+
+	require.Equal(t, expected, cfg)
 }

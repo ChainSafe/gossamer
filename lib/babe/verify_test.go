@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -45,16 +47,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	babesession.authorityIndex = 0
 	var slotNumber uint64 = 1
 
-	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
-	}
-
-	babesession.slotToProof[slotNumber] = outAndProof
+	addAuthorshipProof(t, babesession, slotNumber)
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
@@ -73,7 +66,10 @@ func TestVerifySlotWinner(t *testing.T) {
 		ID: kp.Public().(*sr25519.PublicKey),
 	}
 
-	verifier := NewVerifier(authorityData, babesession.config.Randomness)
+	verifier, err := NewVerifier(babesession.blockState, babesession.authorityData, babesession.config.Randomness)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ok, err := verifier.verifySlotWinner(slot.number, babeHeader)
 	if err != nil {
@@ -95,9 +91,12 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block, _ := createTestBlock(babesession, [][]byte{txb}, t)
+	block, _ := createTestBlock(t, babesession, [][]byte{txb})
 
-	verifier := NewVerifier(babesession.authorityData, babesession.config.Randomness)
+	verifier, err := NewVerifier(babesession.blockState, babesession.authorityData, babesession.config.Randomness)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ok, err := verifier.verifyAuthorshipRight(block.Header)
 	if err != nil {
@@ -107,4 +106,63 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	if !ok {
 		t.Fatal("did not verify authorship right")
 	}
+}
+
+func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
+	kp, err := sr25519.GenerateKeypair()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := &SessionConfig{
+		Keypair: kp,
+	}
+
+	babesession := createTestSession(t, cfg)
+	err = babesession.configurationFromRuntime()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	babesession.authorityData = make([]*AuthorityData, 1)
+	babesession.authorityData[0] = &AuthorityData{
+		ID: kp.Public().(*sr25519.PublicKey),
+	}
+
+	// create and add first block
+	block, _ := createTestBlock(t, babesession, [][]byte{})
+	block.Header.Hash()
+
+	err = babesession.blockState.AddBlock(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	verifier, err := NewVerifier(babesession.blockState, babesession.authorityData, babesession.config.Randomness)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := verifier.verifyAuthorshipRight(block.Header)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	// create new block
+	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
+	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
+
+	block2, _ := createTestBlock(t, babesession, [][]byte{txb})
+	block2.Header.Hash()
+
+	t.Log(block2.Header)
+
+	err = babesession.blockState.AddBlock(block2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err = verifier.verifyAuthorshipRight(block2.Header)
+	require.NotNil(t, err)
+	require.False(t, ok)
+	require.Equal(t, ErrProducerEquivocated, err)
 }
