@@ -58,7 +58,6 @@ type Service struct {
 	isBabeAuthority bool
 	epochNumber     uint64   // epoch number of current epoch
 	firstBlock      *big.Int // block number of first block in current epoch
-	
 
 	// Keystore
 	keys *keystore.Keystore

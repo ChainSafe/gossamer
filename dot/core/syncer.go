@@ -55,8 +55,8 @@ type Syncer struct {
 	stopped  bool
 
 	// BABE verification
-	verificationManager *babe.VerificationManager
-	firstBlock *types.Header // first block of current epoch, maybe change over course of epoch
+	verificationManager *babe.VerificationManager // manager deals with NextEpochDescriptor
+	verifier            *babe.Verifier            // verifier for current epoch
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -342,7 +342,14 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 		// TODO: verify authorship right
 	}
 
-	err = s.checkForConsensusDigest(header)
+	// err = s.checkForConsensusDigest(header)
+	// if err != nil {
+	// 	// not first block, ok
+	// }
+
+	// TODO:
+	// if epoch change, update BABE verifier, set manager NextEpochDescriptor for current epoch
+	// else, put block into verification manager and verifier
 
 	if header.Number.Int64() > highestInResp {
 		highestInResp = header.Number.Int64()

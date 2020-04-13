@@ -117,16 +117,21 @@ func (s *Syncer) checkForConsensusDigest(header *types.Header) (err error) {
 // number, sets epoch data for the next epoch using data in the ConsensusDigest
 func (s *Syncer) handleConsensusDigest(header *types.Header, digest *types.ConsensusDigest) error {
 
-	// check if block header is from current epoch
-	currentEpoch, err := s.blockFromCurrentEpoch(header.Hash())
+	// // check if block header is from current epoch
+	// currentEpoch, err := s.blockFromCurrentEpoch(header.Hash())
+	// if err != nil {
+	// 	return fmt.Errorf("failed to check if block header is from current epoch: %s", err)
+	// } else if !currentEpoch {
+	// 	return fmt.Errorf("block header is not from current epoch")
+	// }
+
+	inCurrentEpoch, err := s.blockFromCurrentEpoch(header.Hash())
 	if err != nil {
-		return fmt.Errorf("failed to check if block header is from current epoch: %s", err)
-	} else if !currentEpoch {
-		return fmt.Errorf("block header is not from current epoch")
+		return err
 	}
 
 	// check if first block has been set for current epoch
-	if s.firstBlock != nil {
+	if inCurrentEpoch && s.firstBlock != nil {
 
 		// check if block header has lower block number than current first block
 		if header.Number.Cmp(s.firstBlock.Number) >= 0 {
@@ -145,8 +150,10 @@ func (s *Syncer) handleConsensusDigest(header *types.Header, digest *types.Conse
 	// 	return fmt.Errorf("failed to set next epoch descriptor: %s", err)
 	// }
 
-	// set first block in current epoch
-	s.firstBlock = header
+	if inCurrentEpoch {
+		// set first block in current epoch
+		s.firstBlock = header
+	}
 
 	return nil
 }

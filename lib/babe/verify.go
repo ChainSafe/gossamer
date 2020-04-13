@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core/types"
 	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // ErrNilNextEpochDescriptor is returned when attempting to get a NextEpochDescriptor that isn't set for an epoch
@@ -32,13 +33,20 @@ var ErrNilNextEpochDescriptor = errors.New("nil NextEpochDescriptor for epoch")
 // as well as keep track of the NextEpochDesciptor which is required to create a Verifier.
 type VerificationManager struct {
 	epochToNextEpochDescriptor map[uint64]*NextEpochDescriptor
-	currentEpoch               uint64
+	blockState                 BlockState
+	// TODO: map of epochs to epoch length changes, for use in determining block epoch
+
+	// current epoch information
+	currentEpoch uint64
+	firstBlock   *types.Header // first block of current epoch, may change over course of epoch
+	verifier     *Verifier
 }
 
 func NewVerificationManager(currentEpoch uint64) *VerificationManager {
 	return &VerificationManager{
 		epochToNextEpochDescriptor: make(map[uint64]*NextEpochDescriptor),
 		currentEpoch:               currentEpoch,
+		verifier:                   &Verifier{},
 	}
 }
 
@@ -50,13 +58,35 @@ func (v *VerificationManager) SetCurrentEpoch(epoch uint64) {
 	v.currentEpoch = epoch
 }
 
-func (v *VerificationManager) IncrementEpoch() {
+func (v *VerificationManager) IncrementEpoch() error {
+	if v.firstBlock != nil {
+		consensusDigest, err := checkForConsensusDigest(v.firstBlock)
+		if err != nil {
+			return err
+		}
+
+		if consensusDigest == nil {
+			return errors.New("first block for next epoch doesn't have consensus digest")
+		}
+
+		nextEpochDescriptor := new(NextEpochDescriptor)
+		err = nextEpochDescriptor.Decode(consensusDigest.Data)
+		if err != nil {
+			return err
+		}
+
+		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
+		v.verifier = NewVerifier(nextEpochDescriptor.Authorities, nextEpochDescriptor.Randomness[0])
+	}
+
+	v.firstBlock = nil
 	v.currentEpoch++
+	return nil
 }
 
-func (v *VerificationManager) SetNextEpochDescriptor(epoch uint64, descriptor *NextEpochDescriptor) {
-	v.epochToNextEpochDescriptor[epoch] = descriptor
-}
+// func (v *VerificationManager) SetNextEpochDescriptor(epoch uint64, descriptor *NextEpochDescriptor) {
+// 	v.epochToNextEpochDescriptor[epoch] = descriptor
+// }
 
 func (v *VerificationManager) GetNextEpochDescriptor(epoch uint64) *NextEpochDescriptor {
 	return v.epochToNextEpochDescriptor[epoch]
@@ -70,6 +100,106 @@ func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
 	}
 
 	return NewVerifier(descriptor.Authorities, descriptor.Randomness[0]), nil
+}
+
+func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
+	fromEpoch, err := v.isBlockFromCurrentEpoch(header.Hash())
+	if err != nil {
+		return false, err
+	}
+
+	digest, err := checkForConsensusDigest(header)
+	if err != nil {
+		return false, err
+	}
+
+	ok, err := v.verifier.verifyAuthorshipRight(header)
+	if err != nil {
+		return false, err
+	}
+
+	if digest == nil {
+		// verify and return
+		return ok, nil
+	}
+
+	// check if first block has been set for current epoch
+	if fromEpoch && v.firstBlock != nil {
+
+		// check if block header has lower block number than current first block
+		if header.Number.Cmp(v.firstBlock.Number) < 0 {
+			v.firstBlock = header
+		}
+
+	} else if fromEpoch {
+		// set first block in current epoch
+		v.firstBlock = header
+	}
+
+	return ok, nil
+}
+
+func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, error) {
+	// check if block header digest items exist
+	if header.Digest == nil || len(header.Digest) == 0 {
+		return nil, fmt.Errorf("header digest is not set")
+	}
+
+	// declare digest item
+	var consensusDigest *types.ConsensusDigest
+
+	// decode each digest item and check its type
+	for _, digest := range header.Digest {
+		item, err := types.DecodeDigestItem(digest)
+		if err != nil {
+			return nil, err
+		}
+
+		// check if digest item is consensus digest type
+		if item.Type() == types.ConsensusDigestType {
+			var ok bool
+			consensusDigest, ok = item.(*types.ConsensusDigest)
+			if ok {
+				break
+			}
+		}
+	}
+
+	return consensusDigest, nil
+}
+
+// blockFromCurrentEpoch verifies the provided block hash is from current epoch
+func (v *VerificationManager) isBlockFromCurrentEpoch(hash common.Hash) (bool, error) {
+	// get epoch number of block header
+	epoch, err := v.getBlockEpoch(hash)
+	if err != nil {
+		return false, fmt.Errorf("[babe verifier] failed to get epoch from block header: %s", err)
+	}
+
+	// check if block epoch number matches current epoch number
+	if epoch != v.currentEpoch {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// getBlockEpoch gets the epoch number using the provided block hash
+func (v *VerificationManager) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
+
+	// get slot number to determine epoch number
+	// TODO: directly calulcate this from the pre-digest
+	slot, err := v.blockState.GetSlotForBlock(hash)
+	if err != nil {
+		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
+	}
+
+	if slot != 0 {
+		// epoch number = (slot - genesis slot) / epoch length
+		epoch = (slot - 1) / 6 // TODO: use epoch length from babe or core config
+	}
+
+	return epoch, nil
 }
 
 // Verifier represents a BABE verifier for a specific epoch
@@ -101,7 +231,7 @@ func (b *Verifier) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *Verifier) verifyAuthorshipRight(slot uint64, header *types.Header) (bool, error) {
+func (b *Verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {
@@ -141,6 +271,8 @@ func (b *Verifier) verifyAuthorshipRight(slot uint64, header *types.Header) (boo
 	if len(b.authorityData) <= int(babeHeader.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", babeHeader.BlockProducerIndex)
 	}
+
+	slot := babeHeader.SlotNumber
 
 	authorPub := b.authorityData[babeHeader.BlockProducerIndex].ID
 	// remove seal before verifying

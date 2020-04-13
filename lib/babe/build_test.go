@@ -107,6 +107,7 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 
 	return block, slot
 }
+
 func TestBuildBlock_ok(t *testing.T) {
 	transactionQueue := state.NewTransactionQueue()
 

@@ -95,11 +95,11 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block, slot := createTestBlock(babesession, [][]byte{txb}, t)
+	block, _ := createTestBlock(babesession, [][]byte{txb}, t)
 
 	verifier := NewVerifier(babesession.authorityData, babesession.config.Randomness)
 
-	ok, err := verifier.verifyAuthorshipRight(slot.number, block.Header)
+	ok, err := verifier.verifyAuthorshipRight(block.Header)
 	if err != nil {
 		t.Fatal(err)
 	}
