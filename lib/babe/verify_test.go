@@ -23,8 +23,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -113,8 +113,48 @@ func TestIsBlockFromEpoch(t *testing.T) {
 	require.Equal(t, false, ok)
 }
 
-func TestCheckForConsensusDigest(t *testing.T) {
+func TestCheckForConsensusDigest_NoDigest(t *testing.T) {
+	header := &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     big.NewInt(1),
+	}
 
+	_, err := checkForConsensusDigest(header)
+	require.NotNil(t, err)
+}
+
+func TestCheckForConsensusDigest_NoConsensusDigest(t *testing.T) {
+	vm := newTestVerificationManager(t)
+
+	header, err := vm.blockState.BestBlockHeader()
+	require.Nil(t, err)
+
+	header.Digest = header.Digest[:1]
+
+	digest, err := checkForConsensusDigest(header)
+	require.Nil(t, err)
+	require.Nil(t, digest)
+}
+
+func TestCheckForConsensusDigest(t *testing.T) {
+	vm := newTestVerificationManager(t)
+
+	header, err := vm.blockState.BestBlockHeader()
+	require.Nil(t, err)
+
+	digest, err := checkForConsensusDigest(header)
+	require.Nil(t, err)
+
+	nextEpochData := &NextEpochDescriptor{
+		Authorities: []*AuthorityData{},
+	}
+
+	expected := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              nextEpochData.Encode(),
+	}
+
+	require.Equal(t, expected, digest)
 }
 
 func TestVerifySlotWinner(t *testing.T) {
