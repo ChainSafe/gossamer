@@ -174,7 +174,7 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 
 		var bs *babe.Session
-		
+
 		// create a new BABE session
 		bs, err = babe.NewSession(bsConfig)
 		if err != nil {

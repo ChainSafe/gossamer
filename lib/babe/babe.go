@@ -170,6 +170,14 @@ func (b *Session) stop() {
 	}
 }
 
+// Descriptor returns the NextEpochDescriptor for the current session.
+func (b *Session) Descriptor() *NextEpochDescriptor {
+	return &NextEpochDescriptor{
+		Authorities: b.authorityData,
+		Randomness:  b.randomness,
+	}
+}
+
 func (b *Session) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
