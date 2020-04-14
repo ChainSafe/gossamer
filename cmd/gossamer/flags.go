@@ -178,7 +178,7 @@ var (
 
 // flag sets that are shared by multiple commands
 var (
-	// GlobalFlags are flags that are valid for use with all commands
+	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
 		VerbosityFlag,
 		NameFlag,
@@ -187,7 +187,7 @@ var (
 		DataDirFlag,
 	}
 
-	// StartupFlags are flags that are valid for use with the gossamer command and the export subcommand
+	// StartupFlags are flags that are valid for use with the root command and the export subcommand
 	StartupFlags = []cli.Flag{
 		// keystore flags
 		KeyFlag,
@@ -208,22 +208,23 @@ var (
 		RPCModulesFlag,
 	}
 
-	// UtilityFlags are flags that are valid for use with the init and export subcommands
+	// UtilityFlags are flags that are valid for use with the init subcommand and the export subcommand
 	UtilityFlags = []cli.Flag{
 		ForceFlag,
+		GenesisFlag,
 	}
 )
 
 // command specific flag sets for the root gossamer command and all subcommands
 var (
-	// GossamerFlags are the flags that are valid for use with the root gossamer command
-	GossamerFlags = append(GlobalFlags, StartupFlags...)
+	// RootFlags are the flags that are valid for use with the root gossamer command
+	RootFlags = append(GlobalFlags, StartupFlags...)
 
 	// InitFlags are flags that are valid for use with the init subcommand
-	InitFlags = append(GlobalFlags, append(UtilityFlags, GenesisFlag)...)
+	InitFlags = append(GlobalFlags, UtilityFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
-	ExportFlags = append(GlobalFlags, append(StartupFlags, append(UtilityFlags, GenesisFlag)...)...)
+	ExportFlags = append(GlobalFlags, append(StartupFlags, UtilityFlags...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
 	AccountFlags = append([]cli.Flag{

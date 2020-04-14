@@ -83,7 +83,7 @@ func init() {
 		initCommand,
 		accountCommand,
 	}
-	app.Flags = GossamerFlags
+	app.Flags = RootFlags
 }
 
 // main runs the cli application
