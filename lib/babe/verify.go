@@ -207,6 +207,7 @@ type Verifier struct {
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
+// NewVerifier returns a Verifier for the epoch described by the given descriptor
 func NewVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*Verifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
