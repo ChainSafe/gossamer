@@ -204,17 +204,8 @@ func TestVerificationManager_VerifyBlock_WithDigest(t *testing.T) {
 	block.Header.Number = big.NewInt(2)
 
 	// re-sign block
-	// TODO: this can be simplified once NextEpochDescriptor inclusion is implemented
-	encHeader, err := block.Header.Encode()
+	seal, err := babesession.buildBlockSeal(block.Header)
 	require.Nil(t, err)
-
-	sig, err := babesession.keypair.Sign(encHeader)
-	require.Nil(t, err)
-
-	seal := &types.SealDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig,
-	}
 
 	encSeal := seal.Encode()
 	block.Header.Digest = append(block.Header.Digest, encSeal)
@@ -229,16 +220,9 @@ func TestVerificationManager_VerifyBlock_WithDigest(t *testing.T) {
 
 	// create block with lower number, check that it's chosen as first block of epoch
 	block.Header.Number = big.NewInt(1)
-	encHeader, err = block.Header.Encode()
-	require.Nil(t, err)
 
-	sig, err = babesession.keypair.Sign(encHeader)
+	seal, err = babesession.buildBlockSeal(block.Header)
 	require.Nil(t, err)
-
-	seal = &types.SealDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig,
-	}
 
 	encSeal = seal.Encode()
 	block.Header.Digest = append(block.Header.Digest, encSeal)
@@ -255,16 +239,8 @@ func TestVerificationManager_VerifyBlock_WithDigest(t *testing.T) {
 	}
 
 	newBlock.Header.Number = big.NewInt(99)
-	encHeader, err = newBlock.Header.Encode()
+	seal, err = babesession.buildBlockSeal(newBlock.Header)
 	require.Nil(t, err)
-
-	sig, err = babesession.keypair.Sign(encHeader)
-	require.Nil(t, err)
-
-	seal = &types.SealDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig,
-	}
 
 	encSeal = seal.Encode()
 	newBlock.Header.Digest = append(newBlock.Header.Digest, encSeal)
