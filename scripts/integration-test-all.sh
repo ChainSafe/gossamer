@@ -8,6 +8,7 @@ TEST=""
 QTD=1
 SLEEP_TIMEOUT=5
 
+#PORT AND RPC_PORT 3 initial digits, to be concat with a suffix later when node is initialized
 PORT="700"
 RPC_PORT="854"
 IP_ADDR="0.0.0.0"
@@ -91,7 +92,7 @@ fi
 
 stop_func() {
   GOSSAMER_PID=$i
-  echo "shutting down gossamer node, pid=$GOSSAMER_PID"
+  echo "shutting down gossamer node, pid=$GOSSAMER_PID ..."
 
   # Shutdown gossamer node
   kill -9 "$GOSSAMER_PID"
