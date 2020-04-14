@@ -62,6 +62,7 @@ func TestAuthorModule_Pending(t *testing.T) {
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	// setup auth module
 	txQueue := state.NewTransactionQueue()
+
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
@@ -108,11 +109,70 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	require.EqualError(t, err, core.ErrInvalidTransaction.Message)
 }
 
+func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
+	// setup service
+	// setup auth module
+	txQueue := state.NewTransactionQueue()
+	auth := setupAuthModule(t, txQueue)
+
+	// create and submit extrinsic
+	ext := Extrinsic(fmt.Sprintf("%x", "1"))
+
+	res := new(ExtrinsicHashResponse)
+
+	err := auth.SubmitExtrinsic(nil, &ext, res)
+	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+}
+
+func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
+	// setup auth module
+	txQueue := state.NewTransactionQueue()
+
+	auth := setupAuthModule(t, txQueue)
+
+	// create and submit extrinsic
+	ext := Extrinsic(fmt.Sprintf("0x%x", testExt))
+
+	res := new(ExtrinsicHashResponse)
+
+	// setup expected results
+	val := &transaction.Validity{
+		Priority:  69,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{{146, 157, 61, 99, 63, 98, 30, 242, 128, 49, 150, 90, 140, 165, 187, 249}},
+		Longevity: 64,
+		Propagate: true,
+	}
+	expected := &transaction.ValidTransaction{
+		Extrinsic: types.NewExtrinsic(testExt),
+		Validity:  val,
+	}
+
+	txQueue.Push(expected)
+
+	// this should cause error since transaction is already in txQueue
+	err := auth.SubmitExtrinsic(nil, &ext, res)
+	require.EqualError(t, err, "transaction is already in pool")
+
+}
+
 func TestAuthorModule_InsertKey_Valid(t *testing.T) {
 	cs := core.NewTestService(t, nil)
 
 	auth := NewAuthorModule(cs, nil)
 	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
+	res := &KeyInsertResponse{}
+	err := auth.InsertKey(nil, req, res)
+	require.Nil(t, err)
+
+	require.Len(t, *res, 0) // zero len result on success
+}
+
+func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
+	cs := core.NewTestService(t, nil)
+
+	auth := NewAuthorModule(cs, nil)
+	req := &KeyInsertRequest{"gran", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
