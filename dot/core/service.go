@@ -17,7 +17,6 @@ package core
 
 import (
 	"bytes"
-	//"fmt"
 	"math/big"
 	"sync"
 
@@ -324,11 +323,7 @@ func (s *Service) handleBabeSession() {
 		// wait for BABE epoch to complete
 		<-s.epochDone
 
-		// // finalize BABE session
-		// err := s.syncer.finalizeBabeEpoch()
-		// if err != nil {
-		// 	log.Error("[core] failed to finalize BABE session", "error", err)
-		// }
+		// TODO: fetch NextEpochDescriptor from verifier
 
 		// create new BABE session
 		bs, err := s.initializeBabeSession()

@@ -30,7 +30,7 @@ import (
 var ErrNilNextEpochDescriptor = errors.New("nil NextEpochDescriptor for epoch")
 
 // VerificationManager assists the syncer in keeping track of what epoch is it currently syncing and verifying,
-// as well as keep track of the NextEpochDesciptor which is required to create a Verifier.
+// as well as keeping track of the NextEpochDesciptor which is required to create a Verifier for an epoch.
 type VerificationManager struct {
 	epochToNextEpochDescriptor map[uint64]*NextEpochDescriptor
 	blockState                 BlockState

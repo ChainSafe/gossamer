@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -283,11 +282,7 @@ func TestWatchForResponses(t *testing.T) {
 	syncer.highestSeenBlock = big.NewInt(16)
 
 	coreSrv := NewTestService(t, nil)
-
-	keys := coreSrv.keys.Sr25519Keypairs()
-	keypair := keys[0].(*sr25519.Keypair)
-
-	addTestBlocksToState(t, 16, coreSrv.blockState, keypair)
+	addTestBlocksToState(t, 16, coreSrv.blockState)
 
 	startNum := 1
 	start, err := variadic.NewUint64OrHash(startNum)
@@ -365,11 +360,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	syncer.highestSeenBlock = big.NewInt(16)
 
 	coreSrv := NewTestService(t, nil)
-
-	keys := coreSrv.keys.Sr25519Keypairs()
-	keypair := keys[0].(*sr25519.Keypair)
-
-	addTestBlocksToState(t, 16, coreSrv.blockState, keypair)
+	addTestBlocksToState(t, 16, coreSrv.blockState)
 
 	startNum := 16
 	syncer.requestStart = int64(startNum)

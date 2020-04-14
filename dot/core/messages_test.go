@@ -48,7 +48,7 @@ func TestService_ProcessBlockRequestMessage(t *testing.T) {
 
 	s := NewTestService(t, cfg)
 
-	addTestBlocksToState(t, 2, s.blockState, nil)
+	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
 	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))

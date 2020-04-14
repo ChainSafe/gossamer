@@ -90,56 +90,19 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	return s
 }
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState, keypair *sr25519.Keypair) {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
-
-	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	require.Nil(t, err)
-
-	authorityData := []*babe.AuthorityData{}
-
-	nextEpochData := &babe.NextEpochDescriptor{
-		Authorities: authorityData,
-	}
-
-	consensusDigest := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              nextEpochData.Encode(),
-	}
-
-	conDigest := consensusDigest.Encode()
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     [][]byte{preDigest, conDigest},
+				Digest:     [][]byte{},
 			},
 			Body: &types.Body{},
-		}
-
-		if keypair != nil {
-			// build seal
-			encHeader, err := block.Header.Encode()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			sig, err := keypair.Sign(encHeader)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			seal := &types.SealDigest{
-				ConsensusEngineID: types.BabeEngineID,
-				Data:              sig,
-			}
-
-			encSeal := seal.Encode()
-			block.Header.Digest = append(block.Header.Digest, encSeal)
 		}
 
 		previousHash = block.Header.Hash()
