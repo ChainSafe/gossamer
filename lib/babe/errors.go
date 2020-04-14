@@ -1,6 +1,3 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
-// This file is part of gossamer.
-//
 // The gossamer library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -14,11 +11,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package tests
+package babe
 
-import (
-	"github.com/ChainSafe/gossamer/lib/common"
-)
+import "errors"
 
-// AuthorityDataKey is the default authority hash
-var AuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
+// ErrBadSlotClaim is returned when a slot claim is invalid
+var ErrBadSlotClaim = errors.New("could not verify slot claim")
+
+// ErrBadSignature is returned when a seal is invalid
+var ErrBadSignature = errors.New("could not verify signature")
+
+// ErrProducerEquivocated is returned when a block producer has produced conflicting blocks
+var ErrProducerEquivocated = errors.New("block producer equivocated")

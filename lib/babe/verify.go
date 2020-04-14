@@ -21,11 +21,10 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
 )
 
-// verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
-func (b *Session) verifySlotWinner(slot uint64, header *babetypes.BabeHeader) (bool, error) {
+// verifySlotWinner verifies the claim for a slot, given the types.BabeHeader for that slot.
+func (b *Session) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
@@ -71,7 +70,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 		return false, fmt.Errorf("last digest item is not seal")
 	}
 
-	babeHeader := new(babetypes.BabeHeader)
+	babeHeader := new(types.BabeHeader)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
@@ -96,7 +95,7 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify slot claim")
+		return false, ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
@@ -106,9 +105,51 @@ func (b *Session) verifyAuthorshipRight(slot uint64, header *types.Header) (bool
 	}
 
 	if !ok {
-		return false, fmt.Errorf("could not verify signature")
+		return false, ErrBadSignature
 	}
 
-	// TODO: check if the producer has equivocated, ie. have they produced a conflicting block?
+	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
+
+	for _, hash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(hash)
+		if err != nil {
+			continue
+		}
+
+		currentBlockProducerIndex, err := getBlockProducerIndex(currentHeader)
+		if err != nil {
+			continue
+		}
+
+		existingBlockProducerIndex := babeHeader.BlockProducerIndex
+
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+			return false, ErrProducerEquivocated
+		}
+	}
+
 	return true, nil
+}
+
+func getBlockProducerIndex(header *types.Header) (uint64, error) {
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, err
+	}
+
+	babeHeader := new(types.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, err
+	}
+
+	return babeHeader.BlockProducerIndex, nil
 }
