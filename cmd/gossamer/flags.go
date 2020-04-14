@@ -181,7 +181,6 @@ var (
 	// GlobalFlags are flags that are valid for use with all commands
 	GlobalFlags = []cli.Flag{
 		VerbosityFlag,
-		ForceFlag,
 		NameFlag,
 		NodeFlag,
 		ConfigFlag,
@@ -208,18 +207,23 @@ var (
 		RPCPortFlag,
 		RPCModulesFlag,
 	}
+
+	// UtilityFlags are flags that are valid for use with the init and export subcommands
+	UtilityFlags = []cli.Flag{
+		ForceFlag,
+	}
 )
 
 // command specific flag sets for the root gossamer command and all subcommands
 var (
-	// InitFlags are flags that are valid for use with the init subcommand
-	InitFlags = append(GlobalFlags, GenesisFlag)
-
 	// GossamerFlags are the flags that are valid for use with the root gossamer command
 	GossamerFlags = append(GlobalFlags, StartupFlags...)
 
+	// InitFlags are flags that are valid for use with the init subcommand
+	InitFlags = append(GlobalFlags, append(UtilityFlags, GenesisFlag)...)
+
 	// ExportFlags are the flags that are valid for use with the export subcommand
-	ExportFlags = append(GlobalFlags, append(StartupFlags, GenesisFlag)...)
+	ExportFlags = append(GlobalFlags, append(StartupFlags, append(UtilityFlags, GenesisFlag)...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
 	AccountFlags = append([]cli.Flag{

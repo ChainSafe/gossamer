@@ -191,7 +191,7 @@ func initAction(ctx *cli.Context) error {
 	if dot.NodeInitialized(cfg.Global.DataDir, false) {
 
 		// use --force value to force initialize the node
-		force := ctx.GlobalBool(ForceFlag.Name)
+		force := ctx.Bool(ForceFlag.Name)
 
 		// prompt user to confirm reinitialization
 		if force || confirmMessage("Are you sure you want to reinitialize the node? [Y/n]") {

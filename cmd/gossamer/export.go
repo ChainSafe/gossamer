@@ -50,7 +50,7 @@ func exportAction(ctx *cli.Context) error {
 		)
 
 		// use --force value to force overwrite the toml configuration file
-		force := ctx.GlobalBool(ForceFlag.Name)
+		force := ctx.Bool(ForceFlag.Name)
 
 		// prompt user to confirm overwriting existing toml configuration file
 		if force || confirmMessage("Are you sure you want to overwrite the file? [Y/n]") {
