@@ -34,9 +34,9 @@ suggestion and current behavior.
 <!---
 
 Not obligatory, but this is the place to suggest the underlying cause and
-possible fix for the bug, if you have one, or ideas how to implement the
-addition or change. We'll be sure to credit your ideas in the commit log,
-or better yet, submit a PR and you'll get credit for the whole thing.
+possible fix for the bug, if you have one, or ideas on how to implement the
+fix. We'll be sure to credit your ideas in the commit log, or better yet,
+submit a PR and you'll get credit for the whole thing.
 
 -->
 

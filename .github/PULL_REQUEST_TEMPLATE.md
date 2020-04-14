@@ -8,8 +8,8 @@ PLEASE READ CAREFULLY
 
 <!--
 
-Please provide a brief but specific list of changes made, describe the change
-in functionality rather than the change in code.
+Please provide a brief but specific list of changes made, describe the changes
+in functionality rather than the changes in code.
 
 -->
 
@@ -42,7 +42,7 @@ the box after completing the task.
 - [ ] I have provided as much information as possible and necessary
 - [ ] I have reviewed my own pull request before requesting a review
 - [ ] I have linked any relevant issues in my pull request comments
-- [ ] All required integration and code climate tests are passing
+- [ ] All integration tests and required coverage checks are passing
 
 ## Issues:
 
