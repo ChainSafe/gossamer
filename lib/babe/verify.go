@@ -62,41 +62,43 @@ func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentD
 	}, nil
 }
 
-func (v *VerificationManager) CurrentEpoch() uint64 {
-	return v.currentEpoch
-}
+// func (v *VerificationManager) CurrentEpoch() uint64 {
+// 	return v.currentEpoch
+// }
 
-func (v *VerificationManager) SetCurrentEpoch(epoch uint64) {
-	v.currentEpoch = epoch
-}
+// func (v *VerificationManager) SetCurrentEpoch(epoch uint64) {
+// 	v.currentEpoch = epoch
+// }
 
-func (v *VerificationManager) IncrementEpoch() error {
+func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
+	var nextEpochDescriptor *NextEpochDescriptor
+
 	if v.firstBlock != nil {
 		consensusDigest, err := checkForConsensusDigest(v.firstBlock)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if consensusDigest == nil {
-			return errors.New("first block for next epoch doesn't have consensus digest")
+			return nil, errors.New("first block for next epoch doesn't have consensus digest")
 		}
 
-		nextEpochDescriptor := new(NextEpochDescriptor)
+		nextEpochDescriptor = new(NextEpochDescriptor)
 		err = nextEpochDescriptor.Decode(consensusDigest.Data)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
 		v.verifier, err = NewVerifier(v.blockState, nextEpochDescriptor)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	v.firstBlock = nil
 	v.currentEpoch++
-	return nil
+	return nextEpochDescriptor, nil
 }
 
 // func (v *VerificationManager) SetNextEpochDescriptor(epoch uint64, descriptor *NextEpochDescriptor) {
@@ -118,10 +120,19 @@ func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
 }
 
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
-	fromEpoch, err := v.isBlockFromCurrentEpoch(header.Hash())
+	fromEpoch, err := v.isBlockFromEpoch(header.Hash(), v.currentEpoch)
 	if err != nil {
 		return false, err
 	}
+
+	// if fromNextEpoch, err := v.isBlockFromEpoch(header.Hash(), v.currentEpoch + 1); err != nil {
+	// 	return false, err
+	// } else if fromNextEpoch && v.firstBlock != nil {
+	// 	_, err = v.IncrementEpoch()
+	// 	if err != nil {
+	// 		return false, err
+	// 	}
+	// }
 
 	digest, err := checkForConsensusDigest(header)
 	if err != nil {
@@ -184,15 +195,15 @@ func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, erro
 }
 
 // blockFromCurrentEpoch verifies the provided block hash is from current epoch
-func (v *VerificationManager) isBlockFromCurrentEpoch(hash common.Hash) (bool, error) {
+func (v *VerificationManager) isBlockFromEpoch(hash common.Hash, epoch uint64) (bool, error) {
 	// get epoch number of block header
-	epoch, err := v.getBlockEpoch(hash)
+	blockEpoch, err := v.getBlockEpoch(hash)
 	if err != nil {
 		return false, fmt.Errorf("[babe verifier] failed to get epoch from block header: %s", err)
 	}
 
 	// check if block epoch number matches current epoch number
-	if epoch != v.currentEpoch {
+	if blockEpoch != epoch {
 		return false, nil
 	}
 

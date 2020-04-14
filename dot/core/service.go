@@ -220,6 +220,7 @@ func NewService(cfg *Config) (*Service, error) {
 			Randomness:  [32]byte{}, // TODO
 		}
 
+		// TODO: load current epoch from database, save upon shutdown
 		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 0, currentDescriptor)
 		if err != nil {
 			return nil, err

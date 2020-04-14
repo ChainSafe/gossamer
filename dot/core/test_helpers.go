@@ -37,6 +37,16 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
+type MockVerifier struct{}
+
+func (v *MockVerifier) VerifyBlock(header *types.Header) (bool, error) {
+	return true, nil
+}
+
+// func (v *MockVerifier) IncrementEpoch() (*NextEpochDescriptor, error) {
+// 	return &NextEpochDescriptor{}, nil
+// }
+
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {

@@ -44,6 +44,10 @@ func (v *MockVerifier) VerifyBlock(header *types.Header) (bool, error) {
 	return true, nil
 }
 
+// func (v *MockVerifier) IncrementEpoch() (*NextEpochDescriptor, error) {
+// 	return &NextEpochDescriptor{}, nil
+// }
+
 func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	if cfg == nil {
 		cfg = &SyncerConfig{}

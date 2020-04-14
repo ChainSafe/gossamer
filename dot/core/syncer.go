@@ -34,8 +34,10 @@ import (
 	"golang.org/x/exp/rand"
 )
 
+// Verifier deals with block verification, as well as NextEpochDescriptors.
 type Verifier interface {
 	VerifyBlock(header *types.Header) (bool, error)
+	//IncrementEpoch() (*babe.NextEpochDescriptor, error)
 }
 
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
@@ -59,8 +61,7 @@ type Syncer struct {
 	stopped  bool
 
 	// BABE verification
-	verifier Verifier // manager deals with NextEpochDescriptor
-	//verifier            *babe.Verifier            // verifier for current epoch
+	verifier Verifier
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -74,7 +75,6 @@ type SyncerConfig struct {
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
 	Verifier         Verifier
-	//CurrentDescriptor *babe.NextEpochDescriptor
 }
 
 var responseTimeout = 3 * time.Second
@@ -96,12 +96,6 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	if cfg.Verifier == nil {
 		return nil, ErrNilVerifier
 	}
-
-	// // TODO: load current epoch from database, save upon shutdown
-	// verificationManager, err := babe.NewVerificationManager(cfg.BlockState, 0, cfg.CurrentDescriptor)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	return &Syncer{
 		blockState:       cfg.BlockState,
@@ -131,10 +125,6 @@ func (s *Syncer) Stop() {
 	// stop goroutines
 	s.stopped = true
 }
-
-// func (s *Syncer) currentEpoch() uint64 {
-// 	return s.verificationManager.CurrentEpoch()
-// }
 
 func (s *Syncer) watchForBlocks() {
 	for {
@@ -351,10 +341,6 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 		}
 
 		log.Info("[sync] saved block header", "hash", header.Hash(), "number", header.Number)
-
-		// TODO: handle consensus digest, if first in epoch
-
-		// TODO: verify authorship right
 	}
 
 	ok, err := s.verifier.VerifyBlock(header)
