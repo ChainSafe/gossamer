@@ -198,15 +198,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	}
 
 	genesisHeader, err := stateSrvc.Block.BestBlockHeader()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	stateRoot := genesisHeader.StateRoot
 	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !genesisHeader.Hash().Equal(expectedHeader.Hash()) {
 		t.Fatalf("Fail: got %v expected %v", genesisHeader, expectedHeader)
@@ -230,9 +226,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	cfg.Init.Genesis = genPath
 
 	gen, err := genesis.NewGenesisFromJSON(genPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = InitNode(cfg)
 	require.Nil(t, err)

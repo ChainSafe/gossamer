@@ -845,9 +845,7 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 
 	for i := 0; i < numKps; i++ {
 		kp, err := ed25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		runtime.keystore.Insert(kp)
 		testKps = append(testKps, kp)
 		expected := testKps[i].Public().Encode()
@@ -857,9 +855,7 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 	// put some sr25519 keypairs in the keystore to make sure they don't get returned
 	for i := 0; i < numKps; i++ {
 		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		runtime.keystore.Insert(kp)
 	}
 

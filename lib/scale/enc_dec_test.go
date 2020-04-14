@@ -19,6 +19,8 @@ package scale
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecodeComplexStruct(t *testing.T) {
@@ -65,17 +67,13 @@ func TestEncodeDecodeComplexStruct(t *testing.T) {
 	}
 
 	enc, err := Encode(test)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res := &ComplexStruct{
 		Sub: &SimpleStruct{},
 	}
 	output, err := Decode(enc, res)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(output.(*ComplexStruct), test) {
 		t.Errorf("Fail: got %+v expected %+v", output.(*ComplexStruct), test)

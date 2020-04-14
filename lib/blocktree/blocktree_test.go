@@ -165,9 +165,7 @@ func TestBlockTree_Subchain(t *testing.T) {
 	require.NotNil(t, err)
 
 	subChain, err := bt.subChain(hashes[1], hashes[3])
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	for i, n := range subChain {
 		if n.hash != expectedPath[i] {

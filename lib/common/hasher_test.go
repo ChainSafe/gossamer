@@ -19,6 +19,8 @@ package common
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBlake2b218_EmptyHash(t *testing.T) {
@@ -26,13 +28,11 @@ func TestBlake2b218_EmptyHash(t *testing.T) {
 	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
 	in := []byte{}
 	h, err := Blake2b128(in)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	expected, err := HexToBytes("0xcae66941d9efbd404e4d88758ea67670")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	if !bytes.Equal(expected, h) {
 		t.Fatalf("Fail: got %x expected %x", h, expected)
 	}
@@ -43,13 +43,11 @@ func TestBlake2bHash_EmptyHash(t *testing.T) {
 	// also see https://github.com/paritytech/substrate/blob/master/core/primitives/src/hashing.rs
 	in := []byte{}
 	h, err := Blake2bHash(in)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	expected, err := HexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	if !bytes.Equal(expected, h[:]) {
 		t.Fatalf("Fail: got %x expected %x", h, expected)
 	}
@@ -59,10 +57,9 @@ func TestKeccak256_EmptyHash(t *testing.T) {
 	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
 	in := []byte{}
 	h := Keccak256(in)
+
 	expected, err := HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !bytes.Equal(expected[:], h[:]) {
 		t.Fatalf("Fail: got %x expected %x", h, expected)

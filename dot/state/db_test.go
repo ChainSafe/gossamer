@@ -10,6 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
@@ -38,9 +40,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	}
 
 	encroot, err := tt.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected := trie.NewTrie(tt.RootNode())
 
@@ -81,25 +81,17 @@ func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 
 	for _, test := range tests {
 		err := tt.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 	}
 
 	err := StoreLatestStorageHash(db, tt)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	hash, err := LoadLatestStorageHash(db)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected, err := tt.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if hash != expected {
 		t.Fatalf("Fail: got %x expected %x", hash, expected)
@@ -122,14 +114,10 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 	}
 
 	err := StoreGenesisData(db, expected)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	gen, err := LoadGenesisData(db)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(gen, expected) {
 		t.Fatalf("Fail: got %v expected %v", gen, expected)
@@ -141,14 +129,10 @@ func TestStoreAndLoadBestBlockHash(t *testing.T) {
 	hash, _ := common.HexToHash("0x3f5a19b9e9507e05276216f3877bb289e47885f8184010c65d0e41580d3663cc")
 
 	err := StoreBestBlockHash(db, hash)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res, err := LoadBestBlockHash(db)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, hash) {
 		t.Fatalf("Fail: got %x expected %x", res, hash)

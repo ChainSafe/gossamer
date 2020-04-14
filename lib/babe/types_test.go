@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeNextEpochDescriptor(t *testing.T) {
@@ -29,9 +31,7 @@ func TestDecodeNextEpochDescriptor(t *testing.T) {
 
 	for i := 0; i < length; i++ {
 		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		auth := &AuthorityData{
 			ID:     kp.Public().(*sr25519.PublicKey),
@@ -50,9 +50,7 @@ func TestDecodeNextEpochDescriptor(t *testing.T) {
 
 	res := new(NextEpochDescriptor)
 	err := res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc2 := res.Encode()
 

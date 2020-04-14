@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestAccountGenerate test "gossamer account --generate"
@@ -34,15 +36,11 @@ func TestAccountGenerate(t *testing.T) {
 		[]string{"datadir", "generate"},
 		[]interface{}{testDir, true},
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	command := accountCommand
 	err = command.Run(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// TODO: add more require checks #685
 }
@@ -59,15 +57,11 @@ func TestAccountGeneratePassword(t *testing.T) {
 		[]string{"datadir", "generate", "password"},
 		[]interface{}{testDir, true, "1234"},
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	command := accountCommand
 	err = command.Run(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// TODO: add more require checks #685
 }
@@ -84,15 +78,11 @@ func TestAccountGenerateType(t *testing.T) {
 		[]string{"datadir", "generate", "type"},
 		[]interface{}{testDir, true, "ed25519"},
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	command := accountCommand
 	err = command.Run(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// TODO: add more require checks #685
 }
@@ -109,15 +99,11 @@ func TestAccountImport(t *testing.T) {
 		[]string{"datadir", "import"},
 		[]interface{}{testDir, "testfile"},
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	command := accountCommand
 	err = command.Run(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// TODO: add more require checks #685
 }
@@ -134,15 +120,11 @@ func TestAccountList(t *testing.T) {
 		[]string{"datadir", "list"},
 		[]interface{}{testDir, true},
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	command := accountCommand
 	err = command.Run(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// TODO: add more require checks #685
 }

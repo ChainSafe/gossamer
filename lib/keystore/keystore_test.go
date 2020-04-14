@@ -41,9 +41,7 @@ func TestKeystore(t *testing.T) {
 	ks := NewKeystore()
 
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	addr := kp.Public().Address()
 	ks.Insert(kp)
@@ -62,18 +60,14 @@ func TestGetSr25519PublicKeys(t *testing.T) {
 
 	for i := 0; i < numKps; i++ {
 		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
 	for i := 0; i < numKps; i++ {
 		kp, err := ed25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 	}
 
@@ -98,18 +92,14 @@ func TestGetEd25519PublicKeys(t *testing.T) {
 
 	for i := 0; i < numKps; i++ {
 		kp, err := ed25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
 	for i := 0; i < numKps; i++ {
 		kp, err := secp256k1.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 	}
 
@@ -134,18 +124,14 @@ func TestGetSecp256k1PublicKeys(t *testing.T) {
 
 	for i := 0; i < numKps; i++ {
 		kp, err := secp256k1.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 		expectedPubkeys = append(expectedPubkeys, kp.Public())
 	}
 
 	for i := 0; i < numKps; i++ {
 		kp, err := sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		ks.Insert(kp)
 	}
 
@@ -167,14 +153,10 @@ func TestGenerateKey_Sr25519(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyfile, err := GenerateKeypair("sr25519", testdir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keys, err := utils.KeystoreFilepaths(testdir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if len(keys) != 1 {
 		t.Fatal("Fail: expected 1 key in keystore")
@@ -190,14 +172,10 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyfile, err := GenerateKeypair("ed25519", testdir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keys, err := utils.KeystoreFilepaths(testdir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if len(keys) != 1 {
 		t.Fatal("Fail: expected 1 key in keystore")
@@ -208,15 +186,11 @@ func TestGenerateKey_Ed25519(t *testing.T) {
 	}
 
 	contents, err := ioutil.ReadFile(keyfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if kscontents.Type != "ed25519" {
 		t.Fatalf("Fail: got %s expected %s", kscontents.Type, "ed25519")
@@ -228,14 +202,10 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyfile, err := GenerateKeypair("secp256k1", testdir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keys, err := utils.KeystoreFilepaths(testdir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if len(keys) != 1 {
 		t.Fatal("Fail: expected 1 key in keystore")
@@ -246,15 +216,11 @@ func TestGenerateKey_Secp256k1(t *testing.T) {
 	}
 
 	contents, err := ioutil.ReadFile(keyfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if kscontents.Type != "secp256k1" {
 		t.Fatalf("Fail: got %s expected %s", kscontents.Type, "secp256k1")
@@ -266,20 +232,14 @@ func TestGenerateKey_NoType(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyfile, err := GenerateKeypair("", testdir, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	contents, err := ioutil.ReadFile(keyfile)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kscontents := new(EncryptedKeystore)
 	err = json.Unmarshal(contents, kscontents)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if kscontents.Type != "sr25519" {
 		t.Fatalf("Fail: got %s expected %s", kscontents.Type, "sr25519")
@@ -303,21 +263,15 @@ func TestImportKey(t *testing.T) {
 	keypath := dataDir
 
 	importkeyfile, err := GenerateKeypair("sr25519", keypath, testPassword)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	defer os.RemoveAll(importkeyfile)
 
 	keyfile, err := ImportKeypair(importkeyfile, dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keys, err := utils.KeystoreFilepaths(dataDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if len(keys) != 1 {
 		t.Fatal("fail")
@@ -342,23 +296,17 @@ func TestListKeys(t *testing.T) {
 			// 	testPassword = getPassword("Enter password to encrypt keystore file:")
 			// }
 			keyfile, err = GenerateKeypair("sr25519", testdir, testPassword)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 		} else {
 			keyfile, err = GenerateKeypair("ed25519", testdir, testPassword)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.Nil(t, err)
 		}
 
 		expected = append(expected, keyfile)
 	}
 
 	keys, err := utils.KeystoreFilepaths(testdir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if len(keys) != len(expected) {
 		t.Fatalf("Fail: expected %d keys in keystore, got %d", len(expected), len(keys))

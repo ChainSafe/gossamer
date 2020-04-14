@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestChangesTrieRootDigest(t *testing.T) {
@@ -30,9 +32,7 @@ func TestChangesTrieRootDigest(t *testing.T) {
 
 	enc := d.Encode()
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -47,9 +47,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 
 	enc := d.Encode()
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -64,9 +62,7 @@ func TestConsensusDigest(t *testing.T) {
 
 	enc := d.Encode()
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -81,9 +77,7 @@ func TestSealDigest(t *testing.T) {
 
 	enc := d.Encode()
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)

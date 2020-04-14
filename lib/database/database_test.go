@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/dgraph-io/badger/v2"
+	"github.com/stretchr/testify/require"
 )
 
 type data struct {
@@ -291,9 +292,7 @@ func newTestBadgerDB(t *testing.T) (Database, func()) {
 	}
 
 	badgerDb, err := NewBadgerDB(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	db := Database(badgerDb)
 	return db, func() {

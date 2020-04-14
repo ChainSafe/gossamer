@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -49,9 +51,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	}
 
 	srv, err := network.NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return srv
 }

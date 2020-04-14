@@ -23,21 +23,19 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestNewGenesisFromJSON
 func TestNewGenesisFromJSON(t *testing.T) {
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	defer os.Remove(file.Name())
 
 	testBytes, err := ioutil.ReadFile(file.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testHex := hex.EncodeToString(testBytes)
 	testRaw := [2]map[string]string{}
@@ -48,19 +46,13 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	// Grab json encoded bytes
 	bz, err := json.Marshal(expected)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	// Write to temp file
 	_, err = file.Write(bz)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	genesis, err := NewGenesisFromJSON(file.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(expected, genesis) {
 		t.Fatalf("Fail: expected %v got %v", expected, genesis)

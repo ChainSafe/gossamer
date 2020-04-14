@@ -20,15 +20,15 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringToInts(t *testing.T) {
 	in := "1,2,3,4,-1"
 	expected := []int{1, 2, 3, 4, -1}
 	res, err := StringToInts(in)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)
@@ -37,9 +37,7 @@ func TestStringToInts(t *testing.T) {
 	in = "17"
 	expected = []int{17}
 	res, err = StringToInts(in)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)

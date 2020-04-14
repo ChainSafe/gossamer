@@ -27,7 +27,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 var TestProtocolID = "/gossamer/test/0"
@@ -79,14 +81,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	srvc, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = srvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return srvc
 }
@@ -153,9 +151,7 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -163,9 +159,7 @@ func TestBroadcastMessages(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// simulate message sent from core service
 	msgRecA <- TestMessage

@@ -34,9 +34,7 @@ import (
 
 func TestSeal(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	cfg := &SessionConfig{
 		Keypair: kp,
@@ -44,34 +42,22 @@ func TestSeal(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	header, err := types.NewHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	encHeader, err := header.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	seal, err := babesession.buildBlockSeal(header)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	ok, err := kp.Public().Verify(encHeader, seal.Data)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !ok {
 		t.Fatal("could not verify seal")
@@ -80,9 +66,7 @@ func TestSeal(t *testing.T) {
 
 func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
 	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if outAndProof == nil {
 		t.Fatal("proof was nil when over threshold")
@@ -115,9 +99,7 @@ func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.
 
 	// build block
 	block, err := babesession.buildBlock(parentHeader, slot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return block, slot
 }
@@ -130,9 +112,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
@@ -141,20 +121,14 @@ func TestBuildBlock_ok(t *testing.T) {
 	block, slot := createTestBlock(t, babesession, exts)
 
 	stateRoot, err := common.HexToHash("0x31ce5e74d7141520abc11b8a68f884cb1d01b5476a6376a659d93a199c4884e0")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	extrinsicsRoot, err := common.HexToHash("0xd88e048eda17aaefc427c832ea1208508d67a3e96527be0995db742b5cd91a61")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// create pre-digest
 	preDigest, err := babesession.buildBlockPreDigest(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash:     genesisHeader.Hash(),
@@ -173,9 +147,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	extsBytes := types.ExtrinsicsArrayToBytesArray(extsRes)
 	if !reflect.DeepEqual(extsBytes, exts) {
@@ -192,9 +164,7 @@ func TestBuildBlock_failing(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	babesession.authorityData = []*AuthorityData{{nil, 1}}
 
@@ -203,9 +173,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	var slotNumber uint64 = 1
 
 	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if outAndProof == nil {
 		t.Fatal("proof was nil when over threshold")
@@ -226,9 +194,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	babesession.transactionQueue.Push(vtx)
 
 	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	parentHeader := &types.Header{
 		ParentHash: zeroHash,

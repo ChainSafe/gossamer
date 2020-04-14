@@ -22,13 +22,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // branch tree randomly
@@ -55,23 +55,17 @@ func TestService_Start(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	state.Stop()
 }
@@ -80,23 +74,17 @@ func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	state.Stop()
 }
@@ -180,22 +168,16 @@ func TestService_BlockTree(t *testing.T) {
 	stateA := NewService(testDir)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
 	err = stateA.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = stateA.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// add blocks to state
 	addBlocksToState(t, stateA.Block, 10)
@@ -205,9 +187,7 @@ func TestService_BlockTree(t *testing.T) {
 	stateB := NewService(testDir)
 
 	err = stateB.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	stateB.Stop()
 

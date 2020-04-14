@@ -17,25 +17,22 @@
 package ed25519
 
 import (
+	"crypto/ed25519"
 	"reflect"
 	"testing"
 
-	ed25519 "crypto/ed25519"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	msg := []byte("helloworld")
 	sig, _ := kp.Sign(msg)
 
 	ok, err := Verify(kp.Public().(*PublicKey), msg, sig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !ok {
 		t.Fatal("Fail: did not verify ed25519 sig")
 	}
@@ -43,9 +40,7 @@ func TestSignAndVerify(t *testing.T) {
 
 func TestPublicKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kp2 := NewKeypair(ed25519.PrivateKey(*(kp.Private().(*PrivateKey))))
 	if !reflect.DeepEqual(kp.Public(), kp2.Public()) {
@@ -55,16 +50,12 @@ func TestPublicKeys(t *testing.T) {
 
 func TestEncodeAndDecodePrivateKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Private().Encode()
 	res := new(PrivateKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, kp.Private()) {
 		t.Fatalf("Fail: got %x expected %x", res, kp.Private())
@@ -73,16 +64,12 @@ func TestEncodeAndDecodePrivateKey(t *testing.T) {
 
 func TestEncodeAndDecodePublicKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Public().Encode()
 	res := new(PublicKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, kp.Public()) {
 		t.Fatalf("Fail: got %x expected %x", res, kp.Public())

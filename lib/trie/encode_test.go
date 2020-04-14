@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeAndDecode(t *testing.T) {
@@ -38,15 +40,11 @@ func TestEncodeAndDecode(t *testing.T) {
 
 	for _, test := range tests {
 		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 	}
 
 	enc, err := trie.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testTrie := &Trie{}
 	err = testTrie.Decode(enc)

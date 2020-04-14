@@ -75,9 +75,7 @@ func TestDecodeMessageStatus(t *testing.T) {
 
 func TestDecodeMessageBlockRequest(t *testing.T) {
 	encMsg, err := common.HexToBytes("0x0107000000000000000100dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b01fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1010101000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	buf := &bytes.Buffer{}
 	buf.Write(encMsg)

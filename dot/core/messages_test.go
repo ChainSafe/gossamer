@@ -74,9 +74,7 @@ func TestService_ProcessBlockRequestMessage(t *testing.T) {
 
 	endHash := s.blockState.BestBlockHash()
 	start, err := variadic.NewUint64OrHash(uint64(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = s.blockState.CompareAndSetBlockData(bds)
 
@@ -279,9 +277,7 @@ func TestService_ProcessBlockResponseMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	header := &types.Header{
 		ParentHash:     parentHash,

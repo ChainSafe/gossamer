@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // list of IPFS peers, for testing only
@@ -39,9 +41,7 @@ var TestPeers = []string{
 func TestStringToAddrInfo(t *testing.T) {
 	for _, str := range TestPeers {
 		pi, err := stringToAddrInfo(str)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if pi.ID.Pretty() != str[len(str)-46:] {
 			t.Errorf("got %s expected %s", pi.ID.Pretty(), str)
@@ -51,9 +51,8 @@ func TestStringToAddrInfo(t *testing.T) {
 
 func TestStringsToAddrInfos(t *testing.T) {
 	pi, err := stringsToAddrInfos(TestPeers)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	for k, pi := range pi {
 		if pi.ID.Pretty() != TestPeers[k][len(TestPeers[k])-46:] {
 			t.Errorf("got %s expected %s", pi.ID.Pretty(), TestPeers[k])
@@ -66,28 +65,20 @@ func TestGenerateKey(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyA, err := generateKey(0, testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keyB, err := generateKey(0, testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if reflect.DeepEqual(keyA, keyB) {
 		t.Error("Generated keys should not match")
 	}
 
 	keyC, err := generateKey(1, testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	keyD, err := generateKey(1, testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(keyC, keyD) {
 		t.Error("Generated keys should match")

@@ -21,32 +21,26 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	msg := []byte("borkbork")
 	hash, err := common.Blake2bHash(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	sig, err := kp.private.Sign(hash[:])
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	t.Log(sig)
 	t.Log(len(sig))
 
 	ok, err := kp.public.Verify(hash[:], sig[:64])
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !ok {
 		t.Fatal("did not verify :(")
 	}
@@ -54,16 +48,12 @@ func TestSignAndVerify(t *testing.T) {
 
 func TestPrivateKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	privbytes := kp.private.Encode()
 
 	priv, err := NewPrivateKey(privbytes)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(kp.private, priv) {
 		t.Fatalf("Fail: got %x expected %x", kp.private.Encode(), priv.Encode())
@@ -72,9 +62,7 @@ func TestPrivateKeys(t *testing.T) {
 
 func TestPublicKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kp2 := NewKeypair(kp.private.key)
 
@@ -83,9 +71,7 @@ func TestPublicKeys(t *testing.T) {
 	}
 
 	pub, err := kp.private.Public()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !reflect.DeepEqual(pub, kp.Public()) {
 		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
 	}
@@ -93,16 +79,12 @@ func TestPublicKeys(t *testing.T) {
 
 func TestEncodeAndDecodePriv(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Private().Encode()
 	res := new(PrivateKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	exp := kp.Private().(*PrivateKey).Encode()
 	if !reflect.DeepEqual(res.Encode(), exp) {
@@ -112,16 +94,12 @@ func TestEncodeAndDecodePriv(t *testing.T) {
 
 func TestEncodeAndDecodePub(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Public().Encode()
 	res := new(PublicKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	exp := kp.Public().(*PublicKey).Encode()
 	if !reflect.DeepEqual(res.Encode(), exp) {

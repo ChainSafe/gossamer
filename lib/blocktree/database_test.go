@@ -9,6 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/database"
+
+	"github.com/stretchr/testify/require"
 )
 
 type testBranch struct {
@@ -76,9 +78,7 @@ func TestStoreBlockTree(t *testing.T) {
 	db := database.NewMemDatabase()
 
 	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	header := &types.Header{
 		ParentHash: zeroHash,
@@ -88,15 +88,11 @@ func TestStoreBlockTree(t *testing.T) {
 	bt, _ := createTestBlockTree(header, 10, db)
 
 	err = bt.Store()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	resBt := NewBlockTreeFromGenesis(header, db)
 	err = resBt.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(bt.head, resBt.head) {
 		t.Fatalf("Fail: got %v expected %v", resBt, bt)

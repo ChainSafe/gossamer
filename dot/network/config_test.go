@@ -36,18 +36,14 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err := configA.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	configB := &Config{
 		DataDir: testDir,
 	}
 
 	err = configB.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(configA.privateKey, configB.privateKey) {
 		t.Error("Private keys should match")
@@ -58,18 +54,14 @@ func TestBuildIdentity(t *testing.T) {
 	}
 
 	err = configC.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	configD := &Config{
 		RandSeed: 2,
 	}
 
 	err = configD.buildIdentity()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if reflect.DeepEqual(configC.privateKey, configD.privateKey) {
 		t.Error("Private keys should not match")
@@ -94,9 +86,7 @@ func TestBuild(t *testing.T) {
 	}
 
 	err := cfg.build()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	require.Equal(t, testBlockState, cfg.BlockState)
 	require.Equal(t, testNetworkState, cfg.NetworkState)

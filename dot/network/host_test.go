@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // test host connect method
@@ -62,9 +64,7 @@ func TestConnect(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -72,9 +72,7 @@ func TestConnect(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
@@ -201,9 +199,7 @@ func TestPing(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -211,24 +207,16 @@ func TestPing(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.ping(addrInfosB[0].ID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	addrInfosA, err := nodeA.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeB.host.ping(addrInfosA[0].ID)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 }
 
 // test host send method
@@ -272,9 +260,7 @@ func TestSend(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -282,14 +268,10 @@ func TestSend(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	select {
 	case msg := <-msgSendB:
@@ -346,9 +328,7 @@ func TestBroadcast(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -356,9 +336,7 @@ func TestBroadcast(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	dataDirC := utils.NewTestDataDir(t, "")
 
@@ -380,9 +358,7 @@ func TestBroadcast(t *testing.T) {
 	nodeC.noStatus = true
 
 	addrInfosC, err := nodeC.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosC[0])
 	// retry connect if "failed to dial" error
@@ -390,9 +366,7 @@ func TestBroadcast(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosC[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	nodeA.host.broadcast(TestMessage)
 
@@ -449,9 +423,7 @@ func TestExistingStream(t *testing.T) {
 	nodeA.noStatus = true
 
 	addrInfosA, err := nodeA.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	dataDirB := utils.NewTestDataDir(t, "nodeB")
 
@@ -473,9 +445,7 @@ func TestExistingStream(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -483,9 +453,7 @@ func TestExistingStream(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	stream := nodeA.host.getStream(nodeB.host.id())
 	if stream != nil {
@@ -494,9 +462,7 @@ func TestExistingStream(t *testing.T) {
 
 	// node A opens the stream to send the first message
 	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	select {
 	case <-msgSendB:
@@ -511,9 +477,7 @@ func TestExistingStream(t *testing.T) {
 
 	// node A uses the stream to send a second message
 	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	select {
 	case <-msgSendB:
@@ -533,9 +497,7 @@ func TestExistingStream(t *testing.T) {
 
 	// node B opens the stream to send the first message
 	err = nodeB.host.send(addrInfosA[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	select {
 	case <-msgSendA:
@@ -550,9 +512,7 @@ func TestExistingStream(t *testing.T) {
 
 	// node B uses the stream to send a second message
 	err = nodeB.host.send(addrInfosA[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	select {
 	case <-msgSendA:

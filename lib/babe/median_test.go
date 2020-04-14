@@ -22,14 +22,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMedian_OddLength(t *testing.T) {
 	us := []uint64{3, 2, 1, 4, 5}
 	res, err := median(us)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	var expected uint64 = 3
 
@@ -41,9 +41,7 @@ func TestMedian_OddLength(t *testing.T) {
 func TestMedian_EvenLength(t *testing.T) {
 	us := []uint64{1, 4, 2, 4, 5, 6}
 	res, err := median(us)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	var expected uint64 = 4
 
@@ -69,9 +67,7 @@ func TestSlotOffset(t *testing.T) {
 	var se uint64 = 1000001
 
 	res, err := slotOffset(st, se)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	var expected uint64 = 1
 
@@ -92,9 +88,7 @@ func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState 
 		slotNumber := uint64(i)
 
 		outAndProof, err := babesession.runLottery(slotNumber)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if outAndProof == nil {
 			t.Fatal("proof was nil when over threshold")
@@ -110,9 +104,7 @@ func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState 
 		}
 
 		predigest, err := babesession.buildBlockPreDigest(slot)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		block := &types.Block{
 			Header: &types.Header{
@@ -128,9 +120,7 @@ func addBlocksToState(t *testing.T, babesession *Session, depth int, blockState 
 		previousAT = arrivalTime
 
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 	}
 }
 
@@ -139,9 +129,7 @@ func TestSlotTime(t *testing.T) {
 	addBlocksToState(t, babesession, 100, babesession.blockState, uint64(0))
 
 	res, err := babesession.slotTime(103, 20)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected := uint64(103)
 
@@ -158,9 +146,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	slotNumber := uint64(17)
 
 	outAndProof, err := babesession.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if outAndProof == nil {
 		t.Fatal("proof was nil when over threshold")
@@ -176,9 +162,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	}
 
 	predigest, err := babesession.buildBlockPreDigest(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	block := &types.Block{
 		Header: &types.Header{
@@ -192,14 +176,10 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	arrivalTime := uint64(time.Now().Unix()) - slot.duration
 
 	err = babesession.blockState.AddBlockWithArrivalTime(block, arrivalTime)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	estimatedSlot, err := babesession.estimateCurrentSlot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if estimatedSlot != slotNumber+1 {
 		t.Fatalf("Fail: got %d expected %d", estimatedSlot, slotNumber+1)
@@ -214,9 +194,7 @@ func TestGetCurrentSlot(t *testing.T) {
 	addBlocksToState(t, babesession, 100, babesession.blockState, uint64(time.Now().Unix())-(babesession.config.SlotDuration/10))
 
 	res, err := babesession.getCurrentSlot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected := uint64(100)
 

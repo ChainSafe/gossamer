@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"math/rand"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func generateRandBytes(size int) []byte {
@@ -63,9 +65,7 @@ func TestNewHasher(t *testing.T) {
 
 func TestHashLeaf(t *testing.T) {
 	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
 	h, err := hasher.Hash(n)
@@ -78,9 +78,7 @@ func TestHashLeaf(t *testing.T) {
 
 func TestHashBranch(t *testing.T) {
 	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	n := &branch{key: generateRandBytes(380), value: generateRandBytes(380)}
 	n.children[3] = &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}
@@ -94,15 +92,11 @@ func TestHashBranch(t *testing.T) {
 
 func TestHashShort(t *testing.T) {
 	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	n := &leaf{key: generateRandBytes(2), value: generateRandBytes(3)}
 	expected, err := n.encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	h, err := hasher.Hash(n)
 	if err != nil {

@@ -20,19 +20,17 @@ import (
 	"crypto/rand"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewKeypairFromSeed(t *testing.T) {
 	seed := make([]byte, 32)
 	_, err := rand.Read(seed)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kp, err := NewKeypairFromSeed(seed)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if kp.public == nil || kp.private == nil {
 		t.Fatal("key is nil")
@@ -41,21 +39,15 @@ func TestNewKeypairFromSeed(t *testing.T) {
 
 func TestSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	msg := []byte("helloworld")
 	sig, err := kp.Sign(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pub := kp.Public().(*PublicKey)
 	ok, err := pub.Verify(msg, sig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !ok {
 		t.Fatal("Fail: did not verify sr25519 sig")
 	}
@@ -63,15 +55,11 @@ func TestSignAndVerify(t *testing.T) {
 
 func TestPublicKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	priv := kp.Private().(*PrivateKey)
 	kp2, err := NewKeypair(priv.key)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !reflect.DeepEqual(kp.Public(), kp2.Public()) {
 		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
 	}
@@ -79,16 +67,12 @@ func TestPublicKeys(t *testing.T) {
 
 func TestEncodeAndDecodePrivateKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Private().Encode()
 	res := new(PrivateKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	exp := kp.Private().(*PrivateKey).key.Encode()
 	if !reflect.DeepEqual(res.key.Encode(), exp) {
@@ -98,16 +82,12 @@ func TestEncodeAndDecodePrivateKey(t *testing.T) {
 
 func TestEncodeAndDecodePublicKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	enc := kp.Public().Encode()
 	res := new(PublicKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	exp := kp.Public().(*PublicKey).key.Encode()
 	if !reflect.DeepEqual(res.key.Encode(), exp) {
@@ -117,21 +97,15 @@ func TestEncodeAndDecodePublicKey(t *testing.T) {
 
 func TestVrfSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	msg := []byte("helloworld")
 	out, proof, err := kp.VrfSign(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pub := kp.Public().(*PublicKey)
 	ok, err := pub.VrfVerify(msg, out, proof)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if !ok {
 		t.Fatal("Fail: did not verify vrf")
 	}

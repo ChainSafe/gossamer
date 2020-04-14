@@ -208,14 +208,10 @@ func TestEncodeAndDecodeStringInStruct(t *testing.T) {
 	}
 
 	enc, err := Encode(test)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	dec, err := Decode(enc, &struct{ A string }{A: ""})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(test, dec) {
 		t.Fatalf("Fail: got %v expected %v", dec, test)

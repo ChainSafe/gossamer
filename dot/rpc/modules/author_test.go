@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,9 +21,7 @@ func TestAuthorModule_Pending(t *testing.T) {
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{})) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{})
@@ -36,14 +35,10 @@ func TestAuthorModule_Pending(t *testing.T) {
 	txQueue.Push(vtx)
 
 	err = auth.PendingExtrinsics(nil, nil, res)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected, err := vtx.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{expected})) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{expected})
@@ -58,9 +53,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	res := new(ExtrinsicHashResponse)
 
 	err := auth.SubmitExtrinsic(nil, &ext, res)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expected := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(testExt),

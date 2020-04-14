@@ -21,16 +21,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	cfg := &SessionConfig{
 		Keypair: kp,
@@ -38,9 +36,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
@@ -57,9 +53,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	// create babe header
 	babeHeader, err := babesession.buildBlockBabeHeader(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	babesession.authorityData = make([]*AuthorityData, 1)
 	babesession.authorityData[0] = &AuthorityData{
@@ -67,9 +61,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	}
 
 	ok, err := babesession.verifySlotWinner(slot.number, babeHeader)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !ok {
 		t.Fatal("did not verify slot winner")
@@ -79,9 +71,7 @@ func TestVerifySlotWinner(t *testing.T) {
 func TestVerifyAuthorshipRight(t *testing.T) {
 	babesession := createTestSession(t, nil)
 	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
@@ -89,9 +79,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	block, slot := createTestBlock(t, babesession, [][]byte{txb})
 
 	ok, err := babesession.verifyAuthorshipRight(slot.number, block.Header)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !ok {
 		t.Fatal("did not verify authorship right")
@@ -100,9 +88,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	cfg := &SessionConfig{
 		Keypair: kp,
@@ -110,9 +96,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	babesession.authorityData = make([]*AuthorityData, 1)
 	babesession.authorityData[0] = &AuthorityData{
@@ -126,9 +110,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	block.Header.Hash()
 
 	err = babesession.blockState.AddBlock(block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	ok, err := babesession.verifyAuthorshipRight(slotNumber, block.Header)
 	require.NoError(t, err)
@@ -144,9 +126,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	t.Log(block2.Header)
 
 	err = babesession.blockState.AddBlock(block2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	ok, err = babesession.verifyAuthorshipRight(slotNumber, block2.Header)
 	require.NotNil(t, err)

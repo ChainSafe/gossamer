@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // test gossip messages to connected peers
@@ -65,9 +67,7 @@ func TestGossip(t *testing.T) {
 	nodeB.noStatus = true
 
 	addrInfosA, err := nodeA.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeB.host.connect(*addrInfosA[0])
 	// retry connect if "failed to dial" error
@@ -75,9 +75,7 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeB.host.connect(*addrInfosA[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	dataDirC := utils.NewTestDataDir(t, "nodeC")
 
@@ -103,14 +101,10 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeC.host.connect(*addrInfosA[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeC.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -118,14 +112,10 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeC.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.send(addrInfosB[0].ID, TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// node A sends message to node B
 	select {

@@ -81,7 +81,7 @@ func TestConfigFromNodeFlag(t *testing.T) {
 
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	_, testCfgFile := dot.NewTestConfigWithFile(t)
 
 	defer utils.RemoveTestDir(t)
 
@@ -256,7 +256,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	_, testCfgFile := dot.NewTestConfigWithFile(t)
 
 	defer utils.RemoveTestDir(t)
 

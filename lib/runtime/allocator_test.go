@@ -310,9 +310,7 @@ func TestAllocator(t *testing.T) {
 
 			case *freeTest:
 				err := allocator.Deallocate(v.ptr)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.Nil(t, err)
 				compareState(*allocator, theTest.state, nil, theTest.output, t)
 			}
 		}
@@ -370,9 +368,7 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 	fbha := NewAllocator(mem, 0)
 
 	ptr1, err := fbha.Allocate((currentSize / 2) - 8)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 	if ptr1 != 8 {
 		t.Errorf("Expected value of 8")
 	}
@@ -398,16 +394,13 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 	pagesNeeded := (MaxPossibleAllocation / pageSize) - (mem.Length() / pageSize) + 1
 	err := mem.Grow(pagesNeeded)
-	if err != nil {
-		t.Error(err)
-	}
+	require.Nil(t, err)
+
 	fbha := NewAllocator(mem, 0)
 
 	// when
 	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
-	if err != nil {
-		t.Error(err)
-	}
+	require.Nil(t, err)
 
 	//then
 	t.Log("ptr1", ptr1)

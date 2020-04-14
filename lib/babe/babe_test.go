@@ -29,6 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/stretchr/testify/require"
 )
 
 var genesisHeader = &types.Header{
@@ -66,9 +68,7 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 	var err error
 	if cfg.Keypair == nil {
 		cfg.Keypair, err = sr25519.GenerateKeypair()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 	}
 
 	if cfg.AuthData == nil {
@@ -90,23 +90,17 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 		genesisData := new(genesis.Data)
 
 		err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		err = dbSrv.Start()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		cfg.BlockState = dbSrv.Block
 		cfg.StorageState = dbSrv.Storage
 	}
 
 	babesession, err := NewSession(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return babesession
 }
@@ -121,9 +115,7 @@ func TestKill(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err := babesession.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	close(killChan)
 	<-doneChan
@@ -143,9 +135,7 @@ func TestCalculateThreshold(t *testing.T) {
 	expected := new(big.Int).Lsh(big.NewInt(1), 128)
 
 	threshold, err := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if threshold.Cmp(expected) != 0 {
 		t.Fatalf("Fail: got %d expected %d", threshold, expected)
@@ -164,9 +154,7 @@ func TestCalculateThreshold(t *testing.T) {
 	expected = q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 
 	threshold, err = calculateThreshold(C1, C2, authorityIndex, authorityWeights)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if threshold.Cmp(expected) != 0 {
 		t.Fatalf("Fail: got %d expected %d", threshold, expected)
@@ -189,9 +177,7 @@ func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
 	expected := q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 
 	threshold, err := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if threshold.Cmp(expected) != 0 {
 		t.Fatalf("Fail: got %d expected %d", threshold, expected)
@@ -203,9 +189,7 @@ func TestRunLottery(t *testing.T) {
 	babesession.epochThreshold = big.NewInt(0)
 
 	outAndProof, err := babesession.runLottery(0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if outAndProof == nil {
 		t.Fatal("proof was nil when over threshold")
@@ -217,9 +201,7 @@ func TestRunLottery_False(t *testing.T) {
 	babesession.epochThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 
 	outAndProof, err := babesession.runLottery(0)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if outAndProof != nil {
 		t.Fatal("proof was not nil when under threshold")
@@ -249,9 +231,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	babesession.config = &Configuration{
 		SlotDuration:       1,
@@ -269,9 +249,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 
 	err = babesession.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	block := <-newBlocks
 	blockNumber := big.NewInt(int64(1))
@@ -282,14 +260,10 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 func TestDetermineAuthorityIndex(t *testing.T) {
 	kpA, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	kpB, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
@@ -305,9 +279,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	}
 
 	err = bs.setAuthorityIndex()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if bs.authorityIndex != 0 {
 		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 0)
@@ -319,9 +291,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	}
 
 	err = bs.setAuthorityIndex()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if bs.authorityIndex != 1 {
 		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 1)

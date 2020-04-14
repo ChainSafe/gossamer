@@ -51,14 +51,10 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	genesisData := new(genesis.Data)
 
 	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = stateSrvc.Block
@@ -84,9 +80,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	}
 
 	syncer, err := NewSyncer(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return syncer
 }
@@ -281,9 +275,7 @@ func TestWatchForResponses(t *testing.T) {
 
 	startNum := 1
 	start, err := variadic.NewUint64OrHash(startNum)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	req := &network.BlockRequestMessage{
 		ID:            1,
@@ -292,9 +284,7 @@ func TestWatchForResponses(t *testing.T) {
 	}
 
 	resp, err := coreSrv.createBlockResponse(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	syncer.lock.Lock()
 	syncer.synced = false
@@ -325,9 +315,7 @@ func TestWatchForResponses(t *testing.T) {
 	}
 
 	resp2, err := coreSrv.createBlockResponse(req2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	respIn <- resp2
 	time.Sleep(time.Second)
@@ -361,9 +349,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	syncer.requestStart = int64(startNum)
 
 	start, err := variadic.NewUint64OrHash(startNum)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	req := &network.BlockRequestMessage{
 		ID:            1,
@@ -372,9 +358,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	}
 
 	resp, err := coreSrv.createBlockResponse(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	syncer.lock.Lock()
 	syncer.synced = false
@@ -419,9 +403,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 
 	exts := []types.Extrinsic{ext}
 	body, err := types.NewBodyFromExtrinsics(exts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	bd := &types.BlockData{
 		Body: body.AsOptional(),
@@ -432,9 +414,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	}
 
 	_, err = syncer.processBlockResponseData(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	inQueue := syncer.transactionQueue.Pop()
 	if inQueue != nil {

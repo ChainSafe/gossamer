@@ -56,14 +56,10 @@ func TestSetAndGetHeader(t *testing.T) {
 	}
 
 	err := bs.SetHeader(header)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res, err := bs.GetHeader(header.Hash())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, header) {
 		t.Fatalf("Fail: got %v expected %v", res, header)
@@ -181,9 +177,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	bs := newTestBlockState(genesisHeader)
 
 	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	expectedSlot := uint64(17)
 
@@ -197,14 +191,10 @@ func TestGetSlotForBlock(t *testing.T) {
 	}
 
 	err = bs.AddBlock(block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, expectedSlot) {
 		t.Fatalf("Fail: got %x expected %x", res, expectedSlot)
@@ -222,9 +212,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 
 	for _, header := range currChain {
 		onChain, err := bs.isBlockOnCurrentChain(header)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		if !onChain {
 			t.Fatalf("Fail: expected block %s to be on current chain", header.Hash())
 		}
@@ -232,9 +220,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 
 	for _, header := range branchChains {
 		onChain, err := bs.isBlockOnCurrentChain(header)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		if onChain {
 			t.Fatalf("Fail: expected block %s not to be on current chain", header.Hash())
 		}
@@ -252,16 +238,12 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 	bestHash := bs.BestBlockHash()
 	bestHeader, err := bs.BestBlockHeader()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	var resBlock *types.Block
 	for _, header := range currChain {
 		resBlock, err = bs.GetBlockByNumber(header.Number)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if resBlock.Header.Hash() != header.Hash() {
 			t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), header.Hash(), header.Number)
@@ -270,9 +252,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 	for _, header := range branchChains {
 		resBlock, err = bs.GetBlockByNumber(header.Number)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if resBlock.Header.Hash() == header.Hash() {
 			t.Fatalf("Fail: should not have gotten block %s for branch block num=%d", header.Hash(), header.Number)
@@ -288,14 +268,10 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	err = bs.AddBlock(newBlock)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
 		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)

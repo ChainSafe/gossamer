@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestPutAndGetChild(t *testing.T) {
@@ -28,14 +30,10 @@ func TestPutAndGetChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.PutChild(childKey, childTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	childTrieRes, err := parentTrie.GetChild(childKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(childTrie, childTrieRes) {
 		t.Fatalf("Fail: got %v expected %v", childTrieRes, childTrie)
@@ -48,21 +46,15 @@ func TestPutAndGetFromChild(t *testing.T) {
 	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.PutChild(childKey, childTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testKey := []byte("child_key")
 	testValue := []byte("child_value")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	valueRes, err := parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !bytes.Equal(valueRes, testValue) {
 		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)
@@ -71,14 +63,10 @@ func TestPutAndGetFromChild(t *testing.T) {
 	testKey = []byte("child_key_again")
 	testValue = []byte("child_value_again")
 	err = parentTrie.PutIntoChild(childKey, testKey, testValue)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	valueRes, err = parentTrie.GetFromChild(childKey, testKey)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !bytes.Equal(valueRes, testValue) {
 		t.Fatalf("Fail: got %x expected %x", valueRes, testValue)

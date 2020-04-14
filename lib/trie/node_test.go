@@ -24,6 +24,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/stretchr/testify/require"
 )
 
 // byteArray makes byte array with length specified; used to test byte array encoding
@@ -269,21 +271,15 @@ func TestBranchDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		res := new(branch)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if !reflect.DeepEqual(res, test) {
 			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
@@ -305,21 +301,15 @@ func TestLeafDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		res := new(leaf)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if !reflect.DeepEqual(res, test) {
 			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
@@ -348,20 +338,14 @@ func TestDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		res, err := decode(r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		if !reflect.DeepEqual(res, test) {
 			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)

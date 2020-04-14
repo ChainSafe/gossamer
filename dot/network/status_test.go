@@ -22,6 +22,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // wait time for status messages to be exchanged and handled
@@ -51,14 +53,10 @@ func TestStatus(t *testing.T) {
 	nodeA.noGossip = true
 
 	genesisHash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	bestBlockHash, err := common.HexToHash("0x829de6be9a35b55c794c609c060698b549b3064c183504c18ab7517e41255569")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	testStatusMessage := &StatusMessage{
 		ProtocolVersion:     uint32(2),
@@ -95,9 +93,7 @@ func TestStatus(t *testing.T) {
 	msgRecB <- testStatusMessage
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -105,9 +101,7 @@ func TestStatus(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	time.Sleep(TestStatusTimeout)
 

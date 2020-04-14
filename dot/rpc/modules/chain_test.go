@@ -16,12 +16,12 @@ import (
 
 func newChainService(t *testing.T) *state.Service {
 	testDir := utils.NewTestDir(t)
+
 	defer utils.RemoveTestDir(t)
+
 	stateSrvc := state.NewService(testDir)
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	tr := trie.NewEmptyTrie()
 
@@ -30,19 +30,14 @@ func newChainService(t *testing.T) *state.Service {
 	genesisData := new(genesis.Data)
 
 	err = stateSrvc.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	return stateSrvc
 }
 

@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,9 +38,7 @@ func TestBabeHeader_EncodeAndDecode(t *testing.T) {
 	enc := bh.Encode()
 	bh2 := new(BabeHeader)
 	err := bh2.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(bh, bh2) {
 		t.Fatalf("Fail: got %v expected %v", bh2, bh)

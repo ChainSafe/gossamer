@@ -19,20 +19,18 @@ package types
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBodyToExtrinsics(t *testing.T) {
 	exts := []Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
 	body, err := NewBodyFromExtrinsics(exts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res, err := body.AsExtrinsics()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(res, exts) {
 		t.Fatalf("Fail: got %x expected %x", res, exts)

@@ -21,19 +21,16 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewUint64OrHash(t *testing.T) {
 	hash, err := common.HexToHash("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	res, err := NewUint64OrHash(hash)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if resValue, ok := res.Value().(common.Hash); !ok || resValue != hash {
 		t.Fatalf("Fail: got %x expected %x", resValue, hash)
@@ -42,18 +39,14 @@ func TestNewUint64OrHash(t *testing.T) {
 	num := 77
 
 	res, err = NewUint64OrHash(num)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if resValue, ok := res.Value().(uint64); !ok || resValue != uint64(num) {
 		t.Fatalf("Fail: got %d expected %d", resValue, num)
 	}
 
 	res, err = NewUint64OrHash(uint64(num))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	if resValue, ok := res.Value().(uint64); !ok || resValue != uint64(num) {
 		t.Fatalf("Fail: got %d expected %d", resValue, uint64(num))
