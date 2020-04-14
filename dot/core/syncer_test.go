@@ -38,16 +38,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type MockVerifier struct{}
-
-func (v *MockVerifier) VerifyBlock(header *types.Header) (bool, error) {
-	return true, nil
-}
-
-// func (v *MockVerifier) IncrementEpoch() (*NextEpochDescriptor, error) {
-// 	return &NextEpochDescriptor{}, nil
-// }
-
 func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	if cfg == nil {
 		cfg = &SyncerConfig{}
@@ -96,7 +86,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	}
 
 	if cfg.Verifier == nil {
-		cfg.Verifier = &MockVerifier{}
+		cfg.Verifier = &mockVerifier{}
 	}
 
 	syncer, err := NewSyncer(cfg)

@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -37,7 +38,11 @@ import (
 // Verifier deals with block verification, as well as NextEpochDescriptors.
 type Verifier interface {
 	VerifyBlock(header *types.Header) (bool, error)
-	//IncrementEpoch() (*babe.NextEpochDescriptor, error)
+
+	// IncrementEpoch is called when we have received all the blocks for an epoch.
+	IncrementEpoch() (*babe.NextEpochDescriptor, error)
+
+	EpochNumber() uint64
 }
 
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
@@ -390,6 +395,8 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 	} else {
 		log.Info("[sync] imported block", "number", block.Header.Number, "hash", block.Header.Hash())
 	}
+
+	// TODO: if block is from the next epoch, increment epoch
 
 	return nil
 }

@@ -39,11 +39,10 @@ type VerificationManager struct {
 	// current epoch information
 	currentEpoch uint64
 	firstBlock   *types.Header // first block of current epoch, may change over course of epoch
-	verifier     *Verifier
+	verifier     *Verifier     // TODO: need to keep historical verifiers, change to map
 }
 
-var ErrNilBlockState = errors.New("cannot have nil BlockState")
-
+// NewVerificationManager returns a new VerificationManager
 func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentDescriptor *NextEpochDescriptor) (*VerificationManager, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
@@ -62,14 +61,13 @@ func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentD
 	}, nil
 }
 
-// func (v *VerificationManager) CurrentEpoch() uint64 {
-// 	return v.currentEpoch
-// }
+// EpochNumber returns the current epoch number
+func (v *VerificationManager) EpochNumber() uint64 {
+	return v.currentEpoch
+}
 
-// func (v *VerificationManager) SetCurrentEpoch(epoch uint64) {
-// 	v.currentEpoch = epoch
-// }
-
+// IncrementEpoch sets the NextEpochDescriptor for the current epoch and returns it.
+// It also increments the epoch number.
 func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
 	var nextEpochDescriptor *NextEpochDescriptor
 
@@ -101,38 +99,13 @@ func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
 	return nextEpochDescriptor, nil
 }
 
-// func (v *VerificationManager) SetNextEpochDescriptor(epoch uint64, descriptor *NextEpochDescriptor) {
-// 	v.epochToNextEpochDescriptor[epoch] = descriptor
-// }
-
-func (v *VerificationManager) GetNextEpochDescriptor(epoch uint64) *NextEpochDescriptor {
-	return v.epochToNextEpochDescriptor[epoch]
-}
-
-// Verifier returns a Verifier for the given epoch.
-func (v *VerificationManager) Verifier(epoch uint64) (*Verifier, error) {
-	descriptor := v.epochToNextEpochDescriptor[epoch]
-	if descriptor == nil {
-		return nil, ErrNilNextEpochDescriptor
-	}
-
-	return NewVerifier(v.blockState, descriptor)
-}
-
+// VerifyBlock verifies the given header with verifyAuthorshipRight.
+// It also checks for a NextEpochDescriptor for the current epoch.
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	fromEpoch, err := v.isBlockFromEpoch(header.Hash(), v.currentEpoch)
 	if err != nil {
 		return false, err
 	}
-
-	// if fromNextEpoch, err := v.isBlockFromEpoch(header.Hash(), v.currentEpoch + 1); err != nil {
-	// 	return false, err
-	// } else if fromNextEpoch && v.firstBlock != nil {
-	// 	_, err = v.IncrementEpoch()
-	// 	if err != nil {
-	// 		return false, err
-	// 	}
-	// }
 
 	digest, err := checkForConsensusDigest(header)
 	if err != nil {
@@ -165,6 +138,40 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	return ok, nil
 }
 
+// blockFromCurrentEpoch verifies the provided block hash is from given epoch
+func (v *VerificationManager) isBlockFromEpoch(hash common.Hash, epoch uint64) (bool, error) {
+	// get epoch number of block header
+	blockEpoch, err := v.getBlockEpoch(hash)
+	if err != nil {
+		return false, fmt.Errorf("[babe verifier] failed to get epoch from block header: %s", err)
+	}
+
+	// check if block epoch number matches given epoch number
+	if blockEpoch != epoch {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// getBlockEpoch gets the epoch number using the provided block hash
+func (v *VerificationManager) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
+	// get slot number to determine epoch number
+	// TODO: directly calulcate this from the pre-digest
+	slot, err := v.blockState.GetSlotForBlock(hash)
+	if err != nil {
+		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
+	}
+
+	if slot != 0 {
+		// epoch number = (slot - genesis slot) / epoch length
+		epoch = (slot - 1) / 6 // TODO: use epoch length from babe or core config
+	}
+
+	return epoch, nil
+}
+
+// checkForConsensusDigest returns a consensus digest from the header, if it exists.
 func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, error) {
 	// check if block header digest items exist
 	if header.Digest == nil || len(header.Digest) == 0 {
@@ -192,40 +199,6 @@ func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, erro
 	}
 
 	return consensusDigest, nil
-}
-
-// blockFromCurrentEpoch verifies the provided block hash is from current epoch
-func (v *VerificationManager) isBlockFromEpoch(hash common.Hash, epoch uint64) (bool, error) {
-	// get epoch number of block header
-	blockEpoch, err := v.getBlockEpoch(hash)
-	if err != nil {
-		return false, fmt.Errorf("[babe verifier] failed to get epoch from block header: %s", err)
-	}
-
-	// check if block epoch number matches current epoch number
-	if blockEpoch != epoch {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-// getBlockEpoch gets the epoch number using the provided block hash
-func (v *VerificationManager) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
-
-	// get slot number to determine epoch number
-	// TODO: directly calulcate this from the pre-digest
-	slot, err := v.blockState.GetSlotForBlock(hash)
-	if err != nil {
-		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
-	}
-
-	if slot != 0 {
-		// epoch number = (slot - genesis slot) / epoch length
-		epoch = (slot - 1) / 6 // TODO: use epoch length from babe or core config
-	}
-
-	return epoch, nil
 }
 
 // Verifier represents a BABE verifier for a specific epoch

@@ -56,8 +56,6 @@ type Service struct {
 	// Current BABE session
 	bs              *babe.Session
 	isBabeAuthority bool
-	epochNumber     uint64   // epoch number of current epoch
-	firstBlock      *big.Int // block number of first block in current epoch
 
 	// Keystore
 	keys *keystore.Keystore
@@ -149,8 +147,6 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			epochDone:        epochDone,
 			babeKill:         babeKill,
-			epochNumber:      uint64(0),
-			firstBlock:       nil,
 			isBabeAuthority:  true,
 			lock:             chanLock,
 			closed:           false,
@@ -205,14 +201,12 @@ func NewService(cfg *Config) (*Service, error) {
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
 		}
-	}
 
-	// if authData == nil {
-	// 	authData, err = srv.grandpaAuthorities()
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+		authData, err = srv.grandpaAuthorities()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if cfg.Verifier == nil {
 		currentDescriptor := &babe.NextEpochDescriptor{

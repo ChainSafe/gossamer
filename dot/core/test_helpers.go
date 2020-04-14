@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -37,24 +38,34 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-type MockVerifier struct{}
+// mockVerifier implements the Verifier interface
+type mockVerifier struct{}
 
-func (v *MockVerifier) VerifyBlock(header *types.Header) (bool, error) {
+// VerifyBlock mocks verifying a block
+func (v *mockVerifier) VerifyBlock(header *types.Header) (bool, error) {
 	return true, nil
 }
 
-// func (v *MockVerifier) IncrementEpoch() (*NextEpochDescriptor, error) {
-// 	return &NextEpochDescriptor{}, nil
-// }
+// IncrementEpoch mocks incrementing an epoch
+func (v *mockVerifier) IncrementEpoch() (*babe.NextEpochDescriptor, error) {
+	return &babe.NextEpochDescriptor{}, nil
+}
+
+// EpochNumber mocks an epoch number
+func (v *mockVerifier) EpochNumber() uint64 {
+	return 1
+}
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
 		cfg = &Config{
-			Runtime:         rt,
 			IsBabeAuthority: false,
 		}
+	}
+
+	if cfg.Runtime == nil {
+		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
 	}
 
 	if cfg.Keystore == nil {
@@ -82,7 +93,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.SyncChan = make(chan *big.Int, 10)
 	}
 
-	cfg.Verifier = &MockVerifier{}
+	cfg.Verifier = &mockVerifier{}
 
 	stateSrvc := state.NewService("")
 	stateSrvc.UseMemDB()

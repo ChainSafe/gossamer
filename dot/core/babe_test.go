@@ -16,58 +16,18 @@
 
 package core
 
-// import (
-// 	"testing"
+import (
+	"testing"
 
-// 	"github.com/stretchr/testify/require"
-// )
+	"github.com/stretchr/testify/require"
+)
 
-// // test finalizeBabeSession
-// func TestFinalizeBabeSession(t *testing.T) {
-// 	t.Skip()
-// 	s := newTestSyncer(t, nil) // newTestServiceWithFirstBlock(t)
-// 	addTestBlocksToState(t, 1, s.blockState)
+// test initializeBabeSession
+func TestInitializeBabeSession(t *testing.T) {
+	s := newTestServiceWithFirstBlock(t)
 
-// 	header, err := s.blockState.BestBlockHeader()
-// 	require.Nil(t, err)
+	bs, err := s.initializeBabeSession()
+	require.Nil(t, err)
 
-// 	err = s.checkForConsensusDigest(header)
-// 	require.Nil(t, err)
-
-// 	require.Equal(t, header, s.firstBlock)
-
-// 	// err = s.finalizeBabeSession()
-// 	// require.Nil(t, err)
-
-// 	// require.Nil(t, s.firstBlock)
-// }
-
-// // test initializeBabeSession
-// func TestInitializeBabeSession(t *testing.T) {
-// 	t.Skip()
-// 	s := newTestSyncer(t, nil)
-// 	addTestBlocksToState(t, 1, s.blockState)
-
-// 	header, err := s.blockState.BestBlockHeader()
-// 	require.Nil(t, err)
-
-// 	err = s.checkForConsensusDigest(header)
-// 	require.Nil(t, err)
-
-// 	require.Equal(t, header, s.firstBlock)
-
-// 	//epochNumber := s.currentEpoch()
-
-// 	// err = s.finalizeBabeSession()
-// 	// require.Nil(t, err)
-
-// 	// require.Nil(t, s.firstBlock)
-
-// 	// bs, err := s.initializeBabeSession()
-// 	// require.Nil(t, err)
-
-// 	// require.Equal(t, epochNumber+1, s.epochNumber)
-// 	// require.Nil(t, s.firstBlock)
-
-// 	// require.NotNil(t, bs)
-// }
+	require.NotNil(t, bs)
+}

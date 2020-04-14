@@ -26,54 +26,11 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// // setNextEpochDescriptor sets the epoch data for the next epoch from the data
-// // included in the ConsensusDigest of the first block of each epoch
-// func (s *Service) setNextEpochDescriptor(data []byte) error {
-
-// 	// initialize epoch data interface for next epoch
-// 	nextEpochData := new(babe.NextEpochDescriptor)
-
-// 	// decode consensus digest data for next epoch
-// 	err := nextEpochData.Decode(data)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// <<<<<<< HEAD
-// 	// set epoch data for next epoch
-// 	return s.bs.SetEpochData(nextEpochData)
-// =======
-// 	// verify best block is from current epoch
-// 	if !currentEpoch {
-// 		return fmt.Errorf("best block is not from current epoch")
-// 	}
-
-// 	// get best epoch number from best header
-// 	bestEpoch, err := s.getBlockEpoch(bestHash)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to get epoch number for best block: %s", err)
-// 	}
-
-// 	// verify current epoch number matches best epoch number
-// 	if s.epochNumber != bestEpoch {
-// 		return fmt.Errorf("block epoch does not match current epoch")
-// 	}
-
-// 	// set next epoch number
-// 	s.epochNumber = bestEpoch + 1
-
-// 	// reset first block number
-// 	s.firstBlock = nil
-
-// 	return nil
-// >>>>>>> 7c8c332e69b3fcc09ce1d1b3ec44e82847802a39
-// }
-
 // initializeBabeSession creates a new BABE session
 func (s *Service) initializeBabeSession() (*babe.Session, error) {
 	log.Debug(
 		"[core] initializing BABE session...",
-		"epoch", s.epochNumber,
+		"epoch", s.syncer.verifier.EpochNumber(),
 	)
 
 	// TODO: AuthorityData comes from NextEpochDescriptor within the ConsensusDigest
@@ -125,7 +82,7 @@ func (s *Service) initializeBabeSession() (*babe.Session, error) {
 
 	log.Debug(
 		"[core] BABE session initialized",
-		"epoch", s.epochNumber,
+		"epoch", s.syncer.verifier.EpochNumber(),
 	)
 
 	return bs, nil

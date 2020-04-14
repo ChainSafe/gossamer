@@ -23,8 +23,66 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
+
+func newTestVerificationManager(t *testing.T) *VerificationManager {
+	dbSrv := state.NewService("")
+	dbSrv.UseMemDB()
+
+	genesisData := new(genesis.Data)
+
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = dbSrv.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vm, err := NewVerificationManager(dbSrv.Block, 0, &NextEpochDescriptor{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return vm
+}
+
+// // test getBlockEpoch
+// func TestGetBlockEpoch(t *testing.T) {
+// 	vm := newTestVerificationManager(t)
+
+// 	blockHash := s.blockState.BestBlockHash()
+
+// 	epoch, err := s.getBlockEpoch(blockHash)
+// 	require.Nil(t, err)
+
+// 	require.Equal(t, s.currentEpoch(), epoch)
+// }
+
+// // test isBlockFromEpoch
+// func TestIsBlockFromEpoch(t *testing.T) {
+// 	s := newTestSyncer(t, nil)
+// 	addTestBlocksToState(t, 1, s.blockState)
+
+// 	s.verificationManager.SetCurrentEpoch(2)
+
+// 	blockHash := s.blockState.BestBlockHash()
+
+// 	currentEpoch, err := s.blockFromCurrentEpoch(blockHash)
+// 	require.Nil(t, err)
+
+// 	require.Equal(t, true, currentEpoch)
+// }
+
+func TestCheckForConsensusDigest(t *testing.T) {
+
+}
 
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()

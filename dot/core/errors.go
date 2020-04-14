@@ -26,6 +26,7 @@ var ErrCannotValidateTx = errors.New("could not validate transaction")
 // ErrInvalidBlock is returned when a block cannot be verified
 var ErrInvalidBlock = errors.New("could not verify block")
 
+// ErrNilVerifier is returned when trying to instantiate a Syncer without a Verifier
 var ErrNilVerifier = errors.New("cannot have nil Verifier")
 
 // ErrNilChannel is returned if a channel is nil
