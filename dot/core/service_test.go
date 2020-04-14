@@ -75,7 +75,7 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	conDigest := consensusDigest.Encode()
 
 	header := &types.Header{
-		ParentHash: TestGenesisHeader.Hash(),
+		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     [][]byte{preDigest, conDigest},
 	}

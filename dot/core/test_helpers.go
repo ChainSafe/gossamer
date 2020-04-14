@@ -32,11 +32,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAuthorityDataKey is the default authority hash used for dot tests
+// TestAuthorityDataKey is the location of authority data in the storage trie
 var TestAuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
 
-// TestGenesisHeader is a test block header
-var TestGenesisHeader = &types.Header{
+// testGenesisHeader is a test block header
+var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
 }
@@ -76,7 +76,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, TestGenesisHeader, trie.NewEmptyTrie())
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
