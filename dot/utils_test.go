@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +30,7 @@ func TestNewConfig(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, cfg)
 }
 
@@ -39,7 +40,7 @@ func TestNewConfigAndFile(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 }

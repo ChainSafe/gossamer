@@ -34,6 +34,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add comments to node tests #687
+
+// TODO: add the following unit tests #687
+// - TestStopNode
+
 // TestInitNode
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -44,10 +49,14 @@ func TestInitNode(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #687
+
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
+
+	// TODO: add more require checks #687
 }
 
 // TestNodeInitialized
@@ -82,6 +91,8 @@ func TestNewNode(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #687
+
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -91,11 +102,13 @@ func TestNewNode(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, ks)
 
-	// TODO: improve dot tests #687
+	// TODO: add authority true test case #687
 	cfg.Core.Authority = false
 
 	_, err = NewNode(cfg, ks)
 	require.Nil(t, err)
+
+	// TODO: add more require checks #687
 }
 
 // TestStartNode
@@ -108,6 +121,8 @@ func TestStartNode(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #687
+
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -117,7 +132,7 @@ func TestStartNode(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, ks)
 
-	// TODO: improve dot tests #687
+	// TODO: add authority true test case #687
 	cfg.Core.Authority = false
 
 	node, err := NewNode(cfg, ks)
@@ -130,10 +145,6 @@ func TestStartNode(t *testing.T) {
 	<-node.stop
 }
 
-// TestStopNode
-
-// TODO: improve dot node tests
-
 // TestInitNode_LoadGenesisData
 func TestInitNode_LoadGenesisData(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -143,6 +154,8 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	require.NotNil(t, genPath)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #687
 
 	cfg.Init.Genesis = genPath
 
@@ -210,6 +223,9 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #687
+
+	// TODO: add authority true test case #687
 	cfg.Core.Authority = false
 	cfg.Init.Genesis = genPath
 

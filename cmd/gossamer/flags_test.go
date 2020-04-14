@@ -16,4 +16,5 @@
 
 package main
 
-// TODO: add cmd flag tests
+// TODO: add the following unit tests #685
+// - TestFixFlagOrder

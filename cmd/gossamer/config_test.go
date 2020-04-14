@@ -30,20 +30,20 @@ import (
 	"github.com/urfave/cli"
 )
 
-// TODO: TestSetDotGlobalConfig - add cmd config tests
-
-// TODO: TestSetDotAccountConfig - add cmd config tests
-
-// TODO: TestSetDotCoreConfig - add cmd config tests
-
-// TODO: TestSetDotNetworkConfig - add cmd config tests
-
-// TODO: TestSetDotRPCConfig - add cmd config tests
+// TODO: add the following unit tests #685
+// - TestSetDotGlobalConfig
+// - TestSetDotInitConfig
+// - TestSetDotAccountConfig
+// - TestSetDotCoreConfig
+// - TestSetDotNetworkConfig
+// - TestSetDotRPCConfig
 
 // TestConfigFromNodeFlag tests createDotConfig using the --node flag
 func TestConfigFromNodeFlag(t *testing.T) {
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add default node #776 and add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -70,8 +70,10 @@ func TestConfigFromNodeFlag(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+
 			require.Equal(t, c.expected, cfg)
 		})
 	}
@@ -80,13 +82,13 @@ func TestConfigFromNodeFlag(t *testing.T) {
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -109,6 +111,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createInitConfig(ctx)
 			require.Nil(t, err)
 
@@ -120,13 +123,13 @@ func TestInitConfigFromFlags(t *testing.T) {
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add default node #776 and add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -191,6 +194,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
 
@@ -202,13 +206,13 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 // TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -241,8 +245,10 @@ func TestAccountConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+
 			require.Equal(t, c.expected, cfg.Account)
 		})
 	}
@@ -251,13 +257,13 @@ func TestAccountConfigFromFlags(t *testing.T) {
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -290,8 +296,10 @@ func TestCoreConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+
 			require.Equal(t, c.expected, cfg.Core)
 		})
 	}
@@ -300,13 +308,13 @@ func TestCoreConfigFromFlags(t *testing.T) {
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -381,8 +389,10 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+
 			require.Equal(t, c.expected, cfg.Network)
 		})
 	}
@@ -391,13 +401,13 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
-	require.NotNil(t, testCfg)
-	require.NotNil(t, testCfgFile)
 
 	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
+
+	// TODO: add more test cases #685
 
 	testcases := []struct {
 		description string
@@ -467,8 +477,10 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			ctx, err := newTestContext(c.description, c.flags, c.values)
 			require.Nil(t, err)
+
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+
 			require.Equal(t, c.expected, cfg.RPC)
 		})
 	}
@@ -479,6 +491,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		t.Name(),
@@ -511,6 +525,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		t.Name(),

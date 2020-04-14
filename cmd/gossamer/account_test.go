@@ -27,6 +27,8 @@ func TestAccountGenerate(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #685
+
 	ctx, err := newTestContext(
 		"Test gossamer account --generate",
 		[]string{"datadir", "generate"},
@@ -42,13 +44,15 @@ func TestAccountGenerate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check contents of data directory - improve cmd account tests
+	// TODO: add more require checks #685
 }
 
 // TestAccountGeneratePassword test "gossamer account --generate --password"
 func TestAccountGeneratePassword(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		"Test gossamer account --generate --password",
@@ -65,13 +69,15 @@ func TestAccountGeneratePassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check contents of data directory - improve cmd account tests
+	// TODO: add more require checks #685
 }
 
 // TestAccountGenerateType test "gossamer account --generate --type"
 func TestAccountGenerateType(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		"Test gossamer account --generate --type",
@@ -88,13 +94,15 @@ func TestAccountGenerateType(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check contents of data directory - improve cmd account tests
+	// TODO: add more require checks #685
 }
 
 // TestAccountImport test "gossamer account --import"
 func TestAccountImport(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		"Test gossamer account --import",
@@ -111,13 +119,15 @@ func TestAccountImport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check contents of data directory - improve cmd account tests
+	// TODO: add more require checks #685
 }
 
 // TestAccountList test "gossamer account --list"
 func TestAccountList(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #685
 
 	ctx, err := newTestContext(
 		"Test gossamer account --list",
@@ -134,5 +144,5 @@ func TestAccountList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TODO: check contents of data directory - improve cmd account tests
+	// TODO: add more require checks #685
 }

@@ -39,6 +39,8 @@ func TestCreateStateService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
+	// TODO: implement table driven tests #130 and add more test cases #687
+
 	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
@@ -47,7 +49,7 @@ func TestCreateStateService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, stateSrvc)
 }
 
@@ -63,7 +65,9 @@ func TestCreateCoreService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
+	// TODO: implement table driven tests #130 and add more test cases #687
+
+	// TODO: add authority true test case #687
 	cfg.Core.Authority = false
 	cfg.Init.Genesis = genFile.Name()
 
@@ -83,7 +87,7 @@ func TestCreateCoreService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, coreSrvc)
 }
 
@@ -98,6 +102,8 @@ func TestCreateNetworkService(t *testing.T) {
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #687
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -114,7 +120,7 @@ func TestCreateNetworkService(t *testing.T) {
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, networkSrvc)
 }
 
@@ -130,7 +136,9 @@ func TestCreateRPCService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	// TODO: improve dot tests #687
+	// TODO: implement table driven tests #130 and add more test cases #687
+
+	// TODO: add authority true test case #687
 	cfg.Core.Authority = false
 	cfg.Init.Genesis = genFile.Name()
 
@@ -148,11 +156,11 @@ func TestCreateRPCService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, make(chan *big.Int))
 	require.Nil(t, err)
 
-	networkSrvc := &network.Service{} // TODO: rpc service without network service
+	networkSrvc := &network.Service{} // TODO: add test case for rpc service without network service #687
 
 	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc)
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, rpcSrvc)
 }

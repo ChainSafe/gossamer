@@ -33,12 +33,13 @@ const KsmccGenesisPath = "../node/ksmcc/genesis.json"
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
 	cfg, cfgFile := NewTestConfigWithFile(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #687
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -48,19 +49,20 @@ func TestLoadConfig(t *testing.T) {
 	err = LoadConfig(cfg, cfgFile.Name())
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, cfg)
 }
 
 // TestExportConfig tests exporting a toml configuration file
 func TestExportConfig(t *testing.T) {
 	cfg, cfgFile := NewTestConfigWithFile(t)
-	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
+
+	// TODO: implement table driven tests #130 and add more test cases #687
 
 	cfg.Init.Genesis = genFile.Name()
 
@@ -69,7 +71,7 @@ func TestExportConfig(t *testing.T) {
 
 	file := ExportConfig(cfg, cfgFile.Name())
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, file)
 }
 
@@ -78,7 +80,6 @@ func TestExportConfig(t *testing.T) {
 // TestLoadConfigGssmr tests loading the toml configuration file for ksmcc
 func TestLoadConfigGssmr(t *testing.T) {
 	cfg := GssmrConfig()
-	require.NotNil(t, cfg)
 
 	cfg.Global.DataDir = utils.NewTestDir(t)
 	cfg.Init.Genesis = GssmrGenesisPath
@@ -91,14 +92,13 @@ func TestLoadConfigGssmr(t *testing.T) {
 	err = LoadConfig(cfg, GssmrConfigPath)
 	require.Nil(t, err)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, cfg)
 }
 
 // TestExportConfigGssmr tests exporting the toml configuration file
 func TestExportConfigGssmr(t *testing.T) {
 	cfg := GssmrConfig()
-	require.NotNil(t, cfg)
 
 	gssmrGenesis := cfg.Init.Genesis
 	gssmrDataDir := cfg.Global.DataDir
@@ -115,7 +115,7 @@ func TestExportConfigGssmr(t *testing.T) {
 
 	file := ExportConfig(cfg, GssmrConfigPath)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, file)
 }
 
@@ -124,7 +124,6 @@ func TestExportConfigGssmr(t *testing.T) {
 // TestLoadConfigKsmcc tests loading the toml configuration file for ksmcc
 func TestLoadConfigKsmcc(t *testing.T) {
 	cfg := KsmccConfig()
-	require.NotNil(t, cfg)
 
 	cfg.Global.DataDir = utils.NewTestDir(t)
 	cfg.Init.Genesis = KsmccGenesisPath
@@ -136,14 +135,13 @@ func TestLoadConfigKsmcc(t *testing.T) {
 
 	err = LoadConfig(cfg, KsmccConfigPath)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.Nil(t, err)
 }
 
 // TestExportConfigKsmcc tests exporting the toml configuration file
 func TestExportConfigKsmcc(t *testing.T) {
 	cfg := KsmccConfig()
-	require.NotNil(t, cfg)
 
 	ksmccGenesis := cfg.Init.Genesis
 	ksmccDataDir := cfg.Global.DataDir
@@ -160,6 +158,6 @@ func TestExportConfigKsmcc(t *testing.T) {
 
 	file := ExportConfig(cfg, KsmccConfigPath)
 
-	// TODO: improve dot tests #687
+	// TODO: add more require checks #687
 	require.NotNil(t, file)
 }

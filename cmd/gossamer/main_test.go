@@ -33,6 +33,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: add comments to main tests and investigate extacting test utils #685
+
+// TODO: add the following unit tests #685
+// - TestGossmaerCommand
+// - TestExportCommand
+// - TestInitCommand
+// - TestAccountCommand
+
 type TestExecCommand struct {
 	*testing.T
 	Func    template.FuncMap
@@ -192,11 +200,3 @@ func TestInvalidCommand(t *testing.T) {
 		require.Contains(t, gossamer.StderrText(), m)
 	}
 }
-
-// TODO: TestGossmaerCommand test "gossamer" does not error
-
-// TODO: TestExportCommand test "gossamer export" does not error
-
-// TODO: TestInitCommand test "gossamer init" does not error
-
-// TODO: TestAccountCommand test "gossamer account" does not error
