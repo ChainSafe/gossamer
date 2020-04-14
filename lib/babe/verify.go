@@ -125,10 +125,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	// check if first block has been set for current epoch
 	if fromEpoch && v.firstBlock != nil {
 
-		fmt.Println("fromEpoch && firstBlock != nil")
-		fmt.Println("header.Number", header.Number)
-		fmt.Println("firstBlock.Number", v.firstBlock.Number)
-
 		// check if block header has lower block number than current first block
 		if header.Number.Cmp(v.firstBlock.Number) < 0 {
 			v.firstBlock = header
