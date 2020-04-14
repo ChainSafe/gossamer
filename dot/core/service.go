@@ -173,8 +173,10 @@ func NewService(cfg *Config) (*Service, error) {
 			SyncLock:         syncerLock,
 		}
 
+		var bs *babe.Session
+		
 		// create a new BABE session
-		bs, err := babe.NewSession(bsConfig)
+		bs, err = babe.NewSession(bsConfig)
 		if err != nil {
 			srv.isBabeAuthority = false
 			log.Error("[core] could not start babe session", "error", err)

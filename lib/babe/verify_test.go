@@ -23,7 +23,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -45,40 +47,71 @@ func newTestVerificationManager(t *testing.T) *VerificationManager {
 		t.Fatal(err)
 	}
 
-	vm, err := NewVerificationManager(dbSrv.Block, 0, &NextEpochDescriptor{})
+	// currentEpoch = 2
+	vm, err := NewVerificationManager(dbSrv.Block, 2, &NextEpochDescriptor{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// preDigest with slot in epoch 2
+	// TODO: use BABE functions to do this
+	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
+	require.Nil(t, err)
+
+	nextEpochData := &NextEpochDescriptor{
+		Authorities: []*AuthorityData{},
+	}
+
+	consensusDigest := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              nextEpochData.Encode(),
+	}
+
+	conDigest := consensusDigest.Encode()
+
+	header := &types.Header{
+		ParentHash: genesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest:     [][]byte{preDigest, conDigest},
+	}
+
+	firstBlock := &types.Block{
+		Header: header,
+		Body:   &types.Body{},
+	}
+
+	err = vm.blockState.AddBlock(firstBlock)
+	require.Nil(t, err)
+
 	return vm
 }
 
-// // test getBlockEpoch
-// func TestGetBlockEpoch(t *testing.T) {
-// 	vm := newTestVerificationManager(t)
+// test getBlockEpoch
+func TestGetBlockEpoch(t *testing.T) {
+	vm := newTestVerificationManager(t)
 
-// 	blockHash := s.blockState.BestBlockHash()
+	blockHash := vm.blockState.BestBlockHash()
 
-// 	epoch, err := s.getBlockEpoch(blockHash)
-// 	require.Nil(t, err)
+	epoch, err := vm.getBlockEpoch(blockHash)
+	require.Nil(t, err)
 
-// 	require.Equal(t, s.currentEpoch(), epoch)
-// }
+	require.Equal(t, vm.currentEpoch, epoch)
+}
 
-// // test isBlockFromEpoch
-// func TestIsBlockFromEpoch(t *testing.T) {
-// 	s := newTestSyncer(t, nil)
-// 	addTestBlocksToState(t, 1, s.blockState)
+// test isBlockFromEpoch
+func TestIsBlockFromEpoch(t *testing.T) {
+	vm := newTestVerificationManager(t)
 
-// 	s.verificationManager.SetCurrentEpoch(2)
+	blockHash := vm.blockState.BestBlockHash()
 
-// 	blockHash := s.blockState.BestBlockHash()
+	ok, err := vm.isBlockFromEpoch(blockHash, 2)
+	require.Nil(t, err)
+	require.Equal(t, true, ok)
 
-// 	currentEpoch, err := s.blockFromCurrentEpoch(blockHash)
-// 	require.Nil(t, err)
-
-// 	require.Equal(t, true, currentEpoch)
-// }
+	ok, err = vm.isBlockFromEpoch(blockHash, 1)
+	require.Nil(t, err)
+	require.Equal(t, false, ok)
+}
 
 func TestCheckForConsensusDigest(t *testing.T) {
 
