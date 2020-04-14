@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/tests"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,7 +209,7 @@ func setupAuthModule(t *testing.T, txq *state.TransactionQueue) *AuthorModule {
 	require.Nil(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(tests.AuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(core.TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
