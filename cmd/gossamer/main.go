@@ -188,7 +188,7 @@ func initAction(ctx *cli.Context) error {
 	cfg.Global.DataDir = utils.ExpandDir(cfg.Global.DataDir)
 
 	// check if node has been initialized (expected false - no warning log)
-	if dot.NodeInitialized(cfg.Global.DataDir, true) {
+	if dot.NodeInitialized(cfg.Global.DataDir, false) {
 
 		// use --force value to force initialize the node
 		force := ctx.GlobalBool(ForceFlag.Name)
