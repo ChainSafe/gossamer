@@ -477,21 +477,25 @@ func TestRPCConfigFromFlags(t *testing.T) {
 // TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
 func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	genFile := dot.NewTestGenesisFile(t, testCfg)
 
 	defer utils.RemoveTestDir(t)
 
 	ctx, err := newTestContext(
 		t.Name(),
-		[]string{"config", "name"},
-		[]interface{}{testCfgFile.Name(), "TESTNODE"},
+		[]string{"config", "genesis"},
+		[]interface{}{testCfgFile.Name(), genFile.Name()},
 	)
 	require.Nil(t, err)
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:    "TESTNODE",
+			Name:    testCfg.Global.Name,
 			ID:      testCfg.Global.ID,
 			DataDir: testCfg.Global.DataDir,
+		},
+		Init: dot.InitConfig{
+			Genesis: genFile.Name(),
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -501,6 +505,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
+
+	cfg.Init.Genesis = genFile.Name()
 
 	updateDotConfigFromGenesisJSON(ctx, cfg)
 
@@ -509,21 +515,25 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	genFile := dot.NewTestGenesisFile(t, testCfg)
 
 	defer utils.RemoveTestDir(t)
 
 	ctx, err := newTestContext(
 		t.Name(),
-		[]string{"config", "name"},
-		[]interface{}{testCfgFile.Name(), "TESTNODE"},
+		[]string{"config", "genesis"},
+		[]interface{}{testCfgFile.Name(), genFile.Name()},
 	)
 	require.Nil(t, err)
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:    "TESTNODE",
+			Name:    testCfg.Global.Name,
 			ID:      testCfg.Global.ID,
 			DataDir: testCfg.Global.DataDir,
+		},
+		Init: dot.InitConfig{
+			Genesis: genFile.Name(),
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -534,15 +544,13 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 
+	cfg.Init.Genesis = genFile.Name()
+
 	db, err := database.NewBadgerDB(cfg.Global.DataDir)
 	require.Nil(t, err)
 
-	genFile := dot.NewTestGenesisFile(t, testCfg)
-
 	gen, err := genesis.NewGenesisFromJSON(genFile.Name())
 	require.Nil(t, err)
-
-	gen.Name = "TESTNODE" // simulate initialized node with name
 
 	err = state.StoreGenesisData(db, gen.GenesisData())
 	require.Nil(t, err)

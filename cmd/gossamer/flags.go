@@ -28,6 +28,11 @@ var (
 		Name:  "unlock",
 		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
 	}
+	// ForceFlag disables all confirm prompts ("Y" to all)
+	ForceFlag = cli.BoolFlag{
+		Name:  "force",
+		Usage: "Disable all confirm prompts (the same as answering \"Y\" to all)",
+	}
 	// KeyFlag specifies a test keyring account to use
 	KeyFlag = cli.StringFlag{
 		Name:  "key",
@@ -176,6 +181,7 @@ var (
 	// GlobalFlags are flags that are valid for use with all commands
 	GlobalFlags = []cli.Flag{
 		VerbosityFlag,
+		ForceFlag,
 		NameFlag,
 		NodeFlag,
 		ConfigFlag,

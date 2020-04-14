@@ -17,7 +17,6 @@
 package main
 
 import (
-	"path"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -28,31 +27,30 @@ import (
 
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
-	testDir := utils.NewTestDir(t)
+	_, testConfig := dot.NewTestConfigWithFile(t)
 	defer utils.RemoveTestDir(t)
-
-	testConfig := path.Join(testDir, "config.toml")
 
 	testName := "testnode"
 	testBootnode := "bootnode"
 	testProtocol := "/gossamer/test/0"
+	testConfigPath := testConfig.Name()
 
 	ctx, err := newTestContext(
-		"Test gossamer export --config --name --bootnodes --protocol",
-		[]string{"config", "name", "bootnodes", "protocol"},
-		[]interface{}{testConfig, testName, testBootnode, testProtocol},
+		"Test gossamer export --config --name --bootnodes --protocol --force",
+		[]string{"config", "name", "bootnodes", "protocol", "force"},
+		[]interface{}{testConfigPath, testName, testBootnode, testProtocol, true},
 	)
 	require.Nil(t, err)
 
 	err = exportCommand.Run(ctx)
 	require.Nil(t, err)
 
-	configExists := utils.PathExists(testConfig)
+	configExists := utils.PathExists(testConfigPath)
 	require.Equal(t, true, configExists)
 
 	testCfg := new(dot.Config)
 
-	err = dot.LoadConfig(testCfg, testConfig)
+	err = dot.LoadConfig(testCfg, testConfigPath)
 	require.Nil(t, err)
 
 	expected := DefaultCfg

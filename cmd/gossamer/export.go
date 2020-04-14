@@ -30,7 +30,7 @@ import (
 func exportAction(ctx *cli.Context) error {
 	err := startLogger(ctx)
 	if err != nil {
-		log.Error("[cmd] Failed to start logger", "error", err)
+		log.Error("[cmd] failed to start logger", "error", err)
 		return err
 	}
 
@@ -39,18 +39,32 @@ func exportAction(ctx *cli.Context) error {
 
 	// check if --config value is set
 	if config == "" {
-		return fmt.Errorf("export destination undefined: --config value is required")
+		return fmt.Errorf("export destination undefined: --config value required")
 	}
 
 	// check if configuration file already exists at export destination
 	if utils.PathExists(config) {
-
-		// TODO: confirm once #767 is merged
-
 		log.Warn(
-			"[cmd] Overwriting toml configuration file",
+			"[cmd] toml configuration file already exists",
 			"config", config,
 		)
+
+		// use --force value to force overwrite the toml configuration file
+		force := ctx.GlobalBool(ForceFlag.Name)
+
+		// prompt user to confirm overwriting existing toml configuration file
+		if force || confirmMessage("Are you sure you want to overwrite the file? [Y/n]") {
+			log.Warn(
+				"[cmd] overwriting toml configuration file",
+				"config", config,
+			)
+		} else {
+			log.Warn(
+				"[cmd] exiting without exporting toml configuration file",
+				"config", config,
+			)
+			return nil // exit if reinitialization is not confirmed
+		}
 	}
 
 	cfg := createExportConfig(ctx)
@@ -58,7 +72,7 @@ func exportAction(ctx *cli.Context) error {
 	file := dot.ExportConfig(cfg, config)
 	// export config will exit and log error on error
 
-	log.Info("[cmd] Exported toml configuration file", "path", file.Name())
+	log.Info("[cmd] exported toml configuration file", "path", file.Name())
 
 	return nil
 }
