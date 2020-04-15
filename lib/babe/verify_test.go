@@ -31,7 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-var testEpoch = 2
+var testEpoch = uint64(2)
 
 func newTestVerificationManager(t *testing.T, withBlock bool, descriptor *NextEpochDescriptor) *VerificationManager {
 	dbSrv := state.NewService("")
@@ -295,7 +295,7 @@ func TestVerifySlotWinner(t *testing.T) {
 		ID: kp.Public().(*sr25519.PublicKey),
 	}
 
-	verifier, err := NewVerifier(babesession.blockState, &NextEpochDescriptor{
+	verifier, err := NewEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
 		Randomness:  [32]byte{babesession.config.Randomness},
 	})
@@ -326,7 +326,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 	block, _ := createTestBlock(t, babesession, [][]byte{txb})
 
-	verifier, err := NewVerifier(babesession.blockState, &NextEpochDescriptor{
+	verifier, err := NewEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
 		Randomness:  [32]byte{babesession.config.Randomness},
 	})
@@ -374,7 +374,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	verifier, err := NewVerifier(babesession.blockState, &NextEpochDescriptor{
+	verifier, err := NewEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
 		Randomness:  [32]byte{babesession.config.Randomness},
 	})

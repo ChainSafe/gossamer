@@ -36,8 +36,8 @@ type VerificationManager struct {
 
 	// current epoch information
 	currentEpoch uint64
-	firstBlock   *types.Header // first block of current epoch, may change over course of epoch
-	verifier     *Verifier     // TODO: need to keep historical verifiers, change to map
+	firstBlock   *types.Header  // first block of current epoch, may change over course of epoch
+	verifier     *epochVerifier // TODO: may need to keep historical verifiers
 }
 
 // NewVerificationManager returns a new VerificationManager
@@ -46,7 +46,7 @@ func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentD
 		return nil, ErrNilBlockState
 	}
 
-	verifier, err := NewVerifier(blockState, currentDescriptor)
+	verifier, err := NewEpochVerifier(blockState, currentDescriptor)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
 		}
 
 		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
-		v.verifier, err = NewVerifier(v.blockState, nextEpochDescriptor)
+		v.verifier, err = NewEpochVerifier(v.blockState, nextEpochDescriptor)
 		if err != nil {
 			return nil, err
 		}
@@ -217,20 +217,20 @@ func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, erro
 	return consensusDigest, nil
 }
 
-// Verifier represents a BABE verifier for a specific epoch
-type Verifier struct {
+// epochVerifier represents a BABE verifier for a specific epoch
+type epochVerifier struct {
 	blockState    BlockState
 	authorityData []*AuthorityData
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
 // NewVerifier returns a Verifier for the epoch described by the given descriptor
-func NewVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*Verifier, error) {
+func NewEpochVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*epochVerifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
 
-	return &Verifier{
+	return &epochVerifier{
 		blockState:    blockState,
 		authorityData: descriptor.Authorities,
 		randomness:    descriptor.Randomness[0], // TODO: update to [32]byte when runtime is updated
@@ -238,7 +238,7 @@ func NewVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*Verif
 }
 
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
-func (b *Verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
+func (b *epochVerifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
 	if len(b.authorityData) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
@@ -253,7 +253,7 @@ func (b *Verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *Verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
+func (b *epochVerifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {
