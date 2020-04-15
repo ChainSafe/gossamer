@@ -55,13 +55,13 @@ func TestFixFlagOrder(t *testing.T) {
 			[]interface{}{true, testConfig, "trace"},
 			true,
 		},
-    {
-      "Test gossamer [subcommand] --force --config --verbosity",
-      []string{"force", "config", "verbosity", "badflag"},
-      []interface{}{true, testConfig, "trace", "badflag"},
-      false,
-    },
-  }
+		{
+			"Test gossamer [subcommand] --force --config --verbosity",
+			[]string{"force", "config", "verbosity", "badflag"},
+			[]interface{}{true, testConfig, "trace", "badflag"},
+			false,
+		},
+	}
 
 	for _, c := range testcases {
 		c := c // bypass scopelint false positive
