@@ -46,7 +46,7 @@ func NewVerificationManager(blockState BlockState, currentEpoch uint64, currentD
 		return nil, ErrNilBlockState
 	}
 
-	verifier, err := NewEpochVerifier(blockState, currentDescriptor)
+	verifier, err := newEpochVerifier(blockState, currentDescriptor)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
 		}
 
 		v.epochToNextEpochDescriptor[v.currentEpoch] = nextEpochDescriptor
-		v.verifier, err = NewEpochVerifier(v.blockState, nextEpochDescriptor)
+		v.verifier, err = newEpochVerifier(v.blockState, nextEpochDescriptor)
 		if err != nil {
 			return nil, err
 		}
@@ -224,8 +224,8 @@ type epochVerifier struct {
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
-// NewVerifier returns a Verifier for the epoch described by the given descriptor
-func NewEpochVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*epochVerifier, error) {
+// newEpochVerifier returns a Verifier for the epoch described by the given descriptor
+func newEpochVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*epochVerifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
