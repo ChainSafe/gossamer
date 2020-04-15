@@ -125,6 +125,7 @@ func NewService(cfg *Config) (*Service, error) {
 	var srv = &Service{}
 
 	var authData []*babe.AuthorityData
+	var currentDescriptor *babe.NextEpochDescriptor
 
 	if cfg.IsBabeAuthority {
 		if cfg.Keystore.NumSr25519Keys() == 0 {
@@ -184,6 +185,8 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 
 		srv.bs = bs
+
+		currentDescriptor = bs.Descriptor()
 	} else {
 		srv = &Service{
 			rt:               cfg.Runtime,
@@ -207,15 +210,15 @@ func NewService(cfg *Config) (*Service, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		currentDescriptor = &babe.NextEpochDescriptor{
+			Authorities: authData,
+			Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
+		}
 	}
 
 	if cfg.Verifier == nil {
-		currentDescriptor := &babe.NextEpochDescriptor{
-			Authorities: authData,
-			Randomness:  [32]byte{}, // TODO
-		}
-
-		// TODO: load current epoch from database, save upon shutdown
+		// TODO: load current epoch from database chain head
 		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 0, currentDescriptor)
 		if err != nil {
 			return nil, err

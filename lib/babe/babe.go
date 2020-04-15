@@ -33,6 +33,9 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// RandomnessLength is the length of the epoch randomness (32 bytes)
+const RandomnessLength = 32
+
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
 	// Storage interfaces
@@ -48,7 +51,7 @@ type Session struct {
 
 	// Epoch configuration data
 	config         *Configuration
-	randomness     [32]byte
+	randomness     [RandomnessLength]byte
 	authorityIndex uint64
 	authorityData  []*AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch

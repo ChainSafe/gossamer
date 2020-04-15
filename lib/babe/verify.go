@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // ErrNilNextEpochDescriptor is returned when attempting to get a NextEpochDescriptor that isn't set for an epoch
@@ -101,7 +100,7 @@ func (v *VerificationManager) IncrementEpoch() (*NextEpochDescriptor, error) {
 // VerifyBlock verifies the given header with verifyAuthorshipRight.
 // It also checks for a NextEpochDescriptor for the current epoch.
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
-	fromEpoch, err := v.isBlockFromEpoch(header.Hash(), v.currentEpoch)
+	fromEpoch, err := v.isBlockFromEpoch(header, v.currentEpoch)
 	if err != nil {
 		return false, err
 	}
@@ -137,12 +136,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	return ok, nil
 }
 
-// blockFromCurrentEpoch verifies the provided block hash is from given epoch
-func (v *VerificationManager) isBlockFromEpoch(hash common.Hash, epoch uint64) (bool, error) {
+// isBlockFromEpoch checks if the provided block hash is from given epoch
+func (v *VerificationManager) isBlockFromEpoch(header *types.Header, epoch uint64) (bool, error) {
 	// get epoch number of block header
-	blockEpoch, err := v.getBlockEpoch(hash)
+	blockEpoch, err := v.getBlockEpoch(header)
 	if err != nil {
-		return false, fmt.Errorf("[babe verifier] failed to get epoch from block header: %s", err)
+		return false, fmt.Errorf("failed to get epoch from block header: %s", err)
 	}
 
 	// check if block epoch number matches given epoch number
@@ -154,13 +153,31 @@ func (v *VerificationManager) isBlockFromEpoch(hash common.Hash, epoch uint64) (
 }
 
 // getBlockEpoch gets the epoch number using the provided block hash
-func (v *VerificationManager) getBlockEpoch(hash common.Hash) (epoch uint64, err error) {
+func (v *VerificationManager) getBlockEpoch(header *types.Header) (epoch uint64, err error) {
 	// get slot number to determine epoch number
-	// TODO: directly calulcate this from the pre-digest
-	slot, err := v.blockState.GetSlotForBlock(hash)
-	if err != nil {
-		return epoch, fmt.Errorf("failed to get slot from block hash: %s", err)
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("chain head missing digest")
 	}
+
+	preDigestBytes := header.Digest[0]
+
+	digestItem, err := types.DecodeDigestItem(preDigestBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	if !ok {
+		return 0, fmt.Errorf("first digest item is not pre-digest")
+	}
+
+	babeHeader := new(types.BabeHeader)
+	err = babeHeader.Decode(preDigest.Data)
+	if err != nil {
+		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+	}
+
+	slot := babeHeader.SlotNumber
 
 	if slot != 0 {
 		// epoch number = (slot - genesis slot) / epoch length

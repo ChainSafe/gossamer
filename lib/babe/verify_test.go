@@ -31,6 +31,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+var testEpoch = 2
+
 func newTestVerificationManager(t *testing.T, withBlock bool, descriptor *NextEpochDescriptor) *VerificationManager {
 	dbSrv := state.NewService("")
 	dbSrv.UseMemDB()
@@ -52,14 +54,14 @@ func newTestVerificationManager(t *testing.T, withBlock bool, descriptor *NextEp
 	}
 
 	// currentEpoch = 2
-	vm, err := NewVerificationManager(dbSrv.Block, 2, descriptor)
+	vm, err := NewVerificationManager(dbSrv.Block, testEpoch, descriptor)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if withBlock {
-		// preDigest with slot in epoch 2
-		// TODO: use BABE functions to do this
+		// preDigest with slot in epoch testEpoch = 2
+		// TODO: use BABE functions to do calculate pre-digest dynamically
 		preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
 		require.Nil(t, err)
 
@@ -96,9 +98,10 @@ func newTestVerificationManager(t *testing.T, withBlock bool, descriptor *NextEp
 func TestGetBlockEpoch(t *testing.T) {
 	vm := newTestVerificationManager(t, true, nil)
 
-	blockHash := vm.blockState.BestBlockHash()
+	header, err := vm.blockState.BestBlockHeader()
+	require.Nil(t, err)
 
-	epoch, err := vm.getBlockEpoch(blockHash)
+	epoch, err := vm.getBlockEpoch(header)
 	require.Nil(t, err)
 
 	require.Equal(t, vm.currentEpoch, epoch)
@@ -108,13 +111,14 @@ func TestGetBlockEpoch(t *testing.T) {
 func TestIsBlockFromEpoch(t *testing.T) {
 	vm := newTestVerificationManager(t, true, nil)
 
-	blockHash := vm.blockState.BestBlockHash()
+	header, err := vm.blockState.BestBlockHeader()
+	require.Nil(t, err)
 
-	ok, err := vm.isBlockFromEpoch(blockHash, 2)
+	ok, err := vm.isBlockFromEpoch(header, testEpoch)
 	require.Nil(t, err)
 	require.Equal(t, true, ok)
 
-	ok, err = vm.isBlockFromEpoch(blockHash, 1)
+	ok, err = vm.isBlockFromEpoch(header, 1)
 	require.Nil(t, err)
 	require.Equal(t, false, ok)
 }
