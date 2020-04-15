@@ -16,4 +16,63 @@
 
 package main
 
-// TODO: add cmd flag tests
+import (
+	"io/ioutil"
+	"path"
+	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli"
+)
+
+// TestFixFlagOrder tests the FixFlagOrder method
+func TestFixFlagOrder(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	testConfig := path.Join(testDir, "config.toml")
+
+	defer utils.RemoveTestDir(t)
+
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    bool // whether or not FixFlagOrder should succeed
+	}{
+		{
+			"Test gossamer [subcommand] --config --force --verbosity",
+			[]string{"config", "force", "verbosity"},
+			[]interface{}{testConfig, true, "trace"},
+			true,
+		},
+		{
+			"Test gossamer [subcommand] --force --config --verbosity",
+			[]string{"force", "config", "verbosity"},
+			[]interface{}{true, testConfig, "trace"},
+			true,
+		},
+    {
+      "Test gossamer [subcommand] --force --config --verbosity",
+      []string{"force", "config", "verbosity", "badflag"},
+      []interface{}{true, testConfig, "trace", "badflag"},
+      false,
+    },
+  }
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+
+			fixedExportAction := FixFlagOrder(exportAction)
+
+			err = fixedExportAction(ctx)
+			require.Nil(t, err)
+		})
+	}
+}
