@@ -317,7 +317,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --port",
 			[]string{"config", "port"},
-			[]interface{}{testCfgFile.Name(), uint(1234)},
+			[]interface{}{testCfgFile.Name(), "1234"},
 			dot.NetworkConfig{
 				Port:        1234,
 				Bootnodes:   testCfg.Network.Bootnodes,
@@ -353,7 +353,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --nobootstrap",
 			[]string{"config", "nobootstrap"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
 				Port:        testCfg.Network.Port,
 				Bootnodes:   testCfg.Network.Bootnodes,
@@ -365,7 +365,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --nomdns",
 			[]string{"config", "nomdns"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
 				Port:        testCfg.Network.Port,
 				Bootnodes:   testCfg.Network.Bootnodes,
@@ -408,7 +408,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc",
 			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]interface{}{testCfgFile.Name(), "true"},
 			dot.RPCConfig{
 				Enabled: true,
 				Port:    testCfg.RPC.Port,
@@ -419,7 +419,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpc false",
 			[]string{"config", "rpc"},
-			[]interface{}{testCfgFile.Name(), false},
+			[]interface{}{testCfgFile.Name(), "false"},
 			dot.RPCConfig{
 				Enabled: false,
 				Port:    testCfg.RPC.Port,
@@ -441,7 +441,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpcport",
 			[]string{"config", "rpcport"},
-			[]interface{}{testCfgFile.Name(), uint(5678)}, // rpc must be enabled
+			[]interface{}{testCfgFile.Name(), "5678"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled: testCfg.RPC.Enabled,
 				Port:    5678,
