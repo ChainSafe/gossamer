@@ -113,6 +113,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilStorageState
 	}
 
+	if cfg.Runtime == nil {
+		return nil, ErrNilRuntime
+	}
+
 	codeHash, err := cfg.StorageState.LoadCodeHash()
 	if err != nil {
 		return nil, err
@@ -234,6 +238,7 @@ func NewService(cfg *Config) (*Service, error) {
 		ChanLock:         chanLock,
 		TransactionQueue: cfg.TransactionQueue,
 		Verifier:         cfg.Verifier,
+		Runtime:          cfg.Runtime,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)

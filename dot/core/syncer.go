@@ -102,6 +102,10 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		return nil, ErrNilVerifier
 	}
 
+	if cfg.Runtime == nil {
+		return nil, ErrNilRuntime
+	}
+
 	return &Syncer{
 		blockState:       cfg.BlockState,
 		blockNumIn:       cfg.BlockNumIn,
@@ -381,7 +385,7 @@ func (s *Syncer) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Syncer) handleBlock(block *types.Block) error {
-	// TODO: execute block
+	// TODO: re-add execute block call
 
 	err := s.blockState.AddBlock(block)
 	if err != nil {
