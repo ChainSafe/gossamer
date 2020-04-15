@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+//nolint
 var (
 	GOSSAMER_INTEGRATION_TEST_MODE = os.Getenv("GOSSAMER_INTEGRATION_TEST_MODE")
 
