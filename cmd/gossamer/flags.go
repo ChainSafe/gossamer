@@ -247,10 +247,20 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 		for _, flagName := range ctx.FlagNames() {
 			if ctx.IsSet(flagName) {
-				if err := ctx.GlobalSet(flagName, ctx.String(flagName)); err != nil {
+				// attempt to set flag as global flag
+				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				if err != nil {
 					log.Trace("[cmd] failed to set global flag", "flag", flagName)
-				} else if err := ctx.Set(flagName, ctx.String(flagName)); err != nil {
-					log.Trace("[cmd] failed to set flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] global flag set", "flag", flagName)
+				}
+
+				// attempt to set flag as local flag
+				err = ctx.Set(flagName, ctx.String(flagName))
+				if err != nil {
+					log.Trace("[cmd] failed to set local flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] local flag set", "flag", flagName)
 				}
 			}
 		}
