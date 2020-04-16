@@ -33,6 +33,7 @@ var (
 	httpClientTimeout = 120 * time.Second
 )
 
+// ServerResponse wraps the RPC response
 type ServerResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`

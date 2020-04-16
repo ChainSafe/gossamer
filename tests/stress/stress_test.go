@@ -20,9 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/tests/rpc"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -32,6 +29,10 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/tests/rpc"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -236,9 +237,9 @@ func TestMain(m *testing.M) {
 
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	pidList, err := bootstrap(t, pidList)
+	localPidList, err := bootstrap(t, pidList)
 	require.Nil(t, err)
 
-	errList := tearDown(t, pidList)
+	errList := tearDown(t, localPidList)
 	require.Len(t, errList, 0)
 }
