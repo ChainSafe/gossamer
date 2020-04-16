@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+//nolint
 var (
 	GOSSAMER_INTEGRATION_TEST_MODE = os.Getenv("GOSSAMER_INTEGRATION_TEST_MODE")
 
@@ -32,7 +33,6 @@ var (
 	httpClientTimeout = 120 * time.Second
 )
 
-//TODO: json2.serverResponse should be exported and re-used instead
 type serverResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
