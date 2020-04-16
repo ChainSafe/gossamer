@@ -114,12 +114,12 @@ func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.
 	}
 
 	// build block
-	block, err := babesession.buildBlock(parentHeader, slot)
-	if err != nil {
-		t.Fatal(err)
+	for {
+		block, err := babesession.buildBlock(parentHeader, slot)
+		if err == nil {
+			return block, slot
+		}
 	}
-
-	return block, slot
 }
 
 func TestBuildBlock_ok(t *testing.T) {
