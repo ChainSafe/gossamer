@@ -33,7 +33,6 @@ var (
 	httpClientTimeout = 120 * time.Second
 )
 
-//TODO: json2.serverResponse should be exported and re-used instead
 type serverResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
