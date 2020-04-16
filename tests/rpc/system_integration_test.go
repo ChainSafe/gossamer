@@ -104,7 +104,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			decoder := json.NewDecoder(bytes.NewReader(respBody))
 			decoder.DisallowUnknownFields()
 
-			var response serverResponse
+			var response ServerResponse
 			err = decoder.Decode(&response)
 			require.Nil(t, err, "respBody", string(respBody))
 			log.Debug("Got payload from RPC request", "serverResponse", response, "string(respBody)", string(respBody))

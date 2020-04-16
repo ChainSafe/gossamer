@@ -33,7 +33,7 @@ var (
 	httpClientTimeout = 120 * time.Second
 )
 
-type serverResponse struct {
+type ServerResponse struct {
 	// JSON-RPC Version
 	Version string `json:"jsonrpc"`
 	// Resulting values
