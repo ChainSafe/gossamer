@@ -18,13 +18,11 @@ package rpc
 
 import (
 	"fmt"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/rpc/v2"
-
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc/v2"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -93,7 +91,7 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	log.Debug("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.Port)
+	log.Info("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.Port)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 	go func() {

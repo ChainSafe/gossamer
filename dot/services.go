@@ -166,3 +166,29 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 
 	return rpc.NewHTTPServer(rpcConfig)
 }
+
+// createRPCServiceWS creates the RPC service from the provided core configuration
+func createRPCServiceWS(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service) *rpc.HTTPServerWS {
+	log.Info(
+		"[dot] Creating WS service...",
+		"host", cfg.RPC.Host,
+		"port", cfg.RPC.WSPort,
+		"mods", cfg.RPC.Modules,
+	)
+
+	rpcConfig := &rpc.HTTPServerConfig{
+		BlockAPI:            stateSrvc.Block,
+		StorageAPI:          stateSrvc.Storage,
+		NetworkAPI:          networkSrvc,
+		CoreAPI:             coreSrvc,
+		TransactionQueueAPI: stateSrvc.TransactionQueue,
+		Host:                cfg.RPC.Host,
+		Port:                cfg.RPC.WSPort,
+		Modules:             cfg.RPC.Modules,
+	}
+	rpcWSConfig := &rpc.HTTPServerConfigWS{
+		HTTPServerConfig: rpcConfig,
+		RPCPort:          cfg.RPC.Port,
+	}
+	return rpc.NewHTTPServerWS(rpcWSConfig)
+}
