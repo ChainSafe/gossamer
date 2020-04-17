@@ -114,7 +114,7 @@ func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.
 	}
 
 	// build block
-	for i := 0; i < 3; i++ { // retry if error
+	for i := 0; i < 5; i++ { // retry if error
 		block, err := babesession.buildBlock(parentHeader, slot)
 		if err == nil {
 			return block, slot
