@@ -19,12 +19,13 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/stretchr/testify/require"
 )
 
 var (
