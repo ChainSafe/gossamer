@@ -28,6 +28,11 @@ var (
 		Name:  "unlock",
 		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
 	}
+	// ForceFlag disables all confirm prompts ("Y" to all)
+	ForceFlag = cli.BoolFlag{
+		Name:  "force",
+		Usage: "Disable all confirm prompts (the same as answering \"Y\" to all)",
+	}
 	// KeyFlag specifies a test keyring account to use
 	KeyFlag = cli.StringFlag{
 		Name:  "key",
@@ -171,8 +176,9 @@ var (
 	}
 )
 
+// flag sets that are shared by multiple commands
 var (
-	// GlobalFlags are flags that are valid for use with all commands
+	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
 		VerbosityFlag,
 		NameFlag,
@@ -181,22 +187,9 @@ var (
 		DataDirFlag,
 	}
 
-	// InitFlags are flags that are valid for use with the init subcommand
-	InitFlags = append(GlobalFlags, GenesisFlag)
-
-	// AccountFlags are flags that are valid for use with the account subcommand
-	AccountFlags = append([]cli.Flag{
-		GenerateFlag,
-		PasswordFlag,
-		ImportFlag,
-		ListFlag,
-		Ed25519Flag,
-		Sr25519Flag,
-		Secp256k1Flag,
-	}, GlobalFlags...)
-
-	// CLIFlags are the flags that are valid for use with the gossamer command
-	CLIFlags = append([]cli.Flag{
+	// StartupFlags are flags that are valid for use with the root command and the export subcommand
+	StartupFlags = []cli.Flag{
+		// keystore flags
 		KeyFlag,
 		UnlockFlag,
 
@@ -213,18 +206,61 @@ var (
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
+	}
+)
+
+// command specific flag sets for the root gossamer command and all subcommands
+var (
+	// RootFlags are the flags that are valid for use with the root gossamer command
+	RootFlags = append(GlobalFlags, StartupFlags...)
+
+	// InitFlags are flags that are valid for use with the init subcommand
+	InitFlags = append([]cli.Flag{
+		ForceFlag,
+		GenesisFlag,
+	}, GlobalFlags...)
+
+	// ExportFlags are the flags that are valid for use with the export subcommand
+	ExportFlags = append([]cli.Flag{
+		ForceFlag,
+		GenesisFlag,
+	}, append(GlobalFlags, StartupFlags...)...)
+
+	// AccountFlags are flags that are valid for use with the account subcommand
+	AccountFlags = append([]cli.Flag{
+		GenerateFlag,
+		PasswordFlag,
+		ImportFlag,
+		ListFlag,
+		Ed25519Flag,
+		Sr25519Flag,
+		Secp256k1Flag,
 	}, GlobalFlags...)
 )
 
-// FixFlagOrder allow us to use various flag order formats, eg: (gossamer init --config config.toml and  gossamer --config config.toml init)
+// FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
+// --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
+// does not apply to non-global flags, which must come after the subcommand (ie,
+// `gossamer --force --config config.toml init` will not recognize `--force` but
+// `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 		for _, flagName := range ctx.FlagNames() {
 			if ctx.IsSet(flagName) {
-				if err := ctx.Set(flagName, ctx.String(flagName)); err != nil {
-					if err := ctx.GlobalSet(flagName, ctx.String(flagName)); err != nil {
-						log.Trace("[cmd] Failed to fix flag order", "flag", flagName)
-					}
+				// attempt to set flag as global flag
+				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				if err != nil {
+					log.Trace("[cmd] failed to set global flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] global flag set", "flag", flagName)
+				}
+
+				// attempt to set flag as local flag
+				err = ctx.Set(flagName, ctx.String(flagName))
+				if err != nil {
+					log.Trace("[cmd] failed to set local flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] local flag set", "flag", flagName)
 				}
 			}
 		}
