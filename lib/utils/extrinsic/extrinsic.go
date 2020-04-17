@@ -1,6 +1,7 @@
 package extrinsic
 
 import (
+	"encoding/binary"
 	"errors"
 	"io"
 
@@ -10,9 +11,9 @@ import (
 
 const (
 	AuthoritiesChangeType = 0
-	TransferType = 1
-	IncludeDataType = 2
-	StorageChangeType = 3
+	TransferType          = 1
+	IncludeDataType       = 2
+	StorageChangeType     = 3
 	//ChangesTrieConfigUpdateType = 4
 )
 
@@ -47,7 +48,7 @@ func DecodeExtrinsic(r io.Reader) (Extrinsic, error) {
 }
 
 type AuthoritiesChangeExt struct {
-	authorityIDs [][32]byte 
+	authorityIDs [][32]byte
 }
 
 func NewAuthoritiesChangeExt(authorityIDs [][32]byte) *AuthoritiesChangeExt {
@@ -71,31 +72,50 @@ func (e *AuthoritiesChangeExt) Decode(r io.Reader) error {
 type AccountID = uint64
 
 type Transfer struct {
-	from AccountID
-	to AccountID
+	from   AccountID
+	to     AccountID
 	amount uint64
-	nonce uint64
+	nonce  uint64
 }
 
 func NewTransfer(from, to AccountID, amount, nonce uint64) *Transfer {
 	return &Transfer{
-		from: from,
-		to: to,
+		from:   from,
+		to:     to,
 		amount: amount,
-		nonce: nonce,
+		nonce:  nonce,
 	}
 }
 
+func (t *Transfer) Encode() ([]byte, error) {
+	enc := []byte{}
+
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, t.from)
+	enc = append(enc, buf...)
+
+	binary.LittleEndian.PutUint64(buf, t.to)
+	enc = append(enc, buf...)
+
+	binary.LittleEndian.PutUint64(buf, t.amount)
+	enc = append(enc, buf...)
+
+	binary.LittleEndian.PutUint64(buf, t.nonce)
+	enc = append(enc, buf...)
+
+	return enc, nil
+}
+
 type TransferExt struct {
-	transfer Transfer
-	signature [sr25519.SignatureLength]byte
+	transfer                     *Transfer
+	signature                    [sr25519.SignatureLength]byte
 	exhaustResourcesWhenNotFirst bool
 }
 
-func NewTransferExt(transfer Transfer, signature [sr25519.SignatureLength]byte, exhaustResourcesWhenNotFirst bool) *TransferExt {
+func NewTransferExt(transfer *Transfer, signature [sr25519.SignatureLength]byte, exhaustResourcesWhenNotFirst bool) *TransferExt {
 	return &TransferExt{
-		transfer: transfer,
-		signature: signature,
+		transfer:                     transfer,
+		signature:                    signature,
 		exhaustResourcesWhenNotFirst: exhaustResourcesWhenNotFirst,
 	}
 }
@@ -105,7 +125,23 @@ func (e *TransferExt) Type() int {
 }
 
 func (e *TransferExt) Encode() ([]byte, error) {
-	return nil, nil
+	enc := []byte{TransferType}
+
+	tenc, err := e.transfer.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	enc = append(enc, tenc...)
+	enc = append(enc, e.signature[:]...)
+
+	if e.exhaustResourcesWhenNotFirst {
+		enc = append(enc, 1)
+	} else {
+		enc = append(enc, 0)
+	}
+
+	return enc, nil
 }
 
 func (e *TransferExt) Decode(r io.Reader) error {
@@ -135,13 +171,13 @@ func (e *IncludeDataExt) Decode(r io.Reader) error {
 }
 
 type StorageChangeExt struct {
-	key []byte
+	key   []byte
 	value []byte
 }
 
 func NewStorageChangeExt(key, value []byte) *StorageChangeExt {
 	return &StorageChangeExt{
-		key: key,
+		key:   key,
 		value: value,
 	}
 }

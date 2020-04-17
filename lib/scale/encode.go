@@ -33,7 +33,7 @@ type Encoder struct {
 }
 
 // EncodeCustom check if interface has method Encode, if so use that, otherwise use regular scale encoding
-func EncodeCustom(in interface{}) ([]byte, error) {
+func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	someType := reflect.TypeOf(in)
 	_, ok := someType.MethodByName("Encode")
 	if ok {
@@ -41,11 +41,12 @@ func EncodeCustom(in interface{}) ([]byte, error) {
 		val := res[0].Interface()
 		err := res[1].Interface()
 		if err != nil {
-			return val.([]byte), err.(error)
+			return 0, err.(error)
 		}
-		return val.([]byte), nil
+		se.Writer.Write(val.([]byte))
+		return len(val.([]byte)), err.(error)
 	}
-	return Encode(in)
+	return se.Encode(in)
 }
 
 // Encode to byte array
