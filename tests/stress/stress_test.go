@@ -64,10 +64,25 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	}
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
+	var cmd *exec.Cmd
+
+	//cmd = exec.Command(gossamerCMD, "init",
+	//	"--datadir", dataDir+strconv.Itoa(nodeNumb),
+	//	"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
+	//	"--force",
+	//)
+	//
+	////add step for init
+	//t.Log("Going to init gossamer", "cmd", cmd)
+	//err = cmd.Start()
+	//if err != nil {
+	//	t.Error("Could not init gossamer", "err", err)
+	//	return nil, err
+	//}
 
 	//TODO: enable genesis file to be configured via args
 	//TODO: enable [core] authority and roles via args
-	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
+	cmd = exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--rpchost", rpcHost,
@@ -75,6 +90,7 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		"--rpcmods", "system,author,chain",
 		"--key", keyList[nodeNumb],
 		"--config", currentDir+"/config.toml",
+		"--roles", "4",
 		"--rpc",
 	)
 
@@ -239,6 +255,12 @@ func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
 	localPidList, err := bootstrap(t, pidList)
 	require.Nil(t, err)
+
+	//best chain head
+
+	//see if the same or not
+
+	//chain get header
 
 	errList := tearDown(t, localPidList)
 	require.Len(t, errList, 0)
