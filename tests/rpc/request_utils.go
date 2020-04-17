@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"testing"
 
@@ -28,20 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	transport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: dialTimeout,
-		}).Dial,
-	}
-	httpClient = &http.Client{
-		Transport: transport,
-		Timeout:   httpClientTimeout,
-	}
-)
-
+// PostRPC utils for sending payload to endpoint and getting []byte back
 func PostRPC(t *testing.T, method, host string) []byte {
-
 	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":{},"id":1}`)
 	buf := &bytes.Buffer{}
 	_, err := buf.Write(data)
@@ -68,6 +55,7 @@ func PostRPC(t *testing.T, method, host string) []byte {
 
 }
 
+// DecodeRPC will decode []body into target interface
 func DecodeRPC(t *testing.T, body []byte, targetType string) interface{} {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()

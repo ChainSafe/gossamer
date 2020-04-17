@@ -17,12 +17,8 @@
 package rpc
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,23 +32,8 @@ import (
 )
 
 var (
-	NETWORK_SIZE_STR               = os.Getenv("NETWORK_SIZE")
-	GOSSAMER_INTEGRATION_TEST_MODE = os.Getenv("GOSSAMER_INTEGRATION_TEST_MODE")
-	pidList                        = make([]*exec.Cmd, 3)
-	keyList                        = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
-	dialTimeout                    = 60 * time.Second
-	httpClientTimeout              = 120 * time.Second
-	rpcHost                        = "0.0.0.0"
-
-	transport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: dialTimeout,
-		}).Dial,
-	}
-	httpClient = &http.Client{
-		Transport: transport,
-		Timeout:   httpClientTimeout,
-	}
+	pidList = make([]*exec.Cmd, 3)
+	keyList = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
 )
 
 // runGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
@@ -64,8 +45,8 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	}
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
-	var cmd *exec.Cmd
 
+	//var cmd *exec.Cmd
 	//cmd = exec.Command(gossamerCMD, "init",
 	//	"--datadir", dataDir+strconv.Itoa(nodeNumb),
 	//	"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
@@ -80,12 +61,11 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	//	return nil, err
 	//}
 
-	//TODO: enable genesis file to be configured via args
-	//TODO: enable [core] authority and roles via args
-	cmd = exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
+	//TODO: could we enable genesis file to be configured via args without init?
+	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
-		"--rpchost", rpcHost,
+		"--rpchost", rpc.GOSSAMER_NODE_HOST,
 		"--rpcport", "854"+strconv.Itoa(nodeNumb),
 		"--rpcmods", "system,author,chain",
 		"--key", keyList[nodeNumb],
@@ -106,7 +86,7 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(3 * time.Second)
-		if err := checkFunc(t, "http://"+rpcHost+":854"+strconv.Itoa(nodeNumb)); err == nil {
+		if err := checkFunc(t, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
 			started = true
 			break
 		} else {
@@ -125,57 +105,14 @@ func runGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 // checkFunc check if gossamer node is already started
 func checkFunc(t *testing.T, gossamerHost string) error {
-	data := []byte(`{"jsonrpc":"2.0","method":"system_health","params":{},"id":1}`)
-	buf := &bytes.Buffer{}
-	_, err := buf.Write(data)
-	if err != nil {
-		t.Log("could not marshal json for rpc")
-		return err
-	}
+	method := "system_health"
 
-	r, err := http.NewRequest("POST", gossamerHost, buf)
-	if err != nil {
-		t.Log("could not POST json to rpc")
-		return err
-	}
+	respBody := rpc.PostRPC(t, method, gossamerHost)
 
-	r.Header.Set("Content-Type", rpc.ContentTypeJSON)
-	r.Header.Set("Accept", rpc.ContentTypeJSON)
+	target := rpc.DecodeRPC(t, respBody, method)
 
-	resp, err := httpClient.Do(r)
-	if err != nil {
-		t.Log("could not Do POST json to rpc")
-		return err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Log("could not ReadAll POST json from rpc")
-		return err
-	}
-
-	decoder := json.NewDecoder(bytes.NewReader(respBody))
-	decoder.DisallowUnknownFields()
-
-	var response rpc.ServerResponse
-	err = decoder.Decode(&response)
-	if err != nil {
-		t.Log("could not Decode POST json from rpc")
-		return err
-	}
-
-	decoder = json.NewDecoder(bytes.NewReader(response.Result))
-	decoder.DisallowUnknownFields()
-
-	var target modules.SystemHealthResponse
-	err = decoder.Decode(&target)
-	if err != nil {
-		t.Log("could not Decode POST json from rpc into SystemHealthResponse")
-		return err
+	if !target.(*modules.SystemHealthResponse).Health.ShouldHavePeers {
+		return fmt.Errorf("no peers")
 	}
 
 	//if we get here, we assume it worked :D
@@ -231,15 +168,15 @@ func tearDown(t *testing.T, pidList []*exec.Cmd) (errorList []error) {
 }
 
 func TestMain(m *testing.M) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
+	if rpc.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
 		return
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
-	if NETWORK_SIZE_STR != "" {
-		currentNetworkSize, err := strconv.Atoi(NETWORK_SIZE_STR)
+	if rpc.NETWORK_SIZE_STR != "" {
+		currentNetworkSize, err := strconv.Atoi(rpc.NETWORK_SIZE_STR)
 		if err == nil {
 			_, _ = fmt.Fprintln(os.Stdout, "Going to custom network size ... ", "currentNetworkSize", currentNetworkSize)
 			pidList = make([]*exec.Cmd, currentNetworkSize)
