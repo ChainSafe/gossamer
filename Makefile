@@ -46,6 +46,9 @@ it-stress: build
 	@echo "  >  \033[32mRunning Integration Tests stress mode...\033[0m "
 	GOSSAMER_INTEGRATION_TEST_MODE=stress go test ./tests/stress/... -timeout=5m
 
+it-rpc-spec: build
+	@echo "  >  \033[32mRunning Integration Tests RPC Specs mode...\033[0m "
+	GOSSAMER_INTEGRATION_TEST_MODE=rpc_spec go test ./tests/spec/... -timeout=5m
 ## test: Runs `go test -race` on project test files.
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "

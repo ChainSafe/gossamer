@@ -1,0 +1,6 @@
+[init]
+genesis = "/opt/gocode/src/github.com/ChainSafe/gossamer/node/gssmr/genesis.json"
+
+[core]
+authority = true
+roles = 4
