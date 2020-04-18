@@ -6,6 +6,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ChainSafe/chaindb v0.0.0-20200415142131-8c44b9255365 h1:4PR6QuFgi4e/10eN2ilQm+eD2UmeiuHJyUktp7rVrcE=
 github.com/ChainSafe/chaindb v0.0.0-20200415142131-8c44b9255365/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
+github.com/ChainSafe/chaindb v0.0.1 h1:A+11ulFG6R/IE6pEBy6j6hTTHTA3BvCVK8jklogW0Uw=
+github.com/ChainSafe/chaindb v0.0.1/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200115165343-aa45d48b5ed6 h1:wfM1NefWZdwihyFmcpWjBSP2lMEIWj+WHpbjNi+jIQo=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200115165343-aa45d48b5ed6/go.mod h1:URdX5+vg25ts3aCh8H5IFZybJYKWhJHYMTnf+ULtoC4=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200403175537-d906f957f78e h1:jo1BDZmYOhxalVXz4ZrWR0upmKbQ/0axBGXVd1uXxEY=
