@@ -33,6 +33,15 @@ var ErrInvalidTransaction = &json2.Error{Code: 1010, Message: "Invalid Transacti
 //  value of [1, 1, x]
 var ErrUnknownTransaction = &json2.Error{Code: 1011, Message: "Unknown Transaction Validity"}
 
+// ErrInvalidBlock is returned when a block cannot be verified
+var ErrInvalidBlock = errors.New("could not verify block")
+
+// ErrNilVerifier is returned when trying to instantiate a Syncer without a Verifier
+var ErrNilVerifier = errors.New("cannot have nil Verifier")
+
+// ErrNilRuntime is returned when trying to instantiate a Service or Syncer without a runtime
+var ErrNilRuntime = errors.New("cannot have nil runtime")
+
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {
 	return fmt.Errorf("cannot have nil channel %s", s)
