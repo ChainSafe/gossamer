@@ -64,8 +64,9 @@ type ErrCode int
 
 // Error is a struct that holds the error message and the error code for a error
 type Error struct {
-	Message   string
-	ErrorCode ErrCode
+	Message   string                 `json:"message"`
+	ErrorCode ErrCode                `json:"code"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 // Error returns the error Message string

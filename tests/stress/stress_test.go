@@ -29,6 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/tests/rpc"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nanobox-io/golang-scribble"
 )
 
 var (
@@ -193,7 +195,42 @@ func TestStressSync(t *testing.T) {
 	localPidList, err := bootstrap(t, pidList)
 	require.Nil(t, err)
 
+	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
+	require.Nil(t, err)
+	t.Log("going to start a JSON simple database to track all chains")
+
+	db, err := scribble.New(tempDir, nil)
+	require.Nil(t, err)
+
+	blockHighestBlockHash := "chain_getHeader"
+
+	for i, v := range localPidList {
+
+		t.Log("going to get HighestBlockHash from node", "i", i, "v", v)
+
+		//Get HighestBlockHash
+		respBody := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i))
+
+		// decode resp
+		target := rpc.DecodeRPC(t, respBody, blockHighestBlockHash)
+
+		// convert
+		chainBlockResponse, ok := target.(modules.ChainBlockHeaderResponse)
+		require.True(t, ok)
+
+		err = db.Write("blocks_"+strconv.Itoa(v.Process.Pid),
+			chainBlockResponse.Number.String(), chainBlockResponse)
+		require.Nil(t, err)
+
+	}
+
+	//// Read a block header from the database (passing a hash by reference)
+	//if err := db.Read("blocks_"+strconv.Itoa(v.Process.Pid), chainBlockResponse.Number.String(), &blockHeader); err != nil {
+	//	fmt.Println("Error", err)
+	//}
+
 	//best chain head
+	//HighestBlockHash
 
 	//see if the same or not
 

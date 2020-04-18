@@ -66,7 +66,7 @@ func DecodeRPC(t *testing.T, body []byte, targetType string) interface{} {
 
 	t.Log("Got payload from RPC request", "serverResponse", response, "string(respBody)", string(body))
 
-	require.Nil(t, response.Error)
+	require.Nil(t, response.Error, "respBody", string(body))
 	require.Equal(t, response.Version, "2.0")
 
 	decoder = json.NewDecoder(bytes.NewReader(response.Result))
@@ -81,10 +81,12 @@ func DecodeRPC(t *testing.T, body []byte, targetType string) interface{} {
 		target = new(modules.SystemNetworkStateResponse)
 	case "system_peers":
 		target = new(modules.SystemPeersResponse)
+	case "chain_getHeader":
+		target = new(modules.ChainBlockHeaderResponse)
 	}
 
 	err = decoder.Decode(&target)
-	require.Nil(t, err)
+	require.Nil(t, err, "respBody", string(body))
 
 	return target
 
