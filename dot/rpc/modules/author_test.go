@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -208,8 +210,10 @@ func setupAuthModule(t *testing.T, txq *state.TransactionQueue) *AuthorModule {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
+	// todo check if we can make this core.TestAuthorityDataKey so I don't need to copy
+	var testAuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
 	pubkey := kp.Public().Encode()
-	err = tt.Put(core.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(testAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
