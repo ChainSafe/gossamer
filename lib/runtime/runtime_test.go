@@ -17,9 +17,6 @@
 package runtime
 
 import (
-	"fmt"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,21 +36,21 @@ func TestExecVersion(t *testing.T) {
 
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)
-fmt.Printf("RET: %v\n", reflect.TypeOf(ret))
 
-	version := &Version{}
-	scale.DecodePtr(ret, version)
-	//res, err := decodeToInterface(ret, &Version{})
+	version := &VersionAPI{
+		RuntimeVersion: &Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
 	require.Nil(t, err)
 
-	//version := res.(*Version)
-	t.Logf("Spec_name: %s\n", version.Spec_name)
-	t.Logf("Impl_name: %s\n", version.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.Spec_version)
-	t.Logf("Impl_version: %d\n", version.Impl_version)
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
 
-	require.Equal(t, expected, version)
+	require.Equal(t, expected, version.RuntimeVersion)
 }
 
 // test used for ensuring runtime Exec calls can me made concurrently

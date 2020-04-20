@@ -19,7 +19,7 @@ package runtime
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // Version struct
@@ -29,42 +29,51 @@ type Version struct {
 	Authoring_version int32
 	Spec_version      int32
 	Impl_version      int32
-	APIs []API_Item
 }
 
+type VersionAPI struct {
+	RuntimeVersion *Version
+	API []*API_Item
+}
 type API_Item struct {
 	Name []byte
-	Version int32
+	Ver int32
 }
 
-func (b API_Item) Decode(in *bytes.Buffer) error {
-	fmt.Printf("IN API item decode \n")
-	api := make([]byte, in.Len())
-	q, err := io.ReadFull(in, api)
+func (v *VersionAPI) Decode(in []byte) error {
+	// decode runtime version
+	_, err := scale.Decode(in, v.RuntimeVersion)
 	if err != nil {
-		fmt.Printf("ERROR %s\n", err)
+		return err
 	}
-	fmt.Printf("q %v\n", q)
-	b.Name = api[0:8]
-	fmt.Printf("Enc %v\n", b)
-	ti := &API_Item{
-		Name:    []byte{'h', 'i'},
-		Version: 0,
+
+	// 1 + len(Spec_name) + 1 + len(Impl_name) + 12 for  3 int32's - 1 (zero index)
+	index := len(v.RuntimeVersion.Spec_name) + len(v.RuntimeVersion.Impl_name) + 14
+
+	// read byte at index for qty of apis
+	sd := scale.Decoder{Reader:bytes.NewReader(in[index:index+1])}
+	numApis, err := sd.DecodeInteger()
+	if err != nil {
+		return err
 	}
-	b = *ti
+	// put index on first value
+	index++
+	// load api_item objects
+	for  i := 0; i < int(numApis); i++ {
+		ver, err := scale.Decode(in[index+8 + (i* 12):index+12 +(i * 12)], int32(0))
+		if err != nil {
+			return err
+		}
+		v.API = append(v.API, &API_Item{
+			Name: in[index+ (i*12):index+8+ (i * 12)],
+			Ver:  ver.(int32),
+		})
+	}
 
-	//for  {
-	//	q, err := in.Read(api)
-	//	if err != nil {
-	//		fmt.Printf("ERROR %s\n", err)
-	//		break
-	//	}
-
-	//}
-	fmt.Printf(" api %v\n", api)
-	//_, err := scale.Decode(in, b)
+	fmt.Printf("API done %v\n", v)
 	return nil
 }
+
 var (
 	// CoreVersion returns the string representing
 	CoreVersion = "Core_version"
