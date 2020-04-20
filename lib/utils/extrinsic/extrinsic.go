@@ -64,10 +64,22 @@ func (e *AuthoritiesChangeExt) Type() int {
 }
 
 func (e *AuthoritiesChangeExt) Encode() ([]byte, error) {
-	return nil, nil
+	enc, err := scale.Encode(e.authorityIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{AuthoritiesChangeType}, enc...), nil
 }
 
 func (e *AuthoritiesChangeExt) Decode(r io.Reader) error {
+	sd := &scale.Decoder{Reader: r}
+	d, err := sd.Decode(e.authorityIDs)
+	if err != nil {
+		return err
+	}
+
+	e.authorityIDs = d.([][32]byte)
 	return nil
 }
 
