@@ -106,6 +106,30 @@ func (t *Transfer) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+func (t *Transfer) Decode(r io.Reader) (err error) {
+	t.from, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	t.to, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	t.amount, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	t.nonce, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type TransferExt struct {
 	transfer                     *Transfer
 	signature                    [sr25519.SignatureLength]byte
@@ -145,6 +169,23 @@ func (e *TransferExt) Encode() ([]byte, error) {
 }
 
 func (e *TransferExt) Decode(r io.Reader) error {
+	e.transfer = new(Transfer)
+	err := e.transfer.Decode(r)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Read(e.signature[:])
+	if err != nil {
+		return err
+	}
+
+	b, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	e.exhaustResourcesWhenNotFirst = b == 1
 	return nil
 }
 
