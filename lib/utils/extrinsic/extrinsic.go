@@ -7,6 +7,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 const (
@@ -14,6 +15,7 @@ const (
 	TransferType          = 1
 	IncludeDataType       = 2
 	StorageChangeType     = 3
+	// TODO: implement when storage changes trie is completed
 	//ChangesTrieConfigUpdateType = 4
 )
 
@@ -204,10 +206,22 @@ func (e *IncludeDataExt) Type() int {
 }
 
 func (e *IncludeDataExt) Encode() ([]byte, error) {
-	return nil, nil
+	enc, err := scale.Encode(e.data)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{IncludeDataType}, enc...), nil
 }
 
 func (e *IncludeDataExt) Decode(r io.Reader) error {
+	sd := &scale.Decoder{Reader: r}
+	d, err := sd.Decode(e.data)
+	if err != nil {
+		return err
+	}
+
+	e.data = d.([]byte)
 	return nil
 }
 
@@ -228,9 +242,37 @@ func (e *StorageChangeExt) Type() int {
 }
 
 func (e *StorageChangeExt) Encode() ([]byte, error) {
-	return nil, nil
+	enc := []byte{StorageChangeType}
+
+	d, err := scale.Encode(e.key)
+	if err != nil {
+		return nil, err
+	}
+
+	enc = append(enc, d...)
+
+	d, err = scale.Encode(e.value)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(enc, d...), nil
 }
 
 func (e *StorageChangeExt) Decode(r io.Reader) error {
+	sd := &scale.Decoder{Reader: r}
+	d, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+
+	e.key = d.([]byte)
+
+	d, err = sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+
+	e.value = d.([]byte)
 	return nil
 }
