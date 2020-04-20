@@ -16,6 +16,12 @@
 
 package runtime
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+)
+
 // Version struct
 type Version struct {
 	Spec_name         []byte
@@ -23,8 +29,42 @@ type Version struct {
 	Authoring_version int32
 	Spec_version      int32
 	Impl_version      int32
+	APIs []API_Item
 }
 
+type API_Item struct {
+	Name []byte
+	Version int32
+}
+
+func (b API_Item) Decode(in *bytes.Buffer) error {
+	fmt.Printf("IN API item decode \n")
+	api := make([]byte, in.Len())
+	q, err := io.ReadFull(in, api)
+	if err != nil {
+		fmt.Printf("ERROR %s\n", err)
+	}
+	fmt.Printf("q %v\n", q)
+	b.Name = api[0:8]
+	fmt.Printf("Enc %v\n", b)
+	ti := &API_Item{
+		Name:    []byte{'h', 'i'},
+		Version: 0,
+	}
+	b = *ti
+
+	//for  {
+	//	q, err := in.Read(api)
+	//	if err != nil {
+	//		fmt.Printf("ERROR %s\n", err)
+	//		break
+	//	}
+
+	//}
+	fmt.Printf(" api %v\n", api)
+	//_, err := scale.Decode(in, b)
+	return nil
+}
 var (
 	// CoreVersion returns the string representing
 	CoreVersion = "Core_version"

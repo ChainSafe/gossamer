@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -110,13 +111,15 @@ type StateRuntimeVersionResponse string
 type StateModule struct {
 	networkAPI NetworkAPI
 	storageAPI StorageAPI
+	coreAPI CoreAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(net NetworkAPI, storage StorageAPI) *StateModule {
+func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModule {
 	return &StateModule{
 		networkAPI: net,
 		storageAPI: storage,
+		coreAPI: core,
 	}
 }
 
@@ -151,7 +154,10 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 }
 
 // GetRuntimeVersion isn't implemented properly yet.
-func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) {
+func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) error {
+	fmt.Printf("IN GetRuntime\n")
+	sm.coreAPI.GetRuntimeVersion()
+	return nil
 }
 
 // GetStorage isn't implemented properly yet.
