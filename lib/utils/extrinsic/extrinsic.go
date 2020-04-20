@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+//nolint
 const (
 	AuthoritiesChangeType = 0
 	TransferType          = 1
@@ -20,12 +21,14 @@ const (
 	//ChangesTrieConfigUpdateType = 4
 )
 
+// Extrisnic represents a runtime Extrinsic
 type Extrinsic interface {
 	Type() int
 	Encode() ([]byte, error)
 	Decode(r io.Reader) error
 }
 
+// DecodeExtrinsic decodes an Extrnsic from a Reader
 func DecodeExtrinsic(r io.Reader) (Extrinsic, error) {
 	typ, err := common.ReadByte(r)
 	if err != nil {
@@ -50,20 +53,24 @@ func DecodeExtrinsic(r io.Reader) (Extrinsic, error) {
 	}
 }
 
+// AuthoritiesChangeExt represents an Extrinsic::AuthoritiesChange
 type AuthoritiesChangeExt struct {
 	authorityIDs [][32]byte
 }
 
+// NewAuthoritiesChangeExt returns an AuthoritiesChangeExt
 func NewAuthoritiesChangeExt(authorityIDs [][32]byte) *AuthoritiesChangeExt {
 	return &AuthoritiesChangeExt{
 		authorityIDs: authorityIDs,
 	}
 }
 
+// Type returns AuthoritiesChangeType
 func (e *AuthoritiesChangeExt) Type() int {
 	return AuthoritiesChangeType
 }
 
+// Encode returns the SCALE encoding of the AuthoritiesChangeExt
 func (e *AuthoritiesChangeExt) Encode() ([]byte, error) {
 	enc, err := scale.Encode(e.authorityIDs)
 	if err != nil {
@@ -73,6 +80,7 @@ func (e *AuthoritiesChangeExt) Encode() ([]byte, error) {
 	return append([]byte{AuthoritiesChangeType}, enc...), nil
 }
 
+// Decode decodes the SCALE encoding into a AuthoritiesChangeExt
 func (e *AuthoritiesChangeExt) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
 	d, err := sd.Decode(e.authorityIDs)
@@ -84,6 +92,7 @@ func (e *AuthoritiesChangeExt) Decode(r io.Reader) error {
 	return nil
 }
 
+// Transfer represents a runtime Transfer
 type Transfer struct {
 	from   [32]byte
 	to     [32]byte
@@ -91,6 +100,7 @@ type Transfer struct {
 	nonce  uint64
 }
 
+// NewTransfer returns a Transfer
 func NewTransfer(from, to [32]byte, amount, nonce uint64) *Transfer {
 	return &Transfer{
 		from:   from,
@@ -100,6 +110,7 @@ func NewTransfer(from, to [32]byte, amount, nonce uint64) *Transfer {
 	}
 }
 
+// Encode returns the SCALE encoding of the Transfer
 func (t *Transfer) Encode() ([]byte, error) {
 	enc := []byte{}
 
@@ -117,6 +128,7 @@ func (t *Transfer) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+// Decode decodes the SCALE encoding into a Transfer
 func (t *Transfer) Decode(r io.Reader) (err error) {
 	t.from, err = common.ReadHash(r)
 	if err != nil {
@@ -141,12 +153,14 @@ func (t *Transfer) Decode(r io.Reader) (err error) {
 	return nil
 }
 
+// TransferExt represents an Extrinsic::Transfer
 type TransferExt struct {
 	transfer                     *Transfer
 	signature                    [sr25519.SignatureLength]byte
 	exhaustResourcesWhenNotFirst bool
 }
 
+// NewTransferExt returns a TransferExt
 func NewTransferExt(transfer *Transfer, signature [sr25519.SignatureLength]byte, exhaustResourcesWhenNotFirst bool) *TransferExt {
 	return &TransferExt{
 		transfer:                     transfer,
@@ -155,10 +169,12 @@ func NewTransferExt(transfer *Transfer, signature [sr25519.SignatureLength]byte,
 	}
 }
 
+// Type returns TransferType
 func (e *TransferExt) Type() int {
 	return TransferType
 }
 
+// Encode returns the SCALE encoding of the TransferExt
 func (e *TransferExt) Encode() ([]byte, error) {
 	enc := []byte{TransferType}
 
@@ -179,6 +195,7 @@ func (e *TransferExt) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+// Decode decodes the SCALE encoding into a TransferExt
 func (e *TransferExt) Decode(r io.Reader) error {
 	e.transfer = new(Transfer)
 	err := e.transfer.Decode(r)
@@ -200,20 +217,24 @@ func (e *TransferExt) Decode(r io.Reader) error {
 	return nil
 }
 
+// IncludeDataExt represents an Extrinsic::IncludeData
 type IncludeDataExt struct {
 	data []byte
 }
 
+// NewIncludeDataExt returns a IncludeDataExt
 func NewIncludeDataExt(data []byte) *IncludeDataExt {
 	return &IncludeDataExt{
 		data: data,
 	}
 }
 
+// Type returns IncludeDataType
 func (e *IncludeDataExt) Type() int {
 	return IncludeDataType
 }
 
+// Encode returns the SCALE encoding of the IncludeDataExt
 func (e *IncludeDataExt) Encode() ([]byte, error) {
 	enc, err := scale.Encode(e.data)
 	if err != nil {
@@ -223,6 +244,7 @@ func (e *IncludeDataExt) Encode() ([]byte, error) {
 	return append([]byte{IncludeDataType}, enc...), nil
 }
 
+// Decode decodes the SCALE encoding into a IncludeDataExt
 func (e *IncludeDataExt) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
 	d, err := sd.Decode(e.data)
@@ -234,11 +256,13 @@ func (e *IncludeDataExt) Decode(r io.Reader) error {
 	return nil
 }
 
+// StorageChangeExt represents an Extrinsic::StorageChange
 type StorageChangeExt struct {
 	key   []byte
 	value *optional.Bytes
 }
 
+// NewStorageChangeExt returns a StorageChangesExt
 func NewStorageChangeExt(key []byte, value *optional.Bytes) *StorageChangeExt {
 	return &StorageChangeExt{
 		key:   key,
@@ -246,10 +270,12 @@ func NewStorageChangeExt(key []byte, value *optional.Bytes) *StorageChangeExt {
 	}
 }
 
+// Type returns StorageChangeType
 func (e *StorageChangeExt) Type() int {
 	return StorageChangeType
 }
 
+// Encode returns the SCALE encoding of the StorageChangeExt
 func (e *StorageChangeExt) Encode() ([]byte, error) {
 	enc := []byte{StorageChangeType}
 
@@ -275,6 +301,7 @@ func (e *StorageChangeExt) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+// Decode decodes the SCALE encoding into a StorageChangeExt
 func (e *StorageChangeExt) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
 	d, err := sd.Decode([]byte{})
