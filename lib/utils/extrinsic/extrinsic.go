@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
@@ -83,16 +84,14 @@ func (e *AuthoritiesChangeExt) Decode(r io.Reader) error {
 	return nil
 }
 
-type AccountID = uint64
-
 type Transfer struct {
-	from   AccountID
-	to     AccountID
+	from   [32]byte
+	to     [32]byte
 	amount uint64
 	nonce  uint64
 }
 
-func NewTransfer(from, to AccountID, amount, nonce uint64) *Transfer {
+func NewTransfer(from, to [32]byte, amount, nonce uint64) *Transfer {
 	return &Transfer{
 		from:   from,
 		to:     to,
@@ -105,11 +104,9 @@ func (t *Transfer) Encode() ([]byte, error) {
 	enc := []byte{}
 
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, t.from)
-	enc = append(enc, buf...)
 
-	binary.LittleEndian.PutUint64(buf, t.to)
-	enc = append(enc, buf...)
+	enc = append(enc, t.from[:]...)
+	enc = append(enc, t.to[:]...)
 
 	binary.LittleEndian.PutUint64(buf, t.amount)
 	enc = append(enc, buf...)
@@ -121,12 +118,12 @@ func (t *Transfer) Encode() ([]byte, error) {
 }
 
 func (t *Transfer) Decode(r io.Reader) (err error) {
-	t.from, err = common.ReadUint64(r)
+	t.from, err = common.ReadHash(r)
 	if err != nil {
 		return err
 	}
 
-	t.to, err = common.ReadUint64(r)
+	t.to, err = common.ReadHash(r)
 	if err != nil {
 		return err
 	}
@@ -239,10 +236,10 @@ func (e *IncludeDataExt) Decode(r io.Reader) error {
 
 type StorageChangeExt struct {
 	key   []byte
-	value []byte
+	value *optional.Bytes
 }
 
-func NewStorageChangeExt(key, value []byte) *StorageChangeExt {
+func NewStorageChangeExt(key []byte, value *optional.Bytes) *StorageChangeExt {
 	return &StorageChangeExt{
 		key:   key,
 		value: value,
@@ -263,12 +260,19 @@ func (e *StorageChangeExt) Encode() ([]byte, error) {
 
 	enc = append(enc, d...)
 
-	d, err = scale.Encode(e.value)
-	if err != nil {
-		return nil, err
+	if e.value.Exists() {
+		enc = append(enc, 1)
+		d, err = scale.Encode(e.value.Value())
+		if err != nil {
+			return nil, err
+		}
+
+		enc = append(enc, d...)
+	} else {
+		enc = append(enc, 0)
 	}
 
-	return append(enc, d...), nil
+	return enc, nil
 }
 
 func (e *StorageChangeExt) Decode(r io.Reader) error {
@@ -280,11 +284,21 @@ func (e *StorageChangeExt) Decode(r io.Reader) error {
 
 	e.key = d.([]byte)
 
-	d, err = sd.Decode([]byte{})
+	exists, err := common.ReadByte(r)
 	if err != nil {
 		return err
 	}
 
-	e.value = d.([]byte)
+	if exists == 1 {
+		d, err = sd.Decode([]byte{})
+		if err != nil {
+			return err
+		}
+
+		e.value = optional.NewBytes(true, d.([]byte))
+	} else {
+		e.value = optional.NewBytes(false, nil)
+	}
+
 	return nil
 }
