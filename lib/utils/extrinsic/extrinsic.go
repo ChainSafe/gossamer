@@ -21,14 +21,14 @@ const (
 	//ChangesTrieConfigUpdateType = 4
 )
 
-// Extrisnic represents a runtime Extrinsic
+// Extrinsic represents a runtime Extrinsic
 type Extrinsic interface {
 	Type() int
 	Encode() ([]byte, error)
 	Decode(r io.Reader) error
 }
 
-// DecodeExtrinsic decodes an Extrnsic from a Reader
+// DecodeExtrinsic decodes an Extrinsic from a Reader
 func DecodeExtrinsic(r io.Reader) (Extrinsic, error) {
 	typ, err := common.ReadByte(r)
 	if err != nil {
