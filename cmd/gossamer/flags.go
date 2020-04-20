@@ -238,32 +238,55 @@ var (
 	}, GlobalFlags...)
 )
 
-// FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
-// --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
-// does not apply to non-global flags, which must come after the subcommand (ie,
-// `gossamer --force --config config.toml init` will not recognize `--force` but
-// `gossamer init --force --config config.toml` will work as expected).
+// FixFlagOrder ensures global flags are set as global flags and command flags are
+// set as command flags regardless of the order in which they have been placed (if
+// using with a subcommand, the command flags must come after the subcommand).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
+
+		trace := "trace"
+
+		// loop through all flags (global and command)
 		for _, flagName := range ctx.FlagNames() {
-			if ctx.IsSet(flagName) {
-				// attempt to set flag as global flag
-				err := ctx.GlobalSet(flagName, ctx.String(flagName))
-				if err != nil {
-					log.Trace("[cmd] failed to set global flag", "flag", flagName)
-				} else {
-					log.Trace("[cmd] global flag set", "flag", flagName)
+
+			// check if flag is set as global flag
+			if ctx.GlobalIsSet(flagName) {
+
+				// log global flag if versbosity equals trace
+				if ctx.String(VerbosityFlag.Name) == trace {
+					log.Trace("[cmd] global flag set", "name", flagName)
 				}
 
-				// attempt to set flag as local flag
+				continue // skip to next flag
+			}
+
+			// check if flag is set as command flag
+			if ctx.IsSet(flagName) {
+
+				// attempt to set as global flag
+				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				if err == nil {
+
+					// log fixed global flag if versbosity equals trace
+					if ctx.String(VerbosityFlag.Name) == trace {
+						log.Trace("[cmd] global flag fixed and set", "name", flagName)
+					}
+
+					continue // skip to next flag
+				}
+
+				// attempt to set as command flag
 				err = ctx.Set(flagName, ctx.String(flagName))
-				if err != nil {
-					log.Trace("[cmd] failed to set local flag", "flag", flagName)
-				} else {
-					log.Trace("[cmd] local flag set", "flag", flagName)
+				if err == nil {
+
+					// log command flag if versbosity equals trace
+					if ctx.String(VerbosityFlag.Name) == trace {
+						log.Trace("[cmd] command flag set", "name", flagName)
+					}
 				}
 			}
 		}
+
 		return f(ctx)
 	}
 }
