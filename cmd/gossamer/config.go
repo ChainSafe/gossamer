@@ -326,6 +326,12 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 // updateDotConfigFromGenesisJSON updates the configuration based on the genesis file values
 func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 
+	// use default genesis file if genesis configuration not provided, for example,
+	// if we load a toml configuration file without a defined genesis init value
+	if cfg.Init.Genesis == "" {
+		cfg.Init.Genesis = DefaultCfg.Init.Genesis
+	}
+
 	// load Genesis from genesis configuration file
 	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	if err != nil {
