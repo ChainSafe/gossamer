@@ -155,17 +155,15 @@ func (t *Transfer) Decode(r io.Reader) (err error) {
 
 // TransferExt represents an Extrinsic::Transfer
 type TransferExt struct {
-	transfer                     *Transfer
-	signature                    [sr25519.SignatureLength]byte
-	exhaustResourcesWhenNotFirst bool
+	transfer  *Transfer
+	signature [sr25519.SignatureLength]byte
 }
 
 // NewTransferExt returns a TransferExt
-func NewTransferExt(transfer *Transfer, signature [sr25519.SignatureLength]byte, exhaustResourcesWhenNotFirst bool) *TransferExt {
+func NewTransferExt(transfer *Transfer, signature [sr25519.SignatureLength]byte) *TransferExt {
 	return &TransferExt{
-		transfer:                     transfer,
-		signature:                    signature,
-		exhaustResourcesWhenNotFirst: exhaustResourcesWhenNotFirst,
+		transfer:  transfer,
+		signature: signature,
 	}
 }
 
@@ -186,12 +184,6 @@ func (e *TransferExt) Encode() ([]byte, error) {
 	enc = append(enc, tenc...)
 	enc = append(enc, e.signature[:]...)
 
-	if e.exhaustResourcesWhenNotFirst {
-		enc = append(enc, 1)
-	} else {
-		enc = append(enc, 0)
-	}
-
 	return enc, nil
 }
 
@@ -208,12 +200,6 @@ func (e *TransferExt) Decode(r io.Reader) error {
 		return err
 	}
 
-	b, err := common.ReadByte(r)
-	if err != nil {
-		return err
-	}
-
-	e.exhaustResourcesWhenNotFirst = b == 1
 	return nil
 }
 
