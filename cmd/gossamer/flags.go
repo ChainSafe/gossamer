@@ -252,7 +252,7 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 			// check if flag is set as global flag
 			if ctx.GlobalIsSet(flagName) {
 
-				// log global flag if versbosity equals trace
+				// log global flag if verbosity equals trace
 				if ctx.String(VerbosityFlag.Name) == trace {
 					log.Trace("[cmd] global flag set", "name", flagName)
 				}
@@ -267,7 +267,7 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 				err := ctx.GlobalSet(flagName, ctx.String(flagName))
 				if err == nil {
 
-					// log fixed global flag if versbosity equals trace
+					// log fixed global flag if verbosity equals trace
 					if ctx.String(VerbosityFlag.Name) == trace {
 						log.Trace("[cmd] global flag fixed and set", "name", flagName)
 					}
@@ -275,14 +275,9 @@ func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 					continue // skip to next flag
 				}
 
-				// attempt to set as command flag
-				err = ctx.Set(flagName, ctx.String(flagName))
-				if err == nil {
-
-					// log command flag if versbosity equals trace
-					if ctx.String(VerbosityFlag.Name) == trace {
-						log.Trace("[cmd] command flag set", "name", flagName)
-					}
+				// log command flag if verbosity equals trace
+				if ctx.String(VerbosityFlag.Name) == trace {
+					log.Trace("[cmd] command flag set", "name", flagName)
 				}
 			}
 		}
