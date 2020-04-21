@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/gorilla/websocket"
 )
 
 // ServeHTTP implemented to handle WebSocket connections
-func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request){
+func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true

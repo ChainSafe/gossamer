@@ -41,8 +41,8 @@ type HTTPServerConfig struct {
 	CoreAPI             modules.CoreAPI
 	TransactionQueueAPI modules.TransactionQueueAPI
 	Host                string
-	RPCPort                uint32
-	WSPort uint32
+	RPCPort             uint32
+	WSPort              uint32
 	Modules             []string
 }
 

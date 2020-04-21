@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -161,8 +160,8 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		CoreAPI:             coreSrvc,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
 		Host:                cfg.RPC.Host,
-		RPCPort:                cfg.RPC.Port,
-		WSPort: cfg.RPC.WSPort,
+		RPCPort:             cfg.RPC.Port,
+		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,
 	}
 
