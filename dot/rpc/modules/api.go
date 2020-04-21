@@ -39,6 +39,10 @@ type TransactionQueueAPI interface {
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	IsBabeAuthority() bool
+}
+
+// RuntimeAPI is the interface for runtime methods
+type RuntimeAPI interface {
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 }

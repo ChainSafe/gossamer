@@ -41,6 +41,7 @@ type HTTPServerConfig struct {
 	StorageAPI          modules.StorageAPI
 	NetworkAPI          modules.NetworkAPI
 	CoreAPI             modules.CoreAPI
+	RuntimeAPI          modules.RuntimeAPI
 	TransactionQueueAPI modules.TransactionQueueAPI
 	Host                string
 	Port                uint32
@@ -68,7 +69,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.TransactionQueueAPI)
+			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		default:
