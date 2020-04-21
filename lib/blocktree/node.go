@@ -68,10 +68,29 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
+// getNodesWithDepth returns all descendent nodes with the desired depth
+func (n *node) getNodesWithDepth(depth *big.Int, hashes []common.Hash) []common.Hash {
+	for _, child := range n.children {
+		// depth matches
+		if child.depth.Cmp(depth) == 0 {
+			hashes = append(hashes, child.hash)
+		}
+
+		// are deeper than desired depth, return
+		if child.depth.Cmp(depth) > 0 {
+			return hashes
+		}
+
+		hashes = child.getNodesWithDepth(depth, hashes)
+	}
+
+	return hashes
+}
+
 // subChain recursively searches for a chain with head n and end descendant
 func (n *node) subChain(descendant *node) ([]*node, error) {
 	if descendant == nil {
-		return nil, fmt.Errorf("descendant node is nil")
+		return nil, ErrNilDescendant
 	}
 
 	var path []*node
@@ -88,7 +107,7 @@ func (n *node) subChain(descendant *node) ([]*node, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("could not find descendant node")
+	return nil, ErrDescendantNotFound
 }
 
 // TODO: This would improved by using parent in node struct and searching child -> parent

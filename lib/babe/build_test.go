@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package babe
 
 import (
@@ -7,11 +23,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,12 +78,7 @@ func TestSeal(t *testing.T) {
 	}
 }
 
-func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.Block, Slot) {
-	// create proof that we can authorize this block
-	babesession.epochThreshold = big.NewInt(0)
-	babesession.authorityIndex = 0
-	var slotNumber uint64 = 1
-
+func addAuthorshipProof(t *testing.T, babesession *Session, slotNumber uint64) {
 	outAndProof, err := babesession.runLottery(slotNumber)
 	if err != nil {
 		t.Fatal(err)
@@ -77,21 +89,23 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 	}
 
 	babesession.slotToProof[slotNumber] = outAndProof
+}
+
+func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.Block, Slot) {
+	// create proof that we can authorize this block
+	babesession.epochThreshold = big.NewInt(0)
+	babesession.authorityIndex = 0
+
+	slotNumber := uint64(1)
+
+	addAuthorshipProof(t, babesession, slotNumber)
 
 	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(types.Extrinsic(ext), &transaction.Validity{})
-		babesession.transactionQueue.Push(vtx)
+		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
+		_, _ = babesession.transactionQueue.Push(vtx)
 	}
 
-	zeroHash, err := common.HexToHash("0x00")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	parentHeader := &types.Header{
-		ParentHash: zeroHash,
-		Number:     big.NewInt(0),
-	}
+	parentHeader := genesisHeader
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
@@ -100,13 +114,20 @@ func createTestBlock(babesession *Session, exts [][]byte, t *testing.T) (*types.
 	}
 
 	// build block
-	block, err := babesession.buildBlock(parentHeader, slot)
-	if err != nil {
-		t.Fatal(err)
+	var block *types.Block
+	var err error
+
+	for i := 0; i < 5; i++ { // retry if error
+		block, err = babesession.buildBlock(parentHeader, slot)
+		if err == nil {
+			return block, slot
+		}
 	}
 
+	t.Fatal(err)
 	return block, slot
 }
+
 func TestBuildBlock_ok(t *testing.T) {
 	transactionQueue := state.NewTransactionQueue()
 
@@ -124,13 +145,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 	exts := [][]byte{txb}
 
-	block, slot := createTestBlock(babesession, exts, t)
-
-	// hash of parent header
-	parentHash, err := common.HexToHash("0xdcdd89927d8a348e00257e1ecc8617f45edb5118efff3ea2f9961b2ad9b7690a")
-	if err != nil {
-		t.Fatal(err)
-	}
+	block, slot := createTestBlock(t, babesession, exts)
 
 	stateRoot, err := common.HexToHash("0x31ce5e74d7141520abc11b8a68f884cb1d01b5476a6376a659d93a199c4884e0")
 	if err != nil {
@@ -149,7 +164,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 
 	expectedBlockHeader := &types.Header{
-		ParentHash:     parentHash,
+		ParentHash:     genesisHeader.Hash(),
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,

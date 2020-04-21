@@ -17,13 +17,16 @@
 package dot
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
@@ -38,20 +41,21 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:    string("test"),
 			ID:      string("test"),
 			DataDir: dir,
-			Config:  string(""),
+		},
+		Init: InitConfig{
 			Genesis: string(""),
-			Roles:   byte(4), // authority node
 		},
 		Account: AccountConfig{
 			Key:    string(""),
 			Unlock: string(""),
 		},
 		Core: CoreConfig{
-			Authority: true, // BABE block producer
+			Authority: true,    // BABE block producer
+			Roles:     byte(4), // authority node
 		},
 		Network: NetworkConfig{
 			Port:        uint32(7001),
-			Bootnodes:   []string(nil),
+			Bootnodes:   []string{"/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ"},
 			ProtocolID:  string("/gossamer/test/0"),
 			NoBootstrap: false,
 			NoMDNS:      false,
@@ -59,7 +63,7 @@ func NewTestConfig(t *testing.T) *Config {
 		RPC: RPCConfig{
 			Host:    string("localhost"),
 			Port:    uint32(8545),
-			Modules: []string{"system", "author"},
+			Modules: []string{"system", "author", "chain"},
 		},
 	}
 }
@@ -81,10 +85,13 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 
 // NewTestGenesis returns a test genesis instance using "gssmr" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
-	gssmrGen, err := genesis.LoadGenesisFromJSON("../node/gssmr/genesis.json")
+	fp := getGssmrGenesisPath(t)
+
+	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return &genesis.Genesis{
 		Name:       "test",
 		ID:         "test",
@@ -99,15 +106,12 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
 	file, err := ioutil.TempFile(dir, "genesis-")
-	if err != nil {
-		fmt.Println(fmt.Errorf("failed to create temporary file: %s", err))
-		require.Nil(t, err)
-	}
+	require.Nil(t, err)
 
-	gssmrGen, err := genesis.LoadGenesisFromJSON("../node/gssmr/genesis.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	fp := getGssmrGenesisPath(t)
+
+	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
+	require.Nil(t, err)
 
 	gen := &genesis.Genesis{
 		Name:       cfg.Global.Name,
@@ -124,4 +128,59 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	require.Nil(t, err)
 
 	return file
+}
+
+// NewTestGenesisAndRuntime create a new test runtime and a new test genesis
+// file with the test runtime stored in raw data and returns the genesis file
+// nolint
+func NewTestGenesisAndRuntime(t *testing.T) string {
+	dir := utils.NewTestDir(t)
+
+	_ = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_c768a7e4c70e)
+
+	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
+	require.Nil(t, err)
+
+	gen := NewTestGenesis(t)
+	hex := hex.EncodeToString(runtimeData)
+
+	gen.Genesis.Raw = [2]map[string]string{}
+	if gen.Genesis.Raw[0] == nil {
+		gen.Genesis.Raw[0] = make(map[string]string)
+	}
+	gen.Genesis.Raw[0]["0x3a636f6465"] = "0x" + hex
+
+	genFile, err := ioutil.TempFile(dir, "genesis-")
+	require.Nil(t, err)
+
+	genData, err := json.Marshal(gen)
+	require.Nil(t, err)
+
+	_, err = genFile.Write(genData)
+	require.Nil(t, err)
+
+	return genFile.Name()
+}
+
+// getGssmrGenesisPath gets the gossamer genesis path
+func getGssmrGenesisPath(t *testing.T) string {
+	path1 := "../node/gssmr/genesis.json"
+	path2 := "../../node/gssmr/genesis.json"
+
+	var fp string
+	var err error
+
+	if utils.PathExists(path1) {
+
+		fp, err = filepath.Abs(path1)
+		require.Nil(t, err)
+
+	} else if utils.PathExists(path2) {
+
+		fp, err = filepath.Abs(path2)
+		require.Nil(t, err)
+	}
+
+	return fp
 }

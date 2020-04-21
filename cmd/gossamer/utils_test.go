@@ -19,7 +19,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
 
@@ -38,6 +41,86 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 			return nil, fmt.Errorf("unexpected cli value type: %T", values[i])
 		}
 	}
+
 	ctx := cli.NewContext(nil, set, nil)
+
+	for i := range values {
+		switch v := values[i].(type) {
+		case bool:
+			if v {
+				err := ctx.Set(flags[i], "true")
+				if err != nil {
+					return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
+				}
+			} else {
+				err := ctx.Set(flags[i], "false")
+				if err != nil {
+					return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
+				}
+			}
+		case string:
+			err := ctx.Set(flags[i], v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
+			}
+		case uint:
+			err := ctx.Set(flags[i], string(v))
+			if err != nil {
+				return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
+			}
+		default:
+			return nil, fmt.Errorf("unexpected cli value type: %T", values[i])
+		}
+	}
+
 	return ctx, nil
+}
+
+// TestStartLogger
+func TestStartLogger(t *testing.T) {
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    error
+	}{
+		{
+			"Test gossamer --verbosity info",
+			[]string{"verbosity"},
+			[]interface{}{"info"},
+			nil,
+		},
+		{
+			"Test gossamer --verbosity debug",
+			[]string{"verbosity"},
+			[]interface{}{"debug"},
+			nil,
+		},
+		{
+			"Test gossamer --verbosity trace",
+			[]string{"verbosity"},
+			[]interface{}{"trace"},
+			nil,
+		},
+		{
+			"Test gossamer --verbosity blah",
+			[]string{"verbosity"},
+			[]interface{}{"blah"},
+			fmt.Errorf("Unknown level: blah"),
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+
+			err = startLogger(ctx)
+			require.Equal(t, c.expected, err)
+		})
+	}
 }

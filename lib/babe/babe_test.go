@@ -23,9 +23,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -36,7 +37,7 @@ var genesisHeader = &types.Header{
 }
 
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
-	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_OLD)
+	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
 
 	if cfg == nil {
 		cfg = &SessionConfig{
@@ -85,7 +86,10 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 	if cfg.BlockState == nil || cfg.StorageState == nil {
 		dbSrv := state.NewService("")
 		dbSrv.UseMemDB()
-		err = dbSrv.Initialize(genesisHeader, trie.NewEmptyTrie())
+
+		genesisData := new(genesis.Data)
+
+		err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
 		if err != nil {
 			t.Fatal(err)
 		}

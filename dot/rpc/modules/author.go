@@ -17,11 +17,17 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	log "github.com/ChainSafe/log15"
 )
 
@@ -32,11 +38,7 @@ type AuthorModule struct {
 }
 
 // KeyInsertRequest is used as model for the JSON
-type KeyInsertRequest struct {
-	KeyType   string `json:"keyType"`
-	Suri      string `json:"suri"`
-	PublicKey []byte `json:"publicKey"`
-}
+type KeyInsertRequest []string
 
 // Extrinsic represents a hex-encoded extrinsic
 type Extrinsic string
@@ -51,7 +53,6 @@ type ExtrinsicOrHash struct {
 type ExtrinsicOrHashRequest []ExtrinsicOrHash
 
 // KeyInsertResponse []byte
-// TODO: Waiting on Block type defined here https://github.com/ChainSafe/gossamer/pull/233
 type KeyInsertResponse []byte
 
 // PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
@@ -78,7 +79,7 @@ type ExtrinsicStatus struct {
 }
 
 // ExtrinsicHashResponse is used as Extrinsic hash response
-type ExtrinsicHashResponse common.Hash
+type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
 func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
@@ -90,7 +91,29 @@ func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorMod
 
 // InsertKey inserts a key into the keystore
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
-	_ = cm.coreAPI
+	keyReq := *req
+
+	pkDec, err := common.HexToHash(keyReq[1])
+	if err != nil {
+		return err
+	}
+
+	privateKey, err := keystore.DecodePrivateKey(pkDec.ToBytes(), determineKeyType(keyReq[0]))
+	if err != nil {
+		return err
+	}
+
+	keyPair, err := keystore.PrivateKeyToKeypair(privateKey)
+	if err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq[2]) {
+		return fmt.Errorf("generated public key does not equal provide public key")
+	}
+
+	cm.coreAPI.InsertKey(keyPair)
+	log.Info("[rpc] inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
 
@@ -134,24 +157,48 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 
 	log.Trace("[rpc]", "extrinsic", extBytes)
 
-	// TODO: validate transaction before submitting to tx queue
-
 	ext := types.Extrinsic(extBytes)
-
-	// TODO: form valid transaction by decoding tx bytes
-
-	vtx := &transaction.ValidTransaction{
-		Extrinsic: ext,
-		Validity:  nil,
-	}
-
-	cm.txQueueAPI.Push(vtx)
-	hash, err := common.Blake2bHash(extBytes)
+	// validate the transaction
+	txv, err := cm.coreAPI.ValidateTransaction(ext)
 	if err != nil {
 		return err
 	}
 
-	*res = ExtrinsicHashResponse(hash)
-	log.Info("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
+	vtx := transaction.NewValidTransaction(ext, txv)
+
+	if cm.coreAPI.IsBabeAuthority() {
+		hash, err := cm.txQueueAPI.Push(vtx)
+		if err != nil {
+			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", err)
+			return err
+		}
+
+		*res = ExtrinsicHashResponse(hash.String())
+		log.Trace("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
+	}
+
 	return nil
+}
+
+// determineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
+//  and returns the crypto.KeyType
+func determineKeyType(t string) crypto.KeyType {
+	// TODO: create separate keystores for different key types, issue #768
+	switch t {
+	case "babe":
+		return crypto.Sr25519Type
+	case "gran":
+		return crypto.Sr25519Type
+	case "acco":
+		return crypto.Sr25519Type
+	case "aura":
+		return crypto.Sr25519Type
+	case "imon":
+		return crypto.Sr25519Type
+	case "audi":
+		return crypto.Sr25519Type
+	case "dumy":
+		return crypto.Sr25519Type
+	}
+	return "unknown keytype"
 }

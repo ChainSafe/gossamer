@@ -60,7 +60,7 @@ func TestExecVersion_Old(t *testing.T) {
 		Impl_version:      1,
 	}
 
-	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_OLD)
+	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)

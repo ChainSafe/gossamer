@@ -34,6 +34,7 @@ import (
 // Config is a collection of configurations throughout the system
 type Config struct {
 	Global  GlobalConfig  `toml:"global"`
+	Init    InitConfig    `toml:"init"`
 	Account AccountConfig `toml:"account"`
 	Core    CoreConfig    `toml:"core"`
 	Network NetworkConfig `toml:"network"`
@@ -44,10 +45,12 @@ type Config struct {
 type GlobalConfig struct {
 	Name    string `toml:"name"`
 	ID      string `toml:"id"`
-	Config  string `toml:"config"`
-	Genesis string `toml:"genesis"`
 	DataDir string `toml:"datadir"`
-	Roles   byte   `toml:"roles"`
+}
+
+// InitConfig is the configuration for the node initialization
+type InitConfig struct {
+	Genesis string `toml:"genesis"`
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
@@ -68,6 +71,7 @@ type NetworkConfig struct {
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
 	Authority bool `toml:"authority"`
+	Roles     byte `toml:"roles"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -86,7 +90,7 @@ func (c *Config) String() string {
 
 // NetworkServiceEnabled returns true if the network service is enabled
 func NetworkServiceEnabled(cfg *Config) bool {
-	return cfg.Global.Roles != byte(0)
+	return cfg.Core.Roles != byte(0)
 }
 
 // RPCServiceEnabled returns true if the rpc service is enabled
@@ -100,10 +104,10 @@ func GssmrConfig() *Config {
 		Global: GlobalConfig{
 			Name:    gssmr.DefaultName,
 			ID:      gssmr.DefaultID,
-			Config:  gssmr.DefaultConfig,
-			Genesis: gssmr.DefaultGenesis,
 			DataDir: gssmr.DefaultDataDir,
-			Roles:   gssmr.DefaultRoles,
+		},
+		Init: InitConfig{
+			Genesis: gssmr.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    gssmr.DefaultKey,
@@ -111,6 +115,7 @@ func GssmrConfig() *Config {
 		},
 		Core: CoreConfig{
 			Authority: gssmr.DefaultAuthority,
+			Roles:     gssmr.DefaultRoles,
 		},
 		Network: NetworkConfig{
 			Port:        gssmr.DefaultNetworkPort,
@@ -133,10 +138,10 @@ func KsmccConfig() *Config {
 		Global: GlobalConfig{
 			Name:    ksmcc.DefaultName,
 			ID:      ksmcc.DefaultID,
-			Config:  ksmcc.DefaultConfig,
-			Genesis: ksmcc.DefaultGenesis,
 			DataDir: ksmcc.DefaultDataDir,
-			Roles:   ksmcc.DefaultRoles,
+		},
+		Init: InitConfig{
+			Genesis: ksmcc.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    ksmcc.DefaultKey,
@@ -144,6 +149,7 @@ func KsmccConfig() *Config {
 		},
 		Core: CoreConfig{
 			Authority: ksmcc.DefaultAuthority,
+			Roles:     ksmcc.DefaultRoles,
 		},
 		Network: NetworkConfig{
 			Port:        ksmcc.DefaultNetworkPort,
@@ -164,13 +170,13 @@ func KsmccConfig() *Config {
 func LoadConfig(cfg *Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
-		log.Error("[dot] Failed to create absolute path for toml configuration file", "error", err)
+		log.Error("[dot] failed to create absolute path for toml configuration file", "error", err)
 		return err
 	}
 
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] Failed to open toml configuration file", "error", err)
+		log.Error("[dot] failed to open toml configuration file", "error", err)
 		return err
 	}
 
@@ -191,7 +197,7 @@ func LoadConfig(cfg *Config, fp string) error {
 	}
 
 	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		log.Error("[dot] Failed to decode configuration", "error", err)
+		log.Error("[dot] failed to decode configuration", "error", err)
 		return err
 	}
 
@@ -207,24 +213,24 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 	)
 
 	if raw, err = toml.Marshal(*cfg); err != nil {
-		log.Error("[dot] Failed to marshal configuration", "error", err)
+		log.Error("[dot] failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] Failed to create configuration file", "error", err)
+		log.Error("[dot] failed to create configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(raw)
 	if err != nil {
-		log.Error("[dot] Failed to write to configuration file", "error", err)
+		log.Error("[dot] failed to write to configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		log.Error("[dot] Failed to close configuration file", "error", err)
+		log.Error("[dot] failed to close configuration file", "error", err)
 		os.Exit(1)
 	}
 

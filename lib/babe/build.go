@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package babe
 
 import (
@@ -8,8 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
-	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -139,12 +154,12 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 
 // buildBlockBabeHeader creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *Session) buildBlockBabeHeader(slot Slot) (*babetypes.BabeHeader, error) {
+func (b *Session) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
 		return nil, errors.New("not authorized to produce block")
 	}
 	outAndProof := b.slotToProof[slot.number]
-	return &babetypes.BabeHeader{
+	return &types.BabeHeader{
 		VrfOutput:          outAndProof.output,
 		VrfProof:           outAndProof.proof,
 		BlockProducerIndex: b.authorityIndex,
@@ -224,7 +239,12 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 
 func (b *Session) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
-		b.transactionQueue.Push(t)
+		hash, err := b.transactionQueue.Push(t)
+		if err != nil {
+			log.Trace("[babe] Failed to add transaction to queue", "error", err)
+		} else {
+			log.Trace("[babe] Added transaction to queue", "hash", hash)
+		}
 	}
 }
 

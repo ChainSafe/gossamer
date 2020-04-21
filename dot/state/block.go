@@ -24,11 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
-	babetypes "github.com/ChainSafe/gossamer/lib/babe/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/database"
+
+	database "github.com/ChainSafe/chaindb"
 )
 
 var blockPrefix = []byte("block")
@@ -213,6 +213,17 @@ func (bs *BlockState) GetBlockByNumber(blockNumber *big.Int) (*types.Block, erro
 	return block, nil
 }
 
+// GetBlockHash returns block hash for a given blockNumber
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
+	// First retrieve the block hash in a byte array based on the block number from the database
+	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
+	if err != nil {
+		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
+	}
+	hash := common.NewHash(byteHash)
+	return &hash, nil
+}
+
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
 	bs.lock.Lock()
@@ -359,6 +370,11 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	return err
 }
 
+// GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
+func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+	return bs.bt.GetAllBlocksAtDepth(hash)
+}
+
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
 	bestBlock, err := bs.BestBlockHeader()
 	if err != nil {
@@ -442,7 +458,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babeHeader := new(babetypes.BabeHeader)
+	babeHeader := new(types.BabeHeader)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
@@ -491,8 +507,8 @@ func babeHeaderKey(epoch uint64, slot uint64) []byte {
 }
 
 // GetBabeHeader retrieves a BabeHeader from the database
-func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeHeader, error) {
-	result := new(babetypes.BabeHeader)
+func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*types.BabeHeader, error) {
+	result := new(types.BabeHeader)
 
 	data, err := bs.db.Get(babeHeaderKey(epoch, slot))
 	if err != nil {
@@ -505,7 +521,7 @@ func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*babetypes.BabeH
 }
 
 // SetBabeHeader sets a BabeHeader in the database
-func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *babetypes.BabeHeader) error {
+func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHeader) error {
 	// Write the encoded header
 	enc := bh.Encode()
 

@@ -25,10 +25,13 @@ import (
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
 
+	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -44,55 +47,60 @@ type Node struct {
 // InitNode initializes a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	dataDir := cfg.Global.DataDir
-	genPath := cfg.Global.Genesis
-
 	log.Info(
-		"[dot] Initializing node...",
-		"datadir", dataDir,
-		"genesis", genPath,
+		"[dot] initializing node...",
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
+		"datadir", cfg.Global.DataDir,
+		"genesis", cfg.Init.Genesis,
 	)
 
-	// load Genesis from genesis configuration file
-	gen, err := genesis.LoadGenesisFromJSON(genPath)
+	// create genesis from configuration file
+	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	if err != nil {
-		log.Error("[dot] Failed to load genesis from file", "error", err)
-		return err
+		return fmt.Errorf("failed to load genesis from file: %s", err)
+	}
+
+	// create trie from genesis
+	t, err := genesis.NewTrieFromGenesis(gen)
+	if err != nil {
+		return fmt.Errorf("failed to create trie from genesis: %s", err)
+	}
+
+	// create genesis block from trie
+	header, err := genesis.NewGenesisBlockFromTrie(t)
+	if err != nil {
+		return fmt.Errorf("failed to create genesis block from trie: %s", err)
+	}
+
+	// create new state service
+	stateSrvc := state.NewService(cfg.Global.DataDir)
+
+	// declare genesis data
+	data := gen.GenesisData()
+
+	// set genesis data using configuration values (assumes the genesis values
+	// have already been set for the configuration, which allows for us to take
+	// into account dynamic genesis values if the corresponding flag values are
+	// provided when using the dot package with the gossamer command)
+	data.Name = cfg.Global.Name
+	data.ID = cfg.Global.ID
+	data.Bootnodes = common.StringArrayToBytes(cfg.Network.Bootnodes)
+	data.ProtocolID = cfg.Network.ProtocolID
+
+	// initialize state service with genesis data, block, and trie
+	err = stateSrvc.Initialize(data, header, t)
+	if err != nil {
+		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
 
 	log.Info(
-		"[dot] Loading genesis...",
-		"name", gen.Name,
-		"id", gen.ID,
-		"protocol", gen.ProtocolID,
-		"bootnodes", gen.Bootnodes,
-	)
-
-	// create and load trie from genesis
-	t, err := newTrieFromGenesis(gen)
-	if err != nil {
-		log.Error("[dot] Failed to create trie from genesis", "error", err)
-		return err
-	}
-
-	// generates genesis block header from trie and store it in state database
-	err = loadGenesisBlock(t, dataDir)
-	if err != nil {
-		log.Error("[dot] Failed to load genesis block with state service", "error", err)
-		return err
-	}
-
-	// initialize trie database
-	err = initTrieDatabase(t, dataDir, gen)
-	if err != nil {
-		log.Error("[dot] Failed to initialize trie database", "error", err)
-		return err
-	}
-
-	log.Info(
-		"[dot] Node initialized",
-		"datadir", dataDir,
-		"genesis", genPath,
+		"[dot] node initialized",
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
+		"datadir", cfg.Global.DataDir,
+		"genesis", cfg.Init.Genesis,
+		"block", header.Number,
 	)
 
 	return nil
@@ -100,33 +108,63 @@ func InitNode(cfg *Config) error {
 
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(cfg *Config) bool {
+func NodeInitialized(datadir string, expected bool) bool {
 
 	// check if key registry exists
-	registry := path.Join(cfg.Global.DataDir, "KEYREGISTRY")
+	registry := path.Join(datadir, "KEYREGISTRY")
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		log.Warn(
-			"[dot] Node has not been initialized",
-			"datadir", cfg.Global.DataDir,
-			"error", "failed to locate KEYREGISTRY file in data directory",
-		)
+		if expected {
+			log.Warn(
+				"[dot] node has not been initialized",
+				"datadir", datadir,
+				"error", "failed to locate KEYREGISTRY file in data directory",
+			)
+		}
 		return false
 	}
 
 	// check if manifest exists
-	manifest := path.Join(cfg.Global.DataDir, "MANIFEST")
+	manifest := path.Join(datadir, "MANIFEST")
 	_, err = os.Stat(manifest)
 	if os.IsNotExist(err) {
-		log.Warn(
-			"[dot] Node has not been initialized",
-			"datadir", cfg.Global.DataDir,
-			"error", "failed to locate MANIFEST file in data directory",
+		if expected {
+			log.Warn(
+				"[dot] node has not been initialized",
+				"datadir", datadir,
+				"error", "failed to locate MANIFEST file in data directory",
+			)
+		}
+		return false
+	}
+
+	// initialize database using data directory
+	db, err := database.NewBadgerDB(datadir)
+	if err != nil {
+		log.Error(
+			"[dot] failed to create database",
+			"datadir", datadir,
+			"error", err,
 		)
 		return false
 	}
 
-	// TODO: investigate cheap way to confirm valid genesis data has been loaded
+	// load genesis data from initialized node database
+	_, err = state.LoadGenesisData(db)
+	if err != nil {
+		log.Warn(
+			"[dot] node has not been initialized",
+			"datadir", datadir,
+			"error", err,
+		)
+		return false
+	}
+
+	// close database
+	err = db.Close()
+	if err != nil {
+		log.Error("[dot] failed to close database", "error", err)
+	}
 
 	return true
 }
@@ -142,7 +180,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	// Node Services
 
 	log.Info(
-		"[dot] Creating node services...",
+		"[dot] initializing node services...",
+		"name", cfg.Global.Name,
+		"id", cfg.Global.ID,
 		"datadir", cfg.Global.DataDir,
 	)
 
@@ -191,7 +231,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	} else {
 
 		// do not create or append network service if network service is not enabled
-		log.Debug("[dot] Network service disabled", "network", enabled, "roles", cfg.Global.Roles)
+		log.Debug("[dot] network service disabled", "network", enabled, "roles", cfg.Core.Roles)
 
 	}
 
@@ -207,7 +247,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	} else {
 
 		// do not create or append rpc service if rpc service is not enabled
-		log.Debug("[dot] RPC service disabled by default", "rpc", enabled)
+		log.Debug("[dot] rpc service disabled by default", "rpc", enabled)
 
 	}
 
@@ -228,7 +268,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 // Start starts all dot node services
 func (n *Node) Start() {
-	log.Info("[dot] Starting node services...")
+	log.Info("[dot] starting node services...")
 
 	// start all dot node services
 	n.Services.StartAll()
@@ -241,7 +281,7 @@ func (n *Node) Start() {
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
 		<-sigc
-		log.Info("[dot] Signal interrupt, shutting down...")
+		log.Info("[dot] signal interrupt, shutting down...")
 		n.Stop()
 		os.Exit(130)
 	}()

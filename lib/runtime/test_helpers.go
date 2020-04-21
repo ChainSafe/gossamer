@@ -59,11 +59,11 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *
 
 //nolint
 const (
-	POLKADOT_RUNTIME_OLD     = "polkadot_runtime"
-	POLKADOT_RUNTIME_FP_OLD  = "substrate_test_runtime_old.compact.wasm"
-	POLKADOT_RUNTIME_URL_OLD = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	POLKADOT_RUNTIME_c768a7e4c70e     = "polkadot_runtime_c768a7e4c70e"
+	POLKADOT_RUNTIME_FP_c768a7e4c70e  = "substrate_test_runtime_c768a7e4c70e.compact.wasm"
+	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
-	POLKADOT_RUNTIME     = "polkadot_runtime_2"
+	POLKADOT_RUNTIME     = "polkadot_runtime"
 	POLKADOT_RUNTIME_FP  = "substrate_test_runtime.compact.wasm"
 	POLKADOT_RUNTIME_URL = "https://github.com/noot/substrate/blob/add-blob-032720/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
@@ -91,14 +91,14 @@ func GetRuntimeVars(targetRuntime string) (string, string, func() (*wasm.Imports
 	var registerImports func() (*wasm.Imports, error)
 
 	switch targetRuntime {
-	case POLKADOT_RUNTIME_OLD:
-		registerImports = RegisterImportsOld
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_OLD), POLKADOT_RUNTIME_URL_OLD
+	case POLKADOT_RUNTIME_c768a7e4c70e:
+		registerImports = RegisterImports_c768a7e4c70e
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_c768a7e4c70e), POLKADOT_RUNTIME_URL_c768a7e4c70e
 	case POLKADOT_RUNTIME:
 		registerImports = RegisterImports
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case TEST_RUNTIME:
-		registerImports = RegisterImportsOld
+		registerImports = RegisterImports_c768a7e4c70e
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(TESTS_FP), TEST_WASM_URL
 	default:
 		registerImports = RegisterImports

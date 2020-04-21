@@ -21,9 +21,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/database"
+
+	database "github.com/ChainSafe/chaindb"
 	"github.com/disiqueira/gotree"
 )
 
@@ -47,7 +48,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 }
 
 // NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
-// Currently passes in arrival time as a parameter instead of setting it as time of instanciation
+// Currently passes in arrival time as a parameter instead of setting it as time of instantiation
 func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *BlockTree {
 	head := &node{
 		hash:        genesis.Hash(),
@@ -74,13 +75,13 @@ func (bt *BlockTree) GenesisHash() Hash {
 func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	parent := bt.getNode(block.Header.ParentHash)
 	if parent == nil {
-		return fmt.Errorf("cannot find parent block in blocktree")
+		return ErrParentNotFound
 	}
 
 	// Check if it already exists
 	n := bt.getNode(block.Header.Hash())
 	if n != nil {
-		return fmt.Errorf("cannot add block to blocktree that already exists: hash=%s", n.hash)
+		return ErrBlockExists
 	}
 
 	depth := big.NewInt(0)
@@ -97,6 +98,25 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	bt.leaves.replace(parent, n)
 
 	return nil
+}
+
+// GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
+// To find all blocks at a depth matching a certain block, pass in that block's parent hash
+func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+	hashes := []common.Hash{}
+
+	if bt.getNode(hash) == nil {
+		return hashes
+	}
+
+	depth := big.NewInt(0).Add(bt.getNode(hash).depth, big.NewInt(1))
+
+	if bt.head.depth.Cmp(depth) == 0 {
+		hashes = append(hashes, bt.head.hash)
+		return hashes
+	}
+
+	return bt.head.getNodesWithDepth(depth, hashes)
 }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
@@ -137,7 +157,7 @@ func (bt *BlockTree) String() string {
 }
 
 // longestPath returns the path from the root to leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) longestPath() []*node {
+func (bt *BlockTree) longestPath() []*node { //nolint
 	dl := bt.deepestLeaf()
 	var path []*node
 	for curr := dl; ; curr = curr.parent {
@@ -152,11 +172,11 @@ func (bt *BlockTree) longestPath() []*node {
 func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
 	if sn == nil {
-		return nil, fmt.Errorf("start node does not exist")
+		return nil, ErrStartNodeNotFound
 	}
 	en := bt.getNode(end)
 	if en == nil {
-		return nil, fmt.Errorf("end node does not exist")
+		return nil, ErrEndNodeNotFound
 	}
 	return sn.subChain(en)
 }
@@ -176,7 +196,7 @@ func (bt *BlockTree) SubBlockchain(start Hash, end Hash) ([]Hash, error) {
 }
 
 // DeepestLeaf returns leftmost deepest leaf in BlockTree BT
-func (bt *BlockTree) deepestLeaf() *node {
+func (bt *BlockTree) deepestLeaf() *node { //nolint
 	return bt.leaves.deepestLeaf()
 }
 

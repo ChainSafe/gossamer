@@ -21,7 +21,31 @@ import (
 	"github.com/urfave/cli"
 )
 
-// CLI flags
+// Node flags
+var (
+	// UnlockFlag keystore
+	UnlockFlag = cli.StringFlag{
+		Name:  "unlock",
+		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
+	}
+	// ForceFlag disables all confirm prompts ("Y" to all)
+	ForceFlag = cli.BoolFlag{
+		Name:  "force",
+		Usage: "Disable all confirm prompts (the same as answering \"Y\" to all)",
+	}
+	// KeyFlag specifies a test keyring account to use
+	KeyFlag = cli.StringFlag{
+		Name:  "key",
+		Usage: "Specify a test keyring account to use: eg --key=alice",
+	}
+	// RolesFlag role of the node (see Table D.2)
+	RolesFlag = cli.StringFlag{
+		Name:  "roles",
+		Usage: "Roles of the gossamer node",
+	}
+)
+
+// Global node configuration flags
 var (
 	// VerbosityFlag cli service settings
 	VerbosityFlag = cli.StringFlag{
@@ -29,34 +53,34 @@ var (
 		Usage: "Supports levels crit (silent) to trce (trace)",
 		Value: log.LvlInfo.String(),
 	}
-)
-
-// Global node configuration flags
-var (
-	// NodeFlag node implementation name
+	// NameFlag node implementation name
+	NameFlag = cli.StringFlag{
+		Name:  "name",
+		Usage: "Node implementation name",
+	}
+	// NodeFlag node implementation id used to load default node configuration
 	NodeFlag = cli.StringFlag{
 		Name:  "node",
-		Usage: "Node implementation name",
+		Usage: "Node implementation id used to load default node configuration",
 	}
 	// ConfigFlag TOML configuration file
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
 	}
-	// GenesisFlag Path to genesis JSON file
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
-		Usage: "Path to genesis JSON file",
-	}
 	// DataDirFlag data directory for node
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the node",
 	}
-	// RolesFlag role of the node (see Table D.2)
-	RolesFlag = cli.StringFlag{
-		Name:  "roles",
-		Usage: "Roles of the gossamer node",
+)
+
+// Initialization-only flags
+var (
+	// GenesisFlag Path to genesis JSON file
+	GenesisFlag = cli.StringFlag{
+		Name:  "genesis",
+		Usage: "Path to genesis JSON file",
 	}
 )
 
@@ -115,11 +139,6 @@ var (
 
 // Account management flags
 var (
-	// KeyFlag specifies a test keyring account to use
-	KeyFlag = cli.StringFlag{
-		Name:  "key",
-		Usage: "Specify a test keyring account to use: eg --key=alice",
-	}
 	// GenerateFlag Generate a new keypair
 	GenerateFlag = cli.BoolFlag{
 		Name:  "generate",
@@ -129,11 +148,6 @@ var (
 	PasswordFlag = cli.StringFlag{
 		Name:  "password",
 		Usage: "Password used to encrypt the keystore. Used with --generate or --unlock",
-	}
-	// UnlockFlag keystore
-	UnlockFlag = cli.StringFlag{
-		Name:  "unlock",
-		Usage: "Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2",
 	}
 	// ImportFlag Import encrypted keystore
 	ImportFlag = cli.StringFlag{
@@ -162,41 +176,32 @@ var (
 	}
 )
 
+// flag sets that are shared by multiple commands
 var (
-	// CLIFlags cli flags
-	CLIFlags = []cli.Flag{
-		VerbosityFlag,
-	}
-	// GlobalFlags node flags
+	// GlobalFlags are flags that are valid for use with the root command and all subcommands
 	GlobalFlags = []cli.Flag{
+		VerbosityFlag,
+		NameFlag,
 		NodeFlag,
 		ConfigFlag,
-		GenesisFlag,
 		DataDirFlag,
 	}
-	// AccountFlags account flags
-	AccountFlags = []cli.Flag{
+
+	// StartupFlags are flags that are valid for use with the root command and the export subcommand
+	StartupFlags = []cli.Flag{
+		// keystore flags
 		KeyFlag,
-		GenerateFlag,
-		PasswordFlag,
 		UnlockFlag,
-		ImportFlag,
-		ListFlag,
-		Ed25519Flag,
-		Sr25519Flag,
-		Secp256k1Flag,
-	}
-	// NetworkFlags network flags
-	NetworkFlags = []cli.Flag{
+
+		// network flags
 		PortFlag,
 		BootnodesFlag,
 		ProtocolFlag,
 		RolesFlag,
 		NoBootstrapFlag,
 		NoMDNSFlag,
-	}
-	// RPCFlags rpc flags
-	RPCFlags = []cli.Flag{
+
+		// rpc flags
 		RPCEnabledFlag,
 		RPCHostFlag,
 		RPCPortFlag,
@@ -204,23 +209,58 @@ var (
 	}
 )
 
-// AllFlags returns all cli flags
-func AllFlags() (flags []cli.Flag) {
-	flags = append(flags, CLIFlags...)
-	flags = append(flags, GlobalFlags...)
-	flags = append(flags, AccountFlags...)
-	flags = append(flags, NetworkFlags...)
-	flags = append(flags, RPCFlags...)
-	return flags
-}
+// command specific flag sets for the root gossamer command and all subcommands
+var (
+	// RootFlags are the flags that are valid for use with the root gossamer command
+	RootFlags = append(GlobalFlags, StartupFlags...)
 
-// FixFlagOrder allow us to use various flag order formats, eg: (gossamer init --config config.toml and  gossamer --config config.toml init)
+	// InitFlags are flags that are valid for use with the init subcommand
+	InitFlags = append([]cli.Flag{
+		ForceFlag,
+		GenesisFlag,
+	}, GlobalFlags...)
+
+	// ExportFlags are the flags that are valid for use with the export subcommand
+	ExportFlags = append([]cli.Flag{
+		ForceFlag,
+		GenesisFlag,
+	}, append(GlobalFlags, StartupFlags...)...)
+
+	// AccountFlags are flags that are valid for use with the account subcommand
+	AccountFlags = append([]cli.Flag{
+		GenerateFlag,
+		PasswordFlag,
+		ImportFlag,
+		ListFlag,
+		Ed25519Flag,
+		Sr25519Flag,
+		Secp256k1Flag,
+	}, GlobalFlags...)
+)
+
+// FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
+// --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
+// does not apply to non-global flags, which must come after the subcommand (ie,
+// `gossamer --force --config config.toml init` will not recognize `--force` but
+// `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 		for _, flagName := range ctx.FlagNames() {
 			if ctx.IsSet(flagName) {
-				if err := ctx.GlobalSet(flagName, ctx.String(flagName)); err != nil {
-					log.Error("[cmd] Failed to fix flag order", "flag", flagName)
+				// attempt to set flag as global flag
+				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				if err != nil {
+					log.Trace("[cmd] failed to set global flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] global flag set", "flag", flagName)
+				}
+
+				// attempt to set flag as local flag
+				err = ctx.Set(flagName, ctx.String(flagName))
+				if err != nil {
+					log.Trace("[cmd] failed to set local flag", "flag", flagName)
+				} else {
+					log.Trace("[cmd] local flag set", "flag", flagName)
 				}
 			}
 		}

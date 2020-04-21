@@ -17,10 +17,9 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/core/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -37,7 +36,7 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 	}
 
 	if ret[0] != 0 {
-		return nil, errors.New("could not validate transaction")
+		return nil, determineError(ret)
 	}
 
 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
@@ -46,15 +45,21 @@ func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity,
 	return v, err
 }
 
-// runs the block through runtime function Core_execute_block
-// doesn't return data, but will error if the call isn't successful
-func (s *Service) executeBlock(b []byte) error {
-	_, err := s.rt.Exec(runtime.CoreExecuteBlock, b)
-	if err != nil {
-		return err
+func determineError(res []byte) error {
+	// confirm we have an error
+	if res[0] == 0 {
+		return nil
 	}
 
-	return nil
+	if res[1] == 0 {
+		// transaction is invalid
+		return ErrInvalidTransaction
+	}
+	if res[1] == 1 {
+		// transaction validity can't be determined
+		return ErrUnknownTransaction
+	}
+	return ErrCannotValidateTx
 }
 
 // TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.

@@ -39,7 +39,7 @@ func TestCreateStateService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Global.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -47,7 +47,7 @@ func TestCreateStateService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// TODO: improve dot service tests
+	// TODO: improve dot tests #687
 	require.NotNil(t, stateSrvc)
 }
 
@@ -63,8 +63,9 @@ func TestCreateCoreService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Core.Authority = false // TODO: improve dot service tests
-	cfg.Global.Genesis = genFile.Name()
+	// TODO: improve dot tests #687
+	cfg.Core.Authority = false
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -82,7 +83,7 @@ func TestCreateCoreService(t *testing.T) {
 	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	require.Nil(t, err)
 
-	// TODO: improve dot service tests
+	// TODO: improve dot tests #687
 	require.NotNil(t, coreSrvc)
 }
 
@@ -98,7 +99,7 @@ func TestCreateNetworkService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Global.Genesis = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -113,7 +114,7 @@ func TestCreateNetworkService(t *testing.T) {
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	require.Nil(t, err)
 
-	// TODO: improve dot service tests
+	// TODO: improve dot tests #687
 	require.NotNil(t, networkSrvc)
 }
 
@@ -129,8 +130,9 @@ func TestCreateRPCService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Core.Authority = false // TODO: improve dot service tests
-	cfg.Global.Genesis = genFile.Name()
+	// TODO: improve dot tests #687
+	cfg.Core.Authority = false
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -151,6 +153,6 @@ func TestCreateRPCService(t *testing.T) {
 	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc)
 	require.Nil(t, err)
 
-	// TODO: improve dot service tests
+	// TODO: improve dot tests #687
 	require.NotNil(t, rpcSrvc)
 }

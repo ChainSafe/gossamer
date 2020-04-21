@@ -234,10 +234,6 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 
 // RegisterImports registers the wasm imports for the most recent substrate test runtime.
 func RegisterImports() (*wasm.Imports, error) {
-	return registerImports()
-}
-
-func registerImports() (*wasm.Imports, error) {
 	// check for memory error
 	if memErr != nil {
 		return nil, memErr
