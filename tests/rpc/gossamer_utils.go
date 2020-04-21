@@ -43,25 +43,24 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
 
-	var cmd *exec.Cmd
-	cmd = exec.Command(gossamerCMD, "init",
+	cmdInit := exec.Command(gossamerCMD, "init",
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
 		"--force",
 	)
 
 	//add step for init
-	t.Log("Going to init gossamer", "cmd", cmd)
-	err = cmd.Start()
+	t.Log("Going to init gossamer", "cmdInit", cmdInit)
+	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
-		t.Error("Could not init gossamer", "err", err)
+		t.Error("Could not init gossamer", "err", err, "output", string(stdOutInit))
 		return nil, err
 	}
 
-	time.Sleep(time.Second)
+	t.Log("Gossamer init ok", "output", string(stdOutInit))
 
 	//TODO: could we enable genesis file to be configured via args without init?
-	cmd = exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
+	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--rpchost", GOSSAMER_NODE_HOST,
@@ -69,8 +68,11 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		"--rpcmods", "system,author,chain",
 		"--key", keyList[nodeNumb],
 		"--roles", "4",
-		"--rpc", "",
+		"--rpc",
 	)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	t.Log("Going to execute gossamer", "cmd", cmd)
 	err = cmd.Start()
@@ -79,11 +81,13 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		return nil, err
 	}
 
+	t.Log("Gossamer start", "err", err)
+
 	t.Log("wait few secs for node to come up", "cmd.Process.Pid", cmd.Process.Pid)
 	var started bool
 
 	for i := 0; i < 10; i++ {
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 		if err := CheckFunc(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
 			started = true
 			break
@@ -94,8 +98,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	if started {
 		t.Log("Gossamer started :D", "cmd.Process.Pid", cmd.Process.Pid)
 	} else {
-		t.Fatal("Gossamer node never managed to start!")
-
+		t.Fatal("Gossamer node never managed to start!", "err", err)
 	}
 
 	return cmd, nil
@@ -105,7 +108,10 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 func CheckFunc(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
-	respBody := PostRPC(t, method, gossamerHost)
+	respBody, err := PostRPC(t, method, gossamerHost)
+	if err != nil {
+		return err
+	}
 
 	target := DecodeRPC(t, respBody, method)
 
