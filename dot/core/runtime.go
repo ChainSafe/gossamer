@@ -19,48 +19,12 @@ package core
 import (
 	"fmt"
 
-	//"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	//"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
 )
-
-// // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
-// func (s *Service) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-// 	ret, err := s.rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if ret[0] != 0 {
-// 		return nil, determineError(ret)
-// 	}
-
-// 	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-// 	_, err = scale.Decode(ret[1:], v)
-
-// 	return v, err
-// }
-
-// func determineError(res []byte) error {
-// 	// confirm we have an error
-// 	if res[0] == 0 {
-// 		return nil
-// 	}
-
-// 	if res[1] == 0 {
-// 		// transaction is invalid
-// 		return ErrInvalidTransaction
-// 	}
-// 	if res[1] == 1 {
-// 		// transaction validity can't be determined
-// 		return ErrUnknownTransaction
-// 	}
-// 	return ErrCannotValidateTx
-// }
 
 // TODO: move this to runtime package, requires separate babetypes package for AuthorityData
 // TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
