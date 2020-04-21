@@ -17,7 +17,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -497,20 +496,22 @@ func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
 }
 
-func (s *Service) GetRuntimeVersion() error {
+// GetRuntimeVersion gets the current RuntimeVersion
+func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 	//TODO ed, change this so that it can lookup runtime by block hash
-	fmt.Printf("GET RUNTIME\n")
-	//ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
-	//if err != nil {
-	//	return err
-	//}
-	//fmt.Printf("RT bytes %v\n", ret)
-	//res, err := decodeToInterface(ret, &runtime.Version{})
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//version := res.(*runtime.Version)
-	//fmt.Printf("RT version %#v\n", version)
-	return nil
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+
+	ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
+	err = version.Decode(ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }

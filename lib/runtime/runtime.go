@@ -165,4 +165,3 @@ func (r *Runtime) malloc(size uint32) (uint32, error) {
 func (r *Runtime) free(ptr uint32) error {
 	return r.allocator.Deallocate(ptr)
 }
-

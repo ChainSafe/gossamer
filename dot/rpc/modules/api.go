@@ -3,10 +3,10 @@ package modules
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -39,5 +39,5 @@ type TransactionQueueAPI interface {
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
-	GetRuntimeVersion() error
+	GetRuntimeVersion() (*runtime.VersionAPI, error)
 }
