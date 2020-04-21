@@ -16,6 +16,8 @@
 
 package ksmcc
 
+import "github.com/ChainSafe/gossamer/lib/utils"
+
 var (
 	// GlobalConfig
 
@@ -31,7 +33,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis Default genesis configuration path
-	DefaultGenesis = string("./node/ksmcc/genesis.json")
+	DefaultGenesis = utils.GetKsmccGenesisPath()
 
 	// AccountConfig
 
