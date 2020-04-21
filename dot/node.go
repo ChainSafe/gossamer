@@ -244,10 +244,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 
-		// create websocket rpc service and append service to the node service
-		rpcSrvcWS := createRPCServiceWS(cfg, stateSrvc, coreSrvc, networkSrvc)
-		nodeSrvcs = append(nodeSrvcs, rpcSrvcWS)
-
 	} else {
 
 		// do not create or append rpc service if rpc service is not enabled
