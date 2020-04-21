@@ -22,10 +22,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -414,6 +414,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -425,6 +426,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -436,6 +438,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    "testhost",
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -447,6 +450,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    5678,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -458,6 +462,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: []string{"mod1", "mod2"},
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 	}

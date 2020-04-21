@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -149,8 +148,9 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 	log.Info(
 		"[dot] creating rpc service...",
 		"host", cfg.RPC.Host,
-		"port", cfg.RPC.Port,
+		"rpc port", cfg.RPC.Port,
 		"mods", cfg.RPC.Modules,
+		"ws port", cfg.RPC.WSPort,
 	)
 
 	rpcConfig := &rpc.HTTPServerConfig{
@@ -160,35 +160,10 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		CoreAPI:             coreSrvc,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
 		Host:                cfg.RPC.Host,
-		Port:                cfg.RPC.Port,
+		RPCPort:             cfg.RPC.Port,
+		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,
 	}
 
 	return rpc.NewHTTPServer(rpcConfig)
-}
-
-// createRPCServiceWS creates the RPC service from the provided core configuration
-func createRPCServiceWS(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service) *rpc.HTTPServerWS {
-	log.Info(
-		"[dot] Creating WS service...",
-		"host", cfg.RPC.Host,
-		"port", cfg.RPC.WSPort,
-		"mods", cfg.RPC.Modules,
-	)
-
-	rpcConfig := &rpc.HTTPServerConfig{
-		BlockAPI:            stateSrvc.Block,
-		StorageAPI:          stateSrvc.Storage,
-		NetworkAPI:          networkSrvc,
-		CoreAPI:             coreSrvc,
-		TransactionQueueAPI: stateSrvc.TransactionQueue,
-		Host:                cfg.RPC.Host,
-		Port:                cfg.RPC.WSPort,
-		Modules:             cfg.RPC.Modules,
-	}
-	rpcWSConfig := &rpc.HTTPServerConfigWS{
-		HTTPServerConfig: rpcConfig,
-		RPCPort:          cfg.RPC.Port,
-	}
-	return rpc.NewHTTPServerWS(rpcWSConfig)
 }

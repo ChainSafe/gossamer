@@ -40,4 +40,6 @@ type TransactionQueueAPI interface {
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	IsBabeAuthority() bool
 }

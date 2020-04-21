@@ -27,11 +27,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
 
+	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -243,10 +243,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		// create rpc service and append rpc service to node services
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
-
-		// create websocket rpc service and append service to the node service
-		rpcSrvcWS := createRPCServiceWS(cfg, stateSrvc, coreSrvc, networkSrvc)
-		nodeSrvcs = append(nodeSrvcs, rpcSrvcWS)
 
 	} else {
 
