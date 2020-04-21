@@ -151,8 +151,8 @@ func Bootstrap(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 		return nil, err
 	}
 
-	for i, k := range pidList {
-		t.Log("bootstrap gossamer ", "k", k, "i", i)
+	for i, cmd := range pidList {
+		t.Log("bootstrap gossamer ", "cmd", cmd, "i", i)
 		cmd, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			t.Log("failed to runGossamer", "i", i)
