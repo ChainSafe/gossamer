@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -57,7 +58,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		return nil, err
 	}
 
-	t.Log("Gossamer init ok", "output", string(stdOutInit))
+	t.Log("Gossamer init ok")
 
 	//TODO: could we enable genesis file to be configured via args without init?
 	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
@@ -71,8 +72,15 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		"--rpc",
 	)
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	f, err := os.Create(filepath.Join(dataDir+strconv.Itoa(nodeNumb), "gossamer.log"))
+	if err != nil {
+		t.Fatalf("Error when trying to set a log file for gossamer output: %v", err)
+	}
+
+	multiWriter := io.MultiWriter(f, os.Stdout)
+
+	cmd.Stdout = multiWriter
+	cmd.Stderr = multiWriter
 
 	t.Log("Going to execute gossamer", "cmd", cmd)
 	err = cmd.Start()
@@ -108,7 +116,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 func CheckFunc(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
-	respBody, err := PostRPC(t, method, gossamerHost)
+	respBody, err := PostRPC(t, method, gossamerHost, "{}")
 	if err != nil {
 		return err
 	}

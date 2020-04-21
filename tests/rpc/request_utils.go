@@ -29,8 +29,9 @@ import (
 )
 
 // PostRPC utils for sending payload to endpoint and getting []byte back
-func PostRPC(t *testing.T, method, host string) ([]byte, error) {
-	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":{},"id":1}`)
+func PostRPC(t *testing.T, method, host, params string) ([]byte, error) {
+
+	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":` + params + `,"id":1}`)
 	buf := &bytes.Buffer{}
 	_, err := buf.Write(data)
 	require.Nil(t, err)
