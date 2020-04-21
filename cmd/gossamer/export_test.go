@@ -31,11 +31,11 @@ import (
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
 	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-
 	testCfg := dot.NewTestConfig(t)
-	testCfg.Global.DataDir = testDir
+
 	genFile := dot.NewTestGenesisFile(t, testCfg)
+
+	defer utils.RemoveTestDir(t)
 
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
@@ -43,7 +43,7 @@ func TestExportCommand(t *testing.T) {
 	testName := "testnode"
 	testBootnode := "bootnode"
 	testProtocol := "/protocol/test/0"
-	testConfig := path.Join(testCfg.Global.DataDir, "config.toml")
+	testConfig := path.Join(testDir, "config.toml")
 
 	testcases := []struct {
 		description string
@@ -54,7 +54,7 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis --datadir --name --verbosity",
 			[]string{"config", "genesis", "datadir", "name", "verbosity"},
-			[]interface{}{testConfig, genFile.Name(), testCfg.Global.DataDir, testName, "trace"},
+			[]interface{}{testConfig, genFile.Name(), testDir, testName, "trace"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:    testName,
