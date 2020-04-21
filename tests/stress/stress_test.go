@@ -51,6 +51,11 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	if rpc.GOSSAMER_NODE_HOST == "" {
+		_, _ = fmt.Fprintln(os.Stdout, "GOSSAMER_NODE_HOST is not set, Going to skip stress test")
+		return
+	}
+
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)

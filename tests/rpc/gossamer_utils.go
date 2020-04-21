@@ -43,32 +43,33 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
 
-	//var cmd *exec.Cmd
-	//cmd = exec.Command(gossamerCMD, "init",
-	//	"--datadir", dataDir+strconv.Itoa(nodeNumb),
-	//	"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
-	//	"--force",
-	//)
-	//
-	////add step for init
-	//t.Log("Going to init gossamer", "cmd", cmd)
-	//err = cmd.Start()
-	//if err != nil {
-	//	t.Error("Could not init gossamer", "err", err)
-	//	return nil, err
-	//}
+	var cmd *exec.Cmd
+	cmd = exec.Command(gossamerCMD, "init",
+		"--datadir", dataDir+strconv.Itoa(nodeNumb),
+		"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
+		"--force",
+	)
+
+	//add step for init
+	t.Log("Going to init gossamer", "cmd", cmd)
+	err = cmd.Start()
+	if err != nil {
+		t.Error("Could not init gossamer", "err", err)
+		return nil, err
+	}
+
+	time.Sleep(time.Second)
 
 	//TODO: could we enable genesis file to be configured via args without init?
-	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
+	cmd = exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--rpchost", GOSSAMER_NODE_HOST,
 		"--rpcport", "854"+strconv.Itoa(nodeNumb),
 		"--rpcmods", "system,author,chain",
 		"--key", keyList[nodeNumb],
-		"--config", currentDir+"/config.toml",
 		"--roles", "4",
-		"--rpc",
+		"--rpc", "",
 	)
 
 	t.Log("Going to execute gossamer", "cmd", cmd)
