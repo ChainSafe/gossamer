@@ -245,41 +245,30 @@ var (
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
-
 		trace := "trace"
 
 		// loop through all flags (global and local)
 		for _, flagName := range ctx.FlagNames() {
 
-			// check if flag is set as global flag
+			// check if flag is set as global or local flag
 			if ctx.GlobalIsSet(flagName) {
-
 				// log global flag if verbosity equals trace
 				if ctx.String(VerbosityFlag.Name) == trace {
 					log.Trace("[cmd] global flag set", "name", flagName)
 				}
-
-				continue // skip to next flag
-			}
-
-			// check if flag is set as local flag
-			if ctx.IsSet(flagName) {
-
-				// attempt to set as global flag
+			} else if ctx.IsSet(flagName) {
+				// check if global flag using set as global flag
 				err := ctx.GlobalSet(flagName, ctx.String(flagName))
 				if err == nil {
-
 					// log fixed global flag if verbosity equals trace
 					if ctx.String(VerbosityFlag.Name) == trace {
 						log.Trace("[cmd] global flag fixed", "name", flagName)
 					}
-
-					continue // skip to next flag
-				}
-
-				// log local flag if verbosity equals trace
-				if ctx.String(VerbosityFlag.Name) == trace {
-					log.Trace("[cmd] local flag set", "name", flagName)
+				} else {
+					// if not global flag, log local flag if verbosity equals trace
+					if ctx.String(VerbosityFlag.Name) == trace {
+						log.Trace("[cmd] local flag set", "name", flagName)
+					}
 				}
 			}
 		}
