@@ -17,10 +17,11 @@
 package spec
 
 import (
-	"github.com/stretchr/testify/require"
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	rpc "github.com/ChainSafe/gossamer/tests/rpc"
 )

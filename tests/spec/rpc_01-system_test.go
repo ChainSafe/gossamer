@@ -17,12 +17,13 @@
 package spec
 
 import (
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/stretchr/testify/require"
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 
 	rpc "github.com/ChainSafe/gossamer/tests/rpc"
 )

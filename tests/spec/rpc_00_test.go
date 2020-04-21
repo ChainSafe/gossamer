@@ -18,9 +18,10 @@ package spec
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/tests/rpc"
 	"os"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/tests/rpc"
 )
 
 func TestMain(m *testing.M) {
