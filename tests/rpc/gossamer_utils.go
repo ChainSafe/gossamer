@@ -44,6 +44,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
 
+	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
@@ -61,6 +62,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	t.Log("Gossamer init ok")
 
 	//TODO: could we enable genesis file to be configured via args without init?
+	//nolint
 	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
@@ -96,7 +98,7 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(1 * time.Second)
-		if err := CheckFunc(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
+		if err = CheckFunc(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
 			started = true
 			break
 		} else {
@@ -141,7 +143,7 @@ func KillGossamer(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
-// bootstrap will spin gossamer nodes
+// Bootstrap will spin gossamer nodes
 func Bootstrap(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 	var newPidList []*exec.Cmd
 

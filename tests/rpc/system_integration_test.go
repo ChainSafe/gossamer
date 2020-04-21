@@ -71,7 +71,8 @@ func TestStableNetworkRPC(t *testing.T) {
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
 
-			respBody := PostRPC(t, test.method, GOSSAMER_NODE_HOST)
+			respBody, err := PostRPC(t, test.method, GOSSAMER_NODE_HOST, "{}")
+			require.Nil(t, err)
 
 			target := DecodeRPC(t, respBody, test.method)
 
