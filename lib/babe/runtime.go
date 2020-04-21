@@ -17,10 +17,8 @@
 package babe
 
 import (
-	//"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	//log "github.com/ChainSafe/log15"
 )
 
 // TODO: move this to runtime package, requires separate babetypes package for Configuration
@@ -42,34 +40,3 @@ func (b *Session) configurationFromRuntime() error {
 
 	return nil
 }
-
-// // calls runtime API function Core_initialize_block
-// func (b *Session) initializeBlock(blockHeader []byte) error {
-// 	_, err := b.rt.Exec(runtime.CoreInitializeBlock, blockHeader)
-// 	return err
-// }
-
-// // calls runtime API function BlockBuilder_inherent_extrinsics
-// func (b *Session) inherentExtrinsics(data []byte) ([]byte, error) {
-// 	return b.rt.Exec(runtime.BlockBuilderInherentExtrinsics, data)
-// }
-
-// // calls runtime API function BlockBuilder_apply_extrinsic
-// func (b *Session) applyExtrinsic(data types.Extrinsic) ([]byte, error) {
-// 	return b.rt.Exec(runtime.BlockBuilderApplyExtrinsic, data)
-// }
-
-// // calls runtime API function BlockBuilder_finalize_block
-// func (b *Session) finalizeBlock() (*types.Header, error) {
-// 	data, err := b.rt.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	bh := new(types.Header)
-// 	_, err = scale.Decode(data, bh)
-// 	if err != nil {
-// 		log.Error("babe finalizeBlock", "error", err)
-// 	}
-// 	return bh, err
-// }

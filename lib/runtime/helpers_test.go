@@ -44,9 +44,9 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	tx := &transaction.ValidTransaction{
 		Extrinsic: enc,
 		Validity: &transaction.Validity{
-			Priority: 1,
-			Requires: [][]byte{},
-			Provides: [][]byte{},
+			Priority:  1,
+			Requires:  [][]byte{},
+			Provides:  [][]byte{},
 			Longevity: 1,
 			Propagate: false,
 		},
@@ -82,7 +82,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 
 	tx := &transaction.ValidTransaction{
 		Extrinsic: enc,
-		Validity: new(transaction.Validity),
+		Validity:  new(transaction.Validity),
 	}
 
 	txb, err := tx.Encode()
@@ -93,8 +93,8 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 
 	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
 	expected := &transaction.Validity{
-		Priority: 0xb,
-		Requires: [][]byte{},
+		Priority:  0xb,
+		Requires:  [][]byte{},
 		Provides:  [][]byte{{0x6e, 0x6f, 0x6f, 0x74, 0x77, 0x61, 0x73, 0x68, 0x65, 0x72, 0x65}},
 		Longevity: 1,
 		Propagate: false,
@@ -115,8 +115,8 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 
 	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
 	expected := &transaction.Validity{
-		Priority: 0xb,
-		Requires: [][]byte{},
+		Priority:  0xb,
+		Requires:  [][]byte{},
 		Provides:  [][]byte{{0x6e, 0x6f, 0x6f, 0x74, 0x77, 0x61, 0x73, 0x68, 0x65, 0x72, 0x65}},
 		Longevity: 1,
 		Propagate: false,
