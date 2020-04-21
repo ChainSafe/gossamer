@@ -19,6 +19,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -28,21 +29,25 @@ import (
 )
 
 // PostRPC utils for sending payload to endpoint and getting []byte back
-func PostRPC(t *testing.T, method, host string) []byte {
-	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":{},"id":1}`)
+func PostRPC(t *testing.T, method, host, params string) ([]byte, error) {
+
+	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":` + params + `,"id":1}`)
 	buf := &bytes.Buffer{}
 	_, err := buf.Write(data)
 	require.Nil(t, err)
 
 	r, err := http.NewRequest("POST", host, buf)
-	require.Nil(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("not available")
+	}
 
 	r.Header.Set("Content-Type", ContentTypeJSON)
 	r.Header.Set("Accept", ContentTypeJSON)
 
 	resp, err := httpClient.Do(r)
-	require.Nil(t, err)
-	require.Equal(t, resp.StatusCode, http.StatusOK)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("not available")
+	}
 
 	defer func() {
 		_ = resp.Body.Close()
@@ -51,7 +56,7 @@ func PostRPC(t *testing.T, method, host string) []byte {
 	respBody, err := ioutil.ReadAll(resp.Body)
 	require.Nil(t, err)
 
-	return respBody
+	return respBody, nil
 
 }
 

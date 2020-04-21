@@ -51,6 +51,11 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	if rpc.GOSSAMER_NODE_HOST == "" {
+		_, _ = fmt.Fprintln(os.Stdout, "GOSSAMER_NODE_HOST is not set, Going to skip stress test")
+		return
+	}
+
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)
@@ -75,13 +80,14 @@ func TestStressSync(t *testing.T) {
 		t.Log("going to get HighestBlockHash from node", "i", i, "v", v)
 
 		//Get HighestBlockHash
-		respBody := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i))
+		respBody, err := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		require.Nil(t, err)
 
 		// decode resp
 		target := rpc.DecodeRPC(t, respBody, blockHighestBlockHash)
 
 		// convert
-		chainBlockResponse, ok := target.(modules.ChainBlockHeaderResponse)
+		chainBlockResponse, ok := target.(*modules.ChainBlockHeaderResponse)
 		require.True(t, ok)
 
 		err = db.Write("blocks_"+strconv.Itoa(v.Process.Pid),
