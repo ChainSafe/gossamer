@@ -24,6 +24,10 @@ import (
 	"github.com/ChainSafe/gossamer/tests/rpc"
 )
 
+const (
+	currentPort = "8540"
+)
+
 func TestMain(m *testing.M) {
 	if rpc.GOSSAMER_INTEGRATION_TEST_MODE != "rpc_spec" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")

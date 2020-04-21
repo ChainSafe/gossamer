@@ -53,9 +53,6 @@ func TestOffchainRPC(t *testing.T) {
 	t.Log("going to Bootstrap Gossamer node")
 
 	localPidList, err := rpc.Bootstrap(t, make([]*exec.Cmd, 1))
-
-	//use only first server for tests
-	currentPort := "8540"
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
@@ -67,7 +64,8 @@ func TestOffchainRPC(t *testing.T) {
 				return
 			}
 
-			respBody := rpc.PostRPC(t, test.method, "http://"+rpc.GOSSAMER_NODE_HOST+":"+currentPort)
+			respBody, err := rpc.PostRPC(t, test.method, "http://"+rpc.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
+			require.Nil(t, err)
 
 			target := rpc.DecodeRPC(t, respBody, test.method)
 
