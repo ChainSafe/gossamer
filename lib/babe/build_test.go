@@ -43,10 +43,6 @@ func TestSeal(t *testing.T) {
 	}
 
 	babesession := createTestSession(t, cfg)
-	// err = babesession.configurationFromRuntime()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {

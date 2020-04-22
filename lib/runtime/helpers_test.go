@@ -81,7 +81,7 @@ func TestConfigurationFromRuntime_noAuth(t *testing.T) {
 	}
 
 	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
-	expected := &types.Configuration{
+	expected := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        6,
 		C1:                 3,
@@ -130,7 +130,7 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	}
 
 	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
-	expected := &types.Configuration{
+	expected := &types.BabeConfiguration{
 		SlotDuration:       1000,
 		EpochLength:        6,
 		C1:                 3,

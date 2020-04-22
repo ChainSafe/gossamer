@@ -254,12 +254,8 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 
 	babesession := createTestSession(t, cfg)
-	// err := babesession.configurationFromRuntime()
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
-	babesession.config = &types.Configuration{
+	babesession.config = &types.BabeConfiguration{
 		SlotDuration:       1,
 		EpochLength:        6,
 		C1:                 1,

@@ -50,7 +50,7 @@ type Session struct {
 	rt *runtime.Runtime
 
 	// Epoch configuration data
-	config         *types.Configuration
+	config         *types.BabeConfiguration
 	randomness     [RandomnessLength]byte
 	authorityIndex uint64
 	authorityData  []*types.AuthorityData

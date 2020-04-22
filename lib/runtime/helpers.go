@@ -58,13 +58,13 @@ func determineError(res []byte) error {
 }
 
 // BabeConfiguration gets the configuration data for BABE from the runtime
-func (r *Runtime) BabeConfiguration() (*types.Configuration, error) {
+func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 	data, err := r.Exec(BabeAPIConfiguration, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	bc := new(types.Configuration)
+	bc := new(types.BabeConfiguration)
 	_, err = scale.Decode(data, bc)
 	if err != nil {
 		return nil, err
