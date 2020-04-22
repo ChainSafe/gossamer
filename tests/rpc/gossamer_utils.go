@@ -62,7 +62,6 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	t.Log("Gossamer init ok")
 
-	//TODO: could we enable genesis file to be configured via args without init?
 	//nolint
 	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
 		"--key", keyList[nodeNumb],
@@ -75,11 +74,13 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		"--rpc",
 	)
 
+	// a new file will be created, it will be used for log the outputs from the node
 	f, err := os.Create(filepath.Join(dataDir+strconv.Itoa(nodeNumb), "gossamer.log"))
 	if err != nil {
 		t.Fatalf("Error when trying to set a log file for gossamer output: %v", err)
 	}
 
+	//this is required to be able to have multiple inputs into same file
 	multiWriter := io.MultiWriter(f, os.Stdout)
 
 	cmd.Stdout = multiWriter
@@ -99,7 +100,8 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(1 * time.Second)
-		if err = CheckFunc(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
+		// TODO: #801 port numbers will overflow once reach +10, upgrade code to handle it
+		if err = CheckNodeStarted(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
 			started = true
 			break
 		} else {
@@ -115,8 +117,8 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 	return cmd, nil
 }
 
-// CheckFunc check if gossamer node is already started
-func CheckFunc(t *testing.T, gossamerHost string) error {
+// CheckNodeStarted check if gossamer node is already started
+func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
 	respBody, err := PostRPC(t, method, gossamerHost, "{}")
@@ -135,17 +137,17 @@ func CheckFunc(t *testing.T, gossamerHost string) error {
 	return nil
 }
 
-// KillGossamer kills a instance of gossamer
-func KillGossamer(t *testing.T, cmd *exec.Cmd) error {
+// KillProcess kills a instance of gossamer
+func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	err := cmd.Process.Kill()
 	if err != nil {
-		t.Log("failed to kill gossamer", "cmd", cmd)
+		t.Log("failed to kill process", "cmd", cmd)
 	}
 	return err
 }
 
-// Bootstrap will spin gossamer nodes
-func Bootstrap(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
+// StartNodes will spin gossamer nodes
+func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 	var newPidList []*exec.Cmd
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress")
@@ -155,7 +157,7 @@ func Bootstrap(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 	}
 
 	for i, cmd := range pidList {
-		t.Log("bootstrap gossamer ", "cmd", cmd, "i", i)
+		t.Log("starting gossamer ", "cmd", cmd, "i", i)
 		cmd, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			t.Log("failed to runGossamer", "i", i)
@@ -172,7 +174,7 @@ func Bootstrap(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 func TearDown(t *testing.T, pidList []*exec.Cmd) (errorList []error) {
 	for i := range pidList {
 		cmd := pidList[i]
-		err := KillGossamer(t, cmd)
+		err := KillProcess(t, cmd)
 		if err != nil {
 			t.Log("failed to killGossamer", "i", i, "cmd", cmd)
 			errorList = append(errorList, err)

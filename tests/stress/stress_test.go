@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	localPidList, err := rpc.Bootstrap(t, pidList)
+	localPidList, err := rpc.StartNodes(t, pidList)
 	require.Nil(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -90,6 +90,7 @@ func TestStressSync(t *testing.T) {
 		chainBlockResponse, ok := target.(*modules.ChainBlockHeaderResponse)
 		require.True(t, ok)
 
+		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
 		err = db.Write("blocks_"+strconv.Itoa(v.Process.Pid),
 			chainBlockResponse.Number.String(), chainBlockResponse)
 		require.Nil(t, err)
@@ -101,13 +102,10 @@ func TestStressSync(t *testing.T) {
 	//	fmt.Println("Error", err)
 	//}
 
-	//best chain head
-	//HighestBlockHash
-
 	//see if the same or not
 
 	//chain get header
-
+	//TODO: #803 cleanup optimization
 	errList := rpc.TearDown(t, localPidList)
 	require.Len(t, errList, 0)
 }

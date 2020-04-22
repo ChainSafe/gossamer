@@ -44,7 +44,7 @@ it-stable:
 ## it-stress: Runs Integration Tests stress mode
 it-stress: build
 	@echo "  >  \033[32mRunning Integration Tests stress mode...\033[0m "
-	GOSSAMER_INTEGRATION_TEST_MODE=stress go test ./tests/stress/... -timeout=5m
+	GOSSAMER_NODE_HOST=0.0.0.0 GOSSAMER_INTEGRATION_TEST_MODE=stress go test ./tests/stress/... -timeout=5m -p 1 -short -v
 
 ## test: Runs `go test -race` on project test files.
 test-state-race:
