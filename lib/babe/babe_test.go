@@ -267,7 +267,9 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 	babesession.authorityIndex = 0
 	babesession.authorityData = []*types.AuthorityData{
-		{nil, 1}, {nil, 1}, {nil, 1},
+		{ID: nil, Weight: 1},
+		{ID: nil, Weight: 1},
+		{ID: nil, Weight: 1},
 	}
 
 	err := babesession.Start()
