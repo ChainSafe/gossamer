@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 )
 
+//TODO: #799
 var (
 	keyList = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
 )
