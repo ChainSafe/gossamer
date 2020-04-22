@@ -192,7 +192,9 @@ func TestBuildBlock_failing(t *testing.T) {
 	var err error
 	babesession := createTestSession(t, cfg)
 
-	babesession.authorityData = []*types.AuthorityData{{nil, 1}}
+	babesession.authorityData = []*types.AuthorityData{
+		{ID: nil, Weight: 1},
+	}
 
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
