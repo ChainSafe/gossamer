@@ -73,6 +73,41 @@ func (r *Runtime) BabeConfiguration() (*types.Configuration, error) {
 	return bc, nil
 }
 
+// GrandpaAuthorities returns the genesis authorities from the runtime
+// TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
+func (r *Runtime) GrandpaAuthorities() ([]*types.AuthorityData, error) {
+	ret, err := r.Exec(AuraAPIAuthorities, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	decodedKeys, err := scale.Decode(ret, [][32]byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	keys := decodedKeys.([][32]byte)
+	authsRaw := make([]*types.AuthorityDataRaw, len(keys))
+
+	for i, key := range keys {
+		authsRaw[i] = &types.AuthorityDataRaw{
+			ID:     key,
+			Weight: 1,
+		}
+	}
+
+	auths := make([]*types.AuthorityData, len(keys))
+	for i, auth := range authsRaw {
+		auths[i] = new(types.AuthorityData)
+		err = auths[i].FromRaw(auth)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return auths, err
+}
+
 // InitializeBlock calls runtime API function Core_initialize_block
 func (r *Runtime) InitializeBlock(blockHeader []byte) error {
 	_, err := r.Exec(CoreInitializeBlock, blockHeader)

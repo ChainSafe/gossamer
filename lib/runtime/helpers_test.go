@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -33,6 +34,42 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 	}
 
 	require.Equal(t, expected, validity)
+}
+
+func TestRetrieveAuthorityData(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+
+	value, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = tt.Put(TestAuthorityDataKey, value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rt := NewTestRuntimeWithTrie(t, POLKADOT_RUNTIME_c768a7e4c70e, tt)
+
+	auths, err := rt.GrandpaAuthorities()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+
+	authA, _ := sr25519.NewPublicKey(authABytes)
+	authB, _ := sr25519.NewPublicKey(authBBytes)
+
+	expected := []*types.AuthorityData{
+		{ID: authA, Weight: 1},
+		{ID: authB, Weight: 1},
+	}
+
+	if !reflect.DeepEqual(auths, expected) {
+		t.Fatalf("Fail: got %v expected %v", auths, expected)
+	}
 }
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {

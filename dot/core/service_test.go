@@ -46,7 +46,7 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	err = tt.Put(testAuthorityDataKey, append([]byte{4}, kp.Public().Encode()...))
+	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, kp.Public().Encode()...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -182,7 +182,7 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	require.Nil(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(testAuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
