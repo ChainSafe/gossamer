@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -142,5 +143,52 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 
 	if !reflect.DeepEqual(cfg, expected) {
 		t.Errorf("Fail: got %v expected %v\n", cfg, expected)
+	}
+}
+
+func TestInitializeBlock(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err := rt.InitializeBlock(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFinalizeBlock(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err := rt.InitializeBlock(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := rt.FinalizeBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Number = header.Number
+
+	expected := &types.Header{
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+		Number:         big.NewInt(77),
+		Digest:         [][]byte{},
+	}
+
+	res.Hash()
+	expected.Hash()
+
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("Fail: got %v expected %v", res, expected)
 	}
 }
