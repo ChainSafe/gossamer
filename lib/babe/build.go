@@ -174,7 +174,6 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 	extrinsic := b.nextReadyExtrinsic()
 	included := []*transaction.ValidTransaction{}
 
-	// TODO: check when block is full
 	for !hasSlotEnded(slot) && extrinsic != nil {
 		log.Trace("[babe] build block", "applying extrinsic", extrinsic)
 		ret, err := b.rt.ApplyExtrinsic(extrinsic)
