@@ -47,7 +47,7 @@ func TestEngineRPC(t *testing.T) {
 
 	t.Log("going to Bootstrap Gossamer node")
 
-	localPidList, err := rpc.Bootstrap(t, make([]*exec.Cmd, 1))
+	localPidList, err := rpc.StartNodes(t, make([]*exec.Cmd, 1))
 
 	//use only first server for tests
 	require.Nil(t, err)

@@ -42,7 +42,7 @@ func TestPaymentRPC(t *testing.T) {
 
 	t.Log("going to Bootstrap Gossamer node")
 
-	localPidList, err := rpc.Bootstrap(t, make([]*exec.Cmd, 1))
+	localPidList, err := rpc.StartNodes(t, make([]*exec.Cmd, 1))
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
