@@ -57,6 +57,22 @@ func determineError(res []byte) error {
 	return ErrCannotValidateTx
 }
 
+// BabeConfiguration gets the configuration data for BABE from the runtime
+func (r *Runtime) BabeConfiguration() (*types.Configuration, error) {
+	data, err := r.Exec(BabeAPIConfiguration, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	bc := new(types.Configuration)
+	_, err = scale.Decode(data, bc)
+	if err != nil {
+		return nil, err
+	}
+
+	return bc, nil
+}
+
 // InitializeBlock calls runtime API function Core_initialize_block
 func (r *Runtime) InitializeBlock(blockHeader []byte) error {
 	_, err := r.Exec(CoreInitializeBlock, blockHeader)
