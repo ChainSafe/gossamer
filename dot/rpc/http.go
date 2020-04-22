@@ -102,6 +102,7 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	log.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
