@@ -27,7 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/database"
+
+	database "github.com/ChainSafe/chaindb"
 )
 
 var blockPrefix = []byte("block")
@@ -99,6 +100,11 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 	}
 
 	err = bs.SetHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes())
 	if err != nil {
 		return nil, err
 	}
