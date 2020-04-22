@@ -27,11 +27,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/database"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 
+	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -494,4 +494,9 @@ func (s *Service) checkForRuntimeChanges() error {
 // InsertKey inserts keypair into keystore
 func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
+}
+
+//IsBabeAuthority returns true if node is BABE authority
+func (s *Service) IsBabeAuthority() bool {
+	return s.isBabeAuthority
 }
