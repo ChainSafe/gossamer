@@ -68,7 +68,7 @@ func TestStressSync(t *testing.T) {
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
 	require.Nil(t, err)
-	t.Log("going to start a JSON simple database to track all chains")
+	t.Log("going to start a JSON simple database to track all chains", "tempDir", tempDir)
 
 	db, err := scribble.New(tempDir, nil)
 	require.Nil(t, err)
