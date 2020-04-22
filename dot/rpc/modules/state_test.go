@@ -16,8 +16,9 @@
 package modules
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
@@ -27,15 +28,15 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		AuthoringVersion: 1,
 		SpecVersion:      1,
 		ImplVersion:      1,
-		Apis:             []interface {}{[]interface {}{"0xdf6acb689907609b", int32(2)},
-			[]interface {}{"0x37e397fc7c91f5e4", int32(1)},
-			[]interface {}{"0xd2bc9897eed08f15", int32(1)},
-			[]interface {}{"0x40fe3ad401f8959a", int32(3)},
-			[]interface {}{"0xc6e9a76309f39b09", int32(1)},
-			[]interface {}{"0xdd718d5cc53262d4", int32(1)},
-			[]interface {}{"0xcbca25e39f142387", int32(1)},
-			[]interface {}{"0xf78b278be53f454c", int32(1)},
-			[]interface {}{"0xab3c0572291feb8b", int32(1)}},
+		Apis: []interface{}{[]interface{}{"0xdf6acb689907609b", int32(2)},
+			[]interface{}{"0x37e397fc7c91f5e4", int32(1)},
+			[]interface{}{"0xd2bc9897eed08f15", int32(1)},
+			[]interface{}{"0x40fe3ad401f8959a", int32(3)},
+			[]interface{}{"0xc6e9a76309f39b09", int32(1)},
+			[]interface{}{"0xdd718d5cc53262d4", int32(1)},
+			[]interface{}{"0xcbca25e39f142387", int32(1)},
+			[]interface{}{"0xf78b278be53f454c", int32(1)},
+			[]interface{}{"0xab3c0572291feb8b", int32(1)}},
 	}
 	sm := setupStateModule(t)
 	res := StateRuntimeVersionResponse{}
@@ -50,5 +51,5 @@ func setupStateModule(t *testing.T) *StateModule {
 	net := newNetworkService(t)
 	chain := newChainService(t)
 	core := newCoreService(t)
-	return NewStateModule(net, chain.Storage, core )
+	return NewStateModule(net, chain.Storage, core)
 }
