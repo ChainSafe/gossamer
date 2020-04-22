@@ -514,7 +514,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 }
 
 // TestUpdateConfigFromGenesisJSON_Default tests updateDotConfigFromGenesisJSON
-// uses the default genesis path if no genesis path is provided
+// using the default genesis path if no genesis path is provided (ie, an empty
+// genesis value provided in the toml configuration file or with --genesis "")
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 

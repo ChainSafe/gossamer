@@ -327,7 +327,8 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 
 	// use default genesis file if genesis configuration not provided, for example,
-	// if we load a toml configuration file without a defined genesis init value
+	// if we load a toml configuration file without a defined genesis init value or
+	// if we pass an empty string as the genesis init value using the --geneis flag
 	if cfg.Init.Genesis == "" {
 		cfg.Init.Genesis = DefaultCfg.Init.Genesis
 	}
