@@ -102,9 +102,11 @@ func TestStressSync(t *testing.T) {
 	//	fmt.Println("Error", err)
 	//}
 
-	//see if the same or not
+	//TODO: further implement test
+	// iterate over db
+	// see if the same or not
+	// kill some nodes, start others, make sure things still move forward
 
-	//chain get header
 	//TODO: #803 cleanup optimization
 	errList := rpc.TearDown(t, localPidList)
 	require.Len(t, errList, 0)
