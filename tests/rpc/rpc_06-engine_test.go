@@ -17,6 +17,8 @@
 package rpc
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 	"testing"
 	"time"
@@ -25,6 +27,10 @@ import (
 )
 
 func TestEngineRPC(t *testing.T) {
+	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSpec {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
+		return
+	}
 	testsCases := []struct {
 		description string
 		method      string

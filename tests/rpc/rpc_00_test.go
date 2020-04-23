@@ -24,14 +24,10 @@ import (
 
 const (
 	currentPort = "8540"
+	rpcSpec     = "rpc_spec"
 )
 
 func TestMain(m *testing.M) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != "rpc_spec" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
-		return
-	}
-
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC spec test")
 
 	// Start all tests

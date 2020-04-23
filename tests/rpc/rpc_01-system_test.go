@@ -17,7 +17,10 @@
 package rpc
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
+	"reflect"
 	"testing"
 	"time"
 
@@ -27,6 +30,11 @@ import (
 )
 
 func TestSystemRPC(t *testing.T) {
+	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSpec {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
+		return
+	}
+
 	testsCases := []struct {
 		description string
 		method      string
@@ -127,6 +135,41 @@ func TestSystemRPC(t *testing.T) {
 			target := DecodeRPC(t, respBody, test.method)
 
 			require.NotNil(t, target)
+
+			t.Log("Will start assertion for ", "target", target, "type", reflect.TypeOf(target))
+
+			switch v := target.(type) {
+
+			case *modules.SystemHealthResponse:
+				t.Log("Will assert SystemHealthResponse", "target", target)
+
+				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.IsSyncing, v.Health.IsSyncing)
+				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.ShouldHavePeers, v.Health.ShouldHavePeers)
+				require.GreaterOrEqual(t, test.expected.(modules.SystemHealthResponse).Health.Peers, v.Health.Peers)
+
+			case *modules.SystemNetworkStateResponse:
+				t.Log("Will assert SystemNetworkStateResponse", "target", target)
+
+				require.NotNil(t, v.NetworkState)
+				require.NotNil(t, v.NetworkState.PeerID)
+
+			case *modules.SystemPeersResponse:
+				t.Log("Will assert SystemPeersResponse", "target", target)
+
+				require.NotNil(t, v.Peers)
+
+				//TODO: this assertion requires more time on init to be enabled
+				//require.GreaterOrEqual(t, len(v.Peers), 2)
+
+				for _, vv := range v.Peers {
+					require.NotNil(t, vv.PeerID)
+					require.NotNil(t, vv.Roles)
+					require.NotNil(t, vv.ProtocolVersion)
+					require.NotNil(t, vv.BestHash)
+					require.NotNil(t, vv.BestNumber)
+				}
+
+			}
 
 		})
 	}
