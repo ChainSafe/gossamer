@@ -14,14 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package spec
+package rpc
 
 import (
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/ChainSafe/gossamer/tests/rpc"
 )
 
 const (
@@ -29,7 +27,7 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	if rpc.GOSSAMER_INTEGRATION_TEST_MODE != "rpc_spec" {
+	if GOSSAMER_INTEGRATION_TEST_MODE != "rpc_spec" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
 		return
 	}

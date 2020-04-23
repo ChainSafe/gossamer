@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package spec
+package rpc
 
 import (
 	"os/exec"
@@ -22,11 +22,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	rpc "github.com/ChainSafe/gossamer/tests/rpc"
 )
 
-func TestStateRPC(t *testing.T) {
+func TestAuthorRPC(t *testing.T) {
 	testsCases := []struct {
 		description string
 		method      string
@@ -34,70 +32,45 @@ func TestStateRPC(t *testing.T) {
 		skip        bool
 	}{
 		{ //TODO
-			description: "test state_call",
-			method:      "state_call",
+			description: "test author_submitExtrinsic",
+			method:      "author_submitExtrinsic",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getPairs",
-			method:      "state_getPairs",
+			description: "test author_pendingExtrinsics",
+			method:      "author_pendingExtrinsics",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getKeysPaged",
-			method:      "state_getKeysPaged",
+			description: "test author_removeExtrinsic",
+			method:      "author_removeExtrinsic",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getStorage",
-			method:      "state_getStorage",
+			description: "test author_insertKey",
+			method:      "author_insertKey",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getStorageHash",
-			method:      "state_getStorageHash",
+			description: "test author_rotateKeys",
+			method:      "author_rotateKeys",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getStorageSize",
-			method:      "state_getStorageSize",
+			description: "test author_hasSessionKeys",
+			method:      "author_hasSessionKeys",
 			skip:        true,
 		},
 		{ //TODO
-			description: "test state_getChildKeys",
-			method:      "state_getChildKeys",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test state_getChildStorage",
-			method:      "state_getChildStorage",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test state_getChildStorageHash",
-			method:      "state_getChildStorageHash",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test state_getChildStorageSize",
-			method:      "state_getChildStorageSize",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test state_getRuntimeVersion",
-			method:      "state_getRuntimeVersion",
-			skip:        true,
-		},
-		{ //TODO
-			description: "test state_queryStorage",
-			method:      "state_queryStorage",
+			description: "test author_hasKey",
+			method:      "author_hasKey",
 			skip:        true,
 		},
 	}
 
-	t.Log("going to Bootstrap Gossamer node")
+	t.Log("going to start gossamer")
 
-	localPidList, err := rpc.StartNodes(t, make([]*exec.Cmd, 1))
+	localPidList, err := StartNodes(t, make([]*exec.Cmd, 1))
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
@@ -109,10 +82,10 @@ func TestStateRPC(t *testing.T) {
 				return
 			}
 
-			respBody, err := rpc.PostRPC(t, test.method, "http://"+rpc.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
+			respBody, err := PostRPC(t, test.method, "http://"+GOSSAMER_NODE_HOST+":"+currentPort, "{}")
 			require.Nil(t, err)
 
-			target := rpc.DecodeRPC(t, respBody, test.method)
+			target := DecodeRPC(t, respBody, test.method)
 
 			require.NotNil(t, target)
 
@@ -121,6 +94,6 @@ func TestStateRPC(t *testing.T) {
 
 	t.Log("going to TearDown Gossamer node")
 
-	errList := rpc.TearDown(t, localPidList)
+	errList := TearDown(t, localPidList)
 	require.Len(t, errList, 0)
 }

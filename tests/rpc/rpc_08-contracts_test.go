@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package spec
+package rpc
 
 import (
 	"os/exec"
@@ -22,11 +22,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	rpc "github.com/ChainSafe/gossamer/tests/rpc"
 )
 
-func TestPaymentRPC(t *testing.T) {
+func TestContractsRPC(t *testing.T) {
 	testsCases := []struct {
 		description string
 		method      string
@@ -34,15 +32,20 @@ func TestPaymentRPC(t *testing.T) {
 		skip        bool
 	}{
 		{ //TODO
-			description: "test payment_queryInfo",
-			method:      "payment_queryInfo",
+			description: "test contracts_getStorage",
+			method:      "contracts_getStorage",
+			skip:        true,
+		},
+		{ //TODO
+			description: "test contracts_getStorage",
+			method:      "contracts_getStorage",
 			skip:        true,
 		},
 	}
 
-	t.Log("going to Bootstrap Gossamer node")
+	t.Log("going to start gossamer")
 
-	localPidList, err := rpc.StartNodes(t, make([]*exec.Cmd, 1))
+	localPidList, err := StartNodes(t, make([]*exec.Cmd, 1))
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
@@ -54,10 +57,10 @@ func TestPaymentRPC(t *testing.T) {
 				return
 			}
 
-			respBody, err := rpc.PostRPC(t, test.method, "http://"+rpc.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
+			respBody, err := PostRPC(t, test.method, "http://"+GOSSAMER_NODE_HOST+":"+currentPort, "{}")
 			require.Nil(t, err)
 
-			target := rpc.DecodeRPC(t, respBody, test.method)
+			target := DecodeRPC(t, respBody, test.method)
 
 			require.NotNil(t, target)
 
@@ -66,6 +69,6 @@ func TestPaymentRPC(t *testing.T) {
 
 	t.Log("going to TearDown Gossamer node")
 
-	errList := rpc.TearDown(t, localPidList)
+	errList := TearDown(t, localPidList)
 	require.Len(t, errList, 0)
 }
