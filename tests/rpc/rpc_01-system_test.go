@@ -30,8 +30,8 @@ import (
 )
 
 func TestSystemRPC(t *testing.T) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSpec {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
+	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
 
@@ -158,7 +158,8 @@ func TestSystemRPC(t *testing.T) {
 
 				require.NotNil(t, v.Peers)
 
-				//TODO: this assertion requires more time on init to be enabled
+				//TODO: #807
+				//this assertion requires more time on init to be enabled
 				//require.GreaterOrEqual(t, len(v.Peers), 2)
 
 				for _, vv := range v.Peers {

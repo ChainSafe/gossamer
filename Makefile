@@ -48,7 +48,7 @@ it-stress: build
 
 it-rpc: build
 	@echo "  >  \033[32mRunning Integration Tests RPC Specs mode...\033[0m "
-	GOSSAMER_NODE_HOST=0.0.0.0 GOSSAMER_INTEGRATION_TEST_MODE=rpc_spec go test ./tests/rpc/... -timeout=5m -p 1 -short -v
+	GOSSAMER_NODE_HOST=0.0.0.0 GOSSAMER_INTEGRATION_TEST_MODE=rpc_suite go test ./tests/rpc/... -timeout=5m -p 1 -short -v
 
 ## test: Runs `go test -race` on project test files.
 test-state-race:

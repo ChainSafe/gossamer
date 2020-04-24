@@ -24,11 +24,11 @@ import (
 
 const (
 	currentPort = "8540"
-	rpcSpec     = "rpc_spec"
+	rpcSuite    = "rpc_suite"
 )
 
 func TestMain(m *testing.M) {
-	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC spec test")
+	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC suite test")
 
 	// Start all tests
 	code := m.Run()

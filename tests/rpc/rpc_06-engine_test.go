@@ -27,8 +27,8 @@ import (
 )
 
 func TestEngineRPC(t *testing.T) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSpec {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC spec tests")
+	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
 	testsCases := []struct {
