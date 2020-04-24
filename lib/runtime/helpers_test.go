@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -23,7 +24,7 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 	require.NoError(t, err)
 
 	validity, err := rt.ValidateTransaction(tx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
 	expected := &transaction.Validity{
@@ -32,6 +33,42 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 		Provides:  [][]byte{{0x6e, 0x6f, 0x6f, 0x74, 0x77, 0x61, 0x73, 0x68, 0x65, 0x72, 0x65}},
 		Longevity: 1,
 		Propagate: false,
+	}
+
+	require.Equal(t, expected, validity)
+}
+
+func TestValidateTransaction_Transfer(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	kr, err := keystore.NewKeyring()
+	require.NoError(t, err)
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
+
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
+	
+	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 1)
+	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
+	require.NoError(t, err)
+	tx, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(tx)
+	require.NoError(t, err)
+
+	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
+	expected := &transaction.Validity{
+		Priority:  0x3e8,
+		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+		Longevity: 0x40,
+		Propagate: true,
 	}
 
 	require.Equal(t, expected, validity)
@@ -169,9 +206,6 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	txb, err := tx.Encode()
 	require.NoError(t, err)
 
-	t.Log(enc)
-	t.Log(txb)
-
 	validity, err := rt.ApplyExtrinsic(txb)
 	require.Nil(t, err)
 
@@ -238,3 +272,4 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 
 	require.Equal(t, expected, validity)
 }
+
