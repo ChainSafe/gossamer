@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -109,8 +110,13 @@ func (r *Runtime) GrandpaAuthorities() ([]*types.AuthorityData, error) {
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
-func (r *Runtime) InitializeBlock(blockHeader []byte) error {
-	_, err := r.Exec(CoreInitializeBlock, blockHeader)
+func (r *Runtime) InitializeBlock(header *types.Header) error {
+	encodedHeader, err := scale.Encode(header)
+	if err != nil {
+		return fmt.Errorf("cannot encode header: %s", err)
+	}
+
+	_, err = r.Exec(CoreInitializeBlock, encodedHeader)
 	return err
 }
 

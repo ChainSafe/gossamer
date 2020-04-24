@@ -26,7 +26,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
@@ -52,11 +51,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	// initialize block header
-	encodedHeader, err := scale.Encode(header)
-	if err != nil {
-		return nil, fmt.Errorf("cannot encode header: %s", err)
-	}
-	err = b.rt.InitializeBlock(encodedHeader)
+	err = b.rt.InitializeBlock(header)
 	if err != nil {
 		return nil, err
 	}
