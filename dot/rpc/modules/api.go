@@ -43,3 +43,7 @@ type CoreAPI interface {
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	IsBabeAuthority() bool
 }
+
+type RPCAPI interface {
+	Methods() []string
+}

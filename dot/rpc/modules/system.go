@@ -79,6 +79,7 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResp
 
 // Properties returns the runtime properties
 func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
+	// todo determine where this information is stored and return actual values.
 	sp := SystemPropertiesResponse{
 		Ss58Format:    2,
 		TokenDecimals: 12,
