@@ -209,7 +209,7 @@ var (
 	}
 )
 
-// command specific flag sets for the root gossamer command and all subcommands
+// local flag sets for the root gossamer command and all subcommands
 var (
 	// RootFlags are the flags that are valid for use with the root gossamer command
 	RootFlags = append(GlobalFlags, StartupFlags...)
