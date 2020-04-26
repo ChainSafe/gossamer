@@ -520,3 +520,7 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
+
+func (s *Service) GetMetadata() ([]byte, error) {
+	return s.rt.Exec(runtime.Metadata_metadata, []byte{})
+}

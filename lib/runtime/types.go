@@ -84,6 +84,8 @@ var (
 	CoreInitializeBlock = "Core_initialize_block"
 	// CoreExecuteBlock returns the string representing
 	CoreExecuteBlock = "Core_execute_block"
+	// Metadata_metadata returns the string representing
+	Metadata_metadata = "Metadata_metadata"
 	// TaggedTransactionQueueValidateTransaction returns the string representing
 	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
 	// AuraAPIAuthorities represents the AuraApi_authorities call

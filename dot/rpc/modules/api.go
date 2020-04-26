@@ -42,6 +42,7 @@ type CoreAPI interface {
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	IsBabeAuthority() bool
+	GetMetadata() ([]byte, error)
 }
 
 type RPCAPI interface {
