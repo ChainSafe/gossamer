@@ -17,20 +17,24 @@ package modules
 
 import "net/http"
 
+// RPCModule is a RPC module providing access to RPC methods
 type RPCModule struct {
 	rPCAPI RPCAPI
 }
 
+// MethodsResponse struct representing methods
 type MethodsResponse struct {
 	Methods []string `json:"methods"`
 }
 
+// NewRPCModule creates a new RPC api module
 func NewRPCModule(rpcapi RPCAPI) *RPCModule {
 	return &RPCModule{
-		rPCAPI:rpcapi,
+		rPCAPI: rpcapi,
 	}
 }
 
+// Methods responds with list of methods available via RPC call
 func (rm *RPCModule) Methods(r *http.Request, req *EmptyRequest, res *MethodsResponse) error {
 	res.Methods = rm.rPCAPI.Methods()
 

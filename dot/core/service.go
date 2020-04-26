@@ -521,6 +521,7 @@ func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
 
+// GetMetadata returns metadata byte array from current runtime
 func (s *Service) GetMetadata() ([]byte, error) {
 	return s.rt.Exec(runtime.Metadata_metadata, []byte{})
 }

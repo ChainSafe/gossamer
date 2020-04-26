@@ -35,7 +35,7 @@ import (
 type HTTPServer struct {
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
-	rpcMethods []string  // list of method names offered by rpc
+	rpcMethods   []string // list of method names offered by rpc
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -131,6 +131,7 @@ func (h *HTTPServer) Stop() error {
 	return nil
 }
 
+// Methods returns list of methods available via RPC call
 func (h *HTTPServer) Methods() []string {
 	return h.rpcMethods
 }
@@ -143,7 +144,7 @@ var (
 
 // this takes receiver interface and populates rpcMethods array with available
 //  method names
-func (h *HTTPServer)buildMethodNames(rcvr interface{}, name string) {
+func (h *HTTPServer) buildMethodNames(rcvr interface{}, name string) {
 	rcvrType := reflect.TypeOf(rcvr)
 	for i := 0; i < rcvrType.NumMethod(); i++ {
 		method := rcvrType.Method(i)
@@ -179,7 +180,7 @@ func (h *HTTPServer)buildMethodNames(rcvr interface{}, name string) {
 			continue
 		}
 
-		h.rpcMethods = append(h.rpcMethods, name + "_" + strings.ToLower(string(method.Name[0])) + method.Name[1:])
+		h.rpcMethods = append(h.rpcMethods, name+"_"+strings.ToLower(string(method.Name[0]))+method.Name[1:])
 	}
 }
 

@@ -45,6 +45,7 @@ type CoreAPI interface {
 	GetMetadata() ([]byte, error)
 }
 
+// RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
 }
