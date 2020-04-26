@@ -22,6 +22,7 @@ import (
 )
 
 func TestStateModule_GetRuntimeVersion(t *testing.T) {
+	// expected results based on responses from prior tests
 	expected := StateRuntimeVersionResponse{
 		SpecName:         "test",
 		ImplName:         "parity-test",
