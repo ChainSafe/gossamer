@@ -78,8 +78,13 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResp
 }
 
 // Properties returns the runtime properties
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
+	sp := SystemPropertiesResponse{
+		Ss58Format:    2,
+		TokenDecimals: 12,
+		TokenSymbol:   "KSM",
+	}
+	*res = sp
 	return nil
 }
 
