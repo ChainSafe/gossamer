@@ -46,16 +46,18 @@ type ChainBlock struct {
 
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
-	ParentHash     string   `json:"parentHash"`
-	Number         *big.Int `json:"number"`
-	StateRoot      string   `json:"stateRoot"`
-	ExtrinsicsRoot string   `json:"extrinsicsRoot"`
+	ParentHash     string                 `json:"parentHash"`
+	Number         *big.Int               `json:"number"`
+	StateRoot      string                 `json:"stateRoot"`
+	ExtrinsicsRoot string                 `json:"extrinsicsRoot"`
 	Digest         ChainBlockHeaderDigest `json:"digest"`
 }
 
+// ChainBlockHeaderDigest struct to hold digest logs
 type ChainBlockHeaderDigest struct {
 	Logs []string `json:"logs"`
 }
+
 // ChainHashResponse interface to handle response
 type ChainHashResponse interface{}
 
@@ -88,9 +90,8 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	res.Block.Header.Number = block.Header.Number
 	res.Block.Header.StateRoot = block.Header.StateRoot.String()
 	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-	//res.Block.Header.Digest = block.Header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
 	for _, item := range block.Header.Digest {
-		res.Block.Header.Digest.Logs = append(res.Block.Header.Digest.Logs, "0x" + hex.EncodeToString(item))
+		res.Block.Header.Digest.Logs = append(res.Block.Header.Digest.Logs, "0x"+hex.EncodeToString(item))
 	}
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
@@ -149,9 +150,8 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	res.Number = header.Number
 	res.StateRoot = header.StateRoot.String()
 	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	//res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
 	for _, item := range header.Digest {
-		res.Digest.Logs = append(res.Digest.Logs, "0x" + hex.EncodeToString(item))
+		res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
 	}
 	return nil
 }
