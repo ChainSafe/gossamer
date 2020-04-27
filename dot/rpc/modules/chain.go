@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -49,9 +50,12 @@ type ChainBlockHeaderResponse struct {
 	Number         *big.Int `json:"number"`
 	StateRoot      string   `json:"stateRoot"`
 	ExtrinsicsRoot string   `json:"extrinsicsRoot"`
-	Digest         [][]byte `json:"digest"`
+	Digest         ChainBlockHeaderDigest `json:"digest"`
 }
 
+type ChainBlockHeaderDigest struct {
+	Logs []string `json:"logs"`
+}
 // ChainHashResponse interface to handle response
 type ChainHashResponse interface{}
 
@@ -84,7 +88,10 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	res.Block.Header.Number = block.Header.Number
 	res.Block.Header.StateRoot = block.Header.StateRoot.String()
 	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-	res.Block.Header.Digest = block.Header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
+	//res.Block.Header.Digest = block.Header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
+	for _, item := range block.Header.Digest {
+		res.Block.Header.Digest.Logs = append(res.Block.Header.Digest.Logs, "0x" + hex.EncodeToString(item))
+	}
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
 		if err != nil {
@@ -142,8 +149,10 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	res.Number = header.Number
 	res.StateRoot = header.StateRoot.String()
 	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
-
+	//res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
+	for _, item := range header.Digest {
+		res.Digest.Logs = append(res.Digest.Logs, "0x" + hex.EncodeToString(item))
+	}
 	return nil
 }
 
