@@ -67,12 +67,14 @@ func NewSystemModule(net NetworkAPI) *SystemModule {
 
 // Chain returns the runtime chain
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+	// todo implement this to lookup actual value
+	*res = "Development"
 	return nil
 }
 
 // Name returns the runtime name
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
+	// todo implement this to actually return data
 	*res = "gossamer v0.0"
 	return nil
 }
@@ -91,7 +93,8 @@ func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *Syst
 
 // Version returns the runtime version
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+	// todo implement to lookup version data
+	*res = "0.0.0"
 	return nil
 }
 

@@ -11,7 +11,9 @@ import (
 )
 
 // StorageAPI is the interface for the storage state
-type StorageAPI interface{}
+type StorageAPI interface {
+	GetStorage(key []byte) ([]byte, error)
+}
 
 // BlockAPI is the interface for the block state
 type BlockAPI interface {

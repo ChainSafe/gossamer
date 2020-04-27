@@ -157,11 +157,23 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 }
 
 // SubscribeFinalizedHeads isn't implemented properly yet.
-func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	cr := ChainHashRequest("")
+	return cm.GetHeader(r, &cr, res)
+}
+
+// SubscribeNewHeads isn't implemented properly yet.
+func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	// todo implement this for subscription
+	cr := ChainHashRequest("")
+	return cm.GetHeader(r, &cr, res)
 }
 
 // SubscribeNewHead isn't implemented properly yet.
-func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	// todo implement this for subscription
+	cr := ChainHashRequest("")
+	return cm.GetHeader(r, &cr, res)
 }
 
 func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {

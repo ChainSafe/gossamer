@@ -202,7 +202,20 @@ func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorag
 }
 
 // SubscribeStorage isn't implemented properly yet.
-func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+func (sm *StateModule) SubscribeStorage(r *http.Request, req *[]string, res *string) error {
+	// todo make this a subscription that pushs data to client
+	for _, item := range *req {
+		b, err := common.HexToBytes(item)
+		if err != nil {
+			return err
+		}
+		r, err := sm.storageAPI.GetStorage(b)
+		if err != nil {
+			return err
+		}
+		*res = hex.EncodeToString(r)
+	}
+	return nil
 }
 
 func convertAPIs(in []*runtime.API_Item) []interface{} {
