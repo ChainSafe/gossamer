@@ -18,13 +18,11 @@ package rpc
 
 import (
 	"fmt"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/rpc/v2"
-
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/rpc/v2"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -44,7 +42,8 @@ type HTTPServerConfig struct {
 	RuntimeAPI          modules.RuntimeAPI
 	TransactionQueueAPI modules.TransactionQueueAPI
 	Host                string
-	Port                uint32
+	RPCPort             uint32
+	WSPort              uint32
 	Modules             []string
 }
 
@@ -72,6 +71,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
+		case "state":
+			srvc = modules.NewStateModule(h.serverConfig.NetworkAPI, h.serverConfig.StorageAPI, h.serverConfig.CoreAPI)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
@@ -86,7 +87,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 	}
 }
 
-// Start registers the rpc handler function and starts the server listening on `h.port`
+// Start registers the rpc handler function and starts the rpc http and websocket server
 func (h *HTTPServer) Start() error {
 	// use our DotUpCodec which will capture methods passed in json as _x that is
 	//  underscore followed by lower case letter, instead of default RPC calls which
@@ -94,11 +95,21 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	log.Debug("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.Port)
+	log.Info("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.Port), r)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
+		if err != nil {
+			log.Error("[rpc] http error", "err", err)
+		}
+	}()
+
+	log.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
+	ws := mux.NewRouter()
+	ws.Handle("/", h)
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
 			log.Error("[rpc] http error", "err", err)
 		}
