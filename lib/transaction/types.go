@@ -91,5 +91,4 @@ func (vt *ValidTransaction) Encode() ([]byte, error) {
 	}
 
 	return enc, nil
-	//return scale.Encode(vt)
 }
