@@ -19,6 +19,10 @@ package rpc
 import (
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/gorilla/mux"
@@ -31,6 +35,7 @@ import (
 type HTTPServer struct {
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
+	rpcMethods   []string // list of method names offered by rpc
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -72,6 +77,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "state":
 			srvc = modules.NewStateModule(h.serverConfig.NetworkAPI, h.serverConfig.StorageAPI, h.serverConfig.CoreAPI)
+		case "rpc":
+			srvc = modules.NewRPCModule(h)
 		default:
 			log.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
@@ -83,6 +90,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
 		}
 
+		h.buildMethodNames(srvc, mod)
 	}
 }
 
@@ -120,4 +128,73 @@ func (h *HTTPServer) Start() error {
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
 	return nil
+}
+
+// Methods returns list of methods available via RPC call
+func (h *HTTPServer) Methods() []string {
+	return h.rpcMethods
+}
+
+var (
+	// Precompute the reflect.Type of error and http.Request
+	typeOfError   = reflect.TypeOf((*error)(nil)).Elem()
+	typeOfRequest = reflect.TypeOf((*http.Request)(nil)).Elem()
+)
+
+// this takes receiver interface and populates rpcMethods array with available
+//  method names
+func (h *HTTPServer) buildMethodNames(rcvr interface{}, name string) {
+	rcvrType := reflect.TypeOf(rcvr)
+	for i := 0; i < rcvrType.NumMethod(); i++ {
+		method := rcvrType.Method(i)
+		mtype := method.Type
+		// Method must be exported.
+		if method.PkgPath != "" {
+			continue
+		}
+		// Method needs four ins: receiver, *http.Request, *args, *reply.
+		if mtype.NumIn() != 4 {
+			continue
+		}
+		// First argument must be a pointer and must be http.Request.
+		reqType := mtype.In(1)
+		if reqType.Kind() != reflect.Ptr || reqType.Elem() != typeOfRequest {
+			continue
+		}
+		// Second argument must be a pointer and must be exported.
+		args := mtype.In(2)
+		if args.Kind() != reflect.Ptr || !isExportedOrBuiltin(args) {
+			continue
+		}
+		// Third argument must be a pointer and must be exported.
+		reply := mtype.In(3)
+		if reply.Kind() != reflect.Ptr || !isExportedOrBuiltin(reply) {
+			continue
+		}
+		// Method needs one out: error.
+		if mtype.NumOut() != 1 {
+			continue
+		}
+		if returnType := mtype.Out(0); returnType != typeOfError {
+			continue
+		}
+
+		h.rpcMethods = append(h.rpcMethods, name+"_"+strings.ToLower(string(method.Name[0]))+method.Name[1:])
+	}
+}
+
+// isExported returns true of a string is an exported (upper case) name.
+func isExported(name string) bool {
+	rune, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(rune)
+}
+
+// isExportedOrBuiltin returns true if a type is exported or a builtin.
+func isExportedOrBuiltin(t reflect.Type) bool {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	// PkgPath will be non-empty even for an exported type,
+	// so we need to check the type name as well.
+	return isExported(t.Name()) || t.PkgPath() == ""
 }

@@ -43,3 +43,8 @@ type CoreAPI interface {
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	IsBabeAuthority() bool
 }
+
+// RPCAPI is the interface for methods related to RPC service
+type RPCAPI interface {
+	Methods() []string
+}
