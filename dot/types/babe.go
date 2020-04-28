@@ -20,13 +20,13 @@ type BabeConfiguration struct {
 	SecondarySlots     bool
 }
 
-// AuthorityDataRaw represents the fields for the Authority Data
+// AuthorityDataRaw represents a BABE authority where their key is a byte array
 type AuthorityDataRaw struct {
 	ID     [sr25519.PublicKeyLength]byte
 	Weight uint64
 }
 
-// Decode will decode the Reader r into a AuthorityDataRaw
+// Decode will decode the Reader into a AuthorityDataRaw
 func (a *AuthorityDataRaw) Decode(r io.Reader) (*AuthorityDataRaw, error) {
 	id, err := common.Read32Bytes(r)
 	if err != nil {
@@ -45,7 +45,7 @@ func (a *AuthorityDataRaw) Decode(r io.Reader) (*AuthorityDataRaw, error) {
 	return a, nil
 }
 
-//AuthorityData struct
+// AuthorityData represents a BABE authority
 type AuthorityData struct {
 	ID     *sr25519.PublicKey
 	Weight uint64

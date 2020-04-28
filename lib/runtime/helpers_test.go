@@ -183,10 +183,57 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	}
 }
 
-// validate_transaction only works for transfer extrinsics
+func TestInitializeBlock(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err := rt.InitializeBlock(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFinalizeBlock(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err := rt.InitializeBlock(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := rt.FinalizeBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Number = header.Number
+
+	expected := &types.Header{
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+		Number:         big.NewInt(77),
+		Digest:         [][]byte{},
+	}
+
+	res.Hash()
+	expected.Hash()
+
+	if !reflect.DeepEqual(res, expected) {
+		t.Fatalf("Fail: got %v expected %v", res, expected)
+	}
+}
 
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	t.Skip()
+	// TOOD: this currently fails with a Bad Proof error.
+
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	header := &types.Header{
@@ -267,49 +314,35 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 }
 
-func TestInitializeBlock(t *testing.T) {
+func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
 	}
 
-	err := rt.InitializeBlock(header)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
 
-func TestFinalizeBlock(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
 
-	header := &types.Header{
-		Number: big.NewInt(77),
-	}
+	t.Log(aliceb)
 
-	err := rt.InitializeBlock(header)
-	if err != nil {
-		t.Fatal(err)
-	}
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
 
-	res, err := rt.FinalizeBlock()
-	if err != nil {
-		t.Fatal(err)
-	}
+	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 0)
+	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
+	require.NoError(t, err)
+	tx, err := ext.Encode()
+	require.NoError(t, err)
 
-	res.Number = header.Number
+	err = rt.InitializeBlock(header)
+	require.NoError(t, err)
 
-	expected := &types.Header{
-		StateRoot:      trie.EmptyHash,
-		ExtrinsicsRoot: trie.EmptyHash,
-		Number:         big.NewInt(77),
-		Digest:         [][]byte{},
-	}
+	res, err := rt.ApplyExtrinsic(tx)
+	require.Nil(t, err)
 
-	res.Hash()
-	expected.Hash()
-
-	if !reflect.DeepEqual(res, expected) {
-		t.Fatalf("Fail: got %v expected %v", res, expected)
-	}
+	require.Equal(t, []byte{1, 2, 0, 1}, res)
 }
