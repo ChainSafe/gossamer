@@ -249,7 +249,7 @@ func TestFinalizeBlock(t *testing.T) {
 
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	t.Skip()
-	// TOOD: this currently fails with a Bad Proof error.
+	// TODO: this currently fails with a Bad Proof error.
 
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
