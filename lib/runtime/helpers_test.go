@@ -41,6 +41,23 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 	require.Equal(t, expected, validity)
 }
 
+func TestValidateTransaction_StorageChange(t *testing.T) {
+	t.Skip()
+	// TODO: need to update runtime validate_transaction to not panic #811
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(enc)
+	require.NoError(t, err)
+
+	expected := &transaction.Validity{}
+
+	require.Equal(t, expected, validity)
+}
+
 func TestValidateTransaction_Transfer(t *testing.T) {
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
