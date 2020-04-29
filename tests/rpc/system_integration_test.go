@@ -79,18 +79,21 @@ func TestStableNetworkRPC(t *testing.T) {
 			log.Debug("Will assert payload", "target", target)
 			switch v := target.(type) {
 
-			case modules.SystemHealthResponse:
+			case *modules.SystemHealthResponse:
+				t.Log("Will assert SystemHealthResponse", "target", target)
 
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.IsSyncing, v.Health.IsSyncing)
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.ShouldHavePeers, v.Health.ShouldHavePeers)
 				require.GreaterOrEqual(t, test.expected.(modules.SystemHealthResponse).Health.Peers, v.Health.Peers)
 
-			case modules.SystemNetworkStateResponse:
+			case *modules.SystemNetworkStateResponse:
+				t.Log("Will assert SystemNetworkStateResponse", "target", target)
 
 				require.NotNil(t, v.NetworkState)
 				require.NotNil(t, v.NetworkState.PeerID)
 
-			case modules.SystemPeersResponse:
+			case *modules.SystemPeersResponse:
+				t.Log("Will assert SystemPeersResponse", "target", target)
 
 				require.NotNil(t, v.Peers)
 				require.GreaterOrEqual(t, len(v.Peers), 2)

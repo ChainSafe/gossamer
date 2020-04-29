@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -62,7 +61,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, error) {
+func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, *runtime.Runtime, error) {
 	log.Info(
 		"[dot] creating core service...",
 		"authority", cfg.Core.Authority,
@@ -71,13 +70,13 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 	// load runtime code from trie
 	code, err := stateSrvc.Storage.GetStorage([]byte(":code"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+		return nil, nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
 	}
 
 	// create runtime executor
 	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImports)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		return nil, nil, fmt.Errorf("failed to create runtime executor: %s", err)
 	}
 
 	// set core configuration
@@ -97,10 +96,10 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 	coreSrvc, err := core.NewService(coreConfig)
 	if err != nil {
 		log.Error("[dot] failed to create core service", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return coreSrvc, nil
+	return coreSrvc, rt, nil
 }
 
 // Network Service
@@ -145,22 +144,27 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime) *rpc.HTTPServer {
 	log.Info(
 		"[dot] creating rpc service...",
 		"host", cfg.RPC.Host,
-		"port", cfg.RPC.Port,
+		"rpc port", cfg.RPC.Port,
 		"mods", cfg.RPC.Modules,
+		"ws port", cfg.RPC.WSPort,
 	)
+	rpcService := rpc.NewService()
 
 	rpcConfig := &rpc.HTTPServerConfig{
 		BlockAPI:            stateSrvc.Block,
 		StorageAPI:          stateSrvc.Storage,
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
+		RuntimeAPI:          rt,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
+		RPCAPI:              rpcService,
 		Host:                cfg.RPC.Host,
-		Port:                cfg.RPC.Port,
+		RPCPort:             cfg.RPC.Port,
+		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,
 	}
 

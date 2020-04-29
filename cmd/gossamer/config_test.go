@@ -414,6 +414,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -425,6 +426,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -436,6 +438,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    "testhost",
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -447,6 +450,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    5678,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -458,6 +462,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    testCfg.RPC.Port,
 				Host:    testCfg.RPC.Host,
 				Modules: []string{"mod1", "mod2"},
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 	}
@@ -513,6 +518,44 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
+// TestUpdateConfigFromGenesisJSON_Default tests updateDotConfigFromGenesisJSON
+// using the default genesis path if no genesis path is provided (ie, an empty
+// genesis value provided in the toml configuration file or with --genesis "")
+func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
+	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+
+	defer utils.RemoveTestDir(t)
+
+	ctx, err := newTestContext(
+		t.Name(),
+		[]string{"config", "genesis"},
+		[]interface{}{testCfgFile.Name(), ""},
+	)
+	require.Nil(t, err)
+
+	expected := &dot.Config{
+		Global: dot.GlobalConfig{
+			Name:    testCfg.Global.Name,
+			ID:      testCfg.Global.ID,
+			DataDir: testCfg.Global.DataDir,
+		},
+		Init: dot.InitConfig{
+			Genesis: DefaultCfg.Init.Genesis,
+		},
+		Account: testCfg.Account,
+		Core:    testCfg.Core,
+		Network: testCfg.Network,
+		RPC:     testCfg.RPC,
+	}
+
+	cfg, err := createDotConfig(ctx)
+	require.Nil(t, err)
+
+	updateDotConfigFromGenesisJSON(ctx, cfg)
+
+	require.Equal(t, expected, cfg)
+}
+
 func TestUpdateConfigFromGenesisData(t *testing.T) {
 	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisFile(t, testCfg)
@@ -537,8 +580,14 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
-		Network: testCfg.Network,
-		RPC:     testCfg.RPC,
+		Network: dot.NetworkConfig{
+			Port:        testCfg.Network.Port,
+			Bootnodes:   []string{}, // TODO: improve cmd tests #687
+			ProtocolID:  testCfg.Network.ProtocolID,
+			NoBootstrap: testCfg.Network.NoBootstrap,
+			NoMDNS:      testCfg.Network.NoMDNS,
+		},
+		RPC: testCfg.RPC,
 	}
 
 	cfg, err := createDotConfig(ctx)

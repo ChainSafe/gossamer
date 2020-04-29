@@ -3,10 +3,10 @@ package modules
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -39,6 +39,17 @@ type TransactionQueueAPI interface {
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
+}
+
+// RPCAPI is the interface for methods related to RPC service
+type RPCAPI interface {
+	Methods() []string
+	BuildMethodNames(rcvr interface{}, name string)
+}
+
+// RuntimeAPI is the interface for runtime methods
+type RuntimeAPI interface {
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 }
