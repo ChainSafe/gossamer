@@ -17,6 +17,9 @@ package core
 
 import (
 	"bytes"
+	"encoding/hex"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/gorilla/websocket"
 	"math/big"
 	"sync"
 
@@ -519,4 +522,25 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 //IsBabeAuthority returns true if node is BABE authority
 func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
+}
+
+// BlockListener receives block messages from BABE session and passes them to given
+//  WebSocket connection
+func (s *Service) BlockListener(ws *websocket.Conn)  {
+	for {
+		// receive block from BABE session
+		block, ok := <-s.blkRec
+		if ok {
+			res := modules.ChainBlockHeaderResponse{}
+
+			res.ParentHash = block.Header.ParentHash.String()
+			res.Number = block.Header.Number
+			res.StateRoot = block.Header.StateRoot.String()
+			res.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
+			for _, item := range block.Header.Digest {
+				res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
+			}
+			ws.WriteJSON(res)
+		}
+	}
 }

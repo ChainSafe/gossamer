@@ -19,11 +19,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
+	"net/http"
+	"strings"
 )
 
 // ServeHTTP implemented to handle WebSocket connections
@@ -47,6 +47,22 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			log.Trace("[rpc] websocket received", "message", fmt.Sprintf("%s", mbytes))
+
+			// determine if request is for subscribe method type
+			var msg map[string]interface{}
+			json.Unmarshal(mbytes, &msg)
+			method := msg["method"]
+			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+				if method == "chain_subscribeNewHeads" ||
+					method == "chain_subscribeNewHead" ||
+					// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
+					method == "chain_subscribeFinalizedHeads" {
+					go h.serverConfig.CoreAPI.BlockListener(ws)
+				}
+				// TODO handle subscribe_storage
+				continue
+			}
+
 			client := &http.Client{}
 			buf := &bytes.Buffer{}
 			_, err = buf.Write(mbytes)

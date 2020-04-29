@@ -157,11 +157,17 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 }
 
 // SubscribeFinalizedHeads isn't implemented properly yet.
-func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
 }
 
 // SubscribeNewHead isn't implemented properly yet.
-func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
+}
+
+func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
 }
 
 func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {
