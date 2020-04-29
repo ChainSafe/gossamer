@@ -66,12 +66,12 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 		}
 		// Second argument must be a pointer and must be exported.
 		args := mtype.In(2)
-		if args.Kind() != reflect.Ptr || !isExportedOrBuiltin(args) {
+		if args.Kind() != reflect.Ptr || !isExportedOrBuiltIn(args) {
 			continue
 		}
 		// Third argument must be a pointer and must be exported.
 		reply := mtype.In(3)
-		if reply.Kind() != reflect.Ptr || !isExportedOrBuiltin(reply) {
+		if reply.Kind() != reflect.Ptr || !isExportedOrBuiltIn(reply) {
 			continue
 		}
 		// Method needs one out: error.
@@ -92,8 +92,8 @@ func isExported(name string) bool {
 	return unicode.IsUpper(rune)
 }
 
-// isExportedOrBuiltin returns true if a type is exported or a builtin.
-func isExportedOrBuiltin(t reflect.Type) bool {
+// isExportedOrBuiltIn returns true if a type is exported or a built in.
+func isExportedOrBuiltIn(t reflect.Type) bool {
 	for t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
