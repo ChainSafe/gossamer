@@ -294,18 +294,10 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NoError(t, err)
 
 	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
-	enc, err := ext.Encode()
+	tx, err := ext.Encode()
 	require.NoError(t, err)
 
-	tx := &transaction.ValidTransaction{
-		Extrinsic: enc,
-		Validity:  new(transaction.Validity),
-	}
-
-	txb, err := tx.Encode()
-	require.NoError(t, err)
-
-	res, err := rt.ApplyExtrinsic(txb)
+	res, err := rt.ApplyExtrinsic(tx)
 	require.Nil(t, err)
 
 	require.Equal(t, []byte{0, 0}, res)

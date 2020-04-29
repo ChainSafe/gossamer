@@ -2,6 +2,8 @@ package transaction
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidTransaction_Encode(t *testing.T) {
@@ -17,9 +19,7 @@ func TestValidTransaction_Encode(t *testing.T) {
 
 	vt := NewValidTransaction(extrinsic, validity)
 	enc, err := vt.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if len(enc) == 0 {
 		t.Fatal("Fail: Encode returned empty slice")
