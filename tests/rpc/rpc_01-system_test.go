@@ -140,6 +140,7 @@ func TestSystemRPC(t *testing.T) {
 
 			switch v := target.(type) {
 
+			//TODO: #815
 			case *modules.SystemHealthResponse:
 				t.Log("Will assert SystemHealthResponse", "target", target)
 
