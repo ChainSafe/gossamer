@@ -46,10 +46,10 @@ type ChainBlock struct {
 
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
-	ParentHash     string   `json:"parentHash"`
-	Number         *big.Int `json:"number"`
-	StateRoot      string   `json:"stateRoot"`
-	ExtrinsicsRoot string   `json:"extrinsicsRoot"`
+	ParentHash     string                 `json:"parentHash"`
+	Number         *big.Int               `json:"number"`
+	StateRoot      string                 `json:"stateRoot"`
+	ExtrinsicsRoot string                 `json:"extrinsicsRoot"`
 	Digest         ChainBlockHeaderDigest `json:"digest"`
 }
 
