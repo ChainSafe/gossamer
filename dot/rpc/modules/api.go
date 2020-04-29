@@ -40,7 +40,6 @@ type TransactionQueueAPI interface {
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 	IsBabeAuthority() bool
 }
 
@@ -48,4 +47,9 @@ type CoreAPI interface {
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
+}
+
+// RuntimeAPI is the interface for runtime methods
+type RuntimeAPI interface {
+	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 }
