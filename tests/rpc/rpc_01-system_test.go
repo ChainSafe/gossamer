@@ -117,7 +117,7 @@ func TestSystemRPC(t *testing.T) {
 
 	localPidList, err := StartNodes(t, make([]*exec.Cmd, 1))
 
-	//use only first server for tests
+	//use only first server for tests4
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
@@ -132,7 +132,8 @@ func TestSystemRPC(t *testing.T) {
 			respBody, err := PostRPC(t, test.method, "http://"+GOSSAMER_NODE_HOST+":"+currentPort, "{}")
 			require.Nil(t, err)
 
-			target := DecodeRPC(t, respBody, test.method)
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			DecodeRPC(t, respBody, target)
 
 			require.NotNil(t, target)
 
