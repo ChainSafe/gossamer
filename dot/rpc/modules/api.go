@@ -3,8 +3,6 @@ package modules
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -28,7 +26,6 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
-	Broadcast(msg network.Message)
 }
 
 // TransactionQueueAPI ...
@@ -44,6 +41,7 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
+	HandleSubmittedExtrinsic(types.Extrinsic) error
 }
 
 // RPCAPI is the interface for methods related to RPC service

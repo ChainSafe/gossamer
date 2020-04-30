@@ -410,11 +410,3 @@ func (s *Service) Peers() []common.PeerInfo {
 	}
 	return peers
 }
-
-// Broadcast will broadcast a message to the network
-func (s *Service) Broadcast(msg Message) {
-
-	// broadcast message to connected peers
-	s.host.broadcast(msg)
-
-}

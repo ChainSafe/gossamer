@@ -21,8 +21,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -38,7 +36,6 @@ type AuthorModule struct {
 	coreAPI    CoreAPI
 	runtimeAPI RuntimeAPI
 	txQueueAPI TransactionQueueAPI
-	networkAPI NetworkAPI
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -86,12 +83,11 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI TransactionQueueAPI, networkAPI NetworkAPI) *AuthorModule {
+func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
 	return &AuthorModule{
 		coreAPI:    coreAPI,
 		runtimeAPI: runtimeAPI,
 		txQueueAPI: txQueueAPI,
-		networkAPI: networkAPI,
 	}
 }
 
@@ -173,9 +169,9 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	vtx := transaction.NewValidTransaction(ext, txv)
 
 	if cm.coreAPI.IsBabeAuthority() {
-		hash, err := cm.txQueueAPI.Push(vtx)
-		if err != nil {
-			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", err)
+		hash, errQueue := cm.txQueueAPI.Push(vtx)
+		if errQueue != nil {
+			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", errQueue)
 			return err
 		}
 
@@ -184,9 +180,11 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	}
 
 	//broadcast
-	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
-	cm.networkAPI.Broadcast(msg)
-
+	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
+	if err != nil {
+		log.Trace("[rpc] submitted extrinsic failed to submit Extrinsic to network", "error", err)
+		return err
+	}
 	return nil
 }
 

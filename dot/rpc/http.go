@@ -69,8 +69,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI,
-				h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI, h.serverConfig.NetworkAPI)
+			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "state":
