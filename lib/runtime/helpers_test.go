@@ -384,39 +384,3 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 
 	require.Equal(t, []byte{1, 2, 0, 1}, res)
 }
-
-func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
-	t.Skip()
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	header := &types.Header{
-		Number: big.NewInt(77),
-	}
-
-	alice := kr.Alice.Public().Encode()
-	bob := kr.Bob.Public().Encode()
-
-	t.Logf("%x", alice)
-
-	aliceb := [32]byte{}
-	copy(aliceb[:], alice)
-
-	bobb := [32]byte{}
-	copy(bobb[:], bob)
-
-	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 0)
-	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
-	require.NoError(t, err)
-	tx, err := ext.Encode()
-	require.NoError(t, err)
-
-	err = rt.InitializeBlock(header)
-	require.NoError(t, err)
-
-	fmt.Println("ApplyExtrinsic")
-
-	res, err := rt.ApplyExtrinsic(tx)
-	require.Nil(t, err)
-
-	require.Equal(t, []byte{0, 0}, res)
-}
