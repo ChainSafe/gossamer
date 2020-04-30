@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/ChainSafe/gossamer/dot/network"
+
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
@@ -36,6 +38,7 @@ type AuthorModule struct {
 	coreAPI    CoreAPI
 	runtimeAPI RuntimeAPI
 	txQueueAPI TransactionQueueAPI
+	networkAPI NetworkAPI
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -83,11 +86,12 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
+func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI TransactionQueueAPI, networkAPI NetworkAPI) *AuthorModule {
 	return &AuthorModule{
 		coreAPI:    coreAPI,
 		runtimeAPI: runtimeAPI,
 		txQueueAPI: txQueueAPI,
+		networkAPI: networkAPI,
 	}
 }
 
@@ -178,6 +182,10 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		*res = ExtrinsicHashResponse(hash.String())
 		log.Trace("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
 	}
+
+	//broadcast
+	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
+	cm.networkAPI.Broadcast(msg)
 
 	return nil
 }
