@@ -183,9 +183,9 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	if err != nil {
 		log.Trace("[rpc] submitted extrinsic failed to submit Extrinsic to network", "error", err)
-		return err
 	}
-	return nil
+
+	return err
 }
 
 // determineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
