@@ -36,7 +36,7 @@ type ChainBlockNumberRequest interface{}
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
 	ParentHash     string                 `json:"parentHash"`
-	Number         *big.Int               `json:"number"`
+	Number         string                 `json:"number"`
 	StateRoot      string                 `json:"stateRoot"`
 	ExtrinsicsRoot string                 `json:"extrinsicsRoot"`
 	Digest         ChainBlockHeaderDigest `json:"digest"`
@@ -88,7 +88,11 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	}
 
 	res.Block.Header.ParentHash = block.Header.ParentHash.String()
-	res.Block.Header.Number = block.Header.Number
+	if block.Header.Number.Int64() == 0 {
+		res.Block.Header.Number = "0x0"
+	} else {
+		res.Block.Header.Number = "0x" + hex.EncodeToString(block.Header.Number.Bytes())
+	}
 	res.Block.Header.StateRoot = block.Header.StateRoot.String()
 	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
 	for _, item := range block.Header.Digest {
@@ -148,7 +152,11 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	}
 
 	res.ParentHash = header.ParentHash.String()
-	res.Number = header.Number
+	if header.Number.Int64() == 0 {
+		res.Number = "0x0"
+	} else {
+		res.Number = "0x" + hex.EncodeToString(header.Number.Bytes())
+	}
 	res.StateRoot = header.StateRoot.String()
 	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
 	for _, item := range header.Digest {
