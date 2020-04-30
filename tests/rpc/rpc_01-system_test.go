@@ -117,7 +117,7 @@ func TestSystemRPC(t *testing.T) {
 
 	localPidList, err := StartNodes(t, make([]*exec.Cmd, 1))
 
-	//use only first server for tests4
+	//use only first server for tests
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
