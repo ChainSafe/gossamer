@@ -18,6 +18,7 @@ package dot
 
 import (
 	"bytes"
+	"encoding/binary"
 	"math/big"
 	"reflect"
 	"testing"
@@ -305,5 +306,9 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	bal, err := stateSrv.Storage.GetBalance(ab)
 	require.NoError(t, err)
 
-	t.Log(bal)
+	genbal := "0x0000000000000001"
+	balbytes, _ := common.HexToBytes(genbal)
+	expected := binary.LittleEndian.Uint64(balbytes)
+
+	require.Equal(t, expected, bal)
 }
