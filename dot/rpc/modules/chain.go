@@ -33,17 +33,6 @@ type ChainHashRequest string
 // ChainBlockNumberRequest interface is it can accept string or float64 or []
 type ChainBlockNumberRequest interface{}
 
-// ChainBlockResponse struct
-type ChainBlockResponse struct {
-	Block ChainBlock `json:"block"`
-}
-
-// ChainBlock struct to hold json instance of a block
-type ChainBlock struct {
-	Header ChainBlockHeaderResponse `json:"header"`
-	Body   []string                 `json:"extrinsics"`
-}
-
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
 	ParentHash     string                 `json:"parentHash"`
@@ -57,6 +46,18 @@ type ChainBlockHeaderResponse struct {
 type ChainBlockHeaderDigest struct {
 	Logs []string `json:"logs"`
 }
+
+// ChainBlock struct to hold json instance of a block
+type ChainBlock struct {
+	Header ChainBlockHeaderResponse `json:"header"`
+	Body   []string                 `json:"extrinsics"`
+}
+
+// ChainBlockResponse struct
+type ChainBlockResponse struct {
+	Block ChainBlock `json:"block"`
+}
+
 
 // ChainHashResponse interface to handle response
 type ChainHashResponse interface{}

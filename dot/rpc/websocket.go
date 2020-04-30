@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"strings"
 )
@@ -57,7 +58,12 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					method == "chain_subscribeNewHead" ||
 					// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
 					method == "chain_subscribeFinalizedHeads" {
-					go h.serverConfig.CoreAPI.BlockListener(ws)
+						val := msg["id"].(float64)
+						bigval := new(big.Float)
+						bigval.SetFloat64(val)
+						bigInt := new(big.Int)
+						bigval.Int(bigInt)
+					go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
 				}
 				// TODO handle subscribe_storage
 				continue

@@ -42,7 +42,7 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
-	BlockListener(conn *websocket.Conn)
+	BlockListener(conn *websocket.Conn, reqId *big.Int)
 }
 
 // RPCAPI is the interface for methods related to RPC service

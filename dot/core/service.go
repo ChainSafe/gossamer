@@ -18,7 +18,6 @@ package core
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/gorilla/websocket"
 	"math/big"
 	"sync"
@@ -524,22 +523,59 @@ func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
 
+type NewHeadResponseJSON struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Method string `json:"method"`
+	Params NewHeadParams `json:"params"` 
+}
+type NewHeadParams struct {
+	Result NewHeadHeader `json:"result"`
+	Subscription int64 `json:"subscription"`
+}
+
+type NewHeadHeader struct {
+	ParentHash string `json:"parentHash"`
+	Number string `json:"number"`
+	StateRoot string `json:"stateRoot"`
+	ExtrinsicRoot string `json:"extrinsicsRoot"`
+	Digest NewHeadDigest `json:"digest"`
+}
+
+type NewHeadDigest struct {
+	Logs []string `json:"logs"`
+}
 // BlockListener receives block messages from BABE session and passes them to given
 //  WebSocket connection
-func (s *Service) BlockListener(ws *websocket.Conn)  {
+func (s *Service) BlockListener(ws *websocket.Conn, reqId *big.Int)  {
+	initRes := make(map[string]interface{})
+
+	initRes["jsonrpc"] = "2.0"
+	initRes["result"] = 1
+	initRes["id"] = reqId
+
+	ws.WriteJSON(initRes)
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
 		if ok {
-			res := modules.ChainBlockHeaderResponse{}
-
-			res.ParentHash = block.Header.ParentHash.String()
-			res.Number = block.Header.Number
-			res.StateRoot = block.Header.StateRoot.String()
-			res.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-			for _, item := range block.Header.Digest {
-				res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
+			res := &NewHeadResponseJSON{
+				Jsonrpc: "2.0",
+				Method: "chain_newHead",
+				Params:NewHeadParams{
+					Result:       NewHeadHeader{
+						ParentHash:    block.Header.ParentHash.String(),
+						Number:        "0x" + hex.EncodeToString(block.Header.Number.Bytes()),
+						StateRoot:     block.Header.StateRoot.String(),
+						ExtrinsicRoot: block.Header.ExtrinsicsRoot.String(),
+						Digest:        NewHeadDigest{},
+					},
+					Subscription: 1,
+				},
 			}
+			for _, item := range block.Header.Digest {
+				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x" + hex.EncodeToString(item))
+			}
+
 			ws.WriteJSON(res)
 		}
 	}

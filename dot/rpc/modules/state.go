@@ -202,7 +202,8 @@ func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorag
 }
 
 // SubscribeStorage isn't implemented properly yet.
-func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
+	return nil
 }
 
 func convertAPIs(in []*runtime.API_Item) []interface{} {
