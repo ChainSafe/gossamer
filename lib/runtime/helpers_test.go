@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -43,7 +42,7 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &transaction.Validity{
-		Priority:  1<<63,
+		Priority:  1 << 63,
 		Requires:  [][]byte{},
 		Provides:  [][]byte{},
 		Longevity: 1,
