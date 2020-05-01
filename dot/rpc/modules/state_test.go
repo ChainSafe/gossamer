@@ -47,10 +47,23 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected, res)
 }
 
+func TestStateModule_GetStorage(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := []byte(`value`)
+
+	actual, err := sm.storageAPI.GetStorage([]byte(`:key`))
+
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+}
+
 func setupStateModule(t *testing.T) *StateModule {
 	// setup service
 	net := newNetworkService(t)
 	chain := newChainService(t)
+	// init storage with test data
+	err := chain.Storage.SetStorage([]byte(`:key`), []byte(`value`))
+	require.NoError(t, err)
 	core := newCoreService(t)
 	return NewStateModule(net, chain.Storage, core)
 }
