@@ -18,7 +18,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -44,14 +43,6 @@ type StateStorageKeyRequest struct {
 	Key   []byte      `json:"key"`
 	Block common.Hash `json:"block"`
 }
-
-// StateStorageQueryRequest holds json fields
-//type StateStorageQueryRequest struct {
-//	Key   []byte      `json:"key"`
-//	Block common.Hash `json:"block"`
-//}
-type StateStorageQueryRequest []string
-
 
 // StateBlockHashQuery is a hash value
 type StateBlockHashQuery common.Hash
@@ -180,29 +171,24 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 }
 
 // GetStorage isn't implemented properly yet.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) error {
-	fmt.Printf("Get Storgae requeast %v\n", req)
-	item, err := sm.storageAPI.GetStorage([]byte(`:code`))
+func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *StateStorageDataResponse) error {
+	// TODO implement handling of block hash parameter
+	pReq := *req
+	item, err := sm.storageAPI.GetStorage([]byte(pReq[0]))
 	if err != nil {
 		return err
 	}
-	entries := sm.storageAPI.Entries()
-
-	for key, _ := range entries {
-		fmt.Printf("Key: %s\n", key)
-	}
-	fmt.Printf("ITem %v\n", item)
-	itemString := StateStorageDataResponse(item)
+	itemString := StateStorageDataResponse("0x" + hex.EncodeToString(item))
 	*res = itemString
 	return nil
 }
 
 // GetStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageQueryRequest, res *StateStorageHashResponse) {
+func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *StateStorageHashResponse) {
 }
 
 // GetStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryRequest, res *StateStorageSizeResponse) {
+func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *StateStorageSizeResponse) {
 }
 
 // QueryStorage isn't implemented properly yet.
