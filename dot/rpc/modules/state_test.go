@@ -16,6 +16,8 @@
 package modules
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -49,22 +51,27 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 
 func TestStateModule_GetStorage(t *testing.T) {
 	sm := setupStateModule(t)
-	expected := []byte(`value`)
+	expected := []byte(`value1`)
+	req := []string{"0x3a6b657931"}  // :key1
+	var res  interface{}
 
-	actual, err := sm.storageAPI.GetStorage([]byte(`:key`))
+	sm.GetStorage(nil, &req, &res)
+
+	hex, err := common.HexToBytes(fmt.Sprintf("%v", res))
 
 	require.NoError(t, err)
-	require.Equal(t, expected, actual)
+	require.Equal(t, expected, hex)
 }
 
 func TestStateModule_GetStorage_NotFound(t *testing.T) {
 	sm := setupStateModule(t)
-	expected := []byte(nil)
 
-	actual, err := sm.storageAPI.GetStorage([]byte(`bad_key`))
+	req := []string{"0x666f6f"}  // foo
+	var res  interface{}
 
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
+	sm.GetStorage(nil, &req, &res)
+
+	require.Nil(t, res)
 }
 
 func setupStateModule(t *testing.T) *StateModule {
@@ -72,8 +79,11 @@ func setupStateModule(t *testing.T) *StateModule {
 	net := newNetworkService(t)
 	chain := newChainService(t)
 	// init storage with test data
-	err := chain.Storage.SetStorage([]byte(`:key`), []byte(`value`))
+	err := chain.Storage.SetStorage([]byte(`:key1`), []byte(`value1`))
 	require.NoError(t, err)
+	err = chain.Storage.SetStorage([]byte(`:key2`), []byte(`value2`))
+	require.NoError(t, err)
+
 	core := newCoreService(t)
 	return NewStateModule(net, chain.Storage, core)
 }
