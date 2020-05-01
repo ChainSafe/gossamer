@@ -57,6 +57,16 @@ func TestStateModule_GetStorage(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
+func TestStateModule_GetStorage_NotFound(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := []byte(nil)
+
+	actual, err := sm.storageAPI.GetStorage([]byte(`bad_key`))
+
+	require.NoError(t, err)
+	require.Equal(t, expected, actual)
+}
+
 func setupStateModule(t *testing.T) *StateModule {
 	// setup service
 	net := newNetworkService(t)

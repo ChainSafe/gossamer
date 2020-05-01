@@ -125,6 +125,32 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 	}
 }
 
+// GetPairs returns the keys with prefix, leave empty to get all the keys.
+func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
+	pReq := *req
+	if len(pReq[0]) < 1 || pReq[0] == "0x" {
+		pairs := sm.storageAPI.Entries()
+		for k, v := range pairs {
+			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+		}
+	} else {
+		reqByte, err := common.HexToBytes(pReq[0])
+		if err != nil {
+			return err
+		}
+		bRes, err := sm.storageAPI.GetStorage(reqByte)
+		if err != nil {
+			return err
+		}
+		if len(bRes) > 0 {
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqByte), "0x" + hex.EncodeToString(bRes)})
+		} else {
+			*res = []interface{}{}
+		}
+	}
+	return nil
+}
+
 // Call isn't implemented properly yet.
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
 	_ = sm.networkAPI
@@ -171,15 +197,24 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 }
 
 // GetStorage isn't implemented properly yet.
-func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *StateStorageDataResponse) error {
+func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
 	// TODO implement handling of block hash parameter
 	pReq := *req
-	item, err := sm.storageAPI.GetStorage([]byte(pReq[0]))
+	reqByte, err := common.HexToBytes(pReq[0])
 	if err != nil {
 		return err
 	}
-	itemString := StateStorageDataResponse("0x" + hex.EncodeToString(item))
-	*res = itemString
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = "0x" + hex.EncodeToString(item)
+	} else {
+		*res = nil
+	}
+
 	return nil
 }
 
