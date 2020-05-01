@@ -154,7 +154,7 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 
 	// this should cause error since transaction is already in txQueue
 	err = auth.SubmitExtrinsic(nil, &ext, res)
-	require.Nil(t, err)
+	require.EqualError(t, err, transaction.ErrTransactionExists.Error())
 
 }
 

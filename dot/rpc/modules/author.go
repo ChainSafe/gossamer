@@ -172,7 +172,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		hash, errQueue := cm.txQueueAPI.Push(vtx)
 		if errQueue != nil {
 			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", errQueue)
-			return err
+			return errQueue
 		}
 
 		*res = ExtrinsicHashResponse(hash.String())
