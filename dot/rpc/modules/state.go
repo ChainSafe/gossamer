@@ -219,7 +219,24 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 }
 
 // GetStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *StateStorageHashResponse) {
+func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *interface{}) error {
+	pReq := *req
+	reqByte, err := common.HexToBytes(pReq[0])
+	if err != nil {
+		return err
+	}
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = common.BytesToHash(item).String()
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
 // GetStorageSize isn't implemented properly yet.
