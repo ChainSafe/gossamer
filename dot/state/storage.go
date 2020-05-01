@@ -97,6 +97,7 @@ func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
 
 // GetStorage gets the object from the trie using key
 func (s *StorageState) GetStorage(key []byte) ([]byte, error) {
+	fmt.Printf("In Get STorage\n")
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.trie.Get(key)

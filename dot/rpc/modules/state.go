@@ -18,6 +18,7 @@ package modules
 
 import (
 	"encoding/hex"
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -45,10 +46,12 @@ type StateStorageKeyRequest struct {
 }
 
 // StateStorageQueryRequest holds json fields
-type StateStorageQueryRequest struct {
-	Key   []byte      `json:"key"`
-	Block common.Hash `json:"block"`
-}
+//type StateStorageQueryRequest struct {
+//	Key   []byte      `json:"key"`
+//	Block common.Hash `json:"block"`
+//}
+type StateStorageQueryRequest []string
+
 
 // StateBlockHashQuery is a hash value
 type StateBlockHashQuery common.Hash
@@ -75,7 +78,7 @@ type StateCallResponse struct {
 type StateKeysResponse [][]byte
 
 // StateStorageDataResponse field to store data response
-type StateStorageDataResponse []byte
+type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
 type StateStorageHashResponse common.Hash
@@ -177,7 +180,21 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 }
 
 // GetStorage isn't implemented properly yet.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) {
+func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) error {
+	fmt.Printf("Get Storgae requeast %v\n", req)
+	item, err := sm.storageAPI.GetStorage([]byte(`:code`))
+	if err != nil {
+		return err
+	}
+	entries := sm.storageAPI.Entries()
+
+	for key, _ := range entries {
+		fmt.Printf("Key: %s\n", key)
+	}
+	fmt.Printf("ITem %v\n", item)
+	itemString := StateStorageDataResponse(item)
+	*res = itemString
+	return nil
 }
 
 // GetStorageHash isn't implemented properly yet.
