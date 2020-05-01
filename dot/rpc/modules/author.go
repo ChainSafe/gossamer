@@ -169,10 +169,11 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	vtx := transaction.NewValidTransaction(ext, txv)
 
 	if cm.coreAPI.IsBabeAuthority() {
-		hash, errQueue := cm.txQueueAPI.Push(vtx)
-		if errQueue != nil {
-			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", errQueue)
-			return errQueue
+		var hash common.Hash
+		hash, err = cm.txQueueAPI.Push(vtx)
+		if err != nil {
+			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", err)
+			return err
 		}
 
 		*res = ExtrinsicHashResponse(hash.String())
