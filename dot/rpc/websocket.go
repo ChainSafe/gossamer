@@ -55,9 +55,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			method := msg["method"]
 			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 				if method == "chain_subscribeNewHeads" ||
-					method == "chain_subscribeNewHead" ||
-					// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
-					method == "chain_subscribeFinalizedHeads" {
+					method == "chain_subscribeNewHead" {
 						val := msg["id"].(float64)
 						bigval := new(big.Float)
 						bigval.SetFloat64(val)
@@ -66,6 +64,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
 				}
 				// TODO handle subscribe_storage
+				// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
 				continue
 			}
 
