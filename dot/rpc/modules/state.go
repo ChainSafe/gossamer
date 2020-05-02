@@ -142,7 +142,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 			return err
 		}
 		if resI != nil {
-			*res = append(*res, []string{"0x" + hex.EncodeToString(resI), "0x" + hex.EncodeToString(reqBytes)})
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
 		} else {
 			*res = []interface{}{}
 		}
@@ -206,7 +206,7 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
 	// TODO implement handling of block hash parameter (See issue #834)
 	pReq := *req
-	reqBytes, _ := common.HexToBytes(pReq[0])  // no need to catch error here
+	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
 
 	item, err := sm.storageAPI.GetStorage(reqBytes)
 	if err != nil {

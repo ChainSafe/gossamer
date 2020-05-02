@@ -17,9 +17,9 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,13 +49,50 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, expected, res)
 }
 
+func TestStateModule_GetPairs_All(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := []interface{}{[]string{"0x3a6b657931", "0x76616c756531"}, []string{"0x3a6b657932", "0x76616c756532"}}
+	req := []string{""}
+	var res []interface{}
+
+	err := sm.GetPairs(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
+
+}
+
+func TestStateModule_GetPairs_One(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := []interface{}{[]string{"0x3a6b657931", "0x76616c756531"}}
+	req := []string{"0x3a6b657931"}
+	var res []interface{}
+
+	err := sm.GetPairs(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
+
+}
+
+func TestStateModule_GetPairs_None(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := []interface{}{}
+	req := []string{"0x00"}
+	var res []interface{}
+
+	err := sm.GetPairs(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
+
+}
+
 func TestStateModule_GetStorage(t *testing.T) {
 	sm := setupStateModule(t)
 	expected := []byte(`value1`)
-	req := []string{"0x3a6b657931"}  // :key1
-	var res  interface{}
+	req := []string{"0x3a6b657931"} // :key1
+	var res interface{}
 
-	sm.GetStorage(nil, &req, &res)
+	err := sm.GetStorage(nil, &req, &res)
+	require.NoError(t, err)
 
 	hex, err := common.HexToBytes(fmt.Sprintf("%v", res))
 
@@ -66,12 +103,54 @@ func TestStateModule_GetStorage(t *testing.T) {
 func TestStateModule_GetStorage_NotFound(t *testing.T) {
 	sm := setupStateModule(t)
 
-	req := []string{"0x666f6f"}  // foo
-	var res  interface{}
+	req := []string{"0x666f6f"} // foo
+	var res interface{}
 
-	sm.GetStorage(nil, &req, &res)
-
+	err := sm.GetStorage(nil, &req, &res)
+	require.NoError(t, err)
 	require.Nil(t, res)
+}
+
+func TestStateModule_GetStorageHash(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := common.BytesToHash([]byte(`value1`)).String()
+	req := []string{"0x3a6b657931"} // :key1
+	var res interface{}
+
+	err := sm.GetStorageHash(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
+}
+
+func TestStateModule_GetStorageHash_NotFound(t *testing.T) {
+	sm := setupStateModule(t)
+	req := []string{"0x666f6f"} // foo
+	var res interface{}
+
+	err := sm.GetStorageHash(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, nil, res)
+}
+
+func TestStateModule_GetStorageSize(t *testing.T) {
+	sm := setupStateModule(t)
+	expected := 6
+	req := []string{"0x3a6b657931"} // :key1
+	var res interface{}
+
+	err := sm.GetStorageSize(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
+}
+
+func TestStateModule_GetStorageSize_NotFound(t *testing.T) {
+	sm := setupStateModule(t)
+	req := []string{"0x666f6f"} // foo
+	var res interface{}
+
+	err := sm.GetStorageSize(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, nil, res)
 }
 
 func setupStateModule(t *testing.T) *StateModule {
