@@ -19,12 +19,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/gorilla/websocket"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/gorilla/websocket"
 )
 
 // ServeHTTP implemented to handle WebSocket connections
@@ -51,16 +52,20 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			// determine if request is for subscribe method type
 			var msg map[string]interface{}
-			json.Unmarshal(mbytes, &msg)
+			err = json.Unmarshal(mbytes, &msg)
+			if err != nil {
+				log.Error("[rpc] websocket failed to unmarshal request message", "error", err)
+				return
+			}
 			method := msg["method"]
 			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 				if method == "chain_subscribeNewHeads" ||
 					method == "chain_subscribeNewHead" {
-						val := msg["id"].(float64)
-						bigval := new(big.Float)
-						bigval.SetFloat64(val)
-						bigInt := new(big.Int)
-						bigval.Int(bigInt)
+					val := msg["id"].(float64)
+					bigval := new(big.Float)
+					bigval.SetFloat64(val)
+					bigInt := new(big.Int)
+					bigval.Int(bigInt)
 					go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
 				}
 				// TODO handle subscribe_storage

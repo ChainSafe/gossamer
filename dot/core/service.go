@@ -18,9 +18,10 @@ package core
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/gorilla/websocket"
 	"math/big"
 	"sync"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -523,46 +524,55 @@ func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
 
+// NewHeadResponseJSON json structure
 type NewHeadResponseJSON struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method string `json:"method"`
-	Params NewHeadParams `json:"params"` 
+	Jsonrpc string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  NewHeadParams `json:"params"`
 }
+
+// NewHeadParams json structure
 type NewHeadParams struct {
-	Result NewHeadHeader `json:"result"`
-	Subscription int64 `json:"subscription"`
+	Result       NewHeadHeader `json:"result"`
+	Subscription int64         `json:"subscription"`
 }
 
+// NewHeadHeader json structure
 type NewHeadHeader struct {
-	ParentHash string `json:"parentHash"`
-	Number string `json:"number"`
-	StateRoot string `json:"stateRoot"`
-	ExtrinsicRoot string `json:"extrinsicsRoot"`
-	Digest NewHeadDigest `json:"digest"`
+	ParentHash    string        `json:"parentHash"`
+	Number        string        `json:"number"`
+	StateRoot     string        `json:"stateRoot"`
+	ExtrinsicRoot string        `json:"extrinsicsRoot"`
+	Digest        NewHeadDigest `json:"digest"`
 }
 
+// NewHeadDigest json structure
 type NewHeadDigest struct {
 	Logs []string `json:"logs"`
 }
+
 // BlockListener receives block messages from BABE session and passes them to given
 //  WebSocket connection
-func (s *Service) BlockListener(ws *websocket.Conn, reqId *big.Int)  {
+func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
 	initRes := make(map[string]interface{})
 
 	initRes["jsonrpc"] = "2.0"
 	initRes["result"] = 1
-	initRes["id"] = reqId
+	initRes["id"] = reqID
 
-	ws.WriteJSON(initRes)
+	err := ws.WriteJSON(initRes)
+	if err != nil {
+		log.Error("[core] error writing json message", "error", err)
+	}
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
 		if ok {
 			res := &NewHeadResponseJSON{
 				Jsonrpc: "2.0",
-				Method: "chain_newHead",
-				Params:NewHeadParams{
-					Result:       NewHeadHeader{
+				Method:  "chain_newHead",
+				Params: NewHeadParams{
+					Result: NewHeadHeader{
 						ParentHash:    block.Header.ParentHash.String(),
 						Number:        "0x" + hex.EncodeToString(block.Header.Number.Bytes()),
 						StateRoot:     block.Header.StateRoot.String(),
@@ -573,10 +583,13 @@ func (s *Service) BlockListener(ws *websocket.Conn, reqId *big.Int)  {
 				},
 			}
 			for _, item := range block.Header.Digest {
-				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x" + hex.EncodeToString(item))
+				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x"+hex.EncodeToString(item))
 			}
 
-			ws.WriteJSON(res)
+			err = ws.WriteJSON(res)
+			if err != nil {
+				log.Error("[core] error writing json message", "error", err)
+			}
 		}
 	}
 }

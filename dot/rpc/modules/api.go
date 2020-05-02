@@ -1,8 +1,9 @@
 package modules
 
 import (
-	"github.com/gorilla/websocket"
 	"math/big"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -45,7 +46,7 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
-	BlockListener(conn *websocket.Conn, reqId *big.Int)
+	BlockListener(conn *websocket.Conn, reqID *big.Int)
 }
 
 // RPCAPI is the interface for methods related to RPC service

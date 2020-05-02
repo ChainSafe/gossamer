@@ -58,7 +58,6 @@ type ChainBlockResponse struct {
 	Block ChainBlock `json:"block"`
 }
 
-
 // ChainHashResponse interface to handle response
 type ChainHashResponse interface{}
 
@@ -175,6 +174,7 @@ func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res 
 	return nil
 }
 
+// SubscribeNewHeads isn't implemented properly yet.
 func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
 	return nil
 }
