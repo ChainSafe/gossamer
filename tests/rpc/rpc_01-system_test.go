@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"reflect"
 	"testing"
 	"time"
 
@@ -36,12 +35,7 @@ func TestSystemRPC(t *testing.T) {
 		return
 	}
 
-	testsCases := []struct {
-		description string
-		method      string
-		expected    interface{}
-		skip        bool
-	}{
+	testCases := []*testCase{
 		{ //TODO
 			description: "test system_name",
 			method:      "system_name",
@@ -114,7 +108,7 @@ func TestSystemRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("going to start gossamer...")
+	t.Log("starting gossamer...")
 
 	localPidList, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
 
@@ -123,26 +117,11 @@ func TestSystemRPC(t *testing.T) {
 
 	time.Sleep(time.Second) // give server a second to start
 
-	for _, test := range testsCases {
+	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			if test.skip {
-				t.Skip("RPC endpoint not yet implemented")
-				return
-			}
-
-			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
-			require.Nil(t, err)
-
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			utils.DecodeRPC(t, respBody, target)
-
-			require.NotNil(t, target)
-
-			t.Log("Will start assertion for ", "target", target, "type", reflect.TypeOf(target))
+			target := getResponse(t, test)
 
 			switch v := target.(type) {
-
-			//TODO: #815
 			case *modules.SystemHealthResponse:
 				t.Log("Will assert SystemHealthResponse", "target", target)
 
@@ -178,7 +157,7 @@ func TestSystemRPC(t *testing.T) {
 		})
 	}
 
-	t.Log("going to TearDown Gossamer node")
+	t.Log("going to tear down gossamer...")
 
 	errList := utils.TearDown(t, localPidList)
 	require.Len(t, errList, 0)

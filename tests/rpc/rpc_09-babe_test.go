@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"reflect"
 	"testing"
 	"time"
 
@@ -33,12 +32,8 @@ func TestBabeRPC(t *testing.T) {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
-	testsCases := []struct {
-		description string
-		method      string
-		expected    interface{}
-		skip        bool
-	}{
+
+	testCases := []*testCase{
 		{ //TODO
 			description: "test babe_epochAuthorship",
 			method:      "babe_epochAuthorship",
@@ -47,30 +42,18 @@ func TestBabeRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	localPidList, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
+	nodes, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
 
-	for _, test := range testsCases {
+	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			if test.skip {
-				t.Skip("RPC endpoint not yet implemented")
-				return
-			}
-
-			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
-			require.Nil(t, err)
-
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			utils.DecodeRPC(t, respBody, target)
-
-			require.NotNil(t, target)
-
+			_ = getResponse(t, test)
 		})
 	}
 
 	t.Log("going to tear down gossamer...")
-	errList := utils.TearDown(t, localPidList)
+	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }
