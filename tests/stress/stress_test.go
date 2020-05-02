@@ -33,6 +33,7 @@ import (
 
 var (
 	pidList = make([]*exec.Cmd, 3)
+	getHeader = "chain_getHeader"
 )
 
 func TestMain(m *testing.M) {
@@ -63,7 +64,7 @@ func TestMain(m *testing.M) {
 
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	localPidList, err := rpc.StartNodes(t, pidList)
+	nodes, err := rpc.StartNodes(t, pidList)
 	require.Nil(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -73,14 +74,11 @@ func TestStressSync(t *testing.T) {
 	db, err := scribble.New(tempDir, nil)
 	require.Nil(t, err)
 
-	blockHighestBlockHash := "chain_getHeader"
-
-	for i, v := range localPidList {
-
-		t.Log("going to get HighestBlockHash from node", "i", i, "v", v)
+	for i, node := range nodes {
+		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		respBody, err := rpc.PostRPC(t, getHeader, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
 		require.Nil(t, err)
 
 		// decode resp
@@ -88,7 +86,7 @@ func TestStressSync(t *testing.T) {
 		rpc.DecodeRPC(t, respBody, chainBlockResponse)
 
 		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
-		err = db.Write("blocks_"+strconv.Itoa(v.Process.Pid),
+		err = db.Write("blocks_"+strconv.Itoa(node.Process.Process.Pid),
 			chainBlockResponse.Number, chainBlockResponse)
 		require.Nil(t, err)
 
@@ -105,6 +103,45 @@ func TestStressSync(t *testing.T) {
 	// kill some nodes, start others, make sure things still move forward
 
 	//TODO: #803 cleanup optimization
-	errList := rpc.TearDown(t, localPidList)
+	errList := rpc.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
+
+
+func TestSync_StorageChange(t *testing.T) {
+	t.Log("going to start TestStressSync")
+	nodes, err := rpc.StartNodes(t, pidList)
+	require.Nil(t, err)
+
+	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
+	require.Nil(t, err)
+	t.Log("going to start a JSON simple database to track all chains", "tempDir", tempDir)
+
+	db, err := scribble.New(tempDir, nil)
+	require.Nil(t, err)
+
+	blockHighestBlockHash := "chain_getHeader"
+
+	for i, node := range nodes {
+
+		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
+
+		//Get HighestBlockHash
+		respBody, err := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		require.Nil(t, err)
+
+		// decode resp
+		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
+		rpc.DecodeRPC(t, respBody, chainBlockResponse)
+
+		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
+		err = db.Write("blocks_"+strconv.Itoa(node.Process.Process.Pid),
+			chainBlockResponse.Number, chainBlockResponse)
+		require.Nil(t, err)
+
+	}
+
+	//TODO: #803 cleanup optimization
+	errList := rpc.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }

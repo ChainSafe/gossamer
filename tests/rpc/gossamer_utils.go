@@ -36,7 +36,7 @@ var (
 )
 
 // RunGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
-func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) {
+func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*Node, error) {
 
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -62,9 +62,11 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 
 	t.Log("Gossamer init ok")
 
+	key := keyList[nodeNumb]
+
 	//nolint
 	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
-		"--key", keyList[nodeNumb],
+		"--key", key,
 		"--datadir", dataDir+strconv.Itoa(nodeNumb),
 		"--rpchost", GOSSAMER_NODE_HOST,
 		"--rpcport", "854"+strconv.Itoa(nodeNumb),
@@ -114,7 +116,10 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*exec.Cmd, error) 
 		t.Fatal("Gossamer node never managed to start!", "err", err)
 	}
 
-	return cmd, nil
+	return &Node{
+		Process: cmd,
+		Key: key,
+	}, nil
 }
 
 // CheckNodeStarted check if gossamer node is already started
@@ -133,8 +138,6 @@ func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 		return fmt.Errorf("no peers")
 	}
 
-	//if we get here, we assume it worked :D
-
 	return nil
 }
 
@@ -147,9 +150,14 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
+type Node struct {
+	Process *exec.Cmd
+	Key string
+}
+
 // StartNodes will spin gossamer nodes
-func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
-	var newPidList []*exec.Cmd
+func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*Node, error) {
+	var nodes []*Node
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress")
 	if err != nil {
@@ -159,22 +167,22 @@ func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*exec.Cmd, error) {
 
 	for i, cmd := range pidList {
 		t.Log("starting gossamer ", "cmd", cmd, "i", i)
-		cmd, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
+		node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			t.Log("failed to runGossamer", "i", i)
 			return nil, err
 		}
 
-		newPidList = append(newPidList, cmd)
+		nodes = append(nodes, node)
 	}
 
-	return newPidList, nil
+	return nodes, nil
 }
 
 // TearDown will stop gossamer nodes
-func TearDown(t *testing.T, pidList []*exec.Cmd) (errorList []error) {
-	for i := range pidList {
-		cmd := pidList[i]
+func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
+	for i := range nodes {
+		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
 			t.Log("failed to killGossamer", "i", i, "cmd", cmd)
