@@ -19,7 +19,6 @@ package rpc
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -109,8 +108,7 @@ func TestSystemRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-
-	localPidList, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
+	nodes, err := utils.StartNodes(t, 1)
 
 	//use only first server for tests
 	require.Nil(t, err)
@@ -159,6 +157,6 @@ func TestSystemRPC(t *testing.T) {
 
 	t.Log("going to tear down gossamer...")
 
-	errList := utils.TearDown(t, localPidList)
+	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }

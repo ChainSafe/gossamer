@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strconv"
 	"testing"
 
@@ -32,7 +31,7 @@ import (
 )
 
 var (
-	pidList   = make([]*exec.Cmd, 3)
+	numNodes  = 3
 	getHeader = "chain_getHeader"
 )
 
@@ -47,8 +46,8 @@ func TestMain(m *testing.M) {
 	if utils.NETWORK_SIZE_STR != "" {
 		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE_STR)
 		if err == nil {
-			_, _ = fmt.Fprintln(os.Stdout, "Going to custom network size ... ", "currentNetworkSize", currentNetworkSize)
-			pidList = make([]*exec.Cmd, currentNetworkSize)
+			_, _ = fmt.Fprintln(os.Stdout, "Going to use custom network size", "currentNetworkSize", currentNetworkSize)
+			numNodes = currentNetworkSize
 		}
 	}
 
@@ -64,7 +63,7 @@ func TestMain(m *testing.M) {
 
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	nodes, err := utils.StartNodes(t, pidList)
+	nodes, err := utils.StartNodes(t, numNodes)
 	require.Nil(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -78,7 +77,7 @@ func TestStressSync(t *testing.T) {
 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RpcPort, "[]")
+		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RPCPort, "[]")
 		require.Nil(t, err)
 
 		// decode resp

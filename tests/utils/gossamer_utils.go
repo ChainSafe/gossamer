@@ -33,12 +33,20 @@ import (
 //TODO: #799
 var (
 	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
-	basePort = 7001
+	basePort = 7000
 
 	// BaseRPCPort is the starting RPC port for test nodes
 	// It increases by 2 for each node added, since node a port uses --rpcport as the HTTP port and --rpcport + 1 as the websockets port
 	BaseRPCPort = 8540
 )
+
+// Node represents a gossamer process
+type Node struct {
+	Process *exec.Cmd
+	Key     string
+	RPCPort string
+	Idx     int
+}
 
 // RunGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
 func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
@@ -123,7 +131,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 	return &Node{
 		Process: cmd,
 		Key:     key,
-		RpcPort: rpcPort,
+		RPCPort: rpcPort,
 		Idx:     idx,
 	}, nil
 }
@@ -156,15 +164,8 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
-type Node struct {
-	Process *exec.Cmd
-	Key     string
-	RpcPort string
-	Idx     int
-}
-
-// StartNodes will spin gossamer nodes
-func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*Node, error) {
+// StartNodes will spin up `num` gossamer nodes
+func StartNodes(t *testing.T, num int) ([]*Node, error) {
 	var nodes []*Node
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
@@ -173,7 +174,7 @@ func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*Node, error) {
 		return nil, err
 	}
 
-	for i := range pidList {
+	for i := 0; i < num; i++ {
 		node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			t.Log("failed to runGossamer", "i", i)
