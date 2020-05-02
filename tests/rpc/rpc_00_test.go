@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	currentPort = strconv.Itoa(utils.BaseRpcPort)
+	currentPort = strconv.Itoa(utils.BaseRPCPort)
 	rpcSuite    = "rpc_suite"
 )
 
