@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/tests/rpc"
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 
 	scribble "github.com/nanobox-io/golang-scribble"
@@ -37,22 +37,22 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	if rpc.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
+	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
 		return
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
-	if rpc.NETWORK_SIZE_STR != "" {
-		currentNetworkSize, err := strconv.Atoi(rpc.NETWORK_SIZE_STR)
+	if utils.NETWORK_SIZE_STR != "" {
+		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE_STR)
 		if err == nil {
 			_, _ = fmt.Fprintln(os.Stdout, "Going to custom network size ... ", "currentNetworkSize", currentNetworkSize)
 			pidList = make([]*exec.Cmd, currentNetworkSize)
 		}
 	}
 
-	if rpc.GOSSAMER_NODE_HOST == "" {
+	if utils.GOSSAMER_NODE_HOST == "" {
 		_, _ = fmt.Fprintln(os.Stdout, "GOSSAMER_NODE_HOST is not set, Going to skip stress test")
 		return
 	}
@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	nodes, err := rpc.StartNodes(t, pidList)
+	nodes, err := utils.StartNodes(t, pidList)
 	require.Nil(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -78,15 +78,14 @@ func TestStressSync(t *testing.T) {
 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := rpc.PostRPC(t, getHeader, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
 		require.Nil(t, err)
 
 		// decode resp
 		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
-		rpc.DecodeRPC(t, respBody, chainBlockResponse)
+		utils.DecodeRPC(t, respBody, chainBlockResponse)
 
-		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
-		err = db.Write("blocks_"+strconv.Itoa(node.Process.Process.Pid),
+		err = db.Write("blocks_"+node.Key,
 			chainBlockResponse.Number, chainBlockResponse)
 		require.Nil(t, err)
 
@@ -103,14 +102,13 @@ func TestStressSync(t *testing.T) {
 	// kill some nodes, start others, make sure things still move forward
 
 	//TODO: #803 cleanup optimization
-	errList := rpc.TearDown(t, nodes)
+	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }
 
-
 func TestSync_StorageChange(t *testing.T) {
 	t.Log("going to start TestStressSync")
-	nodes, err := rpc.StartNodes(t, pidList)
+	nodes, err := utils.StartNodes(t, pidList)
 	require.Nil(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -120,28 +118,25 @@ func TestSync_StorageChange(t *testing.T) {
 	db, err := scribble.New(tempDir, nil)
 	require.Nil(t, err)
 
-	blockHighestBlockHash := "chain_getHeader"
-
 	for i, node := range nodes {
 
 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := rpc.PostRPC(t, blockHighestBlockHash, "http://"+rpc.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
 		require.Nil(t, err)
 
 		// decode resp
 		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
-		rpc.DecodeRPC(t, respBody, chainBlockResponse)
+		utils.DecodeRPC(t, respBody, chainBlockResponse)
 
-		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
-		err = db.Write("blocks_"+strconv.Itoa(node.Process.Process.Pid),
+		err = db.Write("blocks_"+node.Key,
 			chainBlockResponse.Number, chainBlockResponse)
 		require.Nil(t, err)
 
 	}
 
 	//TODO: #803 cleanup optimization
-	errList := rpc.TearDown(t, nodes)
+	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }

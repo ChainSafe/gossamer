@@ -26,11 +26,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSystemRPC(t *testing.T) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
+	if utils.GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
@@ -115,7 +116,7 @@ func TestSystemRPC(t *testing.T) {
 
 	t.Log("going to start gossamer")
 
-	localPidList, err := StartNodes(t, make([]*exec.Cmd, 1))
+	localPidList, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
 
 	//use only first server for tests
 	require.Nil(t, err)
@@ -129,11 +130,11 @@ func TestSystemRPC(t *testing.T) {
 				return
 			}
 
-			respBody, err := PostRPC(t, test.method, "http://"+GOSSAMER_NODE_HOST+":"+currentPort, "{}")
+			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
 			require.Nil(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			DecodeRPC(t, respBody, target)
+			utils.DecodeRPC(t, respBody, target)
 
 			require.NotNil(t, target)
 
@@ -179,6 +180,6 @@ func TestSystemRPC(t *testing.T) {
 
 	t.Log("going to TearDown Gossamer node")
 
-	errList := TearDown(t, localPidList)
+	errList := utils.TearDown(t, localPidList)
 	require.Len(t, errList, 0)
 }
