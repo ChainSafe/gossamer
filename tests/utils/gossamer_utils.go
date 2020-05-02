@@ -32,9 +32,12 @@ import (
 
 //TODO: #799
 var (
-	keyList     = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
-	basePort    = 7001
-	baseRpcPort = 8545
+	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
+	basePort = 7001
+
+	// BaseRpcPort is the starting RPC port for test nodes
+	// It increases by 2 for each node added, since node a port uses --rpcport as the HTTP port and --rpcport + 1 as the websockets port
+	BaseRpcPort = 8540
 )
 
 // RunGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
@@ -66,7 +69,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 	t.Log("Gossamer init ok")
 
 	key := keyList[idx]
-	rpcPort := strconv.Itoa(baseRpcPort + idx*2) // needs *2 since previous node uses port for rpc and port+1 for WS
+	rpcPort := strconv.Itoa(BaseRpcPort + idx*2) // needs *2 since previous node uses port for rpc and port+1 for WS
 
 	//nolint
 	cmd := exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),

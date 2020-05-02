@@ -19,11 +19,14 @@ package rpc
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/tests/utils"
 )
 
-const (
-	currentPort = "8540"
+var (
+	currentPort = strconv.Itoa(utils.BaseRpcPort)
 	rpcSuite    = "rpc_suite"
 )
 
