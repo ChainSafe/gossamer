@@ -44,12 +44,6 @@ type StateStorageKeyRequest struct {
 	Block common.Hash `json:"block"`
 }
 
-// StateStorageQueryRequest holds json fields
-type StateStorageQueryRequest struct {
-	Key   []byte      `json:"key"`
-	Block common.Hash `json:"block"`
-}
-
 // StateBlockHashQuery is a hash value
 type StateBlockHashQuery common.Hash
 
@@ -75,7 +69,7 @@ type StateCallResponse struct {
 type StateKeysResponse [][]byte
 
 // StateStorageDataResponse field to store data response
-type StateStorageDataResponse []byte
+type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
 type StateStorageHashResponse common.Hash
@@ -131,6 +125,32 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 	}
 }
 
+// GetPairs returns the keys with prefix, leave empty to get all the keys.
+func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
+	// TODO implement handling of block hash parameter (See issue #834)
+	pReq := *req
+	reqBytes, _ := common.HexToBytes(pReq[0])
+
+	if len(reqBytes) < 1 {
+		pairs := sm.storageAPI.Entries()
+		for k, v := range pairs {
+			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+		}
+	} else {
+		resI, err := sm.storageAPI.GetStorage(reqBytes)
+		if err != nil {
+			return err
+		}
+		if resI != nil {
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
+		} else {
+			*res = []interface{}{}
+		}
+	}
+
+	return nil
+}
+
 // Call isn't implemented properly yet.
 func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
 	_ = sm.networkAPI
@@ -139,22 +159,27 @@ func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCa
 
 // GetChildKeys isn't implemented properly yet.
 func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // GetChildStorage isn't implemented properly yet.
 func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // GetChildStorageHash isn't implemented properly yet.
 func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateStorageHashResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // GetChildStorageSize isn't implemented properly yet.
 func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateStorageSizeResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // GetKeys isn't implemented properly yet.
 func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // GetMetadata isn't implemented properly yet.
@@ -166,7 +191,7 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
-// TODO currently only returns latest version, add functionality to lookup runtime by block hash
+// TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion()
 	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
@@ -179,25 +204,75 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 	return err
 }
 
-// GetStorage isn't implemented properly yet.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) {
+// GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
+func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
+	// TODO implement handling of block hash parameter (See issue #834)
+	pReq := *req
+	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
+
+	item, err := sm.storageAPI.GetStorage(reqBytes)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = "0x" + hex.EncodeToString(item)
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
 // GetStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageQueryRequest, res *StateStorageHashResponse) {
+func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *interface{}) error {
+	// TODO implement handling of block hash parameter (See issue #834)
+	pReq := *req
+	reqByte, _ := common.HexToBytes(pReq[0])
+
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = common.BytesToHash(item).String()
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
 // GetStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryRequest, res *StateStorageSizeResponse) {
+func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *interface{}) error {
+	// TODO implement handling of block hash parameter (See issue #834)
+	pReq := *req
+	reqByte, _ := common.HexToBytes(pReq[0])
+
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = len(item)
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+	// TODO implement handling of block hash parameter (See issue #834)
 }
 
 // SubscribeRuntimeVersion isn't implemented properly yet.
 // TODO make this actually a subscription that pushes data
 func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
+	// TODO implement handling of block hash parameter (See issue #834)
 	return sm.GetRuntimeVersion(r, nil, res)
 }
 

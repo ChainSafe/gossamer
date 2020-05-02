@@ -17,6 +17,7 @@
 package runtime
 
 import (
+	"encoding/binary"
 	"io"
 	"net/http"
 	"os"
@@ -64,7 +65,7 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *
 const (
 	POLKADOT_RUNTIME_c768a7e4c70e     = "polkadot_runtime"
 	POLKADOT_RUNTIME_FP_c768a7e4c70e  = "substrate_test_runtime.compact.wasm"
-	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob-042920/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 	TEST_RUNTIME  = "test_runtime"
 	TESTS_FP      = "test_wasm.wasm"
@@ -188,4 +189,32 @@ func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
 // Entries is a dummy test func
 func (trs TestRuntimeStorage) Entries() map[string][]byte {
 	return trs.trie.Entries()
+}
+
+// SetBalance sets the balance for an account with the given public key
+func (trs TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return err
+	}
+
+	bb := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bb, balance)
+
+	return trs.SetStorage(skey, bb)
+}
+
+// GetBalance gets the balance for an account with the given public key
+func (trs TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return 0, err
+	}
+
+	bal, err := trs.GetStorage(skey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(bal), nil
 }
