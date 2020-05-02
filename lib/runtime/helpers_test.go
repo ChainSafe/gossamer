@@ -285,9 +285,6 @@ func TestFinalizeBlock(t *testing.T) {
 }
 
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
-	t.Skip()
-	// TODO: this currently fails with a Bad Proof error.
-
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	header := &types.Header{
@@ -302,10 +299,6 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	ext := extrinsic.NewIncludeDataExt(data)
 	enc, err := ext.Encode()
 	require.NoError(t, err)
-
-	sig, err := kr.Alice.Private().Sign(enc[1:])
-	require.NoError(t, err)
-	enc = append(enc, sig...)
 
 	res, err := rt.ApplyExtrinsic(enc)
 	require.Nil(t, err)
