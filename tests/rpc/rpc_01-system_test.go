@@ -114,7 +114,7 @@ func TestSystemRPC(t *testing.T) {
 		},
 	}
 
-	t.Log("going to start gossamer")
+	t.Log("going to start gossamer...")
 
 	localPidList, err := utils.StartNodes(t, make([]*exec.Cmd, 1))
 

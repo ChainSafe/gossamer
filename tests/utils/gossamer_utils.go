@@ -32,23 +32,25 @@ import (
 
 //TODO: #799
 var (
-	keyList = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
+	keyList     = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
+	basePort    = 7001
+	baseRpcPort = 8545
 )
 
 // RunGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
-func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*Node, error) {
-
+func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
+	genesisPath := filepath.Join(currentDir, "../..", "node/gssmr/genesis.json")
 
 	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
-		"--datadir", dataDir+strconv.Itoa(nodeNumb),
-		"--genesis", filepath.Join(currentDir, "../..", "node/gssmr/genesis.json"),
+		"--datadir", dataDir+strconv.Itoa(idx),
+		"--genesis", genesisPath,
 		"--force",
 	)
 
@@ -60,24 +62,25 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*Node, error) {
 		return nil, err
 	}
 
+	// TODO: get init exit code to see if node was successfully initialized
 	t.Log("Gossamer init ok")
 
-	key := keyList[nodeNumb]
+	key := keyList[idx]
+	rpcPort := strconv.Itoa(baseRpcPort + idx*2) // needs *2 since previous node uses port for rpc and port+1 for WS
 
 	//nolint
-	cmd := exec.Command(gossamerCMD, "--port", "700"+strconv.Itoa(nodeNumb),
+	cmd := exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
 		"--key", key,
-		"--datadir", dataDir+strconv.Itoa(nodeNumb),
+		"--datadir", dataDir+strconv.Itoa(idx),
 		"--rpchost", GOSSAMER_NODE_HOST,
-		"--rpcport", "854"+strconv.Itoa(nodeNumb),
+		"--rpcport", rpcPort,
 		"--rpcmods", "system,author,chain",
-		"--key", keyList[nodeNumb],
 		"--roles", "4",
 		"--rpc",
 	)
 
 	// a new file will be created, it will be used for log the outputs from the node
-	f, err := os.Create(filepath.Join(dataDir+strconv.Itoa(nodeNumb), "gossamer.log"))
+	f, err := os.Create(filepath.Join(dataDir+strconv.Itoa(idx), "gossamer.log"))
 	if err != nil {
 		t.Fatalf("Error when trying to set a log file for gossamer output: %v", err)
 	}
@@ -95,30 +98,30 @@ func RunGossamer(t *testing.T, nodeNumb int, dataDir string) (*Node, error) {
 		return nil, err
 	}
 
-	t.Log("Gossamer start", "err", err)
-
 	t.Log("wait few secs for node to come up", "cmd.Process.Pid", cmd.Process.Pid)
 	var started bool
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(1 * time.Second)
-		// TODO: #801 port numbers will overflow once reach +10, upgrade code to handle it
-		if err = CheckNodeStarted(t, "http://"+GOSSAMER_NODE_HOST+":854"+strconv.Itoa(nodeNumb)); err == nil {
+		if err = CheckNodeStarted(t, "http://"+GOSSAMER_NODE_HOST+":"+rpcPort); err == nil {
 			started = true
 			break
 		} else {
 			t.Log("Waiting for Gossamer to start", "err", err)
 		}
 	}
+
 	if started {
-		t.Log("Gossamer started :D", "cmd.Process.Pid", cmd.Process.Pid)
+		t.Log("Gossamer started", "key", key, "cmd.Process.Pid", cmd.Process.Pid)
 	} else {
-		t.Fatal("Gossamer node never managed to start!", "err", err)
+		t.Fatal("Gossamer didn't start!", "err", err)
 	}
 
 	return &Node{
 		Process: cmd,
-		Key: key,
+		Key:     key,
+		RpcPort: rpcPort,
+		Idx:     idx,
 	}, nil
 }
 
@@ -152,21 +155,22 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 
 type Node struct {
 	Process *exec.Cmd
-	Key string
+	Key     string
+	RpcPort string
+	Idx     int
 }
 
 // StartNodes will spin gossamer nodes
 func StartNodes(t *testing.T, pidList []*exec.Cmd) ([]*Node, error) {
 	var nodes []*Node
 
-	tempDir, err := ioutil.TempDir("", "gossamer-stress")
+	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
 	if err != nil {
 		t.Log("failed to create tempDir")
 		return nil, err
 	}
 
-	for i, cmd := range pidList {
-		t.Log("starting gossamer ", "cmd", cmd, "i", i)
+	for i := range pidList {
 		node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			t.Log("failed to runGossamer", "i", i)

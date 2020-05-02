@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	pidList = make([]*exec.Cmd, 3)
+	pidList   = make([]*exec.Cmd, 3)
 	getHeader = "chain_getHeader"
 )
 
@@ -69,7 +69,7 @@ func TestStressSync(t *testing.T) {
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
 	require.Nil(t, err)
-	t.Log("going to start a JSON simple database to track all chains", "tempDir", tempDir)
+	t.Log("going to start a JSON database to track all chains", "tempDir", tempDir)
 
 	db, err := scribble.New(tempDir, nil)
 	require.Nil(t, err)
@@ -78,15 +78,14 @@ func TestStressSync(t *testing.T) {
 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
+		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RpcPort, "[]")
 		require.Nil(t, err)
 
 		// decode resp
 		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
 		utils.DecodeRPC(t, respBody, chainBlockResponse)
 
-		err = db.Write("blocks_"+node.Key,
-			chainBlockResponse.Number, chainBlockResponse)
+		err = db.Write("blocks_"+node.Key, chainBlockResponse.Number, chainBlockResponse)
 		require.Nil(t, err)
 
 	}
@@ -106,37 +105,36 @@ func TestStressSync(t *testing.T) {
 	require.Len(t, errList, 0)
 }
 
-func TestSync_StorageChange(t *testing.T) {
-	t.Log("going to start TestStressSync")
-	nodes, err := utils.StartNodes(t, pidList)
-	require.Nil(t, err)
+// func TestSync_StorageChange(t *testing.T) {
+// 	t.Log("going to start TestStressSync")
+// 	nodes, err := utils.StartNodes(t, pidList)
+// 	require.Nil(t, err)
 
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
-	require.Nil(t, err)
-	t.Log("going to start a JSON simple database to track all chains", "tempDir", tempDir)
+// 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
+// 	require.Nil(t, err)
+// 	t.Log("going to start a JSON database to track all chains", "tempDir", tempDir)
 
-	db, err := scribble.New(tempDir, nil)
-	require.Nil(t, err)
+// 	db, err := scribble.New(tempDir, nil)
+// 	require.Nil(t, err)
 
-	for i, node := range nodes {
+// 	for i, node := range nodes {
 
-		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
+// 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
-		//Get HighestBlockHash
-		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":854"+strconv.Itoa(i), "[]")
-		require.Nil(t, err)
+// 		//Get HighestBlockHash
+// 		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RpcPort, "[]")
+// 		require.Nil(t, err)
 
-		// decode resp
-		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
-		utils.DecodeRPC(t, respBody, chainBlockResponse)
+// 		// decode resp
+// 		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
+// 		utils.DecodeRPC(t, respBody, chainBlockResponse)
 
-		err = db.Write("blocks_"+node.Key,
-			chainBlockResponse.Number, chainBlockResponse)
-		require.Nil(t, err)
+// 		err = db.Write("blocks_"+node.Key, chainBlockResponse.Number, chainBlockResponse)
+// 		require.Nil(t, err)
 
-	}
+// 	}
 
-	//TODO: #803 cleanup optimization
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
-}
+// 	//TODO: #803 cleanup optimization
+// 	errList := utils.TearDown(t, nodes)
+// 	require.Len(t, errList, 0)
+// }
