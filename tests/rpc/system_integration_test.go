@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -38,13 +39,18 @@ func TestStableNetworkRPC(t *testing.T) {
 		"PORT", utils.PORT,
 	)
 
+	networkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
+	if err != nil {
+		networkSize = 0
+	}
+
 	testsCases := []*testCase{
 		{
 			description: "test system_health",
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
 				Health: common.Health{
-					Peers:           utils.NETWORK_SIZE - 1,
+					Peers:           networkSize - 1,
 					IsSyncing:       false,
 					ShouldHavePeers: true,
 				},
@@ -95,7 +101,7 @@ func TestStableNetworkRPC(t *testing.T) {
 				t.Log("Will assert SystemPeersResponse", "target", target)
 
 				require.NotNil(t, v.Peers)
-				require.GreaterOrEqual(t, len(v.Peers), utils.NETWORK_SIZE-1)
+				require.GreaterOrEqual(t, len(v.Peers), networkSize-1)
 
 				for _, vv := range v.Peers {
 					require.NotNil(t, vv.PeerID)

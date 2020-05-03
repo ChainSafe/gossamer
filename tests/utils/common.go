@@ -21,7 +21,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -32,7 +31,7 @@ var (
 	HOSTNAME = os.Getenv("HOSTNAME")
 	PORT     = os.Getenv("PORT")
 
-	NETWORK_SIZE, _ = strconv.Atoi(os.Getenv("NETWORK_SIZE"))
+	NETWORK_SIZE = os.Getenv("NETWORK_SIZE")
 
 	ContentTypeJSON   = "application/json"
 	dialTimeout       = 60 * time.Second
