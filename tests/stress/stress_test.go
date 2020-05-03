@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if utils.HOSTNAME == "" {
-		_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, Going to skip stress test")
+		_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, skipping stress test")
 		return
 	}
 
