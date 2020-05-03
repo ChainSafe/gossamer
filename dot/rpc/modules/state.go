@@ -222,7 +222,8 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 	return nil
 }
 
-// GetStorageHash isn't implemented properly yet.
+// GetStorageHash returns the hash of a storage entry at a block's state.
+//  If no block hash is provided, the latest value is returned.
 func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *interface{}) error {
 	// TODO implement handling of block hash parameter (See issue #834)
 	pReq := *req
@@ -242,7 +243,8 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *inter
 	return nil
 }
 
-// GetStorageSize isn't implemented properly yet.
+// GetStorageSize returns the size of a storage entry at a block's state.
+//  If no block hash is provided, the latest value is used.
 func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *interface{}) error {
 	// TODO implement handling of block hash parameter (See issue #834)
 	pReq := *req
