@@ -65,6 +65,9 @@ func TestStableNetworkRPC(t *testing.T) {
 		},
 	}
 
+	nodes, err := utils.StartNodes(t, 3)
+	require.NoError(t, err)
+
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
 			target := getResponse(t, test)
@@ -99,4 +102,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			}
 		})
 	}
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
 }
