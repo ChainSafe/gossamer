@@ -17,29 +17,25 @@
 package rpc
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/tests/utils"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStableNetworkRPC(t *testing.T) {
-	if GOSSAMER_INTEGRATION_TEST_MODE != "stable" {
+	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stable" {
 		t.Skip("Integration tests are disabled, going to skip.")
 	}
 	log.Info("Going to run NetworkAPI tests",
-		"GOSSAMER_INTEGRATION_TEST_MODE", GOSSAMER_INTEGRATION_TEST_MODE,
-		"GOSSAMER_NODE_HOST", GOSSAMER_NODE_HOST)
+		"GOSSAMER_INTEGRATION_TEST_MODE", utils.GOSSAMER_INTEGRATION_TEST_MODE,
+		"GOSSAMER_NODE_HOST", utils.GOSSAMER_NODE_HOST)
 
-	testsCases := []struct {
-		description string
-		method      string
-		expected    interface{}
-	}{
+	testsCases := []*testCase{
 		{
 			description: "test system_health",
 			method:      "system_health",
@@ -71,16 +67,9 @@ func TestStableNetworkRPC(t *testing.T) {
 
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
+			target := getResponse(t, test)
 
-			respBody, err := PostRPC(t, test.method, GOSSAMER_NODE_HOST, "{}")
-			require.Nil(t, err)
-
-			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			DecodeRPC(t, respBody, target)
-
-			log.Debug("Will assert payload", "target", target)
 			switch v := target.(type) {
-
 			case *modules.SystemHealthResponse:
 				t.Log("Will assert SystemHealthResponse", "target", target)
 
@@ -107,10 +96,7 @@ func TestStableNetworkRPC(t *testing.T) {
 					require.NotNil(t, vv.BestHash)
 					require.NotNil(t, vv.BestNumber)
 				}
-
 			}
-
 		})
 	}
-
 }

@@ -284,6 +284,38 @@ func TestFinalizeBlock(t *testing.T) {
 	}
 }
 
+func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
+	// TODO: update AuthoritiesChange to need to be signed by an authority
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
+
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
+
+	ids := [][32]byte{aliceb, bobb}
+
+	ext := extrinsic.NewAuthoritiesChangeExt(ids)
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err = rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	res, err := rt.ApplyExtrinsic(enc)
+	require.Nil(t, err)
+
+	require.Equal(t, []byte{0, 0}, res)
+}
+
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
