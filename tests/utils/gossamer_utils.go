@@ -83,7 +83,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 	cmd := exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
 		"--key", key,
 		"--datadir", dataDir+strconv.Itoa(idx),
-		"--rpchost", GOSSAMER_NODE_HOST,
+		"--rpchost", HOSTNAME,
 		"--rpcport", rpcPort,
 		"--rpcmods", "system,author,chain",
 		"--roles", "4",
@@ -114,7 +114,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(1 * time.Second)
-		if err = CheckNodeStarted(t, "http://"+GOSSAMER_NODE_HOST+":"+rpcPort); err == nil {
+		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+rpcPort); err == nil {
 			started = true
 			break
 		} else {

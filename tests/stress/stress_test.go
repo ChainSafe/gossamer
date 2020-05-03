@@ -43,16 +43,16 @@ func TestMain(m *testing.M) {
 
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
-	if utils.NETWORK_SIZE_STR != "" {
-		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE_STR)
+	if utils.NETWORK_SIZE != "" {
+		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
 		if err == nil {
 			_, _ = fmt.Fprintln(os.Stdout, "Going to use custom network size", "currentNetworkSize", currentNetworkSize)
 			numNodes = currentNetworkSize
 		}
 	}
 
-	if utils.GOSSAMER_NODE_HOST == "" {
-		_, _ = fmt.Fprintln(os.Stdout, "GOSSAMER_NODE_HOST is not set, Going to skip stress test")
+	if utils.HOSTNAME == "" {
+		_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, Going to skip stress test")
 		return
 	}
 
@@ -77,7 +77,7 @@ func TestStressSync(t *testing.T) {
 		t.Log("going to get HighestBlockHash from node", "i", i, "key", node.Key)
 
 		//Get HighestBlockHash
-		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RPCPort, "[]")
+		respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.HOSTNAME+":"+node.RPCPort, "[]")
 		require.Nil(t, err)
 
 		// decode resp
@@ -88,16 +88,6 @@ func TestStressSync(t *testing.T) {
 		require.Nil(t, err)
 
 	}
-
-	//// Read a block header from the database (passing a hash by reference)
-	//if err := db.Read("blocks_"+strconv.Itoa(v.Process.Pid), chainBlockResponse.Number.String(), &blockHeader); err != nil {
-	//	fmt.Println("Error", err)
-	//}
-
-	//TODO: further implement test
-	// iterate over db
-	// see if the same or not
-	// kill some nodes, start others, make sure things still move forward
 
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
