@@ -39,7 +39,7 @@ test:
 it-stable:
 	@echo "  >  \033[32mRunning Integration Tests...\033[0m "
 	@chmod +x scripts/integration-test-all.sh
-	./scripts/integration-test-all.sh -q 3 -s 10
+	GOSSAMER_NODE_HOST=0.0.0.0 GOSSAMER_INTEGRATION_TEST_MODE=stable go test ./tests/rpc/... -timeout=5m -p 1 -short -v
 
 ## it-stress: Runs Integration Tests stress mode
 it-stress: build
