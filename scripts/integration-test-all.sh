@@ -58,7 +58,7 @@ arr=()
 start_func() {
   echo "starting gossamer node $i in background ..."
   "$PWD"/bin/gossamer --port=$(($PORT + $i)) --key=$KEY --datadir="$DATA_DIR$i" \
-    --rpc --rpchost=$IP_ADDR --rpcport=$(($RPC_PORT + $i)) --rpcmods=system,author,chain >"$DATA_DIR"/node"$i".log 2>&1 & disown
+    --rpc --rpchost=$HOSTNAME --rpcport=$(($RPC_PORT + $i)) --rpcmods=system,author,chain >"$DATA_DIR"/node"$i".log 2>&1 & disown
 
   GOSSAMER_PID=$!
   echo "started gossamer node, pid=$GOSSAMER_PID"
@@ -85,7 +85,7 @@ if [[ -z $TEST || $TEST == "rpc" ]]; then
 
   for i in $(seq 1 "$TEST_QTD"); do
     echo "going to test gossamer node $HOSTNAME ..."
-    GOSSAMER_INTEGRATION_TEST_MODE=$MODE HOSTNAME=$HOSTNAME PORT=$(($RPC_PORT + $i)) go test ./tests/rpc/... -timeout=60s -v -count=1
+    GOSSAMER_INTEGRATION_TEST_MODE=$MODE NETWORK_SIZE=$QTD HOSTNAME=$HOSTNAME PORT=$(($RPC_PORT + $i)) go test ./tests/rpc/... -timeout=60s -v -count=1
 
     RPC_FAIL=$?
   done

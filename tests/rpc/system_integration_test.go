@@ -44,7 +44,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
 				Health: common.Health{
-					Peers:           2,
+					Peers:           utils.NETWORK_SIZE - 1,
 					IsSyncing:       false,
 					ShouldHavePeers: true,
 				},
@@ -83,7 +83,7 @@ func TestStableNetworkRPC(t *testing.T) {
 
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.IsSyncing, v.Health.IsSyncing)
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.ShouldHavePeers, v.Health.ShouldHavePeers)
-				require.GreaterOrEqual(t, test.expected.(modules.SystemHealthResponse).Health.Peers, v.Health.Peers)
+				require.GreaterOrEqual(t, v.Health.Peers, test.expected.(modules.SystemHealthResponse).Health.Peers)
 
 			case *modules.SystemNetworkStateResponse:
 				t.Log("Will assert SystemNetworkStateResponse", "target", target)
@@ -95,7 +95,7 @@ func TestStableNetworkRPC(t *testing.T) {
 				t.Log("Will assert SystemPeersResponse", "target", target)
 
 				require.NotNil(t, v.Peers)
-				require.GreaterOrEqual(t, 2, len(v.Peers))
+				require.GreaterOrEqual(t, len(v.Peers), utils.NETWORK_SIZE-1)
 
 				for _, vv := range v.Peers {
 					require.NotNil(t, vv.PeerID)
