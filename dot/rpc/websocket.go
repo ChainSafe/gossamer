@@ -28,15 +28,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// NewHeadResponseJSON json structure
+// ErrorResponseJSON json for error responses
 type ErrorResponseJSON struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	Error  *ErrorMessageJSON        `json:"error"`
-	ID *big.Int  `json:"id"`
+	Jsonrpc string            `json:"jsonrpc"`
+	Error   *ErrorMessageJSON `json:"error"`
+	ID      *big.Int          `json:"id"`
 }
+
+// ErrorMessageJSON json for error messages
 type ErrorMessageJSON struct {
-	Code *big.Int `json:"code"`
-	Message string `json:"message"`
+	Code    *big.Int `json:"code"`
+	Message string   `json:"message"`
 }
 
 // ServeHTTP implemented to handle WebSocket connections
@@ -72,9 +74,12 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 						Code:    big.NewInt(-32600),
 						Message: "Invalid request",
 					},
-					ID:      nil,
+					ID: nil,
 				}
-				ws.WriteJSON(res)
+				err = ws.WriteJSON(res)
+				if err != nil {
+					log.Error("[rpc] websocket failed write message", "error", err)
+				}
 				return
 			}
 			method := msg["method"]
