@@ -30,9 +30,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/tests/utils"
-	"github.com/stretchr/testify/require"
 
+	log "github.com/ChainSafe/log15"
 	scribble "github.com/nanobox-io/golang-scribble"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -48,16 +49,16 @@ func TestMain(m *testing.M) {
 
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
-	if utils.NETWORK_SIZE_STR != "" {
-		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE_STR)
+	if utils.NETWORK_SIZE != "" {
+		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
 		if err == nil {
 			_, _ = fmt.Fprintln(os.Stdout, "Going to use custom network size", "currentNetworkSize", currentNetworkSize)
 			numNodes = currentNetworkSize
 		}
 	}
 
-	if utils.GOSSAMER_NODE_HOST == "" {
-		_, _ = fmt.Fprintln(os.Stdout, "GOSSAMER_NODE_HOST is not set, Going to skip stress test")
+	if utils.HOSTNAME == "" {
+		_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, skipping stress test")
 		return
 	}
 
@@ -67,7 +68,7 @@ func TestMain(m *testing.M) {
 }
 
 func getChainHead(t *testing.T, node *utils.Node) *types.Header {
-	respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.GOSSAMER_NODE_HOST+":"+node.RPCPort, "[]")
+	respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.HOSTNAME+":"+node.RPCPort, "[]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)

@@ -53,7 +53,7 @@ func getResponse(t *testing.T, test *testCase) interface{} {
 		return nil
 	}
 
-	respBody, err := utils.PostRPC(t, test.method, "http://"+utils.GOSSAMER_NODE_HOST+":"+currentPort, "{}")
+	respBody, err := utils.PostRPC(t, test.method, "http://"+utils.HOSTNAME+":"+currentPort, "{}")
 	require.Nil(t, err)
 
 	target := reflect.New(reflect.TypeOf(test.expected)).Interface()

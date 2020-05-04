@@ -17,6 +17,8 @@
 package rpc
 
 import (
+	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -33,7 +35,14 @@ func TestStableNetworkRPC(t *testing.T) {
 	}
 	log.Info("Going to run NetworkAPI tests",
 		"GOSSAMER_INTEGRATION_TEST_MODE", utils.GOSSAMER_INTEGRATION_TEST_MODE,
-		"GOSSAMER_NODE_HOST", utils.GOSSAMER_NODE_HOST)
+		"HOSTNAME", utils.HOSTNAME,
+		"PORT", utils.PORT,
+	)
+
+	networkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
+	if err != nil {
+		networkSize = 0
+	}
 
 	testsCases := []*testCase{
 		{
@@ -41,7 +50,7 @@ func TestStableNetworkRPC(t *testing.T) {
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
 				Health: common.Health{
-					Peers:           2,
+					Peers:           networkSize - 1,
 					IsSyncing:       false,
 					ShouldHavePeers: true,
 				},
@@ -65,12 +74,13 @@ func TestStableNetworkRPC(t *testing.T) {
 		},
 	}
 
-	nodes, err := utils.StartNodes(t, 3)
-	require.NoError(t, err)
-
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
-			target := getResponse(t, test)
+			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.HOSTNAME+":"+utils.PORT, "{}")
+			require.Nil(t, err)
+
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			utils.DecodeRPC(t, respBody, target)
 
 			switch v := target.(type) {
 			case *modules.SystemHealthResponse:
@@ -78,7 +88,7 @@ func TestStableNetworkRPC(t *testing.T) {
 
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.IsSyncing, v.Health.IsSyncing)
 				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.ShouldHavePeers, v.Health.ShouldHavePeers)
-				require.GreaterOrEqual(t, test.expected.(modules.SystemHealthResponse).Health.Peers, v.Health.Peers)
+				require.GreaterOrEqual(t, v.Health.Peers, test.expected.(modules.SystemHealthResponse).Health.Peers)
 
 			case *modules.SystemNetworkStateResponse:
 				t.Log("Will assert SystemNetworkStateResponse", "target", target)
@@ -90,7 +100,7 @@ func TestStableNetworkRPC(t *testing.T) {
 				t.Log("Will assert SystemPeersResponse", "target", target)
 
 				require.NotNil(t, v.Peers)
-				require.GreaterOrEqual(t, len(v.Peers), 2)
+				require.GreaterOrEqual(t, len(v.Peers), networkSize-1)
 
 				for _, vv := range v.Peers {
 					require.NotNil(t, vv.PeerID)
@@ -102,7 +112,4 @@ func TestStableNetworkRPC(t *testing.T) {
 			}
 		})
 	}
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
