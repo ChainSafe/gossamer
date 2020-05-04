@@ -28,6 +28,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// NewHeadResponseJSON json structure
+type ErrorResponseJSON struct {
+	Jsonrpc string        `json:"jsonrpc"`
+	Error  *ErrorMessageJSON        `json:"error"`
+	ID *big.Int  `json:"id"`
+}
+type ErrorMessageJSON struct {
+	Code *big.Int `json:"code"`
+	Message string `json:"message"`
+}
+
 // ServeHTTP implemented to handle WebSocket connections
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
@@ -55,6 +66,15 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = json.Unmarshal(mbytes, &msg)
 			if err != nil {
 				log.Error("[rpc] websocket failed to unmarshal request message", "error", err)
+				res := &ErrorResponseJSON{
+					Jsonrpc: "2.0",
+					Error: &ErrorMessageJSON{
+						Code:    big.NewInt(-32600),
+						Message: "Invalid request",
+					},
+					ID:      nil,
+				}
+				ws.WriteJSON(res)
 				return
 			}
 			method := msg["method"]
