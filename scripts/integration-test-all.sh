@@ -9,7 +9,6 @@ QTD=1
 SLEEP_TIMEOUT=5
 TEST_QTD=3
 
-#PORT AND RPC_PORT 3 initial digits, to be concat with a suffix later when node is initialized
 PORT=7000
 RPC_PORT=8540
 HOSTNAME="0.0.0.0"
