@@ -84,15 +84,12 @@ func TestStressSync(t *testing.T) {
 		require.Nil(t, err)
 
 		// decode resp
-		target := rpc.DecodeRPC(t, respBody, blockHighestBlockHash)
-
-		// convert
-		chainBlockResponse, ok := target.(*modules.ChainBlockHeaderResponse)
-		require.True(t, ok)
+		chainBlockResponse := new(modules.ChainBlockHeaderResponse)
+		rpc.DecodeRPC(t, respBody, chainBlockResponse)
 
 		//TODO: #802 use the name of the authority here, this requires a map implementation (map process/pid/authority)
 		err = db.Write("blocks_"+strconv.Itoa(v.Process.Pid),
-			chainBlockResponse.Number.String(), chainBlockResponse)
+			chainBlockResponse.Number, chainBlockResponse)
 		require.Nil(t, err)
 
 	}

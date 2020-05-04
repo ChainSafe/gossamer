@@ -19,6 +19,39 @@ import (
 
 var kr, _ = keystore.NewKeyring()
 
+func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
+	// TODO: update AuthoritiesChange to need to be signed by an authority
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
+
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
+
+	ids := [][32]byte{aliceb, bobb}
+
+	ext := extrinsic.NewAuthoritiesChangeExt(ids)
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(enc)
+	require.NoError(t, err)
+
+	expected := &transaction.Validity{
+		Priority:  1 << 63,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{},
+		Longevity: 1,
+		Propagate: true,
+	}
+
+	require.Equal(t, expected, validity)
+}
+
 func TestValidateTransaction_IncludeData(t *testing.T) {
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
@@ -42,8 +75,6 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 }
 
 func TestValidateTransaction_StorageChange(t *testing.T) {
-	t.Skip()
-	// TODO: need to update runtime validate_transaction to not panic #811
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
@@ -53,7 +84,13 @@ func TestValidateTransaction_StorageChange(t *testing.T) {
 	validity, err := rt.ValidateTransaction(enc)
 	require.NoError(t, err)
 
-	expected := &transaction.Validity{}
+	expected := &transaction.Validity{
+		Priority:  0x1,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{},
+		Longevity: 1,
+		Propagate: false,
+	}
 
 	require.Equal(t, expected, validity)
 }
@@ -268,16 +305,9 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 
 	sig, err := kr.Alice.Private().Sign(enc[1:])
 	require.NoError(t, err)
+	enc = append(enc, sig...)
 
-	tx := &transaction.ValidTransaction{
-		Extrinsic: append(enc, sig...),
-		Validity:  new(transaction.Validity),
-	}
-
-	txb, err := tx.Encode()
-	require.NoError(t, err)
-
-	res, err := rt.ApplyExtrinsic(txb)
+	res, err := rt.ApplyExtrinsic(enc)
 	require.Nil(t, err)
 
 	require.Equal(t, []byte{0, 0}, res)
@@ -298,7 +328,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(tx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, []byte{0, 0}, res)
 }
@@ -318,7 +348,7 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(tx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, []byte{0, 0}, res)
 }
@@ -333,15 +363,13 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
 
-	aliceb := [32]byte{}
-	copy(aliceb[:], alice)
+	ab := [32]byte{}
+	copy(ab[:], alice)
 
-	t.Log(aliceb)
+	bb := [32]byte{}
+	copy(bb[:], bob)
 
-	bobb := [32]byte{}
-	copy(bobb[:], bob)
-
-	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 0)
+	transfer := extrinsic.NewTransfer(ab, bb, 1000, 0)
 	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
 	require.NoError(t, err)
 	tx, err := ext.Encode()
@@ -351,7 +379,48 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 	require.NoError(t, err)
 
 	res, err := rt.ApplyExtrinsic(tx)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, []byte{1, 2, 0, 1}, res)
+}
+
+func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	ab := [32]byte{}
+	copy(ab[:], alice)
+
+	bb := [32]byte{}
+	copy(bb[:], bob)
+
+	rt.storage.SetBalance(ab, 2000)
+
+	transfer := extrinsic.NewTransfer(ab, bb, 1000, 0)
+	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
+	require.NoError(t, err)
+	tx, err := ext.Encode()
+	require.NoError(t, err)
+
+	err = rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	res, err := rt.ApplyExtrinsic(tx)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0}, res)
+
+	// TODO: not sure if alice's balance is getting decremented properly, seems like it's always getting set to the transfer amount
+	bal, err := rt.storage.GetBalance(ab)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1000), bal)
+
+	bal, err = rt.storage.GetBalance(bb)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1000), bal)
 }
