@@ -17,6 +17,7 @@
 package stress
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -135,10 +136,34 @@ func TestStress_IncludeData(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(tx)
 
+	txStr := hex.EncodeToString(tx)
+	log.Info("submitting transaction", "tx", txStr)
+
+	// TODO: send to random node
+	respBody, err := utils.PostRPC(t, "author_submitExtrinsic", "http://"+utils.HOSTNAME+":"+nodes[0].RPCPort, "\"0x"+txStr+"\"")
+	require.NoError(t, err)
+
+	var hash modules.ExtrinsicHashResponse
+	utils.DecodeRPC(t, respBody, &hash)
+	log.Info("submitted transaction", "hash", hash)
+
+	// wait for nodes to build block + sync, then get headers
+	time.Sleep(time.Second * 5)
+
+	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		header := getChainHead(t, node)
-		t.Log(header)
+		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
+		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}
+
+	if len(hashes) != 1 {
+		t.Error("node hashes don't match!")
+	} else {
+		t.Log("node hashes match!")
+	}
+
+	t.Log(hashes)
 
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
