@@ -54,10 +54,10 @@ func TestMain(m *testing.M) {
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
 	if utils.NETWORK_SIZE != "" {
-		currentNetworkSize, err := strconv.Atoi(utils.NETWORK_SIZE)
+		var err error
+		numNodes, err = strconv.Atoi(utils.NETWORK_SIZE)
 		if err == nil {
-			_, _ = fmt.Fprintln(os.Stdout, "Going to use custom network size", "currentNetworkSize", currentNetworkSize)
-			numNodes = currentNetworkSize
+			_, _ = fmt.Fprintf(os.Stdout, "Going to use custom network size %d\n", numNodes)
 		}
 	}
 
@@ -95,7 +95,8 @@ func getChainHead(t *testing.T, node *utils.Node) *types.Header {
 	digest := [][]byte{}
 
 	for _, l := range header.Digest.Logs {
-		d, err := common.HexToBytes(l)
+		var d []byte
+		d, err = common.HexToBytes(l)
 		require.NoError(t, err)
 		digest = append(digest, d)
 	}
@@ -117,7 +118,7 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 
 	var err error
 	if len(hashes) != 1 {
-		err = errors.New("node hashes don't match!")
+		err = errors.New("node chain head hashes don't match")
 	}
 
 	return hashes, err
