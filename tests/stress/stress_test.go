@@ -18,9 +18,11 @@ package stress
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"math/rand"
 	"os"
 	"strconv"
 	"testing"
@@ -38,8 +40,9 @@ import (
 )
 
 var (
-	numNodes  = 3
-	getHeader = "chain_getHeader"
+	numNodes        = 3
+	getHeader       = "chain_getHeader"
+	submitExtrinsic = "author_submitExtrinsic"
 )
 
 func TestMain(m *testing.M) {
@@ -68,6 +71,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// getChainHead calls the endpoint chain_getHeader to get the latest chain head
 func getChainHead(t *testing.T, node *utils.Node) *types.Header {
 	respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.HOSTNAME+":"+node.RPCPort, "[]")
 	require.NoError(t, err)
@@ -99,6 +103,24 @@ func getChainHead(t *testing.T, node *utils.Node) *types.Header {
 	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
 	require.NoError(t, err)
 	return h
+}
+
+// compareChainHeads calls getChainHead for each node in the array
+// it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
+func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		header := getChainHead(t, node)
+		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
+		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
+	}
+
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node hashes don't match!")
+	}
+
+	return hashes, err
 }
 
 func TestStressSync(t *testing.T) {
@@ -134,13 +156,13 @@ func TestStress_IncludeData(t *testing.T) {
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
 	require.NoError(t, err)
-	t.Log(tx)
 
 	txStr := hex.EncodeToString(tx)
 	log.Info("submitting transaction", "tx", txStr)
 
-	// TODO: send to random node
-	respBody, err := utils.PostRPC(t, "author_submitExtrinsic", "http://"+utils.HOSTNAME+":"+nodes[0].RPCPort, "\"0x"+txStr+"\"")
+	// send to random node
+	idx := rand.Intn(len(nodes))
+	respBody, err := utils.PostRPC(t, submitExtrinsic, "http://"+utils.HOSTNAME+":"+nodes[idx].RPCPort, "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse
@@ -149,21 +171,13 @@ func TestStress_IncludeData(t *testing.T) {
 
 	// wait for nodes to build block + sync, then get headers
 	time.Sleep(time.Second * 5)
+	hashes, err := compareChainHeads(t, nodes)
+	require.NoError(t, err, hashes)
 
-	hashes := make(map[common.Hash][]string)
-	for _, node := range nodes {
-		header := getChainHead(t, node)
-		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
-		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
-	}
-
-	if len(hashes) != 1 {
-		t.Error("node hashes don't match!")
-	} else {
-		t.Log("node hashes match!")
-	}
-
-	t.Log(hashes)
+	// repeat for sanity
+	time.Sleep(time.Second * 5)
+	hashes, err = compareChainHeads(t, nodes)
+	require.NoError(t, err, hashes)
 
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
