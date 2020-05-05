@@ -34,8 +34,6 @@ func PostRPC(t *testing.T, method, host, params string) ([]byte, error) {
 	_, err := buf.Write(data)
 	require.Nil(t, err)
 
-	fmt.Printf("%s\n", buf)
-
 	r, err := http.NewRequest("POST", host, buf)
 	if err != nil {
 		return nil, err
