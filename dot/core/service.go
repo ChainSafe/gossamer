@@ -519,7 +519,7 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
-//IsBabeAuthority returns true if node is BABE authority
+// IsBabeAuthority returns true if node is BABE authority
 func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
@@ -592,4 +592,9 @@ func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
 			}
 		}
 	}
+}
+// HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
+func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
+	return s.safeMsgSend(msg)
 }
