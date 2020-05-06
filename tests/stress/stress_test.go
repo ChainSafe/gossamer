@@ -17,6 +17,7 @@
 package stress
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -32,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests/utils"
 
 	log "github.com/ChainSafe/log15"
@@ -40,9 +42,10 @@ import (
 )
 
 var (
-	numNodes        = 3
-	getHeader       = "chain_getHeader"
-	submitExtrinsic = "author_submitExtrinsic"
+	numNodes               = 3
+	chain_getBlock         = "chain_getBlock"
+	chain_getHeader        = "chain_getHeader"
+	author_submitExtrinsic = "author_submitExtrinsic"
 )
 
 func TestMain(m *testing.M) {
@@ -71,9 +74,91 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func endpoint(node *utils.Node) string {
+	return "http://" + utils.HOSTNAME + ":" + node.RPCPort
+}
+
+func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
+	respBody, err := utils.PostRPC(t, chain_getBlock, endpoint(node), "[\""+hash.String()+"\"]")
+	require.NoError(t, err)
+
+	block := new(modules.ChainBlockResponse)
+	utils.DecodeRPC(t, respBody, block)
+
+	header := block.Block.Header
+
+	parentHash, err := common.HexToHash(header.ParentHash)
+	require.NoError(t, err)
+
+	nb, err := common.HexToBytes(header.Number)
+	require.NoError(t, err)
+	number := big.NewInt(0).SetBytes(nb)
+
+	stateRoot, err := common.HexToHash(header.StateRoot)
+	require.NoError(t, err)
+
+	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
+	require.NoError(t, err)
+
+	digest := [][]byte{}
+
+	for _, l := range header.Digest.Logs {
+		var d []byte
+		d, err = common.HexToBytes(l)
+		require.NoError(t, err)
+		digest = append(digest, d)
+	}
+
+	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
+	require.NoError(t, err)
+
+	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
+	require.NoError(t, err)
+
+	return &types.Block{
+		Header: h,
+		Body:   b,
+	}
+}
+
+// getHeader calls the endpoint chain_getHeader
+func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header {
+	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[\""+hash.String()+"\"]")
+	require.NoError(t, err)
+
+	header := new(modules.ChainBlockHeaderResponse)
+	utils.DecodeRPC(t, respBody, header)
+
+	parentHash, err := common.HexToHash(header.ParentHash)
+	require.NoError(t, err)
+
+	nb, err := common.HexToBytes(header.Number)
+	require.NoError(t, err)
+	number := big.NewInt(0).SetBytes(nb)
+
+	stateRoot, err := common.HexToHash(header.StateRoot)
+	require.NoError(t, err)
+
+	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
+	require.NoError(t, err)
+
+	digest := [][]byte{}
+
+	for _, l := range header.Digest.Logs {
+		var d []byte
+		d, err = common.HexToBytes(l)
+		require.NoError(t, err)
+		digest = append(digest, d)
+	}
+
+	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
+	require.NoError(t, err)
+	return h
+}
+
 // getChainHead calls the endpoint chain_getHeader to get the latest chain head
 func getChainHead(t *testing.T, node *utils.Node) *types.Header {
-	respBody, err := utils.PostRPC(t, getHeader, "http://"+utils.HOSTNAME+":"+node.RPCPort, "[]")
+	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -154,6 +239,7 @@ func TestStress_IncludeData(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
+	// create IncludeData extrnsic
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
 	require.NoError(t, err)
@@ -161,9 +247,10 @@ func TestStress_IncludeData(t *testing.T) {
 	txStr := hex.EncodeToString(tx)
 	log.Info("submitting transaction", "tx", txStr)
 
-	// send to random node
+	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
-	respBody, err := utils.PostRPC(t, submitExtrinsic, "http://"+utils.HOSTNAME+":"+nodes[idx].RPCPort, "\"0x"+txStr+"\"")
+	prevHeader := getChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+	respBody, err := utils.PostRPC(t, author_submitExtrinsic, endpoint(nodes[idx]), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse
@@ -175,7 +262,33 @@ func TestStress_IncludeData(t *testing.T) {
 	hashes, err := compareChainHeads(t, nodes)
 	require.NoError(t, err, hashes)
 
-	// repeat for sanity
+	header := getChainHead(t, nodes[idx])
+	log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+
+	// search frpm child -> parent blocks for extrinsic
+	var resExt []byte
+
+	for header.ExtrinsicsRoot == trie.EmptyHash {
+		block := getBlock(t, nodes[idx], header.ParentHash)
+		header = block.Header
+		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+
+		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
+			resExt = *(block.Body)
+			break
+		}
+
+		if header.Hash() == prevHeader.Hash() {
+			t.Fatal("could not find extrinsic in any blocks")
+		}
+	}
+
+	// assert that the extrinsic included is the one we submitted
+	// TODO: the ext in the block contains the ext we submitted, with 2 extra bytes at the beginning.
+	// figure out where these bytes came from (probably runtime, but need to make sure)
+	require.Equal(t, true, bytes.Contains(resExt, tx))
+
+	// repeat sync check for sanity
 	time.Sleep(time.Second * 5)
 	hashes, err = compareChainHeads(t, nodes)
 	require.NoError(t, err, hashes)

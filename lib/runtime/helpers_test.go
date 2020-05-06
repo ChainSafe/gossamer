@@ -19,6 +19,10 @@ import (
 
 var kr, _ = keystore.NewKeyring()
 
+func TestExportRuntime(t *testing.T) {
+	exportRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e, "runtime.out")
+}
+
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)

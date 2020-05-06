@@ -45,6 +45,25 @@ func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
 	return &body, nil
 }
 
+func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
+	exts := [][]byte{}
+	for _, s := range ss {
+		b, err := common.HexToBytes(s)
+		if err != nil {
+			return nil, err
+		}
+		exts = append(exts, b)
+	}
+
+	enc, err := scale.Encode(exts)
+	if err != nil {
+		return nil, err
+	}
+
+	body := Body(enc)
+	return &body, nil
+}
+
 // AsExtrinsics decodes the body into an array of extrinsics
 func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	exts := [][]byte{}
