@@ -43,6 +43,7 @@ import (
 
 var (
 	numNodes               = 3
+	maxRetries             = 8
 	chain_getBlock         = "chain_getBlock"
 	chain_getHeader        = "chain_getHeader"
 	author_submitExtrinsic = "author_submitExtrinsic"
@@ -85,7 +86,10 @@ func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
 	require.NoError(t, err)
 
 	block := new(modules.ChainBlockResponse)
-	utils.DecodeRPC(t, respBody, block)
+	err = utils.DecodeRPC(t, respBody, block)
+	if err != nil {
+		return nil
+	}
 
 	header := block.Block.Header
 
@@ -240,7 +244,15 @@ func TestStress_IncludeData(t *testing.T) {
 
 	// wait for nodes to build block + sync, then get headers
 	time.Sleep(time.Second * 5)
-	hashes, err := compareChainHeads(t, nodes)
+	var hashes map[common.Hash][]string
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareChainHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
 	require.NoError(t, err, hashes)
 
 	header := getChainHead(t, nodes[idx])
@@ -248,9 +260,15 @@ func TestStress_IncludeData(t *testing.T) {
 
 	// search from child -> parent blocks for extrinsic
 	var resExt []byte
-
-	for header.ExtrinsicsRoot == trie.EmptyHash {
+	i := 0
+	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
 		block := getBlock(t, nodes[idx], header.ParentHash)
+		if block == nil {
+			// couldn't get block, increment retry counter
+			i++
+			continue
+		}
+
 		header = block.Header
 		log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
@@ -271,7 +289,14 @@ func TestStress_IncludeData(t *testing.T) {
 
 	// repeat sync check for sanity
 	time.Sleep(time.Second * 5)
-	hashes, err = compareChainHeads(t, nodes)
+	for i = 0; i < maxRetries; i++ {
+		hashes, err = compareChainHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
 	require.NoError(t, err, hashes)
 
 	//TODO: #803 cleanup optimization
