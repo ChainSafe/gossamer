@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/websocket"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
@@ -46,6 +48,12 @@ type HTTPServerConfig struct {
 	RPCPort             uint32
 	WSPort              uint32
 	Modules             []string
+	WSSubscriptions     map[uint32]*WebSocketSubscription
+}
+
+// WebSocketSubscription holds subscription details
+type WebSocketSubscription struct {
+	WSConnection *websocket.Conn
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

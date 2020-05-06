@@ -554,16 +554,7 @@ type NewHeadDigest struct {
 // BlockListener receives block messages from BABE session and passes them to given
 //  WebSocket connection
 func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
-	initRes := make(map[string]interface{})
 
-	initRes["jsonrpc"] = "2.0"
-	initRes["result"] = 1
-	initRes["id"] = reqID
-
-	err := ws.WriteJSON(initRes)
-	if err != nil {
-		log.Error("[core] error writing json message", "error", err)
-	}
 	for {
 		// receive block from BABE session
 		block, ok := <-s.blkRec
@@ -586,13 +577,14 @@ func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
 				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x"+hex.EncodeToString(item))
 			}
 
-			err = ws.WriteJSON(res)
+			err := ws.WriteJSON(res)
 			if err != nil {
 				log.Error("[core] error writing json message", "error", err)
 			}
 		}
 	}
 }
+
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}

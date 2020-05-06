@@ -28,6 +28,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// SubscriptionResponseJSON for json subscription responses
+type SubscriptionResponseJSON struct {
+	Jsonrpc string   `json:"jsonrpc"`
+	Result  uint32   `json:"result"`
+	ID      *big.Int `json:"id"`
+}
+
+func newSubscriptionResponseJSON() SubscriptionResponseJSON {
+	return SubscriptionResponseJSON{
+		Jsonrpc: "2.0",
+		Result:  0,
+		ID:      nil,
+	}
+}
+
 // ErrorResponseJSON json for error responses
 type ErrorResponseJSON struct {
 	Jsonrpc string            `json:"jsonrpc"`
@@ -91,7 +106,14 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					bigval.SetFloat64(val)
 					bigInt := new(big.Int)
 					bigval.Int(bigInt)
-					go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
+					var e1 error
+					sub, e1 := h.registerSubscription(ws, bigInt)
+					if e1 != nil {
+						log.Error("[rpc] failed to register subscription", "error", err)
+					}
+					fmt.Printf("Registered subsription %v\n", sub)
+
+					//go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
 				}
 				// TODO handle subscribe_storage
 				// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
@@ -145,4 +167,20 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID *big.Int) (uint32, error) {
+	wssub := h.serverConfig.WSSubscriptions
+	if wssub == nil {
+		wssub = make(map[uint32]*WebSocketSubscription)
+	}
+	sub := uint32(len(wssub)) + 1
+	wss := &WebSocketSubscription{WSConnection: conn}
+	wssub[sub] = wss
+	h.serverConfig.WSSubscriptions = wssub
+	initRes := newSubscriptionResponseJSON()
+	initRes.Result = sub
+	initRes.ID = reqID
+
+	return sub, conn.WriteJSON(initRes)
 }
