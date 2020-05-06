@@ -74,10 +74,12 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// TODO: move to utils, use in RPC tests
 func endpoint(node *utils.Node) string {
 	return "http://" + utils.HOSTNAME + ":" + node.RPCPort
 }
 
+// getBlock calls the endpoint chain_getBlock
 func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
 	respBody, err := utils.PostRPC(t, chain_getBlock, endpoint(node), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
@@ -121,14 +123,8 @@ func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
 	}
 }
 
-// getHeader calls the endpoint chain_getHeader
-func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header {
-	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[\""+hash.String()+"\"]")
-	require.NoError(t, err)
-
-	header := new(modules.ChainBlockHeaderResponse)
-	utils.DecodeRPC(t, respBody, header)
-
+// headerResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
+func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.Header {
 	parentHash, err := common.HexToHash(header.ParentHash)
 	require.NoError(t, err)
 
@@ -156,6 +152,16 @@ func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header {
 	return h
 }
 
+// getHeader calls the endpoint chain_getHeader
+func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header {
+	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[\""+hash.String()+"\"]")
+	require.NoError(t, err)
+
+	header := new(modules.ChainBlockHeaderResponse)
+	utils.DecodeRPC(t, respBody, header)
+	return headerResponseToHeader(t, header)
+}
+
 // getChainHead calls the endpoint chain_getHeader to get the latest chain head
 func getChainHead(t *testing.T, node *utils.Node) *types.Header {
 	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[]")
@@ -163,32 +169,7 @@ func getChainHead(t *testing.T, node *utils.Node) *types.Header {
 
 	header := new(modules.ChainBlockHeaderResponse)
 	utils.DecodeRPC(t, respBody, header)
-
-	parentHash, err := common.HexToHash(header.ParentHash)
-	require.NoError(t, err)
-
-	nb, err := common.HexToBytes(header.Number)
-	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
-
-	stateRoot, err := common.HexToHash(header.StateRoot)
-	require.NoError(t, err)
-
-	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
-	require.NoError(t, err)
-
-	digest := [][]byte{}
-
-	for _, l := range header.Digest.Logs {
-		var d []byte
-		d, err = common.HexToBytes(l)
-		require.NoError(t, err)
-		digest = append(digest, d)
-	}
-
-	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
-	require.NoError(t, err)
-	return h
+	return headerResponseToHeader(t, header)
 }
 
 // compareChainHeads calls getChainHead for each node in the array

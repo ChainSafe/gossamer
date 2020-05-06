@@ -45,6 +45,7 @@ func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
 	return &body, nil
 }
 
+// NewBodyFromExtrinsicStrings creates a block body given an array of strings.
 func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	exts := [][]byte{}
 	for _, s := range ss {
