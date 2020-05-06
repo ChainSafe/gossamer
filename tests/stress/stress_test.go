@@ -244,15 +244,15 @@ func TestStress_IncludeData(t *testing.T) {
 	require.NoError(t, err, hashes)
 
 	header := getChainHead(t, nodes[idx])
-	log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
-	// search frpm child -> parent blocks for extrinsic
+	// search from child -> parent blocks for extrinsic
 	var resExt []byte
 
 	for header.ExtrinsicsRoot == trie.EmptyHash {
 		block := getBlock(t, nodes[idx], header.ParentHash)
 		header = block.Header
-		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+		log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
 			resExt = *(block.Body)
