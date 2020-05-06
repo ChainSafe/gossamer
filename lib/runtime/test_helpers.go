@@ -80,7 +80,7 @@ func exportRuntime(t *testing.T, targetRuntime string, outFp string) {
 	out, err := filepath.Abs(outFp)
 	require.NoError(t, err)
 
-	file, err := os.OpenFile(out, os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(out, os.O_CREATE|os.O_WRONLY, 0600)
 	require.NoError(t, err)
 
 	_, err = file.WriteString(str)

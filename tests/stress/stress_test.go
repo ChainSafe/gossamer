@@ -153,7 +153,7 @@ func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderRespon
 }
 
 // getHeader calls the endpoint chain_getHeader
-func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header {
+func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header { //nolint
 	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
