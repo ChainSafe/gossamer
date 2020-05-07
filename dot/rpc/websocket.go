@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -33,6 +34,21 @@ const (
 	SUB_FINALIZED_HEAD
 	SUB_STORAGE
 )
+
+type SubscriptionBaseResponseJSON struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  interface{} `json:"params"`
+	Subscription uint32 `json:"subscription"`
+}
+
+func newSubcriptionBaseResponseJSON(sub uint32) SubscriptionBaseResponseJSON {
+	return SubscriptionBaseResponseJSON{
+		Jsonrpc:      "2.0",
+		Subscription: sub,
+	}
+}
+
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string   `json:"jsonrpc"`
@@ -196,10 +212,18 @@ func (h *HTTPServer) blockReceivedListener() {
 		// receive block from BABE session
 		block, ok := <-blkRec
 		if ok {
-			for _, sub := range h.serverConfig.WSSubscriptions {
-				fmt.Printf("SUB %v\n", sub.SubscriptionType)
+			for i, sub := range h.serverConfig.WSSubscriptions {
+				if sub.SubscriptionType == SUB_NEW_HEAD {
+					head := modules.HeaderToJSON(*block.Header)
+					headM := make(map[string]interface{})
+					headM["result"] = head
+					res := newSubcriptionBaseResponseJSON(i)
+					res.Method = "chain_newHead"
+					res.Params = headM
+					sub.WSConnection.WriteJSON(res)
+				}
+				
 			}
-			fmt.Printf("GOT BLOCK %v\n", block)
 		} else {
 			// if not ok, connection was closed, so re-find channel
 			blkRec = h.serverConfig.CoreAPI.GetBlockReceivedChannel()

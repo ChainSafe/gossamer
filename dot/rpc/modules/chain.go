@@ -19,6 +19,7 @@ package modules
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"math/big"
 	"net/http"
 	"reflect"
@@ -150,17 +151,18 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 		return err
 	}
 
-	res.ParentHash = header.ParentHash.String()
-	if header.Number.Int64() == 0 {
-		res.Number = "0x0"
-	} else {
-		res.Number = "0x" + hex.EncodeToString(header.Number.Bytes())
-	}
-	res.StateRoot = header.StateRoot.String()
-	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	for _, item := range header.Digest {
-		res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
-	}
+	*res = HeaderToJSON(*header)
+	//res.ParentHash = header.ParentHash.String()
+	//if header.Number.Int64() == 0 {
+	//	res.Number = "0x0"
+	//} else {
+	//	res.Number = "0x" + hex.EncodeToString(header.Number.Bytes())
+	//}
+	//res.StateRoot = header.StateRoot.String()
+	//res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
+	//for _, item := range header.Digest {
+	//	res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
+	//}
 	return nil
 }
 
@@ -240,4 +242,22 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", err
 	}
 	return h.String(), nil
+}
+
+func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
+	res := ChainBlockHeaderResponse{
+		ParentHash:    header.ParentHash.String(),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
+		Digest:         ChainBlockHeaderDigest{},
+	}
+	if header.Number.Int64() == 0 {
+		res.Number = "0x0"
+	} else {
+		res.Number = "0x" + hex.EncodeToString(header.Number.Bytes())
+	}
+	for _, item := range header.Digest {
+		res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
+	}
+	return res
 }
