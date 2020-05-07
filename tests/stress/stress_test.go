@@ -119,7 +119,7 @@ func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
 	require.NoError(t, err)
 
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
-	require.NoError(t, err)
+	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
 
 	return &types.Block{
 		Header: h,
@@ -259,7 +259,8 @@ func TestStress_IncludeData(t *testing.T) {
 	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 	// search from child -> parent blocks for extrinsic
-	var resExt []byte
+	time.Sleep(time.Second * 5)
+	var resExts []types.Extrinsic
 	i := 0
 	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
 		block := getBlock(t, nodes[idx], header.ParentHash)
@@ -273,7 +274,8 @@ func TestStress_IncludeData(t *testing.T) {
 		log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
-			resExt = *(block.Body)
+			resExts, err = block.Body.AsExtrinsics()
+			require.NoError(t, err, block.Body)
 			break
 		}
 
@@ -283,9 +285,7 @@ func TestStress_IncludeData(t *testing.T) {
 	}
 
 	// assert that the extrinsic included is the one we submitted
-	// TODO: the ext in the block contains the ext we submitted, with 2 extra bytes at the beginning.
-	// figure out where these bytes came from (probably runtime, but need to make sure)
-	require.Equal(t, true, bytes.Contains(resExt, tx))
+	require.Equal(t, resExts[0], types.Extrinsic(tx))
 
 	// repeat sync check for sanity
 	time.Sleep(time.Second * 5)

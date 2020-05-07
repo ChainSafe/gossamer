@@ -50,7 +50,9 @@ func NewBodyFromExtrinsicStrings(ss []string) (*Body, error) {
 	exts := [][]byte{}
 	for _, s := range ss {
 		b, err := common.HexToBytes(s)
-		if err != nil {
+		if err == common.ErrNoPrefix {
+			b = []byte(s)
+		} else if err != nil {
 			return nil, err
 		}
 		exts = append(exts, b)
