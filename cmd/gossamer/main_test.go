@@ -143,7 +143,7 @@ func (tt *TestExecCommand) withKillTimeout(fn func()) {
 }
 
 func (tt *TestExecCommand) withSigTimeout(fn func()) {
-	timeout := time.AfterFunc(15*time.Second, func() {
+	timeout := time.AfterFunc(5*time.Second, func() {
 		tt.Log("process timeout, will signal")
 		tt.Signal()
 	})
@@ -262,6 +262,8 @@ func TestGossamerCommand(t *testing.T) {
 		"--datadir", tempDir,
 		"--roles", "4",
 	)
+
+	time.Sleep(5 * time.Second)
 
 	stdout, stderr = gossamer.GetOutput()
 	log.Println("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))

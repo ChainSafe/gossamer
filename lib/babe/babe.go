@@ -36,6 +36,8 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+var stopOnce sync.Once
+
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
 	// Storage interfaces
@@ -61,7 +63,6 @@ type Session struct {
 	// Channels for inter-process communication
 	newBlocks chan<- types.Block // send blocks to core service
 	done      chan<- struct{}    // lets core know when the epoch is done
-	kill      <-chan struct{}    // kill session if this is closed
 	lock      sync.Mutex
 	closed    bool
 
@@ -81,7 +82,6 @@ type SessionConfig struct {
 	EpochThreshold   *big.Int // should only be used for testing
 	StartSlot        uint64   // slot to begin session at
 	Done             chan<- struct{}
-	Kill             <-chan struct{}
 	SyncLock         *sync.Mutex
 }
 
@@ -89,10 +89,6 @@ type SessionConfig struct {
 func NewSession(cfg *SessionConfig) (*Session, error) {
 	if cfg.Keypair == nil {
 		return nil, errors.New("cannot create BABE session; no keypair provided")
-	}
-
-	if cfg.Kill == nil {
-		return nil, errors.New("kill channel is nil")
 	}
 
 	if cfg.SyncLock == nil {
@@ -111,7 +107,6 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
 		done:             cfg.Done,
-		kill:             cfg.Kill,
 		closed:           false,
 		syncLock:         cfg.SyncLock,
 	}
@@ -147,7 +142,7 @@ func (b *Session) Start() error {
 
 	log.Trace("[babe]", "epochThreshold", b.epochThreshold)
 
-	var i uint64 = b.startSlot
+	var i = b.startSlot
 	var err error
 	for ; i < b.startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
@@ -157,8 +152,6 @@ func (b *Session) Start() error {
 	}
 
 	go b.invokeBlockAuthoring()
-
-	go b.checkForKill()
 
 	return nil
 }
@@ -217,11 +210,6 @@ func (b *Session) setAuthorityIndex() error {
 	}
 
 	return fmt.Errorf("key not in BABE authority data")
-}
-
-func (b *Session) checkForKill() {
-	<-b.kill
-	b.stop()
 }
 
 func (b *Session) isClosed() bool {

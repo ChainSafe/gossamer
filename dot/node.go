@@ -40,7 +40,6 @@ type Node struct {
 	Name      string
 	Services  *services.ServiceRegistry // registry of all node services
 	IsStarted chan struct{}             // signals node startup complete
-	stop      chan struct{}             // used to signal node shutdown
 	syncChan  chan *big.Int
 }
 
@@ -255,7 +254,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		Name:      cfg.Global.Name,
 		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
-		stop:      nil,
 		syncChan:  syncChan,
 	}
 
@@ -273,9 +271,6 @@ func (n *Node) Start() {
 	// start all dot node services
 	n.Services.StartAll()
 
-	// open node stop channel
-	n.stop = make(chan struct{})
-
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
@@ -289,8 +284,7 @@ func (n *Node) Start() {
 	// move on when routine catches SIGINT or SIGTERM calls
 	close(n.IsStarted)
 
-	// wait for node stop channel to be closed
-	<-n.stop
+	select {}
 }
 
 // Stop stops all dot node services
@@ -299,10 +293,4 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 
-	// close node stop channel if not already closed
-	if n.stop != nil {
-		close(n.stop)
-	}
-
-	close(n.syncChan)
 }

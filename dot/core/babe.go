@@ -68,7 +68,6 @@ func (s *Service) initializeBabeSession() (*babe.Session, error) {
 		TransactionQueue: s.transactionQueue,
 		AuthData:         authData,
 		Done:             epochDone,
-		Kill:             babeKill,
 		StartSlot:        bestSlot + 1,
 		SyncLock:         s.syncLock,
 	}
