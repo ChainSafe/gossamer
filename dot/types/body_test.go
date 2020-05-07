@@ -48,3 +48,22 @@ func TestNewBodyFromExtrinsicStrings(t *testing.T) {
 		require.Equal(t, []byte(e), b)
 	}
 }
+
+func TestNewBodyFromExtrinsicStrings_Mixed(t *testing.T) {
+	strs := []string{"0xabcd", "0xff9988", "noot"}
+	body, err := NewBodyFromExtrinsicStrings(strs)
+	require.NoError(t, err)
+
+	exts, err := body.AsExtrinsics()
+	require.NoError(t, err)
+
+	for i, e := range exts {
+		b, err := common.HexToBytes(strs[i])
+		if err == common.ErrNoPrefix {
+			b = []byte(strs[i])
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		require.Equal(t, []byte(e), b)
+	}
+}
