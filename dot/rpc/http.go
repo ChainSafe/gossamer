@@ -53,7 +53,7 @@ type HTTPServerConfig struct {
 
 // WebSocketSubscription holds subscription details
 type WebSocketSubscription struct {
-	WSConnection *websocket.Conn
+	WSConnection     *websocket.Conn
 	SubscriptionType int
 }
 

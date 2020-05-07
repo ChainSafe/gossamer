@@ -19,11 +19,12 @@ package modules
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"math/big"
 	"net/http"
 	"reflect"
 	"regexp"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -244,9 +245,10 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 	return h.String(), nil
 }
 
+// HeaderToJSON converts types.Header to ChainBlockHeaderResponse
 func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
 	res := ChainBlockHeaderResponse{
-		ParentHash:    header.ParentHash.String(),
+		ParentHash:     header.ParentHash.String(),
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},

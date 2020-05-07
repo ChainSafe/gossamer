@@ -588,6 +588,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	return s.safeMsgSend(msg)
 }
 
-func (s *Service) GetBlockReceivedChannel() <-chan types.Block  {
+// GetBlockReceivedChannel to get reference to block received chan
+func (s *Service) GetBlockReceivedChannel() <-chan types.Block {
 	return s.blkRec
 }

@@ -19,15 +19,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
 )
+
 // consts to represent subscription type
 const (
 	SUB_NEW_HEAD = iota
@@ -35,11 +37,12 @@ const (
 	SUB_STORAGE
 )
 
+// SubscriptionBaseResponseJSON for base json response
 type SubscriptionBaseResponseJSON struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  interface{} `json:"params"`
-	Subscription uint32 `json:"subscription"`
+	Jsonrpc      string      `json:"jsonrpc"`
+	Method       string      `json:"method"`
+	Params       interface{} `json:"params"`
+	Subscription uint32      `json:"subscription"`
 }
 
 func newSubcriptionBaseResponseJSON(sub uint32) SubscriptionBaseResponseJSON {
@@ -51,8 +54,8 @@ func newSubcriptionBaseResponseJSON(sub uint32) SubscriptionBaseResponseJSON {
 
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
-	Jsonrpc string   `json:"jsonrpc"`
-	Result  uint32   `json:"result"`
+	Jsonrpc string  `json:"jsonrpc"`
+	Result  uint32  `json:"result"`
 	ID      float64 `json:"id"`
 }
 
@@ -220,9 +223,12 @@ func (h *HTTPServer) blockReceivedListener() {
 					res := newSubcriptionBaseResponseJSON(i)
 					res.Method = "chain_newHead"
 					res.Params = headM
-					sub.WSConnection.WriteJSON(res)
+					err := sub.WSConnection.WriteJSON(res)
+					if err != nil {
+						log.Error("[rpc] error writing response", "error", err)
+					}
 				}
-				
+
 			}
 		} else {
 			// if not ok, connection was closed, so re-find channel
