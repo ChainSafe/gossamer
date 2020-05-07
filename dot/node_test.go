@@ -128,7 +128,6 @@ func TestStartNode(t *testing.T) {
 	<-node.IsStarted
 
 	node.Stop()
-	<-node.stop
 }
 
 // TestStopNode

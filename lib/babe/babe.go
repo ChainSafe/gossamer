@@ -36,8 +36,6 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
-var stopOnce sync.Once
-
 // Session contains the VRF keys for the validator, as well as BABE configuation data
 type Session struct {
 	// Storage interfaces
