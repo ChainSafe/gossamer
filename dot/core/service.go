@@ -17,11 +17,8 @@ package core
 
 import (
 	"bytes"
-	"encoding/hex"
 	"math/big"
 	"sync"
-
-	"github.com/gorilla/websocket"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -553,40 +550,44 @@ type NewHeadDigest struct {
 
 // BlockListener receives block messages from BABE session and passes them to given
 //  WebSocket connection
-func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
-
-	for {
-		// receive block from BABE session
-		block, ok := <-s.blkRec
-		if ok {
-			res := &NewHeadResponseJSON{
-				Jsonrpc: "2.0",
-				Method:  "chain_newHead",
-				Params: NewHeadParams{
-					Result: NewHeadHeader{
-						ParentHash:    block.Header.ParentHash.String(),
-						Number:        "0x" + hex.EncodeToString(block.Header.Number.Bytes()),
-						StateRoot:     block.Header.StateRoot.String(),
-						ExtrinsicRoot: block.Header.ExtrinsicsRoot.String(),
-						Digest:        NewHeadDigest{},
-					},
-					Subscription: 1,
-				},
-			}
-			for _, item := range block.Header.Digest {
-				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x"+hex.EncodeToString(item))
-			}
-
-			err := ws.WriteJSON(res)
-			if err != nil {
-				log.Error("[core] error writing json message", "error", err)
-			}
-		}
-	}
-}
+//func (s *Service) BlockListener(ws *websocket.Conn, reqID *big.Int) {
+//
+//	for {
+//		// receive block from BABE session
+//		block, ok := <-s.blkRec
+//		if ok {
+//			res := &NewHeadResponseJSON{
+//				Jsonrpc: "2.0",
+//				Method:  "chain_newHead",
+//				Params: NewHeadParams{
+//					Result: NewHeadHeader{
+//						ParentHash:    block.Header.ParentHash.String(),
+//						Number:        "0x" + hex.EncodeToString(block.Header.Number.Bytes()),
+//						StateRoot:     block.Header.StateRoot.String(),
+//						ExtrinsicRoot: block.Header.ExtrinsicsRoot.String(),
+//						Digest:        NewHeadDigest{},
+//					},
+//					Subscription: 1,
+//				},
+//			}
+//			for _, item := range block.Header.Digest {
+//				res.Params.Result.Digest.Logs = append(res.Params.Result.Digest.Logs, "0x"+hex.EncodeToString(item))
+//			}
+//
+//			err := ws.WriteJSON(res)
+//			if err != nil {
+//				log.Error("[core] error writing json message", "error", err)
+//			}
+//		}
+//	}
+//}
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	return s.safeMsgSend(msg)
+}
+
+func (s *Service) GetBlockReceivedChannel() <-chan types.Block  {
+	return s.blkRec
 }

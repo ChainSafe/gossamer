@@ -8,7 +8,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/gorilla/websocket"
 )
 
 // StorageAPI is the interface for the storage state
@@ -45,8 +44,9 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
-	BlockListener(conn *websocket.Conn, reqID *big.Int)
+	//BlockListener(conn *websocket.Conn, reqID *big.Int)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
+	GetBlockReceivedChannel() <-chan types.Block
 }
 
 // RPCAPI is the interface for methods related to RPC service

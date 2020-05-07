@@ -54,6 +54,7 @@ type HTTPServerConfig struct {
 // WebSocketSubscription holds subscription details
 type WebSocketSubscription struct {
 	WSConnection *websocket.Conn
+	SubscriptionType int
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
@@ -127,6 +128,7 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	go h.blockReceivedListener()
 	return nil
 }
 

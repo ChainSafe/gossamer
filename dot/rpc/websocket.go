@@ -27,19 +27,23 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
 )
-
+// consts to represent subscription type
+const (
+	SUB_NEW_HEAD = iota
+	SUB_FINALIZED_HEAD
+	SUB_STORAGE
+)
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string   `json:"jsonrpc"`
 	Result  uint32   `json:"result"`
-	ID      *big.Int `json:"id"`
+	ID      float64 `json:"id"`
 }
 
 func newSubscriptionResponseJSON() SubscriptionResponseJSON {
 	return SubscriptionResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  0,
-		ID:      nil,
 	}
 }
 
@@ -98,25 +102,23 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			method := msg["method"]
+			// if method contains subscribe, then register subscription
 			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+				mid := msg["id"].(float64)
+				var subType int
 				if method == "chain_subscribeNewHeads" ||
 					method == "chain_subscribeNewHead" {
-					val := msg["id"].(float64)
-					bigval := new(big.Float)
-					bigval.SetFloat64(val)
-					bigInt := new(big.Int)
-					bigval.Int(bigInt)
-					var e1 error
-					sub, e1 := h.registerSubscription(ws, bigInt)
-					if e1 != nil {
-						log.Error("[rpc] failed to register subscription", "error", err)
-					}
-					fmt.Printf("Registered subsription %v\n", sub)
-
-					//go h.serverConfig.CoreAPI.BlockListener(ws, bigInt)
+					subType = SUB_NEW_HEAD
+				} else if method == "chain_subscribeStorage" {
+					subType = SUB_STORAGE
+				} else if method == "chain_subscribeFinalizedHeads" {
+					subType = SUB_FINALIZED_HEAD
 				}
-				// TODO handle subscribe_storage
-				// TODO chain_subscribeFinalizedHeads should be handled by another method (see #779)
+				var e1 error
+				_, e1 = h.registerSubscription(ws, mid, subType)
+				if e1 != nil {
+					log.Error("[rpc] failed to register subscription", "error", err)
+				}
 				continue
 			}
 
@@ -169,13 +171,16 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID *big.Int) (uint32, error) {
+func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int) (uint32, error) {
 	wssub := h.serverConfig.WSSubscriptions
 	if wssub == nil {
 		wssub = make(map[uint32]*WebSocketSubscription)
 	}
 	sub := uint32(len(wssub)) + 1
-	wss := &WebSocketSubscription{WSConnection: conn}
+	wss := &WebSocketSubscription{
+		WSConnection:     conn,
+		SubscriptionType: subscriptionType,
+	}
 	wssub[sub] = wss
 	h.serverConfig.WSSubscriptions = wssub
 	initRes := newSubscriptionResponseJSON()
@@ -183,4 +188,21 @@ func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID *big.Int) 
 	initRes.ID = reqID
 
 	return sub, conn.WriteJSON(initRes)
+}
+
+func (h *HTTPServer) blockReceivedListener() {
+	blkRec := h.serverConfig.CoreAPI.GetBlockReceivedChannel()
+	for {
+		// receive block from BABE session
+		block, ok := <-blkRec
+		if ok {
+			for _, sub := range h.serverConfig.WSSubscriptions {
+				fmt.Printf("SUB %v\n", sub.SubscriptionType)
+			}
+			fmt.Printf("GOT BLOCK %v\n", block)
+		} else {
+			// if not ok, connection was closed, so re-find channel
+			blkRec = h.serverConfig.CoreAPI.GetBlockReceivedChannel()
+		}
+	}
 }
