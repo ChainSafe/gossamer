@@ -521,28 +521,6 @@ func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
 
-// NewHeadResponseJSON json structure
-type NewHeadResponseJSON struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	Method  string        `json:"method"`
-	Params  NewHeadParams `json:"params"`
-}
-
-// NewHeadParams json structure
-type NewHeadParams struct {
-	Result       NewHeadHeader `json:"result"`
-	Subscription int64         `json:"subscription"`
-}
-
-// NewHeadHeader json structure
-type NewHeadHeader struct {
-	ParentHash    string        `json:"parentHash"`
-	Number        string        `json:"number"`
-	StateRoot     string        `json:"stateRoot"`
-	ExtrinsicRoot string        `json:"extrinsicsRoot"`
-	Digest        NewHeadDigest `json:"digest"`
-}
-
 // NewHeadDigest json structure
 type NewHeadDigest struct {
 	Logs []string `json:"logs"`

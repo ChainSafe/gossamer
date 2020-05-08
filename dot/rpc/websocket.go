@@ -118,7 +118,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if err != nil {
 					log.Error("[rpc] websocket failed write message", "error", err)
 				}
-				return
+				continue
 			}
 			method := msg["method"]
 			// if method contains subscribe, then register subscription
