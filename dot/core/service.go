@@ -521,11 +521,6 @@ func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
 }
 
-// NewHeadDigest json structure
-type NewHeadDigest struct {
-	Logs []string `json:"logs"`
-}
-
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
