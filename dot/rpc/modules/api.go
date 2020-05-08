@@ -44,7 +44,6 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
-	//BlockListener(conn *websocket.Conn, reqID *big.Int)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetBlockReceivedChannel() <-chan types.Block
 }

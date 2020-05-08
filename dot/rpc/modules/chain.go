@@ -88,17 +88,8 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header.ParentHash = block.Header.ParentHash.String()
-	if block.Header.Number.Int64() == 0 {
-		res.Block.Header.Number = "0x0"
-	} else {
-		res.Block.Header.Number = "0x" + hex.EncodeToString(block.Header.Number.Bytes())
-	}
-	res.Block.Header.StateRoot = block.Header.StateRoot.String()
-	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-	for _, item := range block.Header.Digest {
-		res.Block.Header.Digest.Logs = append(res.Block.Header.Digest.Logs, "0x"+hex.EncodeToString(item))
-	}
+	res.Block.Header = HeaderToJSON(*block.Header)
+
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
 		if err != nil {
@@ -153,17 +144,6 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	}
 
 	*res = HeaderToJSON(*header)
-	//res.ParentHash = header.ParentHash.String()
-	//if header.Number.Int64() == 0 {
-	//	res.Number = "0x0"
-	//} else {
-	//	res.Number = "0x" + hex.EncodeToString(header.Number.Bytes())
-	//}
-	//res.StateRoot = header.StateRoot.String()
-	//res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	//for _, item := range header.Digest {
-	//	res.Digest.Logs = append(res.Digest.Logs, "0x"+hex.EncodeToString(item))
-	//}
 	return nil
 }
 
