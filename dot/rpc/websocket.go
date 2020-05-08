@@ -125,14 +125,15 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 				mid := msg["id"].(float64)
 				var subType int
-				if method == "chain_subscribeNewHeads" ||
-					method == "chain_subscribeNewHead" {
+				switch method {
+				case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 					subType = SUB_NEW_HEAD
-				} else if method == "chain_subscribeStorage" {
+				case "chain_subscribeStorage":
 					subType = SUB_STORAGE
-				} else if method == "chain_subscribeFinalizedHeads" {
+				case "chain_subscribeFinalizedHeads":
 					subType = SUB_FINALIZED_HEAD
 				}
+
 				var e1 error
 				_, e1 = h.registerSubscription(ws, mid, subType)
 				if e1 != nil {
