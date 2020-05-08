@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -22,12 +23,13 @@ var testCalls = []struct {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-
+	coreAPI := core.NewTestService(t, nil)
 	cfg := &HTTPServerConfig{
 		Modules: []string{"system"},
 		RPCPort: 8545,
 		WSPort:  8546,
 		RPCAPI:  NewService(),
+		CoreAPI: coreAPI,
 	}
 	s := NewHTTPServer(cfg)
 	err := s.Start()
