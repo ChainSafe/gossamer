@@ -264,6 +264,50 @@ func (t *Trie) Load(data map[string]string) error {
 	return nil
 }
 
+func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
+	p := keyToNibbles(prefix)
+
+	keys, err := t.getKeysWithPrefix(t.root, []byte, p, [][]byte{})
+	if err != nil {
+		return [][]byte{}
+	}
+}
+
+func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte) [][]byte {
+	switch p := parent.(type) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
+
+		// found the exact value at this node
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			// node has prefix, add to list and traverse children
+			for _, child := range p.children {
+				keys = append(prefix)
+				keys = t.getKeysWithPrefix(child, append(append(prefix, byte(i)), child.key...), key[1:], keys)
+			}
+		}
+
+		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
+			// node has prefix, add to list and traverse children
+			for _, child := range p.children {
+				keys = append(prefix)
+				keys = t.getKeysWithPrefix(child, append(append(prefix, byte(i)), child.key...), key[1:], keys)
+			}
+		}
+
+		value, err = t.retrieve(p.children[key[length]], key[length+1:])
+	case *leaf:
+		if bytes.Equal(p.key, key) {
+			value = p
+		}
+	case nil:
+		return keys
+	// default:
+	// 	err = errors.New("get error: invalid node")
+	}
+	return keys
+}
+
 // Get returns the value for key stored in the trie at the corresponding key
 func (t *Trie) Get(key []byte) (value []byte, err error) {
 	l, err := t.tryGet(key)
