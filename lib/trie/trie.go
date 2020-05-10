@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"fmt"
 	"bytes"
 	"errors"
 
@@ -266,11 +267,7 @@ func (t *Trie) Load(data map[string]string) error {
 
 func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
 	p := keyToNibbles(prefix)
-
-	keys, err := t.getKeysWithPrefix(t.root, []byte, p, [][]byte{})
-	if err != nil {
-		return [][]byte{}
-	}
+	return t.getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
 }
 
 func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte) [][]byte {
@@ -278,33 +275,52 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
 
-		// found the exact value at this node
+		fmt.Println("branch prefix", prefix)
+		fmt.Println("branch key", p.key)
+		fmt.Println("search key", key)
+		fmt.Println("length", length)
+
+		// // found the exact value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
+			// node has prefix, add to list and add all descendant nodes to list 
+			//keys = append(keys, append(prefix, p.key...))
+			keys = t.addAllKeys(p, prefix, keys)
+		} else if bytes.Equal(p.key[:length], key[:length]) /*&& len(key) < len(key)*/ {
 			// node has prefix, add to list and traverse children
-			for _, child := range p.children {
-				keys = append(prefix)
-				keys = t.getKeysWithPrefix(child, append(append(prefix, byte(i)), child.key...), key[1:], keys)
-			}
+			//keys = append(keys, prefix)
+			keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 		}
 
-		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
-			// node has prefix, add to list and traverse children
-			for _, child := range p.children {
-				keys = append(prefix)
-				keys = t.getKeysWithPrefix(child, append(append(prefix, byte(i)), child.key...), key[1:], keys)
-			}
-		}
-
-		value, err = t.retrieve(p.children[key[length]], key[length+1:])
+		//keys = append(keys, prefix)
+		///value, err = t.retrieve(p.children[key[length]], key[length+1:])
 	case *leaf:
-		if bytes.Equal(p.key, key) {
-			value = p
-		}
+		fmt.Println("leaf", prefix)
+		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		// if bytes.Equal(p.key, key) {
+		// 	value = p
+		// }
 	case nil:
 		return keys
-	// default:
-	// 	err = errors.New("get error: invalid node")
 	}
+	return keys
+}
+
+func (t *Trie) addAllKeys(parent node, prefix []byte, keys [][]byte) [][]byte {
+	switch p := parent.(type) {
+	case *branch:
+		if p.value != nil {
+			keys = append(keys, nibblesToKeyLE(append(append(prefix, p.key...))))
+		}
+
+		for i, child := range p.children {
+			keys = t.addAllKeys(child, append(append(prefix, p.key...), byte(i)), keys)
+		}
+	case *leaf:
+		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+	case nil:
+		return keys
+	}
+
 	return keys
 }
 
