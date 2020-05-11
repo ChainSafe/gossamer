@@ -216,7 +216,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 	}
 
 	if len(item) > 0 {
-		*res = "0x" + hex.EncodeToString(item)
+		*res = common.BytesToHex(item)
 	} else {
 		*res = nil
 	}
