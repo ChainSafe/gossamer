@@ -61,6 +61,7 @@ type Session struct {
 	// Channels for inter-process communication
 	newBlocks chan<- types.Block // send blocks to core service
 	done      chan<- struct{}    // lets core know when the epoch is done
+	kill      <-chan struct{}    // kill session if this is closed
 	lock      sync.Mutex
 	closed    bool
 
@@ -80,6 +81,7 @@ type SessionConfig struct {
 	EpochThreshold   *big.Int // should only be used for testing
 	StartSlot        uint64   // slot to begin session at
 	Done             chan<- struct{}
+	Kill             <-chan struct{}
 	SyncLock         *sync.Mutex
 }
 
@@ -87,6 +89,10 @@ type SessionConfig struct {
 func NewSession(cfg *SessionConfig) (*Session, error) {
 	if cfg.Keypair == nil {
 		return nil, errors.New("cannot create BABE session; no keypair provided")
+	}
+
+	if cfg.Kill == nil {
+		return nil, errors.New("kill channel is nil")
 	}
 
 	if cfg.SyncLock == nil {
@@ -105,6 +111,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
 		done:             cfg.Done,
+		kill:             cfg.Kill,
 		closed:           false,
 		syncLock:         cfg.SyncLock,
 	}
@@ -150,6 +157,8 @@ func (b *Session) Start() error {
 	}
 
 	go b.invokeBlockAuthoring()
+
+	go b.checkForKill()
 
 	return nil
 }
@@ -208,6 +217,22 @@ func (b *Session) setAuthorityIndex() error {
 	}
 
 	return fmt.Errorf("key not in BABE authority data")
+}
+
+func isClosed(ch <-chan struct{}) bool {
+	select {
+	case <-ch:
+		return true
+	default:
+	}
+
+	return false
+}
+
+func (b *Session) checkForKill() {
+	if isClosed(b.kill) {
+		b.stop()
+	}
 }
 
 func (b *Session) isClosed() bool {

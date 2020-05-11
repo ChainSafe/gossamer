@@ -173,6 +173,7 @@ func NewService(cfg *Config) (*Service, error) {
 			StorageState:     cfg.StorageState,
 			AuthData:         authData,
 			Done:             epochDone,
+			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
 			SyncLock:         syncerLock,
 		}

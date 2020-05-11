@@ -192,7 +192,7 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionQueue: transaction.NewPriorityQueue(),
-		IsBabeAuthority:  false,
+		IsBabeAuthority:  true,
 	}
 
 	s := NewTestService(t, cfg)
