@@ -28,6 +28,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
+	rpcAPI     RPCAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -59,9 +60,10 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, rpc RPCAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
+		rpcAPI:     rpc,
 	}
 }
 
@@ -72,8 +74,8 @@ func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringRes
 }
 
 // Name returns the runtime name
-func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "gossamer v0.0"
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.rpcAPI.SystemName()
 	return nil
 }
 
@@ -84,8 +86,8 @@ func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *Stri
 }
 
 // Version returns the runtime version
-func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.rpcAPI.SystemVersion()
 	return nil
 }
 

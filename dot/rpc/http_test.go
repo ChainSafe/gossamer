@@ -23,14 +23,21 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli"
 )
 
 func TestNewHTTPServer(t *testing.T) {
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
 
 	cfg := &HTTPServerConfig{
 		Modules: []string{"system"},
 		RPCPort: 8545,
-		RPCAPI:  NewService(),
+		RPCAPI:  NewService(ctx),
 	}
 	s := NewHTTPServer(cfg)
 	err := s.Start()

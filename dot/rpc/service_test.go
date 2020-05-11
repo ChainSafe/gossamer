@@ -20,10 +20,17 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli"
 )
 
 func TestNewService(t *testing.T) {
-	NewService()
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+	NewService(ctx)
 }
 
 func TestService_Methods(t *testing.T) {
@@ -31,8 +38,14 @@ func TestService_Methods(t *testing.T) {
 	qtyRPCMethods := 1
 	qtyAuthorMethods := 6
 
-	rpcService := NewService()
-	sysMod := modules.NewSystemModule(nil)
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+	rpcService := NewService(ctx)
+	sysMod := modules.NewSystemModule(nil, nil)
 	rpcService.BuildMethodNames(sysMod, "system")
 	m := rpcService.Methods()
 	require.Equal(t, qtySystemMethods, len(m)) // check to confirm quantity for methods is correct

@@ -95,7 +95,7 @@ func TestNewNode(t *testing.T) {
 	// TODO: improve dot tests #687
 	cfg.Core.Authority = false
 
-	_, err = NewNode(cfg, ks)
+	_, err = NewNode(cfg, ks, nil)
 	require.Nil(t, err)
 }
 
@@ -121,7 +121,7 @@ func TestStartNode(t *testing.T) {
 	// TODO: improve dot tests #687
 	cfg.Core.Authority = false
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(cfg, ks, nil)
 	require.Nil(t, err)
 
 	go node.Start()
@@ -225,7 +225,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	ks := keystore.NewKeystore()
 	require.NotNil(t, ks)
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(cfg, ks, nil)
 	require.Nil(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {
@@ -278,7 +278,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	ks := keystore.NewKeystore()
 	require.NotNil(t, ks)
 
-	node, err := NewNode(cfg, ks)
+	node, err := NewNode(cfg, ks, nil)
 	require.Nil(t, err)
 
 	if reflect.TypeOf(node) != reflect.TypeOf(&Node{}) {

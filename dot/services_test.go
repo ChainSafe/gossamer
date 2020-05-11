@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/urfave/cli"
 
 	"github.com/stretchr/testify/require"
 )
@@ -150,7 +151,14 @@ func TestCreateRPCService(t *testing.T) {
 
 	networkSrvc := &network.Service{} // TODO: rpc service without network service
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt)
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+
+	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt, ctx)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687

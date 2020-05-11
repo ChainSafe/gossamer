@@ -67,7 +67,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
+			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.RPCAPI)
 		case "author":
 			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":

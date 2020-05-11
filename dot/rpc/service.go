@@ -21,21 +21,46 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/urfave/cli"
 )
 
 // Service struct to hold rpc service data
 type Service struct {
 	rpcMethods []string // list of method names offered by rpc
+	systemInfo *systemInfo
+}
+
+type systemInfo struct {
+	systemName    string
+	systemVersion string
 }
 
 // NewService create a new instance of Service
-func NewService() *Service {
-	return &Service{rpcMethods: []string{}}
+func NewService(ctx *cli.Context) *Service {
+	si := &systemInfo{
+		systemName:    ctx.App.Name,
+		systemVersion: ctx.App.Version,
+	}
+	return &Service{
+		rpcMethods: []string{},
+		systemInfo: si,
+	}
 }
 
 // Methods returns list of methods available via RPC call
 func (s *Service) Methods() []string {
 	return s.rpcMethods
+}
+
+// SystemName returns the app name
+func (s *Service) SystemName() string {
+	return s.systemInfo.systemName
+}
+
+// SystemVersion returns the app version
+func (s *Service) SystemVersion() string {
+	return s.systemInfo.systemVersion
 }
 
 var (

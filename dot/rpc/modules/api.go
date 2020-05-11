@@ -51,6 +51,8 @@ type CoreAPI interface {
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
+	SystemName() string
+	SystemVersion() string
 }
 
 // RuntimeAPI is the interface for runtime methods
