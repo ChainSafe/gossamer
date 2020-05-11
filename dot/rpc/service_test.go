@@ -60,3 +60,42 @@ func TestService_Methods(t *testing.T) {
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
 }
+
+func TestService_NodeName(t *testing.T) {
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+	rpcService := NewService(ctx, "gssmr")
+
+	name := rpcService.NodeName()
+	require.Equal(t, "gssmr", name)
+}
+
+func TestService_SystemName(t *testing.T) {
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+	rpcService := NewService(ctx, "gssmr")
+
+	name := rpcService.SystemName()
+	require.Equal(t, "gossamer", name)
+}
+
+func TestService_SystemVersion(t *testing.T) {
+	ctx := &cli.Context{
+		App: &cli.App{
+			Name:    "gossamer",
+			Version: "0.0.1",
+		},
+	}
+	rpcService := NewService(ctx, "gssmr")
+
+	ver := rpcService.SystemVersion()
+	require.Equal(t, "0.0.1", ver)
+}
