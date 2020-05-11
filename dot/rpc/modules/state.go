@@ -18,6 +18,7 @@ package modules
 
 import (
 	"encoding/hex"
+	log "github.com/ChainSafe/log15"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -207,13 +208,17 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQue
 // GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
 func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	log.Info("[rpc] GetStorage")
 	pReq := *req
 	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
-
 	item, err := sm.storageAPI.GetStorage(reqBytes)
+	log.Info("[rpc] GetStorage", "item", item)
+
 	if err != nil {
 		return err
 	}
+
+	log.Info("[rpc] GetStorage", "item", item)
 
 	if len(item) > 0 {
 		*res = common.BytesToHex(item)

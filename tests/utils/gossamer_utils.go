@@ -85,7 +85,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 		"--datadir", dataDir+strconv.Itoa(idx),
 		"--rpchost", HOSTNAME,
 		"--rpcport", rpcPort,
-		"--rpcmods", "system,author,chain",
+		"--rpcmods", "system,author,chain,state",
 		"--roles", "4",
 		"--rpc",
 	)

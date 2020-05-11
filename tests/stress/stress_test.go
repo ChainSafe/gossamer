@@ -84,16 +84,18 @@ func endpoint(node *utils.Node) string {
 
 // getStorage calls the endpoint state_getStorage
 func getStorage(t *testing.T, node *utils.Node, key []byte) []byte {
-	respBody, err := utils.PostRPC(t, chain_getBlock, endpoint(node), "[\""+common.BytesToHex(key)+"\"]")
+	respBody, err := utils.PostRPC(t, state_getStorage, endpoint(node), "[\""+common.BytesToHex(key)+"\"]")
 	require.NoError(t, err)
 
 	t.Logf("%s", respBody)
 
-	var v interface{}
+	v := new(string)
 	err = utils.DecodeRPC(t, respBody, v)
 	require.NoError(t, err)
 
-	value, err := common.HexToBytes(v.(string))
+	t.Log(*v)
+
+	value, err := common.HexToBytes(*v)
 	require.NoError(t, err)
 
 	return value
@@ -376,7 +378,8 @@ func TestStress_StorageChange(t *testing.T) {
 		}
 
 		header = block.Header
-		log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+		//log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+		log.Info("got block from node", "body", block.Body, "hash", header.Hash(), "node", nodes[idx].Key)
 
 		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
 			resExts, err = block.Body.AsExtrinsics()
@@ -406,7 +409,9 @@ func TestStress_StorageChange(t *testing.T) {
 
 	value := getStorage(t, nodes[idx], []byte("noot"))
 	t.Log(value)
+	//require.Equal(t, []byte("washere"), value)
 
+	time.Sleep(time.Second)
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
