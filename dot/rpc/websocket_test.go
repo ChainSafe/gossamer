@@ -17,7 +17,7 @@ var testCalls = []struct {
 	call     []byte
 	expected []byte
 }{
-	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`), []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")},                                                       // working request
+	{[]byte(`{"jsonrpc":"2.0","method":"system_name","params":[],"id":1}`), []byte(`{"id":1,"jsonrpc":"2.0","result":"gossamer"}` + "\n")},                                                            // working request
 	{[]byte(`{"jsonrpc":"2.0","method":"unknown","params":[],"id":1}`), []byte(`{"error":{"code":-32000,"data":null,"message":"rpc error method unknown not found"},"id":1,"jsonrpc":"2.0"}` + "\n")}, // unknown method
 	{[]byte{}, []byte(`{"error":{"code":-32700,"data":{"id":null,"jsonrpc":"","method":"","params":null},"message":"EOF"},"id":null,"jsonrpc":"2.0"}` + "\n")},                                        // empty request
 }
@@ -33,7 +33,7 @@ func TestNewWebSocketServer(t *testing.T) {
 		Modules: []string{"system"},
 		RPCPort: 8545,
 		WSPort:  8546,
-		RPCAPI:  NewService(ctx),
+		RPCAPI:  NewService(ctx, "gssmr"),
 	}
 	s := NewHTTPServer(cfg)
 	err := s.Start()

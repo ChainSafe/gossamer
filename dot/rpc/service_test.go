@@ -30,7 +30,7 @@ func TestNewService(t *testing.T) {
 			Version: "0.0.1",
 		},
 	}
-	NewService(ctx)
+	NewService(ctx, "gssmr")
 }
 
 func TestService_Methods(t *testing.T) {
@@ -44,7 +44,7 @@ func TestService_Methods(t *testing.T) {
 			Version: "0.0.1",
 		},
 	}
-	rpcService := NewService(ctx)
+	rpcService := NewService(ctx, "gssmr")
 	sysMod := modules.NewSystemModule(nil, nil)
 	rpcService.BuildMethodNames(sysMod, "system")
 	m := rpcService.Methods()

@@ -68,8 +68,8 @@ func NewSystemModule(net NetworkAPI, rpc RPCAPI) *SystemModule {
 }
 
 // Chain returns the runtime chain
-func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.rpcAPI.NodeName()
 	return nil
 }
 

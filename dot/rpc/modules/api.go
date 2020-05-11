@@ -53,6 +53,7 @@ type RPCAPI interface {
 	BuildMethodNames(rcvr interface{}, name string)
 	SystemName() string
 	SystemVersion() string
+	NodeName() string
 }
 
 // RuntimeAPI is the interface for runtime methods

@@ -37,7 +37,7 @@ func TestNewHTTPServer(t *testing.T) {
 	cfg := &HTTPServerConfig{
 		Modules: []string{"system"},
 		RPCPort: 8545,
-		RPCAPI:  NewService(ctx),
+		RPCAPI:  NewService(ctx, "gssmr"),
 	}
 	s := NewHTTPServer(cfg)
 	err := s.Start()

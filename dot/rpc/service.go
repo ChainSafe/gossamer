@@ -34,13 +34,15 @@ type Service struct {
 type systemInfo struct {
 	systemName    string
 	systemVersion string
+	nodeName      string
 }
 
 // NewService create a new instance of Service
-func NewService(ctx *cli.Context) *Service {
+func NewService(ctx *cli.Context, nodeName string) *Service {
 	si := &systemInfo{
 		systemName:    ctx.App.Name,
 		systemVersion: ctx.App.Version,
+		nodeName:      nodeName,
 	}
 	return &Service{
 		rpcMethods: []string{},
@@ -61,6 +63,11 @@ func (s *Service) SystemName() string {
 // SystemVersion returns the app version
 func (s *Service) SystemVersion() string {
 	return s.systemInfo.systemVersion
+}
+
+// NodeName returns the nodeName (chain name)
+func (s *Service) NodeName() string {
+	return s.systemInfo.nodeName
 }
 
 var (
