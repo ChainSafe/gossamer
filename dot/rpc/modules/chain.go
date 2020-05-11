@@ -147,12 +147,14 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 	return nil
 }
 
-// SubscribeFinalizedHeads isn't implemented properly yet.
+// SubscribeFinalizedHeads handled by websocket handler, but this func should remain
+//  here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
 	return nil
 }
 
-// SubscribeNewHead isn't implemented properly yet.
+// SubscribeNewHead handled by websocket handler, but this func should remain
+//  here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
 	return nil
 }
