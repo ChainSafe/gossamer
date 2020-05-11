@@ -358,12 +358,16 @@ func (s *Service) handleBabeSession() {
 func (s *Service) receiveBlocks() {
 	for {
 		// receive block from BABE session
-		block, ok := <-s.blkRec
-		if ok {
-			err := s.handleReceivedBlock(&block)
-			if err != nil {
-				log.Error("[core] failed to handle block from BABE session", "err", err)
+		select {
+		case block, ok := <-s.blkRec:
+			if ok {
+				err := s.handleReceivedBlock(&block)
+				if err != nil {
+					log.Error("[core] failed to handle block from BABE session", "err", err)
+				}
 			}
+		default:
+			break
 		}
 	}
 }
@@ -372,17 +376,21 @@ func (s *Service) receiveBlocks() {
 func (s *Service) receiveMessages() {
 	for {
 		// receive message from network service
-		msg, ok := <-s.msgRec
-		if !ok {
-			log.Error("[core] failed to receive message from network service")
-			continue
-		}
+		select {
+		case msg, ok := <-s.msgRec:
+			if !ok {
+				log.Error("[core] failed to receive message from network service")
+				continue
+			}
 
-		err := s.handleReceivedMessage(msg)
-		if err == blocktree.ErrDescendantNotFound || err == blocktree.ErrStartNodeNotFound || err == database.ErrKeyNotFound {
-			log.Trace("[core] failed to handle message from network service", "err", err)
-		} else if err != nil {
-			log.Error("[core] failed to handle message from network service", "err", err)
+			err := s.handleReceivedMessage(msg)
+			if err == blocktree.ErrDescendantNotFound || err == blocktree.ErrStartNodeNotFound || err == database.ErrKeyNotFound {
+				log.Trace("[core] failed to handle message from network service", "err", err)
+			} else if err != nil {
+				log.Error("[core] failed to handle message from network service", "err", err)
+			}
+		default:
+			break
 		}
 	}
 }
