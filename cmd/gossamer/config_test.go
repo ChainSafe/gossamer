@@ -450,7 +450,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    5678,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
-				WSPort:  5679,
+				WSPort:  6678,
 			},
 		},
 		{

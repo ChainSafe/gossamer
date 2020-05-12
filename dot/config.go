@@ -129,7 +129,7 @@ func GssmrConfig() *Config {
 			Port:    gssmr.DefaultRPCHTTPPort,
 			Host:    gssmr.DefaultRPCHTTPHost,
 			Modules: gssmr.DefaultRPCModules,
-			WSPort:  gssmr.DefaultRPCHTTPPort + 1,
+			WSPort:  gssmr.DefaultRPCWSPort,
 		},
 	}
 }
@@ -164,7 +164,7 @@ func KsmccConfig() *Config {
 			Port:    ksmcc.DefaultRPCHTTPPort,
 			Host:    ksmcc.DefaultRPCHTTPHost,
 			Modules: ksmcc.DefaultRPCModules,
-			WSPort:  ksmcc.DefaultRPCHTTPPort + 1,
+			WSPort:  ksmcc.DefaultRPCWSPort,
 		},
 	}
 }
