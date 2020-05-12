@@ -355,6 +355,7 @@ func (s *Service) handleBabeSession() {
 
 // receiveBlocks starts receiving blocks from the BABE session
 func (s *Service) receiveBlocks() {
+	// receive block from BABE session
 	for block := range s.blkRec {
 		if block.Header != nil {
 			err := s.handleReceivedBlock(&block)
@@ -369,6 +370,7 @@ func (s *Service) receiveBlocks() {
 
 // receiveMessages starts receiving messages from the network service
 func (s *Service) receiveMessages() {
+	// receive message from network service
 	for msg := range s.msgRec {
 		if msg == nil {
 			log.Error("[core] failed to receive message from network service")

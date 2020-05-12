@@ -278,8 +278,6 @@ func TestGossamerCommand(t *testing.T) {
 
 }
 
-// TODO:  test "gossamer" does not error
-
 // TODO: TestExportCommand test "gossamer export" does not error
 
 // TODO: TestInitCommand test "gossamer init" does not error
