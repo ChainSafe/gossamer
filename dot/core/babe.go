@@ -43,13 +43,14 @@ func (s *Service) initializeBabeSession() (*babe.Session, error) {
 	newBlocks := make(chan types.Block)
 	s.blkRec = newBlocks
 
-	go s.receiveBlocks()
-
 	epochDone := make(chan struct{})
 	s.epochDone = epochDone
 
 	babeKill := make(chan struct{})
 	s.babeKill = babeKill
+
+	go s.receiveBlocks()
+	go s.handleBabeSession()
 
 	keys := s.keys.Sr25519Keypairs()
 

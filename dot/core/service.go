@@ -329,29 +329,28 @@ func (s *Service) safeBabeKill() error {
 }
 
 func (s *Service) handleBabeSession() {
-	for {
-		// wait for BABE epoch to complete
-		<-s.epochDone
-
-		// TODO: fetch NextEpochDescriptor from verifier
-
-		// create new BABE session
-		bs, err := s.initializeBabeSession()
-		if err != nil {
-			log.Error("[core] failed to initialize BABE session", "error", err)
-			continue
-		}
-
-		// start new BABE session
-		err = bs.Start()
-		if err != nil {
-			log.Error("[core] failed to start BABE session", "error", err)
-			continue
-		}
-
-		// append successfully started BABE session to core service
-		s.bs = bs
+	// wait for BABE epoch to complete
+	for range s.epochDone {
 	}
+
+	// TODO: fetch NextEpochDescriptor from verifier
+
+	// create new BABE session
+	bs, err := s.initializeBabeSession()
+	if err != nil {
+		log.Error("[core] failed to initialize BABE session", "error", err)
+		return
+	}
+
+	// start new BABE session
+	err = bs.Start()
+	if err != nil {
+		log.Error("[core] failed to start BABE session", "error", err)
+		return
+	}
+
+	// append successfully started BABE session to core service
+	s.bs = bs
 }
 
 // receiveBlocks starts receiving blocks from the BABE session
