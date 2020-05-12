@@ -204,6 +204,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// Syncer
 	syncChan := make(chan *big.Int, 128)
+	stopChan := make(chan struct{}, 0)
 
 	// Core Service
 
@@ -256,7 +257,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
 		syncChan:  syncChan,
-		stop:      nil,
+		stop:      stopChan,
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -272,9 +273,6 @@ func (n *Node) Start() {
 
 	// start all dot node services
 	n.Services.StartAll()
-
-	// open node stop channel
-	n.stop = make(chan struct{})
 
 	go func() {
 		sigc := make(chan os.Signal, 1)
@@ -301,7 +299,5 @@ func (n *Node) Stop() {
 	n.Services.StopAll()
 
 	// close node stop channel if not already closed
-	if n.stop != nil {
-		close(n.stop)
-	}
+	close(n.stop)
 }
