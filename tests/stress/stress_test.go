@@ -286,8 +286,8 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 		}
 
 		header = block.Header
-		//log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
-		log.Info("got block from node", "body", block.Body, "hash", header.Hash(), "node", nodes[idx].Key)
+		log.Info("got block from node", "hash", header.Hash(), "node", nodes[idx].Key)
+		log.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[idx].Key)
 
 		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
 			resExts, err = block.Body.AsExtrinsics()
@@ -351,13 +351,13 @@ func TestStress_StorageChange(t *testing.T) {
 		log.Info("getting storage from node", "node", node.Key)
 		res := getStorage(t, node, key)
 
-		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same 
+		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same
 		// chain head. figure out why this is the case and fix it.
 		idx := rand.Intn(len(nodes))
 		if idx == node.Idx {
 			// TODO: why does finalize_block modify the storage value?
 			require.NotEqual(t, []byte{}, res)
-			require.Equal(t, true, bytes.Contains(value, res[2:]))			
+			require.Equal(t, true, bytes.Contains(value, res[2:]))
 		}
 	}
 
