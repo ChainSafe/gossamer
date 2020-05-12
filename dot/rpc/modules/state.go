@@ -18,7 +18,6 @@ package modules
 
 import (
 	"encoding/hex"
-	log "github.com/ChainSafe/log15"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -217,7 +216,6 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 
 	if len(item) > 0 {
 		*res = common.BytesToHex(item)
-		log.Info("[rpc] GetStorage", "res", *res)
 	} else {
 		*res = nil
 	}

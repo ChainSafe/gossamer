@@ -339,3 +339,11 @@ func (e *StorageChangeExt) Decode(r io.Reader) error {
 
 	return nil
 }
+
+func (e *StorageChangeExt) Key() []byte {
+	return e.key
+}
+
+func (e *StorageChangeExt) Value() *optional.Bytes {
+	return e.value
+}

@@ -90,6 +90,9 @@ func getStorage(t *testing.T, node *utils.Node, key []byte) []byte {
 	v := new(string)
 	err = utils.DecodeRPC(t, respBody, v)
 	require.NoError(t, err)
+	if *v == "" {
+		return []byte{}
+	}
 
 	value, err := common.HexToBytes(*v)
 	require.NoError(t, err)
@@ -298,6 +301,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	}
 
 	// assert that the extrinsic included is the one we submitted
+	require.Equal(t, 1, len(resExts), fmt.Sprintf("did not find extrinsic in block on node %s", nodes[idx].Key))
 	require.Equal(t, resExts[0], types.Extrinsic(tx))
 
 	// repeat sync check for sanity
@@ -340,13 +344,22 @@ func TestStress_StorageChange(t *testing.T) {
 	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
 	submitExtrinsicAssertInclusion(t, nodes, ext)
 
+	time.Sleep(5 * time.Second)
+
 	// for each node, check that storage was updated accordingly
-	// TODO: check every node, this just checks randomly
-	idx := rand.Intn(len(nodes))
-	res := getStorage(t, nodes[idx], key)
-	// TODO: why are the first 2 bytes set to 0?
-	//require.Equal(t, value, res)
-	require.Equal(t, true, bytes.Contains(value, res[2:]))
+	for _, node := range nodes {
+		log.Info("getting storage from node", "node", node.Key)
+		res := getStorage(t, node, key)
+
+		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same 
+		// chain head. figure out why this is the case and fix it.
+		idx := rand.Intn(len(nodes))
+		if idx == node.Idx {
+			// TODO: why does finalize_block modify the storage value?
+			require.NotEqual(t, []byte{}, res)
+			require.Equal(t, true, bytes.Contains(value, res[2:]))			
+		}
+	}
 
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
