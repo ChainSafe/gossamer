@@ -41,7 +41,6 @@ type Node struct {
 	Services  *services.ServiceRegistry // registry of all node services
 	IsStarted chan struct{}             // signals node startup complete
 	syncChan  chan *big.Int
-	stop      chan struct{} // used to signal node shutdown
 }
 
 // InitNode initializes a new dot node from the provided dot node configuration
@@ -204,7 +203,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// Syncer
 	syncChan := make(chan *big.Int, 128)
-	stopChan := make(chan struct{}, 0)
 
 	// Core Service
 
@@ -257,7 +255,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		Services:  services.NewServiceRegistry(),
 		IsStarted: make(chan struct{}),
 		syncChan:  syncChan,
-		stop:      stopChan,
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -287,9 +284,7 @@ func (n *Node) Start() {
 	// move on when routine catches SIGINT or SIGTERM calls
 	close(n.IsStarted)
 
-	// wait for node stop channel to be closed
-	for range n.stop {
-	}
+	select {}
 }
 
 // Stop stops all dot node services
@@ -298,6 +293,4 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 
-	// close node stop channel if not already closed
-	close(n.stop)
 }
