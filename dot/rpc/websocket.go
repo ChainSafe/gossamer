@@ -19,12 +19,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
-
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
@@ -91,104 +90,104 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Error("[rpc] websocket upgrade failed", "error", err)
 		return
 	}
+
+	rpcHost := fmt.Sprintf("http://%s:%d/", h.serverConfig.Host, h.serverConfig.RPCPort)
 	for {
-		rpcHost := fmt.Sprintf("http://%s:%d/", h.serverConfig.Host, h.serverConfig.RPCPort)
-		for {
-			_, mbytes, err := ws.ReadMessage()
-			if err != nil {
-				log.Error("[rpc] websocket failed to read message", "error", err)
-				return
-			}
-			log.Trace("[rpc] websocket received", "message", fmt.Sprintf("%s", mbytes))
+		_, mbytes, err := ws.ReadMessage()
+		if err != nil {
+			log.Error("[rpc] websocket failed to read message", "error", err)
+			return
+		}
+		log.Trace("[rpc] websocket received", "message", fmt.Sprintf("%s", mbytes))
 
-			// determine if request is for subscribe method type
-			var msg map[string]interface{}
-			err = json.Unmarshal(mbytes, &msg)
-			if err != nil {
-				log.Error("[rpc] websocket failed to unmarshal request message", "error", err)
-				res := &ErrorResponseJSON{
-					Jsonrpc: "2.0",
-					Error: &ErrorMessageJSON{
-						Code:    big.NewInt(-32600),
-						Message: "Invalid request",
-					},
-					ID: nil,
-				}
-				err = ws.WriteJSON(res)
-				if err != nil {
-					log.Error("[rpc] websocket failed write message", "error", err)
-				}
-				continue
+		// determine if request is for subscribe method type
+		var msg map[string]interface{}
+		err = json.Unmarshal(mbytes, &msg)
+		if err != nil {
+			log.Error("[rpc] websocket failed to unmarshal request message", "error", err)
+			res := &ErrorResponseJSON{
+				Jsonrpc: "2.0",
+				Error: &ErrorMessageJSON{
+					Code:    big.NewInt(-32600),
+					Message: "Invalid request",
+				},
+				ID: nil,
 			}
-			method := msg["method"]
-			// if method contains subscribe, then register subscription
-			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
-				mid := msg["id"].(float64)
-				var subType int
-				switch method {
-				case "chain_subscribeNewHeads", "chain_subscribeNewHead":
-					subType = SUB_NEW_HEAD
-				case "chain_subscribeStorage":
-					subType = SUB_STORAGE
-				case "chain_subscribeFinalizedHeads":
-					subType = SUB_FINALIZED_HEAD
-				}
-
-				var e1 error
-				_, e1 = h.registerSubscription(ws, mid, subType)
-				if e1 != nil {
-					log.Error("[rpc] failed to register subscription", "error", err)
-				}
-				continue
+			err = ws.WriteJSON(res)
+			if err != nil {
+				log.Error("[rpc] websocket failed write message", "error", err)
+			}
+			continue
+		}
+		method := msg["method"]
+		// if method contains subscribe, then register subscription
+		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+			mid := msg["id"].(float64)
+			var subType int
+			switch method {
+			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
+				subType = SUB_NEW_HEAD
+			case "chain_subscribeStorage":
+				subType = SUB_STORAGE
+			case "chain_subscribeFinalizedHeads":
+				subType = SUB_FINALIZED_HEAD
 			}
 
-			client := &http.Client{}
-			buf := &bytes.Buffer{}
-			_, err = buf.Write(mbytes)
-			if err != nil {
-				log.Error("[rpc] failed to write message to buffer", "error", err)
-				return
+			var e1 error
+			_, e1 = h.registerSubscription(ws, mid, subType)
+			if e1 != nil {
+				log.Error("[rpc] failed to register subscription", "error", err)
 			}
+			continue
+		}
 
-			req, err := http.NewRequest("POST", rpcHost, buf)
-			if err != nil {
-				log.Error("[rpc] failed request to rpc service", "error", err)
-				return
-			}
+		client := &http.Client{}
+		buf := &bytes.Buffer{}
+		_, err = buf.Write(mbytes)
+		if err != nil {
+			log.Error("[rpc] failed to write message to buffer", "error", err)
+			return
+		}
 
-			req.Header.Set("Content-Type", "application/json;")
+		req, err := http.NewRequest("POST", rpcHost, buf)
+		if err != nil {
+			log.Error("[rpc] failed request to rpc service", "error", err)
+			return
+		}
 
-			res, err := client.Do(req)
-			if err != nil {
-				log.Error("[rpc] websocket error calling rpc", "error", err)
-				return
-			}
+		req.Header.Set("Content-Type", "application/json;")
 
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				log.Error("[rpc] error reading response body", "error", err)
-				return
-			}
+		res, err := client.Do(req)
+		if err != nil {
+			log.Error("[rpc] websocket error calling rpc", "error", err)
+			return
+		}
 
-			err = res.Body.Close()
-			if err != nil {
-				log.Error("[rpc] error closing response body", "error", err)
-				return
-			}
-			var wsSend interface{}
-			err = json.Unmarshal(body, &wsSend)
-			if err != nil {
-				log.Error("[rpc] error unmarshal rpc response", "error", err)
-				return
-			}
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Error("[rpc] error reading response body", "error", err)
+			return
+		}
 
-			err = ws.WriteJSON(wsSend)
-			if err != nil {
-				log.Error("[rpc] error writing json response", "error", err)
-				return
-			}
+		err = res.Body.Close()
+		if err != nil {
+			log.Error("[rpc] error closing response body", "error", err)
+			return
+		}
+		var wsSend interface{}
+		err = json.Unmarshal(body, &wsSend)
+		if err != nil {
+			log.Error("[rpc] error unmarshal rpc response", "error", err)
+			return
+		}
+
+		err = ws.WriteJSON(wsSend)
+		if err != nil {
+			log.Error("[rpc] error writing json response", "error", err)
+			return
 		}
 	}
+
 }
 
 func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int) (uint32, error) {
@@ -211,11 +210,13 @@ func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, s
 }
 
 func (h *HTTPServer) blockReceivedListener() {
-	blkRec := h.serverConfig.CoreAPI.GetBlockReceivedChannel()
-	for {
-		// receive block from BABE session
-		block, ok := <-blkRec
-		if ok {
+	if h.serverConfig.BlockAPI == nil {
+		return
+	}
+	blkRec := h.serverConfig.BlockAPI.GetBlockAddedChannel()
+
+	for block := range blkRec {
+		if block != nil {
 			for i, sub := range h.serverConfig.WSSubscriptions {
 				if sub.SubscriptionType == SUB_NEW_HEAD {
 					head := modules.HeaderToJSON(*block.Header)
@@ -231,9 +232,6 @@ func (h *HTTPServer) blockReceivedListener() {
 				}
 
 			}
-		} else {
-			// if not ok, connection was closed, so re-find channel
-			blkRec = h.serverConfig.CoreAPI.GetBlockReceivedChannel()
 		}
 	}
 }

@@ -22,6 +22,7 @@ type BlockAPI interface {
 	HighestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
+	GetBlockAddedChannel() <-chan *types.Block
 }
 
 // NetworkAPI interface for network state methods
@@ -45,7 +46,6 @@ type CoreAPI interface {
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
-	GetBlockReceivedChannel() <-chan types.Block
 }
 
 // RPCAPI is the interface for methods related to RPC service
