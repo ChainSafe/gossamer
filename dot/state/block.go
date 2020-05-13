@@ -63,7 +63,8 @@ type BlockState struct {
 	lock               sync.RWMutex
 	genesisHash        common.Hash
 	highestBlockHeader *types.Header
-	blockNotifier      chan *types.Block
+	blockNotifier      chan<- *types.Block
+	doneNotifing       <-chan bool
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -90,7 +91,7 @@ func NewBlockState(db database.Database, bt *blocktree.BlockTree) (*BlockState, 
 	if err != nil {
 		return nil, err
 	}
-	bs.blockNotifier = make(chan *types.Block)
+
 	return bs, nil
 }
 
@@ -385,8 +386,16 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		return err
 	}
 
-	fmt.Printf("ADD BLOCK %v\n", bs.blockNotifier)
-	bs.blockNotifier <- block
+	if bs.blockNotifier != nil {
+		select {
+		case <-bs.doneNotifing:
+			close(bs.blockNotifier)
+			bs.blockNotifier = nil
+		default:
+			bs.blockNotifier <- block
+		}
+
+	}
 
 	return err
 }
@@ -549,7 +558,8 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHea
 	return bs.db.Put(babeHeaderKey(epoch, slot), enc)
 }
 
-// GetBlockAddedChannel to get reference to block received chan
-func (bs *BlockState) GetBlockAddedChannel() <-chan *types.Block {
-	return bs.blockNotifier
+// SetBlockAddedChannel to sets channel that blocks will be received on
+func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan bool) {
+	bs.blockNotifier = rcvr
+	bs.doneNotifing = done
 }

@@ -17,19 +17,19 @@
 package modules
 
 import (
+	"math/big"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"math/big"
-	"testing"
 
 	database "github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
-
 
 func TestChainGetHeader_Genesis(t *testing.T) {
 	chain := newTestChainService(t)

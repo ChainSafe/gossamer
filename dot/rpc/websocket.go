@@ -19,11 +19,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
@@ -213,9 +214,8 @@ func (h *HTTPServer) blockReceivedListener() {
 	if h.serverConfig.BlockAPI == nil {
 		return
 	}
-	blkRec := h.serverConfig.BlockAPI.GetBlockAddedChannel()
 
-	for block := range blkRec {
+	for block := range h.serverConfig.BlockAddedReceiver {
 		if block != nil {
 			for i, sub := range h.serverConfig.WSSubscriptions {
 				if sub.SubscriptionType == SUB_NEW_HEAD {
@@ -230,7 +230,6 @@ func (h *HTTPServer) blockReceivedListener() {
 						log.Error("[rpc] error writing response", "error", err)
 					}
 				}
-
 			}
 		}
 	}
