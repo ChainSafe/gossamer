@@ -305,7 +305,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	require.Equal(t, resExts[0], types.Extrinsic(tx))
 
 	// repeat sync check for sanity
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 15)
 	for i = 0; i < maxRetries; i++ {
 		hashes, err = compareChainHeads(t, nodes)
 		if err == nil {
@@ -353,12 +353,12 @@ func TestStress_StorageChange(t *testing.T) {
 
 		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same
 		// chain head. figure out why this is the case and fix it.
-		idx := rand.Intn(len(nodes))
-		if idx == node.Idx {
+		//idx := rand.Intn(len(nodes))
+		//if idx == node.Idx {
 			// TODO: why does finalize_block modify the storage value?
-			require.NotEqual(t, []byte{}, res)
+			require.NotEqual(t, []byte{}, res, fmt.Sprintf("could not get storage value from node %s", node.Key))
 			require.Equal(t, true, bytes.Contains(value, res[2:]))
-		}
+		//}
 	}
 
 	//TODO: #803 cleanup optimization
