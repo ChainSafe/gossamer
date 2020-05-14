@@ -76,7 +76,6 @@ func TestStableNetworkRPC(t *testing.T) {
 
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
-			t.Log(utils.PORT)
 			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.HOSTNAME+":"+utils.PORT, "{}")
 			require.Nil(t, err)
 
