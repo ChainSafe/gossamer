@@ -67,12 +67,14 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 }
 
 func TestRuntime_Exec_Metadata(t *testing.T) {
-	// expected results based on results from previous runs
-	expected := []byte{16, 116, 101, 115, 116, 44, 112, 97, 114, 105, 116, 121, 45, 116, 101, 115, 116, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 36, 223, 106, 203, 104, 153, 7, 96, 155, 2, 0, 0, 0, 55, 227, 151, 252, 124, 145, 245, 228, 1, 0, 0, 0, 210, 188, 152, 151, 238, 208, 143, 21, 1, 0, 0, 0, 64, 254, 58, 212, 1, 248, 149, 154, 3, 0, 0, 0, 198, 233, 167, 99, 9, 243, 155, 9, 1, 0, 0, 0, 221, 113, 141, 92, 197, 50, 98, 212, 1, 0, 0, 0, 203, 202, 37, 227, 159, 20, 35, 135, 1, 0, 0, 0, 247, 139, 39, 139, 229, 63, 69, 76, 1, 0, 0, 0, 171, 60, 5, 114, 41, 31, 235, 139, 1, 0, 0, 0}
+	var expected []byte
 	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
-	ret, err := runtime.Exec(CoreVersion, []byte{})
-	require.NoError(t, err)
+	ret, err := runtime.Exec(Metadata_metadata, []byte{})
 
+	// currently this is returning an error because runtime has not implemented Metadata_metadata yet
+	//  expect this to change when runtime changes
+	require.EqualError(t, err, "Failed to call the `Metadata_metadata` exported function.")
 	require.Equal(t, expected, ret)
+
 }
