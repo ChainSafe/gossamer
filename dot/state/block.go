@@ -64,7 +64,7 @@ type BlockState struct {
 	genesisHash        common.Hash
 	highestBlockHeader *types.Header
 	blockNotifier      chan<- *types.Block
-	doneNotifing       <-chan bool
+	doneNotifying      <-chan bool
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -388,13 +388,12 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 
 	if bs.blockNotifier != nil {
 		select {
-		case <-bs.doneNotifing:
+		case <-bs.doneNotifying:
 			close(bs.blockNotifier)
 			bs.blockNotifier = nil
 		default:
 			bs.blockNotifier <- block
 		}
-
 	}
 
 	return err
@@ -561,5 +560,5 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHea
 // SetBlockAddedChannel to sets channel that blocks will be received on
 func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan bool) {
 	bs.blockNotifier = rcvr
-	bs.doneNotifing = done
+	bs.doneNotifying = done
 }

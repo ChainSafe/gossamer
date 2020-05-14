@@ -225,9 +225,11 @@ func (h *HTTPServer) blockReceivedListener() {
 					res := newSubcriptionBaseResponseJSON(i)
 					res.Method = "chain_newHead"
 					res.Params = headM
-					err := sub.WSConnection.WriteJSON(res)
-					if err != nil {
-						log.Error("[rpc] error writing response", "error", err)
+					if sub.WSConnection != nil {
+						err := sub.WSConnection.WriteJSON(res)
+						if err != nil {
+							log.Error("[rpc] error writing response", "error", err)
+						}
 					}
 				}
 			}
