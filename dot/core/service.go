@@ -17,6 +17,7 @@ package core
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -525,4 +526,10 @@ func (s *Service) IsBabeAuthority() bool {
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	return s.safeMsgSend(msg)
+}
+
+//GetMetadata calls runtime Metadata_metadata function
+func (s *Service) GetMetadata() {
+	ret, err := s.rt.Exec(runtime.Metadata_metadata, []byte{})
+	fmt.Printf("%v %v\n", ret, err)
 }
