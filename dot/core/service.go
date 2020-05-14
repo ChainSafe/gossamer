@@ -17,7 +17,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -529,7 +528,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 //GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata() {
-	ret, err := s.rt.Exec(runtime.Metadata_metadata, []byte{})
-	fmt.Printf("%v %v\n", ret, err)
+func (s *Service) GetMetadata() ([]byte, error) {
+	return s.rt.Exec(runtime.Metadata_metadata, []byte{})
 }
