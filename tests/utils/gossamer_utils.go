@@ -87,7 +87,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 			"--rpchost", HOSTNAME,
 			"--rpcport", rpcPort,
 			"--rpcmods", "system,author,chain,state",
-			"--roles", "1",
+			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
 		)
 	} else {
@@ -99,7 +99,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 			"--rpchost", HOSTNAME,
 			"--rpcport", rpcPort,
 			"--rpcmods", "system,author,chain,state",
-			"--roles", "4",
+			"--roles", "4", // authority node
 			"--rpc",
 		)
 	}
