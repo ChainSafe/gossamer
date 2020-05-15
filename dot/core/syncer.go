@@ -386,8 +386,12 @@ func (s *Syncer) handleBody(body *types.Body) error {
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Syncer) handleBlock(block *types.Block) error {
 	// TODO: re-add execute block call
+	_, err := s.executeBlock(block)
+	if err != nil {
+		return err
+	}
 
-	err := s.blockState.AddBlock(block)
+	err = s.blockState.AddBlock(block)
 	if err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
@@ -408,11 +412,15 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 // runs the block through runtime function Core_execute_block
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Syncer) executeBlock(bd *types.Block) ([]byte, error) {
-	bdEnc, err := bd.Encode()
+func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
+	block.Header.Digest = [][]byte{}
+
+	bdEnc, err := block.Encode()
 	if err != nil {
 		return nil, err
 	}
+
+	bdEnc = append(bdEnc, 0)
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

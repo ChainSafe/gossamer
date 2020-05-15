@@ -358,6 +358,8 @@ func TestStress_StorageChange(t *testing.T) {
 	}
 	require.NoError(t, err, hashes)
 
+	time.Sleep(10 * time.Second)
+
 	// for each node, check that storage was updated accordingly
 	for _, node := range nodes {
 		log.Info("getting storage from node", "node", node.Key)
@@ -368,14 +370,14 @@ func TestStress_StorageChange(t *testing.T) {
 
 		//idx := rand.Intn(len(nodes))
 		//if idx == node.Idx {
-			// TODO: why does finalize_block modify the storage value?
+		// TODO: why does finalize_block modify the storage value?
 		if bytes.Equal(res, []byte{}) {
 			t.Logf("could not get storage value from node %s", node.Key)
 		} else {
 			t.Logf("got storage value from node %s: %v", node.Key, res)
 		}
-			//require.NotEqual(t, []byte{}, res, fmt.Sprintf("could not get storage value from node %s", node.Key))
-			//require.Equal(t, true, bytes.Contains(value, res[2:]))
+		//require.NotEqual(t, []byte{}, res, fmt.Sprintf("could not get storage value from node %s", node.Key))
+		//require.Equal(t, true, bytes.Contains(value, res[2:]))
 		//}
 	}
 

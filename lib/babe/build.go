@@ -31,6 +31,13 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// BuildBlock builds a block for the slot with the given parent.
+// TODO: separate block buidler logic into separate module. The only reason this is exported is so other packages
+// can build blocks for testing, but it would be preferred to have the builder functionality separated.
+func (b *Session) BuildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+	return b.buildBlock(parent, slot)
+}
+
 // construct a block for this slot with the given parent
 func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
 	log.Trace("[babe] build block", "parent", parent, "slot", slot)
@@ -151,7 +158,18 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 // the BABE header includes the proof of authorship right for this slot.
 func (b *Session) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
-		return nil, errors.New("not authorized to produce block")
+		// if we don't have a proof already set, re-run lottery.
+		// this can be removed when this is separated into a block builder module.
+		proof, err := b.runLottery(slot.number)
+		if err != nil {
+			return nil, err
+		}
+
+		if proof == nil {
+			return nil, errors.New("not authorized to produce block")
+		}
+
+		b.slotToProof[slot.number] = proof
 	}
 	outAndProof := b.slotToProof[slot.number]
 	return &types.BabeHeader{
