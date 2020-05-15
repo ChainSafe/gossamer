@@ -468,7 +468,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --wsport",
 			[]string{"config", "wsport"},
-			[]interface{}{testCfgFile.Name(), "7070"}, 
+			[]interface{}{testCfgFile.Name(), "7070"},
 			dot.RPCConfig{
 				Enabled:   testCfg.RPC.Enabled,
 				Port:      testCfg.RPC.Port,
