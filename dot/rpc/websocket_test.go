@@ -29,9 +29,11 @@ func TestNewWebSocketServer(t *testing.T) {
 		Modules: []string{"system", "chain"},
 		RPCPort: 8545,
 		WSPort:  8546,
+		WSEnabled: true,
 		RPCAPI:  NewService(),
 		CoreAPI: coreAPI,
 	}
+	
 	s := NewHTTPServer(cfg)
 	err := s.Start()
 	require.Nil(t, err)
