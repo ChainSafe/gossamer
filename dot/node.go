@@ -22,6 +22,8 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -37,10 +39,11 @@ import (
 
 // Node is a container for all the components of a node.
 type Node struct {
-	Name      string
-	Services  *services.ServiceRegistry // registry of all node services
-	IsStarted chan struct{}             // signals node startup complete
-	syncChan  chan *big.Int
+	Name         string
+	Services     *services.ServiceRegistry // registry of all node services
+	syncChan     chan *big.Int
+	wg           sync.WaitGroup
+	stateStarted uint32
 }
 
 // InitNode initializes a new dot node from the provided dot node configuration
@@ -251,10 +254,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	}
 
 	node := &Node{
-		Name:      cfg.Global.Name,
-		Services:  services.NewServiceRegistry(),
-		IsStarted: make(chan struct{}),
-		syncChan:  syncChan,
+		Name:     cfg.Global.Name,
+		Services: services.NewServiceRegistry(),
+		syncChan: syncChan,
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -281,10 +283,9 @@ func (n *Node) Start() {
 		os.Exit(130)
 	}()
 
-	// move on when routine catches SIGINT or SIGTERM calls
-	close(n.IsStarted)
-
-	select {}
+	atomic.CompareAndSwapUint32(&n.stateStarted, 0, 1)
+	n.wg.Add(1)
+	n.wg.Wait()
 }
 
 // Stop stops all dot node services
@@ -293,4 +294,12 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 
+	defer func() {
+		canUnlock := atomic.CompareAndSwapUint32(&n.stateStarted, 1, 0)
+		if !canUnlock {
+			panic("[dot] Error when trying to change Node status from started to stopped.")
+		}
+
+		n.wg.Done()
+	}()
 }

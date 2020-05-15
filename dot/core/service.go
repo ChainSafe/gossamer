@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -66,7 +67,7 @@ type Service struct {
 	epochDone <-chan struct{}        // receive from this channel when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      *sync.Mutex
-	closed    bool
+	closed    uint32
 
 	// Block synchronization
 	blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
@@ -153,10 +154,15 @@ func NewService(cfg *Config) (*Service, error) {
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
 			lock:             chanLock,
-			closed:           false,
 			syncLock:         syncerLock,
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
+		}
+
+		// thread safe way to change closed status
+		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
+		if !canLock {
+			panic("[core] Error when trying to change Service status from stopped to started.")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -204,10 +210,15 @@ func NewService(cfg *Config) (*Service, error) {
 			transactionQueue: cfg.TransactionQueue,
 			isBabeAuthority:  false,
 			lock:             chanLock,
-			closed:           false,
 			syncLock:         syncerLock,
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
+		}
+
+		// thread safe way to change closed status
+		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
+		if !canLock {
+			panic("[core] Error when trying to change Service status from stopped to started.")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -285,14 +296,23 @@ func (s *Service) Stop() error {
 	defer s.lock.Unlock()
 
 	// close channel to network service and BABE service
-	if !s.closed {
+	// thread safe way to check closed status
+	if atomic.LoadUint32(&s.closed) == uint32(1) {
 		if s.msgSend != nil {
 			close(s.msgSend)
 		}
 		if s.isBabeAuthority {
 			close(s.babeKill)
 		}
-		s.closed = true
+
+		defer func() {
+			// thread safe way to change closed status
+			canUnlock := atomic.CompareAndSwapUint32(&s.closed, 1, 0)
+			if !canUnlock {
+				panic("[core] Error when trying to change Service status from started to stopped.")
+			}
+		}()
+
 	}
 
 	s.syncer.Stop()
@@ -311,7 +331,8 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 func (s *Service) safeMsgSend(msg network.Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if s.closed {
+	// thread safe way to check closed status
+	if atomic.LoadUint32(&s.closed) == uint32(0) {
 		return ErrServiceStopped
 	}
 	s.msgSend <- msg
@@ -321,7 +342,8 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 func (s *Service) safeBabeKill() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if s.closed {
+	// thread safe way to check closed status
+	if atomic.LoadUint32(&s.closed) == uint32(0) {
 		return ErrServiceStopped
 	}
 	close(s.babeKill)

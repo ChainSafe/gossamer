@@ -21,7 +21,9 @@ import (
 	"encoding/binary"
 	"math/big"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -125,9 +127,11 @@ func TestStartNode(t *testing.T) {
 	require.Nil(t, err)
 
 	go node.Start()
-	<-node.IsStarted
+	time.Sleep(100 * time.Millisecond)
+	require.Equal(t, uint32(1), atomic.LoadUint32(&node.stateStarted))
 
 	node.Stop()
+	require.Equal(t, uint32(0), atomic.LoadUint32(&node.stateStarted))
 }
 
 // TestStopNode

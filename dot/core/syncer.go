@@ -20,6 +20,7 @@ import (
 	"math/big"
 	mrand "math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -63,7 +64,7 @@ type Syncer struct {
 
 	// Core service control
 	chanLock *sync.Mutex
-	stopped  bool
+	stopped  uint32
 
 	// BABE verification
 	verifier Verifier
@@ -114,7 +115,6 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		lock:             cfg.Lock,
 		chanLock:         cfg.ChanLock,
 		synced:           true,
-		stopped:          false,
 		requestStart:     1,
 		highestSeenBlock: big.NewInt(0),
 		transactionQueue: cfg.TransactionQueue,
@@ -125,6 +125,11 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 
 // Start begins the syncer
 func (s *Syncer) Start() {
+	// thread safe change stopped to 1
+	canLock := atomic.CompareAndSwapUint32(&s.stopped, 0, 1)
+	if !canLock {
+		panic("[sync] Error when trying to change Syncer from stopped to started.")
+	}
 	go s.watchForBlocks()
 	go s.watchForResponses()
 }
@@ -132,12 +137,16 @@ func (s *Syncer) Start() {
 // Stop stops the syncer
 func (s *Syncer) Stop() {
 	// stop goroutines
-	s.stopped = true
+	canUnlock := atomic.CompareAndSwapUint32(&s.stopped, 1, 0)
+	if !canUnlock {
+		panic("[sync] Error when trying to change Syncer from started to stopped.")
+	}
 }
 
 func (s *Syncer) watchForBlocks() {
 	for {
-		if s.stopped {
+		// thread safe check if stopped
+		if atomic.LoadUint32(&s.stopped) == uint32(0) {
 			return
 		}
 
@@ -165,7 +174,8 @@ func (s *Syncer) watchForBlocks() {
 
 func (s *Syncer) watchForResponses() {
 	for {
-		if s.stopped {
+		// thread safe check if stopped
+		if atomic.LoadUint32(&s.stopped) == uint32(0) {
 			return
 		}
 
@@ -239,7 +249,8 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 func (s *Syncer) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
-	if s.stopped {
+	// thread safe check if stopped
+	if atomic.LoadUint32(&s.stopped) == uint32(0) {
 		return ErrServiceStopped
 	}
 	s.msgOut <- msg

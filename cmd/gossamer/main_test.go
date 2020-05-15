@@ -263,7 +263,7 @@ func TestGossamerCommand(t *testing.T) {
 		"--roles", "4",
 	)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(60 * time.Second)
 
 	stdout, stderr = gossamer.GetOutput()
 	log.Println("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
