@@ -150,7 +150,7 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if !h.serverConfig.WSEnabled {
+	if h.serverConfig.WSEnabled {
 		close(h.serverConfig.BlockAddedReceiverDone) // notify sender we're done receiving so it can close
 	}
 	return nil
