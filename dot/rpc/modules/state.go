@@ -188,8 +188,7 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	metadata, err := sm.coreAPI.GetMetadata()
-	// TODO use common.BytesToHex once PR #848 is merged
-	*res = "0x" + hex.EncodeToString(metadata)
+	*res = common.BytesToHex(metadata)
 	return err
 }
 
