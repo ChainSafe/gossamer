@@ -26,14 +26,14 @@ var testCalls = []struct {
 func TestNewWebSocketServer(t *testing.T) {
 	coreAPI := core.NewTestService(t, nil)
 	cfg := &HTTPServerConfig{
-		Modules: []string{"system", "chain"},
-		RPCPort: 8545,
-		WSPort:  8546,
+		Modules:   []string{"system", "chain"},
+		RPCPort:   8545,
+		WSPort:    8546,
 		WSEnabled: true,
-		RPCAPI:  NewService(),
-		CoreAPI: coreAPI,
+		RPCAPI:    NewService(),
+		CoreAPI:   coreAPI,
 	}
-	
+
 	s := NewHTTPServer(cfg)
 	err := s.Start()
 	require.Nil(t, err)
