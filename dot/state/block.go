@@ -64,7 +64,7 @@ type BlockState struct {
 	genesisHash        common.Hash
 	highestBlockHeader *types.Header
 	blockNotifier      chan<- *types.Block
-	doneNotifying      <-chan bool
+	doneNotifying      <-chan struct{}
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -558,7 +558,7 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHea
 }
 
 // SetBlockAddedChannel to sets channel that blocks will be received on
-func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan bool) {
+func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan struct{}) {
 	bs.blockNotifier = rcvr
 	bs.doneNotifying = done
 }

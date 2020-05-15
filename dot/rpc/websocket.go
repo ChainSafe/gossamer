@@ -193,9 +193,6 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int) (uint32, error) {
 	wssub := h.serverConfig.WSSubscriptions
-	if wssub == nil {
-		wssub = make(map[uint32]*WebSocketSubscription)
-	}
 	sub := uint32(len(wssub)) + 1
 	wss := &WebSocketSubscription{
 		WSConnection:     conn,

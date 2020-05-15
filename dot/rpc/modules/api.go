@@ -22,7 +22,7 @@ type BlockAPI interface {
 	HighestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
-	SetBlockAddedChannel(chan<- *types.Block, <-chan bool)
+	SetBlockAddedChannel(chan<- *types.Block, <-chan struct{})
 }
 
 // NetworkAPI interface for network state methods

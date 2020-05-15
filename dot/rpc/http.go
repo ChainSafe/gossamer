@@ -50,7 +50,7 @@ type HTTPServerConfig struct {
 	Modules                []string
 	WSSubscriptions        map[uint32]*WebSocketSubscription
 	BlockAddedReceiver     chan *types.Block
-	BlockAddedReceiverDone chan bool
+	BlockAddedReceiverDone chan struct{}
 }
 
 // WebSocketSubscription holds subscription details
@@ -65,7 +65,9 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
 	}
-
+	if cfg.WSSubscriptions == nil {
+		cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
+	}
 	server.RegisterModules(cfg.Modules)
 	return server
 }
@@ -133,7 +135,7 @@ func (h *HTTPServer) Start() error {
 	// init and start block received listener routine
 	if h.serverConfig.BlockAPI != nil {
 		h.serverConfig.BlockAddedReceiver = make(chan *types.Block)
-		h.serverConfig.BlockAddedReceiverDone = make(chan bool)
+		h.serverConfig.BlockAddedReceiverDone = make(chan struct{})
 		h.serverConfig.BlockAPI.SetBlockAddedChannel(h.serverConfig.BlockAddedReceiver, h.serverConfig.BlockAddedReceiverDone)
 		go h.blockReceivedListener()
 	}
@@ -143,6 +145,6 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	h.serverConfig.BlockAddedReceiverDone <- true // notify sender we're done receiving so it can close
+	close(h.serverConfig.BlockAddedReceiverDone) // notify sender we're done receiving so it can close
 	return nil
 }

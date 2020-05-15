@@ -25,14 +25,12 @@ var testCalls = []struct {
 
 func TestNewWebSocketServer(t *testing.T) {
 	coreAPI := core.NewTestService(t, nil)
-	//blockAPI := NewTestChainService(t)
 	cfg := &HTTPServerConfig{
 		Modules: []string{"system", "chain"},
 		RPCPort: 8545,
 		WSPort:  8546,
 		RPCAPI:  NewService(),
 		CoreAPI: coreAPI,
-		//BlockAPI: blockAPI.Block,
 	}
 	s := NewHTTPServer(cfg)
 	err := s.Start()
