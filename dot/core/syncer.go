@@ -420,7 +420,6 @@ func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	bdEnc = append(bdEnc, 0)
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

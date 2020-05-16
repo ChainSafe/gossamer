@@ -206,7 +206,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			// re-add previously popped extrinsics back to queue
 			b.addToQueue(included)
 
-			return nil, errors.New("Error during apply extrinsic: " + errTxt)
+			return nil, errors.New("error applying extrinsic: " + errTxt)
 
 		}
 

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"sync"
@@ -33,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -539,27 +541,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func newBlockBuilder(t *testing.T, cfg *babe.SessionConfig) *babe.Session {
-	stateSrvc := state.NewService("")
-	stateSrvc.UseMemDB()
-
-	genesisData := new(genesis.Data)
-
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	if cfg.Runtime == nil {
 		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
-	}
-
-	if cfg.TransactionQueue == nil {
-		cfg.TransactionQueue = stateSrvc.TransactionQueue
 	}
 
 	if cfg.Keypair == nil {
@@ -584,17 +567,17 @@ func newBlockBuilder(t *testing.T, cfg *babe.SessionConfig) *babe.Session {
 	return b
 }
 
-func TestHandleBlock(t *testing.T) {
+func TestExecuteBlock(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
 
 	// load authority into runtime
 	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pubkey := kp.Public().Encode()
 	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	cfg := &SyncerConfig{
 		Runtime: rt,
@@ -610,18 +593,65 @@ func TestHandleBlock(t *testing.T) {
 
 	builder := newBlockBuilder(t, bcfg)
 	parent, err := syncer.blockState.BestBlockHeader()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	slot := babe.NewSlot(1, 0, 0)
 	block, err := builder.BuildBlock(parent, *slot)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	block.Header.Hash()
 	block.Header.Digest = [][]byte{}
 
-	enc, err := block.Header.Encode()
-	require.Nil(t, err)
-
 	_, err = syncer.executeBlock(block)
-	require.Nil(t, err)
+	require.NoError(t, err)
+}
+
+func TestExecuteBlock_WithExtrinsic(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+
+	// load authority into runtime
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	require.NoError(t, err)
+
+	cfg := &SyncerConfig{
+		Runtime: rt,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+
+	bcfg := &babe.SessionConfig{
+		Runtime:          syncer.runtime,
+		TransactionQueue: syncer.transactionQueue,
+		Keypair:          kp,
+	}
+
+	key := []byte("noot")
+	value := []byte("washere")
+	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	tx := transaction.NewValidTransaction(enc, new(transaction.Validity))
+	_, err = syncer.transactionQueue.Push(tx)
+	require.NoError(t, err)
+
+	builder := newBlockBuilder(t, bcfg)
+	parent, err := syncer.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
+	block, err := builder.BuildBlock(parent, *slot)
+	require.NoError(t, err)
+
+	block.Header.Hash()
+	block.Header.Digest = [][]byte{}
+
+	require.Equal(t, true, bytes.Contains(*block.Body, enc))
+	_, err = syncer.executeBlock(block)
+	require.NoError(t, err)
 }

@@ -337,6 +337,12 @@ func TestStress_StorageChange(t *testing.T) {
 	nodes, err := utils.StartNodes(t, numNodes)
 	require.NoError(t, err)
 
+	defer func() {
+		//TODO: #803 cleanup optimization
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
 	time.Sleep(5 * time.Second)
 
 	// create IncludeData extrnsic
@@ -390,8 +396,4 @@ func TestStress_StorageChange(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 	require.NoError(t, err, hashes)
-
-	//TODO: #803 cleanup optimization
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
