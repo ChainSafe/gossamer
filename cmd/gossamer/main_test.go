@@ -234,7 +234,7 @@ func TestGossamerCommand(t *testing.T) {
 
 	genesisPath := filepath.Join(currentDir, "../..", "node/gssmr/genesis.json")
 
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
 	require.Nil(t, err)
 
 	gossamer := runTestGossamer(t,
@@ -245,7 +245,7 @@ func TestGossamerCommand(t *testing.T) {
 	)
 
 	stdout, stderr := gossamer.GetOutput()
-	log.Println("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
 	expectedMessages := []string{
 		"[dot] node initialized",
@@ -266,7 +266,7 @@ func TestGossamerCommand(t *testing.T) {
 	time.Sleep(60 * time.Second)
 
 	stdout, stderr = gossamer.GetOutput()
-	log.Println("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+	log.Println("Run gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
 	expectedMessages = []string{
 		"SIGABRT: abort",

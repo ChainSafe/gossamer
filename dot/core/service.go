@@ -17,6 +17,7 @@ package core
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -162,7 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		// thread safe way to change closed status
 		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
 		if !canLock {
-			panic("[core] Error when trying to change Service status from stopped to started.")
+			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -218,7 +219,7 @@ func NewService(cfg *Config) (*Service, error) {
 		// thread safe way to change closed status
 		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
 		if !canLock {
-			panic("[core] Error when trying to change Service status from stopped to started.")
+			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
