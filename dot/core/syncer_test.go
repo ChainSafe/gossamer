@@ -599,9 +599,6 @@ func TestExecuteBlock(t *testing.T) {
 	block, err := builder.BuildBlock(parent, *slot)
 	require.NoError(t, err)
 
-	block.Header.Hash()
-	block.Header.Digest = [][]byte{}
-
 	_, err = syncer.executeBlock(block)
 	require.NoError(t, err)
 }
@@ -647,9 +644,6 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 	slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
 	block, err := builder.BuildBlock(parent, *slot)
 	require.NoError(t, err)
-
-	block.Header.Hash()
-	block.Header.Digest = [][]byte{}
 
 	require.Equal(t, true, bytes.Contains(*block.Body, enc))
 	_, err = syncer.executeBlock(block)

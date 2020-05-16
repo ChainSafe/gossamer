@@ -385,7 +385,6 @@ func (s *Syncer) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Syncer) handleBlock(block *types.Block) error {
-	// TODO: re-add execute block call
 	_, err := s.executeBlock(block)
 	if err != nil {
 		return err

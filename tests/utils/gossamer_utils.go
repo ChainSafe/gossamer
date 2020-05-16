@@ -100,6 +100,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 			"--rpcport", rpcPort,
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
+			"--verbosity", "debug",
 			"--rpc",
 		)
 	}
@@ -115,8 +116,8 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 	multiWriter := io.MultiWriter(f, os.Stdout)
 
 	//if idx == 0 {
-		cmd.Stdout = multiWriter
-		cmd.Stderr = multiWriter
+	cmd.Stdout = multiWriter
+	cmd.Stderr = multiWriter
 	//}
 
 	log.Info("Going to execute gossamer", "cmd", cmd)

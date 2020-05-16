@@ -52,7 +52,7 @@ func (b *Block) Encode() ([]byte, error) {
 	if len(b.Header.Digest) == 0 {
 		enc = append(enc, 0)
 	}
- 
+
 	// fix since scale doesn't handle *types.Body types, but does handle []byte
 	encBody, err := scale.Encode([]byte(*b.Body))
 	if err != nil {

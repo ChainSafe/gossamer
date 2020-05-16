@@ -319,7 +319,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 
 		hash := block.Header.Hash()
 		log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
-		log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
+		log.Debug("[babe] built block", "header", block.Header, "body", block.Body, "parent", parentHeader)
 
 		err = b.safeSend(*block)
 		if err != nil {
