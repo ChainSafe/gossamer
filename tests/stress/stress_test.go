@@ -19,10 +19,8 @@ package stress
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"math/rand"
 	"os"
 	"strconv"
@@ -45,10 +43,7 @@ import (
 var (
 	numNodes               = 3
 	maxRetries             = 8
-	chain_getBlock         = "chain_getBlock"
-	chain_getHeader        = "chain_getHeader"
-	author_submitExtrinsic = "author_submitExtrinsic"
-	state_getStorage       = "state_getStorage"
+
 )
 
 func TestMain(m *testing.M) {
@@ -77,143 +72,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// TODO: move to utils, use in RPC tests
-func endpoint(node *utils.Node) string {
-	return "http://" + utils.HOSTNAME + ":" + node.RPCPort
-}
-
-// getStorage calls the endpoint state_getStorage
-func getStorage(t *testing.T, node *utils.Node, key []byte) []byte {
-	respBody, err := utils.PostRPC(t, state_getStorage, endpoint(node), "[\""+common.BytesToHex(key)+"\"]")
-	require.NoError(t, err)
-
-	v := new(string)
-	err = utils.DecodeRPC(t, respBody, v)
-	require.NoError(t, err)
-	if *v == "" {
-		return []byte{}
-	}
-
-	value, err := common.HexToBytes(*v)
-	require.NoError(t, err)
-
-	return value
-}
-
-// getBlock calls the endpoint chain_getBlock
-func getBlock(t *testing.T, node *utils.Node, hash common.Hash) *types.Block {
-	respBody, err := utils.PostRPC(t, chain_getBlock, endpoint(node), "[\""+hash.String()+"\"]")
-	require.NoError(t, err)
-
-	block := new(modules.ChainBlockResponse)
-	err = utils.DecodeRPC(t, respBody, block)
-	if err != nil {
-		return nil
-	}
-
-	header := block.Block.Header
-
-	parentHash, err := common.HexToHash(header.ParentHash)
-	require.NoError(t, err)
-
-	nb, err := common.HexToBytes(header.Number)
-	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
-
-	stateRoot, err := common.HexToHash(header.StateRoot)
-	require.NoError(t, err)
-
-	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
-	require.NoError(t, err)
-
-	digest := [][]byte{}
-
-	for _, l := range header.Digest.Logs {
-		var d []byte
-		d, err = common.HexToBytes(l)
-		require.NoError(t, err)
-		digest = append(digest, d)
-	}
-
-	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
-	require.NoError(t, err)
-
-	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
-	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
-
-	return &types.Block{
-		Header: h,
-		Body:   b,
-	}
-}
-
-// headerResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
-func headerResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.Header {
-	parentHash, err := common.HexToHash(header.ParentHash)
-	require.NoError(t, err)
-
-	nb, err := common.HexToBytes(header.Number)
-	require.NoError(t, err)
-	number := big.NewInt(0).SetBytes(nb)
-
-	stateRoot, err := common.HexToHash(header.StateRoot)
-	require.NoError(t, err)
-
-	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
-	require.NoError(t, err)
-
-	digest := [][]byte{}
-
-	for _, l := range header.Digest.Logs {
-		var d []byte
-		d, err = common.HexToBytes(l)
-		require.NoError(t, err)
-		digest = append(digest, d)
-	}
-
-	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
-	require.NoError(t, err)
-	return h
-}
-
-// getHeader calls the endpoint chain_getHeader
-func getHeader(t *testing.T, node *utils.Node, hash common.Hash) *types.Header { //nolint
-	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[\""+hash.String()+"\"]")
-	require.NoError(t, err)
-
-	header := new(modules.ChainBlockHeaderResponse)
-	utils.DecodeRPC(t, respBody, header)
-	return headerResponseToHeader(t, header)
-}
-
-// getChainHead calls the endpoint chain_getHeader to get the latest chain head
-func getChainHead(t *testing.T, node *utils.Node) *types.Header {
-	respBody, err := utils.PostRPC(t, chain_getHeader, endpoint(node), "[]")
-	require.NoError(t, err)
-
-	header := new(modules.ChainBlockHeaderResponse)
-	utils.DecodeRPC(t, respBody, header)
-	return headerResponseToHeader(t, header)
-}
-
-// compareChainHeads calls getChainHead for each node in the array
-// it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
-func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
-	hashes := make(map[common.Hash][]string)
-	for _, node := range nodes {
-		header := getChainHead(t, node)
-		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
-		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
-	}
-
-	var err error
-	if len(hashes) != 1 {
-		err = errors.New("node chain head hashes don't match")
-	}
-
-	return hashes, err
-}
-
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
 	nodes, err := utils.StartNodes(t, numNodes)
@@ -227,7 +85,7 @@ func TestStressSync(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, node := range nodes {
-		header := getChainHead(t, node)
+		header := utils.GetChainHead(t, node)
 
 		err = db.Write("blocks_"+node.Key, header.Number.String(), header)
 		require.NoError(t, err)
@@ -249,19 +107,21 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
-	prevHeader := getChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(t, author_submitExtrinsic, endpoint(nodes[idx]), "\"0x"+txStr+"\"")
+	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(utils.HOSTNAME,nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse
-	utils.DecodeRPC(t, respBody, &hash)
+	err = utils.DecodeRPC(t, respBody, &hash)
+	require.Nil(t, err)
+
 	log.Info("submitted transaction", "hash", hash)
 
 	// wait for nodes to build block + sync, then get headers
 	time.Sleep(time.Second * 5)
 	var hashes map[common.Hash][]string
 	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
+		hashes, err = utils.CompareChainHeads(t, nodes)
 		if err == nil {
 			break
 		}
@@ -270,7 +130,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	}
 	require.NoError(t, err, hashes)
 
-	header := getChainHead(t, nodes[idx])
+	header := utils.GetChainHead(t, nodes[idx])
 	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 	// search from child -> parent blocks for extrinsic
@@ -278,7 +138,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	var resExts []types.Extrinsic
 	i := 0
 	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
-		block := getBlock(t, nodes[idx], header.ParentHash)
+		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
 		if block == nil {
 			// couldn't get block, increment retry counter
 			i++
@@ -307,7 +167,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// repeat sync check for sanity
 	time.Sleep(time.Second * 5)
 	for i = 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
+		hashes, err = utils.CompareChainHeads(t, nodes)
 		if err == nil {
 			break
 		}
@@ -349,7 +209,7 @@ func TestStress_StorageChange(t *testing.T) {
 	// for each node, check that storage was updated accordingly
 	for _, node := range nodes {
 		log.Info("getting storage from node", "node", node.Key)
-		res := getStorage(t, node, key)
+		res := utils.GetStorage(t, node, key)
 
 		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same
 		// chain head. figure out why this is the case and fix it.

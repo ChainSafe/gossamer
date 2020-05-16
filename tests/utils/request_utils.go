@@ -82,3 +82,8 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	require.Nil(t, err, "respBody", string(body))
 	return nil
 }
+
+
+func NewEndpoint(hostname, port string) string {
+	return "http://" + hostname + ":" + port
+}

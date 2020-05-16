@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"os"
 	"testing"
 	"time"
@@ -28,20 +29,30 @@ import (
 
 func TestChainRPC(t *testing.T) {
 	if utils.GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests", utils.GOSSAMER_INTEGRATION_TEST_MODE)
 		return
 	}
 
 	testCases := []*testCase{
-		{ //TODO
+		{
 			description: "test chain_getHeader",
 			method:      "chain_getHeader",
-			skip:        true,
+			expected: modules.ChainBlockHeaderResponse{
+				Number: "1",
+			},
+			params: "[]",
 		},
-		{ //TODO
+		{
 			description: "test chain_getBlock",
 			method:      "chain_getBlock",
-			skip:        true,
+			expected: modules.ChainBlockResponse{
+				Block: modules.ChainBlock{
+					Header: modules.ChainBlockHeaderResponse{
+						Number: "1",
+					},
+				},
+			},
+			params: "[]",
 		},
 		{ //TODO
 			description: "test chain_getBlockHash",
@@ -61,9 +72,52 @@ func TestChainRPC(t *testing.T) {
 
 	time.Sleep(time.Second) // give server a second to start
 
+	chainBlockHeaderHash := ""
 	for _, test := range testCases {
+
 		t.Run(test.description, func(t *testing.T) {
-			_ = getResponse(t, test)
+
+			// set params for chain_getBlock from previous chain_getHeader call
+			if chainBlockHeaderHash != "" {
+				test.params = "[\"" + chainBlockHeaderHash + "\"]"
+			}
+
+			target := getResponse(t, test)
+
+			switch v := target.(type) {
+			case *modules.ChainBlockHeaderResponse:
+				t.Log("Will assert ChainBlockHeaderResponse", "value", v)
+
+				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockHeaderResponse).Number, v.Number)
+
+				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ParentHash)
+				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).StateRoot)
+				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).ExtrinsicsRoot)
+				require.NotNil(t, test.expected.(modules.ChainBlockHeaderResponse).Digest)
+
+				//save for chain_getBlock
+				chainBlockHeaderHash = v.ParentHash
+			case *modules.ChainBlockResponse:
+				t.Log("Will assert ChainBlockResponse", "value", v.Block)
+
+				//reset
+				chainBlockHeaderHash = ""
+
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block)
+
+				require.GreaterOrEqual(t, test.expected.(modules.ChainBlockResponse).Block.Header.Number, v.Block.Header.Number)
+
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ParentHash)
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.StateRoot)
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ExtrinsicsRoot)
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.Digest)
+
+				//TODO: find out why Body is returned nil always ?
+				//require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
+				//require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 1)
+
+			}
+
 		})
 	}
 
