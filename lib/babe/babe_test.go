@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -54,8 +55,9 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 		cfg.Kill = make(chan struct{})
 	}
 
-	if cfg.Done == nil {
-		cfg.Done = make(chan struct{})
+	if cfg.EpochDone == nil {
+		cfg.EpochDone = new(sync.WaitGroup)
+		cfg.EpochDone.Add(1)
 	}
 
 	if cfg.NewBlocks == nil {
@@ -119,10 +121,9 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 
 func TestKill(t *testing.T) {
 	killChan := make(chan struct{})
-	doneChan := make(chan struct{})
+
 	cfg := &SessionConfig{
 		Kill: killChan,
-		Done: doneChan,
 	}
 
 	babesession := createTestSession(t, cfg)
@@ -132,9 +133,8 @@ func TestKill(t *testing.T) {
 	}
 
 	close(killChan)
-	<-doneChan
 
-	if !babesession.closed {
+	if atomic.LoadUint32(&babesession.closed) == uint32(0) {
 		t.Fatalf("did not kill session")
 	}
 }

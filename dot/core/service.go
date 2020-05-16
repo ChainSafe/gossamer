@@ -64,7 +64,7 @@ type Service struct {
 	msgRec    <-chan network.Message // receive messages from network service
 	msgSend   chan<- network.Message // send messages to network service
 	blkRec    <-chan types.Block     // receive blocks from BABE session
-	epochDone <-chan struct{}        // receive from this channel when BABE epoch changes
+	epochDone *sync.WaitGroup        // receive from this channel when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      *sync.Mutex
 	closed    uint32
@@ -137,7 +137,7 @@ func NewService(cfg *Config) (*Service, error) {
 			return nil, ErrNoKeysProvided
 		}
 
-		epochDone := make(chan struct{})
+		epochDone := new(sync.WaitGroup)
 		babeKill := make(chan struct{})
 
 		srv = &Service{
@@ -178,7 +178,7 @@ func NewService(cfg *Config) (*Service, error) {
 			BlockState:       cfg.BlockState,
 			StorageState:     cfg.StorageState,
 			AuthData:         authData,
-			Done:             epochDone,
+			EpochDone:        srv.epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
 			SyncLock:         syncerLock,
@@ -352,8 +352,8 @@ func (s *Service) safeBabeKill() error {
 
 func (s *Service) handleBabeSession() {
 	// wait for BABE epoch to complete
-	for range s.epochDone {
-	}
+	s.epochDone.Add(1)
+	s.epochDone.Wait()
 
 	// TODO: fetch NextEpochDescriptor from verifier
 
