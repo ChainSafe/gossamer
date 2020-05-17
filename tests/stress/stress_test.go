@@ -41,9 +41,8 @@ import (
 )
 
 var (
-	numNodes               = 3
-	maxRetries             = 8
-
+	numNodes   = 3
+	maxRetries = 8
 )
 
 func TestMain(m *testing.M) {
@@ -108,7 +107,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(utils.HOSTNAME,nodes[idx].RPCPort), "\"0x"+txStr+"\"")
+	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(utils.HOSTNAME, nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse

@@ -18,10 +18,11 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
@@ -57,8 +58,8 @@ func TestChainRPC(t *testing.T) {
 		{
 			description: "test chain_getBlockHash",
 			method:      "chain_getBlockHash",
-			expected: "",
-			params: "[]",
+			expected:    "",
+			params:      "[]",
 		},
 		{ //TODO
 			description: "test chain_getFinalizedHead",
@@ -123,8 +124,6 @@ func TestChainRPC(t *testing.T) {
 				require.GreaterOrEqual(t, len(*v), 66)
 
 			}
-
-
 
 		})
 	}

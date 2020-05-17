@@ -83,7 +83,7 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	return nil
 }
 
-
+// NewEndpoint will create a new endpoint string based on hostname and port
 func NewEndpoint(hostname, port string) string {
 	return "http://" + hostname + ":" + port
 }

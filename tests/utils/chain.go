@@ -1,20 +1,37 @@
+// Copyright 2020 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package utils
 
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 // GetHeader calls the endpoint chain_getHeader
 func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nolint
-	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME,node.RPCPort), "[\""+hash.String()+"\"]")
+	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME, node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -26,7 +43,7 @@ func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nol
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
 func GetChainHead(t *testing.T, node *Node) *types.Header {
-	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME,node.RPCPort), "[]")
+	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME, node.RPCPort), "[]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -36,10 +53,9 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 	return HeaderResponseToHeader(t, header)
 }
 
-
 // GetBlock calls the endpoint chain_getBlock
 func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
-	respBody, err := PostRPC(t, ChainGetBlock, NewEndpoint(HOSTNAME,node.RPCPort), "[\""+hash.String()+"\"]")
+	respBody, err := PostRPC(t, ChainGetBlock, NewEndpoint(HOSTNAME, node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
 	block := new(modules.ChainBlockResponse)
@@ -83,7 +99,6 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 		Body:   b,
 	}
 }
-
 
 // CompareChainHeads calls getChainHead for each node in the array
 // it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
