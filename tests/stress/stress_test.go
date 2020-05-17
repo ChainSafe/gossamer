@@ -349,6 +349,7 @@ func TestStress_StorageChange(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	// for each node, check that storage was updated accordingly
+	errs := []error{}
 	for _, node := range nodes {
 		log.Info("getting storage from node", "node", node.Key)
 		res := getStorage(t, node, key)
@@ -356,10 +357,13 @@ func TestStress_StorageChange(t *testing.T) {
 		// TODO: why does finalize_block modify the storage value?
 		if bytes.Equal(res, []byte{}) {
 			t.Logf("could not get storage value from node %s", node.Key)
+			errs = append(errs, fmt.Errorf("could not get storage value from node %s\n", node.Key))
 		} else {
 			t.Logf("got storage value from node %s: %v", node.Key, res)
 		}
 	}
+
+	require.Equal(t, 0, len(errs), errs)
 
 	compareChainHeadsWithRetry(t, nodes)
 }

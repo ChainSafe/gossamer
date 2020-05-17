@@ -100,7 +100,7 @@ func RunGossamer(t *testing.T, idx int, dataDir string) (*Node, error) {
 			"--rpcport", rpcPort,
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
-			"--verbosity", "debug",
+			//"--verbosity", "debug",
 			"--rpc",
 		)
 	}

@@ -32,7 +32,7 @@ import (
 )
 
 // BuildBlock builds a block for the slot with the given parent.
-// TODO: separate block buidler logic into separate module. The only reason this is exported is so other packages
+// TODO: separate block builder logic into separate module. The only reason this is exported is so other packages
 // can build blocks for testing, but it would be preferred to have the builder functionality separated.
 func (b *Session) BuildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
 	return b.buildBlock(parent, slot)

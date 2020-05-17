@@ -462,8 +462,6 @@ func TestCoreExecuteBlockData_bytes(t *testing.T) {
 	//data, err := hex.DecodeString("a0bc81cac20fbff59e86f0bf373782757db7016a9b3b07c343a81841facc4f82017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000")
 	require.Nil(t, err)
 
-	t.Log(len(data))
-
 	res, err := syncer.executeBlockBytes(data)
 	require.Nil(t, err) // expect error since header.ParentHash is empty
 
