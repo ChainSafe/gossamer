@@ -153,10 +153,22 @@ func TestStateModule_GetStorageSize_NotFound(t *testing.T) {
 	require.Equal(t, nil, res)
 }
 
+func TestStateModule_GetMetadata(t *testing.T) {
+	sm := setupStateModule(t)
+	var res string
+	err := sm.GetMetadata(nil, nil, &res)
+
+	// currently this is generating an error because runtime has not implemented Metadata_metadata yet
+	//  expect this to change when runtime changes
+	require.Equal(t, "0x", res)
+	require.EqualError(t, err, "Failed to call the `Metadata_metadata` exported function.")
+
+}
+
 func setupStateModule(t *testing.T) *StateModule {
 	// setup service
 	net := newNetworkService(t)
-	chain := newChainService(t)
+	chain := newTestChainService(t)
 	// init storage with test data
 	err := chain.Storage.SetStorage([]byte(`:key1`), []byte(`value1`))
 	require.NoError(t, err)
