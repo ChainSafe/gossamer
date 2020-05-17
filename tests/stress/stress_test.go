@@ -44,7 +44,7 @@ import (
 
 var (
 	numNodes               = 3
-	maxRetries             = 8
+	maxRetries             = 24
 	chain_getBlock         = "chain_getBlock"
 	chain_getHeader        = "chain_getHeader"
 	author_submitExtrinsic = "author_submitExtrinsic"
@@ -214,6 +214,22 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	return hashes, err
 }
 
+// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
+func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareChainHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
+}
+
 func TestStressSync(t *testing.T) {
 	t.Log("going to start TestStressSync")
 	nodes, err := utils.StartNodes(t, numNodes)
@@ -259,18 +275,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	t.Logf("submitted transaction to node %s", nodes[idx].Key)
 
 	// wait for nodes to build block + sync, then get headers
-	time.Sleep(time.Second * 5)
-	var hashes map[common.Hash][]string
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
-
+	time.Sleep(time.Second * 10)
 	header := getChainHead(t, nodes[idx])
 	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
@@ -304,18 +309,6 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// assert that the extrinsic included is the one we submitted
 	require.Equal(t, 1, len(resExts), fmt.Sprintf("did not find extrinsic in block on node %s", nodes[idx].Key))
 	require.Equal(t, resExts[0], types.Extrinsic(tx))
-
-	// repeat sync check for sanity
-	time.Sleep(time.Second * 7)
-	for i = 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
 }
 
 func TestStress_IncludeData(t *testing.T) {
@@ -327,6 +320,8 @@ func TestStress_IncludeData(t *testing.T) {
 	// create IncludeData extrnsic
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	submitExtrinsicAssertInclusion(t, nodes, ext)
+
+	compareChainHeadsWithRetry(t, nodes)
 
 	//TODO: #803 cleanup optimization
 	errList := utils.TearDown(t, nodes)
@@ -351,19 +346,6 @@ func TestStress_StorageChange(t *testing.T) {
 	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
 	submitExtrinsicAssertInclusion(t, nodes, ext)
 
-	time.Sleep(5 * time.Second)
-
-	var hashes map[common.Hash][]string
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
-
 	time.Sleep(10 * time.Second)
 
 	// for each node, check that storage was updated accordingly
@@ -371,29 +353,13 @@ func TestStress_StorageChange(t *testing.T) {
 		log.Info("getting storage from node", "node", node.Key)
 		res := getStorage(t, node, key)
 
-		// TODO: currently, around 2/3 nodes have the updated state, even if they all have the same
-		// chain head. figure out why this is the case and fix it.
-
-		//idx := rand.Intn(len(nodes))
-		//if idx == node.Idx {
 		// TODO: why does finalize_block modify the storage value?
 		if bytes.Equal(res, []byte{}) {
 			t.Logf("could not get storage value from node %s", node.Key)
 		} else {
 			t.Logf("got storage value from node %s: %v", node.Key, res)
 		}
-		//require.NotEqual(t, []byte{}, res, fmt.Sprintf("could not get storage value from node %s", node.Key))
-		//require.Equal(t, true, bytes.Contains(value, res[2:]))
-		//}
 	}
 
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
+	compareChainHeadsWithRetry(t, nodes)
 }

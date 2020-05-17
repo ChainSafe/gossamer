@@ -205,7 +205,7 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 			if s.requestStart <= 0 {
 				s.requestStart = 1
 			}
-			log.Debug("[sync] Retrying block request", "start", s.requestStart)
+			log.Trace("[sync] Retrying block request", "start", s.requestStart)
 			go s.sendBlockRequest()
 		} else {
 			log.Error("[sync]", "error", err)
@@ -258,7 +258,7 @@ func (s *Syncer) sendBlockRequest() {
 		return
 	}
 
-	log.Debug("[sync] Block request", "start", start)
+	log.Trace("[sync] Block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
