@@ -54,10 +54,11 @@ func TestChainRPC(t *testing.T) {
 			},
 			params: "[]",
 		},
-		{ //TODO
+		{
 			description: "test chain_getBlockHash",
 			method:      "chain_getBlockHash",
-			skip:        true,
+			expected: "",
+			params: "[]",
 		},
 		{ //TODO
 			description: "test chain_getFinalizedHead",
@@ -116,7 +117,14 @@ func TestChainRPC(t *testing.T) {
 				//require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
 				//require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 1)
 
+			case *string:
+				t.Log("Will assert ChainBlockNumberRequest", "value", *v)
+				require.NotNil(t, v)
+				require.GreaterOrEqual(t, len(*v), 66)
+
 			}
+
+
 
 		})
 	}
