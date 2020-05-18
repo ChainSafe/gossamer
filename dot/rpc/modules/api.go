@@ -53,12 +53,16 @@ type CoreAPI interface {
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
-	SystemName() string
-	SystemVersion() string
-	NodeName() string
 }
 
 // RuntimeAPI is the interface for runtime methods
 type RuntimeAPI interface {
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+}
+
+// SystemAPI is the interface for handling system methods
+type SystemAPI interface {
+	SystemName() string
+	SystemVersion() string
+	NodeName() string
 }

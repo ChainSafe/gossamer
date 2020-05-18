@@ -16,7 +16,6 @@
 package rpc
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
 	"net/http"
 	"reflect"
 	"strings"
@@ -27,39 +26,18 @@ import (
 // Service struct to hold rpc service data
 type Service struct {
 	rpcMethods []string // list of method names offered by rpc
-	systemInfo *types.SystemInfo
 }
 
-
 // NewService create a new instance of Service
-func NewService(si *types.SystemInfo) *Service {
+func NewService() *Service {
 	return &Service{
 		rpcMethods: []string{},
-		systemInfo: si,
 	}
 }
 
 // Methods returns list of methods available via RPC call
 func (s *Service) Methods() []string {
 	return s.rpcMethods
-}
-
-// SystemName returns the app name
-func (s *Service) SystemName() string {
-	//return s.systemInfo.SystemName
-	return ""
-}
-
-// SystemVersion returns the app version
-func (s *Service) SystemVersion() string {
-	//return s.systemInfo.SystemVersion
-	return ""
-}
-
-// NodeName returns the nodeName (chain name)
-func (s *Service) NodeName() string {
-	//return s.systemInfo.NodeName
-	return ""
 }
 
 var (

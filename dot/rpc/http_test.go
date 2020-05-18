@@ -23,23 +23,23 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/system"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
 )
 
 func TestNewHTTPServer(t *testing.T) {
-	ctx := &cli.Context{
-		App: &cli.App{
-			Name:    "gossamer",
-			Version: "0.0.1",
-		},
-	}
 	coreAPI := core.NewTestService(t, nil)
+	si := &types.SystemInfo{
+		SystemName: "gossamer",
+	}
+	sysAPI := system.NewService(si)
 	cfg := &HTTPServerConfig{
-		Modules: []string{"system"},
-		RPCPort: 8545,
-		RPCAPI:  NewService(ctx, "gssmr"),
-		CoreAPI: coreAPI,
+		Modules:   []string{"system"},
+		RPCPort:   8545,
+		RPCAPI:    NewService(),
+		CoreAPI:   coreAPI,
+		SystemAPI: sysAPI,
 	}
 
 	s := NewHTTPServer(cfg)

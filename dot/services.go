@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -152,8 +153,8 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		"mods", cfg.RPC.Modules,
 		"ws port", cfg.RPC.WSPort,
 	)
-	rpcService := rpc.NewService(nil)
-
+	rpcService := rpc.NewService()
+	systemService := system.NewService(&cfg.System)
 	rpcConfig := &rpc.HTTPServerConfig{
 		BlockAPI:            stateSrvc.Block,
 		StorageAPI:          stateSrvc.Storage,
@@ -162,6 +163,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		RuntimeAPI:          rt,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
 		RPCAPI:              rpcService,
+		SystemAPI:           systemService,
 		Host:                cfg.RPC.Host,
 		RPCPort:             cfg.RPC.Port,
 		WSEnabled:           cfg.RPC.WSEnabled,

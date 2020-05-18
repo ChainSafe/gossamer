@@ -18,16 +18,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"strconv"
 	"strings"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -344,8 +343,10 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 
 func setSystemInfoConfig(ctx *cli.Context, cfg *types.SystemInfo) {
 	// load system information
-	cfg.SystemName = ctx.App.Name
-	cfg.SystemVersion = ctx.App.Version
+	if ctx.App != nil {
+		cfg.SystemName = ctx.App.Name
+		cfg.SystemVersion = ctx.App.Version
+	}
 }
 
 // updateDotConfigFromGenesisJSON updates the configuration based on the genesis file values

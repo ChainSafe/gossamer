@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/system"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -24,20 +26,19 @@ var testCalls = []struct {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	//ctx := &cli.Context{
-	//	App: &cli.App{
-	//		Name:    "gossamer",
-	//		Version: "0.0.1",
-	//	},
-	//}
 	coreAPI := core.NewTestService(t, nil)
+	si := &types.SystemInfo{
+		SystemName: "gossamer",
+	}
+	sysAPI := system.NewService(si)
 	cfg := &HTTPServerConfig{
 		Modules:   []string{"system", "chain"},
 		RPCPort:   8545,
 		WSPort:    8546,
 		WSEnabled: true,
-		RPCAPI:    NewService(nil),
+		RPCAPI:    NewService(),
 		CoreAPI:   coreAPI,
+		SystemAPI: sysAPI,
 	}
 
 	s := NewHTTPServer(cfg)

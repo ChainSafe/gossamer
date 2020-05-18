@@ -28,7 +28,7 @@ const NOT_IMPLEMENTED = "not yet implemented"
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
-	rpcAPI     RPCAPI
+	systemAPI  SystemAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -60,22 +60,22 @@ type SystemPropertiesResponse struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI, rpc RPCAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
-		rpcAPI:     rpc,
+		systemAPI:  sys,
 	}
 }
 
 // Chain returns the runtime chain
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.rpcAPI.NodeName()
+	*res = sm.systemAPI.NodeName()
 	return nil
 }
 
 // Name returns the runtime name
 func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.rpcAPI.SystemName()
+	*res = sm.systemAPI.SystemName()
 	return nil
 }
 
@@ -93,7 +93,7 @@ func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *Syst
 
 // Version returns the runtime version
 func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.rpcAPI.SystemVersion()
+	*res = sm.systemAPI.SystemVersion()
 	return nil
 }
 

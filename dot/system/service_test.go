@@ -13,37 +13,41 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-package rpc
+
+package system
 
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewService(t *testing.T) {
-	NewService()
+func TestService_NodeName(t *testing.T) {
+	svc := newTestService()
+
+	name := svc.NodeName()
+	require.Equal(t, "gssmr", name)
 }
 
-func TestService_Methods(t *testing.T) {
-	qtySystemMethods := 7
-	qtyRPCMethods := 1
-	qtyAuthorMethods := 6
+func TestService_SystemName(t *testing.T) {
+	svc := newTestService()
 
-	rpcService := NewService()
-	sysMod := modules.NewSystemModule(nil, nil)
-	rpcService.BuildMethodNames(sysMod, "system")
-	m := rpcService.Methods()
-	require.Equal(t, qtySystemMethods, len(m)) // check to confirm quantity for methods is correct
+	name := svc.SystemName()
+	require.Equal(t, "gossamer", name)
+}
 
-	rpcMod := modules.NewRPCModule(nil)
-	rpcService.BuildMethodNames(rpcMod, "rpc")
-	m = rpcService.Methods()
-	require.Equal(t, qtySystemMethods+qtyRPCMethods, len(m))
+func TestService_SystemVersion(t *testing.T) {
+	svc := newTestService()
+	ver := svc.SystemVersion()
+	require.Equal(t, "0.0.1", ver)
+}
 
-	authMod := modules.NewAuthorModule(nil, nil, nil)
-	rpcService.BuildMethodNames(authMod, "author")
-	m = rpcService.Methods()
-	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
+func newTestService() *Service {
+	sysInfo := &types.SystemInfo{
+		SystemName:    "gossamer",
+		SystemVersion: "0.0.1",
+		NodeName:      "gssmr",
+	}
+	return NewService(sysInfo)
 }
