@@ -304,8 +304,6 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 		if header.Hash() == prevHeader.Hash() {
 			t.Fatal("could not find extrinsic in any blocks")
 		}
-
-		time.Sleep(time.Second)
 	}
 
 	// assert that the extrinsic included is the one we submitted
@@ -348,7 +346,7 @@ func TestStress_StorageChange(t *testing.T) {
 	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
 	submitExtrinsicAssertInclusion(t, nodes, ext)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// for each node, check that storage was updated accordingly
 	errs := []error{}
