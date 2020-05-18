@@ -22,9 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
-const NOT_IMPLEMENTED = "not yet implemented"
-
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
@@ -52,13 +49,6 @@ type SystemPeersResponse struct {
 	Peers []common.PeerInfo `json:"peers"`
 }
 
-//SystemPropertiesResponse struct to marshal json
-type SystemPropertiesResponse struct {
-	Ss58Format    int    `json:"ss58Format"`
-	TokenDecimals int    `json:"tokenDecimals"`
-	TokenSymbol   string `json:"tokenSymbol"`
-}
-
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
 	return &SystemModule{
@@ -80,14 +70,8 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) er
 }
 
 // Properties returns the runtime properties
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *SystemPropertiesResponse) error {
-	// TODO implement lookup of this value
-	sp := SystemPropertiesResponse{
-		Ss58Format:    2,
-		TokenDecimals: 12,
-		TokenSymbol:   "KSM",
-	}
-	*res = sp
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *interface{}) error {
+	*res = sm.systemAPI.Properties()
 	return nil
 }
 

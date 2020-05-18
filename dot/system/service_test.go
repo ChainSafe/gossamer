@@ -43,11 +43,28 @@ func TestService_SystemVersion(t *testing.T) {
 	require.Equal(t, "0.0.1", ver)
 }
 
+func TestService_Properties(t *testing.T) {
+	expected := make(map[string]interface{})
+	expected["ss58Format"] = 2
+	expected["tokenDecimals"] = 12
+	expected["tokenSymbol"] = "KSM"
+
+	svc := newTestService()
+	props := svc.Properties()
+	require.Equal(t, expected, props)
+}
+
 func newTestService() *Service {
+	sysProps := make(map[string]interface{})
+	sysProps["ss58Format"] = 2
+	sysProps["tokenDecimals"] = 12
+	sysProps["tokenSymbol"] = "KSM"
+
 	sysInfo := &types.SystemInfo{
-		SystemName:    "gossamer",
-		SystemVersion: "0.0.1",
-		NodeName:      "gssmr",
+		SystemName:       "gossamer",
+		SystemVersion:    "0.0.1",
+		NodeName:         "gssmr",
+		SystemProperties: sysProps,
 	}
 	return NewService(sysInfo)
 }

@@ -134,13 +134,8 @@ func GssmrConfig() *Config {
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
 		System: types.SystemInfo{
-			// TODO determine how to get these values from genesis.json
-			//nodeName:         gssmr.DefaultName,
-			//systemProperties: systemProperties{
-			//	Ss58Format:    0,
-			//	TokenDecimals: 0,
-			//	TokenSymbol:   "",
-			//},
+			NodeName:         gssmr.DefaultName,
+			SystemProperties: make(map[string]interface{}),
 		},
 	}
 }
@@ -178,13 +173,8 @@ func KsmccConfig() *Config {
 			WSPort:  ksmcc.DefaultRPCWSPort,
 		},
 		System: types.SystemInfo{
-			// TODO determine how to get these values from genesis.json
-			//nodeName:         ksmcc.DefaultName,
-			//systemProperties: systemProperties{
-			//	Ss58Format:    0,
-			//	TokenDecimals: 0,
-			//	TokenSymbol:   "",
-			//},
+			NodeName:         ksmcc.DefaultName,
+			SystemProperties: make(map[string]interface{}),
 		},
 	}
 }

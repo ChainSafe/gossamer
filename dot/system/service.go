@@ -44,3 +44,8 @@ func (s *Service) SystemVersion() string {
 func (s *Service) NodeName() string {
 	return s.systemInfo.NodeName
 }
+
+// Properties Get a custom set of properties as a JSON object, defined in the chain spec.
+func (s *Service) Properties() map[string]interface{} {
+	return s.systemInfo.SystemProperties
+}
