@@ -36,6 +36,7 @@ type Slot struct {
 	number   uint64
 }
 
+// NewSlot returns a new Slot
 func NewSlot(start, duration, number uint64) *Slot {
 	return &Slot{
 		start:    start,

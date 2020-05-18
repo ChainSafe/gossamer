@@ -357,7 +357,7 @@ func TestStress_StorageChange(t *testing.T) {
 		// TODO: why does finalize_block modify the storage value?
 		if bytes.Equal(res, []byte{}) {
 			t.Logf("could not get storage value from node %s", node.Key)
-			errs = append(errs, fmt.Errorf("could not get storage value from node %s\n", node.Key))
+			errs = append(errs, fmt.Errorf("could not get storage value from node %s\n", node.Key)) //nolint
 		} else {
 			t.Logf("got storage value from node %s: %v", node.Key, res)
 		}
