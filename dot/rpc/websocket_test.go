@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
-	"github.com/urfave/cli"
 )
 
 var addr = flag.String("addr", "localhost:8546", "http service address")
@@ -25,20 +24,22 @@ var testCalls = []struct {
 }
 
 func TestNewWebSocketServer(t *testing.T) {
-	ctx := &cli.Context{
-		App: &cli.App{
-			Name:    "gossamer",
-			Version: "0.0.1",
-		},
-	}
+	//ctx := &cli.Context{
+	//	App: &cli.App{
+	//		Name:    "gossamer",
+	//		Version: "0.0.1",
+	//	},
+	//}
 	coreAPI := core.NewTestService(t, nil)
 	cfg := &HTTPServerConfig{
-		Modules: []string{"system", "chain"},
-		RPCPort: 8545,
-		WSPort:  8546,
-		RPCAPI:  NewService(ctx, "gssmr"),
-		CoreAPI: coreAPI,
+		Modules:   []string{"system", "chain"},
+		RPCPort:   8545,
+		WSPort:    8546,
+		WSEnabled: true,
+		RPCAPI:    NewService(nil),
+		CoreAPI:   coreAPI,
 	}
+
 	s := NewHTTPServer(cfg)
 	err := s.Start()
 	require.Nil(t, err)
