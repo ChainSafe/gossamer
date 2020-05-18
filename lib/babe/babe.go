@@ -303,6 +303,8 @@ func (b *Session) handleSlot(slotNum uint64) {
 		return
 	}
 
+	// there is a chance that the best block header may change in the course of building the block,
+	// so let's copy it first.
 	parent := parentHeader.DeepCopy()
 
 	currentSlot := Slot{

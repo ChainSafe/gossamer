@@ -68,6 +68,7 @@ func (b *Block) Decode(in []byte) error {
 	return err
 }
 
+// DeepCopy returns a copy of the block
 func (b *Block) DeepCopy() *Block {
 	bc := make([]byte, len(*b.Body))
 	copy(bc, *b.Body)
