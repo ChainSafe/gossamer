@@ -19,6 +19,7 @@ package dot
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -39,6 +40,7 @@ type Config struct {
 	Core    CoreConfig    `toml:"core"`
 	Network NetworkConfig `toml:"network"`
 	RPC     RPCConfig     `toml:"rpc"`
+	System  types.SystemInfo
 }
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
@@ -131,6 +133,15 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
+		System: types.SystemInfo{
+			// TODO determine how to get these values from genesis.json
+			//nodeName:         gssmr.DefaultName,
+			//systemProperties: systemProperties{
+			//	Ss58Format:    0,
+			//	TokenDecimals: 0,
+			//	TokenSymbol:   "",
+			//},
+		},
 	}
 }
 
@@ -165,6 +176,15 @@ func KsmccConfig() *Config {
 			Host:    ksmcc.DefaultRPCHTTPHost,
 			Modules: ksmcc.DefaultRPCModules,
 			WSPort:  ksmcc.DefaultRPCWSPort,
+		},
+		System: types.SystemInfo{
+			// TODO determine how to get these values from genesis.json
+			//nodeName:         ksmcc.DefaultName,
+			//systemProperties: systemProperties{
+			//	Ss58Format:    0,
+			//	TokenDecimals: 0,
+			//	TokenSymbol:   "",
+			//},
 		},
 	}
 }

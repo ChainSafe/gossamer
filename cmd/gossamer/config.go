@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"strconv"
 	"strings"
 
@@ -95,6 +96,9 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
 
+	// set system info
+	setSystemInfoConfig(ctx, &cfg.System)
+
 	return cfg, nil
 }
 
@@ -111,6 +115,9 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// set init configuration values
 	setDotInitConfig(ctx, &cfg.Init)
+
+	// set system info
+	setSystemInfoConfig(ctx, &cfg.System)
 
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSON(ctx, cfg)
@@ -136,6 +143,9 @@ func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
 	setDotCoreConfig(ctx, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
+
+	// set system info
+	setSystemInfoConfig(ctx, &cfg.System)
 
 	return cfg
 }
@@ -319,6 +329,12 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		"host", cfg.Host,
 		"modules", cfg.Modules,
 	)
+}
+
+func setSystemInfoConfig(ctx *cli.Context, cfg *types.SystemInfo) {
+	// load system information
+	cfg.SystemName = ctx.App.Name
+	cfg.SystemVersion = ctx.App.Version
 }
 
 // updateDotConfigFromGenesisJSON updates the configuration based on the genesis file values

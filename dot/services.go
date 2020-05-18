@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/urfave/cli"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -146,7 +144,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime, ctx *cli.Context) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime) *rpc.HTTPServer {
 	log.Info(
 		"[dot] creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -154,7 +152,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		"mods", cfg.RPC.Modules,
 		"ws port", cfg.RPC.WSPort,
 	)
-	rpcService := rpc.NewService(ctx, cfg.Global.Name)
+	rpcService := rpc.NewService(nil)
 
 	rpcConfig := &rpc.HTTPServerConfig{
 		BlockAPI:            stateSrvc.Block,

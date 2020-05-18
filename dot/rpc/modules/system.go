@@ -52,7 +52,7 @@ type SystemPeersResponse struct {
 	Peers []common.PeerInfo `json:"peers"`
 }
 
-// SystemPropertiesResponse struct to marshal json
+//SystemPropertiesResponse struct to marshal json
 type SystemPropertiesResponse struct {
 	Ss58Format    int    `json:"ss58Format"`
 	TokenDecimals int    `json:"tokenDecimals"`

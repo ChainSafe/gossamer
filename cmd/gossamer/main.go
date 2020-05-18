@@ -154,7 +154,7 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	node, err := dot.NewNode(cfg, ks, ctx)
+	node, err := dot.NewNode(cfg, ks)
 	if err != nil {
 		log.Error("[cmd] failed to create node services", "error", err)
 		return err

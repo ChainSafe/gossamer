@@ -24,8 +24,6 @@ import (
 	"path"
 	"syscall"
 
-	"github.com/urfave/cli"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -172,7 +170,7 @@ func NodeInitialized(datadir string, expected bool) bool {
 }
 
 // NewNode creates a new dot node from a dot node configuration
-func NewNode(cfg *Config, ks *keystore.Keystore, ctx *cli.Context) (*Node, error) {
+func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	// if authority node, should have at least 1 key in keystore
 	if cfg.Core.Authority && ks.NumSr25519Keys() == 0 {
@@ -243,7 +241,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore, ctx *cli.Context) (*Node, error
 	if enabled := RPCServiceEnabled(cfg); enabled {
 
 		// create rpc service and append rpc service to node services
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt, ctx)
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 
 	} else {

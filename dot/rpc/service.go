@@ -16,34 +16,23 @@
 package rpc
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
 	"net/http"
 	"reflect"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/urfave/cli"
 )
 
 // Service struct to hold rpc service data
 type Service struct {
 	rpcMethods []string // list of method names offered by rpc
-	systemInfo *systemInfo
+	systemInfo *types.SystemInfo
 }
 
-type systemInfo struct {
-	systemName    string
-	systemVersion string
-	nodeName      string
-}
 
 // NewService create a new instance of Service
-func NewService(ctx *cli.Context, nodeName string) *Service {
-	si := &systemInfo{
-		systemName:    ctx.App.Name,
-		systemVersion: ctx.App.Version,
-		nodeName:      nodeName,
-	}
+func NewService(si *types.SystemInfo) *Service {
 	return &Service{
 		rpcMethods: []string{},
 		systemInfo: si,
@@ -57,17 +46,20 @@ func (s *Service) Methods() []string {
 
 // SystemName returns the app name
 func (s *Service) SystemName() string {
-	return s.systemInfo.systemName
+	//return s.systemInfo.SystemName
+	return ""
 }
 
 // SystemVersion returns the app version
 func (s *Service) SystemVersion() string {
-	return s.systemInfo.systemVersion
+	//return s.systemInfo.SystemVersion
+	return ""
 }
 
 // NodeName returns the nodeName (chain name)
 func (s *Service) NodeName() string {
-	return s.systemInfo.nodeName
+	//return s.systemInfo.NodeName
+	return ""
 }
 
 var (

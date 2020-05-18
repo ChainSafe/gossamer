@@ -17,6 +17,9 @@
 package modules
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/dot/rpc"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"math/big"
 	"os"
 	"path"
@@ -95,4 +98,15 @@ func TestSystemModule_Peers(t *testing.T) {
 	if len(res.Peers) != len(testPeers) {
 		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
 	}
+}
+
+func TestSystemModule_Name(t *testing.T) {
+	sysCfg := &types.SystemInfo{
+		SystemName:       "fooBar",
+	}
+	rpcService := rpc.NewService(sysCfg)
+	sys := NewSystemModule(nil, rpcService)
+	var res string
+	sys.Chain(nil, nil, &res)
+	fmt.Printf("SystemName %v\n", res)
 }
