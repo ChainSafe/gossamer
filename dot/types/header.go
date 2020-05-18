@@ -18,6 +18,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -70,6 +71,11 @@ func (bh *Header) DeepCopy() *Header {
 	}
 
 	return &safeCopyHeader
+}
+
+func (bh *Header) String() string {
+	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v Hash=%s",
+		bh.ParentHash, bh.Number, bh.StateRoot, bh.ExtrinsicsRoot, bh.Digest, bh.Hash())
 }
 
 // Hash returns the hash of the block header

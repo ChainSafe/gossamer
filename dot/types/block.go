@@ -67,3 +67,12 @@ func (b *Block) Decode(in []byte) error {
 	_, err := scale.Decode(in, b)
 	return err
 }
+
+func (b *Block) DeepCopy() *Block {
+	bc := make([]byte, len(*b.Body))
+	copy(bc, *b.Body)
+	return &Block{
+		Header: b.Header.DeepCopy(),
+		Body:   NewBody(bc),
+	}
+}

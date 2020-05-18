@@ -44,7 +44,7 @@ import (
 
 var (
 	numNodes               = 3
-	maxRetries             = 24
+	maxRetries             = 16
 	chain_getBlock         = "chain_getBlock"
 	chain_getHeader        = "chain_getHeader"
 	author_submitExtrinsic = "author_submitExtrinsic"
@@ -304,6 +304,8 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 		if header.Hash() == prevHeader.Hash() {
 			t.Fatal("could not find extrinsic in any blocks")
 		}
+
+		time.Sleep(time.Second)
 	}
 
 	// assert that the extrinsic included is the one we submitted

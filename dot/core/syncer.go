@@ -341,9 +341,12 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 	highestInResp := int64(0)
 
 	// get block header; if exists, return
-	// TODO: update blockState to include Has function
-	existingHeader, err := s.blockState.GetHeader(header.Hash())
-	if err != nil && existingHeader == nil {
+	has, err := s.blockState.HasHeader(header.Hash())
+	if err != nil {
+		return 0, err
+	}
+
+	if !has {
 		err = s.blockState.SetHeader(header)
 		if err != nil {
 			return 0, err
@@ -401,6 +404,7 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 		}
 	} else {
 		log.Info("[sync] imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		log.Debug("[sync] imported block", "header", block.Header, "body", block.Body)
 	}
 
 	// TODO: if block is from the next epoch, increment epoch
@@ -412,9 +416,11 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
 func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
-	block.Header.Digest = [][]byte{}
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
 
-	bdEnc, err := block.Encode()
+	b.Header.Digest = [][]byte{}
+	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err
 	}
