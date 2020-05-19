@@ -121,9 +121,11 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 
 // HasKey Checks if the keystore has private keys for the given public key and key type.
 func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
-	fmt.Printf("REq %v\n", req)
-	*res = false
-	return nil
+	// TODO: create separate keystores for different key types, issue #768
+	reqKey := *req
+	var err error
+	*res, err = cm.coreAPI.HasKey(reqKey[0])
+	return err
 }
 
 // PendingExtrinsics Returns all pending extrinsics

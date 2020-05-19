@@ -496,6 +496,21 @@ func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
 }
 
+// HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
+//  are issues decoding string
+func (s *Service) HasKey(pubKeyStr string) (bool, error) {
+	keyBytes, err := common.HexToBytes(pubKeyStr)
+	if err != nil {
+		return false, err
+	}
+	pubKey, err := sr25519.NewPublicKey(keyBytes)
+	if err != nil {
+		return false, err
+	}
+	key := s.keys.Get(pubKey.Address())
+	return key != nil, nil
+}
+
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 	//TODO ed, change this so that it can lookup runtime by block hash
