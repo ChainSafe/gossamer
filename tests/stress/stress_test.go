@@ -307,30 +307,39 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	var resExts []types.Extrinsic
 	i := 0
 	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
-		block := getBlock(t, nodes[idx], header.ParentHash)
-		if block == nil {
-			// couldn't get block, increment retry counter
-			i++
-			continue
-		}
+		// check all nodes, since it might have been included on any of the block producers
+		var block *types.Block
 
-		header = block.Header
-		log.Info("got block from node", "hash", header.Hash(), "node", nodes[idx].Key)
-		log.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[idx].Key)
+		for j := 0; j < len(nodes); j++ {
+			block = getBlock(t, nodes[j], header.ParentHash)
+			if block == nil {
+				// couldn't get block, increment retry counter
+				i++
+				continue
+			}
+
+			header = block.Header
+			log.Info("got block from node", "hash", header.Hash(), "node", nodes[j].Key)
+			log.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[j].Key)
+
+			if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
+				resExts, err = block.Body.AsExtrinsics()
+				require.NoError(t, err, block.Body)
+				break
+			}
+
+			if header.Hash() == prevHeader.Hash() && j == len(nodes)-1 {
+				t.Fatal("could not find extrinsic in any blocks")
+			}
+		}
 
 		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
-			resExts, err = block.Body.AsExtrinsics()
-			require.NoError(t, err, block.Body)
 			break
-		}
-
-		if header.Hash() == prevHeader.Hash() {
-			t.Fatal("could not find extrinsic in any blocks")
 		}
 	}
 
 	// assert that the extrinsic included is the one we submitted
-	require.Equal(t, 1, len(resExts), fmt.Sprintf("did not find extrinsic in block on node %s", nodes[idx].Key))
+	require.Equal(t, 1, len(resExts), "did not find extrinsic in block on any node")
 	require.Equal(t, resExts[0], types.Extrinsic(tx))
 }
 
