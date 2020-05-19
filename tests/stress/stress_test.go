@@ -275,12 +275,11 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	t.Logf("submitted transaction to node %s", nodes[idx].Key)
 
 	// wait for nodes to build block + sync, then get headers
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 	header := getChainHead(t, nodes[idx])
 	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 	// search from child -> parent blocks for extrinsic
-	time.Sleep(time.Second * 5)
 	var resExts []types.Extrinsic
 	i := 0
 	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
