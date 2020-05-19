@@ -54,7 +54,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
-	srv := NewService(st.Block, voters)
+	gs := NewService(st.Block, voters)
 	state.AddBlocksToState(t, st.Block, 3)
 
 	h, err := st.Block.BestBlockHeader()
@@ -63,8 +63,32 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		ok, err := srv.checkForEquivocation(v, vote)
+		ok, err := gs.checkForEquivocation(v, vote)
 		require.NoError(t, err)
 		require.False(t, ok)
 	}
+}
+
+func TestCheckForEquivocation_NoEquivocation_MultipleVotes(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs := NewService(st.Block, voters)
+	state.AddBlocksToState(t, st.Block, 3)
+
+	h, err := st.Block.BestBlockHeader()
+	vote := NewVoteFromHeader(h)
+	require.NoError(t, err)
+
+	voter := voters[0]
+
+	gs.votes[voter] = vote
+
+	h2, err := st.Block.GetHeader(h.ParentHash)
+	vote2 := NewVoteFromHeader(h2)
+	require.NoError(t, err)
+
+	ok, err := gs.checkForEquivocation(voter, vote2)
+	require.NoError(t, err)
+	require.False(t, ok)
 }

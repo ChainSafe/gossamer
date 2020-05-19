@@ -24,8 +24,8 @@ import (
 
 type subround = string
 
-var prevote = "prevote"
-var precommit = "precommit"
+var prevote subround = "prevote"
+var precommit subround = "precommit"
 
 // Voter represents a GRANDPA voter
 type Voter struct {

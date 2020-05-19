@@ -25,12 +25,16 @@ type Service struct {
 // TODO: determine GRANDPA initialization and entrypoint, as well as what needs to be exported.
 func NewService(blockState BlockState, voters []*Voter) *Service {
 	return &Service{
-		state:      NewState(voters, 0, 0),
-		blockState: blockState,
+		state:         NewState(voters, 0, 0),
+		blockState:    blockState,
+		subround:      prevote,
+		votes:         make(map[*Voter]*Vote),
+		equivocations: make(map[*Voter][]*Vote),
 	}
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header
+// TODO: implement this
 func (s *Service) CreateVoteMessage(header *types.Header, kp *crypto.Keypair) *VoteMessage {
 	return &VoteMessage{}
 }
@@ -83,6 +87,7 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
+// additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
 func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 	if s.equivocations[voter] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
