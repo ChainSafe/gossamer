@@ -89,25 +89,7 @@ func NewKeypairFromPrivateKeyString(in string) (*Keypair, error) {
 		return nil, err
 	}
 
-	return NewKeypairFromPrivateKeyBytes(privBytes)
-}
-
-// NewKeypairFromPrivateKeyBytes returns a Keypair given a private key byte slice
-func NewKeypairFromPrivateKeyBytes(in []byte) (*Keypair, error) {
-	priv, err := NewPrivateKey(in)
-	if err != nil {
-		return nil, err
-	}
-
-	pub, err := priv.Public()
-	if err != nil {
-		return nil, err
-	}
-
-	return &Keypair{
-		private: priv,
-		public:  pub.(*PublicKey),
-	}, nil
+	return NewKeypairFromSeed(privBytes)
 }
 
 // GenerateKeypair returns a new ed25519 keypair
