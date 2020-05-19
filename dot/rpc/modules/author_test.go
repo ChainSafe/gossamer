@@ -203,6 +203,52 @@ func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
 
 }
 
+func TestAuthorModule_HasKey(t *testing.T) {
+	auth := setupAuthModule(t, nil)
+	kr, err := keystore.NewKeyring()
+	require.Nil(t, err)
+
+	var res bool
+	req := []string{kr.Alice.Public().Hex(), "babe"}
+	err = auth.HasKey(nil, &req, &res)
+	require.NoError(t, err)
+	require.True(t, res)
+}
+
+func TestAuthorModule_HasKey_NotFound(t *testing.T) {
+	auth := setupAuthModule(t, nil)
+	kr, err := keystore.NewKeyring()
+	require.Nil(t, err)
+
+	var res bool
+	req := []string{kr.Bob.Public().Hex(), "babe"}
+	err = auth.HasKey(nil, &req, &res)
+	require.NoError(t, err)
+	require.False(t, res)
+}
+
+func TestAuthorModule_HasKey_InvalidKey(t *testing.T) {
+	auth := setupAuthModule(t, nil)
+
+	var res bool
+	req := []string{"0xaa11", "babe"}
+	err := auth.HasKey(nil, &req, &res)
+	require.EqualError(t, err, "cannot create public key: input is not 32 bytes")
+	require.False(t, res)
+}
+
+func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
+	auth := setupAuthModule(t, nil)
+	kr, err := keystore.NewKeyring()
+	require.Nil(t, err)
+
+	var res bool
+	req := []string{kr.Alice.Public().Hex(), "xxxx"}
+	err = auth.HasKey(nil, &req, &res)
+	require.EqualError(t, err, "unknown key type: xxxx")
+	require.False(t, res)
+}
+
 func newCoreService(t *testing.T) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
@@ -219,6 +265,11 @@ func newCoreService(t *testing.T) *core.Service {
 
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
+
+	// insert alice key for testing
+	kr, err := keystore.NewKeyring()
+	require.NoError(t, err)
+	ks.Insert(kr.Alice)
 
 	cfg := &core.Config{
 		Runtime:          rt,

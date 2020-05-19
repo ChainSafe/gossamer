@@ -250,3 +250,26 @@ func UnlockKeys(ks *Keystore, dir string, unlock string, password string) error 
 
 	return nil
 }
+
+// DetermineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
+//  and returns the crypto.KeyType
+func DetermineKeyType(t string) crypto.KeyType {
+	// TODO: create separate keystores for different key types, issue #768
+	switch t {
+	case "babe":
+		return crypto.Sr25519Type
+	case "gran":
+		return crypto.Sr25519Type
+	case "acco":
+		return crypto.Sr25519Type
+	case "aura":
+		return crypto.Sr25519Type
+	case "imon":
+		return crypto.Sr25519Type
+	case "audi":
+		return crypto.Sr25519Type
+	case "dumy":
+		return crypto.Sr25519Type
+	}
+	return "unknown keytype"
+}
