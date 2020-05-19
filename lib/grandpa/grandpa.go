@@ -109,7 +109,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 
 				// block producer equivocated
 				s.equivocations[voter] = []*Vote{prev, vote}
-				s.votes[voter] = nil
+				delete(s.votes, voter)
 				return true, nil
 
 			} else if err != nil {
