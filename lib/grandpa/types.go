@@ -21,24 +21,26 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 
-// Voter struct
-//nolint:structcheck
-type Voter struct {
+type subround = string
+
+var prevote = "prevote"
+var precommit = "precommit"
+
+// voter represents a GRANDPA voter
+type voter struct {
 	key     crypto.Keypair //nolint:unused
 	voterID uint64         //nolint:unused
 }
 
-// State struct
-//nolint:structcheck
-type State struct {
-	voters  []Voter //nolint:unused
-	counter uint64  //nolint:unused
-	round   uint64  //nolint:unused
+// state represents a GRANDPA state
+type state struct {
+	voters  []*voter // set of voters
+	counter uint64   // authority set ID
+	round   uint64   // voting round number
 }
 
-// Vote struct
-// nolint:structcheck
-type Vote struct {
+// vote represents a vote for a block with the given hash and number
+type vote struct {
 	hash   common.Hash //nolint:unused
 	number uint64      //nolint:unused
 }
