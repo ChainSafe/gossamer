@@ -289,7 +289,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	t.Logf("submitted transaction to node %s", nodes[idx].Key)
 
 	// wait for nodes to build block + sync, then get headers
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 10)
 
 	for i := 0; i < maxRetries; i++ {
 		exts := getPendingExtrinsics(t, nodes[idx])
@@ -369,7 +369,7 @@ func TestStress_StorageChange(t *testing.T) {
 	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
 	submitExtrinsicAssertInclusion(t, nodes, ext)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// for each node, check that storage was updated accordingly
 	errs := []error{}
