@@ -70,7 +70,11 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	// check for equivocation ie. votes for blocks that do not reside on the same branch of the blocktree
-	voter := s.state.pubkeyToVoter(pk)
+	voter, err := s.state.pubkeyToVoter(pk)
+	if err != nil {
+		return nil, err
+	}
+
 	vote := NewVote(m.message.hash, m.message.number)
 
 	equivocated, err := s.checkForEquivocation(voter, vote)
@@ -80,6 +84,11 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 
 	if equivocated {
 		return nil, ErrEquivocation
+	}
+
+	err = s.validateVote(vote)
+	if err != nil {
+		return nil, err
 	}
 
 	return vote, nil
@@ -124,6 +133,8 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 	return false, nil
 }
 
+// validateVote checks if the block that is being voted for exists, and that it is a descendant of a
+// previously finalized block.
 func (s *Service) validateVote(v *Vote) error {
 	// check if v.hash corresponds to a valid block
 	has, err := s.blockState.HasHeader(v.hash)
@@ -153,7 +164,8 @@ func NewState(voters []*Voter, setID, round uint64) *State {
 	}
 }
 
-func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) *Voter {
+// pubkeyToVoter returns a Voter given a public key
+func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	id := uint64(2^64) - 1
 
 	for i, v := range s.voters {
@@ -162,8 +174,12 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) *Voter {
 		}
 	}
 
+	if id == (2^64)-1 {
+		return nil, ErrVoterNotFound
+	}
+
 	return &Voter{
 		key:     pk,
 		voterID: id,
-	}
+	}, nil
 }

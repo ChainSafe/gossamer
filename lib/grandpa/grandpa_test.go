@@ -127,6 +127,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	require.Equal(t, 0, len(gs.votes))
 	require.Equal(t, 1, len(gs.equivocations))
+	require.Equal(t, 2, len(gs.equivocations[voter]))
 }
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
