@@ -6,9 +6,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// Grandpa represents the state of the grandpa protocol
-type Grandpa struct {
-	state         *state // previous state
+// Service represents the current state of the grandpa protocol
+type Service struct {
+	state         *state // current state
 	blockState    BlockState
 	subround      subround          // current sub-round
 	votes         map[Voter]*Vote   // votes for next state
@@ -16,9 +16,9 @@ type Grandpa struct {
 	head          common.Hash       // most recently finalized block hash
 }
 
-// NewGrandpa returns a new GRANDPA instance.
+// NewService returns a new GRANDPA Service instance.
 // TODO: determine GRANDPA initialization and entrypoint, as well as what needs to be exported.
-func NewGrandpa(blockState BlockState, voters []*Voter) *Grandpa {
+func NewService(blockState BlockState, voters []*Voter) *Service {
 	return &Grandpa{
 		state:      newState(voters, 0, 0),
 		blockState: blockState,
@@ -26,11 +26,11 @@ func NewGrandpa(blockState BlockState, voters []*Voter) *Grandpa {
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header
-func (g *Grandpa) CreateVoteMessage(header *types.Header, kp *crypto.Keypair) *VoteMessage {
+func (s *Service) CreateVoteMessage(header *types.Header, kp *crypto.Keypair) *VoteMessage {
 	return &VoteMessage{}
 }
 
-func (g *Grandpa) ValidateMessage(m *VoteMessage) (*Vote, error) {
+func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.authorityID)
 	if err != nil {
@@ -56,12 +56,12 @@ func (g *Grandpa) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	// check that setIDs match
-	if m.setID != s.setID {
+	if m.setID != s.state.setID {
 		return nil, ErrSetIDMismatch
 	}
 
 	// check for equivocation ie. votes for blocks that do not reside on the same branch of the blocktree
-	voter := s.pubkeyToVoter(pk)
+	voter := s.state.pubkeyToVoter(pk)
 	vote := NewVote(m.message.hash, m.message.number)
 
 	return vote, nil
@@ -69,16 +69,16 @@ func (g *Grandpa) ValidateMessage(m *VoteMessage) (*Vote, error) {
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
-func (g *Grandpa) checkForEquivocation(voter *Voter, vote *vote) (bool, error) {
-	if g.equivocations[voter] != nil {
-
+func (s *Service) checkForEquivocation(voter *Voter, vote *vote) (bool, error) {
+	if s.equivocations[voter] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
-		g.equivocations[voter] = append(g.equivocations[voter], vote)
+		s.equivocations[voter] = append(s.equivocations[voter], vote)
 		return true, nil
+	}
 
-	} else if g.votes[voter] != nil && g.equivocations[voter] == nil {
+	if s.votes[voter] != nil {
 		// the voter has already voted, check if they are voting for a block on the same branch
-		prev := g.votes[voter]
+		prev := s.votes[voter]
 
 		// check if block in current vote is descendent of block in previous vote
 		_, err = s.blockState.SubChain(prev.hash, vote.hash)
@@ -89,8 +89,8 @@ func (g *Grandpa) checkForEquivocation(voter *Voter, vote *vote) (bool, error) {
 			if err == blocktree.ErrDescendantNotFound {
 
 				// block producer equivocated
-				g.equivocations[voter] = []*Vote{prev, vote}
-				g.votes[voter] = nil
+				s.equivocations[voter] = []*Vote{prev, vote}
+				s.votes[voter] = nil
 				return true, nil
 
 			} else if err != nil {
