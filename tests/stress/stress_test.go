@@ -43,12 +43,13 @@ import (
 )
 
 var (
-	numNodes               = 3
-	maxRetries             = 16
-	chain_getBlock         = "chain_getBlock"
-	chain_getHeader        = "chain_getHeader"
-	author_submitExtrinsic = "author_submitExtrinsic"
-	state_getStorage       = "state_getStorage"
+	numNodes                 = 3
+	maxRetries               = 16
+	chain_getBlock           = "chain_getBlock"
+	chain_getHeader          = "chain_getHeader"
+	author_submitExtrinsic   = "author_submitExtrinsic"
+	author_pendingExtrinsics = "author_pendingExtrinsics"
+	state_getStorage         = "state_getStorage"
 )
 
 func TestMain(m *testing.M) {
@@ -80,6 +81,19 @@ func TestMain(m *testing.M) {
 // TODO: move to utils, use in RPC tests
 func endpoint(node *utils.Node) string {
 	return "http://" + utils.HOSTNAME + ":" + node.RPCPort
+}
+
+func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
+	respBody, err := utils.PostRPC(t, author_pendingExtrinsics, endpoint(node), "[]")
+	require.NoError(t, err)
+
+	t.Logf("%s", respBody)
+
+	exts := new(modules.PendingExtrinsicsResponse)
+	err = utils.DecodeRPC(t, respBody, exts)
+	require.NoError(t, err)
+
+	return *exts
 }
 
 // getStorage calls the endpoint state_getStorage
@@ -275,7 +289,17 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	t.Logf("submitted transaction to node %s", nodes[idx].Key)
 
 	// wait for nodes to build block + sync, then get headers
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 5)
+
+	for i := 0; i < maxRetries; i++ {
+		exts := getPendingExtrinsics(t, nodes[idx])
+		if len(exts) == 0 {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+
 	header := getChainHead(t, nodes[idx])
 	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
