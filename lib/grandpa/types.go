@@ -17,8 +17,9 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
 type subround = string
@@ -34,7 +35,7 @@ type Voter struct {
 
 // State represents a GRANDPA state
 type State struct {
-	voters []*voter // set of voters
+	voters []*Voter // set of voters
 	setID  uint64   // authority set ID
 	round  uint64   // voting round number
 }
@@ -46,10 +47,18 @@ type Vote struct {
 }
 
 // NewVote returns a new Vote given a block hash and number
-func NewVote(hash *common.Hash, number uint64) *Vote {
+func NewVote(hash common.Hash, number uint64) *Vote {
 	return &Vote{
 		hash:   hash,
 		number: number,
+	}
+}
+
+// NewVoteFromHeader returns a new Vote for a given header
+func NewVoteFromHeader(h *types.Header) *Vote {
+	return &Vote{
+		hash:   h.Hash(),
+		number: uint64(h.Number.Int64()),
 	}
 }
 
