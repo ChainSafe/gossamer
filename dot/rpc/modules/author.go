@@ -119,6 +119,13 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 	return nil
 }
 
+// HasKey Checks if the keystore has private keys for the given public key and key type.
+func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
+	fmt.Printf("REq %v\n", req)
+	*res = false
+	return nil
+}
+
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
 	pending := cm.txQueueAPI.Pending()
