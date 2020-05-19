@@ -26,32 +26,58 @@ type subround = string
 var prevote = "prevote"
 var precommit = "precommit"
 
-// voter represents a GRANDPA voter
-type voter struct {
-	key     crypto.Keypair //nolint:unused
-	voterID uint64         //nolint:unused
+// Voter represents a GRANDPA voter
+type Voter struct {
+	key     *ed25519.PublicKey
+	voterID uint64 //nolint:unused
 }
 
-// state represents a GRANDPA state
-type state struct {
-	voters  []*voter // set of voters
-	counter uint64   // authority set ID
-	round   uint64   // voting round number
+// State represents a GRANDPA state
+type State struct {
+	voters []*voter // set of voters
+	setID  uint64   // authority set ID
+	round  uint64   // voting round number
 }
 
-// vote represents a vote for a block with the given hash and number
-type vote struct {
-	hash   common.Hash //nolint:unused
-	number uint64      //nolint:unused
+// Vote represents a vote for a block with the given hash and number
+type Vote struct {
+	hash   common.Hash
+	number uint64
 }
 
-// VoteMessage struct
-//nolint:structcheck
+// NewVote returns a new Vote given a block hash and number
+func NewVote(hash *common.Hash, number uint64) *Vote {
+	return &Vote{
+		hash:   hash,
+		number: number,
+	}
+}
+
+// FullVote represents a vote with additional information about the state
+// this is encoded and signed and the signature is included in SignedMessage
+type FullVote struct {
+	stage byte
+	vote  *Vote
+	round uint64
+	setID uint64
+}
+
+// VoteMessage represents a network-level vote message
+// https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/gossip.rs#L336
 type VoteMessage struct {
-	round   uint64   //nolint:unused
-	counter uint64   //nolint:unused
-	pubkey  [32]byte //nolint:unused // ed25519 public key
-	stage   byte     //nolint:unused  // 0 for pre-vote, 1 for pre-commit
+	setID   uint64
+	round   uint64
+	stage   byte // 0 for pre-vote, 1 for pre-commit
+	message SignedMessage
+}
+
+// SignedMessage represents a block hash and number signed by an authority
+// https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/lib.rs#L146
+type SignedMessage struct {
+	hash        common.Hash
+	number      uint64
+	signature   [64]byte // ed25519.SignatureLength
+	authorityID [32]byte // ed25519.PublicKeyLength
 }
 
 // Justification struct
