@@ -76,7 +76,7 @@ type Ed25519Keyring struct {
 	Fred    *ed25519.Keypair
 	George  *ed25519.Keypair
 	Heather *ed25519.Keypair
-	Ian     *sr25519.Keypair
+	Ian     *ed25519.Keypair
 
 	Keys []*ed25519.Keypair
 }
