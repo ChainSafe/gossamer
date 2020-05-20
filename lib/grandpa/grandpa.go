@@ -100,7 +100,7 @@ func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
 	votes := s.getDirectVotes()
 	blocks := []Vote{}
 
-	for v, _ := range votes {
+	for v := range votes {
 		total, err := s.getTotalVotesForBlock(v.hash)
 		if err != nil {
 			return nil, err
