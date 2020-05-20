@@ -43,7 +43,7 @@ func newTestVoters(t *testing.T) []*Voter {
 	for i, k := range kr.Keys {
 		voters = append(voters, &Voter{
 			key:     k.Public().(*ed25519.PublicKey),
-			voterID: uint64(i),
+			id: uint64(i),
 		})
 	}
 
@@ -54,10 +54,12 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
-	gs := NewService(st.Block, voters)
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
 	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
 
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
@@ -73,16 +75,19 @@ func TestCheckForEquivocation_NoEquivocation_MultipleVotes(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
-	gs := NewService(st.Block, voters)
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
 	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.votes[voter] = vote
+	gs.votes[voter.key.AsBytes()] = vote
 
 	h2, err := st.Block.GetHeader(h.ParentHash)
 	vote2 := NewVoteFromHeader(h2)
@@ -101,7 +106,9 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
-	gs := NewService(st.Block, voters)
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
 	var branches []*types.Header
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 3)
@@ -111,12 +118,14 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	}
 
 	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.votes[voter] = vote
+	gs.votes[voter.key.AsBytes()] = vote
 
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
@@ -127,14 +136,16 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	require.Equal(t, 0, len(gs.votes))
 	require.Equal(t, 1, len(gs.equivocations))
-	require.Equal(t, 2, len(gs.equivocations[voter]))
+	require.Equal(t, 2, len(gs.equivocations[voter.key.AsBytes()]))
 }
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
-	gs := NewService(st.Block, voters)
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
 	var branches []*types.Header
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
@@ -144,12 +155,14 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	}
 
 	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
 	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.votes[voter] = vote
+	gs.votes[voter.key.AsBytes()] = vote
 
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
@@ -170,5 +183,119 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	require.Equal(t, 0, len(gs.votes))
 	require.Equal(t, 1, len(gs.equivocations))
-	require.Equal(t, 3, len(gs.equivocations[voter]))
+	require.Equal(t, 3, len(gs.equivocations[voter.key.AsBytes()]))
+}
+
+func TestValidateMessage_Valid(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 3)
+
+	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	require.NoError(t, err)
+
+	vote, err := gs.ValidateMessage(msg)
+	require.NoError(t, err)
+	require.Equal(t, h.Hash(), vote.hash)
+}
+
+func TestValidateMessage_InvalidSignature(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 3)
+
+	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	require.NoError(t, err)
+
+	msg.message.signature[63] = 0
+
+	_, err = gs.ValidateMessage(msg)
+	require.Equal(t, err, ErrInvalidSignature)
+}
+
+func TestValidateMessage_SetIDMismatch(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 3)
+
+	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	require.NoError(t, err)
+
+	gs.state.setID = 1
+
+	_, err = gs.ValidateMessage(msg)
+	require.Equal(t, err, ErrSetIDMismatch)
+}
+
+func TestValidateMessage_Equivocation(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	for {
+		_, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) != 0 {
+			break
+		}
+	}
+
+	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	vote := NewVoteFromHeader(h)
+	require.NoError(t, err)
+
+	voter := voters[0]
+
+	gs.votes[voter.key.AsBytes()] = vote
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+	
+	msg, err := gs.CreateVoteMessage(branches[0], kr.Alice)
+	require.NoError(t, err)	
+
+	_, err = gs.ValidateMessage(msg)
+	require.Equal(t, ErrEquivocation, err, gs.votes)
+}
+
+func TestPubkeyToVoter(t *testing.T) {
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	state := NewState(voters, 0, 0)
+	voter, err := state.pubkeyToVoter(kr.Alice.Public().(*ed25519.PublicKey))
+	require.NoError(t, err)
+	require.Equal(t, voters[0], voter)
 }

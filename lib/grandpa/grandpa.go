@@ -16,27 +16,67 @@ type Service struct {
 	state         *State // current state
 	blockState    BlockState
 	subround      subround           // current sub-round
-	votes         map[*Voter]*Vote   // votes for next state
-	equivocations map[*Voter][]*Vote // equivocatory votes for this stage
+	votes         map[ed25519.PublicKeyBytes]*Vote   // votes for next state
+	equivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for this stage
 	head          common.Hash        // most recently finalized block hash
 }
 
 // NewService returns a new GRANDPA Service instance.
-// TODO: determine GRANDPA initialization and entrypoint, as well as what needs to be exported.
-func NewService(blockState BlockState, voters []*Voter) *Service {
+// TODO: determine what needs to be exported.
+func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
+	head, err := blockState.GetFinalizedHead()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		state:         NewState(voters, 0, 0),
 		blockState:    blockState,
 		subround:      prevote,
-		votes:         make(map[*Voter]*Vote),
-		equivocations: make(map[*Voter][]*Vote),
-	}
+		votes:         make(map[ed25519.PublicKeyBytes]*Vote),
+		equivocations: make(map[ed25519.PublicKeyBytes][]*Vote),
+		head: 	head.Hash(),
+	}, nil
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header
-// TODO: implement this
-func (s *Service) CreateVoteMessage(header *types.Header, kp *crypto.Keypair) *VoteMessage {
-	return &VoteMessage{}
+func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*VoteMessage, error) {
+	vote := NewVoteFromHeader(header)
+
+	msg, err := scale.Encode(&FullVote{
+		stage: s.subround,
+		vote:  vote,
+		round: s.state.round,
+		setID: s.state.setID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := kp.Sign(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	sb := [64]byte{}
+	copy(sb[:], sig)
+
+	ab := [32]byte{}
+	copy(ab[:], kp.Public().Encode())
+
+	sm := &SignedMessage{
+		hash: vote.hash,
+		number: vote.number,
+		signature: sb,
+		authorityID: ab,
+	}
+
+	return &VoteMessage{
+		setID: s.state.setID,
+		round: s.state.round,
+		stage: s.subround,
+		message: sm,
+	}, nil
 }
 
 func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
@@ -91,6 +131,8 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
+	s.votes[pk.AsBytes()] = vote
+
 	return vote, nil
 }
 
@@ -98,15 +140,17 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
 func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
-	if s.equivocations[voter] != nil {
+	v := voter.key.AsBytes()
+
+	if s.equivocations[v] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
-		s.equivocations[voter] = append(s.equivocations[voter], vote)
+		s.equivocations[v] = append(s.equivocations[v], vote)
 		return true, nil
 	}
 
-	if s.votes[voter] != nil {
+	if s.votes[v] != nil {
 		// the voter has already voted, check if they are voting for a block on the same branch
-		prev := s.votes[voter]
+		prev := s.votes[v]
 
 		// check if block in current vote is descendent of block in previous vote
 		_, err := s.blockState.SubChain(prev.hash, vote.hash)
@@ -117,8 +161,8 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 			if err == blocktree.ErrDescendantNotFound {
 
 				// block producer equivocated
-				s.equivocations[voter] = []*Vote{prev, vote}
-				delete(s.votes, voter)
+				s.equivocations[v] = []*Vote{prev, vote}
+				delete(s.votes, v)
 				return true, nil
 
 			} else if err != nil {
@@ -180,6 +224,6 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 
 	return &Voter{
 		key:     pk,
-		voterID: id,
+		id: id,
 	}, nil
 }

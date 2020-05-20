@@ -22,15 +22,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-type subround = string
+type subround = byte
 
-var prevote subround = "prevote"
-var precommit subround = "precommit"
+var prevote subround = 0
+var precommit subround = 1 //nolint
 
 // Voter represents a GRANDPA voter
 type Voter struct {
 	key     *ed25519.PublicKey
-	voterID uint64 //nolint:unused
+	id uint64 //nolint:unused
 }
 
 // State represents a GRANDPA state
@@ -77,7 +77,7 @@ type VoteMessage struct {
 	setID   uint64
 	round   uint64
 	stage   byte // 0 for pre-vote, 1 for pre-commit
-	message SignedMessage
+	message *SignedMessage
 }
 
 // SignedMessage represents a block hash and number signed by an authority
@@ -86,7 +86,7 @@ type SignedMessage struct {
 	hash        common.Hash
 	number      uint64
 	signature   [64]byte // ed25519.SignatureLength
-	authorityID [32]byte // ed25519.PublicKeyLength
+	authorityID ed25519.PublicKeyBytes
 }
 
 // Justification struct

@@ -51,6 +51,9 @@ type PrivateKey ed25519.PrivateKey
 // PublicKey is the ed25519 Public Key
 type PublicKey ed25519.PublicKey
 
+// PublicKeyBytes is an encoded ed25519 public key
+type PublicKeyBytes [32]byte
+
 // NewKeypair returns an Ed25519 keypair given a ed25519 private key
 func NewKeypair(priv ed25519.PrivateKey) *Keypair {
 	pubkey := PublicKey(priv.Public().(ed25519.PublicKey))
@@ -219,4 +222,11 @@ func (k *PublicKey) Hex() string {
 	enc := k.Encode()
 	h := hex.EncodeToString(enc)
 	return "0x" + h
+}
+
+// AsBytes returns the public key as PublicKeyBytes
+func (k *PublicKey) AsBytes() PublicKeyBytes {
+	b := [PublicKeyLength]byte{}
+	copy(b[:], k.Encode())
+	return b
 }

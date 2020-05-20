@@ -280,6 +280,17 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	return types.NewBody(data), nil
 }
 
+// GetFinalizedHead returns the latest finalized block header
+// TODO: relies on GRANDPA implementation. currently returns genesis header.
+func (bs *BlockState) GetFinalizedHead() (*types.Header, error) {
+	b, err := bs.GetBlockByNumber(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Header, nil
+}
+
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	bs.lock.Lock()
