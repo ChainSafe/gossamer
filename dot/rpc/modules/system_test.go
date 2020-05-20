@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"
 	"path"
@@ -95,4 +96,15 @@ func TestSystemModule_Peers(t *testing.T) {
 	if len(res.Peers) != len(testPeers) {
 		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
 	}
+}
+
+func TestSystemModule_NodeRoles(t *testing.T) {
+	net := newNetworkService(t)
+	sys := NewSystemModule(net, nil)
+	expected := []interface{}{"Full"}
+
+	var res []interface{}
+	err := sys.NodeRoles(nil, nil, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
 }

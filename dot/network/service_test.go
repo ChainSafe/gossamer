@@ -17,6 +17,7 @@
 package network
 
 import (
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"reflect"
 	"strings"
@@ -258,4 +259,16 @@ func TestHandleMessage_BlockResponse(t *testing.T) {
 	case <-time.After(TestMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
+}
+
+func TestService_NodeRoles(t *testing.T) {
+	dataDir := utils.NewTestDataDir(t, "node")
+	cfg := &Config{
+		DataDir: dataDir,
+		Roles:   1,
+	}
+	svc := createTestService(t, cfg)
+
+	role := svc.NodeRoles()
+	require.Equal(t, cfg.Roles, role)
 }
