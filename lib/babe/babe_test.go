@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"github.com/stretchr/testify/require"
 	"math"
 	"math/big"
 	"reflect"
@@ -25,6 +24,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
