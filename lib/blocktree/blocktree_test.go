@@ -322,14 +322,11 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 	// Create tree with depth 4 (with 4 nodes)
 	bt, hashes := createFlatTree(t, 4)
 
-	// Check leaf is descendant of root
-	leaf := bt.getNode(hashes[3])
-	if !leaf.isDescendantOf(bt.head) {
-		t.Error("failed to verify leaf is descendant of root")
-	}
+	isDescendant, err := bt.IsDescendantOf(bt.head.hash, hashes[3])
+	require.NoError(t, err)
+	require.True(t, isDescendant)
 
-	// Verify the inverse relationship does not hold
-	if bt.head.isDescendantOf(leaf) {
-		t.Error("root should not be descendant of anything")
-	}
+	isDescendant, err = bt.IsDescendantOf(hashes[3], bt.head.hash)
+	require.NoError(t, err)
+	require.False(t, isDescendant)
 }
