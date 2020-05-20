@@ -126,7 +126,7 @@ func LoadKeystore(key string) (*Keystore, error) {
 
 	if key != "" {
 
-		kr, err := NewKeyring()
+		kr, err := NewSr25519Keyring()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create keyring")
 		}

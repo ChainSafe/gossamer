@@ -24,7 +24,7 @@ import (
 )
 
 func TestNewKeyring(t *testing.T) {
-	kr, err := NewKeyring()
+	kr, err := NewSr25519Keyring()
 	if err != nil {
 		t.Fatal(err)
 	}
