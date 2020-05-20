@@ -318,3 +318,65 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 		t.Fatalf("Fail: did not get all expected hashes got %v expected %v", hashes, expected)
 	}
 }
+
+func TestBlockTree_HighestCommonPredecessor(t *testing.T) {
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	var bt *BlockTree
+	var leaves []common.Hash
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(header, 8, nil)
+		leaves = bt.Leaves()
+		if len(leaves) == 2 {
+			break
+		}
+	}
+
+	expected := branches[0].hash
+
+	a := leaves[0]
+	b := leaves[1]
+
+	p, err := bt.HighestCommonPredecessor(a, b)
+	require.NoError(t, err)
+	require.Equal(t, expected, p)
+}
+
+func TestBlockTree_HighestCommonPredecessor_SameNode(t *testing.T) {
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	bt, _ := createTestBlockTree(header, 8, nil)
+	leaves := bt.Leaves()
+
+	a := leaves[0]
+
+	p, err := bt.HighestCommonPredecessor(a, a)
+	require.NoError(t, err)
+	require.Equal(t, a, p)
+}
+
+func TestBlockTree_HighestCommonPredecessor_SameChain(t *testing.T) {
+	header := &types.Header{
+		ParentHash: zeroHash,
+		Number:     big.NewInt(0),
+	}
+
+	bt, _ := createTestBlockTree(header, 8, nil)
+	leaves := bt.Leaves()
+
+	a := leaves[0]
+	b := bt.getNode(a).parent.hash
+
+	// b is a's parent, so their highest common predecessor is b.
+	p, err := bt.HighestCommonPredecessor(a, b)
+	require.NoError(t, err)
+	require.Equal(t, b, p)
+}

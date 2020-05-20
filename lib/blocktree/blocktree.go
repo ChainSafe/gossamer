@@ -205,3 +205,31 @@ func (bt *BlockTree) deepestLeaf() *node { //nolint
 func (bt *BlockTree) DeepestBlockHash() Hash {
 	return bt.leaves.deepestLeaf().hash
 }
+
+// Leaves returns the leaves of the blocktree as an array
+func (bt *BlockTree) Leaves() []common.Hash {
+	lm := bt.leaves.toMap()
+	la := make([]common.Hash, len(lm))
+	i := 0
+
+	for k := range lm {
+		la[i] = k
+		i++
+	}
+
+	return la
+}
+
+// HighestCommonPredecessor returns the highest block that is a predecessor to both a and b
+func (bt *BlockTree) HighestCommonPredecessor(a, b common.Hash) (Hash, error) {
+	an := bt.getNode(a)
+	if an == nil {
+		return common.Hash{}, ErrNodeNotFound
+	}
+	bn := bt.getNode(b)
+	if bn == nil {
+		return common.Hash{}, ErrNodeNotFound
+	}
+
+	return an.highestCommonPredecessor(bn).hash, nil
+}
