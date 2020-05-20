@@ -128,7 +128,7 @@ func LoadKeystore(key string) (*Keystore, error) {
 
 		kr, err := NewSr25519Keyring()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create keyring")
+			return nil, fmt.Errorf("failed to create keyring: %s", err)
 		}
 
 		switch strings.ToLower(key) {
@@ -148,6 +148,8 @@ func LoadKeystore(key string) (*Keystore, error) {
 			ks.Insert(kr.George)
 		case "heather":
 			ks.Insert(kr.Heather)
+		case "ian":
+			ks.Insert(kr.Ian)
 		default:
 			return nil, fmt.Errorf("invalid test key provided")
 		}
