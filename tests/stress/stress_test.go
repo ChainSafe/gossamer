@@ -331,7 +331,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 			}
 		}
 
-		if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
+		if block != nil && block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
 			break
 		}
 	}
