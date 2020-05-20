@@ -64,7 +64,7 @@ type Session struct {
 	epochDone *sync.WaitGroup    // lets core know when the epoch is done
 	kill      <-chan struct{}    // kill session if this is closed
 	lock      sync.Mutex
-	closed    uint32
+	started   uint32
 
 	// Chain synchronization; session is locked for block building while syncing
 	syncLock *sync.Mutex
@@ -116,9 +116,9 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		syncLock:         cfg.SyncLock,
 	}
 
-	canLock := atomic.CompareAndSwapUint32(&babeSession.closed, 0, 1)
+	canLock := atomic.CompareAndSwapUint32(&babeSession.started, 0, 1)
 	if !canLock {
-		panic("[core] Error when trying to change Service status from stopped to started.")
+		return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
 	}
 
 	var err error
@@ -163,23 +163,29 @@ func (b *Session) Start() error {
 
 	go b.invokeBlockAuthoring()
 
-	go b.checkForKill()
+	go func() {
+		err := b.checkForKill()
+		if err != nil {
+			log.Error("error running checkForKill", "error", err)
+		}
+	}()
 
 	return nil
 }
 
-func (b *Session) stop() {
+func (b *Session) stop() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if atomic.LoadUint32(&b.closed) == uint32(1) {
-		canUnlock := atomic.CompareAndSwapUint32(&b.closed, 1, 0)
+	if atomic.LoadUint32(&b.started) == uint32(1) {
+		canUnlock := atomic.CompareAndSwapUint32(&b.started, 1, 0)
 		if !canUnlock {
-			panic("[babe] Error when trying to change Service status from started to stopped.")
+			return errors.New("[babe] Error when trying to change Service status from started to stopped")
 		}
 		close(b.newBlocks)
 		b.epochDone.Done()
 	}
+	return nil
 }
 
 // Descriptor returns the NextEpochDescriptor for the current session.
@@ -193,7 +199,7 @@ func (b *Session) Descriptor() *NextEpochDescriptor {
 func (b *Session) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if atomic.LoadUint32(&b.closed) == uint32(0) {
+	if atomic.LoadUint32(&b.started) == uint32(0) {
 		return errors.New("session has been stopped")
 	}
 	b.newBlocks <- msg
@@ -237,16 +243,18 @@ func isClosed(ch <-chan struct{}) bool {
 	return false
 }
 
-func (b *Session) checkForKill() {
+func (b *Session) checkForKill() error {
 	if isClosed(b.kill) {
-		b.stop()
+		err := b.stop()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
-func (b *Session) isClosed() bool {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	return atomic.LoadUint32(&b.closed) == uint32(0)
+func (b *Session) isStopped() bool {
+	return atomic.LoadUint32(&b.started) == uint32(0)
 }
 
 func (b *Session) invokeBlockAuthoring() {
@@ -294,7 +302,7 @@ func (b *Session) invokeBlockAuthoring() {
 		b.syncLock.Lock()
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
-			if b.isClosed() {
+			if b.isStopped() {
 				return
 			}
 
@@ -307,7 +315,11 @@ func (b *Session) invokeBlockAuthoring() {
 		b.syncLock.Unlock()
 	}
 
-	b.stop()
+	err = b.stop()
+	if err != nil {
+		log.Error("[babe] block authoring", "error", err)
+		return
+	}
 }
 
 func (b *Session) handleSlot(slotNum uint64) {

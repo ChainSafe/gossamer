@@ -68,7 +68,7 @@ type Service struct {
 	epochDone *sync.WaitGroup        // receive from this channel when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      *sync.Mutex
-	closed    uint32
+	started   uint32
 
 	// Block synchronization
 	blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
@@ -161,7 +161,7 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 
 		// thread safe way to change closed status
-		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
+		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
 		if !canLock {
 			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
 		}
@@ -217,7 +217,7 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 
 		// thread safe way to change closed status
-		canLock := atomic.CompareAndSwapUint32(&srv.closed, 0, 1)
+		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
 		if !canLock {
 			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
 		}
@@ -274,7 +274,11 @@ func (s *Service) Start() error {
 	go s.receiveMessages()
 
 	// start syncer
-	s.syncer.Start()
+	err := s.syncer.Start()
+	if err != nil {
+		log.Error("[core] could not start syncer", "error", err)
+		return err
+	}
 
 	if s.isBabeAuthority {
 		// monitor babe session for epoch changes
@@ -298,7 +302,7 @@ func (s *Service) Stop() error {
 
 	// close channel to network service and BABE service
 	// thread safe way to check closed status
-	if atomic.LoadUint32(&s.closed) == uint32(1) {
+	if atomic.LoadUint32(&s.started) == uint32(1) {
 		if s.msgSend != nil {
 			close(s.msgSend)
 		}
@@ -308,7 +312,7 @@ func (s *Service) Stop() error {
 
 		defer func() {
 			// thread safe way to change closed status
-			canUnlock := atomic.CompareAndSwapUint32(&s.closed, 1, 0)
+			canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
 			if !canUnlock {
 				panic("[core] Error when trying to change Service status from started to stopped.")
 			}
@@ -316,7 +320,10 @@ func (s *Service) Stop() error {
 
 	}
 
-	s.syncer.Stop()
+	err := s.syncer.Stop()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -333,7 +340,7 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// thread safe way to check closed status
-	if atomic.LoadUint32(&s.closed) == uint32(0) {
+	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
 	s.msgSend <- msg
@@ -344,7 +351,7 @@ func (s *Service) safeBabeKill() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// thread safe way to check closed status
-	if atomic.LoadUint32(&s.closed) == uint32(0) {
+	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
 	close(s.babeKill)

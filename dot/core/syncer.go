@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"math/big"
 	mrand "math/rand"
 	"sync"
@@ -124,23 +125,26 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 }
 
 // Start begins the syncer
-func (s *Syncer) Start() {
+func (s *Syncer) Start() error {
 	// thread safe change stopped to 1
 	canLock := atomic.CompareAndSwapUint32(&s.stopped, 0, 1)
 	if !canLock {
-		panic("[sync] Error when trying to change Syncer from stopped to started.")
+		return errors.New("[sync] Error when trying to change Syncer from stopped to started")
 	}
 	go s.watchForBlocks()
 	go s.watchForResponses()
+
+	return nil
 }
 
 // Stop stops the syncer
-func (s *Syncer) Stop() {
+func (s *Syncer) Stop() error {
 	// stop goroutines
 	canUnlock := atomic.CompareAndSwapUint32(&s.stopped, 1, 0)
 	if !canUnlock {
-		panic("[sync] Error when trying to change Syncer from started to stopped.")
+		return errors.New("[sync] Error when trying to change Syncer from started to stopped")
 	}
+	return nil
 }
 
 func (s *Syncer) watchForBlocks() {

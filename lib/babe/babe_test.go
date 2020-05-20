@@ -17,12 +17,14 @@
 package babe
 
 import (
+	"github.com/stretchr/testify/require"
 	"math"
 	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -132,11 +134,23 @@ func TestKill(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if atomic.LoadUint32(&babesession.started) == uint32(0) {
+		t.Fatalf("did not start session")
+	}
+
 	close(killChan)
 
-	if atomic.LoadUint32(&babesession.closed) == uint32(0) {
-		t.Fatalf("did not kill session")
+	babeSessionKilled := true
+	for i := 0; i < 10; i++ {
+		time.Sleep(1 * time.Second)
+		if atomic.LoadUint32(&babesession.started) == uint32(1) {
+			babeSessionKilled = false
+		} else {
+			break
+		}
 	}
+
+	require.True(t, babeSessionKilled, "did not kill session")
 }
 
 func TestCalculateThreshold(t *testing.T) {

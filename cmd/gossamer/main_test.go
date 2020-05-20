@@ -255,25 +255,30 @@ func TestGossamerCommand(t *testing.T) {
 		require.Contains(t, string(stdout), m)
 	}
 
-	// start
-	gossamer = runTestGossamer(t,
-		"--port", strconv.Itoa(basePort),
-		"--key", "alice",
-		"--datadir", tempDir,
-		"--roles", "4",
-	)
+	for i := 0; i < 10; i++ {
 
-	time.Sleep(60 * time.Second)
+		t.Log("Going to gossamer cmd", "iteration", i)
 
-	stdout, stderr = gossamer.GetOutput()
-	log.Println("Run gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+		// start
+		gossamer = runTestGossamer(t,
+			"--port", strconv.Itoa(basePort),
+			"--key", "alice",
+			"--datadir", tempDir,
+			"--roles", "4",
+		)
 
-	expectedMessages = []string{
-		"SIGABRT: abort",
-	}
+		time.Sleep(10 * time.Second)
 
-	for _, m := range expectedMessages {
-		require.NotContains(t, string(stderr), m)
+		stdout, stderr = gossamer.GetOutput()
+		log.Println("Run gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+
+		expectedMessages = []string{
+			"SIGABRT: abort",
+		}
+
+		for _, m := range expectedMessages {
+			require.NotContains(t, string(stderr), m)
+		}
 	}
 
 }
