@@ -8,6 +8,7 @@ import (
 // BlockState is the interface required by GRANDPA into the block state
 type BlockState interface {
 	HasHeader(hash common.Hash) (bool, error)
+	GetHeader(hash common.Hash) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	GetFinalizedHead() (*types.Header, error)
 	Leaves() []common.Hash

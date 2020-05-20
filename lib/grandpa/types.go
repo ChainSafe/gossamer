@@ -62,6 +62,24 @@ func NewVoteFromHeader(h *types.Header) *Vote {
 	}
 }
 
+func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
+	has, err := blockState.HasHeader(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if !has {
+		return nil, ErrBlockDoesNotExist
+	}
+
+	h, err := blockState.GetHeader(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewVoteFromHeader(h), nil
+}
+
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {

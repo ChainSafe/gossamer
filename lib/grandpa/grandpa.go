@@ -135,7 +135,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 		return blocks[0], nil
 	}
 
-	// if there are two, find the greatest common predecessor and return it
+	// TODO: if there are two, find the greatest common predecessor and return it
 	highest := Vote{
 		number: uint64(0),
 	}

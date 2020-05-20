@@ -490,20 +490,22 @@ func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
 	gs, err := NewService(st.Block, voters)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	var chain []*types.Header
-
+	var leaves []common.Hash
 	for {
-		chain, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) > 1 {
+		state.AddBlocksToState(t, st.Block, 8)
+		leaves = gs.blockState.Leaves()
+		if len(leaves) > 2 {
 			break
 		}
 	}
 
 	// 1/3 voters each vote for a block on a different chain
-	voteA := NewVoteFromHeader(chain[7])
-	voteB := NewVoteFromHeader(branches[0])
-	voteC := NewVoteFromHeader(branches[1])
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
 
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
@@ -519,6 +521,96 @@ func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
 
 	blocks, err := gs.getPossiblePreVotedBlocks()
 	require.NoError(t, err)
-	require.Equal(t, 1, len(blocks))
-	require.Equal(t, *voteB, blocks[0])
+	// TODO: this should return the highest common predecessor
+	require.Equal(t, 0, len(blocks))
+}
+
+func TestGetPossiblePreVotedBlocks_OneThirdEquivocating(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var leaves []common.Hash
+	for {
+		state.AddBlocksToState(t, st.Block, 8)
+		leaves = gs.blockState.Leaves()
+		if len(leaves) > 1 {
+			break
+		}
+	}
+
+	// 1/3 of voters equivocate; ie. vote for both blocks
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.equivocations[voter] = []*Vote{voteA, voteB}
+		}
+	}
+
+	blocks, err := gs.getPossiblePreVotedBlocks()
+	require.NoError(t, err)
+	require.Equal(t, 2, len(blocks))
+}
+
+func TestGetPossiblePreVotedBlocks_MoreThanOneThirdEquivocating(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var leaves []common.Hash
+	for {
+		state.AddBlocksToState(t, st.Block, 8)
+		leaves = gs.blockState.Leaves()
+		if len(leaves) > 2 {
+			break
+		}
+	}
+
+	// this tests a byzantine case where >1/3 of voters equivocate; ie. vote for multiple blocks
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 2 {
+			// 2 votes for A
+			gs.votes[voter] = voteA
+		} else if i < 4 {
+			// 2 votes for B
+			gs.votes[voter] = voteB
+		} else if i < 5 {
+			// 1 vote for C
+			gs.votes[voter] = voteC
+		} else {
+			// 4 equivocators
+			gs.equivocations[voter] = []*Vote{voteA, voteB}
+		}
+	}
+
+	blocks, err := gs.getPossiblePreVotedBlocks()
+	require.NoError(t, err)
+	require.Equal(t, 2, len(blocks))
 }
