@@ -15,10 +15,10 @@ import (
 type Service struct {
 	state         *State // current state
 	blockState    BlockState
-	subround      subround           // current sub-round
+	subround      subround                           // current sub-round
 	votes         map[ed25519.PublicKeyBytes]*Vote   // votes for next state
 	equivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for this stage
-	head          common.Hash        // most recently finalized block hash
+	head          common.Hash                        // most recently finalized block hash
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -35,7 +35,7 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 		subround:      prevote,
 		votes:         make(map[ed25519.PublicKeyBytes]*Vote),
 		equivocations: make(map[ed25519.PublicKeyBytes][]*Vote),
-		head: 	head.Hash(),
+		head:          head.Hash(),
 	}, nil
 }
 
@@ -65,16 +65,16 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 	copy(ab[:], kp.Public().Encode())
 
 	sm := &SignedMessage{
-		hash: vote.hash,
-		number: vote.number,
-		signature: sb,
+		hash:        vote.hash,
+		number:      vote.number,
+		signature:   sb,
 		authorityID: ab,
 	}
 
 	return &VoteMessage{
-		setID: s.state.setID,
-		round: s.state.round,
-		stage: s.subround,
+		setID:   s.state.setID,
+		round:   s.state.round,
+		stage:   s.subround,
 		message: sm,
 	}, nil
 }
@@ -223,7 +223,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 	}
 
 	return &Voter{
-		key:     pk,
-		id: id,
+		key: pk,
+		id:  id,
 	}, nil
 }

@@ -29,8 +29,8 @@ var precommit subround = 1 //nolint
 
 // Voter represents a GRANDPA voter
 type Voter struct {
-	key     *ed25519.PublicKey
-	id uint64 //nolint:unused
+	key *ed25519.PublicKey
+	id  uint64 //nolint:unused
 }
 
 // State represents a GRANDPA state

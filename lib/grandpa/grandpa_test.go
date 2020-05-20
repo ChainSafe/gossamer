@@ -42,8 +42,8 @@ func newTestVoters(t *testing.T) []*Voter {
 	voters := []*Voter{}
 	for i, k := range kr.Keys {
 		voters = append(voters, &Voter{
-			key:     k.Public().(*ed25519.PublicKey),
-			id: uint64(i),
+			key: k.Public().(*ed25519.PublicKey),
+			id:  uint64(i),
 		})
 	}
 
@@ -281,12 +281,63 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
-	
+
 	msg, err := gs.CreateVoteMessage(branches[0], kr.Alice)
-	require.NoError(t, err)	
+	require.NoError(t, err)
 
 	_, err = gs.ValidateMessage(msg)
 	require.Equal(t, ErrEquivocation, err, gs.votes)
+}
+
+func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 3)
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	fake := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	msg, err := gs.CreateVoteMessage(fake, kr.Alice)
+	require.NoError(t, err)
+
+	_, err = gs.ValidateMessage(msg)
+	require.Equal(t, err, ErrBlockDoesNotExist)
+}
+
+func TestValidateMessage_IsNotDescendant(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	for {
+		_, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) != 0 {
+			break
+		}
+	}
+
+	h, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+	gs.head = h.Hash()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	msg, err := gs.CreateVoteMessage(branches[0], kr.Alice)
+	require.NoError(t, err)
+
+	_, err = gs.ValidateMessage(msg)
+	require.Equal(t, ErrDescendantNotFound, err, gs.votes)
 }
 
 func TestPubkeyToVoter(t *testing.T) {
