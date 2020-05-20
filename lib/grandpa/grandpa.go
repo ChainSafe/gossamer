@@ -38,6 +38,17 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 	}, nil
 }
 
+// getDirectVotes returns a map of Votes to direct vote counts
+func (s *Service) getDirectVotes() map[Vote]uint64 {
+	votes := make(map[Vote]uint64)
+
+	for _, v := range s.votes {
+		votes[*v]++
+	}
+
+	return votes
+}
+
 // CreateVoteMessage returns a signed VoteMessage given a header
 func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*VoteMessage, error) {
 	vote := NewVoteFromHeader(header)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -314,4 +315,37 @@ func TestPubkeyToVoter(t *testing.T) {
 	voter, err := state.pubkeyToVoter(kr.Alice.Public().(*ed25519.PublicKey))
 	require.NoError(t, err)
 	require.Equal(t, voters[0], voter)
+}
+
+func TestGetDirectVotes(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	voteA := &Vote{
+		hash:   common.Hash{0xa},
+		number: 1,
+	}
+
+	voteB := &Vote{
+		hash:   common.Hash{0xb},
+		number: 1,
+	}
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 6 {
+			gs.votes[voter] = voteA
+		} else {
+			gs.votes[voter] = voteB
+		}
+	}
+
+	directVotes := gs.getDirectVotes()
+	require.Equal(t, 2, len(directVotes))
 }
