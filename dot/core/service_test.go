@@ -209,3 +209,35 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	err = s.checkForRuntimeChanges()
 	require.Nil(t, err)
 }
+
+func TestService_HasKey(t *testing.T) {
+	ks := keystore.NewKeystore()
+	kr, err := keystore.NewKeyring()
+	require.NoError(t, err)
+	ks.Insert(kr.Alice)
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	svc := NewTestService(t, cfg)
+
+	res, err := svc.HasKey(kr.Alice.Public().Hex(), "babe")
+	require.NoError(t, err)
+	require.True(t, res)
+}
+
+func TestService_HasKey_UnknownType(t *testing.T) {
+	ks := keystore.NewKeystore()
+	kr, err := keystore.NewKeyring()
+	require.NoError(t, err)
+	ks.Insert(kr.Alice)
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	svc := NewTestService(t, cfg)
+
+	res, err := svc.HasKey(kr.Alice.Public().Hex(), "xxxx")
+	require.EqualError(t, err, "unknown key type: xxxx")
+	require.False(t, res)
+}
