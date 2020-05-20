@@ -44,7 +44,7 @@ import (
 
 var (
 	numNodes                 = 3
-	maxRetries               = 16
+	maxRetries               = 24
 	chain_getBlock           = "chain_getBlock"
 	chain_getHeader          = "chain_getHeader"
 	author_submitExtrinsic   = "author_submitExtrinsic"
