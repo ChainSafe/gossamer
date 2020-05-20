@@ -17,7 +17,6 @@
 package network
 
 import (
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"reflect"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
 var TestProtocolID = "/gossamer/test/0"

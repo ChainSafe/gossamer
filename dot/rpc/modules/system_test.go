@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"os"
 	"path"
@@ -26,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -63,7 +63,8 @@ func TestSystemModule_Health(t *testing.T) {
 	sys := NewSystemModule(net, nil)
 
 	res := &SystemHealthResponse{}
-	sys.Health(nil, nil, res)
+	err := sys.Health(nil, nil, res)
+	require.NoError(t, err)
 
 	if res.Health != testHealth {
 		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
@@ -76,7 +77,8 @@ func TestSystemModule_NetworkState(t *testing.T) {
 	sys := NewSystemModule(net, nil)
 
 	res := &SystemNetworkStateResponse{}
-	sys.NetworkState(nil, nil, res)
+	err := sys.NetworkState(nil, nil, res)
+	require.NoError(t, err)
 
 	testNetworkState := net.NetworkState()
 
@@ -91,7 +93,8 @@ func TestSystemModule_Peers(t *testing.T) {
 	sys := NewSystemModule(net, nil)
 
 	res := &SystemPeersResponse{}
-	sys.Peers(nil, nil, res)
+	err := sys.Peers(nil, nil, res)
+	require.NoError(t, err)
 
 	if len(res.Peers) != len(testPeers) {
 		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
