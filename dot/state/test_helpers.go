@@ -18,6 +18,7 @@ type testBranch struct {
 	depth int
 }
 
+// AddBlocksToState adds blocks to a BlockState up to depth, with random branches
 func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
 	previousHash := blockState.BestBlockHash()
 

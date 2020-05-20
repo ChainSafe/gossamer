@@ -79,6 +79,8 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 	}, nil
 }
 
+// ValidateMessage validates a VoteMessage and adds it to the current votes
+// it returns the resulting vote if validated, error otherwise
 func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.message.authorityID[:])
