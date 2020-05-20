@@ -49,6 +49,32 @@ func (s *Service) getDirectVotes() map[Vote]uint64 {
 	return votes
 }
 
+// getVotesForBlock returns the number of observed votes for a block B.
+// The set of all observed votes by v in the sub-round stage of round r for block B is
+// equal to all of the observed direct votes cast for block B and all of the B's descendants
+func (s *Service) getVotesForBlock(hash common.Hash) (uint64, error) {
+	votes := s.getDirectVotes()
+
+	// B will be counted as in it's own subchain, so don't need to start with B's vote count
+	votesForBlock := uint64(0)
+
+	for v, c := range votes {
+
+		// check if the current block is a descendant of B
+		_, err := s.blockState.SubChain(hash, v.hash)
+		if err == ErrDescendantNotFound {
+			// not a descendant
+			continue
+		} else if err != nil {
+			return 0, err
+		}
+
+		votesForBlock += c
+	}
+
+	return votesForBlock, nil
+}
+
 // CreateVoteMessage returns a signed VoteMessage given a header
 func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*VoteMessage, error) {
 	vote := NewVoteFromHeader(header)

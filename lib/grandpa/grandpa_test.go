@@ -339,7 +339,7 @@ func TestGetDirectVotes(t *testing.T) {
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
 
-		if i < 6 {
+		if i < 5 {
 			gs.votes[voter] = voteA
 		} else {
 			gs.votes[voter] = voteB
@@ -348,4 +348,97 @@ func TestGetDirectVotes(t *testing.T) {
 
 	directVotes := gs.getDirectVotes()
 	require.Equal(t, 2, len(directVotes))
+	require.Equal(t, uint64(5), directVotes[*voteA])
+	require.Equal(t, uint64(3), directVotes[*voteB])
+}
+
+func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	var chain []*types.Header
+
+	for {
+		chain, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) != 0 {
+			break
+		}
+	}
+
+	voteA := NewVoteFromHeader(chain[7])
+	voteB := NewVoteFromHeader(branches[0])
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 5 {
+			gs.votes[voter] = voteA
+		} else {
+			gs.votes[voter] = voteB
+		}
+	}
+
+	votesForA, err := gs.getVotesForBlock(voteA.hash)
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), votesForA)
+
+	votesForB, err := gs.getVotesForBlock(voteB.hash)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), votesForB)
+}
+
+func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	var chain []*types.Header
+
+	for {
+		chain, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) != 0 {
+			break
+		}
+	}
+
+	// A is a descendant of B
+	voteA := NewVoteFromHeader(chain[7])
+	voteB := NewVoteFromHeader(chain[5])
+	voteC := NewVoteFromHeader(branches[0])
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 5 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.votes[voter] = voteC
+		}
+	}
+
+	votesForA, err := gs.getVotesForBlock(voteA.hash)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), votesForA)
+
+	// votesForB should be # of votes for A + # of votes for B
+	votesForB, err := gs.getVotesForBlock(voteB.hash)
+	require.NoError(t, err)
+	require.Equal(t, uint64(5), votesForB)
+
+	votesForC, err := gs.getVotesForBlock(voteC.hash)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), votesForC)
 }
