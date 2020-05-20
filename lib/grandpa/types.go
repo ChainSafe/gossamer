@@ -62,6 +62,7 @@ func NewVoteFromHeader(h *types.Header) *Vote {
 	}
 }
 
+// NewVoteFromHash returns a new Vote given a hash and a blockState
 func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 	has, err := blockState.HasHeader(hash)
 	if err != nil {
