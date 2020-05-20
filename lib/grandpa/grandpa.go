@@ -118,11 +118,7 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 
 	vote := NewVote(m.message.hash, m.message.number)
 
-	equivocated, err := s.checkForEquivocation(voter, vote)
-	if err != nil {
-		return nil, err
-	}
-
+	equivocated := s.checkForEquivocation(voter, vote)
 	if equivocated {
 		return nil, ErrEquivocation
 	}
@@ -140,13 +136,13 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
+func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) bool {
 	v := voter.key.AsBytes()
 
 	if s.equivocations[v] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		s.equivocations[v] = append(s.equivocations[v], vote)
-		return true, nil
+		return true
 	}
 
 	if s.votes[v] != nil {
@@ -154,10 +150,10 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 		prev := s.votes[v]
 		s.equivocations[v] = []*Vote{prev, vote}
 		delete(s.votes, v)
-		return true, nil
+		return true
 	}
 
-	return false, nil
+	return false
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a

@@ -65,8 +65,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		equivocated, err := gs.checkForEquivocation(v, vote)
-		require.NoError(t, err)
+		equivocated := gs.checkForEquivocation(v, vote)
 		require.False(t, equivocated)
 	}
 }
@@ -99,8 +98,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	equivocated, err := gs.checkForEquivocation(voter, vote2)
-	require.NoError(t, err)
+	equivocated := gs.checkForEquivocation(voter, vote2)
 	require.True(t, equivocated)
 
 	require.Equal(t, 0, len(gs.votes))
@@ -136,8 +134,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	equivocated, err := gs.checkForEquivocation(voter, vote2)
-	require.NoError(t, err)
+	equivocated := gs.checkForEquivocation(voter, vote2)
 	require.True(t, equivocated)
 
 	require.Equal(t, 0, len(gs.votes))
@@ -146,8 +143,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
-	equivocated, err = gs.checkForEquivocation(voter, vote3)
-	require.NoError(t, err)
+	equivocated = gs.checkForEquivocation(voter, vote3)
 	require.True(t, equivocated)
 
 	require.Equal(t, 0, len(gs.votes))
