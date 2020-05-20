@@ -349,7 +349,7 @@ func TestGetDirectVotes(t *testing.T) {
 	directVotes := gs.getDirectVotes()
 	require.Equal(t, 2, len(directVotes))
 	require.Equal(t, uint64(5), directVotes[*voteA])
-	require.Equal(t, uint64(3), directVotes[*voteB])
+	require.Equal(t, uint64(4), directVotes[*voteB])
 }
 
 func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
@@ -390,7 +390,7 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 
 	votesForB, err := gs.getVotesForBlock(voteB.hash)
 	require.NoError(t, err)
-	require.Equal(t, uint64(3), votesForB)
+	require.Equal(t, uint64(4), votesForB)
 }
 
 func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
@@ -440,5 +440,85 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 
 	votesForC, err := gs.getVotesForBlock(voteC.hash)
 	require.NoError(t, err)
-	require.Equal(t, uint64(3), votesForC)
+	require.Equal(t, uint64(4), votesForC)
+}
+
+func TestGetPossiblePreVotedBlocks_OneBlock(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	var chain []*types.Header
+
+	for {
+		chain, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) != 0 {
+			break
+		}
+	}
+
+	voteA := NewVoteFromHeader(chain[7])
+	voteB := NewVoteFromHeader(branches[0])
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 6 {
+			gs.votes[voter] = voteA
+		} else {
+			gs.votes[voter] = voteB
+		}
+	}
+
+	blocks, err := gs.getPossiblePreVotedBlocks()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(blocks))
+	require.Equal(t, *voteA, blocks[0])
+}
+
+func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var branches []*types.Header
+	var chain []*types.Header
+
+	for {
+		chain, branches = state.AddBlocksToState(t, st.Block, 8)
+		if len(branches) > 1 {
+			break
+		}
+	}
+
+	// 1/3 voters each vote for a block on a different chain
+	voteA := NewVoteFromHeader(chain[7])
+	voteB := NewVoteFromHeader(branches[0])
+	voteC := NewVoteFromHeader(branches[1])
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.votes[voter] = voteC
+		}
+	}
+
+	blocks, err := gs.getPossiblePreVotedBlocks()
+	require.NoError(t, err)
+	require.Equal(t, 1, len(blocks))
+	require.Equal(t, *voteB, blocks[0])
 }

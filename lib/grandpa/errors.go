@@ -23,3 +23,7 @@ var ErrVoterNotFound = errors.New("voter is not in voter set")
 
 // ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalized block
 var ErrDescendantNotFound = blocktree.ErrDescendantNotFound
+
+// ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
+// this can only happen in the case of > 1/3 byzantine nodes (ie > 1/3 nodes equivocate or don't submit valid votes)
+var ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")

@@ -61,18 +61,86 @@ func (s *Service) getVotesForBlock(hash common.Hash) (uint64, error) {
 	for v, c := range votes {
 
 		// check if the current block is a descendant of B
-		_, err := s.blockState.SubChain(hash, v.hash)
-		if err == ErrDescendantNotFound {
-			// not a descendant
-			continue
-		} else if err != nil {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, v.hash)
+		if err != nil {
 			return 0, err
+		}
+
+		if !isDescendant {
+			continue
 		}
 
 		votesForBlock += c
 	}
 
 	return votesForBlock, nil
+}
+
+// getTotalVotesForBlock returns the total number of observed votes for a block B, which is equal
+// to the direct votes for B and B's descendants plus the total number of equivocating voters
+func (s *Service) getTotalVotesForBlock(hash common.Hash) (uint64, error) {
+	// observed votes for block
+	dv, err := s.getVotesForBlock(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	// equivocatory votes
+	ev := len(s.equivocations)
+
+	return dv + uint64(ev), nil
+}
+
+// getPossiblePreVotedBlocks returns all blocks with total votes >= 2/3 the total number of voters
+// this should be 1 exactly block, except in the case where exactly 1/3 voters equivocate.
+// in that case, there may be 2 blocks returned.
+// if there are > 1/3 byzantine nodes, then there may be 0, or more than 2 blocks returned.
+// that would be very bad.
+func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
+	votes := s.getDirectVotes()
+	blocks := []Vote{}
+
+	for v, _ := range votes {
+		total, err := s.getTotalVotesForBlock(v.hash)
+		if err != nil {
+			return nil, err
+		}
+
+		if total >= uint64(2*len(s.state.voters)/3) {
+			blocks = append(blocks, v)
+		}
+	}
+
+	return blocks, nil
+}
+
+// getPreVotedBlock returns the current pre-voted block B.
+// the pre-voted block is the block with the highest block number in the set of all the blocks with
+// total votes >= 2/3 the total number of voters, where the total votes is determined by getTotalVotesForBlock.
+// note that by voting for a block, all of its predecessor blocks are automatically voted for.
+// thus, if there are two blocks both with 2/3 total votes, and the same block number, this function
+// returns their first common predecessor.
+func (s *Service) getPreVotedBlock() (Vote, error) {
+	blocks, err := s.getPossiblePreVotedBlocks()
+	if err != nil {
+		return Vote{}, err
+	}
+
+	if len(blocks) == 0 {
+		return Vote{}, ErrNoPreVotedBlock
+	}
+
+	// if there is one block, return it
+	if len(blocks) == 1 {
+		return blocks[0], nil
+	}
+
+	// if there are two, find the greatest common predecessor and return it
+	highest := Vote{
+		number: uint64(0),
+	}
+
+	return highest, nil
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header
@@ -201,9 +269,13 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	// check if the block is an eventual descendant of a previously finalized block
-	_, err = s.blockState.SubChain(s.head, v.hash)
+	isDescendant, err := s.blockState.IsDescendantOf(s.head, v.hash)
 	if err != nil {
 		return err
+	}
+
+	if !isDescendant {
+		return ErrDescendantNotFound
 	}
 
 	return nil

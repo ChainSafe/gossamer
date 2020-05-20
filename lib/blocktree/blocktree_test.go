@@ -119,7 +119,6 @@ func TestNode_isDecendantOf(t *testing.T) {
 	if bt.head.isDescendantOf(leaf) {
 		t.Error("root should not be descendant of anything")
 	}
-
 }
 
 func TestBlockTree_LongestPath(t *testing.T) {
@@ -316,5 +315,21 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 
 	if !reflect.DeepEqual(hashes, expected) {
 		t.Fatalf("Fail: did not get all expected hashes got %v expected %v", hashes, expected)
+	}
+}
+
+func TestBlockTree_IsDecendantOf(t *testing.T) {
+	// Create tree with depth 4 (with 4 nodes)
+	bt, hashes := createFlatTree(t, 4)
+
+	// Check leaf is descendant of root
+	leaf := bt.getNode(hashes[3])
+	if !leaf.isDescendantOf(bt.head) {
+		t.Error("failed to verify leaf is descendant of root")
+	}
+
+	// Verify the inverse relationship does not hold
+	if bt.head.isDescendantOf(leaf) {
+		t.Error("root should not be descendant of anything")
 	}
 }
