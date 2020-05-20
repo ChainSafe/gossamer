@@ -49,3 +49,13 @@ func (s *Service) NodeName() string {
 func (s *Service) Properties() map[string]interface{} {
 	return s.systemInfo.SystemProperties
 }
+
+// Start implements Service interface
+func (s *Service) Start() error {
+	return nil
+}
+
+// Stop implements Service interface
+func (s *Service) Stop() error {
+	return nil
+}

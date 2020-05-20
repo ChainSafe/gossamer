@@ -54,6 +54,18 @@ func TestService_Properties(t *testing.T) {
 	require.Equal(t, expected, props)
 }
 
+func TestService_Start(t *testing.T) {
+	svc := newTestService()
+	err := svc.Start()
+	require.NoError(t, err)
+}
+
+func TestService_Stop(t *testing.T) {
+	svc := newTestService()
+	err := svc.Stop()
+	require.NoError(t, err)
+}
+
 func newTestService() *Service {
 	sysProps := make(map[string]interface{})
 	sysProps["ss58Format"] = 2

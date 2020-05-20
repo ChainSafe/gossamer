@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -145,7 +146,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime, sysSrvc *system.Service) *rpc.HTTPServer {
 	log.Info(
 		"[dot] creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -154,7 +155,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		"ws port", cfg.RPC.WSPort,
 	)
 	rpcService := rpc.NewService()
-	systemService := system.NewService(&cfg.System)
 	rpcConfig := &rpc.HTTPServerConfig{
 		BlockAPI:            stateSrvc.Block,
 		StorageAPI:          stateSrvc.Storage,
@@ -163,7 +163,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		RuntimeAPI:          rt,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
 		RPCAPI:              rpcService,
-		SystemAPI:           systemService,
+		SystemAPI:           sysSrvc,
 		Host:                cfg.RPC.Host,
 		RPCPort:             cfg.RPC.Port,
 		WSEnabled:           cfg.RPC.WSEnabled,
@@ -172,4 +172,10 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 	}
 
 	return rpc.NewHTTPServer(rpcConfig)
+}
+
+// System service
+// creates a service for providing system related information
+func createSystemService(cfg *types.SystemInfo) *system.Service {
+	return system.NewService(cfg)
 }
