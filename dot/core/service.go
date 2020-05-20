@@ -314,7 +314,7 @@ func (s *Service) Stop() error {
 			// thread safe way to change closed status
 			canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
 			if !canUnlock {
-				panic("[core] Error when trying to change Service status from started to stopped.")
+				log.Error("[core] Error when trying to change Service status from started to stopped.")
 			}
 		}()
 
