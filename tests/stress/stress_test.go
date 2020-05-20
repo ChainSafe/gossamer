@@ -87,8 +87,6 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
 	respBody, err := utils.PostRPC(t, author_pendingExtrinsics, endpoint(node), "[]")
 	require.NoError(t, err)
 
-	t.Logf("%s", respBody)
-
 	exts := new(modules.PendingExtrinsicsResponse)
 	err = utils.DecodeRPC(t, respBody, exts)
 	require.NoError(t, err)
