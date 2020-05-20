@@ -57,17 +57,11 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 		return nil, err
 	}
 
-	sb := [64]byte{}
-	copy(sb[:], sig)
-
-	ab := [32]byte{}
-	copy(ab[:], kp.Public().Encode())
-
 	sm := &SignedMessage{
 		hash:        vote.hash,
 		number:      vote.number,
-		signature:   sb,
-		authorityID: ab,
+		signature:   ed25519.NewSignatureBytes(sig),
+		authorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
 	return &VoteMessage{

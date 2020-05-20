@@ -52,7 +52,10 @@ type PrivateKey ed25519.PrivateKey
 type PublicKey ed25519.PublicKey
 
 // PublicKeyBytes is an encoded ed25519 public key
-type PublicKeyBytes [32]byte
+type PublicKeyBytes [PublicKeyLength]byte
+
+// SignatureBytes is a ed25519 signature
+type SignatureBytes [SignatureLength]byte
 
 // NewKeypair returns an Ed25519 keypair given a ed25519 private key
 func NewKeypair(priv ed25519.PrivateKey) *Keypair {
@@ -229,4 +232,11 @@ func (k *PublicKey) AsBytes() PublicKeyBytes {
 	b := [PublicKeyLength]byte{}
 	copy(b[:], k.Encode())
 	return b
+}
+
+// NewSignatureBytes returns a SignatureBytes given a byte array
+func NewSignatureBytes(in []byte) SignatureBytes {
+	sig := SignatureBytes{}
+	copy(sig[:], in)
+	return sig
 }
