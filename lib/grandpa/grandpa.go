@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -151,29 +150,11 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote) (bool, error) {
 	}
 
 	if s.votes[v] != nil {
-		// the voter has already voted, check if they are voting for a block on the same branch
+		// the voter has already voter, all their votes are now equivocatory
 		prev := s.votes[v]
-
-		// check if block in current vote is descendent of block in previous vote
-		_, err := s.blockState.SubChain(prev.hash, vote.hash)
-		if err == blocktree.ErrDescendantNotFound {
-
-			// check if block in previous vote is descendent of block in current vote
-			_, err = s.blockState.SubChain(vote.hash, prev.hash)
-			if err == blocktree.ErrDescendantNotFound {
-
-				// block producer equivocated
-				s.equivocations[v] = []*Vote{prev, vote}
-				delete(s.votes, v)
-				return true, nil
-
-			} else if err != nil {
-				return false, err
-			}
-
-		} else if err != nil {
-			return false, err
-		}
+		s.equivocations[v] = []*Vote{prev, vote}
+		delete(s.votes, v)
+		return true, nil
 	}
 
 	return false, nil

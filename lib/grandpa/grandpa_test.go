@@ -71,37 +71,6 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	}
 }
 
-func TestCheckForEquivocation_NoEquivocation_MultipleVotes(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-
-	gs, err := NewService(st.Block, voters)
-	require.NoError(t, err)
-	state.AddBlocksToState(t, st.Block, 3)
-
-	h, err := st.Block.BestBlockHeader()
-	require.NoError(t, err)
-
-	vote := NewVoteFromHeader(h)
-	require.NoError(t, err)
-
-	voter := voters[0]
-
-	gs.votes[voter.key.AsBytes()] = vote
-
-	h2, err := st.Block.GetHeader(h.ParentHash)
-	vote2 := NewVoteFromHeader(h2)
-	require.NoError(t, err)
-
-	equivocated, err := gs.checkForEquivocation(voter, vote2)
-	require.NoError(t, err)
-	require.False(t, equivocated)
-	// TODO: if the same voter votes for multiple blocks in a round, but the blocks are on the same chain, are all
-	// those votes counted? if so, we will need to change `votes` to be a map of Voter to array of Votes.
-	require.Equal(t, 1, len(gs.votes))
-	require.Equal(t, 0, len(gs.equivocations))
-}
-
 func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
