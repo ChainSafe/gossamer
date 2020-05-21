@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -40,6 +41,35 @@ type State struct {
 	voters []*Voter // set of voters
 	setID  uint64   // authority set ID
 	round  uint64   // voting round number
+}
+
+// NewState returns a new GRANDPA state
+func NewState(voters []*Voter, setID, round uint64) *State {
+	return &State{
+		voters: voters,
+		setID:  setID,
+		round:  round,
+	}
+}
+
+// pubkeyToVoter returns a Voter given a public key
+func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
+	id := uint64(2^64) - 1
+
+	for i, v := range s.voters {
+		if bytes.Equal(pk.Encode(), v.key.Encode()) {
+			id = uint64(i)
+		}
+	}
+
+	if id == (2^64)-1 {
+		return nil, ErrVoterNotFound
+	}
+
+	return &Voter{
+		key: pk,
+		id:  id,
+	}, nil
 }
 
 // Vote represents a vote for a block with the given hash and number
