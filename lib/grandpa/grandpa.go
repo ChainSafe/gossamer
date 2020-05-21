@@ -76,28 +76,14 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 // it returns the resulting vote if validated, error otherwise
 func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
-	// TODO: put into separate function
 	pk, err := ed25519.NewPublicKey(m.message.authorityID[:])
 	if err != nil {
 		return nil, err
 	}
 
-	msg, err := scale.Encode(&FullVote{
-		stage: m.stage,
-		vote:  NewVote(m.message.hash, m.message.number),
-		round: m.round,
-		setID: m.setID,
-	})
+	err = validateMessageSignature(pk, m)
 	if err != nil {
 		return nil, err
-	}
-	ok, err := pk.Verify(msg, m.message.signature[:])
-	if err != nil {
-		return nil, err
-	}
-
-	if !ok {
-		return nil, ErrInvalidSignature
 	}
 
 	// check that setIDs match
@@ -126,6 +112,28 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	s.votes[pk.AsBytes()] = vote
 
 	return vote, nil
+}
+
+func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
+	msg, err := scale.Encode(&FullVote{
+		stage: m.stage,
+		vote:  NewVote(m.message.hash, m.message.number),
+		round: m.round,
+		setID: m.setID,
+	})
+	if err != nil {
+		return err
+	}
+	ok, err := pk.Verify(msg, m.message.signature[:])
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return ErrInvalidSignature
+	}
+
+	return nil
 }
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
@@ -165,10 +173,13 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	// check if the block is an eventual descendant of a previously finalized block
-	// TODO: change to isDescendantOf
-	_, err = s.blockState.SubChain(s.head, v.hash)
+	isDescendant, err := s.blockState.IsDescendantOf(s.head, v.hash)
 	if err != nil {
 		return err
+	}
+
+	if !isDescendant {
+		return ErrDescendantNotFound
 	}
 
 	return nil

@@ -516,6 +516,16 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	return bs.bt.SubBlockchain(start, end)
 }
 
+// IsDescendantOf returns true if child is a descendant of parent, false otherwise.
+// it returns an error if parent or child are not in the blocktree.
+func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
+	if bs.bt == nil {
+		return false, fmt.Errorf("blocktree is nil")
+	}
+
+	return bs.bt.IsDescendantOf(parent, child)
+}
+
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return StoreBestBlockHash(bs.db.db, hash)
 }
