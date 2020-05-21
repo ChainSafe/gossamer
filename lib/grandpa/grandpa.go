@@ -49,6 +49,19 @@ func (s *Service) getDirectVotes() map[Vote]uint64 {
 	return votes
 }
 
+func (s *Service) getVotes() []Vote {
+	votes := s.getDirectVotes()
+	va := make([]Vote, len(votes))
+	i := 0
+
+	for v := range votes {
+		va[i] = v
+		i++
+	}
+
+	return va
+}
+
 // getVotesForBlock returns the number of observed votes for a block B.
 // The set of all observed votes by v in the sub-round stage of round r for block B is
 // equal to all of the observed direct votes cast for block B and all of the B's descendants
@@ -121,8 +134,10 @@ func (s *Service) getPossiblePreVotedBlocks() (map[common.Hash]uint64, error) {
 
 	// no block has >=2/3 direct votes, check for votes for predecessors recursively
 	var err error
+	va := s.getVotes()
+
 	for v := range votes {
-		blocks, err = s.getPossiblePreVotedPredecessors(votes, v.hash, blocks)
+		blocks, err = s.getPossiblePreVotedPredecessors(va, v.hash, blocks)
 		if err != nil {
 			return nil, err
 		}
@@ -133,8 +148,8 @@ func (s *Service) getPossiblePreVotedBlocks() (map[common.Hash]uint64, error) {
 
 // getPossiblePreVotedPredecessors recursively searches for predecessors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossiblePreVotedPredecessors(votes map[Vote]uint64, curr common.Hash, prevoted map[common.Hash]uint64) (map[common.Hash]uint64, error) {
-	for v := range votes {
+func (s *Service) getPossiblePreVotedPredecessors(votes []Vote, curr common.Hash, prevoted map[common.Hash]uint64) (map[common.Hash]uint64, error) {
+	for _, v := range votes {
 		if v.hash == curr {
 			continue
 		}
@@ -143,6 +158,10 @@ func (s *Service) getPossiblePreVotedPredecessors(votes map[Vote]uint64, curr co
 		pred, err := s.blockState.HighestCommonPredecessor(v.hash, curr)
 		if err != nil {
 			return nil, err
+		}
+
+		if pred == curr {
+			return prevoted, nil
 		}
 
 		total, err := s.getTotalVotesForBlock(pred)
@@ -159,6 +178,9 @@ func (s *Service) getPossiblePreVotedPredecessors(votes map[Vote]uint64, curr co
 			prevoted[pred] = uint64(h.Number.Int64())
 		} else {
 			prevoted, err = s.getPossiblePreVotedPredecessors(votes, pred, prevoted)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -180,16 +202,28 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there is one block, return it
 	if len(blocks) == 1 {
-		for v := range blocks {
+		for h, n := range blocks {
 			return Vote{
-				hash: v,
+				hash:   h,
+				number: n,
 			}, nil
 		}
 	}
 
 	// if there are multiple, find the one with the highest number and return it
+	highest := Vote{
+		number: uint64(0),
+	}
+	for h, n := range blocks {
+		if n > highest.number {
+			highest = Vote{
+				hash:   h,
+				number: n,
+			}
+		}
+	}
 
-	return Vote{}, nil
+	return highest, nil
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header
