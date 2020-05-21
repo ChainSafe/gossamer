@@ -76,6 +76,7 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 // it returns the resulting vote if validated, error otherwise
 func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
+	// TODO: put into separate function
 	pk, err := ed25519.NewPublicKey(m.message.authorityID[:])
 	if err != nil {
 		return nil, err
@@ -104,7 +105,7 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, ErrSetIDMismatch
 	}
 
-	// check for equivocation ie. votes for blocks that do not reside on the same branch of the blocktree
+	// check for equivocation ie. multiple votes within one subround
 	voter, err := s.state.pubkeyToVoter(pk)
 	if err != nil {
 		return nil, err
@@ -164,6 +165,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	// check if the block is an eventual descendant of a previously finalized block
+	// TODO: change to isDescendantOf
 	_, err = s.blockState.SubChain(s.head, v.hash)
 	if err != nil {
 		return err
