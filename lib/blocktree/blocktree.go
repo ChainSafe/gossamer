@@ -151,7 +151,7 @@ func (bt *BlockTree) String() string {
 		return true
 	})
 
-	metadata := fmt.Sprintf("Leaves: %s", leaves)
+	metadata := fmt.Sprintf("Leaves:\n %s", leaves)
 
 	return fmt.Sprintf("%s\n%s\n", metadata, tree.Print())
 }

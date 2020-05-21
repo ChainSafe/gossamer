@@ -88,3 +88,72 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 
 	return currentChain, branchChains
 }
+
+// AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
+// branches are provided with a map of depth -> # of branches
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int) {
+	previousHash := blockState.BestBlockHash()
+
+	tb := []testBranch{}
+
+	arrivalTime := uint64(1)
+
+	// create base tree
+	for i := 1; i <= depth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)),
+				StateRoot:  trie.EmptyHash,
+			},
+			Body: &types.Body{},
+		}
+
+		hash := block.Header.Hash()
+		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		require.Nil(t, err)
+
+		previousHash = hash
+
+		isBranch := branches[i] > 0
+		if isBranch {
+			for j := 0; j < branches[i]; j++ {
+				tb = append(tb, testBranch{
+					hash:  hash,
+					depth: i,
+				})
+			}
+		}
+
+		arrivalTime++
+	}
+
+	r := *rand.New(rand.NewSource(rand.Int63()))
+
+	// create tree branches
+	for _, branch := range tb {
+		previousHash = branch.hash
+
+		for i := branch.depth; i < depth; i++ {
+			rand := r.Intn(256)
+
+			block := &types.Block{
+				Header: &types.Header{
+					ParentHash: previousHash,
+					Number:     big.NewInt(int64(i + rand)),
+					StateRoot:  trie.EmptyHash,
+					Digest:     [][]byte{{byte(i)}},
+				},
+				Body: &types.Body{},
+			}
+
+			hash := block.Header.Hash()
+			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
+			require.Nil(t, err)
+
+			previousHash = hash
+
+			arrivalTime++
+		}
+	}
+}

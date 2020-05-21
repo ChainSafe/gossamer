@@ -443,6 +443,191 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 	require.Equal(t, uint64(4), votesForC)
 }
 
+func TestGetPossiblePreVotedPredecessors_SamePredecessor(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	// this creates a tree with 3 branches all starting at depth 6
+	branches := make(map[int]int)
+	branches[6] = 2
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+
+	leaves := gs.blockState.Leaves()
+	require.Equal(t, 3, len(leaves))
+
+	// 1/3 voters each vote for a block on a different chain
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.votes[voter] = voteC
+		}
+	}
+
+	votes := gs.getDirectVotes()
+	prevoted := make(map[common.Hash]uint64)
+	var blocks map[common.Hash]uint64
+
+	for _, curr := range leaves {
+		blocks, err = gs.getPossiblePreVotedPredecessors(votes, curr, prevoted)
+		require.NoError(t, err)
+	}
+
+	expected, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	require.NoError(t, err)
+
+	// this should return the highest common predecessor of (a, b, c) with >=2/3 votes,
+	// which is the node at depth 6.
+	require.Equal(t, 1, len(blocks))
+	require.Equal(t, uint64(6), blocks[expected])
+}
+
+func TestGetPossiblePreVotedPredecessors_VaryingPredecessor(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
+	branches := make(map[int]int)
+	branches[6] = 1
+	branches[7] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+
+	leaves := gs.blockState.Leaves()
+	require.Equal(t, 3, len(leaves))
+
+	// 1/3 voters each vote for a block on a different chain
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.votes[voter] = voteC
+		}
+	}
+
+	votes := gs.getDirectVotes()
+	prevoted := make(map[common.Hash]uint64)
+	var blocks map[common.Hash]uint64
+
+	for _, curr := range leaves {
+		blocks, err = gs.getPossiblePreVotedPredecessors(votes, curr, prevoted)
+		require.NoError(t, err)
+	}
+
+	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	require.NoError(t, err)
+
+	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	require.NoError(t, err)
+
+	// this should return the highest common predecessor of (a, b) and (b, c) with >=2/3 votes,
+	// which are the nodes at depth 6 and 7.
+	require.Equal(t, 2, len(blocks))
+	require.Equal(t, uint64(6), blocks[expectedAt6])
+	require.Equal(t, uint64(7), blocks[expectedAt7])
+}
+
+func TestGetPossiblePreVotedPredecessors_VaryingPredecessor_MoreBranches(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	// this creates a tree with 1 branch starting at depth 6 and 2 branches starting at depth 7,
+	branches := make(map[int]int)
+	branches[6] = 1
+	branches[7] = 2
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+
+	leaves := gs.blockState.Leaves()
+	require.Equal(t, 4, len(leaves))
+
+	t.Log(st.Block.BlocktreeAsString())
+
+	// 1/3 voters each vote for a block on a different chain
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
+	voteD, err := NewVoteFromHash(leaves[3], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else if i < 8 {
+			gs.votes[voter] = voteC
+		} else {
+			gs.votes[voter] = voteD
+		}
+	}
+
+	votes := gs.getDirectVotes()
+	prevoted := make(map[common.Hash]uint64)
+	var blocks map[common.Hash]uint64
+
+	for _, curr := range leaves {
+		blocks, err = gs.getPossiblePreVotedPredecessors(votes, curr, prevoted)
+		require.NoError(t, err)
+	}
+
+	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	require.NoError(t, err)
+
+	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	require.NoError(t, err)
+
+	for h := range blocks {
+		t.Log(h)
+	}
+
+	// this should return the highest common predecessor of (a, b) and (b, c) with >=2/3 votes,
+	// which are the nodes at depth 6 and 7.
+	require.Equal(t, 2, len(blocks))
+	require.Equal(t, uint64(6), blocks[expectedAt6])
+	require.Equal(t, uint64(7), blocks[expectedAt7])
+}
+
 func TestGetPossiblePreVotedBlocks_OneBlock(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
@@ -478,10 +663,10 @@ func TestGetPossiblePreVotedBlocks_OneBlock(t *testing.T) {
 	blocks, err := gs.getPossiblePreVotedBlocks()
 	require.NoError(t, err)
 	require.Equal(t, 1, len(blocks))
-	require.Equal(t, *voteA, blocks[0])
+	require.Equal(t, voteA.number, blocks[voteA.hash])
 }
 
-func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
+func TestGetPossiblePreVotedBlocks_EqualVotes_SamePredecessor(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 	kr, err := keystore.NewEd25519Keyring()
@@ -490,14 +675,13 @@ func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
 	gs, err := NewService(st.Block, voters)
 	require.NoError(t, err)
 
-	var leaves []common.Hash
-	for {
-		state.AddBlocksToState(t, st.Block, 8)
-		leaves = gs.blockState.Leaves()
-		if len(leaves) > 2 {
-			break
-		}
-	}
+	// this creates a tree with 3 branches all starting at depth 6
+	branches := make(map[int]int)
+	branches[6] = 2
+
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	leaves := gs.blockState.Leaves()
+	require.Equal(t, 3, len(leaves))
 
 	// 1/3 voters each vote for a block on a different chain
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
@@ -519,17 +703,69 @@ func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
 		}
 	}
 
-	t.Log(st.Block.BlocktreeAsString())
+	blocks, err := gs.getPossiblePreVotedBlocks()
+	require.NoError(t, err)
+
+	expected, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	require.NoError(t, err)
+
+	// this should return the highest common predecessor of (a, b, c)
+	require.Equal(t, 1, len(blocks))
+	require.Equal(t, uint64(6), blocks[expected])
+}
+
+func TestGetPossiblePreVotedBlocks_EqualVotes_VaryingPredecessor(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	// this creates a tree with branches starting at depth 6 and another branch starting at depth 7
+	branches := make(map[int]int)
+	branches[6] = 1
+	branches[7] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+
+	leaves := gs.blockState.Leaves()
+	require.Equal(t, 3, len(leaves))
+
+	// 1/3 voters each vote for a block on a different chain
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[2], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 3 {
+			gs.votes[voter] = voteA
+		} else if i < 6 {
+			gs.votes[voter] = voteB
+		} else {
+			gs.votes[voter] = voteC
+		}
+	}
 
 	blocks, err := gs.getPossiblePreVotedBlocks()
 	require.NoError(t, err)
 
-	for _, v := range blocks {
-		t.Log((&v).String())
-	}
+	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	require.NoError(t, err)
 
-	// TODO: this should return the highest common predecessors of (a, b), (a, c), (b, c)
-	require.Equal(t, 3, len(blocks))
+	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	require.NoError(t, err)
+
+	// this should return the highest common predecessor of (a, b) and (b, c) with >=2/3 votes,
+	// which are the nodes at depth 6 and 7.
+	require.Equal(t, 2, len(blocks))
+	require.Equal(t, uint64(6), blocks[expectedAt6])
+	require.Equal(t, uint64(7), blocks[expectedAt7])
 }
 
 func TestGetPossiblePreVotedBlocks_OneThirdEquivocating(t *testing.T) {

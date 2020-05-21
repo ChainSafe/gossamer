@@ -526,6 +526,7 @@ func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	return bs.bt.IsDescendantOf(parent, child)
 }
 
+// HighestCommonPredecessor returns the block with the highest number that is a predecessor of both a and b
 func (bs *BlockState) HighestCommonPredecessor(a, b common.Hash) (common.Hash, error) {
 	return bs.bt.HighestCommonPredecessor(a, b)
 }

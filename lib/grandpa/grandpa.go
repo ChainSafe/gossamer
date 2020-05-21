@@ -91,15 +91,17 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash) (uint64, error) {
 	return dv + uint64(ev), nil
 }
 
-// getPossiblePreVotedBlocks returns blocks with total votes >=2/3 the total number of voters
-// if there are no blocks that have >=2/3 direct votes, this function will find predecessors of those blocks
-// that do have >=2/3 votes.
+// getPossiblePreVotedBlocks returns blocks with total votes >=2/3 the total number of voters in the map of block hash to block number.
+// if there are no blocks that have >=2/3 direct votes, this function will find predecessors of those blocks that do have >=2/3 votes.
 // note that by voting for a block, all of its predecessor blocks are automatically voted for.
-// thus, if there are no blocks with >=2/3 total votes, but their sum is >=2/3, this function returns their first common predecessor.
-func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
+// thus, if there are no blocks with >=2/3 total votes, but the sum of votes for blocks A and B is >=2/3, then this function returns
+// the first common predecessor of A and B.
+func (s *Service) getPossiblePreVotedBlocks() (map[common.Hash]uint64, error) {
+	// get blocks that were directly voted for
 	votes := s.getDirectVotes()
-	blocks := []Vote{}
+	blocks := make(map[common.Hash]uint64)
 
+	// check if any of them have >=2/3 votes
 	for v := range votes {
 		total, err := s.getTotalVotesForBlock(v.hash)
 		if err != nil {
@@ -107,7 +109,7 @@ func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
 		}
 
 		if total >= uint64(2*len(s.state.voters)/3) {
-			blocks = append(blocks, v)
+			blocks[v.hash] = v.number
 		}
 	}
 
@@ -117,36 +119,50 @@ func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
 		return blocks, nil
 	}
 
-	// no block has >=2/3 direct votes, check for votes in
+	// no block has >=2/3 direct votes, check for votes for predecessors recursively
+	var err error
 	for v := range votes {
-		for w := range votes {
-			if v == w {
-				continue
-			}
-
-			// find common predecessor, check if votes for it is >=2/3 or not
-			pred, err := s.blockState.HighestCommonPredecessor(v.hash, w.hash)
-			if err != nil {
-				return nil, err
-			}
-
-			total, err := s.getTotalVotesForBlock(pred)
-			if err != nil {
-				return nil, err
-			}
-
-			if total >= uint64(2*len(s.state.voters)/3) {
-				v, err := NewVoteFromHash(pred, s.blockState)
-				if err != nil {
-					return nil, err
-				}
-
-				blocks = append(blocks, *v)
-			}
+		blocks, err = s.getPossiblePreVotedPredecessors(votes, v.hash, blocks)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return blocks, nil
+}
+
+// getPossiblePreVotedPredecessors recursively searches for predecessors with >=2/3 votes
+// it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
+func (s *Service) getPossiblePreVotedPredecessors(votes map[Vote]uint64, curr common.Hash, prevoted map[common.Hash]uint64) (map[common.Hash]uint64, error) {
+	for v := range votes {
+		if v.hash == curr {
+			continue
+		}
+
+		// find common predecessor, check if votes for it is >=2/3 or not
+		pred, err := s.blockState.HighestCommonPredecessor(v.hash, curr)
+		if err != nil {
+			return nil, err
+		}
+
+		total, err := s.getTotalVotesForBlock(pred)
+		if err != nil {
+			return nil, err
+		}
+
+		if total >= uint64(2*len(s.state.voters)/3) {
+			h, err := s.blockState.GetHeader(pred)
+			if err != nil {
+				return nil, err
+			}
+
+			prevoted[pred] = uint64(h.Number.Int64())
+		} else {
+			prevoted, err = s.getPossiblePreVotedPredecessors(votes, pred, prevoted)
+		}
+	}
+
+	return prevoted, nil
 }
 
 // getPreVotedBlock returns the current pre-voted block B.
@@ -164,16 +180,14 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there is one block, return it
 	if len(blocks) == 1 {
-		return blocks[0], nil
+		for v := range blocks {
+			return Vote{
+				hash: v,
+			}, nil
+		}
 	}
 
 	// if there are multiple, find the one with the highest number and return it
-	// highest, err := s.blockState.HighestCommonPredecessor(blocks[0].hash, blocks[1].hash)
-	// if err != nil {
-	// 	return Vote{}, err
-	// }
-
-	// return NewVoteFromHash(highest, s.blockState)
 
 	return Vote{}, nil
 }
@@ -221,22 +235,9 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
-	msg, err := scale.Encode(&FullVote{
-		stage: m.stage,
-		vote:  NewVote(m.message.hash, m.message.number),
-		round: m.round,
-		setID: m.setID,
-	})
+	err = validateMessageSignature(pk, m)
 	if err != nil {
 		return nil, err
-	}
-	ok, err := pk.Verify(msg, m.message.signature[:])
-	if err != nil {
-		return nil, err
-	}
-
-	if !ok {
-		return nil, ErrInvalidSignature
 	}
 
 	// check that setIDs match
@@ -244,7 +245,7 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, ErrSetIDMismatch
 	}
 
-	// check for equivocation ie. votes for blocks that do not reside on the same branch of the blocktree
+	// check for equivocation ie. multiple votes within one subround
 	voter, err := s.state.pubkeyToVoter(pk)
 	if err != nil {
 		return nil, err
@@ -265,6 +266,28 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	s.votes[pk.AsBytes()] = vote
 
 	return vote, nil
+}
+
+func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
+	msg, err := scale.Encode(&FullVote{
+		stage: m.stage,
+		vote:  NewVote(m.message.hash, m.message.number),
+		round: m.round,
+		setID: m.setID,
+	})
+	if err != nil {
+		return err
+	}
+	ok, err := pk.Verify(msg, m.message.signature[:])
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return ErrInvalidSignature
+	}
+
+	return nil
 }
 
 // checkForEquivocation checks if the vote is an equivocatory vote.
