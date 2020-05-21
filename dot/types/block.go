@@ -49,6 +49,7 @@ func (b *Block) Encode() ([]byte, error) {
 		return nil, err
 	}
 
+	// the scale encoding of an empty array of arrays is 0
 	if len(b.Header.Digest) == 0 {
 		enc = append(enc, 0)
 	}

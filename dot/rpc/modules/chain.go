@@ -235,7 +235,7 @@ func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
 		Digest:         ChainBlockHeaderDigest{},
 	}
 	if header.Number.Int64() == 0 {
-		res.Number = "0x00"
+		res.Number = "0x00" // needs two 0 chars for hex decoding to work
 	} else {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
