@@ -17,6 +17,8 @@
 package grandpa
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -79,6 +81,10 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 	}
 
 	return NewVoteFromHeader(h), nil
+}
+
+func (v *Vote) String() string {
+	return fmt.Sprintf("hash=0x%s number=%d", v.hash, v.number)
 }
 
 // FullVote represents a vote with additional information about the state

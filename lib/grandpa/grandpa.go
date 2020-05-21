@@ -91,11 +91,11 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash) (uint64, error) {
 	return dv + uint64(ev), nil
 }
 
-// getPossiblePreVotedBlocks returns all blocks with total votes >= 2/3 the total number of voters
-// this should be 1 exactly block, except in the case where exactly 1/3 voters equivocate.
-// in that case, there may be 2 blocks returned.
-// if there are > 1/3 byzantine nodes, then there may be 0, or more than 2 blocks returned.
-// that would be very bad.
+// getPossiblePreVotedBlocks returns blocks with total votes >=2/3 the total number of voters
+// if there are no blocks that have >=2/3 direct votes, this function will find predecessors of those blocks
+// that do have >=2/3 votes.
+// note that by voting for a block, all of its predecessor blocks are automatically voted for.
+// thus, if there are no blocks with >=2/3 total votes, but their sum is >=2/3, this function returns their first common predecessor.
 func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
 	votes := s.getDirectVotes()
 	blocks := []Vote{}
@@ -111,15 +111,47 @@ func (s *Service) getPossiblePreVotedBlocks() ([]Vote, error) {
 		}
 	}
 
+	// since we want to select the block with the highest number that has >=2/3 votes,
+	// we can return here since their predecessors won't have a higher number.
+	if len(blocks) != 0 {
+		return blocks, nil
+	}
+
+	// no block has >=2/3 direct votes, check for votes in
+	for v := range votes {
+		for w := range votes {
+			if v == w {
+				continue
+			}
+
+			// find common predecessor, check if votes for it is >=2/3 or not
+			pred, err := s.blockState.HighestCommonPredecessor(v.hash, w.hash)
+			if err != nil {
+				return nil, err
+			}
+
+			total, err := s.getTotalVotesForBlock(pred)
+			if err != nil {
+				return nil, err
+			}
+
+			if total >= uint64(2*len(s.state.voters)/3) {
+				v, err := NewVoteFromHash(pred, s.blockState)
+				if err != nil {
+					return nil, err
+				}
+
+				blocks = append(blocks, *v)
+			}
+		}
+	}
+
 	return blocks, nil
 }
 
 // getPreVotedBlock returns the current pre-voted block B.
 // the pre-voted block is the block with the highest block number in the set of all the blocks with
 // total votes >= 2/3 the total number of voters, where the total votes is determined by getTotalVotesForBlock.
-// note that by voting for a block, all of its predecessor blocks are automatically voted for.
-// thus, if there are two blocks both with 2/3 total votes, and the same block number, this function
-// returns their first common predecessor.
 func (s *Service) getPreVotedBlock() (Vote, error) {
 	blocks, err := s.getPossiblePreVotedBlocks()
 	if err != nil {
@@ -135,22 +167,15 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 		return blocks[0], nil
 	}
 
-	// if there are two, find the greatest common predecessor and return it
-	highest, err := s.blockState.HighestCommonPredecessor(blocks[0].hash, blocks[1].hash)
-	if err != nil {
-		return Vote{}, err
-	}
+	// if there are multiple, find the one with the highest number and return it
+	// highest, err := s.blockState.HighestCommonPredecessor(blocks[0].hash, blocks[1].hash)
+	// if err != nil {
+	// 	return Vote{}, err
+	// }
 
-	// get number
-	header, err := s.blockState.GetHeader(highest)
-	if err != nil {
-		return Vote{}, err
-	}
+	// return NewVoteFromHash(highest, s.blockState)
 
-	return Vote{
-		hash:   highest,
-		number: uint64(header.Number.Int64()),
-	}, nil
+	return Vote{}, nil
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header

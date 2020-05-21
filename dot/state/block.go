@@ -535,6 +535,11 @@ func (bs *BlockState) Leaves() []common.Hash {
 	return bs.bt.Leaves()
 }
 
+// BlocktreeAsString returns the blocktree as a string
+func (bs *BlockState) BlocktreeAsString() string {
+	return bs.bt.String()
+}
+
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return StoreBestBlockHash(bs.db.db, hash)
 }

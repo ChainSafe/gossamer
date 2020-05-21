@@ -519,10 +519,17 @@ func TestGetPossiblePreVotedBlocks_EqualVotes(t *testing.T) {
 		}
 	}
 
+	t.Log(st.Block.BlocktreeAsString())
+
 	blocks, err := gs.getPossiblePreVotedBlocks()
 	require.NoError(t, err)
-	// TODO: this should return the highest common predecessor
-	require.Equal(t, 0, len(blocks))
+
+	for _, v := range blocks {
+		t.Log((&v).String())
+	}
+
+	// TODO: this should return the highest common predecessors of (a, b), (a, c), (b, c)
+	require.Equal(t, 3, len(blocks))
 }
 
 func TestGetPossiblePreVotedBlocks_OneThirdEquivocating(t *testing.T) {
