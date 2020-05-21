@@ -35,8 +35,8 @@ var privateKeys = []string{
 	"0x2a8ec704e37867efd9f7d1f33560f208b1544527611fe2cc3014d17eb649ca0b",
 }
 
-// Keyring represents a test keyring
-type Keyring struct {
+// Sr25519Keyring represents a test keyring
+type Sr25519Keyring struct {
 	Alice   *sr25519.Keypair
 	Bob     *sr25519.Keypair
 	Charlie *sr25519.Keypair
@@ -48,9 +48,9 @@ type Keyring struct {
 	Ian     *sr25519.Keypair
 }
 
-// NewKeyring returns an initialized Keyring
-func NewKeyring() (*Keyring, error) {
-	kr := new(Keyring)
+// NewSr25519Keyring returns an initialized sr25519 Keyring
+func NewSr25519Keyring() (*Sr25519Keyring, error) {
+	kr := new(Sr25519Keyring)
 
 	v := reflect.ValueOf(kr).Elem()
 
@@ -66,7 +66,7 @@ func NewKeyring() (*Keyring, error) {
 	return kr, nil
 }
 
-// Ed25519Keyring represents a test keyring
+// Ed25519Keyring represents a test ed25519 keyring
 type Ed25519Keyring struct {
 	Alice   *ed25519.Keypair
 	Bob     *ed25519.Keypair
