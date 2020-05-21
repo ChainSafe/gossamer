@@ -135,12 +135,22 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 		return blocks[0], nil
 	}
 
-	// TODO: if there are two, find the greatest common predecessor and return it
-	highest := Vote{
-		number: uint64(0),
+	// if there are two, find the greatest common predecessor and return it
+	highest, err := s.blockState.HighestCommonPredecessor(blocks[0].hash, blocks[1].hash)
+	if err != nil {
+		return Vote{}, err
 	}
 
-	return highest, nil
+	// get number
+	header, err := s.blockState.GetHeader(highest)
+	if err != nil {
+		return Vote{}, err
+	}
+
+	return Vote{
+		hash:   highest,
+		number: uint64(header.Number.Int64()),
+	}, nil
 }
 
 // CreateVoteMessage returns a signed VoteMessage given a header

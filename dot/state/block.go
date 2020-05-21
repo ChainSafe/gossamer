@@ -526,6 +526,10 @@ func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	return bs.bt.IsDescendantOf(parent, child)
 }
 
+func (bs *BlockState) HighestCommonPredecessor(a, b common.Hash) (common.Hash, error) {
+	return bs.bt.HighestCommonPredecessor(a, b)
+}
+
 // Leaves returns the leaves of the blocktree as an array
 func (bs *BlockState) Leaves() []common.Hash {
 	return bs.bt.Leaves()

@@ -221,7 +221,7 @@ func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
 }
 
 // Leaves returns the leaves of the blocktree as an array
-func (bt *BlockTree) Leaves() []common.Hash {
+func (bt *BlockTree) Leaves() []Hash {
 	lm := bt.leaves.toMap()
 	la := make([]common.Hash, len(lm))
 	i := 0
@@ -235,7 +235,7 @@ func (bt *BlockTree) Leaves() []common.Hash {
 }
 
 // HighestCommonPredecessor returns the highest block that is a predecessor to both a and b
-func (bt *BlockTree) HighestCommonPredecessor(a, b common.Hash) (Hash, error) {
+func (bt *BlockTree) HighestCommonPredecessor(a, b Hash) (Hash, error) {
 	an := bt.getNode(a)
 	if an == nil {
 		return common.Hash{}, ErrNodeNotFound
