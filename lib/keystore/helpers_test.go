@@ -35,7 +35,7 @@ var testKeyTypes = []struct {
 	expectedType string
 }{
 	{testType: "babe", expectedType: crypto.Sr25519Type},
-	{testType: "gran", expectedType: crypto.Sr25519Type},
+	{testType: "gran", expectedType: crypto.Ed25519Type},
 	{testType: "acco", expectedType: crypto.Sr25519Type},
 	{testType: "aura", expectedType: crypto.Sr25519Type},
 	{testType: "imon", expectedType: crypto.Sr25519Type},

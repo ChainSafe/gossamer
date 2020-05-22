@@ -92,12 +92,12 @@ func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI Transact
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
-	pkDec, err := common.HexToHash(keyReq[1])
+	pkDec, err := common.HexToBytes(keyReq[1])
 	if err != nil {
 		return err
 	}
 
-	privateKey, err := keystore.DecodePrivateKey(pkDec.ToBytes(), keystore.DetermineKeyType(keyReq[0]))
+	privateKey, err := keystore.DecodePrivateKey(pkDec, keystore.DetermineKeyType(keyReq[0]))
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,6 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -502,26 +501,7 @@ func (s *Service) InsertKey(kp crypto.Keypair) {
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 //  are issues decoding string
 func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
-	keyBytes, err := common.HexToBytes(pubKeyStr)
-	if err != nil {
-		return false, err
-	}
-	cKeyType := keystore.DetermineKeyType(keyType)
-	var err2 error
-	var pubKey crypto.PublicKey
-	// TODO: consider handling for different key types, see issue #768
-	switch cKeyType {
-	case crypto.Sr25519Type:
-		pubKey, err2 = sr25519.NewPublicKey(keyBytes)
-	default:
-		err2 = fmt.Errorf("unknown key type: %s", keyType)
-	}
-
-	if err2 != nil {
-		return false, err2
-	}
-	key := s.keys.Get(pubKey.Address())
-	return key != nil, nil
+	return keystore.HasKey(pubKeyStr, keyType, s.keys)
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
