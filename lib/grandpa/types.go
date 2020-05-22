@@ -16,7 +16,6 @@
 
 package grandpa
 
-
 import (
 	"bytes"
 	"fmt"
