@@ -82,7 +82,7 @@ type StateStorageKeysResponse [][]byte
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
-type StateMetadataResponse []byte
+type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -184,9 +184,12 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
-// GetMetadata isn't implemented properly yet.
-func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) {
+// GetMetadata calls runtime Metadata_metadata function
+func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	metadata, err := sm.coreAPI.GetMetadata()
+	*res = common.BytesToHex(metadata)
+	return err
 }
 
 // GetRuntimeVersion Get the runtime version at a given block.
@@ -209,14 +212,13 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	pReq := *req
 	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
-
 	item, err := sm.storageAPI.GetStorage(reqBytes)
 	if err != nil {
 		return err
 	}
 
 	if len(item) > 0 {
-		*res = "0x" + hex.EncodeToString(item)
+		*res = common.BytesToHex(item)
 	} else {
 		*res = nil
 	}

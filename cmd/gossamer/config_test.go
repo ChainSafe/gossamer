@@ -465,6 +465,45 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
+		{
+			"Test gossamer --wsport",
+			[]string{"config", "wsport"},
+			[]interface{}{testCfgFile.Name(), "7070"},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    7070,
+				WSEnabled: false,
+			},
+		},
+		{
+			"Test gossamer --ws",
+			[]string{"config", "ws"},
+			[]interface{}{testCfgFile.Name(), false},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    testCfg.RPC.WSPort,
+				WSEnabled: false,
+			},
+		},
+		{
+			"Test gossamer --ws",
+			[]string{"config", "ws"},
+			[]interface{}{testCfgFile.Name(), true},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    testCfg.RPC.WSPort,
+				WSEnabled: true,
+			},
+		},
 	}
 
 	for _, c := range testcases {
@@ -506,6 +545,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		Core:    testCfg.Core,
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
+		System:  testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -546,6 +586,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		Core:    testCfg.Core,
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
+		System:  testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -587,7 +628,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoBootstrap: testCfg.Network.NoBootstrap,
 			NoMDNS:      testCfg.Network.NoMDNS,
 		},
-		RPC: testCfg.RPC,
+		RPC:    testCfg.RPC,
+		System: testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
