@@ -163,7 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		// thread safe way to change closed status
 		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
 		if !canLock {
-			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
+			return nil, errors.New("failed to change Service status from stopped to started")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -219,7 +219,7 @@ func NewService(cfg *Config) (*Service, error) {
 		// thread safe way to change closed status
 		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
 		if !canLock {
-			return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
+			return nil, errors.New("failed to change Service status from stopped to started")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -314,7 +314,7 @@ func (s *Service) Stop() error {
 			// thread safe way to change closed status
 			canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
 			if !canUnlock {
-				log.Error("[core] Error when trying to change Service status from started to stopped.")
+				log.Error("failed to change Service status from started to stopped.")
 			}
 		}()
 

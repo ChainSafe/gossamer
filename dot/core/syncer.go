@@ -129,7 +129,7 @@ func (s *Syncer) Start() error {
 	// thread safe change stopped to 1
 	canLock := atomic.CompareAndSwapUint32(&s.started, 0, 1)
 	if !canLock {
-		return errors.New("[sync] Error when trying to change Syncer from stopped to started")
+		return errors.New("failed to change Syncer from stopped to started")
 	}
 	go s.watchForBlocks()
 	go s.watchForResponses()
@@ -142,7 +142,7 @@ func (s *Syncer) Stop() error {
 	// stop goroutines
 	canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
 	if !canUnlock {
-		return errors.New("[sync] Error when trying to change Syncer from started to stopped")
+		return errors.New("failed to change Syncer from started to stopped")
 	}
 	return nil
 }

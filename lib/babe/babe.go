@@ -118,7 +118,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	canLock := atomic.CompareAndSwapUint32(&babeSession.started, 0, 1)
 	if !canLock {
-		return nil, errors.New("[core] Error when trying to change Service status from stopped to started")
+		return nil, errors.New("failed to change Session status from stopped to started")
 	}
 
 	var err error
@@ -180,7 +180,7 @@ func (b *Session) stop() error {
 	if atomic.LoadUint32(&b.started) == uint32(1) {
 		canUnlock := atomic.CompareAndSwapUint32(&b.started, 1, 0)
 		if !canUnlock {
-			return errors.New("[babe] Error when trying to change Service status from started to stopped")
+			return errors.New("failed to change Session status from started to stopped")
 		}
 		close(b.newBlocks)
 		b.epochDone.Done()

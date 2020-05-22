@@ -126,12 +126,16 @@ func TestStartNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.Nil(t, err)
 
-	go node.Start()
+	go func() {
+		err := node.Start()
+		require.Nil(t, err)
+	}()
+
 	time.Sleep(100 * time.Millisecond)
-	require.Equal(t, uint32(1), atomic.LoadUint32(&node.stateStarted))
+	require.Equal(t, uint32(1), atomic.LoadUint32(&node.started))
 
 	node.Stop()
-	require.Equal(t, uint32(0), atomic.LoadUint32(&node.stateStarted))
+	require.Equal(t, uint32(0), atomic.LoadUint32(&node.started))
 }
 
 // TestStopNode
@@ -170,7 +174,10 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err = stateSrvc.Start()
 	require.Nil(t, err)
 
-	defer stateSrvc.Stop()
+	defer func() {
+		err = stateSrvc.Stop()
+		require.Nil(t, err)
+	}()
 
 	gendata, err := state.LoadGenesisData(stateSrvc.DB())
 	require.Nil(t, err)

@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -39,11 +40,11 @@ import (
 
 // Node is a container for all the components of a node.
 type Node struct {
-	Name         string
-	Services     *services.ServiceRegistry // registry of all node services
-	syncChan     chan *big.Int
-	wg           sync.WaitGroup
-	stateStarted uint32
+	Name     string
+	Services *services.ServiceRegistry // registry of all node services
+	syncChan chan *big.Int
+	wg       sync.WaitGroup
+	started  uint32
 }
 
 // InitNode initializes a new dot node from the provided dot node configuration
@@ -273,7 +274,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 }
 
 // Start starts all dot node services
-func (n *Node) Start() {
+func (n *Node) Start() error {
 	log.Info("[dot] starting node services...")
 
 	// start all dot node services
@@ -289,9 +290,14 @@ func (n *Node) Start() {
 		os.Exit(130)
 	}()
 
-	atomic.CompareAndSwapUint32(&n.stateStarted, 0, 1)
+	canLock := atomic.CompareAndSwapUint32(&n.started, 0, 1)
+	if !canLock {
+		return errors.New("failed to change Node status from stopped to started")
+	}
 	n.wg.Add(1)
 	n.wg.Wait()
+
+	return nil
 }
 
 // Stop stops all dot node services
@@ -301,9 +307,9 @@ func (n *Node) Stop() {
 	n.Services.StopAll()
 
 	defer func() {
-		canUnlock := atomic.CompareAndSwapUint32(&n.stateStarted, 1, 0)
+		canUnlock := atomic.CompareAndSwapUint32(&n.started, 1, 0)
 		if !canUnlock {
-			panic("[dot] Error when trying to change Node status from started to stopped.")
+			log.Error("failed to change Node status from started to stopped")
 		}
 
 		n.wg.Done()
