@@ -54,15 +54,17 @@ func NewState(voters []*Voter, setID, round uint64) *State {
 
 // pubkeyToVoter returns a Voter given a public key
 func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
-	id := uint64(2^64) - 1
+	max := uint64(2^64) - 1
+	id := max
 
 	for i, v := range s.voters {
 		if bytes.Equal(pk.Encode(), v.key.Encode()) {
 			id = uint64(i)
+			break
 		}
 	}
 
-	if id == (2^64)-1 {
+	if id == max {
 		return nil, ErrVoterNotFound
 	}
 
@@ -70,6 +72,11 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 		key: pk,
 		id:  id,
 	}, nil
+}
+
+// threshold returns the 2/3 |voters| threshold value
+func (s *State) threshold() uint64 {
+	return uint64(2 * len(s.voters) / 3)
 }
 
 // Vote represents a vote for a block with the given hash and number

@@ -714,7 +714,7 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	leaves := gs.blockState.Leaves()
 	require.Equal(t, 6, len(leaves))
 
-	// 1/3 voters each vote for a block on a different chain
+	// voters vote for a blocks on a different chains
 	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
 	voteB, err := NewVoteFromHash(leaves[1], st.Block)

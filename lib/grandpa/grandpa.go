@@ -106,7 +106,7 @@ func (s *Service) getPossiblePreVotedBlocks() (map[common.Hash]uint64, error) {
 			return nil, err
 		}
 
-		if total >= uint64(2*len(s.state.voters)/3) {
+		if total >= s.state.threshold() {
 			blocks[v.hash] = v.number
 		}
 	}
@@ -154,7 +154,7 @@ func (s *Service) getPossiblePreVotedPredecessors(votes []Vote, curr common.Hash
 			return nil, err
 		}
 
-		if total >= uint64(2*len(s.state.voters)/3) {
+		if total >= s.state.threshold() {
 			var h *types.Header
 			h, err = s.blockState.GetHeader(pred)
 			if err != nil {

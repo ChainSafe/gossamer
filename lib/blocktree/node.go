@@ -112,11 +112,7 @@ func (n *node) subChain(descendant *node) ([]*node, error) {
 
 // isDescendantOf traverses the tree following all possible paths until it determines if n is a descendant of parent
 func (n *node) isDescendantOf(parent *node) bool {
-	if parent == nil {
-		return false
-	}
-
-	if n == nil {
+	if parent == nil || n == nil {
 		return false
 	}
 
