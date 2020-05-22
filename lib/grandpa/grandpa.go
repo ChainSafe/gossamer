@@ -140,7 +140,7 @@ func (s *Service) getPossiblePreVotedPredecessors(votes []Vote, curr common.Hash
 		}
 
 		// find common predecessor, check if votes for it is >=2/3 or not
-		pred, err := s.blockState.HighestCommonPredecessor(v.hash, curr)
+		pred, err := s.blockState.HighestCommonAncestor(v.hash, curr)
 		if err != nil {
 			return nil, err
 		}

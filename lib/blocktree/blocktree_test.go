@@ -331,7 +331,7 @@ func TestBlockTree_IsDecendantOf(t *testing.T) {
 	require.False(t, isDescendant)
 }
 
-func TestBlockTree_HighestCommonPredecessor(t *testing.T) {
+func TestBlockTree_HighestCommonAncestor(t *testing.T) {
 	header := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
@@ -354,12 +354,12 @@ func TestBlockTree_HighestCommonPredecessor(t *testing.T) {
 	a := leaves[0]
 	b := leaves[1]
 
-	p, err := bt.HighestCommonPredecessor(a, b)
+	p, err := bt.HighestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, expected, p)
 }
 
-func TestBlockTree_HighestCommonPredecessor_SameNode(t *testing.T) {
+func TestBlockTree_HighestCommonAncestor_SameNode(t *testing.T) {
 	header := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
@@ -370,12 +370,12 @@ func TestBlockTree_HighestCommonPredecessor_SameNode(t *testing.T) {
 
 	a := leaves[0]
 
-	p, err := bt.HighestCommonPredecessor(a, a)
+	p, err := bt.HighestCommonAncestor(a, a)
 	require.NoError(t, err)
 	require.Equal(t, a, p)
 }
 
-func TestBlockTree_HighestCommonPredecessor_SameChain(t *testing.T) {
+func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
 	header := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
@@ -387,8 +387,8 @@ func TestBlockTree_HighestCommonPredecessor_SameChain(t *testing.T) {
 	a := leaves[0]
 	b := bt.getNode(a).parent.hash
 
-	// b is a's parent, so their highest common predecessor is b.
-	p, err := bt.HighestCommonPredecessor(a, b)
+	// b is a's parent, so their highest common Ancestor is b.
+	p, err := bt.HighestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, b, p)
 }
