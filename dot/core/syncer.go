@@ -65,7 +65,7 @@ type Syncer struct {
 
 	// Core service control
 	chanLock *sync.Mutex
-	stopped  uint32
+	started  uint32
 
 	// BABE verification
 	verifier Verifier
@@ -127,7 +127,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 // Start begins the syncer
 func (s *Syncer) Start() error {
 	// thread safe change stopped to 1
-	canLock := atomic.CompareAndSwapUint32(&s.stopped, 0, 1)
+	canLock := atomic.CompareAndSwapUint32(&s.started, 0, 1)
 	if !canLock {
 		return errors.New("[sync] Error when trying to change Syncer from stopped to started")
 	}
@@ -140,7 +140,7 @@ func (s *Syncer) Start() error {
 // Stop stops the syncer
 func (s *Syncer) Stop() error {
 	// stop goroutines
-	canUnlock := atomic.CompareAndSwapUint32(&s.stopped, 1, 0)
+	canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
 	if !canUnlock {
 		return errors.New("[sync] Error when trying to change Syncer from started to stopped")
 	}
@@ -150,7 +150,7 @@ func (s *Syncer) Stop() error {
 func (s *Syncer) watchForBlocks() {
 	for {
 		// thread safe check if stopped
-		if atomic.LoadUint32(&s.stopped) == uint32(0) {
+		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
 
@@ -179,7 +179,7 @@ func (s *Syncer) watchForBlocks() {
 func (s *Syncer) watchForResponses() {
 	for {
 		// thread safe check if stopped
-		if atomic.LoadUint32(&s.stopped) == uint32(0) {
+		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
 
@@ -254,7 +254,7 @@ func (s *Syncer) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 	// thread safe check if stopped
-	if atomic.LoadUint32(&s.stopped) == uint32(0) {
+	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
 	s.msgOut <- msg
