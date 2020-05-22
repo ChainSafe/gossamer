@@ -51,6 +51,7 @@ func TestChainRPC(t *testing.T) {
 					Header: modules.ChainBlockHeaderResponse{
 						Number: "1",
 					},
+					Body: []string{},
 				},
 			},
 			params: "[]",
@@ -114,9 +115,8 @@ func TestChainRPC(t *testing.T) {
 				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.ExtrinsicsRoot)
 				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Header.Digest)
 
-				//TODO: find out why Body is returned nil always ?
-				//require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
-				//require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 1)
+				require.NotNil(t, test.expected.(modules.ChainBlockResponse).Block.Body)
+				require.GreaterOrEqual(t, len(test.expected.(modules.ChainBlockResponse).Block.Body), 0)
 
 			case *string:
 				t.Log("Will assert ChainBlockNumberRequest", "value", *v)
