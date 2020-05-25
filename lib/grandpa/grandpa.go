@@ -50,6 +50,7 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 	}, nil
 }
 
+// isCompletable returns true if the round is completable, false otherwise
 func (s *Service) isCompletable() (bool, error) {
 	votes := s.getVotes()
 	prevoted, err := s.getPreVotedBlock()
