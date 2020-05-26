@@ -17,6 +17,9 @@
 package grandpa
 
 import (
+	"bytes"
+	//"time"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -26,10 +29,12 @@ import (
 type Service struct {
 	state         *State // current state
 	blockState    BlockState
+	keypair       *ed25519.Keypair                   // our keypair
 	subround      subround                           // current sub-round
 	votes         map[ed25519.PublicKeyBytes]*Vote   // votes for next state
 	equivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for this stage
 	head          common.Hash                        // most recently finalized block hash
+	primaryVotes  map[uint64]*Vote                   // map of round number to votes from primary, can clear every round
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -46,8 +51,56 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 		subround:      prevote,
 		votes:         make(map[ed25519.PublicKeyBytes]*Vote),
 		equivocations: make(map[ed25519.PublicKeyBytes][]*Vote),
-		head:          head.Hash(),
+		head:          head,
 	}, nil
+}
+
+// initiate increments the round number and sets the finalized block hash in the database
+func (s *Service) initiate() error {
+	// TODO: check runtime digests for authority changes
+	// needs a runtime update
+	s.state.round += 1
+
+	// set finalized head
+	return s.blockState.SetFinalizedHead(s.head)
+}
+
+func (s *Service) beginPreVote() error {
+	// save start time
+	//start := time.Now().Unix()
+
+	// derive primary
+	primary := s.derivePrimary()
+
+	// if primary, broadcast the best final candidate from the previous round
+	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
+		// TODO: broadcast best final candidate
+	}
+
+	// TODO: receive messages until current time runs out or round is completable
+
+	// determine what block we will vote for
+	var vote *Vote
+	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block,
+	// and greater than the best final candidate from the last round, we choose that
+	if s.primaryVotes[s.state.round] != nil && s.primaryVotes[s.state.round].number > 0 {
+		vote = s.primaryVotes[s.state.round]
+	}
+
+	head, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) endRound() {
+
+}
+
+func (s *Service) derivePrimary() *Voter {
+	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
 }
 
 // isCompletable returns true if the round is completable, false otherwise
