@@ -174,7 +174,7 @@ func TestRetrieveAuthorityData(t *testing.T) {
 }
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, NODE_RUNTIME)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -183,13 +183,13 @@ func TestConfigurationFromRuntime_noAuth(t *testing.T) {
 
 	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
 	expected := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        6,
-		C1:                 3,
-		C2:                 10,
+		SlotDuration:       3000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
 		GenesisAuthorities: nil,
-		Randomness:         0,
-		SecondarySlots:     false,
+		Randomness:         [32]byte{},
+		SecondarySlots:     true,
 	}
 
 	if !reflect.DeepEqual(cfg, expected) {
@@ -200,22 +200,43 @@ func TestConfigurationFromRuntime_noAuth(t *testing.T) {
 func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
-	key, err := common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
+	// randomness key
+	key, err := common.HexToBytes("0xd5b995311b7ab9b44b649bc5ce4a7aba")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	value, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+	value, err := common.HexToHash("0x01")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = tt.Put(key, value)
+	// value, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	err = tt.Put(key, value[:])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rt := NewTestRuntimeWithTrie(t, POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	key, err = common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	auths, err := common.HexToBytes("0x04eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = tt.Put(key, auths)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rt := NewTestRuntimeWithTrie(t, NODE_RUNTIME, tt)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -232,13 +253,13 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 
 	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
 	expected := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        6,
-		C1:                 3,
-		C2:                 10,
+		SlotDuration:       3000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
 		GenesisAuthorities: expectedAuthData,
-		Randomness:         0,
-		SecondarySlots:     false,
+		Randomness:         [32]byte{1},
+		SecondarySlots:     true,
 	}
 
 	if !reflect.DeepEqual(cfg, expected) {

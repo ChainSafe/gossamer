@@ -16,7 +16,7 @@ type BabeConfiguration struct {
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
 	GenesisAuthorities []*AuthorityDataRaw
-	Randomness         byte // TODO: change to [RandomnessLength]byte when updating to new runtime
+	Randomness         [32]byte
 	SecondarySlots     bool
 }
 

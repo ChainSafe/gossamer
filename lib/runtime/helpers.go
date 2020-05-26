@@ -65,6 +65,8 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 		return nil, err
 	}
 
+	fmt.Println(data)
+
 	bc := new(types.BabeConfiguration)
 	_, err = scale.Decode(data, bc)
 	if err != nil {

@@ -69,21 +69,9 @@ package runtime
 import "C"
 
 import (
-	// "bytes"
-	// "encoding/binary"
-	// "fmt"
-	// "math/big"
 	"unsafe"
 
-	// "github.com/ChainSafe/gossamer/lib/common"
-	// "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	// "github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	// "github.com/ChainSafe/gossamer/lib/scale"
-	// "github.com/ChainSafe/gossamer/lib/trie"
-
 	log "github.com/ChainSafe/log15"
-	//"github.com/OneOfOne/xxhash"
-	//"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 

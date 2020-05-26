@@ -461,6 +461,11 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) {
 				if _, err = sd.Reader.Read(b); err == nil {
 					*ptr = common.NewHash(b)
 				}
+			case *[32]byte:
+				b := make([]byte, 32)
+				if _, err = sd.Reader.Read(b); err == nil {
+					copy((*ptr)[:], b)
+				}
 			case *string:
 				if o, err = sd.DecodeByteArray(); err == nil {
 					// get the pointer to the value and set the value

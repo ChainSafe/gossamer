@@ -265,7 +265,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	s := runtimeCtx.storage
 
 	key := memory[keyData : keyData+keyLen]
-	log.Trace("[ext_get_allocated_storage]", "key", key)
+	log.Trace("[ext_get_allocated_storage]", "key", fmt.Sprintf("0x%x", key))
 
 	val, err := s.GetStorage(key)
 	if err != nil {
