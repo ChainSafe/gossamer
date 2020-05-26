@@ -37,7 +37,8 @@ var genesisHeader = &types.Header{
 }
 
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
-	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
+	tt := trie.NewEmptyTrie()
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	babeCfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -93,7 +94,7 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 
 		genesisData := new(genesis.Data)
 
-		err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
+		err = dbSrv.Initialize(genesisData, genesisHeader, tt)
 		if err != nil {
 			t.Fatal(err)
 		}

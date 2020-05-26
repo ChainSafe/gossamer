@@ -178,7 +178,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
-	log.Trace("[ext_set_storage]", "key", key, "val", val)
+	log.Trace("[ext_set_storage]", "key", fmt.Sprintf("0x%x", key), "val", val)
 	err := s.SetStorage(key, val)
 	if err != nil {
 		log.Error("[ext_set_storage]", "error", err)
@@ -293,6 +293,12 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0
 	}
+
+	if len(val) == 1 {
+		val = []byte{0}
+	}
+
+	log.Trace("[ext_get_allocated_storage]", "value", val)
 	copy(memory[ptr:ptr+uint32(len(val))], val)
 
 	// copy length to memory
@@ -429,6 +435,8 @@ func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
+	log.Trace("[ext_twox_64] hashing...", "value", memory[data:data+len])
+
 	hasher := xxhash.NewS64(0) // create xxHash with 0 seed
 	_, err := hasher.Write(memory[data : data+len])
 	if err != nil {
@@ -447,6 +455,8 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 	log.Trace("[ext_twox_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
+
+	log.Trace("[ext_twox_128] hashing...", "value", fmt.Sprintf("%s", memory[data:data+len]))
 
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed

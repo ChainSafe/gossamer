@@ -282,15 +282,18 @@ func TestFinalizeBlock(t *testing.T) {
 	rt := NewTestRuntime(t, NODE_RUNTIME)
 
 	header := &types.Header{
-		Number: big.NewInt(77),
-		Digest: [][]byte{{}},
+		ParentHash: trie.EmptyHash,
+		Number:     big.NewInt(77),
+		//StateRoot: trie.EmptyHash,
+		//ExtrinsicsRoot: trie.EmptyHash,
+		Digest: [][]byte{},
 	}
 
 	err := rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	var res *types.Header
-	for i := 0; i < maxRetries; i++ {
+	for i := 0; i < 1; i++ {
 		res, err = rt.FinalizeBlock()
 		if err == nil {
 			break
