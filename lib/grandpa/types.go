@@ -75,6 +75,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 }
 
 // threshold returns the 2/3 |voters| threshold value
+// TODO: determine rounding, is currently set to floor
 func (s *State) threshold() uint64 {
 	return uint64(2 * len(s.voters) / 3)
 }
