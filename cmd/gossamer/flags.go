@@ -94,7 +94,7 @@ var (
 	// BootnodesFlag Network service settings
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
-		Usage: "Comma separated encode URLs for network discovery bootstrap",
+		Usage: "Comma separated node URLs for network discovery bootstrap",
 	}
 	// ProtocolFlag Set protocol id
 	ProtocolFlag = cli.StringFlag{
