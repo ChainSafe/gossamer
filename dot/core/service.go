@@ -65,7 +65,7 @@ type Service struct {
 	msgRec    <-chan network.Message // receive messages from network service
 	msgSend   chan<- network.Message // send messages to network service
 	blkRec    <-chan types.Block     // receive blocks from BABE session
-	epochDone *sync.WaitGroup        // this is signalled when BABE epoch changes
+	epochDone *sync.WaitGroup        // this is signaled when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      *sync.Mutex
 	started   uint32
