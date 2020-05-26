@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +79,7 @@ func TestCreateCoreService(t *testing.T) {
 	networkMsgs := make(chan network.Message)
 	syncChan := make(chan *big.Int)
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
+	coreSrvc, _, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -145,12 +144,14 @@ func TestCreateRPCService(t *testing.T) {
 
 	ks := keystore.NewKeystore()
 
-	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, make(chan *big.Int))
+	coreSrvc, rt, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, make(chan *big.Int))
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{} // TODO: rpc service without network service
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc)
+	sysSrvc := createSystemService(&cfg.System)
+
+	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt, sysSrvc)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687

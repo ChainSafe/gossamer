@@ -220,7 +220,7 @@ func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, erro
 // epochVerifier represents a BABE verifier for a specific epoch
 type epochVerifier struct {
 	blockState    BlockState
-	authorityData []*AuthorityData
+	authorityData []*types.AuthorityData
 	randomness    byte // TODO: update to [32]byte when runtime is updated
 }
 
@@ -349,6 +349,10 @@ func (b *epochVerifier) verifyAuthorshipRight(header *types.Header) (bool, error
 }
 
 func getBlockProducerIndex(header *types.Header) (uint64, error) {
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("no digest provided")
+	}
+
 	preDigestBytes := header.Digest[0]
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)

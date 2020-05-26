@@ -17,6 +17,8 @@
 package runtime
 
 import (
+	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -32,6 +34,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+// TestAuthorityDataKey is the location of authority data in the storage trie
+var TestAuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
 
 // NewTestRuntime will create a new runtime (polkadot/test)
 func NewTestRuntime(t *testing.T, targetRuntime string) *Runtime {
@@ -57,11 +62,39 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *
 	return r
 }
 
+// exportRuntime writes the runtime to a file as a hex string.
+func exportRuntime(t *testing.T, targetRuntime string, outFp string) {
+	testRuntimeFilePath, testRuntimeURL, _ := GetRuntimeVars(targetRuntime)
+
+	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
+
+	fp, err := filepath.Abs(testRuntimeFilePath)
+	require.NoError(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
+
+	bytes, err := wasm.ReadBytes(fp)
+	require.NoError(t, err)
+
+	str := fmt.Sprintf("0x%x", bytes)
+
+	out, err := filepath.Abs(outFp)
+	require.NoError(t, err)
+
+	file, err := os.OpenFile(out, os.O_CREATE|os.O_WRONLY, 0600)
+	require.NoError(t, err)
+
+	_, err = file.WriteString(str)
+	require.NoError(t, err)
+
+	err = file.Close()
+	require.NoError(t, err)
+}
+
 //nolint
 const (
 	POLKADOT_RUNTIME_c768a7e4c70e     = "polkadot_runtime_c768a7e4c70e"
 	POLKADOT_RUNTIME_FP_c768a7e4c70e  = "substrate_test_runtime_c768a7e4c70e.compact.wasm"
-	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob/core/test-runtime/wasm/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob-042920/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 	POLKADOT_RUNTIME     = "polkadot_runtime"
 	POLKADOT_RUNTIME_FP  = "substrate_test_runtime.compact.wasm"
@@ -192,4 +225,32 @@ func (trs TestRuntimeStorage) ClearStorage(key []byte) error {
 // Entries is a dummy test func
 func (trs TestRuntimeStorage) Entries() map[string][]byte {
 	return trs.trie.Entries()
+}
+
+// SetBalance sets the balance for an account with the given public key
+func (trs TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return err
+	}
+
+	bb := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bb, balance)
+
+	return trs.SetStorage(skey, bb)
+}
+
+// GetBalance gets the balance for an account with the given public key
+func (trs TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return 0, err
+	}
+
+	bal, err := trs.GetStorage(skey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(bal), nil
 }

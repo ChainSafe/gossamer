@@ -17,9 +17,11 @@
 package modules
 
 import (
+	"encoding/hex"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 // StateCallRequest holds json fields
@@ -38,12 +40,6 @@ type StateChildStorageRequest struct {
 
 // StateStorageKeyRequest holds json fields
 type StateStorageKeyRequest struct {
-	Key   []byte      `json:"key"`
-	Block common.Hash `json:"block"`
-}
-
-// StateStorageQueryRequest holds json fields
-type StateStorageQueryRequest struct {
 	Key   []byte      `json:"key"`
 	Block common.Hash `json:"block"`
 }
@@ -73,7 +69,7 @@ type StateCallResponse struct {
 type StateKeysResponse [][]byte
 
 // StateStorageDataResponse field to store data response
-type StateStorageDataResponse []byte
+type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
 type StateStorageHashResponse common.Hash
@@ -86,7 +82,7 @@ type StateStorageKeysResponse [][]byte
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
-type StateMetadataResponse []byte
+type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -104,20 +100,57 @@ type KeyValueOption struct {
 type StorageKey []byte
 
 // StateRuntimeVersionResponse is the runtime version response
-type StateRuntimeVersionResponse string
+type StateRuntimeVersionResponse struct {
+	SpecName         string        `json:"specName"`
+	ImplName         string        `json:"implName"`
+	AuthoringVersion int32         `json:"authoringVersion"`
+	SpecVersion      int32         `json:"specVersion"`
+	ImplVersion      int32         `json:"implVersion"`
+	Apis             []interface{} `json:"apis"`
+}
 
 // StateModule is an RPC module providing access to storage API points.
 type StateModule struct {
 	networkAPI NetworkAPI
 	storageAPI StorageAPI
+	coreAPI    CoreAPI
 }
 
 // NewStateModule creates a new State module.
-func NewStateModule(net NetworkAPI, storage StorageAPI) *StateModule {
+func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModule {
 	return &StateModule{
 		networkAPI: net,
 		storageAPI: storage,
+		coreAPI:    core,
 	}
+}
+
+// GetPairs returns the keys with prefix, leave empty to get all the keys.
+func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	pReq := *req
+	reqBytes, _ := common.HexToBytes(pReq[0])
+
+	if len(reqBytes) < 1 {
+		pairs := sm.storageAPI.Entries()
+		for k, v := range pairs {
+			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+		}
+	} else {
+		// TODO this should return all keys with same prefix, currently only returning
+		//  matches.  Implement when #837 is done.
+		resI, err := sm.storageAPI.GetStorage(reqBytes)
+		if err != nil {
+			return err
+		}
+		if resI != nil {
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
+		} else {
+			*res = []interface{}{}
+		}
+	}
+
+	return nil
 }
 
 // Call isn't implemented properly yet.
@@ -128,52 +161,135 @@ func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCa
 
 // GetChildKeys isn't implemented properly yet.
 func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // GetChildStorage isn't implemented properly yet.
 func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // GetChildStorageHash isn't implemented properly yet.
 func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateStorageHashResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // GetChildStorageSize isn't implemented properly yet.
 func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateStorageSizeResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // GetKeys isn't implemented properly yet.
 func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
-// GetMetadata isn't implemented properly yet.
-func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) {
+// GetMetadata calls runtime Metadata_metadata function
+func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	metadata, err := sm.coreAPI.GetMetadata()
+	*res = common.BytesToHex(metadata)
+	return err
 }
 
-// GetRuntimeVersion isn't implemented properly yet.
-func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) {
+// GetRuntimeVersion Get the runtime version at a given block.
+//  If no block hash is provided, the latest version gets returned.
+// TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
+func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) error {
+	rtVersion, err := sm.coreAPI.GetRuntimeVersion()
+	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
+	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
+	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
+	res.SpecVersion = rtVersion.RuntimeVersion.Spec_version
+	res.ImplVersion = rtVersion.RuntimeVersion.Impl_version
+	res.Apis = convertAPIs(rtVersion.API)
+
+	return err
 }
 
-// GetStorage isn't implemented properly yet.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageQueryRequest, res *StateStorageDataResponse) {
+// GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
+func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	pReq := *req
+	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
+	item, err := sm.storageAPI.GetStorage(reqBytes)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = common.BytesToHex(item)
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
-// GetStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageQueryRequest, res *StateStorageHashResponse) {
+// GetStorageHash returns the hash of a storage entry at a block's state.
+//  If no block hash is provided, the latest value is returned.
+//  TODO implement change storage trie so that block hash parameter works (See issue #834)
+func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *interface{}) error {
+	pReq := *req
+	reqByte, _ := common.HexToBytes(pReq[0])
+
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = common.BytesToHash(item).String()
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
-// GetStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageQueryRequest, res *StateStorageSizeResponse) {
+// GetStorageSize returns the size of a storage entry at a block's state.
+//  If no block hash is provided, the latest value is used.
+// TODO implement change storage trie so that block hash parameter works (See issue #834)
+func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *interface{}) error {
+	pReq := *req
+	reqByte, _ := common.HexToBytes(pReq[0])
+
+	item, err := sm.storageAPI.GetStorage(reqByte)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = len(item)
+	} else {
+		*res = nil
+	}
+
+	return nil
 }
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // SubscribeRuntimeVersion isn't implemented properly yet.
-func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) {
+// TODO make this actually a subscription that pushes data
+func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorageQueryRangeRequest, res *StateRuntimeVersionResponse) error {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return sm.GetRuntimeVersion(r, nil, res)
 }
 
 // SubscribeStorage isn't implemented properly yet.
 func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+}
+
+func convertAPIs(in []*runtime.API_Item) []interface{} {
+	ret := make([]interface{}, 0)
+	for _, item := range in {
+		encStr := hex.EncodeToString(item.Name)
+		ret = append(ret, []interface{}{"0x" + encStr, item.Ver})
+	}
+	return ret
 }

@@ -37,17 +37,20 @@ func TestExecVersion(t *testing.T) {
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)
 
-	res, err := decodeToInterface(ret, &Version{})
+	version := &VersionAPI{
+		RuntimeVersion: &Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
 	require.Nil(t, err)
 
-	version := res.(*Version)
-	t.Logf("Spec_name: %s\n", version.Spec_name)
-	t.Logf("Impl_name: %s\n", version.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.Spec_version)
-	t.Logf("Impl_version: %d\n", version.Impl_version)
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
 
-	require.Equal(t, version, expected)
+	require.Equal(t, expected, version.RuntimeVersion)
 }
 
 func TestExecVersion_Old(t *testing.T) {
@@ -65,17 +68,20 @@ func TestExecVersion_Old(t *testing.T) {
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)
 
-	res, err := decodeToInterface(ret, &Version{})
+	version := &VersionAPI{
+		RuntimeVersion: &Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
 	require.Nil(t, err)
 
-	version := res.(*Version)
-	t.Logf("Spec_name: %s\n", version.Spec_name)
-	t.Logf("Impl_name: %s\n", version.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.Spec_version)
-	t.Logf("Impl_version: %d\n", version.Impl_version)
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
 
-	require.Equal(t, version, expected)
+	require.Equal(t, expected, version.RuntimeVersion)
 }
 
 // test used for ensuring runtime Exec calls can me made concurrently
@@ -89,4 +95,17 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	go func() {
 		_, _ = runtime.Exec(CoreVersion, []byte{})
 	}()
+}
+
+func TestRuntime_Exec_Metadata(t *testing.T) {
+	var expected []byte
+	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	ret, err := runtime.Exec(Metadata_metadata, []byte{})
+
+	// currently this is returning an error because runtime has not implemented Metadata_metadata yet
+	//  expect this to change when runtime changes
+	require.EqualError(t, err, "Failed to call the `Metadata_metadata` exported function.")
+	require.Equal(t, expected, ret)
+
 }

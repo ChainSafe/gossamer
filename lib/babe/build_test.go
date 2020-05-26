@@ -43,10 +43,6 @@ func TestSeal(t *testing.T) {
 	}
 
 	babesession := createTestSession(t, cfg)
-	err = babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	zeroHash, err := common.HexToHash("0x00")
 	if err != nil {
@@ -136,10 +132,6 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 
 	babesession := createTestSession(t, cfg)
-	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
@@ -147,12 +139,12 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	block, slot := createTestBlock(t, babesession, exts)
 
-	stateRoot, err := common.HexToHash("0x31ce5e74d7141520abc11b8a68f884cb1d01b5476a6376a659d93a199c4884e0")
+	stateRoot, err := common.HexToHash("0xd28e7268fa92529641dfae510c471639ec62f310cc30579fca68da0ea72911da")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	extrinsicsRoot, err := common.HexToHash("0xd88e048eda17aaefc427c832ea1208508d67a3e96527be0995db742b5cd91a61")
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,13 +189,12 @@ func TestBuildBlock_failing(t *testing.T) {
 		TransactionQueue: transactionQueue,
 	}
 
+	var err error
 	babesession := createTestSession(t, cfg)
-	err := babesession.configurationFromRuntime()
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	babesession.authorityData = []*AuthorityData{{nil, 1}}
+	babesession.authorityData = []*types.AuthorityData{
+		{ID: nil, Weight: 1},
+	}
 
 	// create proof that we can authorize this block
 	babesession.epochThreshold = big.NewInt(0)
@@ -252,7 +243,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	if err == nil {
 		t.Fatal("should error when attempting to include invalid tx")
 	}
-	require.Equal(t, "cannot build extrinsics: Error during apply extrinsic: Apply error, type: Payment",
+	require.Equal(t, "cannot build extrinsics: error applying extrinsic: Apply error, type: Payment",
 		err.Error(), "Did not receive expected error text")
 
 	txc := babesession.transactionQueue.Peek()

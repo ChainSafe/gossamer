@@ -135,6 +135,14 @@ var (
 		Name:  "rpcmods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
 	}
+	WSPortFlag = cli.IntFlag{
+		Name:  "wsport",
+		Usage: "Websockets server listening port",
+	}
+	WSEnabledFlag = cli.BoolFlag{
+		Name:  "ws",
+		Usage: "Enable the websockets server",
+	}
 )
 
 // Account management flags
@@ -206,10 +214,12 @@ var (
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
+		WSEnabledFlag,
+		WSPortFlag,
 	}
 )
 
-// command specific flag sets for the root gossamer command and all subcommands
+// local flag sets for the root gossamer command and all subcommands
 var (
 	// RootFlags are the flags that are valid for use with the root gossamer command
 	RootFlags = append(GlobalFlags, StartupFlags...)
@@ -240,30 +250,39 @@ var (
 
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
 // --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
-// does not apply to non-global flags, which must come after the subcommand (ie,
+// only fixes global flags, all local flags must come after the subcommand (ie,
 // `gossamer --force --config config.toml init` will not recognize `--force` but
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
-		for _, flagName := range ctx.FlagNames() {
-			if ctx.IsSet(flagName) {
-				// attempt to set flag as global flag
-				err := ctx.GlobalSet(flagName, ctx.String(flagName))
-				if err != nil {
-					log.Trace("[cmd] failed to set global flag", "flag", flagName)
-				} else {
-					log.Trace("[cmd] global flag set", "flag", flagName)
-				}
+		trace := "trace"
 
-				// attempt to set flag as local flag
-				err = ctx.Set(flagName, ctx.String(flagName))
-				if err != nil {
-					log.Trace("[cmd] failed to set local flag", "flag", flagName)
+		// loop through all flags (global and local)
+		for _, flagName := range ctx.FlagNames() {
+
+			// check if flag is set as global or local flag
+			if ctx.GlobalIsSet(flagName) {
+				// log global flag if verbosity equals trace
+				if ctx.String(VerbosityFlag.Name) == trace {
+					log.Trace("[cmd] global flag set", "name", flagName)
+				}
+			} else if ctx.IsSet(flagName) {
+				// check if global flag using set as global flag
+				err := ctx.GlobalSet(flagName, ctx.String(flagName))
+				if err == nil {
+					// log fixed global flag if verbosity equals trace
+					if ctx.String(VerbosityFlag.Name) == trace {
+						log.Trace("[cmd] global flag fixed", "name", flagName)
+					}
 				} else {
-					log.Trace("[cmd] local flag set", "flag", flagName)
+					// if not global flag, log local flag if verbosity equals trace
+					if ctx.String(VerbosityFlag.Name) == trace {
+						log.Trace("[cmd] local flag set", "name", flagName)
+					}
 				}
 			}
 		}
+
 		return f(ctx)
 	}
 }

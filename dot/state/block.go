@@ -50,6 +50,12 @@ func (blockDB *BlockDB) Get(key []byte) ([]byte, error) {
 	return blockDB.db.Get(key)
 }
 
+// Has appends `block` to the key and checks for existence in the db
+func (blockDB *BlockDB) Has(key []byte) (bool, error) {
+	key = append(blockPrefix, key...)
+	return blockDB.db.Has(key)
+}
+
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
 	bt                 *blocktree.BlockTree
@@ -57,6 +63,8 @@ type BlockState struct {
 	lock               sync.RWMutex
 	genesisHash        common.Hash
 	highestBlockHeader *types.Header
+	blockNotifier      chan<- *types.Block
+	doneNotifying      <-chan struct{}
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -100,6 +108,11 @@ func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*Bloc
 	}
 
 	err = bs.SetHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +170,11 @@ func arrivalTimeKey(hash common.Hash) []byte {
 // GenesisHash returns the hash of the genesis block
 func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
+}
+
+// HasHeader returns if the db contains a header with the given hash
+func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
+	return bs.db.Has(headerKey(hash))
 }
 
 // GetHeader returns a BlockHeader for a given hash
@@ -260,6 +278,17 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	}
 
 	return types.NewBody(data), nil
+}
+
+// GetFinalizedHead returns the latest finalized block header
+// TODO: relies on GRANDPA implementation. currently returns genesis header.
+func (bs *BlockState) GetFinalizedHead() (*types.Header, error) {
+	b, err := bs.GetBlockByNumber(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	return b.Header, nil
 }
 
 // SetBlockBody will add a block body to the db
@@ -367,6 +396,17 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	if err != nil {
 		return err
 	}
+
+	if bs.blockNotifier != nil {
+		select {
+		case <-bs.doneNotifying:
+			close(bs.blockNotifier)
+			bs.blockNotifier = nil
+		default:
+			bs.blockNotifier <- block
+		}
+	}
+
 	return err
 }
 
@@ -476,6 +516,16 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	return bs.bt.SubBlockchain(start, end)
 }
 
+// IsDescendantOf returns true if child is a descendant of parent, false otherwise.
+// it returns an error if parent or child are not in the blocktree.
+func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
+	if bs.bt == nil {
+		return false, fmt.Errorf("blocktree is nil")
+	}
+
+	return bs.bt.IsDescendantOf(parent, child)
+}
+
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return StoreBestBlockHash(bs.db.db, hash)
 }
@@ -526,4 +576,10 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHea
 	enc := bh.Encode()
 
 	return bs.db.Put(babeHeaderKey(epoch, slot), enc)
+}
+
+// SetBlockAddedChannel to sets channel that blocks will be received on
+func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan struct{}) {
+	bs.blockNotifier = rcvr
+	bs.doneNotifying = done
 }

@@ -21,12 +21,11 @@ import (
 	"strconv"
 	"strings"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -89,14 +88,14 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
 
-	// ensure configuration values match genesis and overwrite with genesis
-	updateDotConfigFromGenesisJSON(ctx, cfg)
-
 	// set remaining cli configuration values
 	setDotAccountConfig(ctx, &cfg.Account)
 	setDotCoreConfig(ctx, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
+
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
 
 	return cfg, nil
 }
@@ -114,6 +113,9 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// set init configuration values
 	setDotInitConfig(ctx, &cfg.Init)
+
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
 
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSON(ctx, cfg)
@@ -139,6 +141,9 @@ func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
 	setDotCoreConfig(ctx, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
+
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
 
 	return cfg
 }
@@ -309,6 +314,16 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		cfg.Modules = strings.Split(ctx.GlobalString(RPCModulesFlag.Name), ",")
 	}
 
+	if wsport := ctx.GlobalUint(WSPortFlag.Name); wsport != 0 {
+		cfg.WSPort = uint32(wsport)
+	}
+
+	if wsenabled := ctx.GlobalBool(WSEnabledFlag.Name); wsenabled {
+		cfg.WSEnabled = true
+	} else {
+		cfg.WSEnabled = false
+	}
+
 	// format rpc modules
 	if len(cfg.Modules) == 0 {
 		cfg.Modules = []string(nil)
@@ -320,11 +335,33 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
+		"ws", cfg.WSEnabled,
+		"wsport", cfg.WSPort,
 	)
+}
+
+func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
+	// load system information
+	if ctx.App != nil {
+		cfg.System.SystemName = ctx.App.Name
+		cfg.System.SystemVersion = ctx.App.Version
+	}
+
+	// TODO lookup system properties from genesis file and set here (See issue #865)
+	cfg.System.NodeName = cfg.Global.Name
+	props := make(map[string]interface{})
+	cfg.System.SystemProperties = props
 }
 
 // updateDotConfigFromGenesisJSON updates the configuration based on the genesis file values
 func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
+
+	// use default genesis file if genesis configuration not provided, for example,
+	// if we load a toml configuration file without a defined genesis init value or
+	// if we pass an empty string as the genesis init value using the --geneis flag
+	if cfg.Init.Genesis == "" {
+		cfg.Init.Genesis = DefaultCfg.Init.Genesis
+	}
 
 	// load Genesis from genesis configuration file
 	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)

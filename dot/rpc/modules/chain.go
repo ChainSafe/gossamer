@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -32,9 +34,18 @@ type ChainHashRequest string
 // ChainBlockNumberRequest interface is it can accept string or float64 or []
 type ChainBlockNumberRequest interface{}
 
-// ChainBlockResponse struct
-type ChainBlockResponse struct {
-	Block ChainBlock `json:"block"`
+// ChainBlockHeaderResponse struct
+type ChainBlockHeaderResponse struct {
+	ParentHash     string                 `json:"parentHash"`
+	Number         string                 `json:"number"`
+	StateRoot      string                 `json:"stateRoot"`
+	ExtrinsicsRoot string                 `json:"extrinsicsRoot"`
+	Digest         ChainBlockHeaderDigest `json:"digest"`
+}
+
+// ChainBlockHeaderDigest struct to hold digest logs
+type ChainBlockHeaderDigest struct {
+	Logs []string `json:"logs"`
 }
 
 // ChainBlock struct to hold json instance of a block
@@ -43,13 +54,9 @@ type ChainBlock struct {
 	Body   []string                 `json:"extrinsics"`
 }
 
-// ChainBlockHeaderResponse struct
-type ChainBlockHeaderResponse struct {
-	ParentHash     string   `json:"parentHash"`
-	Number         *big.Int `json:"number"`
-	StateRoot      string   `json:"stateRoot"`
-	ExtrinsicsRoot string   `json:"extrinsicsRoot"`
-	Digest         [][]byte `json:"digest"`
+// ChainBlockResponse struct
+type ChainBlockResponse struct {
+	Block ChainBlock `json:"block"`
 }
 
 // ChainHashResponse interface to handle response
@@ -80,18 +87,15 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header.ParentHash = block.Header.ParentHash.String()
-	res.Block.Header.Number = block.Header.Number
-	res.Block.Header.StateRoot = block.Header.StateRoot.String()
-	res.Block.Header.ExtrinsicsRoot = block.Header.ExtrinsicsRoot.String()
-	res.Block.Header.Digest = block.Header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
+	res.Block.Header = HeaderToJSON(*block.Header)
+
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
 		if err != nil {
 			return err
 		}
 		for _, e := range ext {
-			res.Block.Body = append(res.Block.Body, string(e))
+			res.Block.Body = append(res.Block.Body, fmt.Sprintf("0x%x", e))
 		}
 	}
 	return nil
@@ -138,21 +142,25 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 		return err
 	}
 
-	res.ParentHash = header.ParentHash.String()
-	res.Number = header.Number
-	res.StateRoot = header.StateRoot.String()
-	res.ExtrinsicsRoot = header.ExtrinsicsRoot.String()
-	res.Digest = header.Digest // TODO: figure out how to get Digest to be a json object (Issue #744)
-
+	*res = HeaderToJSON(*header)
 	return nil
 }
 
-// SubscribeFinalizedHeads isn't implemented properly yet.
-func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+// SubscribeFinalizedHeads handled by websocket handler, but this func should remain
+//  here so it's added to rpc_methods list
+func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
 }
 
-// SubscribeNewHead isn't implemented properly yet.
-func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) {
+// SubscribeNewHead handled by websocket handler, but this func should remain
+//  here so it's added to rpc_methods list
+func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
+}
+
+// SubscribeNewHeads isn't implemented properly yet.
+func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
+	return nil
 }
 
 func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {
@@ -216,4 +224,23 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", err
 	}
 	return h.String(), nil
+}
+
+// HeaderToJSON converts types.Header to ChainBlockHeaderResponse
+func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
+	res := ChainBlockHeaderResponse{
+		ParentHash:     header.ParentHash.String(),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
+		Digest:         ChainBlockHeaderDigest{},
+	}
+	if header.Number.Int64() == 0 {
+		res.Number = "0x00" // needs two 0 chars for hex decoding to work
+	} else {
+		res.Number = common.BytesToHex(header.Number.Bytes())
+	}
+	for _, item := range header.Digest {
+		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(item))
+	}
+	return res
 }

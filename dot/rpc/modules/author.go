@@ -21,19 +21,17 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
 	log "github.com/ChainSafe/log15"
 )
 
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	coreAPI    CoreAPI
+	runtimeAPI RuntimeAPI
 	txQueueAPI TransactionQueueAPI
 }
 
@@ -82,9 +80,10 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
+func NewAuthorModule(coreAPI CoreAPI, runtimeAPI RuntimeAPI, txQueueAPI TransactionQueueAPI) *AuthorModule {
 	return &AuthorModule{
 		coreAPI:    coreAPI,
+		runtimeAPI: runtimeAPI,
 		txQueueAPI: txQueueAPI,
 	}
 }
@@ -93,12 +92,12 @@ func NewAuthorModule(coreAPI CoreAPI, txQueueAPI TransactionQueueAPI) *AuthorMod
 func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
-	pkDec, err := common.HexToHash(keyReq[1])
+	pkDec, err := common.HexToBytes(keyReq[1])
 	if err != nil {
 		return err
 	}
 
-	privateKey, err := keystore.DecodePrivateKey(pkDec.ToBytes(), determineKeyType(keyReq[0]))
+	privateKey, err := keystore.DecodePrivateKey(pkDec, keystore.DetermineKeyType(keyReq[0]))
 	if err != nil {
 		return err
 	}
@@ -115,6 +114,14 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 	cm.coreAPI.InsertKey(keyPair)
 	log.Info("[rpc] inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
+}
+
+// HasKey Checks if the keystore has private keys for the given public key and key type.
+func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
+	reqKey := *req
+	var err error
+	*res, err = cm.coreAPI.HasKey(reqKey[0], reqKey[1])
+	return err
 }
 
 // PendingExtrinsics Returns all pending extrinsics
@@ -159,7 +166,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 
 	ext := types.Extrinsic(extBytes)
 	// validate the transaction
-	txv, err := cm.coreAPI.ValidateTransaction(ext)
+	txv, err := cm.runtimeAPI.ValidateTransaction(ext)
 	if err != nil {
 		return err
 	}
@@ -167,7 +174,8 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	vtx := transaction.NewValidTransaction(ext, txv)
 
 	if cm.coreAPI.IsBabeAuthority() {
-		hash, err := cm.txQueueAPI.Push(vtx)
+		var hash common.Hash
+		hash, err = cm.txQueueAPI.Push(vtx)
 		if err != nil {
 			log.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", err)
 			return err
@@ -177,28 +185,11 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		log.Trace("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
 	}
 
-	return nil
-}
-
-// determineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
-//  and returns the crypto.KeyType
-func determineKeyType(t string) crypto.KeyType {
-	// TODO: create separate keystores for different key types, issue #768
-	switch t {
-	case "babe":
-		return crypto.Sr25519Type
-	case "gran":
-		return crypto.Sr25519Type
-	case "acco":
-		return crypto.Sr25519Type
-	case "aura":
-		return crypto.Sr25519Type
-	case "imon":
-		return crypto.Sr25519Type
-	case "audi":
-		return crypto.Sr25519Type
-	case "dumy":
-		return crypto.Sr25519Type
+	//broadcast
+	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
+	if err != nil {
+		log.Trace("[rpc] submitted extrinsic failed to submit Extrinsic to network", "error", err)
 	}
-	return "unknown keytype"
+
+	return err
 }

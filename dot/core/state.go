@@ -39,6 +39,7 @@ type BlockState interface {
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
+	HasHeader(hash common.Hash) (bool, error)
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
@@ -64,6 +65,8 @@ type StorageState interface {
 	GetStorageFromChild([]byte, []byte) ([]byte, error)
 	ClearStorage([]byte) error
 	Entries() map[string][]byte
+	SetBalance(key [32]byte, balance uint64) error
+	GetBalance(key [32]byte) (uint64, error)
 }
 
 // TransactionQueue is the interface for transaction queue methods

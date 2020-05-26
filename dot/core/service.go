@@ -128,7 +128,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	var srv = &Service{}
 
-	var authData []*babe.AuthorityData
+	var authData []*types.AuthorityData
 	var currentDescriptor *babe.NextEpochDescriptor
 
 	if cfg.IsBabeAuthority {
@@ -159,7 +159,7 @@ func NewService(cfg *Config) (*Service, error) {
 			respOut:          respChan,
 		}
 
-		authData, err = srv.grandpaAuthorities()
+		authData, err = srv.rt.GrandpaAuthorities()
 		if err != nil {
 			return nil, err
 		}
@@ -210,7 +210,7 @@ func NewService(cfg *Config) (*Service, error) {
 			respOut:          respChan,
 		}
 
-		authData, err = srv.grandpaAuthorities()
+		authData, err = srv.rt.GrandpaAuthorities()
 		if err != nil {
 			return nil, err
 		}
@@ -398,6 +398,8 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
+	log.Debug("[core] added block from BABE", "header", block.Header, "body", block.Body)
+
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
@@ -496,7 +498,44 @@ func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
 }
 
-//IsBabeAuthority returns true if node is BABE authority
+// HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
+//  are issues decoding string
+func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
+	return keystore.HasKey(pubKeyStr, keyType, s.keys)
+}
+
+// GetRuntimeVersion gets the current RuntimeVersion
+func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
+	//TODO ed, change this so that it can lookup runtime by block hash
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+
+	ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
+	err = version.Decode(ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
+}
+
+// IsBabeAuthority returns true if node is BABE authority
 func (s *Service) IsBabeAuthority() bool {
 	return s.isBabeAuthority
+}
+
+// HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
+func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
+	return s.safeMsgSend(msg)
+}
+
+//GetMetadata calls runtime Metadata_metadata function
+func (s *Service) GetMetadata() ([]byte, error) {
+	return s.rt.Exec(runtime.Metadata_metadata, []byte{})
 }

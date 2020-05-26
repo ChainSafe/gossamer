@@ -50,10 +50,10 @@ type Session struct {
 	rt *runtime.Runtime
 
 	// Epoch configuration data
-	config         *Configuration
+	config         *types.BabeConfiguration
 	randomness     [RandomnessLength]byte
 	authorityIndex uint64
-	authorityData  []*AuthorityData
+	authorityData  []*types.AuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	startSlot      uint64
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
@@ -77,7 +77,7 @@ type SessionConfig struct {
 	Keypair          *sr25519.Keypair
 	Runtime          *runtime.Runtime
 	NewBlocks        chan<- types.Block
-	AuthData         []*AuthorityData
+	AuthData         []*types.AuthorityData
 	EpochThreshold   *big.Int // should only be used for testing
 	StartSlot        uint64   // slot to begin session at
 	Done             chan<- struct{}
@@ -116,7 +116,8 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		syncLock:         cfg.SyncLock,
 	}
 
-	err := babeSession.configurationFromRuntime()
+	var err error
+	babeSession.config, err = babeSession.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +193,7 @@ func (b *Session) safeSend(msg types.Block) error {
 }
 
 // AuthorityData returns the data related to the authority
-func (b *Session) AuthorityData() []*AuthorityData {
+func (b *Session) AuthorityData() []*types.AuthorityData {
 	return b.authorityData
 }
 
@@ -302,6 +303,10 @@ func (b *Session) handleSlot(slotNum uint64) {
 		return
 	}
 
+	// there is a chance that the best block header may change in the course of building the block,
+	// so let's copy it first.
+	parent := parentHeader.DeepCopy()
+
 	currentSlot := Slot{
 		start:    uint64(time.Now().Unix()),
 		duration: b.config.SlotDuration,
@@ -309,8 +314,9 @@ func (b *Session) handleSlot(slotNum uint64) {
 	}
 
 	// TODO: move block authorization check here
+	log.Debug("[babe] going to build block", "parent", parent)
 
-	block, err := b.buildBlock(parentHeader, currentSlot)
+	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
 		log.Error("[babe] block authoring", "error", err)
 	} else {
@@ -318,7 +324,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 
 		hash := block.Header.Hash()
 		log.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
-		log.Debug("[babe] built block", "header", block.Header, "body", block.Body)
+		log.Debug("[babe] built block", "header", block.Header, "body", block.Body, "parent", parent)
 
 		err = b.safeSend(*block)
 		if err != nil {
