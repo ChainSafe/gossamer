@@ -58,7 +58,7 @@ var (
 		Name:  "name",
 		Usage: "Node implementation name",
 	}
-	// ChainFlag chain id used to load default configuration for specified chain
+	// ChainFlag is chain id used to load default configuration for specified chain
 	ChainFlag = cli.StringFlag{
 		Name:  "chain",
 		Usage: "Chain id used to load default configuration for specified chain",
