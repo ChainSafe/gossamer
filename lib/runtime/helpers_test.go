@@ -201,37 +201,33 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	// randomness key
-	key, err := common.HexToBytes("0xd5b995311b7ab9b44b649bc5ce4a7aba")
+	rkey, err := common.HexToBytes("0xd5b995311b7ab9b44b649bc5ce4a7aba")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	value, err := common.HexToHash("0x01")
+	rvalue, err := common.HexToHash("0x01")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// value, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	err = tt.Put(key, value[:])
+	err = tt.Put(rkey, rvalue[:])
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	key, err = common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
+	// authorities key
+	akey, err := common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	auths, err := common.HexToBytes("0x04eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
+	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = tt.Put(key, auths)
+	err = tt.Put(akey, avalue)
 	if err != nil {
 		t.Fatal(err)
 	}

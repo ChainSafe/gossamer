@@ -26,8 +26,6 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-//var memory, memErr = wasm.NewMemory(17, 0)
-
 // Ctx struct
 type Ctx struct {
 	storage   Storage
@@ -71,14 +69,6 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 	if err != nil {
 		return nil, err
 	}
-
-	// if instance.Memory == nil {
-	// 	if memErr != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	instance.Memory = memory
-	// }
 
 	memAllocator := NewAllocator(instance.Memory, 0)
 
