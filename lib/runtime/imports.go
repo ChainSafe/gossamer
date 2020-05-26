@@ -1,358 +1,362 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package runtime
 
 // #include <stdlib.h>
 //
-// extern int memory;
-// extern void ext_misc_print_utf8_version_1(void *context, int64_t a);
-// extern void ext_misc_print_hex_version_1(void *context, int64_t a);
-// extern int64_t ext_storage_read_version_1(void *context, int64_t a, int64_t b, int32_t c);
-// extern int32_t ext_allocator_malloc_version_1(void *context, int32_t size);
-// extern void ext_allocator_free_version_1(void *context, int32_t addr);
-// extern void ext_logging_log_version_1(void *context, int32_t a, int64_t b, int64_t c);
-// extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
-// extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
-// extern int32_t ext_crypto_ed25519_generate_version_1(void *context, int32_t a, int64_t b);
-// extern int64_t ext_crypto_ed25519_public_keys_version_1(void *context, int32_t a);
-// extern int64_t ext_crypto_ed25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
-// extern int32_t ext_crypto_ed25519_verify_version_1(void *context, int32_t a, int64_t b, int32_t c);
-// extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
-// extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
-// extern int64_t ext_crypto_sr25519_sign_version_1(void *context, int32_t a, int32_t b, int64_t c);
-// extern int32_t ext_crypto_sr25519_verify_version_2(void *context, int32_t a, int64_t b, int32_t c);
-// extern int32_t ext_hashing_twox_128_version_1(void *context, int64_t a);
-// extern int32_t ext_hashing_blake2_256_version_1(void *context, int64_t a);
-// extern int32_t ext_hashing_blake2_128_version_1(void *context, int64_t a);
-// extern void ext_storage_set_version_1(void *context, int64_t a, int64_t b);
-// extern void ext_storage_clear_version_1(void *context, int64_t a);
-// extern int64_t ext_storage_get_version_1(void *context, int64_t a);
-// extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
-// extern void ext_storage_child_set_version_1(void *context, int64_t a, int64_t b, int32_t c, int64_t d, int64_t e);
-// extern int64_t ext_storage_child_read_version_1(void *context, int64_t a, int64_t b, int32_t c, int64_t d, int64_t e, int32_t f);
-// extern int64_t ext_storage_root_version_1(void *context);
+// extern int32_t ext_malloc(void *context, int32_t size);
+// extern void ext_free(void *context, int32_t addr);
+// extern void ext_print_utf8(void *context, int32_t utf8_data, int32_t utf8_len);
+// extern void ext_print_hex(void *context, int32_t data, int32_t len);
+// extern int32_t ext_get_storage_into(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
+// extern void ext_set_storage(void *context, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
+// extern void ext_blake2_256(void *context, int32_t data, int32_t len, int32_t out);
+// extern void ext_clear_storage(void *context, int32_t keyData, int32_t keyLen);
+// extern void ext_twox_64(void *context, int32_t data, int32_t len, int32_t out);
+// extern void ext_twox_128(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_get_allocated_storage(void *context, int32_t keyData, int32_t keyLen, int32_t writtenOut);
+// extern void ext_storage_root(void *context, int32_t resultPtr);
+// extern int32_t ext_storage_changes_root(void *context, int32_t a, int32_t b, int32_t c);
+// extern void ext_clear_prefix(void *context, int32_t prefixData, int32_t prefixLen);
+// extern int32_t ext_sr25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
+// extern int32_t ext_ed25519_verify(void *context, int32_t msgData, int32_t msgLen, int32_t sigData, int32_t pubkeyData);
+// extern void ext_blake2_256_enumerated_trie_root(void *context, int32_t valuesData, int32_t lensData, int32_t lensLen, int32_t result);
+// extern void ext_print_num(void *context, int64_t data);
+// extern void ext_keccak_256(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_secp256k1_ecdsa_recover(void *context, int32_t msgData, int32_t sigData, int32_t pubkeyData);
+// extern void ext_blake2_128(void *context, int32_t data, int32_t len, int32_t out);
+// extern int32_t ext_is_validator(void *context);
+// extern int32_t ext_local_storage_get(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t valueLen);
+// extern int32_t ext_local_storage_compare_and_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t oldValue, int32_t oldValueLen, int32_t newValue, int32_t newValueLen);
+// extern int32_t ext_sr25519_public_keys(void *context, int32_t idData, int32_t resultLen);
+// extern int32_t ext_ed25519_public_keys(void *context, int32_t idData, int32_t resultLen);
+// extern int32_t ext_network_state(void *context, int32_t writtenOut);
+// extern int32_t ext_sr25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
+// extern int32_t ext_ed25519_sign(void *context, int32_t idData, int32_t pubkeyData, int32_t msgData, int32_t msgLen, int32_t out);
+// extern int32_t ext_submit_transaction(void *context, int32_t data, int32_t len);
+// extern void ext_local_storage_set(void *context, int32_t kind, int32_t key, int32_t keyLen, int32_t value, int32_t valueLen);
+// extern void ext_ed25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
+// extern void ext_sr25519_generate(void *context, int32_t idData, int32_t seed, int32_t seedLen, int32_t out);
+// extern void ext_set_child_storage(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen);
+// extern int32_t ext_get_child_storage_into(void *context, int32_t storageKeyData, int32_t storageKeyLen, int32_t keyData, int32_t keyLen, int32_t valueData, int32_t valueLen, int32_t valueOffset);
+// extern void ext_kill_child_storage(void *context, int32_t a, int32_t b);
+// extern int32_t ext_sandbox_memory_new(void *context, int32_t a, int32_t b);
+// extern void ext_sandbox_memory_teardown(void *context, int32_t a);
+// extern int32_t ext_sandbox_instantiate(void *context, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f);
+// extern int32_t ext_sandbox_invoke(void *context, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e, int32_t f, int32_t g, int32_t h);
+// extern void ext_sandbox_instance_teardown(void *context, int32_t a);
+// extern int32_t ext_get_allocated_child_storage(void *context, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e);
+// extern int32_t ext_child_storage_root(void *context, int32_t a, int32_t b, int32_t c);
+// extern void ext_clear_child_storage(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
+// extern int32_t ext_secp256k1_ecdsa_recover_compressed(void *context, int32_t a, int32_t b, int32_t c);
+// extern int32_t ext_sandbox_memory_get(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
+// extern int32_t ext_sandbox_memory_set(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
+// extern void ext_log(void *context, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e);
 import "C"
 
 import (
 	// "bytes"
 	// "encoding/binary"
-	"fmt"
+	// "fmt"
 	// "math/big"
 	"unsafe"
 
 	// "github.com/ChainSafe/gossamer/lib/common"
 	// "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	// "github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	//"github.com/ChainSafe/gossamer/lib/scale"
+	// "github.com/ChainSafe/gossamer/lib/scale"
 	// "github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
-	// "github.com/OneOfOne/xxhash"
-	// "github.com/ethereum/go-ethereum/crypto/secp256k1"
+	//"github.com/OneOfOne/xxhash"
+	//"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-//export memory
-var memory, memErr = wasm.NewMemory(17, 0)
-
-//export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, a C.int64_t) {
-	log.Trace("[ext_misc_print_utf8_version_1] executing...")
+//export ext_kill_child_storage
+func ext_kill_child_storage(context unsafe.Pointer, a, b C.int32_t) {
+	log.Trace("[ext_kill_child_storage] executing...")
 }
 
-//export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(context unsafe.Pointer, a C.int64_t) {
-	log.Trace("[ext_misc_print_hex_version_1] executing...")
-}
-
-//export ext_storage_read_version_1
-func ext_storage_read_version_1(context unsafe.Pointer, a, b C.int64_t, c C.int32_t) C.int64_t {
-	log.Trace("[ext_storage_read_version_1] executing...")
+//export ext_sandbox_memory_new
+func ext_sandbox_memory_new(context unsafe.Pointer, a, b C.int32_t) C.int32_t {
+	log.Trace("[ext_sandbox_memory_new] executing...")
 	return 0
 }
 
-//export ext_allocator_malloc_version_1
-func ext_allocator_malloc_version_1(context unsafe.Pointer, size int32) int32 {
-	log.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-	instanceContext := wasm.IntoInstanceContext(context)
-	data := instanceContext.Data()
-	runtimeCtx, ok := data.(*Ctx)
-	if !ok {
-		panic(fmt.Sprintf("%#v", data))
-	}
-
-	// Allocate memory
-	res, err := runtimeCtx.allocator.Allocate(uint32(size))
-	if err != nil {
-		// <<<<<<< HEAD
-		// 		log.Error("[ext_allocator_malloc_version_1]", "Error:", err)
-		// 		panic(err)
-		// =======
-		// TODO: figure out why the runtime is asking for an allocation greater than the max possible.
-		// may be due to gossamer inputting some invalid data. #866
-		log.Crit("[ext_malloc]", "error", err)
-		return MaxPossibleAllocation - 1
-		//>>>>>>> f48d7d4a6ca13231da0df1e0321e2f03418c64e9
-	}
-
-	return int32(res)
+//export ext_sandbox_memory_teardown
+func ext_sandbox_memory_teardown(context unsafe.Pointer, a C.int32_t) {
+	log.Trace("[ext_sandbox_memory_teardown] executing...")
 }
 
-//export ext_allocator_free_version_1
-func ext_allocator_free_version_1(context unsafe.Pointer, addr int32) {
-	log.Trace("[ext_allocator_free_version_1] executing...", "addr", addr)
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*Ctx)
-
-	// Deallocate memory
-	err := runtimeCtx.allocator.Deallocate(uint32(addr))
-	if err != nil {
-		log.Error("[ext_allocator_free_version_1] Error:", "Error", err)
-		//panic(err)
-	}
-}
-
-//export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, target, message C.int64_t) {
-	log.Trace("[ext_logging_log_version_1] executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
-
-	targetData := memory[uint32(target) : uint32(target)+uint32(target>>32)]
-	messageData := memory[uint32(message) : uint32(message)+uint32(message>>32)]
-
-	log.Info("[ext_logging_log_version_1]", "target", string(targetData), "message", string(messageData))
-}
-
-//export ext_trie_blake2_256_ordered_root_version_1
-func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
-	log.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
+//export ext_sandbox_instantiate
+func ext_sandbox_instantiate(context unsafe.Pointer, a, b, c, d, e, f C.int32_t) C.int32_t {
+	log.Trace("[ext_sandbox_instantiate] executing...")
 	return 0
 }
 
-//export ext_offchain_submit_transaction_version_1
-func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, a C.int64_t) C.int64_t {
-	log.Trace("[ext_offchain_submit_transaction_version_1] executing...")
+//export ext_sandbox_invoke
+func ext_sandbox_invoke(context unsafe.Pointer, a, b, c, d, e, f, g, h C.int32_t) C.int32_t {
+	log.Trace("[ext_sandbox_invoke] executing...")
 	return 0
 }
 
-//export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t) C.int32_t {
-	log.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
+//export ext_sandbox_instance_teardown
+func ext_sandbox_instance_teardown(context unsafe.Pointer, a C.int32_t) {
+	log.Trace("[ext_sandbox_instance_teardown] executing...")
+}
+
+//export ext_get_allocated_child_storage
+func ext_get_allocated_child_storage(context unsafe.Pointer, a, b, c, d, e C.int32_t) C.int32_t {
+	log.Trace("[ext_get_allocated_child_storage] executing...")
 	return 0
 }
 
-//export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
-	log.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
+//export ext_child_storage_root
+func ext_child_storage_root(context unsafe.Pointer, a, b, c C.int32_t) C.int32_t {
+	log.Trace("[ext_child_storage_root] executing...")
 	return 0
 }
 
-//export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, a, b C.int32_t, c C.int64_t) C.int64_t {
-	log.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
+//export ext_clear_child_storage
+func ext_clear_child_storage(context unsafe.Pointer, a, b, c, d C.int32_t) {
+	log.Trace("[ext_clear_child_storage] executing...")
+}
+
+//export ext_secp256k1_ecdsa_recover_compressed
+func ext_secp256k1_ecdsa_recover_compressed(context unsafe.Pointer, a, b, c C.int32_t) C.int32_t {
+	log.Trace("[ext_secp256k1_ecdsa_recover_compressed] executing...")
 	return 0
 }
 
-//export ext_crypto_ed25519_verify_version_1
-func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t, c C.int32_t) C.int32_t {
-	log.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+//export ext_sandbox_memory_get
+func ext_sandbox_memory_get(context unsafe.Pointer, a, b, c, d C.int32_t) C.int32_t {
+	log.Trace("[ext_sandbox_memory_get] executing...")
 	return 0
 }
 
-//export ext_crypto_sr25519_generate_version_1
-func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t) C.int32_t {
-	log.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
+//export ext_sandbox_memory_set
+func ext_sandbox_memory_set(context unsafe.Pointer, a, b, c, d C.int32_t) C.int32_t {
+	log.Trace("[ext_sandbox_memory_set] executing...")
 	return 0
 }
 
-//export ext_crypto_sr25519_public_keys_version_1
-func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
-	log.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
-	return 0
+//export ext_log
+func ext_log(context unsafe.Pointer, a, b, c, d, e C.int32_t) {
+	log.Trace("[ext_log] executing...")
 }
 
-//export ext_crypto_sr25519_sign_version_1
-func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, a, b C.int32_t, c C.int64_t) C.int64_t {
-	log.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
-	return 0
+func RegisterImports_NodeRuntime() (*wasm.Imports, error) {
+	return registerImports_NodeRuntime()
 }
 
-//export ext_crypto_sr25519_verify_version_2
-func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, a C.int32_t, b C.int64_t, c C.int32_t) C.int32_t {
-	log.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
-	return 0
-}
+func registerImports_NodeRuntime() (*wasm.Imports, error) {
+	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_free", ext_free, C.ext_free)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_utf8", ext_print_utf8, C.ext_print_utf8)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_hex", ext_print_hex, C.ext_print_hex)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_print_num", ext_print_num, C.ext_print_num)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_storage_into", ext_get_storage_into, C.ext_get_storage_into)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_allocated_storage", ext_get_allocated_storage, C.ext_get_allocated_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_set_storage", ext_set_storage, C.ext_set_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_256", ext_blake2_256, C.ext_blake2_256)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root, C.ext_blake2_256_enumerated_trie_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_storage", ext_clear_storage, C.ext_clear_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_prefix", ext_clear_prefix, C.ext_clear_prefix)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_twox_128", ext_twox_128, C.ext_twox_128)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_storage_root", ext_storage_root, C.ext_storage_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_storage_changes_root", ext_storage_changes_root, C.ext_storage_changes_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_verify", ext_sr25519_verify, C.ext_sr25519_verify)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_verify", ext_ed25519_verify, C.ext_ed25519_verify)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_keccak_256", ext_keccak_256, C.ext_keccak_256)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_secp256k1_ecdsa_recover", ext_secp256k1_ecdsa_recover, C.ext_secp256k1_ecdsa_recover)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_blake2_128", ext_blake2_128, C.ext_blake2_128)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_is_validator", ext_is_validator, C.ext_is_validator)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_get", ext_local_storage_get, C.ext_local_storage_get)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_compare_and_set", ext_local_storage_compare_and_set, C.ext_local_storage_compare_and_set)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_public_keys", ext_ed25519_public_keys, C.ext_ed25519_public_keys)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_public_keys", ext_sr25519_public_keys, C.ext_sr25519_public_keys)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_network_state", ext_network_state, C.ext_network_state)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_sign", ext_sr25519_sign, C.ext_sr25519_sign)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_sign", ext_ed25519_sign, C.ext_ed25519_sign)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_submit_transaction", ext_submit_transaction, C.ext_submit_transaction)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_local_storage_set", ext_local_storage_set, C.ext_local_storage_set)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_ed25519_generate", ext_ed25519_generate, C.ext_ed25519_generate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sr25519_generate", ext_sr25519_generate, C.ext_sr25519_generate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_twox_64", ext_twox_64, C.ext_twox_64)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_set_child_storage", ext_set_child_storage, C.ext_set_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_child_storage_into", ext_get_child_storage_into, C.ext_get_child_storage_into)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_kill_child_storage", ext_kill_child_storage, C.ext_kill_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_memory_new", ext_sandbox_memory_new, C.ext_sandbox_memory_new)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_memory_teardown", ext_sandbox_memory_teardown, C.ext_sandbox_memory_teardown)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_instantiate", ext_sandbox_instantiate, C.ext_sandbox_instantiate)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_invoke", ext_sandbox_invoke, C.ext_sandbox_invoke)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_instance_teardown", ext_sandbox_instance_teardown, C.ext_sandbox_instance_teardown)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_get_allocated_child_storage", ext_get_allocated_child_storage, C.ext_get_allocated_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_child_storage_root", ext_child_storage_root, C.ext_child_storage_root)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_child_storage", ext_clear_child_storage, C.ext_clear_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_secp256k1_ecdsa_recover_compressed", ext_secp256k1_ecdsa_recover_compressed, C.ext_secp256k1_ecdsa_recover_compressed)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_memory_get", ext_sandbox_memory_get, C.ext_sandbox_memory_get)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_sandbox_memory_set", ext_sandbox_memory_set, C.ext_sandbox_memory_set)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_log", ext_log, C.ext_log)
+	if err != nil {
+		return nil, err
+	}
 
-//export ext_hashing_twox_128_version_1
-func ext_hashing_twox_128_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
-	log.Trace("[ext_hashing_twox_128_version_1] executing...")
-	return 0
-}
-
-//export ext_hashing_blake2_256_version_1
-func ext_hashing_blake2_256_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
-	log.Trace("[ext_hashing_blake2_256_version_1] executing...")
-	return 0
-}
-
-//export ext_hashing_blake2_128_version_1
-func ext_hashing_blake2_128_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
-	log.Trace("[ext_hashing_blake2_128_version_1] executing...")
-	return 0
-}
-
-//export ext_storage_set_version_1
-func ext_storage_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
-	log.Trace("[ext_storage_set_version_1] executing...")
-}
-
-//export ext_storage_clear_version_1
-func ext_storage_clear_version_1(context unsafe.Pointer, a C.int64_t) {
-	log.Trace("[ext_storage_clear_version_1] executing...")
-}
-
-//export ext_storage_get_version_1
-func ext_storage_get_version_1(context unsafe.Pointer, a C.int64_t) C.int64_t {
-	log.Trace("[ext_storage_get_version_1] executing...")
-	return 0
-}
-
-//export ext_storage_changes_root_version_1
-func ext_storage_changes_root_version_1(context unsafe.Pointer, a C.int64_t) C.int64_t {
-	log.Trace("[ext_storage_changes_root_version_1] executing...")
-	return 0
-}
-
-//export ext_storage_child_set_version_1
-func ext_storage_child_set_version_1(context unsafe.Pointer, a, b C.int64_t, c C.int32_t, d, e C.int64_t) {
-	log.Trace("[ext_storage_child_set_version_1] executing...")
-}
-
-//export ext_storage_child_read_version_1
-func ext_storage_child_read_version_1(context unsafe.Pointer, a, b C.int64_t, c C.int32_t, d, e C.int64_t, f C.int32_t) C.int64_t {
-	log.Trace("[ext_storage_child_read_version_1] executing...")
-	return 0
-}
-
-//export ext_storage_root_version_1
-func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
-	log.Trace("[ext_storage_root_version_1] executing...")
-	return 0
-}
-
-// RegisterImports registers the wasm imports for the most recent substrate test runtime.
-func RegisterImports() (*wasm.Imports, error) {
-	// check for memory error
-	if memErr != nil {
-		return nil, memErr
-	}
-
-	imports, err := wasm.NewImports().Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_misc_print_hex_version_1", ext_misc_print_hex_version_1, C.ext_misc_print_hex_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_read_version_1", ext_storage_read_version_1, C.ext_storage_read_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_logging_log_version_1", ext_logging_log_version_1, C.ext_logging_log_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1, C.ext_offchain_submit_transaction_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1, C.ext_crypto_ed25519_generate_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_public_keys_version_1", ext_crypto_ed25519_public_keys_version_1, C.ext_crypto_ed25519_public_keys_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_sign_version_1", ext_crypto_ed25519_sign_version_1, C.ext_crypto_ed25519_sign_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_ed25519_verify_version_1", ext_crypto_ed25519_verify_version_1, C.ext_crypto_ed25519_verify_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_generate_version_1", ext_crypto_sr25519_generate_version_1, C.ext_crypto_sr25519_generate_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_public_keys_version_1", ext_crypto_sr25519_public_keys_version_1, C.ext_crypto_sr25519_public_keys_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_sign_version_1", ext_crypto_sr25519_sign_version_1, C.ext_crypto_sr25519_sign_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_twox_128_version_1", ext_hashing_twox_128_version_1, C.ext_hashing_twox_128_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_blake2_256_version_1", ext_hashing_blake2_256_version_1, C.ext_hashing_blake2_256_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1, C.ext_hashing_blake2_128_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_clear_version_1", ext_storage_clear_version_1, C.ext_storage_clear_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_get_version_1", ext_storage_get_version_1, C.ext_storage_get_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_changes_root_version_1", ext_storage_changes_root_version_1, C.ext_storage_changes_root_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_child_set_version_1", ext_storage_child_set_version_1, C.ext_storage_child_set_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_child_read_version_1", ext_storage_child_read_version_1, C.ext_storage_child_read_version_1)
-	if err != nil {
-		return nil, err
-	}
-	_, err = imports.Append("ext_storage_root_version_1", ext_storage_root_version_1, C.ext_storage_root_version_1)
-	if err != nil {
-		return nil, err
-	}
 	return imports, nil
 }
