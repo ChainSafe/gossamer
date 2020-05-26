@@ -194,7 +194,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash) (uint64, error) {
 func (s *Service) getVotesForBlock(hash common.Hash) (uint64, error) {
 	votes := s.getDirectVotes()
 
-	// B will be counted as in it's own subchain, so don't need to start with B's vote count
+	// block is considered to be in it's own subchain by IsDescendantOf, so don't need to start with block's vote count
 	votesForBlock := uint64(0)
 
 	for v, c := range votes {
