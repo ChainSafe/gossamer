@@ -65,7 +65,7 @@ type Service struct {
 	msgRec    <-chan network.Message // receive messages from network service
 	msgSend   chan<- network.Message // send messages to network service
 	blkRec    <-chan types.Block     // receive blocks from BABE session
-	epochDone *sync.WaitGroup        // receive from this channel when BABE epoch changes
+	epochDone *sync.WaitGroup        // this is signalled when BABE epoch changes
 	babeKill  chan<- struct{}        // close this channel to kill current BABE session
 	lock      *sync.Mutex
 	started   uint32
@@ -158,12 +158,6 @@ func NewService(cfg *Config) (*Service, error) {
 			syncLock:         syncerLock,
 			blockNumOut:      cfg.SyncChan,
 			respOut:          respChan,
-		}
-
-		// thread safe way to change closed status
-		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
-		if !canLock {
-			return nil, errors.New("failed to change Service status from stopped to started")
 		}
 
 		authData, err = srv.rt.GrandpaAuthorities()
@@ -273,6 +267,9 @@ func (s *Service) Start() error {
 	// start receiving messages from network service
 	go s.receiveMessages()
 
+	// only one process is starting *core.Service, don't need to use atomic here
+	s.started = 1
+
 	// start syncer
 	err := s.syncer.Start()
 	if err != nil {
@@ -311,10 +308,8 @@ func (s *Service) Stop() error {
 		}
 
 		defer func() {
-			// thread safe way to change closed status
-			canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
-			if !canUnlock {
-				log.Error("failed to change Service status from started to stopped.")
+			if ok := atomic.CompareAndSwapUint32(&s.started, 1, 0); !ok {
+				log.Error("[core] failed to change Service status from started to stopped")
 			}
 		}()
 
@@ -339,10 +334,11 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 func (s *Service) safeMsgSend(msg network.Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	// thread safe way to check closed status
+
 	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
+
 	s.msgSend <- msg
 	return nil
 }
@@ -350,10 +346,11 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 func (s *Service) safeBabeKill() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	// thread safe way to check closed status
+
 	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
+
 	close(s.babeKill)
 	return nil
 }

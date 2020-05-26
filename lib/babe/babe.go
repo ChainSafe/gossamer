@@ -116,8 +116,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		syncLock:         cfg.SyncLock,
 	}
 
-	canLock := atomic.CompareAndSwapUint32(&babeSession.started, 0, 1)
-	if !canLock {
+	if ok := atomic.CompareAndSwapUint32(&babeSession.started, 0, 1); !ok {
 		return nil, errors.New("failed to change Session status from stopped to started")
 	}
 
@@ -152,7 +151,7 @@ func (b *Session) Start() error {
 
 	log.Trace("[babe]", "epochThreshold", b.epochThreshold)
 
-	var i = b.startSlot
+	i := b.startSlot
 	var err error
 	for ; i < b.startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
@@ -178,13 +177,14 @@ func (b *Session) stop() error {
 	defer b.lock.Unlock()
 
 	if atomic.LoadUint32(&b.started) == uint32(1) {
-		canUnlock := atomic.CompareAndSwapUint32(&b.started, 1, 0)
-		if !canUnlock {
+		if ok := atomic.CompareAndSwapUint32(&b.started, 1, 0); !ok {
 			return errors.New("failed to change Session status from started to stopped")
 		}
+
 		close(b.newBlocks)
 		b.epochDone.Done()
 	}
+
 	return nil
 }
 

@@ -290,10 +290,10 @@ func (n *Node) Start() error {
 		os.Exit(130)
 	}()
 
-	canLock := atomic.CompareAndSwapUint32(&n.started, 0, 1)
-	if !canLock {
+	if ok := atomic.CompareAndSwapUint32(&n.started, 0, 1); !ok {
 		return errors.New("failed to change Node status from stopped to started")
 	}
+
 	n.wg.Add(1)
 	n.wg.Wait()
 
@@ -307,8 +307,7 @@ func (n *Node) Stop() {
 	n.Services.StopAll()
 
 	defer func() {
-		canUnlock := atomic.CompareAndSwapUint32(&n.started, 1, 0)
-		if !canUnlock {
+		if ok := atomic.CompareAndSwapUint32(&n.started, 1, 0); !ok {
 			log.Error("failed to change Node status from started to stopped")
 		}
 

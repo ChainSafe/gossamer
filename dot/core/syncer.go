@@ -126,11 +126,10 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 
 // Start begins the syncer
 func (s *Syncer) Start() error {
-	// thread safe change stopped to 1
-	canLock := atomic.CompareAndSwapUint32(&s.started, 0, 1)
-	if !canLock {
+	if ok := atomic.CompareAndSwapUint32(&s.started, 0, 1); !ok {
 		return errors.New("failed to change Syncer from stopped to started")
 	}
+
 	go s.watchForBlocks()
 	go s.watchForResponses()
 
@@ -139,17 +138,15 @@ func (s *Syncer) Start() error {
 
 // Stop stops the syncer
 func (s *Syncer) Stop() error {
-	// stop goroutines
-	canUnlock := atomic.CompareAndSwapUint32(&s.started, 1, 0)
-	if !canUnlock {
+	if ok := atomic.CompareAndSwapUint32(&s.started, 1, 0); !ok {
 		return errors.New("failed to change Syncer from started to stopped")
 	}
+
 	return nil
 }
 
 func (s *Syncer) watchForBlocks() {
 	for {
-		// thread safe check if stopped
 		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
@@ -178,7 +175,6 @@ func (s *Syncer) watchForBlocks() {
 
 func (s *Syncer) watchForResponses() {
 	for {
-		// thread safe check if stopped
 		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
@@ -253,16 +249,17 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 func (s *Syncer) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
-	// thread safe check if stopped
+
 	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
+
 	s.msgOut <- msg
 	return nil
 }
 
 func (s *Syncer) sendBlockRequest() {
-	//generate random ID
+	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
 	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()

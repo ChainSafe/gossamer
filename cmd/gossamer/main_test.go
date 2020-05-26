@@ -25,7 +25,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -33,6 +32,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
 )
@@ -229,10 +229,7 @@ func TestInvalidCommand(t *testing.T) {
 
 func TestGossamerCommand(t *testing.T) {
 	basePort := 7000
-	currentDir, err := os.Getwd()
-	require.Nil(t, err)
-
-	genesisPath := filepath.Join(currentDir, "../..", "node/gssmr/genesis.json")
+	genesisPath := utils.GetGssmrGenesisPath()
 
 	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
 	require.Nil(t, err)
