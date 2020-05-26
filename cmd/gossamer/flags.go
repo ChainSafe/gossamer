@@ -94,7 +94,7 @@ var (
 	// BootnodesFlag Network service settings
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
-		Usage: "Comma separated enode URLs for network discovery bootstrap",
+		Usage: "Comma separated encode URLs for network discovery bootstrap",
 	}
 	// ProtocolFlag Set protocol id
 	ProtocolFlag = cli.StringFlag{
@@ -104,12 +104,12 @@ var (
 	// NoBootstrapFlag Disables network bootstrapping
 	NoBootstrapFlag = cli.BoolFlag{
 		Name:  "nobootstrap",
-		Usage: "Disables network bootstrapping (mdns still enabled)",
+		Usage: "Disables network bootstrapping (mDNS still enabled)",
 	}
-	// NoMDNSFlag Disables network mdns
+	// NoMDNSFlag Disables network mDNS
 	NoMDNSFlag = cli.BoolFlag{
 		Name:  "nomdns",
-		Usage: "Disables network mdns discovery",
+		Usage: "Disables network mDNS discovery",
 	}
 )
 
