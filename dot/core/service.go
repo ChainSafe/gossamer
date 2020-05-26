@@ -235,6 +235,9 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 	}
 
+	// only one process is starting *core.Service, don't need to use atomic here
+	srv.started = 1
+
 	syncerCfg := &SyncerConfig{
 		BlockState:       cfg.BlockState,
 		BlockNumIn:       cfg.SyncChan,
@@ -266,9 +269,6 @@ func (s *Service) Start() error {
 
 	// start receiving messages from network service
 	go s.receiveMessages()
-
-	// only one process is starting *core.Service, don't need to use atomic here
-	s.started = 1
 
 	// start syncer
 	err := s.syncer.Start()
