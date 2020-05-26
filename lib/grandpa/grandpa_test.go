@@ -525,28 +525,6 @@ func TestGetPossiblePreVotedBlocks_OneThirdEquivocating(t *testing.T) {
 
 	gs, err := NewService(st.Block, voters)
 	require.NoError(t, err)
-	voteB, err := NewVoteFromHash(leaves[1], st.Block)
-	require.NoError(t, err)
-	voteC, err := NewVoteFromHash(leaves[2], st.Block)
-	require.NoError(t, err)
-
-	for i, k := range kr.Keys {
-		voter := k.Public().(*ed25519.PublicKey).AsBytes()
-
-		if i < 2 {
-			// 2 votes for A
-			gs.votes[voter] = voteA
-		} else if i < 4 {
-			// 2 votes for B
-			gs.votes[voter] = voteB
-		} else if i < 5 {
-			// 1 vote for C
-			gs.votes[voter] = voteC
-		} else {
-			// 4 equivocators
-			gs.equivocations[voter] = []*Vote{voteA, voteB}
-		}
-	}
 
 	var leaves []common.Hash
 	for {
