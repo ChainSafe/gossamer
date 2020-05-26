@@ -124,7 +124,7 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	log.Info("[babe] config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength (slots)", babeSession.config.EpochLength)
 
-	babeSession.randomness = [sr25519.VrfOutputLength]byte{babeSession.config.Randomness}
+	babeSession.randomness = babeSession.config.Randomness
 
 	err = babeSession.setAuthorityIndex()
 	if err != nil {
@@ -340,7 +340,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.config.Randomness)
+	vrfInput := append(slotBytes, b.randomness[:]...)
 
 	output, proof, err := b.vrfSign(vrfInput)
 	if err != nil {

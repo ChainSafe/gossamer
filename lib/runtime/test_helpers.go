@@ -36,7 +36,7 @@ import (
 )
 
 // TestAuthorityDataKey is the location of authority data in the storage trie
-var TestAuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
+var TestAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
 // NewTestRuntime will create a new runtime (polkadot/test)
 func NewTestRuntime(t *testing.T, targetRuntime string) *Runtime {

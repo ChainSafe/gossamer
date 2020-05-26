@@ -37,7 +37,7 @@ var genesisHeader = &types.Header{
 }
 
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
-	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
 
 	babeCfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -261,7 +261,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		C1:                 1,
 		C2:                 10,
 		GenesisAuthorities: []*types.AuthorityDataRaw{},
-		Randomness:         0,
+		Randomness:         [32]byte{},
 		SecondarySlots:     false,
 	}
 

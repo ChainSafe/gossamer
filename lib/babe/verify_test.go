@@ -287,7 +287,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	verifier, err := newEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
-		Randomness:  [32]byte{babesession.config.Randomness},
+		Randomness:  babesession.config.Randomness,
 	})
 
 	if err != nil {
@@ -314,7 +314,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 	verifier, err := newEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
-		Randomness:  [32]byte{babesession.config.Randomness},
+		Randomness:  babesession.config.Randomness,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -358,7 +358,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 
 	verifier, err := newEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
-		Randomness:  [32]byte{babesession.config.Randomness},
+		Randomness:  babesession.config.Randomness,
 	})
 	if err != nil {
 		t.Fatal(err)
