@@ -173,7 +173,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	vm := newTestVerificationManager(t, false, descriptor)
 
-	block, _ := createTestBlock(t, babesession, [][]byte{})
+	block, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{})
 	err := vm.blockState.AddBlock(block)
 	require.Nil(t, err)
 
@@ -190,7 +190,7 @@ func TestVerificationManager_VerifyBlock_WithDigest(t *testing.T) {
 	vm := newTestVerificationManager(t, false, descriptor)
 	vm.currentEpoch = 0
 
-	block, _ := createTestBlock(t, babesession, [][]byte{})
+	block, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{})
 
 	consensusDigest := &types.ConsensusDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -307,11 +307,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 func TestVerifyAuthorshipRight(t *testing.T) {
 	babesession := createTestSession(t, nil)
-
-	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-	///txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
-
-	block, _ := createTestBlock(t, babesession, [][]byte{})
+	block, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{})
 
 	verifier, err := newEpochVerifier(babesession.blockState, &NextEpochDescriptor{
 		Authorities: babesession.authorityData,
@@ -352,7 +348,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	}
 
 	// create and add first block
-	block, _ := createTestBlock(t, babesession, [][]byte{})
+	block, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{})
 	block.Header.Hash()
 
 	err = babesession.blockState.AddBlock(block)
@@ -376,7 +372,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
 	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
 
-	block2, _ := createTestBlock(t, babesession, [][]byte{txb})
+	block2, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{txb})
 	block2.Header.Hash()
 
 	t.Log(block2.Header)

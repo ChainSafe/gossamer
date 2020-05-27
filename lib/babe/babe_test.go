@@ -31,9 +31,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+var emptyHash = trie.EmptyHash
+
 var genesisHeader = &types.Header{
 	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
+	StateRoot: emptyHash,
 }
 
 var emptyHeader = &types.Header{

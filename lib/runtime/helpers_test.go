@@ -28,117 +28,6 @@ func TestExportRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
-	t.Skip()
-	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	alice := kr.Alice.Public().Encode()
-	bob := kr.Bob.Public().Encode()
-
-	aliceb := [32]byte{}
-	copy(aliceb[:], alice)
-
-	bobb := [32]byte{}
-	copy(bobb[:], bob)
-
-	ids := [][32]byte{aliceb, bobb}
-
-	ext := extrinsic.NewAuthoritiesChangeExt(ids)
-	enc, err := ext.Encode()
-	require.NoError(t, err)
-
-	validity, err := rt.ValidateTransaction(enc)
-	require.NoError(t, err)
-
-	expected := &transaction.Validity{
-		Priority:  1 << 63,
-		Requires:  [][]byte{},
-		Provides:  [][]byte{},
-		Longevity: 1,
-		Propagate: true,
-	}
-
-	require.Equal(t, expected, validity)
-}
-
-func TestValidateTransaction_IncludeData(t *testing.T) {
-	t.Skip()
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
-	tx, err := ext.Encode()
-	require.NoError(t, err)
-
-	validity, err := rt.ValidateTransaction(tx)
-	require.NoError(t, err)
-
-	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
-	expected := &transaction.Validity{
-		Priority:  0xb,
-		Requires:  [][]byte{},
-		Provides:  [][]byte{{0x6e, 0x6f, 0x6f, 0x74, 0x77, 0x61, 0x73, 0x68, 0x65, 0x72, 0x65}},
-		Longevity: 1,
-		Propagate: false,
-	}
-
-	require.Equal(t, expected, validity)
-}
-
-func TestValidateTransaction_StorageChange(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
-	enc, err := ext.Encode()
-	require.NoError(t, err)
-
-	validity, err := rt.ValidateTransaction(enc)
-	require.NoError(t, err)
-
-	expected := &transaction.Validity{
-		Priority:  0x1,
-		Requires:  [][]byte{},
-		Provides:  [][]byte{},
-		Longevity: 1,
-		Propagate: false,
-	}
-
-	require.Equal(t, expected, validity)
-}
-
-func TestValidateTransaction_Transfer(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	alice := kr.Alice.Public().Encode()
-	bob := kr.Bob.Public().Encode()
-
-	aliceb := [32]byte{}
-	copy(aliceb[:], alice)
-
-	bobb := [32]byte{}
-	copy(bobb[:], bob)
-
-	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 1)
-	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
-	require.NoError(t, err)
-	tx, err := ext.Encode()
-	require.NoError(t, err)
-
-	validity, err := rt.ValidateTransaction(tx)
-	require.NoError(t, err)
-
-	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
-	expected := &transaction.Validity{
-		Priority:  0x3e8,
-		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
-		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
-		Longevity: 0x40,
-		Propagate: true,
-	}
-
-	require.Equal(t, expected, validity)
-}
-
 func TestGrandpaAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
@@ -280,6 +169,10 @@ func TestInitializeBlock(t *testing.T) {
 }
 
 func TestFinalizeBlock(t *testing.T) {
+	// TODO: need to add inherents before calling finalize_block (see babe/inherents_test.go)
+	// need to move inherents to a different package for use with BABE and runtime
+	t.Skip()
+
 	rt := NewTestRuntime(t, NODE_RUNTIME)
 
 	header := &types.Header{
@@ -317,6 +210,118 @@ func TestFinalizeBlock(t *testing.T) {
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)
 	}
+}
+
+// TODO: the following tests need to be updated to use NODE_RUNTIME.
+// this will likely result in some of them being removed (need to determine what extrinsic types are valid)
+
+func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
+	// TODO: update AuthoritiesChange to need to be signed by an authority
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
+
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
+
+	ids := [][32]byte{aliceb, bobb}
+
+	ext := extrinsic.NewAuthoritiesChangeExt(ids)
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(enc)
+	require.NoError(t, err)
+
+	expected := &transaction.Validity{
+		Priority:  1 << 63,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{},
+		Longevity: 1,
+		Propagate: true,
+	}
+
+	require.Equal(t, expected, validity)
+}
+
+func TestValidateTransaction_IncludeData(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
+	tx, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(tx)
+	require.NoError(t, err)
+
+	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
+	expected := &transaction.Validity{
+		Priority:  0xb,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{{0x6e, 0x6f, 0x6f, 0x74, 0x77, 0x61, 0x73, 0x68, 0x65, 0x72, 0x65}},
+		Longevity: 1,
+		Propagate: false,
+	}
+
+	require.Equal(t, expected, validity)
+}
+
+func TestValidateTransaction_StorageChange(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(enc)
+	require.NoError(t, err)
+
+	expected := &transaction.Validity{
+		Priority:  0x1,
+		Requires:  [][]byte{},
+		Provides:  [][]byte{},
+		Longevity: 1,
+		Propagate: false,
+	}
+
+	require.Equal(t, expected, validity)
+}
+
+func TestValidateTransaction_Transfer(t *testing.T) {
+	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+
+	alice := kr.Alice.Public().Encode()
+	bob := kr.Bob.Public().Encode()
+
+	aliceb := [32]byte{}
+	copy(aliceb[:], alice)
+
+	bobb := [32]byte{}
+	copy(bobb[:], bob)
+
+	transfer := extrinsic.NewTransfer(aliceb, bobb, 1000, 1)
+	ext, err := transfer.AsSignedExtrinsic(kr.Alice.Private().(*sr25519.PrivateKey))
+	require.NoError(t, err)
+	tx, err := ext.Encode()
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(tx)
+	require.NoError(t, err)
+
+	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
+	expected := &transaction.Validity{
+		Priority:  0x3e8,
+		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
+		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+		Longevity: 0x40,
+		Propagate: true,
+	}
+
+	require.Equal(t, expected, validity)
 }
 
 func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
