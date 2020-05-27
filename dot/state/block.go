@@ -290,13 +290,18 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 }
 
 // GetFinalizedHead returns the latest finalized block header
-func (bs *BlockState) GetFinalizedHead() (common.Hash, error) {
+func (bs *BlockState) GetFinalizedHead() (*types.Header, error) {
 	h, err := bs.db.Get(common.FinalizedBlockHashKey)
 	if err != nil {
-		return common.Hash{}, err
+		return nil, err
 	}
 
-	return common.NewHash(h), nil
+	header, err := bs.GetHeader(common.NewHash(h))
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 // SetFinalizedHead sets the latest finalized block header

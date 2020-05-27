@@ -27,7 +27,7 @@ type BlockState interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
-	GetFinalizedHead() (common.Hash, error)
+	GetFinalizedHead() (*types.Header, error)
 	SetFinalizedHead(hash common.Hash) error
 	BestBlockHeader() (*types.Header, error)
 	Leaves() []common.Hash
