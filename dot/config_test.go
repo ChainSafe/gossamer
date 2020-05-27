@@ -24,11 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const GssmrConfigPath = "../node/gssmr/config.toml"
-const GssmrGenesisPath = "../node/gssmr/genesis.json"
+const GssmrConfigPath = "../chain/gssmr/config.toml"
+const GssmrGenesisPath = "../chain/gssmr/genesis.json"
 
-const KsmccConfigPath = "../node/ksmcc/config.toml"
-const KsmccGenesisPath = "../node/ksmcc/genesis.json"
+const KsmccConfigPath = "../chain/ksmcc/config.toml"
+const KsmccGenesisPath = "../chain/ksmcc/genesis.json"
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
@@ -80,7 +80,7 @@ func TestLoadConfigGssmr(t *testing.T) {
 	cfg := GssmrConfig()
 	require.NotNil(t, cfg)
 
-	cfg.Global.DataDir = utils.NewTestDir(t)
+	cfg.Global.BasePath = utils.NewTestDir(t)
 	cfg.Init.Genesis = GssmrGenesisPath
 
 	defer utils.RemoveTestDir(t)
@@ -101,8 +101,8 @@ func TestExportConfigGssmr(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	gssmrGenesis := cfg.Init.Genesis
-	gssmrDataDir := cfg.Global.DataDir
-	cfg.Global.DataDir = utils.NewTestDir(t)
+	gssmrBasePath := cfg.Global.BasePath
+	cfg.Global.BasePath = utils.NewTestDir(t)
 	cfg.Init.Genesis = GssmrGenesisPath
 
 	defer utils.RemoveTestDir(t)
@@ -111,7 +111,7 @@ func TestExportConfigGssmr(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.Genesis = gssmrGenesis
-	cfg.Global.DataDir = gssmrDataDir
+	cfg.Global.BasePath = gssmrBasePath
 
 	file := ExportConfig(cfg, GssmrConfigPath)
 
@@ -126,7 +126,7 @@ func TestLoadConfigKsmcc(t *testing.T) {
 	cfg := KsmccConfig()
 	require.NotNil(t, cfg)
 
-	cfg.Global.DataDir = utils.NewTestDir(t)
+	cfg.Global.BasePath = utils.NewTestDir(t)
 	cfg.Init.Genesis = KsmccGenesisPath
 
 	defer utils.RemoveTestDir(t)
@@ -146,8 +146,8 @@ func TestExportConfigKsmcc(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	ksmccGenesis := cfg.Init.Genesis
-	ksmccDataDir := cfg.Global.DataDir
-	cfg.Global.DataDir = utils.NewTestDir(t)
+	ksmccBasePath := cfg.Global.BasePath
+	cfg.Global.BasePath = utils.NewTestDir(t)
 	cfg.Init.Genesis = KsmccGenesisPath
 
 	defer utils.RemoveTestDir(t)
@@ -156,7 +156,7 @@ func TestExportConfigKsmcc(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.Genesis = ksmccGenesis
-	cfg.Global.DataDir = ksmccDataDir
+	cfg.Global.BasePath = ksmccBasePath
 
 	file := ExportConfig(cfg, KsmccConfigPath)
 
