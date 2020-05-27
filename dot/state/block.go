@@ -96,7 +96,7 @@ func NewBlockState(db database.Database, bt *blocktree.BlockTree) (*BlockState, 
 
 	// set the latest finalized head to the genesis header
 	// TODO: will need to load and set this upon node startup to the actual hash stored in the db
-	err = bs.SetFinalizedHead(bs.genesisHash)
+	err = bs.SetFinalizedHash(bs.genesisHash)
 	if err != nil {
 		return nil, err
 	}
@@ -289,8 +289,8 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	return types.NewBody(data), nil
 }
 
-// GetFinalizedHead returns the latest finalized block header
-func (bs *BlockState) GetFinalizedHead() (*types.Header, error) {
+// GetFinalizedHeader returns the latest finalized block header
+func (bs *BlockState) GetFinalizedHeader() (*types.Header, error) {
 	h, err := bs.db.Get(common.FinalizedBlockHashKey)
 	if err != nil {
 		return nil, err
@@ -304,8 +304,8 @@ func (bs *BlockState) GetFinalizedHead() (*types.Header, error) {
 	return header, nil
 }
 
-// SetFinalizedHead sets the latest finalized block header
-func (bs *BlockState) SetFinalizedHead(hash common.Hash) error {
+// SetFinalizedHash sets the latest finalized block header
+func (bs *BlockState) SetFinalizedHash(hash common.Hash) error {
 	return bs.db.Put(common.FinalizedBlockHashKey, hash[:])
 }
 

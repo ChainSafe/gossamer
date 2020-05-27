@@ -36,17 +36,12 @@ type Service struct {
 	pvEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	head            *types.Header                      // most recently finalized block hash
-
-	// historical information
-	// TODO: do we need maps, or just info from previous round?
-	primaryVotes       map[uint64]*Vote // map of round number -> votes from primary
-	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 }
 
 // NewService returns a new GRANDPA Service instance.
 // TODO: determine what needs to be exported.
 func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
-	head, err := blockState.GetFinalizedHead()
+	head, err := blockState.GetFinalizedHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +59,7 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 }
 
 // derivePrimary returns the primary for the current round
-func (s *Service) derivePrimary() *Voter {
+func (s *Service) derivePrimary() *Voter { //nolint
 	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
 }
 
