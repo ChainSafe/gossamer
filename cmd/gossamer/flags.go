@@ -58,19 +58,19 @@ var (
 		Name:  "name",
 		Usage: "Node implementation name",
 	}
-	// NodeFlag node implementation id used to load default node configuration
-	NodeFlag = cli.StringFlag{
-		Name:  "node",
-		Usage: "Node implementation id used to load default node configuration",
+	// ChainFlag is chain id used to load default configuration for specified chain
+	ChainFlag = cli.StringFlag{
+		Name:  "chain",
+		Usage: "Chain id used to load default configuration for specified chain",
 	}
 	// ConfigFlag TOML configuration file
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
 		Usage: "TOML configuration file",
 	}
-	// DataDirFlag data directory for node
-	DataDirFlag = cli.StringFlag{
-		Name:  "datadir",
+	// BasePathFlag data directory for node
+	BasePathFlag = cli.StringFlag{
+		Name:  "basepath",
 		Usage: "Data directory for the node",
 	}
 )
@@ -190,9 +190,9 @@ var (
 	GlobalFlags = []cli.Flag{
 		VerbosityFlag,
 		NameFlag,
-		NodeFlag,
+		ChainFlag,
 		ConfigFlag,
-		DataDirFlag,
+		BasePathFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand

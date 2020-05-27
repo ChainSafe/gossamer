@@ -21,17 +21,17 @@ var (
 
 	// DefaultName Default node name
 	DefaultName = string("ksmcc")
-	// DefaultID Default node ID
+	// DefaultID Default chain ID
 	DefaultID = string("ksmcc")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./node/ksmcc/config.toml")
-	// DefaultDataDir Default node data directory
-	DefaultDataDir = string("~/.gossamer/ksmcc")
+	DefaultConfig = string("./chain/ksmcc/config.toml")
+	// DefaultBasePath Default node base directory path
+	DefaultBasePath = string("~/.gossamer/ksmcc")
 
 	// InitConfig
 
 	// DefaultGenesis Default genesis configuration path
-	DefaultGenesis = string("./node/ksmcc/genesis.json")
+	DefaultGenesis = string("./chain/ksmcc/genesis.json")
 
 	// AccountConfig
 
