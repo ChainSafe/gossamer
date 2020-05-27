@@ -210,16 +210,15 @@ func NewService(cfg *Config) (*Service, error) {
 			respOut:          respChan,
 		}
 
-		// TODO: what format is the runtime looking for for the grandpa authorities?
-		// authData, err = srv.rt.GrandpaAuthorities()
-		// if err != nil {
-		// 	return nil, err
-		// }
+		authData, err = srv.rt.GrandpaAuthorities()
+		if err != nil {
+			return nil, err
+		}
 
-		// currentDescriptor = &babe.NextEpochDescriptor{
-		// 	Authorities: authData,
-		// 	Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
-		// }
+		currentDescriptor = &babe.NextEpochDescriptor{
+			Authorities: authData,
+			Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
+		}
 	}
 
 	if cfg.Verifier == nil {
@@ -376,7 +375,7 @@ func (s *Service) receiveMessages() {
 		msg, ok := <-s.msgRec
 		if !ok {
 			log.Error("[core] failed to receive message from network service")
-			continue
+			break
 		}
 
 		err := s.handleReceivedMessage(msg)
