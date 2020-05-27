@@ -31,6 +31,8 @@ type NetworkAPI interface {
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
 	NodeRoles() byte
+	Stop() error
+	Start() error
 }
 
 // TransactionQueueAPI ...
@@ -49,6 +51,8 @@ type CoreAPI interface {
 	IsBabeAuthority() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata() ([]byte, error)
+	Stop() error
+	Start() error
 }
 
 // RPCAPI is the interface for methods related to RPC service

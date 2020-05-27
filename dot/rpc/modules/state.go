@@ -285,6 +285,33 @@ func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryR
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
+//Control to send start and stop messages to services
+func (sm *StateModule) Control(r *http.Request, req *[]string, res *string) error {
+	reqA := *req
+	var err error
+	switch reqA[0] {
+	case "babe":
+		switch reqA[1] {
+		case "stop":
+			err = sm.coreAPI.Stop()
+			*res = "babe service stopped"
+		case "start":
+			err = sm.coreAPI.Start()
+			*res = "babe service started"
+		}
+	case "network":
+		switch reqA[1] {
+		case "stop":
+			err = sm.networkAPI.Stop()
+			*res = "network service stopped"
+		case "start":
+			err = sm.networkAPI.Start()
+			*res = "network service started"
+		}
+	}
+	return err
+}
+
 func convertAPIs(in []*runtime.API_Item) []interface{} {
 	ret := make([]interface{}, 0)
 	for _, item := range in {
