@@ -249,17 +249,30 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 	}
 
 	// decode inherent extrinsics
-	exts := make([][]byte, len(idata.data))
-	ie, err := scale.Decode(inherentExts, exts)
+	exts, err := scale.Decode(inherentExts, [][]byte{})
 	if err != nil {
 		return err
 	}
 
 	// apply each inherent extrinsic
-	for _, in := range ie.([][]byte) {
-		_, err = b.rt.ApplyExtrinsic(in)
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
 		if err != nil {
 			return err
+		}
+
+		ret, err := b.rt.ApplyExtrinsic(in)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(ret, []byte{0, 0}) {
+			errTxt, err := determineError(ret)
+			if err != nil {
+				return err
+			}
+
+			return errors.New("error applying extrinsic: " + errTxt)
 		}
 	}
 

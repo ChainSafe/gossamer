@@ -10,42 +10,77 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInherentExtrinsics(t *testing.T) {
+func TestInherentExtrinsics_Timestamp(t *testing.T) {
 	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
 
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
 	require.NoError(t, err)
 
-	tmp := [8]byte{}
-	copy(tmp[:], Timstap0)
-	t.Log(idata.data[tmp])
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
 
-	// err = idata.SetInt64Inherent(Babeslot, 1)
-	// require.NoError(t, err)
+	ret, err := rt.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	exts, err := scale.Decode(ret, [][]byte{})
+	require.NoError(t, err)
+
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
+		require.NoError(t, err)
+
+		ret, err := rt.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, []byte{0, 0}, ret)
+	}
+}
+
+func TestInherentExtrinsics_BabeSlot(t *testing.T) {
+	t.Skip()
+	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
+
+	idata := NewInherentsData()
+	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
 
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
-	t.Log(ienc)
-	t.Log(len(ienc))
-
-	ie, err := rt.InherentExtrinsics(ienc)
+	ret, err := rt.InherentExtrinsics(ienc)
 	require.NoError(t, err)
 
-	t.Log(ie)
-
-	exts := make([][]byte, 2)
-	inherents, err := scale.Decode(ie, exts)
+	exts, err := scale.Decode(ret, [][]byte{})
 	require.NoError(t, err)
 
-	t.Log(inherents)
-
-	for _, in := range inherents.([][]byte) {
-		t.Log(in)
-		ret, err := rt.ApplyExtrinsic(in)
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
 		require.NoError(t, err)
 
-		t.Log(ret)
+		ret, err := rt.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, []byte{0, 0}, ret)
+	}
+
+	idata = NewInherentsData()
+	err = idata.SetInt64Inherent(Babeslot, 1)
+	require.NoError(t, err)
+
+	ienc, err = idata.Encode()
+	require.NoError(t, err)
+
+	ret, err = rt.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	exts, err = scale.Decode(ret, [][]byte{})
+	require.NoError(t, err)
+
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
+		require.NoError(t, err)
+
+		ret, err := rt.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, []byte{0, 0}, ret)
 	}
 }
