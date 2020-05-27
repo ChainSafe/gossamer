@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -253,15 +251,14 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 func newCoreService(t *testing.T) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
 	// todo check if we can make this core.TestAuthorityDataKey so I don't need to copy
-	var testAuthorityDataKey, _ = common.HexToBytes("0xe3b47b6c84c0493481f97c5197d2554f")
 	pubkey := kp.Public().Encode()
-	err = tt.Put(testAuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -284,6 +281,6 @@ func newCoreService(t *testing.T) *core.Service {
 
 func setupAuthModule(t *testing.T, txq *state.TransactionQueue) *AuthorModule {
 	cs := newCoreService(t)
-	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
 	return NewAuthorModule(cs, rt, txq)
 }
