@@ -242,35 +242,25 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 		return err
 	}
 
-	// Call BlockBuilder_inherent_extrinsics
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := b.rt.InherentExtrinsics(ienc)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(inherentExts)
-
-	// key, _ := common.HexToBytes("0x0e4944cfd98d6f4cc374d16f5a4e3f9c")
-	// b.storageState.SetStorage(key, []byte{1, 0, 0, 0, 0, 0, 0, 0})
-
-	// key, _ = common.HexToBytes("0x052cfee4ed51fa512e9fed56a4185f26")
-	// b.storageState.SetStorage(key, []byte{1})
-
-	exts := make([][]byte, 1)
+	// decode inherent extrinsics
+	exts := make([][]byte, len(idata.data))
 	ie, err := scale.Decode(inherentExts, exts)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(ie)
-
+	// apply each inherent extrinsic
 	for _, in := range ie.([][]byte) {
-		ret, err := b.rt.ApplyExtrinsic(in)
+		_, err = b.rt.ApplyExtrinsic(in)
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(ret)
 	}
 
 	return nil
