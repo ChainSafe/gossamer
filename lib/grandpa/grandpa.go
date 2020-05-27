@@ -17,9 +17,6 @@
 package grandpa
 
 import (
-	//"bytes"
-	//"time"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -60,66 +57,6 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 	}, nil
 }
 
-// // initiate increments the round number and sets the finalized block hash in the database
-// func (s *Service) initiate() error {
-// 	// get best final candidate from previous round
-// 	best, err := s.getBestFinalCandidate()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	s.bestFinalCandidate[s.state.round] = best
-
-// 	// TODO: check runtime digests for authority changes
-// 	// needs a runtime update
-// 	s.state.round += 1
-
-// 	// set finalized head
-// 	return s.blockState.SetFinalizedHead(s.head.Hash())
-// }
-
-// func (s *Service) beginPreVote() error {
-// 	// save start time
-// 	//start := time.Now().Unix()
-
-// 	// derive primary
-// 	primary := s.derivePrimary()
-
-// 	// if primary, broadcast the best final candidate from the previous round
-// 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-// 		// TODO: broadcast best final candidate as finalization message
-// 	}
-
-// 	// TODO: receive messages until current time runs out or round is completable
-
-// 	// determine what block we will vote for
-// 	var vote *Vote
-// 	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block,
-// 	// and greater than the best final candidate from the last round, we choose that
-// 	// otherwise, we simply choose the head of our chain
-// 	if s.primaryVotes[s.state.round] != nil && s.primaryVotes[s.state.round].number > uint64(s.head.Number.Int64()) {
-// 		vote = s.primaryVotes[s.state.round]
-// 	} else {
-// 		header, err := s.blockState.BestBlockHeader()
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		vote = NewVoteFromHeader(header)
-// 	}
-
-// 	s.broadcastVote(vote)
-
-// 	// TODO: receive messages until current time runs out or round is completable
-
-// 	return nil
-// }
-
-// // TODO: implement
-// func (s *Service) broadcastVote(v *Vote) {
-// 	return
-// }
-
 // derivePrimary returns the primary for the current round
 func (s *Service) derivePrimary() *Voter {
 	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
@@ -128,7 +65,76 @@ func (s *Service) derivePrimary() *Voter {
 // getBestFinalCandidate calculates the set of blocks that are less than or equal to the pre-voted block in height,
 // with >= 2/3 pre-commit votes, then returns the block with the highest number from this set.
 func (s *Service) getBestFinalCandidate() (*Vote, error) {
+	prevoted, err := s.getPreVotedBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	// get all blocks with >=2/3 pre-commits
+	blocks, err := s.getPossibleSelectedBlocks(precommit)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(blocks) == 0 {
+		return nil, ErrNoBestFinalCandidate
+	}
+
+	// if there are blocks, check if it's number is <= prevoted block's number
+	precommited := []*Vote{}
+
+	for h, n := range blocks {
+		if n <= prevoted.number {
+			precommited = append(precommited, &Vote{
+				hash:   h,
+				number: n,
+			})
+
+			continue
+		}
+
+		// if the number is greater than that of the prevoted block, find ancestor block
+		// that is at the same number as prevoted block
+		p, err := s.findParentWithNumber(&Vote{
+			hash:   h,
+			number: n,
+		}, prevoted.number)
+		if err != nil {
+			return nil, err
+		}
+
+		precommited = append(precommited, p)
+	}
+
+	// find block with highest number from remaining blocks
+
 	return &Vote{}, nil
+}
+
+// findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
+func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
+	if v.number <= n {
+		return v, nil
+	}
+
+	b, err := s.blockState.GetHeader(v.hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// # of iterations
+	l := int(v.number - n)
+
+	for i := 0; i < l; i++ {
+		p, err := s.blockState.GetHeader(b.ParentHash)
+		if err != nil {
+			return nil, err
+		}
+
+		b = p
+	}
+
+	return NewVoteFromHeader(b), nil
 }
 
 // isCompletable returns true if the round is completable, false otherwise

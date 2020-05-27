@@ -757,3 +757,28 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	require.Equal(t, expected, block.hash)
 	require.Equal(t, uint64(5), block.number)
 }
+
+func TestFindParentWithNumber(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	// no branches needed
+	branches := make(map[int]int)
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches)
+	leaves := gs.blockState.Leaves()
+
+	v, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+
+	p, err := gs.findParentWithNumber(v, 1)
+	require.NoError(t, err)
+	t.Log(st.Block.BlocktreeAsString())
+
+	expected, err := st.Block.GetBlockByNumber(big.NewInt(1))
+	require.NoError(t, err)
+
+	require.Equal(t, expected.Header.Hash(), p.hash)
+}

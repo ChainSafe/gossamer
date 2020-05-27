@@ -43,3 +43,6 @@ var ErrDescendantNotFound = blocktree.ErrDescendantNotFound
 // ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
 // this can only happen in the case of > 1/3 byzantine nodes (ie > 1/3 nodes equivocate or don't submit valid votes)
 var ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")
+
+// ErrNoBestFinalCandidate is returned when there is no best final candidate for a round
+var ErrNoBestFinalCandidate = errors.New("no best final candidate found for round")
