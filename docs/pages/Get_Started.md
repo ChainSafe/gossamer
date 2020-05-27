@@ -34,7 +34,7 @@ start default node:
 ./bin/gossamer --key alice
 ```
 
-### Run Gossamer Node (Default Node)
+### Run Gossamer Node
 
 initialize gossamer node:
 ```
@@ -46,7 +46,7 @@ start gossamer node:
 ./bin/gossamer --node gssmr --key alice
 ```
 
-### Run Kusama Node (Under Development)
+### Run Kusama Node
 
 initialize kusama node:
 ```

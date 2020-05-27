@@ -4,6 +4,10 @@
 @import "minima/skins/dark.scss";
 @import "minima/initialize.scss";
 
+body {
+    font-family: "ubuntu";
+}
+
 header, footer {
     border: 0 !important;
     padding: 2% 0 !important;
@@ -11,7 +15,7 @@ header, footer {
 }
 
 footer {
-    margin-top: 2% !important;
+    padding: 2% 0 !important;
 }
 
 li {

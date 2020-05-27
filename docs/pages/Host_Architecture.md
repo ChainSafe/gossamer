@@ -20,7 +20,7 @@ The **ksmcc node** is an official node implementation for the Kusama Network - a
 
 ### Custom Nodes
 
-See [Gossamer Framework](Gossamer-Framework) for more information about building custom node implementations.
+See [Custom Services](/custom-services/) for more information about building custom node implementations.
 
 ## Node Services
 

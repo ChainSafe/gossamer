@@ -15,9 +15,9 @@ permalink: /
 
 ## Welcome
 
-***Gossamer*** is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem.
+***Gossamer*** is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-Gossamer includes official node implementations for major blockchains within the Polkadot ecosystem and makes building node implementations for other blockchains trivial; blockchains built with [Substrate](https://github.com/paritytech/substrate) can plug their compiled runtime into Gossamer to create a node implementation in Go.
+Gossamer includes node implementations for major blockchains within the Polkadot ecosystem and makes building node implementations for other blockchains trivial; blockchains built with [Substrate](https://github.com/paritytech/substrate) can plug their compiled runtime into Gossamer to create a node implementation in Go.
 
 ***Gossamer Docs*** is an evolving set of documents and resources to help you understand Gossamer, the Polkadot ecosystem, and how to build and run nodes using Gossamer. 
 
@@ -29,9 +29,9 @@ Gossamer includes official node implementations for major blockchains within the
 
 ## Framework
 
-Gossamer is a ***modular blockchain framework*** used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem.
+Gossamer is a ***modular blockchain framework*** used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Configuration](/configuration/)).
+- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Get Started](Get-Started) and [Configuration](/configuration/)).
 
 - The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import a Runtime](/import-a-runtime/)). 
 
@@ -52,7 +52,7 @@ Gossamer is a ***modular blockchain framework*** used to build and run node impl
 
 - **[Implementation](/implementation/)**
 
-    - [Package Overview](/package-overview/)
+    - [Package Library](/package-library/)
     - [Host Architecture](/host-architecture/)
     - [Integration Tests](/integration-tests/)
 
@@ -61,10 +61,12 @@ Gossamer is a ***modular blockchain framework*** used to build and run node impl
     - [General Resources](/general-resources/)
     - [Developer Resources](/developer-resources/)
 
+<!--
 - **[Appendix](/appendix/)**
 
     - [SCALE Examples](/scale-examples/)
+-->
 
 ## Contributing
 
-Let us know if you have any feedback on how we can improve our documentation or if there are any resources you would like to see added. Also, contributions are welcome! If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md).
+Let us know if you have any ideas or feedback that will help us improve ***Gossamer Docs*** or if you have any resources that you would like to see added. Also, contributions are welcome! ***Gossamer Docs*** was built with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files can be found within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md).

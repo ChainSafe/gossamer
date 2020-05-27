@@ -4,7 +4,7 @@ title: Commands
 permalink: /commands/
 ---
 
-_work in progress_ - https://github.com/ChainSafe/gossamer/issues/867
+_work in progress_ - [gossamer/issues/868](https://github.com/ChainSafe/gossamer/issues/868)
 
 ### Accepted formats
 

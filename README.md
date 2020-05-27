@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="Gossamer logo" src="/docs/assets/img/gossamer_banner.png" width="700" />
+  <img alt="Gossamer logo" src="/docs/assets/img/gossamer_banner.png" width="500" />
 </div>
 <div align="center">
   <a href="https://www.gnu.org/licenses/gpl-3.0">
@@ -27,9 +27,9 @@
 
 ## A Go Implementation of the Polkadot Host
 
-Gossamer is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run node implementations for different blockchain protocols within the Polkadot ecosystem.
+Gossamer is an implementation of the [Polkadot Host](https://github.com/w3f/polkadot-spec) - a blockchain framework used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-Gossamer includes official node implementations for major blockchains within the Polkadot ecosystem and makes building node implementations for other blockchains trivial; blockchains built with [Substrate](https://github.com/paritytech/substrate) can plug their compiled runtime into Gossamer to create a node implementation in Go.
+Gossamer includes node implementations for major blockchains within the Polkadot ecosystem and makes building node implementations for other blockchains trivial; blockchains built with [Substrate](https://github.com/paritytech/substrate) can plug their compiled runtime into Gossamer to create a node implementation in Go.
 
 For more information about Gossamer, the Polkadot ecosystem, and how to use Gossamer to build and run nodes for different blockchain protocols within the Polkadot ecosystem, check out [Gossamer Wiki](https://github.com/ChainSafe/gossamer/wiki).
 

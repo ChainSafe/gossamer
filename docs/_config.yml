@@ -19,30 +19,70 @@
 # in the templates via {{ site.myvariable }}.
 
 title: Gossamer Docs
-email: info@chainsafe.io
-description: >-
-  The official documentation for Gossamer: A Go Implementation of the Polkadot Host.
-baseurl: ""
-url: "https://ChainSafe.github.io/gossamer"
-twitter_username: ChainSafeth
-github_username:  ChainSafe
-author: ChainSafe
+author:
+  name: ChainSafe
+  email: info@chainsafe.io
+description: > # this means to ignore newlines until "show_excerpts:"
+  The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host
+show_excerpts: false # set to true to show excerpts on the homepage
 
-theme: minima
-
+# Minima date format
+# refer to https://shopify.github.io/liquid/filters/date/ if you want to customize this
 minima:
-  skin: dark
   date_format: "%b %-d, %Y"
+  skin: dark
+
+  # generate social links in footer
+  social_links:
+    twitter: ChainSafeth
+    github:  ChainSafe
+    # devto: jekyll
+    # dribbble: jekyll
+    # facebook: jekyll
+    # flickr:   jekyll
+    # instagram: jekyll
+    # linkedin: jekyll
+    # pinterest: jekyll
+    # youtube: jekyll
+    # youtube_channel: UC8CXR0-3I70i1tfPg1PAE1g
+    # youtube_channel_name: CloudCannon
+    # telegram: jekyll
+    # googleplus: +jekyll
+    # microdotblog: jekyll
+    # keybase: jekyll
+
+    # Mastodon instances
+    # mastodon:
+    # - username: jekyll
+    #   instance: example.com
+    # - username: jekyll2
+    #   instance: example.com
+
+    # GitLab instances
+    # gitlab:
+    # - username: jekyll
+    #   instance: example.com
+    # - username: jekyll2
+    #   instance: example.com
 
 header_pages:
   - header_pages/Run_Nodes.md
   - header_pages/Build_Nodes.md
   - header_pages/Implementation.md
   - header_pages/Resources.md
-  - header_pages/Appendix.md
+#  - header_pages/Appendix.md
 
-# plugins:
-#   - jekyll-feed
+# If you want to link only specific pages in your header, uncomment
+# this and add the path to the pages in order as they should show up
+#header_pages:
+# - about.md
+
+# Build settings
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
 
 # Exclude from processing.
 # The following items will not be processed, by default.
