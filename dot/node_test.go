@@ -21,7 +21,9 @@ import (
 	"encoding/binary"
 	"math/big"
 	"reflect"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -63,13 +65,13 @@ func TestNodeInitialized(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	expected := NodeInitialized(cfg.Global.DataDir, false)
+	expected := NodeInitialized(cfg.Global.BasePath, false)
 	require.Equal(t, expected, false)
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	expected = NodeInitialized(cfg.Global.DataDir, true)
+	expected = NodeInitialized(cfg.Global.BasePath, true)
 	require.Equal(t, expected, true)
 }
 
@@ -124,11 +126,16 @@ func TestStartNode(t *testing.T) {
 	node, err := NewNode(cfg, ks)
 	require.Nil(t, err)
 
-	go node.Start()
-	<-node.IsStarted
+	go func() {
+		err := node.Start()
+		require.Nil(t, err)
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	require.Equal(t, uint32(1), atomic.LoadUint32(&node.started))
 
 	node.Stop()
-	<-node.stop
+	require.Equal(t, uint32(0), atomic.LoadUint32(&node.started))
 }
 
 // TestStopNode
@@ -150,7 +157,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.DataDir)
+	stateSrvc := state.NewService(cfg.Global.BasePath)
 
 	header := &types.Header{
 		Number:         big.NewInt(0),
@@ -167,7 +174,10 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err = stateSrvc.Start()
 	require.Nil(t, err)
 
-	defer stateSrvc.Stop()
+	defer func() {
+		err = stateSrvc.Stop()
+		require.Nil(t, err)
+	}()
 
 	gendata, err := state.LoadGenesisData(stateSrvc.DB())
 	require.Nil(t, err)
