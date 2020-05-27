@@ -29,6 +29,7 @@ func TestExportRuntime(t *testing.T) {
 }
 
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
+	t.Skip()
 	// TODO: update AuthoritiesChange to need to be signed by an authority
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
@@ -62,6 +63,7 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 }
 
 func TestValidateTransaction_IncludeData(t *testing.T) {
+	t.Skip()
 	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))

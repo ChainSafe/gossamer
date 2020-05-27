@@ -36,6 +36,10 @@ var genesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
+var emptyHeader = &types.Header{
+	Number: big.NewInt(0),
+}
+
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)

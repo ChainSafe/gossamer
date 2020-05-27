@@ -60,6 +60,7 @@ func TestAuthorModule_Pending(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
+	t.Skip()
 	// setup auth module
 	txQueue := state.NewTransactionQueue()
 
@@ -95,6 +96,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
+	t.Skip()
 	// setup service
 	// setup auth module
 	txQueue := state.NewTransactionQueue()
@@ -125,6 +127,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
+	t.Skip()
 	// setup auth module
 	txQueue := state.NewTransactionQueue()
 

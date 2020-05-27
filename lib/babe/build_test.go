@@ -101,7 +101,7 @@ func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.
 		_, _ = babesession.transactionQueue.Push(vtx)
 	}
 
-	parentHeader := genesisHeader
+	parentHeader := emptyHeader
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
@@ -120,7 +120,10 @@ func createTestBlock(t *testing.T, babesession *Session, exts [][]byte) (*types.
 		}
 	}
 
-	t.Fatal(err)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return block, slot
 }
 
@@ -139,7 +142,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	block, slot := createTestBlock(t, babesession, exts)
 
-	stateRoot, err := common.HexToHash("0xb58aa2da9917d2bae69244cfaae722daf0d6c97fc3ca0e92c9afc6ce78cc1f58")
+	stateRoot, err := common.HexToHash("0xc27076cd4473b62f58f9ade4a20347406da0f1bbefa8bc2884fb505ed18f5b43")
 	if err != nil {
 		t.Fatal(err)
 	}
