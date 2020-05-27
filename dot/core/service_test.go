@@ -41,12 +41,13 @@ var testMessageTimeout = time.Second
 // newTestServiceWithFirstBlock creates a new test service with a test block
 func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, kp.Public().Encode()...))
+	// TODO: make a helper function to clean this up
+	err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, kp.Public().Encode()...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -177,7 +178,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)

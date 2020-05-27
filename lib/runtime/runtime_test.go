@@ -109,3 +109,7 @@ func TestRuntime_Exec_Metadata(t *testing.T) {
 	require.Equal(t, expected, ret)
 
 }
+
+func TestWriteRuntime(t *testing.T) {
+	exportRuntime(t, NODE_RUNTIME, "node_runtime.hex")
+}

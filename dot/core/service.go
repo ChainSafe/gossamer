@@ -210,15 +210,16 @@ func NewService(cfg *Config) (*Service, error) {
 			respOut:          respChan,
 		}
 
-		authData, err = srv.rt.GrandpaAuthorities()
-		if err != nil {
-			return nil, err
-		}
+		// TODO: what format is the runtime looking for for the grandpa authorities?
+		// authData, err = srv.rt.GrandpaAuthorities()
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		currentDescriptor = &babe.NextEpochDescriptor{
-			Authorities: authData,
-			Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
-		}
+		// currentDescriptor = &babe.NextEpochDescriptor{
+		// 	Authorities: authData,
+		// 	Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
+		// }
 	}
 
 	if cfg.Verifier == nil {
