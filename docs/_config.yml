@@ -18,25 +18,31 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Gossamer Wiki
+title: Gossamer Docs
 email: info@chainsafe.io
 description: >-
-  The official wiki for Gossamer: A Go Implementation of the Polkadot Host.
+  The official documentation for Gossamer: A Go Implementation of the Polkadot Host.
 baseurl: ""
-url: "https://ChainSafe.github.io/gossamer/wiki"
+url: "https://ChainSafe.github.io/gossamer"
 twitter_username: ChainSafeth
 github_username:  ChainSafe
+author: ChainSafe
 
-# Build settings
 theme: minima
-# plugins:
-#   - jekyll-feed
+
+minima:
+  skin: dark
+  date_format: "%b %-d, %Y"
 
 header_pages:
-  - pages/Run_Nodes.md
-  - pages/Build_Nodes.md
-  - pages/Resources.md
-  - pages/Appendix.md
+  - header_pages/Run_Nodes.md
+  - header_pages/Build_Nodes.md
+  - header_pages/Implementation.md
+  - header_pages/Resources.md
+  - header_pages/Appendix.md
+
+# plugins:
+#   - jekyll-feed
 
 # Exclude from processing.
 # The following items will not be processed, by default.

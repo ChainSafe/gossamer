@@ -1,0 +1,19 @@
+---
+---
+
+@import "minima/skins/dark.scss";
+@import "minima/initialize.scss";
+
+header, footer {
+    border: 0 !important;
+    padding: 2% 0 !important;
+    margin: 0 !important;
+}
+
+footer {
+    margin-top: 2% !important;
+}
+
+li {
+    padding: 4px;
+}

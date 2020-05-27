@@ -4,4 +4,4 @@ title: Configuration
 permalink: /configuration/
 ---
 
-_work in progress_ - [gossamer/wiki/configuration](https://github.com/ChainSafe/gossamer/wiki/configuration)
+_work in progress_ - https://github.com/ChainSafe/gossamer/issues/867
