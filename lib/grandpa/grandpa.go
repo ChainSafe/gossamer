@@ -26,7 +26,7 @@ import (
 type Service struct {
 	// preliminaries
 	blockState BlockState
-	keypair    *ed25519.Keypair // our keypair
+	keypair    *ed25519.Keypair //nolint
 
 	// current state information
 	state           *State                             // current state
@@ -100,7 +100,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		}
 
 		if !isDescendant {
-			// find common ancestor, implicity has >=2/3 votes
+			// find common ancestor, implicitly has >=2/3 votes
 			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.hash)
 			if err != nil {
 				return nil, err
