@@ -24,17 +24,23 @@ import (
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
-	state              *State // current state
-	blockState         BlockState
-	keypair            *ed25519.Keypair                   // our keypair
-	subround           subround                           // current sub-round
-	prevotes           map[ed25519.PublicKeyBytes]*Vote   // pre-votes for next state
-	precommits         map[ed25519.PublicKeyBytes]*Vote   // pre-commits for next state
-	pvEquivocations    map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
-	pcEquivocations    map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
-	head               *types.Header                      // most recently finalized block hash
-	primaryVotes       map[uint64]*Vote                   // map of round number to votes from primary, can clear every round
-	bestFinalCandidate map[uint64]*Vote                   // map of round number to best final candidate
+	// preliminaries
+	blockState BlockState
+	keypair    *ed25519.Keypair // our keypair
+
+	// current state information
+	state           *State                             // current state
+	subround        subround                           // current sub-round
+	prevotes        map[ed25519.PublicKeyBytes]*Vote   // pre-votes for next state
+	precommits      map[ed25519.PublicKeyBytes]*Vote   // pre-commits for next state
+	pvEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
+	pcEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
+	head            *types.Header                      // most recently finalized block hash
+
+	// historical information
+	// TODO: do we need maps, or just info from previous round?
+	primaryVotes       map[uint64]*Vote // map of round number -> votes from primary
+	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -76,65 +82,54 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		return nil, err
 	}
 
+	// if there are no blocks with >=2/3 pre-commits, just return the pre-voted block
 	if len(blocks) == 0 {
-		return nil, ErrNoBestFinalCandidate
+		return &prevoted, nil
 	}
 
-	// if there are blocks, check if it's number is <= prevoted block's number
-	precommited := []*Vote{}
+	// if there are multiple blocks, get the one with the highest number
+	// that is also an ancestor of the prevoted block (or is the prevoted block)
+	if blocks[prevoted.hash] != 0 {
+		return &prevoted, nil
+	}
+
+	bfc := &Vote{
+		number: 0,
+	}
 
 	for h, n := range blocks {
-		if n <= prevoted.number {
-			precommited = append(precommited, &Vote{
+		// check if the current block is an ancestor of prevoted block
+		isDescendant, err := s.blockState.IsDescendantOf(h, prevoted.hash)
+		if err != nil {
+			return nil, err
+		}
+
+		if !isDescendant {
+			// find common ancestor, implicity has >=2/3 votes
+			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.hash)
+			if err != nil {
+				return nil, err
+			}
+
+			v, err := NewVoteFromHash(pred, s.blockState)
+			if err != nil {
+				return nil, err
+			}
+
+			n = v.number
+			h = pred
+		}
+
+		// choose block with highest number
+		if n > bfc.number {
+			bfc = &Vote{
 				hash:   h,
 				number: n,
-			})
-
-			continue
+			}
 		}
-
-		// if the number is greater than that of the prevoted block, find ancestor block
-		// that is at the same number as prevoted block
-		p, err := s.findParentWithNumber(&Vote{
-			hash:   h,
-			number: n,
-		}, prevoted.number)
-		if err != nil {
-			return nil, err
-		}
-
-		precommited = append(precommited, p)
 	}
 
-	// find block with highest number from remaining blocks
-
-	return &Vote{}, nil
-}
-
-// findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
-	if v.number <= n {
-		return v, nil
-	}
-
-	b, err := s.blockState.GetHeader(v.hash)
-	if err != nil {
-		return nil, err
-	}
-
-	// # of iterations
-	l := int(v.number - n)
-
-	for i := 0; i < l; i++ {
-		p, err := s.blockState.GetHeader(b.ParentHash)
-		if err != nil {
-			return nil, err
-		}
-
-		b = p
-	}
-
-	return NewVoteFromHeader(b), nil
+	return bfc, nil
 }
 
 // isCompletable returns true if the round is completable, false otherwise
@@ -171,7 +166,7 @@ func (s *Service) isCompletable() (bool, error) {
 	return true, nil
 }
 
-// getPreVotedBlock returns the current pre-voted block B.
+// getPreVotedBlock returns the current pre-voted block B. also known as GRANDPA-GHOST.
 // the pre-voted block is the block with the highest block number in the set of all the blocks with
 // total votes >= 2/3 the total number of voters, where the total votes is determined by getTotalVotesForBlock.
 func (s *Service) getPreVotedBlock() (Vote, error) {
@@ -180,6 +175,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 		return Vote{}, err
 	}
 
+	// TODO: if there are no blocks with >=2/3 voters, then just pick the highest voted block
 	if len(blocks) == 0 {
 		return Vote{}, ErrNoPreVotedBlock
 	}
@@ -210,11 +206,12 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	return highest, nil
 }
 
-// getPossibleSelectedBlocks returns blocks with total votes >=2/3 the total number of voters in the map of block hash to block number.
-// if there are no blocks that have >=2/3 direct votes, this function will find predecessors of those blocks that do have >=2/3 votes.
-// note that by voting for a block, all of its predecessor blocks are automatically voted for.
+// getPossibleSelectedBlocks returns blocks with total votes >=2/3 |voters| in a map of block hash -> block number.
+// if there are no blocks that have >=2/3 direct votes, this function will find ancestors of those blocks that do have >=2/3 votes.
+// note that by voting for a block, all of its ancestor blocks are automatically voted for.
 // thus, if there are no blocks with >=2/3 total votes, but the sum of votes for blocks A and B is >=2/3, then this function returns
-// the first common predecessor of A and B.
+// the first common ancestor of A and B.
+// since
 func (s *Service) getPossibleSelectedBlocks(stage subround) (map[common.Hash]uint64, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
@@ -233,17 +230,17 @@ func (s *Service) getPossibleSelectedBlocks(stage subround) (map[common.Hash]uin
 	}
 
 	// since we want to select the block with the highest number that has >=2/3 votes,
-	// we can return here since their predecessors won't have a higher number.
+	// we can return here since their ancestors won't have a higher number.
 	if len(blocks) != 0 {
 		return blocks, nil
 	}
 
-	// no block has >=2/3 direct votes, check for votes for predecessors recursively
+	// no block has >=2/3 direct votes, check for votes for ancestors recursively
 	var err error
 	va := s.getVotes(stage)
 
 	for v := range votes {
-		blocks, err = s.getPossibleSelectedPredecessors(va, v.hash, blocks, stage)
+		blocks, err = s.getPossibleSelectedAncestors(va, v.hash, blocks, stage)
 		if err != nil {
 			return nil, err
 		}
@@ -252,15 +249,15 @@ func (s *Service) getPossibleSelectedBlocks(stage subround) (map[common.Hash]uin
 	return blocks, nil
 }
 
-// getPossibleSelectedPredecessors recursively searches for predecessors with >=2/3 votes
+// getPossibleSelectedAncestors recursively searches for ancestors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossibleSelectedPredecessors(votes []Vote, curr common.Hash, prevoted map[common.Hash]uint64, stage subround) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, prevoted map[common.Hash]uint64, stage subround) (map[common.Hash]uint64, error) {
 	for _, v := range votes {
 		if v.hash == curr {
 			continue
 		}
 
-		// find common predecessor, check if votes for it is >=2/3 or not
+		// find common ancestor, check if votes for it is >=2/3 or not
 		pred, err := s.blockState.HighestCommonAncestor(v.hash, curr)
 		if err != nil {
 			return nil, err
@@ -284,7 +281,7 @@ func (s *Service) getPossibleSelectedPredecessors(votes []Vote, curr common.Hash
 
 			prevoted[pred] = uint64(h.Number.Int64())
 		} else {
-			prevoted, err = s.getPossibleSelectedPredecessors(votes, pred, prevoted, stage)
+			prevoted, err = s.getPossibleSelectedAncestors(votes, pred, prevoted, stage)
 			if err != nil {
 				return nil, err
 			}
@@ -294,7 +291,7 @@ func (s *Service) getPossibleSelectedPredecessors(votes []Vote, curr common.Hash
 	return prevoted, nil
 }
 
-// getTotalVotesForBlock returns the total number of observed votes for a block B, which is equal
+// getTotalVotesForBlock returns the total number of observed votes for a block B in a subround, which is equal
 // to the direct votes for B and B's descendants plus the total number of equivocating voters
 func (s *Service) getTotalVotesForBlock(hash common.Hash, stage subround) (uint64, error) {
 	// observed votes for block
@@ -371,4 +368,30 @@ func (s *Service) getVotes(stage subround) []Vote {
 	}
 
 	return va
+}
+
+// findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
+func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
+	if v.number <= n {
+		return v, nil
+	}
+
+	b, err := s.blockState.GetHeader(v.hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// # of iterations
+	l := int(v.number - n)
+
+	for i := 0; i < l; i++ {
+		p, err := s.blockState.GetHeader(b.ParentHash)
+		if err != nil {
+			return nil, err
+		}
+
+		b = p
+	}
+
+	return NewVoteFromHeader(b), nil
 }
