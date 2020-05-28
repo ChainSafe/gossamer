@@ -54,10 +54,10 @@ func TestInherentExtrinsics_BabeSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, ext := range exts.([][]byte) {
-		in, err := scale.Encode(ext)
+		in, err := scale.Encode(ext) //nolint
 		require.NoError(t, err)
 
-		ret, err := rt.ApplyExtrinsic(in)
+		ret, err := rt.ApplyExtrinsic(in) //nolint
 		require.NoError(t, err)
 		require.Equal(t, []byte{0, 0}, ret)
 	}

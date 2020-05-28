@@ -131,12 +131,10 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 	if babeSession.authorityData == nil {
 		log.Info("[babe] setting authority data to genesis authorities", "authorities", babeSession.config.GenesisAuthorities)
 
-		ad, err := types.AuthorityDataRawToAuthorityData(babeSession.config.GenesisAuthorities)
+		babeSession.authorityData, err = types.AuthorityDataRawToAuthorityData(babeSession.config.GenesisAuthorities)
 		if err != nil {
 			return nil, err
 		}
-
-		babeSession.authorityData = ad
 	}
 
 	log.Info("[babe]", "authorities", babeSession.authorityData)

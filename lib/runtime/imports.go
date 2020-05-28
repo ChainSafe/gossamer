@@ -150,7 +150,7 @@ func ext_log(context unsafe.Pointer, a, b, c, d, e C.int32_t) {
 }
 
 // RegisterImports_NodeRuntime returns the wasm imports for the substrate v0.6.x node runtime
-func RegisterImports_NodeRuntime() (*wasm.Imports, error) {
+func RegisterImports_NodeRuntime() (*wasm.Imports, error) { //nolint
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err

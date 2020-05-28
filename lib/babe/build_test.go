@@ -134,7 +134,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	babesession := createTestSession(t, cfg)
 
-	// TOOD: re-add extrinsic
+	// TODO: re-add extrinsic
 	exts := [][]byte{}
 
 	block, slot := createTestBlock(t, babesession, emptyHeader, exts)
@@ -161,7 +161,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	// remove seal from built block, since we can't predict the signature
 	block.Header.Digest = block.Header.Digest[:1]
 	// reset state root, since it has randomness aspects in it
-	// TOOD: where does this randomness come from?
+	// TODO: where does this randomness come from?
 	block.Header.StateRoot = emptyHash
 
 	if !reflect.DeepEqual(block.Header, expectedBlockHeader) {
