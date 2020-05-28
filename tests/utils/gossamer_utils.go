@@ -84,9 +84,9 @@ func RunGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
 		//nolint
 		cmd = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
 			"--basepath", basePath+strconv.Itoa(idx),
-			"--rpchost", HOSTNAME,
-			"--rpcport", rpcPort,
-			"--rpcmods", "system,author,chain,state",
+			"--rpc-host", HOSTNAME,
+			"--rpc-port", rpcPort,
+			"--rpc-mods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
 		)
@@ -96,9 +96,9 @@ func RunGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
 		cmd = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
 			"--key", key,
 			"--basepath", basePath+strconv.Itoa(idx),
-			"--rpchost", HOSTNAME,
-			"--rpcport", rpcPort,
-			"--rpcmods", "system,author,chain,state",
+			"--rpc-host", HOSTNAME,
+			"--rpc-port", rpcPort,
+			"--rpc-mods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",
 		)

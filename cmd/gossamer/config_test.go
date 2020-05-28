@@ -430,8 +430,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --rpchost",
-			[]string{"config", "rpchost"},
+			"Test gossamer --rpc-host",
+			[]string{"config", "rpc-host"},
 			[]interface{}{testCfgFile.Name(), "testhost"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled: testCfg.RPC.Enabled,
@@ -442,8 +442,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --rpcport",
-			[]string{"config", "rpcport"},
+			"Test gossamer --rpc-port",
+			[]string{"config", "rpc-port"},
 			[]interface{}{testCfgFile.Name(), "5678"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled: testCfg.RPC.Enabled,
@@ -455,7 +455,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --rpcsmods",
-			[]string{"config", "rpcmods"},
+			[]string{"config", "rpc-mods"},
 			[]interface{}{testCfgFile.Name(), "mod1,mod2"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled: testCfg.RPC.Enabled,

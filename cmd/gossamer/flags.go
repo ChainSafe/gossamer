@@ -115,33 +115,70 @@ var (
 
 // RPC service configuration flags
 var (
-	// RPCEnabledFlag Enable the HTTP-RPC
+	// RPCCoresFlag to enable CORS via HTTP-RPC // TODO: not yet implemented
+	RPCCoresFlag = cli.StringFlag{
+		Name:  "rpc-cores",
+		Usage: "Enable CORS via HTTP-RPC",
+	}
+	// RPCEnabledFlag Enable the HTTP-RPC // TODO: not included in polkadot
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
 	}
-	// RPCHostFlag HTTP-RPC server listening hostname
+	// RPCExternalFlag
+	RPCExternalFlag = cli.BoolFlag{ // TODO: not yet implemented
+		Name: "rpc-external",
+		Usage: "Listen to all RPC interfaces (local by default)",
+	}
+	// RPCExternalUnsafeFlag
+	RPCExternalUnsafeFlag = cli.BoolFlag{ // TODO: not yet implemented
+		Name: "unsafe-rpc-external",
+		Usage: "Listen to all RPC interfaces (no warning)",
+	}
+	// RPCHostFlag HTTP-RPC server listening hostname // TODO: not included in polkadot
 	RPCHostFlag = cli.StringFlag{
-		Name:  "rpchost",
+		Name:  "rpc-host",
 		Usage: "HTTP-RPC server listening hostname",
 	}
 	// RPCPortFlag HTTP-RPC server listening port
 	RPCPortFlag = cli.IntFlag{
-		Name:  "rpcport",
+		Name:  "rpc-port",
 		Usage: "HTTP-RPC server listening port",
 	}
-	// RPCModulesFlag API modules to enable via HTTP-RPC
+	// RPCModulesFlag API modules to enable via HTTP-RPC // TODO: not included in polkadot
 	RPCModulesFlag = cli.StringFlag{
-		Name:  "rpcmods",
+		Name:  "rpc-mods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
 	}
-	WSPortFlag = cli.IntFlag{
-		Name:  "wsport",
-		Usage: "Websockets server listening port",
+	// RPCMethodsFlag API methods to enable via HTTP-RPC // TODO: not yet implemented
+	RPCMethodsFlag = cli.StringFlag{
+		Name:  "rpc-methods",
+		Usage: "API methods to enable via HTTP-RPC (Auto, Safe, Unsafe)",
 	}
-	WSEnabledFlag = cli.BoolFlag{
+	// WSEnabledFlag
+	WSEnabledFlag = cli.BoolFlag{ // TODO: not included in polkadot
 		Name:  "ws",
-		Usage: "Enable the websockets server",
+		Usage: "Enable the Websockets server",
+	}
+	// WSExternalFlag
+	WSExternalFlag = cli.BoolFlag{ // TODO: not yet implemented
+		Name: "ws-external",
+		Usage: "Listen to all Websocket interfaces (local by default)",
+	}
+	// WSExternalUnsafeFlag
+	WSExternalUnsafeFlag = cli.BoolFlag{ // TODO: not yet implemented
+		Name: "unsafe-ws-external",
+		Usage: "Listen to all Websocket interfaces (no warning)",
+	}
+	// WSMaxConnectionsFlag
+	WSMaxConnectionsFlag = cli.IntFlag{ // TODO: not yet implemented
+		Name:  "ws-max-connections",
+		Usage: "Maximum number of websocket connections",
+	}
+	// WSPortFlag
+	WSPortFlag = cli.IntFlag{
+		Name:  "ws-port",
+		Usage: "Websockets server listening port",
 	}
 )
 

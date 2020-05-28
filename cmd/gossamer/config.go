@@ -299,17 +299,17 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		cfg.Enabled = false
 	}
 
-	// check --rpcport flag and update node configuration
+	// check --rpc-port flag and update node configuration
 	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
 	}
 
-	// check --rpchost flag and update node configuration
+	// check --rpc-host flag and update node configuration
 	if host := ctx.GlobalString(RPCHostFlag.Name); host != "" {
 		cfg.Host = host
 	}
 
-	// check --rpcmods flag and update node configuration
+	// check --rpc-mods flag and update node configuration
 	if modules := ctx.GlobalString(RPCModulesFlag.Name); modules != "" {
 		cfg.Modules = strings.Split(ctx.GlobalString(RPCModulesFlag.Name), ",")
 	}
