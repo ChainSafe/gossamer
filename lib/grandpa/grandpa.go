@@ -206,7 +206,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 // note that by voting for a block, all of its ancestor blocks are automatically voted for.
 // thus, if there are no blocks with >=2/3 total votes, but the sum of votes for blocks A and B is >=2/3, then this function returns
 // the first common ancestor of A and B.
-// since
+// in general, this function will return the highest block on each chain with >=2/3 votes.
 func (s *Service) getPossibleSelectedBlocks(stage subround) (map[common.Hash]uint64, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
