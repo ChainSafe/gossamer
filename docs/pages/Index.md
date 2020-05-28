@@ -1,10 +1,8 @@
 ---
 layout: default
-title: Index
 permalink: /
 ---
 
-<br/>
 <div align="center">
   <img alt="Gossamer logo" src="/assets/img/gossamer_banner_white.png" width="500" />
 </div>
@@ -40,24 +38,20 @@ Gossamer is a ***modular blockchain framework*** used to build and run nodes for
 ## Table of Contents
 
 - **[Run Nodes](/run-nodes/)**
-
     - [Get Started](/get-started/)
     - [Commands](/commands/)
 
 - **[Build Nodes](/build-nodes/)**
-
     - [Configuration](/configuration/)
     - [Import a Runtime](/import-a-runtime/)
     - [Custom Services](/custom-services/)
 
 - **[Implementation](/implementation/)**
-
     - [Package Library](/package-library/)
     - [Host Architecture](/host-architecture/)
     - [Integration Tests](/integration-tests/)
 
 - **[Resources](/resources/)**
-
     - [General Resources](/general-resources/)
     - [Developer Resources](/developer-resources/)
 
@@ -67,6 +61,10 @@ Gossamer is a ***modular blockchain framework*** used to build and run nodes for
     - [SCALE Examples](/scale-examples/)
 -->
 
-## Contributing
+## Connect
 
-Let us know if you have any ideas or feedback that will help us improve ***Gossamer Docs*** or if you have any resources that you would like to see added. Also, contributions are welcome! ***Gossamer Docs*** was built with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files can be found within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md).
+Let us know if you have any feedback or ideas that might help us improve our documentation or if you have any resources that you would like to see added. If you are planning to use Gossamer or any of the Gossamer packages, please say hello! You can find us on [Discord](https://discord.gg/Xdc5xjE).
+
+## Contribute
+
+Contributions to this site and all documentation is more than welcome. This site is built with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files are within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md).

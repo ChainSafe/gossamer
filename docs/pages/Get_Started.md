@@ -4,25 +4,25 @@ title: Get Started
 permalink: /get-started/
 ---
 
-### Prerequisites
+## Prerequisites
 
 install go version `1.13.7`
 
-### Installation
+## Installation
 
 get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
 ```
 go get -u github.com/ChainSafe/gossamer
 ```
 
-### Build Command
+## Build Command
 
 build gossamer node:
 ```
 make gossamer
 ```
 
-### Run Default Node
+## Run Default Node
 
 initialize default node:
 ```
@@ -34,7 +34,7 @@ start default node:
 ./bin/gossamer --key alice
 ```
 
-### Run Gossamer Node
+## Run Gossamer Node
 
 initialize gossamer node:
 ```
@@ -46,7 +46,7 @@ start gossamer node:
 ./bin/gossamer --node gssmr --key alice
 ```
 
-### Run Kusama Node
+## Run Kusama Node
 
 initialize kusama node:
 ```

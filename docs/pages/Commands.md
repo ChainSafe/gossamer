@@ -6,7 +6,7 @@ permalink: /commands/
 
 _work in progress_ - [gossamer/issues/868](https://github.com/ChainSafe/gossamer/issues/868)
 
-### Accepted formats
+## Accepted formats
 
 ```
 gossamer [--global-flags] [--local-flags]
@@ -30,7 +30,7 @@ gossamer [subcommand] [--global-flags] [--local-flags]
 gossamer [subcommand] [--local-flags] [--global-flags]
 ```
 
-### Invalid formats
+## Invalid formats
 
 _please note that `[--local-flags]` must come after `[subcommand]`_
 
@@ -46,7 +46,7 @@ gossamer [--local-flags] [--global-flags] [subcommand]
 gossamer [--global-flags] [--local-flags] [subcommand] 
 ```
 
-### Running gossamer
+## Running gossamer
 
 Run an authority node:
 ```
