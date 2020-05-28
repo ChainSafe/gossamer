@@ -114,3 +114,17 @@ func (a *AuthorityData) Decode(r io.Reader) error {
 
 	return a.FromRaw(raw)
 }
+
+// AuthorityDataRawToAuthorityData turns a slice of AuthorityDataRaw into a slice of AuthorityData
+func AuthorityDataRawToAuthorityData(adr []*AuthorityDataRaw) ([]*AuthorityData, error) {
+	ad := make([]*AuthorityData, len(adr))
+	for i, r := range adr {
+		ad[i] = new(AuthorityData)
+		err := ad[i].FromRaw(r)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ad, nil
+}

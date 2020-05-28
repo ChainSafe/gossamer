@@ -130,7 +130,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 	var srv = &Service{}
 
-	var authData []*types.AuthorityData
 	var currentDescriptor *babe.NextEpochDescriptor
 
 	if cfg.IsBabeAuthority {
@@ -160,11 +159,6 @@ func NewService(cfg *Config) (*Service, error) {
 			respOut:          respChan,
 		}
 
-		authData, err = srv.rt.GrandpaAuthorities()
-		if err != nil {
-			return nil, err
-		}
-
 		// BABE session configuration
 		bsConfig := &babe.SessionConfig{
 			Keypair:          keys[0].(*sr25519.Keypair),
@@ -172,7 +166,6 @@ func NewService(cfg *Config) (*Service, error) {
 			NewBlocks:        cfg.NewBlocks, // becomes block send channel in BABE session
 			BlockState:       cfg.BlockState,
 			StorageState:     cfg.StorageState,
-			AuthData:         authData,
 			EpochDone:        srv.epochDone,
 			Kill:             babeKill,
 			TransactionQueue: cfg.TransactionQueue,
@@ -185,8 +178,8 @@ func NewService(cfg *Config) (*Service, error) {
 		bs, err = babe.NewSession(bsConfig)
 		if err != nil {
 			srv.isBabeAuthority = false
-			log.Error("[core] could not start babe session", "error", err)
-			return srv, nil
+			log.Error("[core] could not create babe session", "error", err)
+			return nil, err
 		}
 
 		srv.bs = bs
@@ -216,13 +209,13 @@ func NewService(cfg *Config) (*Service, error) {
 			return nil, errors.New("failed to change Service status from stopped to started")
 		}
 
-		authData, err = srv.rt.GrandpaAuthorities()
-		if err != nil {
-			return nil, err
-		}
+		// authData, err = srv.rt.GrandpaAuthorities()
+		// if err != nil {
+		// 	return nil, err
+		// }
 
 		currentDescriptor = &babe.NextEpochDescriptor{
-			Authorities: authData,
+			Authorities: []*types.AuthorityData{},
 			Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
 		}
 	}

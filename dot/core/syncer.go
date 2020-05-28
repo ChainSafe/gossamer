@@ -126,12 +126,20 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 
 // Start begins the syncer
 func (s *Syncer) Start() error {
-	if ok := atomic.CompareAndSwapUint32(&s.started, 0, 1); !ok {
-		return errors.New("failed to change Syncer from stopped to started")
+	log.Info("inside syncer.Start")
+
+	if s == nil {
+		return errors.New("nil syncer")
 	}
+
+	s.started = 1
+
+	log.Info("inside syncer.Start")
 
 	go s.watchForBlocks()
 	go s.watchForResponses()
+
+	log.Info("inside syncer.Start")
 
 	return nil
 }

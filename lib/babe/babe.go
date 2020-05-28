@@ -128,6 +128,19 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 
 	log.Info("[babe] config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength (slots)", babeSession.config.EpochLength)
 
+	if babeSession.authorityData == nil {
+		log.Info("[babe] setting authority data to genesis authorities", "authorities", babeSession.config.GenesisAuthorities)
+
+		ad, err := types.AuthorityDataRawToAuthorityData(babeSession.config.GenesisAuthorities)
+		if err != nil {
+			return nil, err
+		}
+
+		babeSession.authorityData = ad
+	}
+
+	log.Info("[babe]", "authorities", babeSession.authorityData)
+
 	babeSession.randomness = babeSession.config.Randomness
 
 	err = babeSession.setAuthorityIndex()
