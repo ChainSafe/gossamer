@@ -34,11 +34,11 @@ Gossamer packages can be categorized into **five package types**:
 
 #### `cfg/gssmr`
 
-- The **gssmr package** includes configuration defaults for the ***gssmr node*** implementation - an official node implementation for the Gossamer Testnet (see [Official Nodes](Gossamer-Architecture#official-nodes)).
+- The **gssmr package** includes configuration defaults for the ***gssmr node*** implementation - an official node implementation for the Gossamer Testnet (see [Official Nodes](/host-architecture#official-nodes)).
 
 #### `cfg/ksmcc`
 
-- The **ksmcc package** includes configuration defaults for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](Gossamer-Architecture#official-nodes)).
+- The **ksmcc package** includes configuration defaults for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](/host-architecture#official-nodes)).
 
 ## cmd packages
 
@@ -50,23 +50,23 @@ Gossamer packages can be categorized into **five package types**:
 
 #### `dot`
 
-- The **dot package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **dot package** implements the [Host Node](Gossamer-Architecture#host-node); it is the base node implementation for all [Official Nodes](Gossamer-Architecture#official-nodes) and [Custom Nodes](Gossamer-Architecture#custom-nodes) built with Gossamer.
+- The **dot package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **dot package** implements the [Dot Node](/host-architecture#dot-node); it is the base node implementation for all [Official Nodes](/host-architecture#official-nodes) and [Custom Nodes](/host-architecture#custom-nodes) built with Gossamer.
 
 #### `dot/core`
 
-- The **core package** implements the [Core Service](Gossamer-Architecture#Core-Service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](Gossamer-Architecture#Network-Service).
+- The **core package** implements the [Core Service](/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/host-architecture#network-service).
 
 #### `dot/network`
 
-- The **network package** implements the [Network Service](Gossamer-Architecture#Network-Service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
+- The **network package** implements the [Network Service](/host-architecture#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
 
 #### `dot/state`
 
-- The **state package** implements the [State Service](Gossamer-Architecture#State-Service) - the source of truth for all chain and node state that is made accessible to all node services.
+- The **state package** implements the [State Service](/host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
 
 #### `dot/rpc`
 
-- The **rpc package** implements the [RPC Service](Gossamer-Architecture#RPC-Service) - an HTTP server that handles state interactions.
+- The **rpc package** implements the [RPC Service](/host-architecture#rpc-service) - an HTTP server that handles state interactions.
 
 #### `dot/types`
 

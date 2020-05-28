@@ -35,6 +35,8 @@ Gossamer is a ***modular blockchain framework*** used to build and run nodes for
 
 - The ***most advanced***  way to use the framework is building custom node services or a custom base node implementation (see [Custom Services](/custom-services/)).
 
+Our primary focus has been an initial implementation of the Polkadot Host. Once we feel confident our initial implementation is fully operational and secure, we will expand the Gossamer framework to include a runtime package library and other tools and services that will enable Go developers to build, test, and run custom-built blockchain protocols within or without the Polkadot ecosystem.
+
 ## Table of Contents
 
 - **[Run Nodes](/run-nodes/)**
