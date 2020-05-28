@@ -209,14 +209,10 @@ func NewService(cfg *Config) (*Service, error) {
 			return nil, errors.New("failed to change Service status from stopped to started")
 		}
 
-		// authData, err = srv.rt.GrandpaAuthorities()
-		// if err != nil {
-		// 	return nil, err
-		// }
-
+		// TODO: load this from runtime BabeConfiguration
 		currentDescriptor = &babe.NextEpochDescriptor{
 			Authorities: []*types.AuthorityData{},
-			Randomness:  [babe.RandomnessLength]byte{}, // TODO: will be cleaner to do once runtime functions are moved to runtime package
+			Randomness:  [babe.RandomnessLength]byte{},
 		}
 	}
 
@@ -394,7 +390,7 @@ func (s *Service) receiveMessages() {
 	for msg := range s.msgRec {
 		if msg == nil {
 			log.Error("[core] failed to receive message from network service")
-			break
+			continue
 		}
 
 		err := s.handleReceivedMessage(msg)

@@ -8,7 +8,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -255,17 +254,7 @@ func newCoreService(t *testing.T) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
-
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	// // todo check if we can make this core.TestAuthorityDataKey so I don't need to copy
-	// pubkey := kp.Public().Encode()
-	// err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
-	// require.Nil(t, err)
-
 	ks := keystore.NewKeystore()
-	ks.Insert(kp)
 
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()

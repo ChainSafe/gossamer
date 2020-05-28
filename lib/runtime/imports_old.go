@@ -294,13 +294,16 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		return 0
 	}
 
+	// TODO: without the next lines, we often see `storage is not null, therefore must be a valid type` when calling
+	// initialize_block. determine why this is happening,
+
 	// "Babe Initialized" || "Treasury Approvals"
 	if fmt.Sprintf("0x%x", key) == "0xe0410aa8e1aff5af1147fe2f9b33ce62" || fmt.Sprintf("0x%x", key) == "0x3f60b9abbdf97ea5f6f2e132acee78a9" {
 		val[0] = 0
 	}
 
-	// "RandomnessCollectiveFlip RandomMaterial"
-	if fmt.Sprintf("0x%x", key) == "0xca263a1d57613bec1f68af5eb50a2d31" {
+	// "RandomnessCollectiveFlip RandomMaterial" || "Staking CurrentEraPointsEarned"
+	if fmt.Sprintf("0x%x", key) == "0xca263a1d57613bec1f68af5eb50a2d31" || fmt.Sprintf("0x%x", key) == "0x9ef8d3fecf9615ad693470693c7fb7dd" {
 		log.Trace("[ext_get_allocated_storage]", "value", "nil")
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
 		return 0

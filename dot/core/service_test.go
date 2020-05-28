@@ -185,11 +185,6 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	// pubkey := kp.Public().Encode()
-	// // TODO: make a helper function to clean this up
-	// err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
-	// require.Nil(t, err)
-
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
 

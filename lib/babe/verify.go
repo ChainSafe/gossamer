@@ -245,10 +245,6 @@ func (b *epochVerifier) verifySlotWinner(slot uint64, header *types.BabeHeader) 
 
 	pub := b.authorityData[header.BlockProducerIndex].ID
 
-	fmt.Println(pub.Encode())
-	fmt.Println(header.VrfOutput)
-	fmt.Println(header.VrfProof)
-
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.randomness[:]...)

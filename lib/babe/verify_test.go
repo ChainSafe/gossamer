@@ -328,9 +328,6 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 }
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
-	t.Skip()
-	// this panics at initialize_block
-
 	kp, err := sr25519.GenerateKeypair()
 	if err != nil {
 		t.Fatal(err)
@@ -369,10 +366,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	require.True(t, ok)
 
 	// create new block
-	// see https://github.com/noot/substrate/blob/add-blob/core/test-runtime/src/system.rs#L468
-	txb := []byte{3, 16, 110, 111, 111, 116, 1, 64, 103, 111, 115, 115, 97, 109, 101, 114, 95, 105, 115, 95, 99, 111, 111, 108}
-
-	block2, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{txb})
+	block2, _ := createTestBlock(t, babesession, genesisHeader, [][]byte{})
 	block2.Header.Hash()
 
 	t.Log(block2.Header)
