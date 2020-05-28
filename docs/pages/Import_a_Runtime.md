@@ -4,4 +4,4 @@ title: Import a Runtime
 permalink: /import-a-runtime/
 ---
 
-_work in progress_ - https://github.com/ChainSafe/gossamer/issues/869
+_work in progress_ - [gossamer/issues/869](https://github.com/ChainSafe/gossamer/issues/869)

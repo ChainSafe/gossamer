@@ -4,43 +4,59 @@ title: General Resources
 permalink: /general-resources/
 ---
 
-## Introduction
+## Welcome
 
-Here you will find resources to help facilitate your learning about _Polkadot_, the _Polkadot Host_ (formerly known as the _Polkadot Runtime Enviornment_), and _Gossamer_. Don't worry if you are unfamiliar with these [terms](https://github.com/ChainSafe/gossamer/wiki/Resources/), the resources listed here assume no prior knowledge about them. That being said, it would be helpful to have a basic understanding of existing blockchains such as Bitcoin & Ethereum. 
+Here you will find resources to help facilitate your learning about _Polkadot_, the _Polkadot Host_, and _Gossamer_. Don't worry if you are unfamiliar with these [terms](https://github.com/ChainSafe/gossamer/wiki/Resources/), the resources listed here assume no prior knowledge about them. That being said, it would be helpful to have a basic understanding of existing blockchains such as Bitcoin and Ethereum. 
 
 ## Polkadot
 
-To start, it would be extremely beneficial to have an understanding of the Polkadot Network. For a high-level introduction to Polkadot, check out the [lightpaper](https://polkadot.network/Polkadot-lightpaper.pdf). To understand the motivation behind Polkadot's creation and what makes it unique, check out this great blog post: ["A brief summary of everything Substrate and Polkadot"](https://medium.com/polkadot-network/a-brief-summary-of-everything-substrate-and-polkadot-f1f21071499d). While reading this, it would be helpful to note that [Substrate](https://github.com/paritytech/substrate) & [Gossamer](https://github.com/ChainSafe/gossamer) are both implementations of the Polkadot Host. 
+To start, it would be extremely beneficial to have an understanding of the Polkadot Network. For a high-level introduction to Polkadot, check out the [lightpaper](https://polkadot.network/Polkadot-lightpaper.pdf). To understand the motivation behind Polkadot's creation and what makes it unique, check out this great blog post: ["A brief summary of everything Substrate and Polkadot"](https://medium.com/polkadot-network/a-brief-summary-of-everything-substrate-and-polkadot-f1f21071499d). While reading, it would be helpful to note that [Substrate](https://github.com/paritytech/substrate) and [Gossamer](https://github.com/ChainSafe/gossamer) are both implementations of the Polkadot Host. 
+
+### Additional Resources
+
+#### docs
+
+- [Polkadot Wiki](https://wiki.polkadot.network/en/)
+
+- [Polkadot Paper](https://polkadot.network/PolkaDotPaper.pdf)
+
+#### articles
+
+- [How Polkadot tackles the biggest problems facing blockchain innovators](https://medium.com/polkadot-network/how-polkadot-tackles-the-biggest-problems-facing-blockchain-innovators-1affc1309b0f) - June 7th 2018
+
+#### block explorers
+
+- [Polkadot Explorer](https://polkadot.js.org/apps/#/explorer)
+
+- [Polkascan](https://polkascan.io/) - Polkadot block explorer
+
+- [Polkadot Telemetry Service](https://telemetry.polkadot.io/#/Kusama)
 
 ## Polkadot Host
 
-[_Please note: the Polkadot Host was formerly called the Polkadot Runtime Enviornment_]
+[_Please Note: The "Polkadot Host" was formerly known as the "Polkadot Runtime Enviornment"_]
 
 The Polkadot Host plays two important roles within the Polkadot ecosystem.
 
-- It implements the **fundamental components for a blockchain**, such as networking & consensus. These components are not expected to change, and as such, they host part of the blockchain that is expected to change, the Runtime. For more details, check out the [Polkadot Host](https://wiki.polkadot.network/docs/en/learn-polkadot-host) wiki page.
+- The Polkadot Host implements the **fundamental components for a blockchain**, ie networking and consensus. These components are not expected to change, and as such, they host part of the blockchain that is expected to change, the Runtime. For more details, check out [Polkadot Host](https://wiki.polkadot.network/docs/en/learn-polkadot-host).
 
-- It is **a blockchain development framework**. Similiar to Web Development frameworks, like React & Angular, that help developers build Web Applications, implementations of the Polkadot Host help developers build blockchains. 
+- The Polkadot Host is **a blockchain development framework**, similar to how React and Angular are web development frameworks, but rather than helping developers build web applications, implementations of the Polkadot Host help developers build blockchains. 
 
-As mentioned above, both [Substrate](https://github.com/paritytech/substrate) & [Gossamer](https://github.com/ChainSafe/gossamer) are implementations of the Polkadot Host. 
-
-If you're interested in the nitty-gritty technical details, check out the [Polkadot Host specification](https://github.com/w3f/polkadot-spec/blob/master/polkadot-host-spec/polkadot_host_spec.pdf).
+As mentioned above, both [Substrate](https://github.com/paritytech/substrate) and [Gossamer](https://github.com/ChainSafe/gossamer) are implementations of the Polkadot Host. If you're interested in the nitty-gritty technical details, check out the [Polkadot Host specification](https://github.com/w3f/polkadot-spec/blob/master/polkadot-host-spec/polkadot_host_spec.pdf).
 
 ## Gossamer
 
 Gossamer is an implementation of the Polkadot Host in Go. To learn more about Gossamer, we recommend the following resources:
+
 - To understand the vision behind Gossamer and how it fits into the Polkadot ecosystem, please read this blog post: ["The Future of Polkadot in Golang: Gossamer"](https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d).
+
 - For a more technical explanation, we recommend watching this [video](https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d).
 
-## Additional Resources
-
-### Gossamer
+### Additional Resources
 
 #### videos
 
-- [Amer Ameen presents Gossamer at DOTCon](https://www.youtube.com/watch?v=nYkbYhM5Yfk)
-
-- [Web3 Builders: ChainSafe - GoLang Implementation of Polkadot Host | Amer Ameen and Elizabeth Binks](https://www.youtube.com/watch?v=vqluOY-ysFI)
+- [Web3 Builders: ChainSafe - GoLang Implementation of Polkadot Host](https://www.youtube.com/watch?v=vqluOY-ysFI)
 
 #### articles
 
@@ -56,27 +72,7 @@ Gossamer is an implementation of the Polkadot Host in Go. To learn more about Go
 
 - [The Future of Polkadot in Golang: Gossamer](https://medium.com/chainsafe-systems/the-future-of-polkadot-in-golang-gossamer-3345f0d6143d) - February 24th 2020
 
-### Polkadot
-
-#### docs
-
-- [Polkadot Paper](https://polkadot.network/PolkaDotPaper.pdf)
-
-- [Polkadot Wiki](https://wiki.polkadot.network/en/)
-
-#### articles
-
-- [How Polkadot tackles the biggest problems facing blockchain innovators](https://medium.com/polkadot-network/how-polkadot-tackles-the-biggest-problems-facing-blockchain-innovators-1affc1309b0f) - June 7th 2018
-
-#### block explorers
-
-- [Polkadot Explorer](https://polkadot.js.org/apps/#/explorer)
-
-- [Polkascan](https://polkascan.io/) - Polkadot block explorer
-
-- [Polkadot Telemetry Service](https://telemetry.polkadot.io/#/Kusama)
-
-### Substrate
+## Substrate
 
 #### docs
 
@@ -94,7 +90,7 @@ Gossamer is an implementation of the Polkadot Host in Go. To learn more about Go
 
 - [A brief summary of everything Substrate and Polkadot](https://medium.com/polkadot-network/a-brief-summary-of-everything-substrate-and-polkadot-f1f21071499d) - March 18th 2019
 
-### Web3 Foundation
+## Web3 Foundation
 
 #### docs
 
