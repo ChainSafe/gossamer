@@ -38,6 +38,8 @@ import (
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
 
+var babeAuthoritiesKey, _ = common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
+
 // newTestServiceWithFirstBlock creates a new test service with a test block
 func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	tt := trie.NewEmptyTrie()
@@ -47,7 +49,7 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	require.Nil(t, err)
 
 	// TODO: make a helper function to clean this up
-	err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, kp.Public().Encode()...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
+	err = tt.Put(babeAuthoritiesKey, append(append([]byte{4}, kp.Public().Encode()...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -183,10 +185,10 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	pubkey := kp.Public().Encode()
-	// TODO: make a helper function to clean this up
-	err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
-	require.Nil(t, err)
+	// pubkey := kp.Public().Encode()
+	// // TODO: make a helper function to clean this up
+	// err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
+	// require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
@@ -195,7 +197,7 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionQueue: transaction.NewPriorityQueue(),
-		IsBabeAuthority:  true,
+		IsBabeAuthority:  false,
 	}
 
 	s := NewTestService(t, cfg)
