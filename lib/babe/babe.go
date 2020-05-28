@@ -309,7 +309,7 @@ func (b *Session) invokeBlockAuthoring() {
 			b.handleSlot(slotNum)
 
 			// TODO: change this to sleep until start + slotDuration
-			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration))
+			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration) * 2)
 		}
 
 		b.syncLock.Unlock()

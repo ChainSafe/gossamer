@@ -23,7 +23,7 @@ var maxRetries = 10
 
 func TestExportRuntime(t *testing.T) {
 	fp := "runtime.out"
-	exportRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e, fp)
+	exportRuntime(t, SUBSTRATE_TEST_RUNTIME, fp)
 	err := os.Remove(fp)
 	require.NoError(t, err)
 }
@@ -217,7 +217,7 @@ func TestFinalizeBlock(t *testing.T) {
 
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
@@ -249,7 +249,7 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 }
 
 func TestValidateTransaction_IncludeData(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
@@ -271,7 +271,7 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 }
 
 func TestValidateTransaction_StorageChange(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
 	enc, err := ext.Encode()
@@ -292,7 +292,7 @@ func TestValidateTransaction_StorageChange(t *testing.T) {
 }
 
 func TestValidateTransaction_Transfer(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
@@ -326,7 +326,7 @@ func TestValidateTransaction_Transfer(t *testing.T) {
 
 func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
@@ -357,7 +357,7 @@ func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
 }
 
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -379,7 +379,7 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 }
 
 func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -415,7 +415,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 }
 
 func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -439,7 +439,7 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 }
 
 func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -470,7 +470,7 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 }
 
 func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
-	rt := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),

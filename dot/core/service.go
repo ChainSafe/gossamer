@@ -502,7 +502,7 @@ func (s *Service) checkForRuntimeChanges() error {
 
 		s.rt.Stop()
 
-		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys, runtime.RegisterImports_c768a7e4c70e)
+		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys, runtime.RegisterImports_NodeRuntime)
 		if err != nil {
 			return err
 		}

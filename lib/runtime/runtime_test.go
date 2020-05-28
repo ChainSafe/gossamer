@@ -63,7 +63,7 @@ func TestExecVersion_Old(t *testing.T) {
 		Impl_version:      1,
 	}
 
-	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	runtime := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)
@@ -95,21 +95,4 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	go func() {
 		_, _ = runtime.Exec(CoreVersion, []byte{})
 	}()
-}
-
-func TestRuntime_Exec_Metadata(t *testing.T) {
-	var expected []byte
-	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
-
-	ret, err := runtime.Exec(Metadata_metadata, []byte{})
-
-	// currently this is returning an error because runtime has not implemented Metadata_metadata yet
-	//  expect this to change when runtime changes
-	require.EqualError(t, err, "Failed to call the `Metadata_metadata` exported function.")
-	require.Equal(t, expected, ret)
-
-}
-
-func TestWriteRuntime(t *testing.T) {
-	exportRuntime(t, NODE_RUNTIME, "node_runtime.hex")
 }

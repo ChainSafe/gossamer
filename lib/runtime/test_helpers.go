@@ -92,9 +92,9 @@ func exportRuntime(t *testing.T, targetRuntime string, outFp string) {
 
 //nolint
 const (
-	POLKADOT_RUNTIME_c768a7e4c70e     = "polkadot_runtime_c768a7e4c70e"
-	POLKADOT_RUNTIME_FP_c768a7e4c70e  = "substrate_test_runtime_c768a7e4c70e.compact.wasm"
-	POLKADOT_RUNTIME_URL_c768a7e4c70e = "https://github.com/noot/substrate/blob/add-blob-042920/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
+	SUBSTRATE_TEST_RUNTIME     = "substrate_test_runtime"
+	SUBSTRATE_TEST_RUNTIME_FP  = "substrate_test_runtime.compact.wasm"
+	SUBSTRATE_TEST_RUNTIME_URL = "https://github.com/noot/substrate/blob/add-blob-042920/target/wasm32-unknown-unknown/release/wbuild/substrate-test-runtime/substrate_test_runtime.compact.wasm?raw=true"
 
 	NODE_RUNTIME     = "node_runtime"
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
@@ -124,14 +124,14 @@ func GetRuntimeVars(targetRuntime string) (string, string, func() (*wasm.Imports
 	var registerImports func() (*wasm.Imports, error)
 
 	switch targetRuntime {
-	case POLKADOT_RUNTIME_c768a7e4c70e:
-		registerImports = RegisterImports_c768a7e4c70e
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP_c768a7e4c70e), POLKADOT_RUNTIME_URL_c768a7e4c70e
+	case SUBSTRATE_TEST_RUNTIME:
+		registerImports = RegisterImports_TestRuntime
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(SUBSTRATE_TEST_RUNTIME_FP), SUBSTRATE_TEST_RUNTIME_URL
 	case NODE_RUNTIME:
 		registerImports = RegisterImports_NodeRuntime
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
 	case TEST_RUNTIME:
-		registerImports = RegisterImports_c768a7e4c70e
+		registerImports = RegisterImports_TestRuntime
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(TESTS_FP), TEST_WASM_URL
 	default:
 		registerImports = RegisterImports_NodeRuntime

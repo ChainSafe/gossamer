@@ -53,7 +53,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, [][]byte{})
+	header, err := types.NewHeader(common.Hash{}, number, common.Hash{}, common.Hash{}, [][]byte{})
 	if err != nil {
 		return nil, err
 	}

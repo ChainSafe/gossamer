@@ -78,6 +78,7 @@ import (
 //export ext_kill_child_storage
 func ext_kill_child_storage(context unsafe.Pointer, a, b C.int32_t) {
 	log.Trace("[ext_kill_child_storage] executing...")
+	log.Warn("[ext_kill_child_storage] not yet implemented")
 }
 
 //export ext_sandbox_memory_new
@@ -148,11 +149,8 @@ func ext_log(context unsafe.Pointer, a, b, c, d, e C.int32_t) {
 	log.Trace("[ext_log] executing...")
 }
 
+// RegisterImports_NodeRuntime returns the wasm imports for the substrate v0.6.x node runtime
 func RegisterImports_NodeRuntime() (*wasm.Imports, error) {
-	return registerImports_NodeRuntime()
-}
-
-func registerImports_NodeRuntime() (*wasm.Imports, error) {
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err

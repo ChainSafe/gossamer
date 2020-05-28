@@ -294,8 +294,16 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		return 0
 	}
 
-	if fmt.Sprintf("0x%x", key) == "0xe0410aa8e1aff5af1147fe2f9b33ce62" {
+	// "Babe Initialized" || "Treasury Approvals"
+	if fmt.Sprintf("0x%x", key) == "0xe0410aa8e1aff5af1147fe2f9b33ce62" || fmt.Sprintf("0x%x", key) == "0x3f60b9abbdf97ea5f6f2e132acee78a9" {
 		val[0] = 0
+	}
+
+	// "RandomnessCollectiveFlip RandomMaterial"
+	if fmt.Sprintf("0x%x", key) == "0xca263a1d57613bec1f68af5eb50a2d31" {
+		log.Trace("[ext_get_allocated_storage]", "value", "nil")
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
 	}
 
 	log.Trace("[ext_get_allocated_storage]", "value", val)
@@ -759,12 +767,8 @@ func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, val
 	log.Warn("[ext_local_storage_set] Not yet implemented.")
 }
 
-// RegisterImports_c768a7e4c70e registers the wasm imports for the old version of the substrate test runtime.
-func RegisterImports_c768a7e4c70e() (*wasm.Imports, error) {
-	return registerImportsOld()
-}
-
-func registerImportsOld() (*wasm.Imports, error) {
+// RegisterImports_TestRuntime registers the wasm imports for the v0.6.x substrate test runtime
+func RegisterImports_TestRuntime() (*wasm.Imports, error) {
 	imports, err := wasm.NewImports().Append("ext_malloc", ext_malloc, C.ext_malloc)
 	if err != nil {
 		return nil, err
