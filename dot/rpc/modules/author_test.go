@@ -259,10 +259,10 @@ func newCoreService(t *testing.T) *core.Service {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	// todo check if we can make this core.TestAuthorityDataKey so I don't need to copy
-	pubkey := kp.Public().Encode()
-	err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
-	require.Nil(t, err)
+	// // todo check if we can make this core.TestAuthorityDataKey so I don't need to copy
+	// pubkey := kp.Public().Encode()
+	// err = tt.Put(runtime.TestAuthorityDataKey, append(append([]byte{1, 4}, pubkey...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
+	// require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
 	ks.Insert(kp)
@@ -276,7 +276,7 @@ func newCoreService(t *testing.T) *core.Service {
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionQueue: transaction.NewPriorityQueue(),
-		IsBabeAuthority:  true,
+		IsBabeAuthority:  false,
 	}
 
 	return core.NewTestService(t, cfg)
