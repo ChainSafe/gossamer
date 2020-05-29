@@ -49,20 +49,21 @@ func accountAction(ctx *cli.Context) error {
 	}
 
 	basepath := cfg.Global.BasePath
+	var file string
+
+	// check if --ed25519, --sr25519, --secp256k1 is set
+	keytype := crypto.Sr25519Type
+	if flagtype := ctx.Bool(Sr25519Flag.Name); flagtype {
+		keytype = crypto.Sr25519Type
+	} else if flagtype := ctx.Bool(Ed25519Flag.Name); flagtype {
+		keytype = crypto.Ed25519Type
+	} else if flagtype := ctx.Bool(Secp256k1Flag.Name); flagtype {
+		keytype = crypto.Secp256k1Type
+	}
 
 	// check --generate flag and generate new keypair
 	if keygen := ctx.Bool(GenerateFlag.Name); keygen {
 		log.Info("[cmd] generating keypair...")
-
-		// check if --ed25519, --sr25519, --secp256k1 is set
-		keytype := crypto.Sr25519Type
-		if flagtype := ctx.Bool(Sr25519Flag.Name); flagtype {
-			keytype = crypto.Sr25519Type
-		} else if flagtype := ctx.Bool(Ed25519Flag.Name); flagtype {
-			keytype = crypto.Ed25519Type
-		} else if flagtype := ctx.Bool(Secp256k1Flag.Name); flagtype {
-			keytype = crypto.Secp256k1Type
-		}
 
 		// check if --password is set
 		var password []byte = nil
@@ -74,8 +75,7 @@ func accountAction(ctx *cli.Context) error {
 			password = getPassword("Enter password to encrypt keystore file:")
 		}
 
-		var file string
-		file, err = keystore.GenerateKeypair(keytype, basepath, password)
+		file, err = keystore.GenerateKeypair(keytype, nil, basepath, password)
 		if err != nil {
 			log.Error("[cmd] failed to generate keypair", "error", err)
 			return err
@@ -103,6 +103,27 @@ func accountAction(ctx *cli.Context) error {
 			log.Error("[cmd] failed to list keys", "error", err)
 			return err
 		}
+	}
+
+	// check if --import-raw is set
+	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
+		// check if --password is set
+		var password []byte = nil
+		if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
+			password = []byte(pwdflag)
+		}
+
+		if password == nil {
+			password = getPassword("Enter password to encrypt keystore file:")
+		}
+
+		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, password)
+		if err != nil {
+			log.Error("[cmd] failed to import private key", "error", err)
+			return err
+		}
+
+		log.Info("[cmd] imported key", "file", file)
 	}
 
 	return nil
