@@ -65,17 +65,7 @@ func accountAction(ctx *cli.Context) error {
 	if keygen := ctx.Bool(GenerateFlag.Name); keygen {
 		log.Info("[cmd] generating keypair...")
 
-		// check if --password is set
-		var password []byte = nil
-		if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
-			password = []byte(pwdflag)
-		}
-
-		if password == nil {
-			password = getPassword("Enter password to encrypt keystore file:")
-		}
-
-		file, err = keystore.GenerateKeypair(keytype, nil, basepath, password)
+		file, err = keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
 		if err != nil {
 			log.Error("[cmd] failed to generate keypair", "error", err)
 			return err
@@ -107,17 +97,7 @@ func accountAction(ctx *cli.Context) error {
 
 	// check if --import-raw is set
 	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
-		// check if --password is set
-		var password []byte = nil
-		if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
-			password = []byte(pwdflag)
-		}
-
-		if password == nil {
-			password = getPassword("Enter password to encrypt keystore file:")
-		}
-
-		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, password)
+		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
 		if err != nil {
 			log.Error("[cmd] failed to import private key", "error", err)
 			return err
@@ -127,6 +107,21 @@ func accountAction(ctx *cli.Context) error {
 	}
 
 	return nil
+}
+
+// getKeystorePassword checks if the --password flag is set, if not,
+func getKeystorePassword(ctx *cli.Context) []byte {
+	// check if --password is set
+	var password []byte
+	if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
+		password = []byte(pwdflag)
+	}
+
+	if password == nil {
+		password = getPassword("Enter password to encrypt keystore file:")
+	}
+
+	return password
 }
 
 // unlockKeystore compares the length of passwords to the length of accounts,
