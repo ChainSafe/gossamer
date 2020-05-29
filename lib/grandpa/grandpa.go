@@ -64,8 +64,8 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 }
 
 // initiate initates a GRANDPA round
-func (s *Service) initiate() error {
-	s.state.round += 1
+func (s *Service) initiate() error { //nolint
+	s.state.round++
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
@@ -109,9 +109,9 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	return vote, nil
 }
 
-// determinePreCommit determines what block is our pre-commited block for the current round
+// determinePreCommit determines what block is our pre-committed block for the current round
 func (s *Service) determinePreCommit() (*Vote, error) {
-	// the pre-commited block is simply the pre-voted block (GRANDPA-GHOST)
+	// the pre-committed block is simply the pre-voted block (GRANDPA-GHOST)
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
