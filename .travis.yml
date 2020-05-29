@@ -64,9 +64,6 @@ jobs:
     before_install:
     - gem update --system
     - gem --version
-    branches:
-      only:
-      - development  # build and deploy on merge into development
     cache: bundler # caching bundler gem packages will speed up build
     script:
     - cd docs
@@ -79,7 +76,7 @@ jobs:
       local_dir: docs
       target_branch: gh-pages
       on:
-        branch: development
+        branch: development # deploy on merge into development
   allow_failures:
     - stage: build
       env:
