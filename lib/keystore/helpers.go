@@ -197,6 +197,10 @@ func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string
 	var kp crypto.Keypair
 	var err error
 
+	if keytype == "" {
+		keytype = crypto.Sr25519Type
+	}
+
 	if keytype == crypto.Sr25519Type {
 		kp, err = sr25519.NewKeypairFromPrivateKeyString(key)
 		if err != nil {
