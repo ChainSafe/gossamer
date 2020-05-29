@@ -39,7 +39,6 @@ type Service struct {
 
 	// historical information
 	// TODO: do we need maps, or just info from previous round?
-	primaryVote        map[uint64]*Vote // map of round number -> votes from primary
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 }
 
@@ -52,14 +51,15 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 	}
 
 	return &Service{
-		state:           NewState(voters, 0, 0),
-		blockState:      blockState,
-		subround:        prevote,
-		prevotes:        make(map[ed25519.PublicKeyBytes]*Vote),
-		precommits:      make(map[ed25519.PublicKeyBytes]*Vote),
-		pvEquivocations: make(map[ed25519.PublicKeyBytes][]*Vote),
-		pcEquivocations: make(map[ed25519.PublicKeyBytes][]*Vote),
-		head:            head,
+		state:              NewState(voters, 0, 0),
+		blockState:         blockState,
+		subround:           prevote,
+		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
+		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
+		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
+		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
+		bestFinalCandidate: make(map[uint64]*Vote),
+		head:               head,
 	}, nil
 }
 
@@ -93,9 +93,9 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
-	prm := s.primaryVote[s.state.round]
+	prm := s.prevotes[s.derivePrimary().PublicKeyBytes()]
 
-	if prm != nil && prm.number > uint64(s.head.Number.Int64()) {
+	if prm != nil && prm.number >= uint64(s.head.Number.Int64()) {
 		vote = prm
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -134,7 +134,7 @@ func (s *Service) isFinalizable() (bool, error) {
 		return false, err
 	}
 
-	if bfc.number <= pvb.number && s.bestFinalCandidate[s.state.round-1].number <= bfc.number {
+	if bfc.number <= pvb.number && (s.state.round == 0 || s.bestFinalCandidate[s.state.round-1].number <= bfc.number) {
 		return true, nil
 	}
 
@@ -161,7 +161,7 @@ func (s *Service) finalize() error {
 }
 
 // derivePrimary returns the primary for the current round
-func (s *Service) derivePrimary() *Voter { //nolint
+func (s *Service) derivePrimary() *Voter {
 	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
 }
 

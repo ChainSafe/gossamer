@@ -1000,3 +1000,148 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, pred, bfc.hash)
 }
+
+func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	state.AddBlocksToState(t, st.Block, 3)
+	pv, err := gs.determinePreVote()
+	require.NoError(t, err)
+
+	header, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, header.Hash(), pv.hash)
+}
+
+func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	state.AddBlocksToState(t, st.Block, 3)
+	header, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+	state.AddBlocksToState(t, st.Block, 1)
+
+	primary := gs.derivePrimary().PublicKeyBytes()
+	gs.prevotes[primary] = NewVoteFromHeader(header)
+
+	pv, err := gs.determinePreVote()
+	require.NoError(t, err)
+	require.Equal(t, gs.prevotes[primary], pv)
+}
+
+func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	state.AddBlocksToState(t, st.Block, 3)
+	header, err := st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	primary := gs.derivePrimary().PublicKeyBytes()
+	gs.prevotes[primary] = NewVoteFromHeader(header)
+
+	state.AddBlocksToState(t, st.Block, 5)
+	gs.head, err = st.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	pv, err := gs.determinePreVote()
+	require.NoError(t, err)
+	require.Equal(t, gs.head.Hash(), pv.hash)
+}
+
+func TestIsFinalizable_True(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var leaves []common.Hash
+	for {
+		state.AddBlocksToState(t, st.Block, 3)
+		leaves = gs.blockState.Leaves()
+		if len(leaves) > 1 {
+			break
+		}
+	}
+
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 6 {
+			gs.prevotes[voter] = voteA
+			gs.precommits[voter] = voteA
+		} else {
+			gs.prevotes[voter] = voteB
+			gs.precommits[voter] = voteB
+		}
+	}
+
+	finalizable, err := gs.isFinalizable()
+	require.NoError(t, err)
+	require.True(t, finalizable)
+}
+
+func TestIsFinalizable_False(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, err := NewService(st.Block, voters)
+	require.NoError(t, err)
+
+	var leaves []common.Hash
+	for {
+		state.AddBlocksToState(t, st.Block, 3)
+		leaves = gs.blockState.Leaves()
+		if len(leaves) > 1 {
+			break
+		}
+	}
+
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
+
+	for i, k := range kr.Keys {
+		voter := k.Public().(*ed25519.PublicKey).AsBytes()
+
+		if i < 6 {
+			gs.prevotes[voter] = voteA
+			gs.precommits[voter] = voteA
+		} else {
+			gs.prevotes[voter] = voteB
+			gs.precommits[voter] = voteB
+		}
+	}
+
+	// previous round has finalized block # higher than current, so round is not finalizable
+	gs.state.round = 1
+	gs.bestFinalCandidate[0] = &Vote{
+		number: 4,
+	}
+
+	finalizable, err := gs.isFinalizable()
+	require.NoError(t, err)
+	require.False(t, finalizable)
+}
