@@ -74,7 +74,7 @@ jobs:
       dist: xenial
       strategy: git
       provider: pages
-      cleanup: true
+      cleanup: false
       token: $GITHUB_TOKEN # set in settings on travis as a secure variable
       local_dir: docs
       target_branch: gh-pages
