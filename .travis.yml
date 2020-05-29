@@ -16,6 +16,8 @@
 
 language: go
 
+os: linux
+dist: xenial
 go:
 - 1.13.x
 env:
@@ -70,8 +72,6 @@ jobs:
     - cd docs
     - bundle exec jekyll build
     deploy:
-      os: linux
-      dist: xenial
       strategy: git
       provider: pages
       cleanup: false
