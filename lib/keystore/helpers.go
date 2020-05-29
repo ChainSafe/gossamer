@@ -194,9 +194,24 @@ func ImportKeypair(fp string, dir string) (string, error) {
 
 // ImportRawPrivateKey imports a raw private key and saves it to the keystore directory
 func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string, error) {
-	kp, err := sr25519.NewKeypairFromPrivateKeyString(key)
-	if err != nil {
-		return "", err
+	var kp crypto.Keypair
+	var err error
+
+	if keytype == crypto.Sr25519Type {
+		kp, err = sr25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to import sr25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Ed25519Type {
+		kp, err = ed25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Secp256k1Type {
+		kp, err = secp256k1.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+		}
 	}
 
 	return GenerateKeypair(keytype, kp, basepath, password)
