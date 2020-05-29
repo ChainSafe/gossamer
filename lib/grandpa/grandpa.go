@@ -35,7 +35,12 @@ type Service struct {
 	precommits      map[ed25519.PublicKeyBytes]*Vote   // pre-commits for next state
 	pvEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
-	head            *types.Header                      // most recently finalized block hash
+	head            *types.Header                      // most recently finalized block
+
+	// historical information
+	// TODO: do we need maps, or just info from previous round?
+	primaryVote        map[uint64]*Vote // map of round number -> votes from primary
+	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -58,6 +63,103 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 	}, nil
 }
 
+// initiate initates a GRANDPA round
+func (s *Service) initiate() error {
+	s.state.round += 1
+
+	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+
+	// TODO: call s.playGrandpaRound()
+	return nil
+}
+
+func (s *Service) playGrandpaRound() error {
+	// TODO: this function requires messaging
+	return nil
+}
+
+func (s *Service) attemptToFinalize() error {
+	// TODO: this function requires messaging
+	return nil
+}
+
+// determinePreVote determines what block is our pre-voted block for the current round
+func (s *Service) determinePreVote() (*Vote, error) {
+	var vote *Vote
+
+	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block
+	// and greater than the best final candidate from the last round, we choose that.
+	// otherwise, we simply choose the head of our chain.
+	prm := s.primaryVote[s.state.round]
+
+	if prm != nil && prm.number > uint64(s.head.Number.Int64()) {
+		vote = prm
+	} else {
+		header, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			return nil, err
+		}
+
+		vote = NewVoteFromHeader(header)
+	}
+
+	return vote, nil
+}
+
+// determinePreCommit determines what block is our pre-commited block for the current round
+func (s *Service) determinePreCommit() (*Vote, error) {
+	// the pre-commited block is simply the pre-voted block (GRANDPA-GHOST)
+	pvb, err := s.getPreVotedBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return &pvb, nil
+}
+
+// isFinalizable returns true is the round is finalizable, false otherwise.
+func (s *Service) isFinalizable() (bool, error) {
+	pvb, err := s.getPreVotedBlock()
+	if err == ErrNoPreVotedBlock {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	bfc, err := s.getBestFinalCandidate()
+	if err != nil {
+		return false, err
+	}
+
+	if bfc.number <= pvb.number && s.bestFinalCandidate[s.state.round-1].number <= bfc.number {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// finalize finalizes the round
+func (s *Service) finalize() error {
+	// get best final candidate
+	bfc, err := s.getBestFinalCandidate()
+	if err != nil {
+		return err
+	}
+
+	// set best final candidate
+	s.bestFinalCandidate[s.state.round] = bfc
+	s.head, err = s.blockState.GetHeader(bfc.hash)
+	if err != nil {
+		return err
+	}
+
+	// set finalized head in db
+	return s.blockState.SetFinalizedHash(bfc.hash)
+}
+
 // derivePrimary returns the primary for the current round
 func (s *Service) derivePrimary() *Voter { //nolint
 	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
@@ -78,6 +180,8 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 	}
 
 	// if there are no blocks with >=2/3 pre-commits, just return the pre-voted block
+	// TODO: is this correct? the spec implies that it should return nil, but discussions have suggested
+	// that we return the prevoted block.
 	if len(blocks) == 0 {
 		return &prevoted, nil
 	}
