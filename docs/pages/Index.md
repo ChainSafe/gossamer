@@ -29,7 +29,7 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 Gossamer is a ***modular blockchain framework*** used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Command-Line](./command-line) and [Configuration](./configuration/)).
+- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Configuration](./configuration/)).
 
 - The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import Runtime](./import-runtime/)). 
 
