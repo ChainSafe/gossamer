@@ -4,7 +4,7 @@ permalink: /
 ---
 
 <div align="center">
-  <img alt="Gossamer logo" src="/assets/img/gossamer_banner_white.png" width="500" />
+  <img alt="Gossamer logo" src="https://chainsafe.github.io/gossamer/assets/img/gossamer_banner_white.png" width="500" />
 </div>
 <div align="center">
   <p><i><b>Gossamer Docs</b> - The Official Documentation for Gossamer</i></p>
@@ -19,9 +19,9 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 ***Gossamer Docs*** is an evolving set of documents and resources to help you understand Gossamer, the Polkadot ecosystem, and how to build and run nodes using Gossamer. 
 
-- If you are new to Gossamer and the Polkadot ecosystem, we recommend starting with [this video](https://www.youtube.com/watch?v=nYkbYhM5Yfk) and then working your way through [General Resources](/general-resources/).
+- If you are new to Gossamer and the Polkadot ecosystem, we recommend starting with [this video](https://www.youtube.com/watch?v=nYkbYhM5Yfk) and then working your way through [General Resources](./general-resources/).
 
-- If you are already familiar with Gossamer and the Polkadot ecosystem, or you just want to dive in, head over to [Get Started](Get-Started) to run your first node using Gossamer.
+- If you are already familiar with Gossamer and the Polkadot ecosystem, or you just want to dive in, head over to [Get Started](./get-started) to run your first node using Gossamer.
 
 - If you are looking to build a node with Gossamer, learn how Gossamer can be used to build and run custom node implementations using Gossamer as a framework (see below).
 
@@ -29,38 +29,39 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 Gossamer is a ***modular blockchain framework*** used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Get Started](Get-Started) and [Configuration](/configuration/)).
+- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Get Started](./get-started) and [Configuration](./configuration/)).
 
-- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import a Runtime](/import-a-runtime/)). 
+- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import a Runtime](./import-a-runtime/)). 
 
-- The ***most advanced***  way to use the framework is building custom node services or a custom base node implementation (see [Custom Services](/custom-services/)).
+- The ***most advanced***  way to use the framework is building custom node services or a custom base node implementation (see [Custom Services](./custom-services/)).
 
 Our primary focus has been an initial implementation of the Polkadot Host. Once we feel confident our initial implementation is fully operational and secure, we will expand the Gossamer framework to include a runtime package library and other tools and services that will enable Go developers to build, test, and run custom-built blockchain protocols within or without the Polkadot ecosystem.
 
 ## Table of Contents
 
-- **[Run Nodes](/run-nodes/)**
-    - [Get Started](/get-started/)
-    - [Commands](/commands/)
+- **[Run Nodes](./run-nodes/)**
+    - [Get Started](./get-started/)
+    - [Commands](./commands/)
 
-- **[Build Nodes](/build-nodes/)**
-    - [Configuration](/configuration/)
-    - [Import a Runtime](/import-a-runtime/)
-    - [Custom Services](/custom-services/)
+- **[Build Nodes](./build-nodes/)**
+    - [Configuration](./configuration/)
+    - [Import a Runtime](./import-a-runtime/)
+    - [Custom Services](./custom-services/)
 
-- **[Implementation](/implementation/)**
-    - [Package Library](/package-library/)
-    - [Host Architecture](/host-architecture/)
-    - [Integration Tests](/integration-tests/)
+- **[Implementation](./implementation/)**
+    - [Package Library](./package-library/)
+    - [Host Architecture](./host-architecture/)
+    - [Integration Tests](./integration-tests/)
 
-- **[Resources](/resources/)**
-    - [General Resources](/general-resources/)
-    - [Developer Resources](/developer-resources/)
+- **[Resources](./resources/)**
+    - [General Resources](./general-resources/)
+    - [Developer Resources](./developer-resources/)
 
 <!--
-- **[Appendix](/appendix/)**
 
-    - [SCALE Examples](/scale-examples/)
+- **[Appendix](./appendix/)**
+    - [SCALE Examples](./scale-examples/)
+
 -->
 
 ## Connect

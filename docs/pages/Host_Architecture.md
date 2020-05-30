@@ -20,16 +20,16 @@ The **ksmcc node** is an official node implementation for the Kusama Network - a
 
 ### Custom Nodes
 
-See [Custom Services](/custom-services/) for more information about building custom node implementations.
+See [Custom Services](../custom-services/) for more information about building custom node implementations.
 
 ## Node Services
 
 The **node services** are the main components of the **dot node**:
 
-- **[Core Service](#Core-Service)**
-- **[Network Service](#Network-Service)**
-- **[RPC Service](#RPC-Service)**
-- **[State Service](#State-Service)**
+- **[Core Service](#core-service)**
+- **[Network Service](#network-service)**
+- **[RPC Service](#rpc-service)**
+- **[State Service](#state-service)**
 
 Each **node service** adheres to a common interface:
 

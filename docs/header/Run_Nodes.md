@@ -4,6 +4,6 @@ title: Run Nodes
 permalink: /run-nodes/
 ---
 
-- [Get Started](/get-started/)
+- [Get Started](../get-started/)
 
-- [Commands](/commands/)
+- [Commands](../commands/)
