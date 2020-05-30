@@ -46,9 +46,7 @@ get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
 go get -u github.com/ChainSafe/gossamer
 ```
 
-### Build Command
-
-build gossamer node:
+build gossamer command:
 ```
 make gossamer
 ```

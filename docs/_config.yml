@@ -68,14 +68,14 @@ minima:
     # - username: jekyll2
     #   instance: example.com
 
-# If you want to link only specific pages in your header, uncomment
+# If you want to link only specific pages in your menus, uncomment
 # this and add the path to the pages in order as they should show up
 header_pages:
-  - header/Run_Nodes.md
-  - header/Build_Nodes.md
-  - header/Implementation.md
-  - header/Resources.md
-#  - header/Appendix.md
+  - menus/Run_Nodes.md
+  - menus/Build_Nodes.md
+  - menus/Implementation.md
+  - menus/Resources.md
+#  - menus/Appendix.md
 
 # Build settings
 theme: minima

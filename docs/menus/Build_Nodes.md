@@ -6,7 +6,7 @@ permalink: /build-nodes/
 
 - [Configuration](../configuration/)
 
-- [Import a Runtime](../import-a-runtime/)
+- [Import Runtime](../import-runtime/)
 
-- [Custom Services](../custom-services/)
+- [Custom Nodes](../custom-nodes/)
 

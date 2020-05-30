@@ -4,19 +4,24 @@ title: Host Architecture
 permalink: /host-architecture/
 ---
 
+- _this page needs to be updated_
+- TODO: open issue and provide link
+
+---
+
 ## Nodes
 
-Gossamer includes a base node implementation called the **dot node** that implements a shared base protocol for all blockchain protocols within the Polkadot ecosystem. The **dot node** is used as the foundation for all **official nodes** within Gossamer and all **custom nodes** built with Gossamer.
+Gossamer includes a base node implementation called the **host node** that implements a shared base protocol for all blockchain protocols within the Polkadot ecosystem. The **host node** is used as the foundation for all **official nodes** within Gossamer and all **custom nodes** built with Gossamer.
 
-### Dot Node
+### Host Node
 
-The **dot node** is the base node implementation. As the base node implementation, the **dot node** is not complete without a configuration file, genesis file, compiled runtime, and runtime imports.
+The **host node** is the base node implementation. As the base node implementation, the **host node** is not complete without a configuration file, genesis file, compiled runtime, and runtime imports.
 
 ### Official Nodes
 
-The **gssmr node** is an official node implementation for the Gossamer Testnet - a configuration file, genesis file, compiled runtime, and runtime imports used with the **dot node**.
+The **gssmr node** is an official node implementation for the Gossamer Testnet - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-The **ksmcc node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **dot node**.
+The **ksmcc node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
 ### Custom Nodes
 
@@ -24,7 +29,7 @@ See [Custom Services](../custom-services/) for more information about building c
 
 ## Node Services
 
-The **node services** are the main components of the **dot node**:
+The **node services** are the main components of the **host node**:
 
 - **[Core Service](#core-service)**
 - **[Network Service](#network-service)**
@@ -117,8 +122,6 @@ The **rpc service** is an implementation of the RPC server.
 - the **rpc service** only reads from storage state
 - the **rpc service** only reads from network state
 
-_work in progress_
-
 ### State Service
 
 The **state service** is the source of truth for all chain and node state.
@@ -127,11 +130,7 @@ The **state service** is the source of truth for all chain and node state.
 - only the **core service** writes to storage state
 - only the **network service** writes to network state
 
-_work in progress_
-
 ## Node Channels
-
-_work in progress_
 
 ### Block Channels
 

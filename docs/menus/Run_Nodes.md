@@ -6,4 +6,6 @@ permalink: /run-nodes/
 
 - [Get Started](../get-started/)
 
-- [Commands](../commands/)
+- [Command-Line](../command-line/)
+
+- [Node Versions](../node-versions/)

@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Integration Tests
-permalink: /integration-tests/
+title: Custom Nodes
+permalink: /custom-nodes/
 ---
 
 - _this page is a work in progress_

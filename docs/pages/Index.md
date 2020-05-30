@@ -23,30 +23,31 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 - If you are already familiar with Gossamer and the Polkadot ecosystem, or you just want to dive in, head over to [Get Started](./get-started) to run your first node using Gossamer.
 
-- If you are looking to build a node with Gossamer, learn how Gossamer can be used to build and run custom node implementations using Gossamer as a framework (see below).
+- If you are looking to build a node with Gossamer, learn how Gossamer can be used to build and run custom node implementations using Gossamer as a framework (keep reading).
 
 ## Framework
 
 Gossamer is a ***modular blockchain framework*** used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Get Started](./get-started) and [Configuration](./configuration/)).
+- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Command-Line](./command-line) and [Configuration](./configuration/)).
 
-- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import a Runtime](./import-a-runtime/)). 
+- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import Runtime](./import-runtime/)). 
 
-- The ***most advanced***  way to use the framework is building custom node services or a custom base node implementation (see [Custom Services](./custom-services/)).
+- The ***most advanced***  way to use the framework is building custom node services or a custom node implementation (see [Custom Nodes](./custom-nodes/)).
 
-Our primary focus has been an initial implementation of the Polkadot Host. Once we feel confident our initial implementation is fully operational and secure, we will expand the Gossamer framework to include a runtime package library and other tools and services that will enable Go developers to build, test, and run custom-built blockchain protocols within or without the Polkadot ecosystem.
+Our primary focus has been an initial implementation of the Polkadot Host. Once we feel confident our initial implementation is fully operational and secure, we will expand the Gossamer framework to include a runtime library and other tools and services that will enable Go developers to build, test, and run custom-built blockchain protocols within the Polkadot ecosystem.
 
 ## Table of Contents
 
 - **[Run Nodes](./run-nodes/)**
     - [Get Started](./get-started/)
-    - [Commands](./commands/)
+    - [Command-Line](./command-line/)
+    - [Node Versions](../node-versions/)
 
 - **[Build Nodes](./build-nodes/)**
     - [Configuration](./configuration/)
-    - [Import a Runtime](./import-a-runtime/)
-    - [Custom Services](./custom-services/)
+    - [Import Runtime](./import-runtime/)
+    - [Custom Nodes](./custom-nodes/)
 
 - **[Implementation](./implementation/)**
     - [Package Library](./package-library/)
@@ -70,4 +71,4 @@ Let us know if you have any feedback or ideas that might help us improve our doc
 
 ## Contribute
 
-Contributions to this site and all documentation is more than welcome. This site is built with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files are within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md).
+Contributions to this site and all documentation is more than welcome. This site is built with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files are within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md) before getting started.
