@@ -17,11 +17,16 @@
 package grandpa
 
 import (
+	"bytes"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
+
+var interval = time.Second
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
@@ -41,6 +46,10 @@ type Service struct {
 	// historical information
 	// TODO: do we need maps, or just info from previous round?
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
+
+	// channels for communication with other services
+	in  <-chan *VoteMessage
+	out chan<- *VoteMessage // TODO: make this generic
 }
 
 // Config represents a GRANDPA service configuration
@@ -66,7 +75,6 @@ func NewService(cfg *Config) (*Service, error) {
 		state:              NewState(cfg.Voters, 0, 0),
 		blockState:         cfg.BlockState,
 		keypair:            cfg.Keypair,
-		subround:           prevote,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
@@ -83,18 +91,54 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 // initiate initates a GRANDPA round
 func (s *Service) initiate() error { //nolint
 	s.state.round++
+	s.subround = prevote
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 
-	// TODO: call s.playGrandpaRound()
-	return nil
+	return s.playGrandpaRound()
 }
 
 func (s *Service) playGrandpaRound() error { //nolint
-	// TODO: this function requires messaging
+	// save start time
+	start := time.Now()
+
+	// derive primary
+	primary := s.derivePrimary()
+
+	// if primary, broadcast the best final candidate from the previous round
+	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
+		// TODO: broadcast finalization message
+	}
+
+	s.receiveMessages(start.Add(interval * 2))
+
+	// broadcast pre-vote
+	pv, err := s.determinePreVote()
+	if err != nil {
+		return err
+	}
+
+	s.sendMessage(pv, prevote)
+	s.receiveMessages(start.Add(interval * 4))
+
+	// broadcast pre-commit
+	pc, err := s.determinePreCommit()
+	if err != nil {
+		return err
+	}
+
+	s.sendMessage(pc, precommit)
+
+	err := s.attemptToFinalize()
+	if err != nil {
+		return err
+	}
+
+	// r
+
 	return nil
 }
 

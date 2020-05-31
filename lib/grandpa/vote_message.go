@@ -17,18 +17,52 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	log "github.com/ChainSafe/log15"
 )
 
-// CreateVoteMessage returns a signed VoteMessage given a header
-func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*VoteMessage, error) {
-	vote := NewVoteFromHeader(header)
+// receiveMessages receives messages from the in channel until the specified end time is reached
+func (s *Service) receiveMessages(end time.Time) {
+	for msg := range s.in {
+		completable, err := s.isCompletable()
+		if err != nil {
+			log.Error("[grandpa] failed to check if round is completable", "error", err)
+		}
 
+		if time.Now().Sub(end) > 0 || completable {
+			return
+		}
+
+		v, err := s.validateMessage(msg)
+		if err != nil {
+			log.Debug("[grandpa] failed to validate vote message", "message", msg, "error", err)
+			continue
+		}
+
+		log.Debug("[grandpa] validated vote message", "vote", v)
+	}
+}
+
+// sendMessage sends a message through the out channel
+func (s *Service) sendMessage(vote *Vote, stage subround) error {
+	msg, err := s.createVoteMessage(vote, stage, s.keypair)
+	if err != nil {
+		return err
+	}
+
+	s.out <- msg
+	return nil
+}
+
+// createVoteMessage returns a signed VoteMessage given a header
+func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypair) (*VoteMessage, error) {
 	msg, err := scale.Encode(&FullVote{
-		stage: s.subround,
+		stage: stage,
 		vote:  vote,
 		round: s.state.round,
 		setID: s.state.setID,
@@ -52,14 +86,14 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 	return &VoteMessage{
 		setID:   s.state.setID,
 		round:   s.state.round,
-		stage:   s.subround,
+		stage:   stage,
 		message: sm,
 	}, nil
 }
 
-// ValidateMessage validates a VoteMessage and adds it to the current votes
+// validateMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
+func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
 	pk, err := ed25519.NewPublicKey(m.message.authorityID[:])
 	if err != nil {

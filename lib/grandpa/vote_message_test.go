@@ -162,10 +162,10 @@ func TestValidateMessage_Valid(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice)
 	require.NoError(t, err)
 
-	vote, err := gs.ValidateMessage(msg)
+	vote, err := gs.validateMessage(msg)
 	require.NoError(t, err)
 	require.Equal(t, h.Hash(), vote.hash)
 }
@@ -189,12 +189,12 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice)
 	require.NoError(t, err)
 
 	msg.message.signature[63] = 0
 
-	_, err = gs.ValidateMessage(msg)
+	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -217,12 +217,12 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	msg, err := gs.CreateVoteMessage(h, kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice)
 	require.NoError(t, err)
 
 	gs.state.setID = 1
 
-	_, err = gs.ValidateMessage(msg)
+	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrSetIDMismatch)
 }
 
@@ -259,10 +259,10 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	msg, err := gs.CreateVoteMessage(branches[0], kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(branches[0]), prevote, kr.Alice)
 	require.NoError(t, err)
 
-	_, err = gs.ValidateMessage(msg)
+	_, err = gs.validateMessage(msg)
 	require.Equal(t, ErrEquivocation, err, gs.prevotes)
 }
 
@@ -286,10 +286,10 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 		Number: big.NewInt(77),
 	}
 
-	msg, err := gs.CreateVoteMessage(fake, kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(fake), prevote, kr.Alice)
 	require.NoError(t, err)
 
-	_, err = gs.ValidateMessage(msg)
+	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 }
 
@@ -320,9 +320,9 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	msg, err := gs.CreateVoteMessage(branches[0], kr.Alice)
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(branches[0]), prevote, kr.Alice)
 	require.NoError(t, err)
 
-	_, err = gs.ValidateMessage(msg)
+	_, err = gs.validateMessage(msg)
 	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)
 }
