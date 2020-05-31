@@ -1215,7 +1215,7 @@ func TestIsFinalizable_True(t *testing.T) {
 		}
 	}
 
-	finalizable, err := gs.isFinalizable()
+	finalizable, err := gs.isFinalizable(gs.state.round)
 	require.NoError(t, err)
 	require.True(t, finalizable)
 }
@@ -1266,7 +1266,7 @@ func TestIsFinalizable_False(t *testing.T) {
 		number: 4,
 	}
 
-	finalizable, err := gs.isFinalizable()
+	finalizable, err := gs.isFinalizable(gs.state.round)
 	require.NoError(t, err)
 	require.False(t, finalizable)
 }

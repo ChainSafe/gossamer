@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+
+	log "github.com/ChainSafe/log15"
 )
 
 var interval = time.Second
@@ -45,6 +47,7 @@ type Service struct {
 
 	// historical information
 	// TODO: do we need maps, or just info from previous round?
+	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
@@ -79,6 +82,7 @@ func NewService(cfg *Config) (*Service, error) {
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
+		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
 	}, nil
@@ -113,7 +117,20 @@ func (s *Service) playGrandpaRound() error { //nolint
 		// TODO: broadcast finalization message
 	}
 
-	s.receiveMessages(start.Add(interval * 2))
+	s.receiveMessages(func() bool {
+		end := start.Add(interval * 2)
+
+		completable, err := s.isCompletable()
+		if err != nil {
+			log.Error("[grandpa] failed to check if round is completable", "error", err)
+		}
+
+		if time.Now().Sub(end) > 0 || completable {
+			return true
+		}
+
+		return false
+	})
 
 	// broadcast pre-vote
 	pv, err := s.determinePreVote()
@@ -122,7 +139,20 @@ func (s *Service) playGrandpaRound() error { //nolint
 	}
 
 	s.sendMessage(pv, prevote)
-	s.receiveMessages(start.Add(interval * 4))
+	s.receiveMessages(func() bool {
+		end := start.Add(interval * 4)
+
+		completable, err := s.isCompletable()
+		if err != nil {
+			log.Error("[grandpa] failed to check if round is completable", "error", err)
+		}
+
+		if time.Now().Sub(end) > 0 || completable {
+			return true
+		}
+
+		return false
+	})
 
 	// broadcast pre-commit
 	pc, err := s.determinePreCommit()
@@ -132,19 +162,58 @@ func (s *Service) playGrandpaRound() error { //nolint
 
 	s.sendMessage(pc, precommit)
 
-	err := s.attemptToFinalize()
+	err = s.attemptToFinalize()
 	if err != nil {
 		return err
 	}
 
-	// r
+	// recieve messages until current round is completable and previous round is finalizable
+	// and the last finalized block is greater than the best final candidate from the previous round
+	s.receiveMessages(func() bool {
+		completable, err := s.isCompletable()
+		if err != nil {
+			log.Error("[grandpa] failed to check if round is completable", "error", err)
+		}
+
+		finalizable, err := s.isFinalizable(s.state.round - 1)
+		if err != nil {
+			log.Error("[grandpa] failed to check if round is finalizable", "error", err)
+		}
+
+		if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
+			return true
+		}
+
+		return false
+	})
 
 	return nil
 }
 
+// attemptToFinalize loops until the round is finalizable
 func (s *Service) attemptToFinalize() error { //nolint
-	// TODO: this function requires messaging
-	return nil
+	bfc, err := s.getBestFinalCandidate()
+	if err != nil {
+		return err
+	}
+
+	pc, err := s.getTotalVotesForBlock(bfc.hash, precommit)
+	if err != nil {
+		return err
+	}
+
+	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
+		err = s.finalize()
+		if err != nil {
+			return err
+		}
+
+		// TODO: if we haven't received a finalization message for this block yet,
+		// broadcast a finalization message
+		return nil
+	}
+
+	return s.attemptToFinalize()
 }
 
 // determinePreVote determines what block is our pre-voted block for the current round
@@ -182,12 +251,21 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 }
 
 // isFinalizable returns true is the round is finalizable, false otherwise.
-func (s *Service) isFinalizable() (bool, error) {
-	pvb, err := s.getPreVotedBlock()
-	if err == ErrNoPreVotedBlock {
-		return false, nil
-	} else if err != nil {
-		return false, err
+func (s *Service) isFinalizable(round uint64) (bool, error) {
+	var pvb Vote
+	var err error
+
+	if round == s.state.round {
+		pvb, err = s.getPreVotedBlock()
+		if err != nil {
+			return false, err
+		}
+	} else {
+		v, has := s.preVotedBlock[round]
+		if !has {
+			return false, ErrNoPreVotedBlock
+		}
+		pvb = *v
 	}
 
 	bfc, err := s.getBestFinalCandidate()
@@ -202,7 +280,7 @@ func (s *Service) isFinalizable() (bool, error) {
 	return false, nil
 }
 
-// finalize finalizes the round
+// finalize finalizes the round by setting the best final candidate for this round
 func (s *Service) finalize() error {
 	// get best final candidate
 	bfc, err := s.getBestFinalCandidate()

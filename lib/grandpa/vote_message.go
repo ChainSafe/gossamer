@@ -17,7 +17,7 @@
 package grandpa
 
 import (
-	"time"
+	//"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -27,14 +27,9 @@ import (
 )
 
 // receiveMessages receives messages from the in channel until the specified end time is reached
-func (s *Service) receiveMessages(end time.Time) {
+func (s *Service) receiveMessages(cond func() bool) {
 	for msg := range s.in {
-		completable, err := s.isCompletable()
-		if err != nil {
-			log.Error("[grandpa] failed to check if round is completable", "error", err)
-		}
-
-		if time.Now().Sub(end) > 0 || completable {
+		if cond() {
 			return
 		}
 
