@@ -42,17 +42,29 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 }
 
+// Config represents a GRANDPA service configuration
+type Config struct {
+	BlockState BlockState
+	Voters     []*Voter
+	Keypair    *ed25519.Keypair
+}
+
 // NewService returns a new GRANDPA Service instance.
 // TODO: determine what needs to be exported.
-func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
-	head, err := blockState.GetFinalizedHeader()
+func NewService(cfg *Config) (*Service, error) {
+	if cfg.BlockState == nil {
+		return nil, ErrNilBlockState
+	}
+
+	head, err := cfg.BlockState.GetFinalizedHeader()
 	if err != nil {
 		return nil, err
 	}
 
 	return &Service{
-		state:              NewState(voters, 0, 0),
-		blockState:         blockState,
+		state:              NewState(cfg.Voters, 0, 0),
+		blockState:         cfg.BlockState,
+		keypair:            cfg.Keypair,
 		subround:           prevote,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
@@ -61,6 +73,10 @@ func NewService(blockState BlockState, voters []*Voter) (*Service, error) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
 	}, nil
+}
+
+func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
+	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 }
 
 // initiate initates a GRANDPA round
