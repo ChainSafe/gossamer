@@ -93,7 +93,10 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gs = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
-		r := rand.Intn(2)
+		r := 0
+		if i < 6 {
+			r = rand.Intn(2)
+		}
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15+r)
 		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
 		require.NoError(t, err)

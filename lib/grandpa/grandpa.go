@@ -328,7 +328,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	blocks := make(map[common.Hash]uint64)
+	var blocks map[common.Hash]uint64
 	var err error
 
 	for {
@@ -341,7 +341,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 			break
 		}
 
-		threshold -= 1
+		threshold--
 	}
 
 	if threshold == 1 {
