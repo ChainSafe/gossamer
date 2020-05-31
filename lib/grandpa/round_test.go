@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -25,22 +26,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-// type votes struct {
-// 	prevotes        map[ed25519.PublicKeyBytes]*Vote   // pre-votes for next state
-// 	precommits      map[ed25519.PublicKeyBytes]*Vote   // pre-commits for next state
-// 	pvEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
-// 	pcEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
-// }
-
-// func newVotes() *votes {
-// 	return &votes{
-// 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
-// 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
-// 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
-// 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
-// 	}
-// }
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 	st := newTestState(t)
@@ -59,17 +44,14 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
-	// this is a base test cases that asserts that all validators finalize the same block if they all see the
+	// this is a base test case that asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different
-	numVoters := 9
-
-	gss := make([]*Service, numVoters)
-	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
-	var err error
-
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
+	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
 
 	for i, gs := range gss {
 		gs = setupGrandpa(t, kr.Keys[i])
@@ -94,4 +76,50 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for _, gs := range gss {
 		require.Equal(t, finalized, gs.head.Hash())
 	}
+}
+
+func TestGrandpa_DifferentChains(t *testing.T) {
+	// this asserts that all validators finalize the same block if they all see the
+	// same pre-votes and pre-commits, even if their chains are different lengths
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
+	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+
+	for i, gs := range gss {
+		gs = setupGrandpa(t, kr.Keys[i])
+		gss[i] = gs
+
+		r := rand.Intn(2)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15+r)
+		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
+		require.NoError(t, err)
+	}
+
+	// only want to add prevotes for a node that has a block that exists on its chain
+	for _, gs := range gss {
+		for k, pv := range prevotes {
+			err = gs.validateVote(pv)
+			if err == nil {
+				gs.prevotes[k] = pv
+			}
+		}
+	}
+
+	// TODO: this currently fails with ErrNoPreVotedBlock since ~1/2 voters vote for block 15,
+	// and 1/2 vote for block 16. can be completed with #899
+
+	// for _, gs := range gss {
+	// 	precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+	// 	require.NoError(t, err)
+	// 	err = gs.finalize()
+	// 	require.NoError(t, err)
+	// }
+
+	// finalized := gss[0].head.Hash()
+	// for _, gs := range gss {
+	// 	require.Equal(t, finalized, gs.head.Hash())
+	// }
 }

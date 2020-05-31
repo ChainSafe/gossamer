@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
@@ -374,7 +375,9 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, p
 
 		// find common ancestor, check if votes for it is >=2/3 or not
 		pred, err := s.blockState.HighestCommonAncestor(v.hash, curr)
-		if err != nil {
+		if err == blocktree.ErrNodeNotFound {
+			continue
+		} else if err != nil {
 			return nil, err
 		}
 
@@ -439,7 +442,9 @@ func (s *Service) getVotesForBlock(hash common.Hash, stage subround) (uint64, er
 
 		// check if the current block is a descendant of B
 		isDescendant, err := s.blockState.IsDescendantOf(hash, v.hash)
-		if err != nil {
+		if err == blocktree.ErrStartNodeNotFound || err == blocktree.ErrEndNodeNotFound {
+			continue
+		} else if err != nil {
 			return 0, err
 		}
 
