@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"math/big"
 	"math/rand"
 	"testing"
 
@@ -108,18 +109,17 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		}
 	}
 
-	// TODO: this currently fails with ErrNoPreVotedBlock since ~1/2 voters vote for block 15,
-	// and 1/2 vote for block 16. can be completed with #899
+	for _, gs := range gss {
+		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+		require.NoError(t, err)
+		err = gs.finalize()
+		require.NoError(t, err)
+	}
 
-	// for _, gs := range gss {
-	// 	precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
-	// 	require.NoError(t, err)
-	// 	err = gs.finalize()
-	// 	require.NoError(t, err)
-	// }
+	finalized, err := gss[0].blockState.GetHeaderByNumber(big.NewInt(15))
+	require.NoError(t, err)
 
-	// finalized := gss[0].head.Hash()
-	// for _, gs := range gss {
-	// 	require.Equal(t, finalized, gs.head.Hash())
-	// }
+	for _, gs := range gss {
+		require.Equal(t, finalized.Hash(), gs.head.Hash())
+	}
 }
