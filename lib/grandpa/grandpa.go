@@ -93,12 +93,12 @@ func (s *Service) initiate() error { //nolint
 	return nil
 }
 
-func (s *Service) playGrandpaRound() error {
+func (s *Service) playGrandpaRound() error { //nolint
 	// TODO: this function requires messaging
 	return nil
 }
 
-func (s *Service) attemptToFinalize() error {
+func (s *Service) attemptToFinalize() error { //nolint
 	// TODO: this function requires messaging
 	return nil
 }
