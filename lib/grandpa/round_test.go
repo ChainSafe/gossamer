@@ -87,7 +87,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 	gss := make([]*Service, len(kr.Keys))
 	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	//precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
 
 	for i, gs := range gss {
 		gs = setupGrandpa(t, kr.Keys[i])
