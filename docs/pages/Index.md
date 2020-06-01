@@ -4,10 +4,10 @@ permalink: /
 ---
 
 <div align="center">
-  <img alt="Gossamer logo" src="https://chainsafe.github.io/gossamer/assets/img/gossamer_banner_white.png" width="500" />
+  <img alt="Gossamer logo" style="opacity: 0.9" src="https://chainsafe.github.io/gossamer/assets/img/gossamer_banner_white.png" width="500" />
 </div>
 <div align="center">
-  <p><i><b>Gossamer Docs</b> - The Official Documentation for Gossamer</i></p>
+  <h1 style="font-size: 110%">Gossamer Docs | <i>The Official Documentation for Gossamer</i></h1>
 </div>
 <br/>
 

@@ -16,27 +16,27 @@ As seen in [Get Started](../get-started), the `gossamer` command is the root com
 The `gossamer` command accepts the following ***local flags*** and ***global flags***:
 
 ```
-   --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
-   --name value       Node implementation name
-   --node value       Node implementation id used to load default node configuration
-   --config value     TOML configuration file
-   --datadir value    Data directory for the node
-   --key value        Specify a test keyring account to use: eg --key=alice
-   --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
-   --port value       Set network listening port (default: 0)
-   --bootnodes value  Comma separated enode URLs for network discovery bootstrap
-   --protocol value   Set protocol id
-   --roles value      Roles of the gossamer node
-   --nobootstrap      Disables network bootstrapping (mdns still enabled)
-   --nomdns           Disables network mdns discovery
-   --rpc              Enable the HTTP-RPC server
-   --rpchost value    HTTP-RPC server listening hostname
-   --rpcport value    HTTP-RPC server listening port (default: 0)
-   --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
-   --ws               Enable the websockets server
-   --wsport value     Websockets server listening port (default: 0)
-   --help, -h         show help
-   --version, -v      print the version
+--verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--name value       Node implementation name
+--node value       Node implementation id used to load default node configuration
+--config value     TOML configuration file
+--datadir value    Data directory for the node
+--key value        Specify a test keyring account to use: eg --key=alice
+--unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
+--port value       Set network listening port (default: 0)
+--bootnodes value  Comma separated enode URLs for network discovery bootstrap
+--protocol value   Set protocol id
+--roles value      Roles of the gossamer node
+--nobootstrap      Disables network bootstrapping (mdns still enabled)
+--nomdns           Disables network mdns discovery
+--rpc              Enable the HTTP-RPC server
+--rpchost value    HTTP-RPC server listening hostname
+--rpcport value    HTTP-RPC server listening port (default: 0)
+--rpcmods value    API modules to enable via HTTP-RPC, comma separated list
+--ws               Enable the websockets server
+--wsport value     Websockets server listening port (default: 0)
+--help, -h         show help
+--version, -v      print the version
 ```
 
 ### Accepted Formats
@@ -55,68 +55,68 @@ List of available ***subcommands***:
 
 ```
 SUBCOMMANDS:
-     help, h    Shows a list of commands or help for one command
-   ACCOUNT:
-     account    Create and manage node keystore accounts
-   EXPORT:
-     export     Export configuration values to TOML configuration file
-   INIT:
-     init       Initialize node databases and load genesis data to state
+    help, h     Shows a list of commands or help for one command
+  ACCOUNT:
+    account     Create and manage node keystore accounts
+  EXPORT:
+    export      Export configuration values to TOML configuration file
+  INIT:
+    init        Initialize node databases and load genesis data to state
 ```
 
 List of ***local flags*** for `init` subcommand:
 
 ```
-   --force            Disable all confirm prompts (the same as answering "Y" to all)
-   --genesis value    Path to genesis JSON file
-   --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
-   --name value       Node implementation name
-   --node value       Node implementation id used to load default node configuration
-   --config value     TOML configuration file
-   --datadir value    Data directory for the node
+--force            Disable all confirm prompts (the same as answering "Y" to all)
+--genesis value    Path to genesis JSON file
+--verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--name value       Node implementation name
+--node value       Node implementation id used to load default node configuration
+--config value     TOML configuration file
+--datadir value    Data directory for the node
 ```
 
 List of ***local flags*** for `account` subcommand:
 
 ```
-   --generate         Generate a new keypair. If type is not specified, defaults to sr25519
-   --password value   Password used to encrypt the keystore. Used with --generate or --unlock
-   --import value     Import encrypted keystore file generated with gossamer
-   --list             List node keys
-   --ed25519          Specify account type as ed25519
-   --sr25519          Specify account type as sr25519
-   --secp256k1        Specify account type as secp256k1
-   --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
-   --name value       Node implementation name
-   --node value       Node implementation id used to load default node configuration
-   --config value     TOML configuration file
-   --datadir value    Data directory for the node
+--generate         Generate a new keypair. If type is not specified, defaults to sr25519
+--password value   Password used to encrypt the keystore. Used with --generate or --unlock
+--import value     Import encrypted keystore file generated with gossamer
+--list             List node keys
+--ed25519          Specify account type as ed25519
+--sr25519          Specify account type as sr25519
+--secp256k1        Specify account type as secp256k1
+--verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--name value       Node implementation name
+--node value       Node implementation id used to load default node configuration
+--config value     TOML configuration file
+--datadir value    Data directory for the node
 ```
 
 List of ***local flag*** options for `export` subcommand:
 
 ```
-   --force            Disable all confirm prompts (the same as answering "Y" to all)
-   --genesis value    Path to genesis JSON file
-   --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
-   --name value       Node implementation name
-   --node value       Node implementation id used to load default node configuration
-   --config value     TOML configuration file
-   --datadir value    Data directory for the node
-   --key value        Specify a test keyring account to use: eg --key=alice
-   --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
-   --port value       Set network listening port (default: 0)
-   --bootnodes value  Comma separated enode URLs for network discovery bootstrap
-   --protocol value   Set protocol id
-   --roles value      Roles of the gossamer node
-   --nobootstrap      Disables network bootstrapping (mdns still enabled)
-   --nomdns           Disables network mdns discovery
-   --rpc              Enable the HTTP-RPC server
-   --rpchost value    HTTP-RPC server listening hostname
-   --rpcport value    HTTP-RPC server listening port (default: 0)
-   --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
-   --ws               Enable the websockets server
-   --wsport value     Websockets server listening port (default: 0)
+--force            Disable all confirm prompts (the same as answering "Y" to all)
+--genesis value    Path to genesis JSON file
+--verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--name value       Node implementation name
+--node value       Node implementation id used to load default node configuration
+--config value     TOML configuration file
+--datadir value    Data directory for the node
+--key value        Specify a test keyring account to use: eg --key=alice
+--unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
+--port value       Set network listening port (default: 0)
+--bootnodes value  Comma separated enode URLs for network discovery bootstrap
+--protocol value   Set protocol id
+--roles value      Roles of the gossamer node
+--nobootstrap      Disables network bootstrapping (mdns still enabled)
+--nomdns           Disables network mdns discovery
+--rpc              Enable the HTTP-RPC server
+--rpchost value    HTTP-RPC server listening hostname
+--rpcport value    HTTP-RPC server listening port (default: 0)
+--rpcmods value    API modules to enable via HTTP-RPC, comma separated list
+--ws               Enable the websockets server
+--wsport value     Websockets server listening port (default: 0)
 ```
 
 ### Accepted Formats
