@@ -1,11 +1,10 @@
 ---
 layout: default
-title: Node Versions
-permalink: /node-versions/
+title: Official Nodes
+permalink: /official-nodes/
 ---
 
-- _this page is a work in progress_
-- TODO: open issue and provide link
+- _TODO: update "Official Nodes" document [#916](https://github.com/ChainSafe/gossamer/issues/916)_
 
 ---
 
@@ -16,3 +15,7 @@ permalink: /node-versions/
 ## `chain/ksmcc`
 
 - The **ksmcc** directory includes configuration files for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](../host-architecture#official-nodes)).
+
+## `chain/dotcc`
+
+- The **dotcc** directory includes configuration files for the ***dotcc node*** implementation - an official node implementation for the Polkadot Network (see [Official Nodes](../host-architecture#official-nodes)).

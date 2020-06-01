@@ -4,21 +4,20 @@ title: Command-Line
 permalink: /command-line/
 ---
 
-- _this page needs to be updated_
-- TODO: open issue and provide link
+- _TODO: update "Command-Line" document [#868](https://github.com/ChainSafe/gossamer/issues/868)_
 
 ---
 
 ## Gossamer Command
 
-As seen in [Get Started](../get-started), the `gossamer` command is the root command available following the installation of the `gossamer` command package (`cmd/gossamer`). The `gossamer` root command starts the node (and initializes the node if node has not already been initialized). 
+The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initializes the node if the node has not already been initialized). 
 
 The `gossamer` command accepts the following ***local flags*** and ***global flags***:
 
 ```
 --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---node value       Node implementation id used to load default node configuration
+--chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
 --datadir value    Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
@@ -56,11 +55,8 @@ List of available ***subcommands***:
 ```
 SUBCOMMANDS:
     help, h     Shows a list of commands or help for one command
-  ACCOUNT:
     account     Create and manage node keystore accounts
-  EXPORT:
     export      Export configuration values to TOML configuration file
-  INIT:
     init        Initialize node databases and load genesis data to state
 ```
 
@@ -71,7 +67,7 @@ List of ***local flags*** for `init` subcommand:
 --genesis value    Path to genesis JSON file
 --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---node value       Node implementation id used to load default node configuration
+--chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
 --datadir value    Data directory for the node
 ```
@@ -88,7 +84,7 @@ List of ***local flags*** for `account` subcommand:
 --secp256k1        Specify account type as secp256k1
 --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---node value       Node implementation id used to load default node configuration
+--chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
 --datadir value    Data directory for the node
 ```
@@ -100,7 +96,7 @@ List of ***local flag*** options for `export` subcommand:
 --genesis value    Path to genesis JSON file
 --verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---node value       Node implementation id used to load default node configuration
+--chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
 --datadir value    Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
@@ -149,7 +145,7 @@ gossamer [--local-flags] [--global-flags] [subcommand]
 gossamer [--global-flags] [--local-flags] [subcommand] 
 ```
 
-## Node Roles
+## Running Node Roles
 
 Run an authority node:
 ```
@@ -161,7 +157,7 @@ Run a non-authority node:
 ./bin/gossamer --key alice --roles 1
 ```
 
-## Multiple Nodes
+## Running Multiple Nodes
 
 Two options for running another node at the same time...
 

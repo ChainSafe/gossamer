@@ -8,5 +8,5 @@ permalink: /build-nodes/
 
 - [Import Runtime](../import-runtime/)
 
-- [Custom Nodes](../custom-nodes/)
+- [Custom Services](../custom-services/)
 

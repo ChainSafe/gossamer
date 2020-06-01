@@ -4,10 +4,7 @@ title: Package Library
 permalink: /package-library/
 ---
 
-- _this page needs to be updated_
-- TODO: open issue and provide link
-
----
+## Overview
 
 Gossamer is a ***modular blockchain framework***; it was designed with a package structure that makes it possible to reuse Gossamer packages to build and run custom nodes and node services.
 
@@ -41,7 +38,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `host`
 
-- The **host package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **host package** implements the [Host Node](../host-architecture#host-node); it is the base node implementation for all [Official Nodes](../host-architecture#official-nodes) and [Custom Nodes](../host-architecture#custom-nodes) built with Gossamer.
+- The **host package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **host package** implements the [Host Node](../host-architecture#host-node); it is the base node implementation for all [Official Nodes](../host-architecture#official-nodes) and [Custom Services](../host-architecture#custom-services) built with Gossamer.
 
 #### `host/core`
 

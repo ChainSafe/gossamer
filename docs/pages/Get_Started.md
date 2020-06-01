@@ -36,22 +36,34 @@ start default node:
 
 initialize gossamer node:
 ```
-./bin/gossamer --node gssmr --key alice init
+./bin/gossamer --chain gssmr --key alice init
 ```
 
 start gossamer node:
 ```
-./bin/gossamer --node gssmr --key alice
+./bin/gossamer --chain gssmr --key alice
 ```
 
 ## Run Kusama Node
 
 initialize kusama node:
 ```
-./bin/gossamer --node ksmcc --key alice init
+./bin/gossamer --chain ksmcc --key alice init
 ```
 
 start kusama node:
 ```
-./bin/gossamer --node ksmcc --key alice
+./bin/gossamer --chain ksmcc --key alice
+```
+
+## Run Polkadot Node
+
+initialize polkadot node:
+```
+./bin/gossamer --chain dotcc --key alice init
+```
+
+start polkadot node:
+```
+./bin/gossamer --chain dotcc --key alice
 ```

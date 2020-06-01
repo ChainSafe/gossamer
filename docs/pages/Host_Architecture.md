@@ -4,8 +4,7 @@ title: Host Architecture
 permalink: /host-architecture/
 ---
 
-- _this page needs to be updated_
-- TODO: open issue and provide link
+- _TODO: update "Host Architecture" document [#918](https://github.com/ChainSafe/gossamer/issues/918)_
 
 ---
 
@@ -23,7 +22,7 @@ The **gssmr node** is an official node implementation for the Gossamer Testnet -
 
 The **ksmcc node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-### Custom Nodes
+### Custom Services
 
 See [Custom Services](../custom-services/) for more information about building custom node implementations.
 

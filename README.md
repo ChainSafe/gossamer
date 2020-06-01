@@ -87,11 +87,16 @@ start kusama node:
 ./bin/gossamer --chain ksmcc --key alice
 ```
 
-### Run Tests
+## Run Polkadot Node
 
-run all package tests:
+initialize polkadot node:
 ```
-go test ./... -short
+./bin/gossamer --chain dotcc --key alice init
+```
+
+start polkadot node:
+```
+./bin/gossamer --chain dotcc --key alice
 ```
 
 ## Contribute

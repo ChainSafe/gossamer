@@ -8,4 +8,4 @@ permalink: /run-nodes/
 
 - [Command-Line](../command-line/)
 
-- [Node Versions](../node-versions/)
+- [Official Nodes](../official-nodes/)
