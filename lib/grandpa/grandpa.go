@@ -125,7 +125,7 @@ func (s *Service) playGrandpaRound() error { //nolint
 			log.Error("[grandpa] failed to check if round is completable", "error", err)
 		}
 
-		if time.Now().Sub(end) > 0 || completable {
+		if time.Since(end) >= 0 || completable {
 			return true
 		}
 
@@ -138,16 +138,20 @@ func (s *Service) playGrandpaRound() error { //nolint
 		return err
 	}
 
-	s.sendMessage(pv, prevote)
+	err = s.sendMessage(pv, prevote)
+	if err != nil {
+		return err
+	}
+
 	s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
 
-		completable, err := s.isCompletable()
+		completable, err := s.isCompletable() //nolint
 		if err != nil {
 			log.Error("[grandpa] failed to check if round is completable", "error", err)
 		}
 
-		if time.Now().Sub(end) > 0 || completable {
+		if time.Since(end) >= 0 || completable {
 			return true
 		}
 
@@ -160,14 +164,17 @@ func (s *Service) playGrandpaRound() error { //nolint
 		return err
 	}
 
-	s.sendMessage(pc, precommit)
+	err = s.sendMessage(pc, precommit)
+	if err != nil {
+		return err
+	}
 
 	err = s.attemptToFinalize()
 	if err != nil {
 		return err
 	}
 
-	// recieve messages until current round is completable and previous round is finalizable
+	// receive messages until current round is completable and previous round is finalizable
 	// and the last finalized block is greater than the best final candidate from the previous round
 	s.receiveMessages(func() bool {
 		completable, err := s.isCompletable()
