@@ -294,7 +294,6 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	// TODO: if there are no blocks with >=2/3 voters, then just pick the highest voted block
 	if len(blocks) == 0 {
 		return s.getGrandpaGHOST()
-		//return Vote{}, ErrNoPreVotedBlock
 	}
 
 	// if there is one block, return it
@@ -345,7 +344,8 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	}
 
 	if threshold == 1 {
-		return Vote{}, ErrNoGHOST
+		v, err := s.determinePreVote()
+		return *v, err
 	}
 
 	// if there are multiple, find the one with the highest number and return it
