@@ -17,11 +17,14 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
 	"path"
+	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -37,11 +40,11 @@ import (
 
 // Node is a container for all the components of a node.
 type Node struct {
-	Name      string
-	Services  *services.ServiceRegistry // registry of all node services
-	IsStarted chan struct{}             // signals node startup complete
-	stop      chan struct{}             // used to signal node shutdown
-	syncChan  chan *big.Int
+	Name     string
+	Services *services.ServiceRegistry // registry of all node services
+	syncChan chan *big.Int
+	wg       sync.WaitGroup
+	started  uint32
 }
 
 // InitNode initializes a new dot node from the provided dot node configuration
@@ -51,7 +54,7 @@ func InitNode(cfg *Config) error {
 		"[dot] initializing node...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
-		"datadir", cfg.Global.DataDir,
+		"basepath", cfg.Global.BasePath,
 		"genesis", cfg.Init.Genesis,
 	)
 
@@ -74,7 +77,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.DataDir)
+	stateSrvc := state.NewService(cfg.Global.BasePath)
 
 	// declare genesis data
 	data := gen.GenesisData()
@@ -98,7 +101,7 @@ func InitNode(cfg *Config) error {
 		"[dot] node initialized",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
-		"datadir", cfg.Global.DataDir,
+		"basepath", cfg.Global.BasePath,
 		"genesis", cfg.Init.Genesis,
 		"block", header.Number,
 	)
@@ -108,16 +111,16 @@ func InitNode(cfg *Config) error {
 
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(datadir string, expected bool) bool {
+func NodeInitialized(basepath string, expected bool) bool {
 
 	// check if key registry exists
-	registry := path.Join(datadir, "KEYREGISTRY")
+	registry := path.Join(basepath, "KEYREGISTRY")
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
 		if expected {
 			log.Warn(
 				"[dot] node has not been initialized",
-				"datadir", datadir,
+				"basepath", basepath,
 				"error", "failed to locate KEYREGISTRY file in data directory",
 			)
 		}
@@ -125,13 +128,13 @@ func NodeInitialized(datadir string, expected bool) bool {
 	}
 
 	// check if manifest exists
-	manifest := path.Join(datadir, "MANIFEST")
+	manifest := path.Join(basepath, "MANIFEST")
 	_, err = os.Stat(manifest)
 	if os.IsNotExist(err) {
 		if expected {
 			log.Warn(
 				"[dot] node has not been initialized",
-				"datadir", datadir,
+				"basepath", basepath,
 				"error", "failed to locate MANIFEST file in data directory",
 			)
 		}
@@ -139,11 +142,11 @@ func NodeInitialized(datadir string, expected bool) bool {
 	}
 
 	// initialize database using data directory
-	db, err := database.NewBadgerDB(datadir)
+	db, err := database.NewBadgerDB(basepath)
 	if err != nil {
 		log.Error(
 			"[dot] failed to create database",
-			"datadir", datadir,
+			"basepath", basepath,
 			"error", err,
 		)
 		return false
@@ -154,7 +157,7 @@ func NodeInitialized(datadir string, expected bool) bool {
 	if err != nil {
 		log.Warn(
 			"[dot] node has not been initialized",
-			"datadir", datadir,
+			"basepath", basepath,
 			"error", err,
 		)
 		return false
@@ -183,7 +186,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		"[dot] initializing node services...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
-		"datadir", cfg.Global.DataDir,
+		"basepath", cfg.Global.BasePath,
 	)
 
 	var nodeSrvcs []services.Service
@@ -235,13 +238,19 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 
 	}
 
+	// System Service
+
+	// create system service and append to node services
+	sysSrvc := createSystemService(&cfg.System)
+	nodeSrvcs = append(nodeSrvcs, sysSrvc)
+
 	// RPC Service
 
 	// check if rpc service is enabled
 	if enabled := RPCServiceEnabled(cfg); enabled {
 
 		// create rpc service and append rpc service to node services
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt)
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, rt, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 
 	} else {
@@ -252,11 +261,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	}
 
 	node := &Node{
-		Name:      cfg.Global.Name,
-		Services:  services.NewServiceRegistry(),
-		IsStarted: make(chan struct{}),
-		stop:      nil,
-		syncChan:  syncChan,
+		Name:     cfg.Global.Name,
+		Services: services.NewServiceRegistry(),
+		syncChan: syncChan,
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -267,14 +274,11 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 }
 
 // Start starts all dot node services
-func (n *Node) Start() {
+func (n *Node) Start() error {
 	log.Info("[dot] starting node services...")
 
 	// start all dot node services
 	n.Services.StartAll()
-
-	// open node stop channel
-	n.stop = make(chan struct{})
 
 	go func() {
 		sigc := make(chan os.Signal, 1)
@@ -286,11 +290,14 @@ func (n *Node) Start() {
 		os.Exit(130)
 	}()
 
-	// move on when routine catches SIGINT or SIGTERM calls
-	close(n.IsStarted)
+	if ok := atomic.CompareAndSwapUint32(&n.started, 0, 1); !ok {
+		return errors.New("failed to change Node status from stopped to started")
+	}
 
-	// wait for node stop channel to be closed
-	<-n.stop
+	n.wg.Add(1)
+	n.wg.Wait()
+
+	return nil
 }
 
 // Stop stops all dot node services
@@ -299,10 +306,11 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 
-	// close node stop channel if not already closed
-	if n.stop != nil {
-		close(n.stop)
-	}
+	defer func() {
+		if ok := atomic.CompareAndSwapUint32(&n.started, 1, 0); !ok {
+			log.Error("failed to change Node status from started to stopped")
+		}
 
-	close(n.syncChan)
+		n.wg.Done()
+	}()
 }

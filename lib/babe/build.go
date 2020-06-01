@@ -26,10 +26,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	log "github.com/ChainSafe/log15"
 )
+
+// BuildBlock builds a block for the slot with the given parent.
+// TODO: separate block builder logic into separate module. The only reason this is exported is so other packages
+// can build blocks for testing, but it would be preferred to have the builder functionality separated.
+func (b *Session) BuildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+	return b.buildBlock(parent, slot)
+}
 
 // construct a block for this slot with the given parent
 func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
@@ -45,7 +53,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, [][]byte{})
+	header, err := types.NewHeader(common.Hash{}, number, common.Hash{}, common.Hash{}, [][]byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +159,19 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 // the BABE header includes the proof of authorship right for this slot.
 func (b *Session) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
-		return nil, errors.New("not authorized to produce block")
+		// if we don't have a proof already set, re-run lottery.
+		// this can be removed when this is separated into a block builder module,
+		// or moved to handleSlot.
+		proof, err := b.runLottery(slot.number)
+		if err != nil {
+			return nil, err
+		}
+
+		if proof == nil {
+			return nil, errors.New("not authorized to produce block")
+		}
+
+		b.slotToProof[slot.number] = proof
 	}
 	outAndProof := b.slotToProof[slot.number]
 	return &types.BabeHeader{
@@ -188,7 +208,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 			// re-add previously popped extrinsics back to queue
 			b.addToQueue(included)
 
-			return nil, errors.New("Error during apply extrinsic: " + errTxt)
+			return nil, errors.New("error applying extrinsic: " + errTxt)
 
 		}
 
@@ -222,10 +242,41 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 		return err
 	}
 
-	// Call BlockBuilder_inherent_extrinsics
-	_, err = b.rt.InherentExtrinsics(ienc)
+	// TODO: inherent_extrinsics needs to be called for each inherent
+	// this currently only returns the timestamp (first inherent)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := b.rt.InherentExtrinsics(ienc)
 	if err != nil {
 		return err
+	}
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	if err != nil {
+		return err
+	}
+
+	// apply each inherent extrinsic
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
+		if err != nil {
+			return err
+		}
+
+		ret, err := b.rt.ApplyExtrinsic(in)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(ret, []byte{0, 0}) {
+			errTxt, err := determineError(ret)
+			if err != nil {
+				return err
+			}
+
+			return errors.New("error applying extrinsic: " + errTxt)
+		}
 	}
 
 	return nil

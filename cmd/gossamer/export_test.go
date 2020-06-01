@@ -52,14 +52,14 @@ func TestExportCommand(t *testing.T) {
 		expected    *dot.Config
 	}{
 		{
-			"Test gossamer export --config --genesis --datadir --name --verbosity",
-			[]string{"config", "genesis", "datadir", "name", "verbosity"},
+			"Test gossamer export --config --genesis --basepath --name --log",
+			[]string{"config", "genesis", "basepath", "name", "log"},
 			[]interface{}{testConfig, genFile.Name(), testDir, testName, "trace"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
-					Name:    testName,
-					ID:      testCfg.Global.ID,
-					DataDir: testCfg.Global.DataDir,
+					Name:     testName,
+					ID:       testCfg.Global.ID,
+					BasePath: testCfg.Global.BasePath,
 				},
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
@@ -77,8 +77,8 @@ func TestExportCommand(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer export --config --genesis --bootnodes --verbsoity --force",
-			[]string{"config", "genesis", "bootnodes", "verbosity", "force"},
+			"Test gossamer export --config --genesis --bootnodes --log --force",
+			[]string{"config", "genesis", "bootnodes", "log", "force"},
 			[]interface{}{testConfig, genFile.Name(), testBootnode, "trace", "true"},
 			&dot.Config{
 				Global: testCfg.Global,
@@ -98,8 +98,8 @@ func TestExportCommand(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer export --config --genesis --protocol --verbosity --force",
-			[]string{"config", "genesis", "protocol", "verbosity", "force"},
+			"Test gossamer export --config --genesis --protocol --log --force",
+			[]string{"config", "genesis", "protocol", "log", "force"},
 			[]interface{}{testConfig, genFile.Name(), testProtocol, "trace", "true"},
 			&dot.Config{
 				Global: testCfg.Global,

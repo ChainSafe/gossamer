@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -42,7 +43,7 @@ func newNetworkService(t *testing.T) *network.Service {
 	cfg := &network.Config{
 		NoStatus:     true,
 		NetworkState: &state.NetworkState{},
-		DataDir:      testDir,
+		BasePath:     testDir,
 		MsgRec:       make(chan network.Message),
 		MsgSend:      make(chan network.Message),
 		SyncChan:     make(chan *big.Int),
@@ -59,10 +60,11 @@ func newNetworkService(t *testing.T) *network.Service {
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	sys := NewSystemModule(net, nil)
 
 	res := &SystemHealthResponse{}
-	sys.Health(nil, nil, res)
+	err := sys.Health(nil, nil, res)
+	require.NoError(t, err)
 
 	if res.Health != testHealth {
 		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
@@ -72,10 +74,11 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	sys := NewSystemModule(net, nil)
 
 	res := &SystemNetworkStateResponse{}
-	sys.NetworkState(nil, nil, res)
+	err := sys.NetworkState(nil, nil, res)
+	require.NoError(t, err)
 
 	testNetworkState := net.NetworkState()
 
@@ -87,12 +90,24 @@ func TestSystemModule_NetworkState(t *testing.T) {
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net)
+	sys := NewSystemModule(net, nil)
 
 	res := &SystemPeersResponse{}
-	sys.Peers(nil, nil, res)
+	err := sys.Peers(nil, nil, res)
+	require.NoError(t, err)
 
 	if len(res.Peers) != len(testPeers) {
 		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
 	}
+}
+
+func TestSystemModule_NodeRoles(t *testing.T) {
+	net := newNetworkService(t)
+	sys := NewSystemModule(net, nil)
+	expected := []interface{}{"Full"}
+
+	var res []interface{}
+	err := sys.NodeRoles(nil, nil, &res)
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
 }

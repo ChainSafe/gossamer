@@ -16,6 +16,8 @@
 
 language: go
 
+os: linux
+dist: xenial
 go:
 - 1.13.x
 env:
@@ -23,20 +25,22 @@ env:
   - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
 cache:
   directories:
-  - "$HOME/.cache/go-build"
-  - "$GOPATH/pkg/mod"
+  - $HOME/.cache/go-build
+  - $GOPATH/pkg/mod
 before_cache:
 - rm -f ./trie/failing_test_data
-matrix:
+jobs:
   include:
+  - name: Go Linter
+    script: make lint
   - name: Unit Tests
     before_script:
     - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
     - chmod +x ./cc-test-reporter
-    - "./cc-test-reporter before-build"
-    script: "./scripts/ci.sh"
+    - ./cc-test-reporter before-build
+    script: ./scripts/ci.sh
     after_script:
-    - "./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT"
+    - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
   - name: Test State - Race
     script: make test-state-race
   - name: Integration Tests - Stable
@@ -47,12 +51,32 @@ matrix:
     script: make it-stress
     env: 
       - GOSSAMER_STRESS=true
-  - name: Golang-ci Linter
-    script: make lint
-  - name: Build docker image
+  - name: Build Docker Image
     script:
     - make docker-build
     - make docker-version
+  - name: Build Gossamer Docs
+    language: ruby
+    rvm:
+    - 2.6.3
+    gemfile:
+    - docs/Gemfile
+    before_install:
+    - gem update --system
+    - gem --version
+    cache: bundler # caching bundler gem packages will speed up build
+    script:
+    - cd docs
+    - bundle exec jekyll build
+    deploy:
+      strategy: git
+      provider: pages
+      cleanup: false
+      token: $GITHUB_TOKEN # set in settings on travis as a secure variable
+      local_dir: docs
+      target_branch: gh-pages
+      on:
+        branch: development # deploy on merge into development
   allow_failures:
     - stage: build
       env:

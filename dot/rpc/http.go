@@ -44,8 +44,10 @@ type HTTPServerConfig struct {
 	RuntimeAPI             modules.RuntimeAPI
 	TransactionQueueAPI    modules.TransactionQueueAPI
 	RPCAPI                 modules.RPCAPI
+	SystemAPI              modules.SystemAPI
 	Host                   string
 	RPCPort                uint32
+	WSEnabled              bool
 	WSPort                 uint32
 	Modules                []string
 	WSSubscriptions        map[uint32]*WebSocketSubscription
@@ -80,7 +82,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
+			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI)
 		case "author":
 			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
@@ -122,6 +124,10 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	if !h.serverConfig.WSEnabled {
+		return nil
+	}
+
 	log.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
@@ -145,6 +151,8 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	close(h.serverConfig.BlockAddedReceiverDone) // notify sender we're done receiving so it can close
+	if h.serverConfig.WSEnabled {
+		close(h.serverConfig.BlockAddedReceiverDone) // notify sender we're done receiving so it can close
+	}
 	return nil
 }

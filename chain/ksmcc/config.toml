@@ -1,10 +1,10 @@
 [global]
 name = "ksmcc"
 id = "ksmcc"
-datadir = "~/.gossamer/ksmcc"
+basepath = "~/.gossamer/ksmcc"
 
 [init]
-genesis = "./node/ksmcc/genesis.json"
+genesis = "./chain/ksmcc/genesis.json"
 
 [account]
 key = ""
@@ -27,3 +27,4 @@ port = 8545
 host = "localhost"
 modules = ["system"]
 ws-port = 8546
+ws-enabled = false

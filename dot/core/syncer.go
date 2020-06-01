@@ -17,9 +17,11 @@
 package core
 
 import (
+	"errors"
 	"math/big"
 	mrand "math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -63,7 +65,7 @@ type Syncer struct {
 
 	// Core service control
 	chanLock *sync.Mutex
-	stopped  bool
+	started  uint32
 
 	// BABE verification
 	verifier Verifier
@@ -114,7 +116,6 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		lock:             cfg.Lock,
 		chanLock:         cfg.ChanLock,
 		synced:           true,
-		stopped:          false,
 		requestStart:     1,
 		highestSeenBlock: big.NewInt(0),
 		transactionQueue: cfg.TransactionQueue,
@@ -124,20 +125,33 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 }
 
 // Start begins the syncer
-func (s *Syncer) Start() {
+func (s *Syncer) Start() error {
+	if s == nil {
+		return errors.New("nil syncer")
+	}
+
+	if ok := atomic.CompareAndSwapUint32(&s.started, 0, 1); !ok {
+		return errors.New("failed to change Syncer from stopped to started")
+	}
+
 	go s.watchForBlocks()
 	go s.watchForResponses()
+
+	return nil
 }
 
 // Stop stops the syncer
-func (s *Syncer) Stop() {
-	// stop goroutines
-	s.stopped = true
+func (s *Syncer) Stop() error {
+	if ok := atomic.CompareAndSwapUint32(&s.started, 1, 0); !ok {
+		return errors.New("failed to change Syncer from started to stopped")
+	}
+
+	return nil
 }
 
 func (s *Syncer) watchForBlocks() {
 	for {
-		if s.stopped {
+		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
 
@@ -165,7 +179,7 @@ func (s *Syncer) watchForBlocks() {
 
 func (s *Syncer) watchForResponses() {
 	for {
-		if s.stopped {
+		if atomic.LoadUint32(&s.started) == uint32(0) {
 			return
 		}
 
@@ -205,7 +219,7 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 			if s.requestStart <= 0 {
 				s.requestStart = 1
 			}
-			log.Debug("[sync] Retrying block request", "start", s.requestStart)
+			log.Trace("[sync] Retrying block request", "start", s.requestStart)
 			go s.sendBlockRequest()
 		} else {
 			log.Error("[sync]", "error", err)
@@ -239,15 +253,17 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 func (s *Syncer) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
-	if s.stopped {
+
+	if atomic.LoadUint32(&s.started) == uint32(0) {
 		return ErrServiceStopped
 	}
+
 	s.msgOut <- msg
 	return nil
 }
 
 func (s *Syncer) sendBlockRequest() {
-	//generate random ID
+	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
 	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
@@ -258,7 +274,7 @@ func (s *Syncer) sendBlockRequest() {
 		return
 	}
 
-	log.Debug("[sync] Block request", "start", start)
+	log.Trace("[sync] Block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
@@ -341,9 +357,12 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 	highestInResp := int64(0)
 
 	// get block header; if exists, return
-	// TODO: update blockState to include Has function
-	existingHeader, err := s.blockState.GetHeader(header.Hash())
-	if err != nil && existingHeader == nil {
+	has, err := s.blockState.HasHeader(header.Hash())
+	if err != nil {
+		return 0, err
+	}
+
+	if !has {
 		err = s.blockState.SetHeader(header)
 		if err != nil {
 			return 0, err
@@ -385,9 +404,12 @@ func (s *Syncer) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Syncer) handleBlock(block *types.Block) error {
-	// TODO: re-add execute block call
+	_, err := s.executeBlock(block)
+	if err != nil {
+		return err
+	}
 
-	err := s.blockState.AddBlock(block)
+	err = s.blockState.AddBlock(block)
 	if err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
@@ -398,6 +420,7 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 		}
 	} else {
 		log.Info("[sync] imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		log.Debug("[sync] imported block", "header", block.Header, "body", block.Body)
 	}
 
 	// TODO: if block is from the next epoch, increment epoch
@@ -408,11 +431,16 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 // runs the block through runtime function Core_execute_block
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Syncer) executeBlock(bd *types.Block) ([]byte, error) {
-	bdEnc, err := bd.Encode()
+func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+
+	b.Header.Digest = [][]byte{}
+	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err
 	}
+
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

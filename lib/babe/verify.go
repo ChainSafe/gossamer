@@ -221,7 +221,7 @@ func checkForConsensusDigest(header *types.Header) (*types.ConsensusDigest, erro
 type epochVerifier struct {
 	blockState    BlockState
 	authorityData []*types.AuthorityData
-	randomness    byte // TODO: update to [32]byte when runtime is updated
+	randomness    [RandomnessLength]byte
 }
 
 // newEpochVerifier returns a Verifier for the epoch described by the given descriptor
@@ -233,7 +233,7 @@ func newEpochVerifier(blockState BlockState, descriptor *NextEpochDescriptor) (*
 	return &epochVerifier{
 		blockState:    blockState,
 		authorityData: descriptor.Authorities,
-		randomness:    descriptor.Randomness[0], // TODO: update to [32]byte when runtime is updated
+		randomness:    descriptor.Randomness,
 	}, nil
 }
 
@@ -247,7 +247,7 @@ func (b *epochVerifier) verifySlotWinner(slot uint64, header *types.BabeHeader) 
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness)
+	vrfInput := append(slotBytes, b.randomness[:]...)
 
 	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
@@ -349,6 +349,10 @@ func (b *epochVerifier) verifyAuthorshipRight(header *types.Header) (bool, error
 }
 
 func getBlockProducerIndex(header *types.Header) (uint64, error) {
+	if len(header.Digest) == 0 {
+		return 0, fmt.Errorf("no digest provided")
+	}
+
 	preDigestBytes := header.Digest[0]
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)

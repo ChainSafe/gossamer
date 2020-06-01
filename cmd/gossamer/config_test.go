@@ -40,8 +40,8 @@ import (
 
 // TODO: TestSetDotRPCConfig - add cmd config tests
 
-// TestConfigFromNodeFlag tests createDotConfig using the --node flag
-func TestConfigFromNodeFlag(t *testing.T) {
+// TestConfigFromChainFlag tests createDotConfig using the --chain flag
+func TestConfigFromChainFlag(t *testing.T) {
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
 
@@ -52,14 +52,14 @@ func TestConfigFromNodeFlag(t *testing.T) {
 		expected    *dot.Config
 	}{
 		{
-			"Test gossamer --node gssmr",
-			[]string{"node"},
+			"Test gossamer --chain gssmr",
+			[]string{"chain"},
 			[]interface{}{"gssmr"},
 			dot.GssmrConfig(),
 		},
 		{
-			"Test gossamer --node ksmcc",
-			[]string{"node"},
+			"Test gossamer --chain ksmcc",
+			[]string{"chain"},
 			[]interface{}{"ksmcc"},
 			dot.KsmccConfig(),
 		},
@@ -139,39 +139,39 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config"},
 			[]interface{}{testCfgFile.Name()},
 			dot.GlobalConfig{
-				Name:    testCfg.Global.Name,
-				ID:      testCfg.Global.ID,
-				DataDir: testCfg.Global.DataDir,
+				Name:     testCfg.Global.Name,
+				ID:       testCfg.Global.ID,
+				BasePath: testCfg.Global.BasePath,
 			},
 		},
 		{
-			"Test gossamer --node",
-			[]string{"config", "node"},
+			"Test gossamer --chain",
+			[]string{"config", "chain"},
 			[]interface{}{testCfgFile.Name(), "ksmcc"},
 			dot.GlobalConfig{
-				Name:    testCfg.Global.Name,
-				ID:      "ksmcc",
-				DataDir: testCfg.Global.DataDir,
+				Name:     testCfg.Global.Name,
+				ID:       "ksmcc",
+				BasePath: testCfg.Global.BasePath,
 			},
 		},
 		{
-			"Test gossamer --node",
+			"Test gossamer --name",
 			[]string{"config", "name"},
 			[]interface{}{testCfgFile.Name(), "test_name"},
 			dot.GlobalConfig{
-				Name:    "test_name",
-				ID:      testCfg.Global.ID,
-				DataDir: testCfg.Global.DataDir,
+				Name:     "test_name",
+				ID:       testCfg.Global.ID,
+				BasePath: testCfg.Global.BasePath,
 			},
 		},
 		{
-			"Test gossamer --datadir",
-			[]string{"config", "datadir"},
-			[]interface{}{testCfgFile.Name(), "test_datadir"},
+			"Test gossamer --basepath",
+			[]string{"config", "basepath"},
+			[]interface{}{testCfgFile.Name(), "test_basepath"},
 			dot.GlobalConfig{
-				Name:    testCfg.Global.Name,
-				ID:      testCfg.Global.ID,
-				DataDir: "test_datadir",
+				Name:     testCfg.Global.Name,
+				ID:       testCfg.Global.ID,
+				BasePath: "test_basepath",
 			},
 		},
 		{
@@ -179,9 +179,9 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config", "roles"},
 			[]interface{}{testCfgFile.Name(), "1"},
 			dot.GlobalConfig{
-				Name:    testCfg.Global.Name,
-				ID:      testCfg.Global.ID,
-				DataDir: testCfg.Global.DataDir,
+				Name:     testCfg.Global.Name,
+				ID:       testCfg.Global.ID,
+				BasePath: testCfg.Global.BasePath,
 			},
 		},
 	}
@@ -450,7 +450,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Port:    5678,
 				Host:    testCfg.RPC.Host,
 				Modules: testCfg.RPC.Modules,
-				WSPort:  6678,
+				WSPort:  testCfg.RPC.WSPort,
 			},
 		},
 		{
@@ -463,6 +463,45 @@ func TestRPCConfigFromFlags(t *testing.T) {
 				Host:    testCfg.RPC.Host,
 				Modules: []string{"mod1", "mod2"},
 				WSPort:  testCfg.RPC.WSPort,
+			},
+		},
+		{
+			"Test gossamer --wsport",
+			[]string{"config", "wsport"},
+			[]interface{}{testCfgFile.Name(), "7070"},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    7070,
+				WSEnabled: false,
+			},
+		},
+		{
+			"Test gossamer --ws",
+			[]string{"config", "ws"},
+			[]interface{}{testCfgFile.Name(), false},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    testCfg.RPC.WSPort,
+				WSEnabled: false,
+			},
+		},
+		{
+			"Test gossamer --ws",
+			[]string{"config", "ws"},
+			[]interface{}{testCfgFile.Name(), true},
+			dot.RPCConfig{
+				Enabled:   testCfg.RPC.Enabled,
+				Port:      testCfg.RPC.Port,
+				Host:      testCfg.RPC.Host,
+				Modules:   testCfg.RPC.Modules,
+				WSPort:    testCfg.RPC.WSPort,
+				WSEnabled: true,
 			},
 		},
 	}
@@ -495,9 +534,9 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:    testCfg.Global.Name,
-			ID:      testCfg.Global.ID,
-			DataDir: testCfg.Global.DataDir,
+			Name:     testCfg.Global.Name,
+			ID:       testCfg.Global.ID,
+			BasePath: testCfg.Global.BasePath,
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
@@ -506,6 +545,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 		Core:    testCfg.Core,
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
+		System:  testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -535,9 +575,9 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:    testCfg.Global.Name,
-			ID:      testCfg.Global.ID,
-			DataDir: testCfg.Global.DataDir,
+			Name:     testCfg.Global.Name,
+			ID:       testCfg.Global.ID,
+			BasePath: testCfg.Global.BasePath,
 		},
 		Init: dot.InitConfig{
 			Genesis: DefaultCfg.Init.Genesis,
@@ -546,6 +586,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		Core:    testCfg.Core,
 		Network: testCfg.Network,
 		RPC:     testCfg.RPC,
+		System:  testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -571,9 +612,9 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:    testCfg.Global.Name,
-			ID:      testCfg.Global.ID,
-			DataDir: testCfg.Global.DataDir,
+			Name:     testCfg.Global.Name,
+			ID:       testCfg.Global.ID,
+			BasePath: testCfg.Global.BasePath,
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
@@ -587,7 +628,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			NoBootstrap: testCfg.Network.NoBootstrap,
 			NoMDNS:      testCfg.Network.NoMDNS,
 		},
-		RPC: testCfg.RPC,
+		RPC:    testCfg.RPC,
+		System: testCfg.System,
 	}
 
 	cfg, err := createDotConfig(ctx)
@@ -595,7 +637,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	db, err := database.NewBadgerDB(cfg.Global.DataDir)
+	db, err := database.NewBadgerDB(cfg.Global.BasePath)
 	require.Nil(t, err)
 
 	gen, err := genesis.NewGenesisFromJSON(genFile.Name())

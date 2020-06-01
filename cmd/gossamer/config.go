@@ -21,12 +21,11 @@ import (
 	"strconv"
 	"strings"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -34,20 +33,20 @@ import (
 // DefaultCfg is the default configuration
 var DefaultCfg = dot.GssmrConfig() // TODO: investigate default node other than gssmr #776
 
-// loadConfigFile loads a default config file if --node is specified, a specific
+// loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
 func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
-	// check --node flag and load node configuration from defaults.go
-	if id := ctx.GlobalString(NodeFlag.Name); id != "" {
+	// check --chain flag and load configuration from defaults.go
+	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
 		case "gssmr":
-			log.Debug("[cmd] loading node implementation...", "id", id)
+			log.Debug("[cmd] loading default configuration...", "id", id)
 			cfg = dot.GssmrConfig() // "gssmr" = dot.GssmrConfig()
 		case "ksmcc":
-			log.Debug("[cmd] loading node implementation...", "id", id)
+			log.Debug("[cmd] loading default configuration...", "id", id)
 			cfg = dot.KsmccConfig() // "ksmcc" = dot.KsmccConfig()
 		default:
-			return nil, fmt.Errorf("unknown node implementation: %s", id)
+			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
 	}
 
@@ -55,23 +54,23 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	if config := ctx.GlobalString(ConfigFlag.Name); config != "" {
 		log.Info("[cmd] loading toml configuration...", "config", config)
 		if cfg == nil {
-			cfg = &dot.Config{} // if configuration has not been set, create empty dot configuration
+			cfg = &dot.Config{} // if configuration not set, create empty dot configuration
 		} else {
 			log.Warn(
-				"[cmd] overwriting node implementation with toml configuration values",
+				"[cmd] overwriting default configuration with toml configuration values",
 				"id", cfg.Global.ID,
 				"config", config,
 			)
 		}
-		err = dot.LoadConfig(cfg, config) // load toml configuration values into dot configuration
+		err = dot.LoadConfig(cfg, config) // load toml values into dot configuration
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// if configuration has not been set, load "gssmr" node implemenetation from node/gssmr/defaults.go
+	// if default configuration not set, load "gssmr" default configuration
 	if cfg == nil {
-		log.Info("[cmd] loading default implementation...", "id", "gssmr")
+		log.Info("[cmd] loading default configuration...", "id", "gssmr")
 		cfg = DefaultCfg
 	}
 
@@ -95,6 +94,9 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
 
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
+
 	return cfg, nil
 }
 
@@ -111,6 +113,9 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// set init configuration values
 	setDotInitConfig(ctx, &cfg.Init)
+
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
 
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSON(ctx, cfg)
@@ -137,6 +142,9 @@ func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
 
+	// set system info
+	setSystemInfoConfig(ctx, cfg)
+
 	return cfg
 }
 
@@ -160,21 +168,21 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.Name = name
 	}
 
-	// check --node flag and update node configuration
-	if id := ctx.GlobalString(NodeFlag.Name); id != "" {
+	// check --chain flag and update node configuration
+	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		cfg.ID = id
 	}
 
-	// check --datadir flag and update node configuration
-	if datadir := ctx.GlobalString(DataDirFlag.Name); datadir != "" {
-		cfg.DataDir = datadir
+	// check --basepath flag and update node configuration
+	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
+		cfg.BasePath = basepath
 	}
 
 	log.Debug(
 		"[cmd] global configuration",
 		"name", cfg.Name,
 		"id", cfg.ID,
-		"datadir", cfg.DataDir,
+		"basepath", cfg.BasePath,
 	)
 }
 
@@ -294,7 +302,6 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 	// check --rpcport flag and update node configuration
 	if port := ctx.GlobalUint(RPCPortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
-		cfg.WSPort = uint32(port) + 1000
 	}
 
 	// check --rpchost flag and update node configuration
@@ -305,6 +312,16 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 	// check --rpcmods flag and update node configuration
 	if modules := ctx.GlobalString(RPCModulesFlag.Name); modules != "" {
 		cfg.Modules = strings.Split(ctx.GlobalString(RPCModulesFlag.Name), ",")
+	}
+
+	if wsport := ctx.GlobalUint(WSPortFlag.Name); wsport != 0 {
+		cfg.WSPort = uint32(wsport)
+	}
+
+	if wsenabled := ctx.GlobalBool(WSEnabledFlag.Name); wsenabled {
+		cfg.WSEnabled = true
+	} else {
+		cfg.WSEnabled = false
 	}
 
 	// format rpc modules
@@ -318,7 +335,22 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
+		"ws", cfg.WSEnabled,
+		"wsport", cfg.WSPort,
 	)
+}
+
+func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
+	// load system information
+	if ctx.App != nil {
+		cfg.System.SystemName = ctx.App.Name
+		cfg.System.SystemVersion = ctx.App.Version
+	}
+
+	// TODO lookup system properties from genesis file and set here (See issue #865)
+	cfg.System.NodeName = cfg.Global.Name
+	props := make(map[string]interface{})
+	cfg.System.SystemProperties = props
 }
 
 // updateDotConfigFromGenesisJSON updates the configuration based on the genesis file values
@@ -345,7 +377,7 @@ func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 	}
 
 	// check genesis id and use genesis id if configuration does not match
-	if !ctx.GlobalIsSet(NodeFlag.Name) && gen.ID != cfg.Global.ID {
+	if !ctx.GlobalIsSet(ChainFlag.Name) && gen.ID != cfg.Global.ID {
 		log.Warn("[cmd] genesis mismatch, overwriting", "id", gen.ID)
 		cfg.Global.ID = gen.ID
 	}
@@ -387,7 +419,7 @@ func updateDotConfigFromGenesisJSON(ctx *cli.Context, cfg *dot.Config) {
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 
 	// initialize database using data directory
-	db, err := database.NewBadgerDB(cfg.Global.DataDir)
+	db, err := database.NewBadgerDB(cfg.Global.BasePath)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
@@ -403,8 +435,8 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 		cfg.Global.Name = gen.Name
 	}
 
-	// check genesis id and use genesis id if --node flag not set
-	if !ctx.GlobalIsSet(NodeFlag.Name) {
+	// check genesis id and use genesis id if --chain flag not set
+	if !ctx.GlobalIsSet(ChainFlag.Name) {
 		cfg.Global.ID = gen.ID
 	}
 

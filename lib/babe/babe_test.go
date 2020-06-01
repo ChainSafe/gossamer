@@ -21,7 +21,11 @@ import (
 	"math/big"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -31,13 +35,20 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+var emptyHash = trie.EmptyHash
+
 var genesisHeader = &types.Header{
 	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
+	StateRoot: emptyHash,
+}
+
+var emptyHeader = &types.Header{
+	Number: big.NewInt(0),
 }
 
 func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
-	rt := runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+	tt := trie.NewEmptyTrie()
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	babeCfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -54,8 +65,9 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 		cfg.Kill = make(chan struct{})
 	}
 
-	if cfg.Done == nil {
-		cfg.Done = make(chan struct{})
+	if cfg.EpochDone == nil {
+		cfg.EpochDone = new(sync.WaitGroup)
+		cfg.EpochDone.Add(1)
 	}
 
 	if cfg.NewBlocks == nil {
@@ -93,7 +105,7 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 
 		genesisData := new(genesis.Data)
 
-		err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
+		err = dbSrv.Initialize(genesisData, genesisHeader, tt)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,10 +131,9 @@ func createTestSession(t *testing.T, cfg *SessionConfig) *Session {
 
 func TestKill(t *testing.T) {
 	killChan := make(chan struct{})
-	doneChan := make(chan struct{})
+
 	cfg := &SessionConfig{
 		Kill: killChan,
-		Done: doneChan,
 	}
 
 	babesession := createTestSession(t, cfg)
@@ -131,12 +142,23 @@ func TestKill(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	close(killChan)
-	<-doneChan
-
-	if !babesession.closed {
-		t.Fatalf("did not kill session")
+	if atomic.LoadUint32(&babesession.started) == uint32(0) {
+		t.Fatalf("did not start session")
 	}
+
+	close(killChan)
+
+	babeSessionKilled := true
+	for i := 0; i < 10; i++ {
+		time.Sleep(1 * time.Second)
+		if atomic.LoadUint32(&babesession.started) == uint32(1) {
+			babeSessionKilled = false
+		} else {
+			break
+		}
+	}
+
+	require.True(t, babeSessionKilled, "did not kill session")
 }
 
 func TestCalculateThreshold(t *testing.T) {
@@ -261,7 +283,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		C1:                 1,
 		C2:                 10,
 		GenesisAuthorities: []*types.AuthorityDataRaw{},
-		Randomness:         0,
+		Randomness:         [32]byte{},
 		SecondarySlots:     false,
 	}
 
