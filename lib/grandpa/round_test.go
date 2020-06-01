@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -93,11 +92,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gs = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
-		r := 0
-		if i < 6 {
-			r = rand.Intn(2)
-		}
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15+r)
+		r := rand.Intn(4)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
 		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
 		require.NoError(t, err)
 	}
@@ -119,10 +115,31 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	finalized, err := gss[0].blockState.GetHeaderByNumber(big.NewInt(15))
-	require.NoError(t, err)
+	t.Log(gss[0].blockState.BlocktreeAsString())
+	finalized := gss[0].head
 
 	for _, gs := range gss {
 		require.Equal(t, finalized.Hash(), gs.head.Hash())
+	}
+}
+
+func TestPlayGrandpaRound_BaseCase(t *testing.T) {
+	// this asserts that all validators finalize the same block if they all see the
+	// same pre-votes and pre-commits, even if their chains are different lengths
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+
+	for i, gs := range gss {
+		gs = setupGrandpa(t, kr.Keys[i])
+		gss[i] = gs
+
+		r := 0
+		if i < 6 {
+			r = rand.Intn(4)
+		}
+
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
 	}
 }

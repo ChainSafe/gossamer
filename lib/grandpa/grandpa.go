@@ -38,7 +38,6 @@ type Service struct {
 
 	// current state information
 	state           *State                             // current state
-	subround        subround                           // current sub-round
 	prevotes        map[ed25519.PublicKeyBytes]*Vote   // pre-votes for next state
 	precommits      map[ed25519.PublicKeyBytes]*Vote   // pre-commits for next state
 	pvEquivocations map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
@@ -60,6 +59,8 @@ type Config struct {
 	BlockState BlockState
 	Voters     []*Voter
 	Keypair    *ed25519.Keypair
+	In         <-chan *VoteMessage
+	Out        chan<- *VoteMessage
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -95,7 +96,6 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 // initiate initates a GRANDPA round
 func (s *Service) initiate() error { //nolint
 	s.state.round++
-	s.subround = prevote
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)

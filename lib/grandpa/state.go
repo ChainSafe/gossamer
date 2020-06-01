@@ -34,4 +34,5 @@ type BlockState interface {
 	SetFinalizedHash(hash common.Hash) error
 	BestBlockHeader() (*types.Header, error)
 	Leaves() []common.Hash
+	BlocktreeAsString() string
 }
