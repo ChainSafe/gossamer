@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -53,6 +54,8 @@ type CoreAPI interface {
 	GetMetadata() ([]byte, error)
 	Stop() error
 	Start() error
+	SafeBabeKill() error
+	InitializeBabeSession() (*babe.Session, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service

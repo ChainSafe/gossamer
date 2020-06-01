@@ -27,7 +27,7 @@ import (
 )
 
 // initializeBabeSession creates a new BABE session
-func (s *Service) initializeBabeSession() (*babe.Session, error) {
+func (s *Service) InitializeBabeSession() (*babe.Session, error) {
 	log.Debug(
 		"[core] initializing BABE session...",
 		"epoch", s.syncer.verifier.EpochNumber(),

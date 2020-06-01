@@ -332,7 +332,7 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 	return nil
 }
 
-func (s *Service) safeBabeKill() error {
+func (s *Service) SafeBabeKill() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -352,7 +352,7 @@ func (s *Service) handleBabeSession() {
 	// TODO: fetch NextEpochDescriptor from verifier
 
 	// create new BABE session
-	bs, err := s.initializeBabeSession()
+	bs, err := s.InitializeBabeSession()
 	if err != nil {
 		log.Error("[core] failed to initialize BABE session", "error", err)
 		return
@@ -498,7 +498,7 @@ func (s *Service) checkForRuntimeChanges() error {
 
 		// kill babe session, handleBabeSession will reload it with the new runtime
 		if s.isBabeAuthority {
-			err = s.safeBabeKill()
+			err = s.SafeBabeKill()
 			if err != nil {
 				return err
 			}
