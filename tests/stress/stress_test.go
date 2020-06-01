@@ -19,6 +19,7 @@ package stress
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -44,6 +45,24 @@ var (
 	numNodes   = 3
 	maxRetries = 8
 )
+
+// compareChainHeads calls getChainHead for each node in the array
+// it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
+func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		header := utils.GetChainHead(t, node)
+		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
+		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
+	}
+
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node chain head hashes don't match")
+	}
+
+	return hashes, err
+}
 
 func TestMain(m *testing.M) {
 	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
@@ -107,7 +126,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(utils.HOSTNAME, nodes[idx].RPCPort), "\"0x"+txStr+"\"")
+	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse
@@ -120,7 +139,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	time.Sleep(time.Second * 5)
 	var hashes map[common.Hash][]string
 	for i := 0; i < maxRetries; i++ {
-		hashes, err = utils.CompareChainHeads(t, nodes)
+		hashes, err = compareChainHeads(t, nodes)
 		if err == nil {
 			break
 		}
@@ -166,7 +185,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// repeat sync check for sanity
 	time.Sleep(time.Second * 5)
 	for i = 0; i < maxRetries; i++ {
-		hashes, err = utils.CompareChainHeads(t, nodes)
+		hashes, err = compareChainHeads(t, nodes)
 		if err == nil {
 			break
 		}

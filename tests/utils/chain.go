@@ -17,7 +17,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -25,13 +24,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
 // GetHeader calls the endpoint chain_getHeader
 func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nolint
-	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME, node.RPCPort), "[\""+hash.String()+"\"]")
+	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -43,7 +41,7 @@ func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nol
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
 func GetChainHead(t *testing.T, node *Node) *types.Header {
-	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(HOSTNAME, node.RPCPort), "[]")
+	respBody, err := PostRPC(t, ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
 	header := new(modules.ChainBlockHeaderResponse)
@@ -55,7 +53,7 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 
 // GetBlock calls the endpoint chain_getBlock
 func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
-	respBody, err := PostRPC(t, ChainGetBlock, NewEndpoint(HOSTNAME, node.RPCPort), "[\""+hash.String()+"\"]")
+	respBody, err := PostRPC(t, ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
 	block := new(modules.ChainBlockResponse)
@@ -98,22 +96,4 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 		Header: h,
 		Body:   b,
 	}
-}
-
-// CompareChainHeads calls getChainHead for each node in the array
-// it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
-func CompareChainHeads(t *testing.T, nodes []*Node) (map[common.Hash][]string, error) {
-	hashes := make(map[common.Hash][]string)
-	for _, node := range nodes {
-		header := GetChainHead(t, node)
-		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
-		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
-	}
-
-	var err error
-	if len(hashes) != 1 {
-		err = errors.New("node chain head hashes don't match")
-	}
-
-	return hashes, err
 }
