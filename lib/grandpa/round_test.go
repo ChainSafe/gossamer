@@ -137,13 +137,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	t.Log(finalized.Hash())
 
 	for i, gs := range gss {
-		// TODO: is this correct? are different nodes allowed to finalize blocks that are on the same chain
-		// as other nodes, but not the same block?
-		// this is happening because some nodes are farther behind others, and thus can't accept votes
-		// that are farther along on the chain, since they haven't seen those blocks yet.
-		// since best-final-candidate is simply the pre-voted block, and if there is no block with >=2/3 prevotes,
-		// the pre-voted block is the block with the most votes, that ends up becoming what's finalized for those
-		// nodes that are farther behind.
+		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
 		require.True(t, onSameChain(gss[0].blockState, finalized.Hash(), gs.head.Hash()) || onSameChain(gs.blockState, finalized.Hash(), gs.head.Hash()), "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
 	}
 }
