@@ -71,4 +71,4 @@ Let us know if you have any feedback or ideas that might help us improve our doc
 
 ## Contribute
 
-Contributions to this site and its contents are more than welcome. We built it with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files are within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md) before getting started.
+Contributions to this site and its contents are more than welcome. We built this site with [jekyll](https://jekyllrb.com/) - the site configuration and markdown files are within [gossamer/docs](https://github.com/ChainSafe/gossamer/tree/development/docs). If you would like to contribute, please read [Code of Conduct](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [Contributing Guidelines](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md) before getting started.
