@@ -134,7 +134,6 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 	t.Log(gss[0].blockState.BlocktreeAsString())
 	finalized := gss[0].head
-	t.Log(finalized.Hash())
 
 	for i, gs := range gss {
 		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
