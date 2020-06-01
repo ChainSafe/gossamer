@@ -336,16 +336,14 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 			return Vote{}, err
 		}
 
-		if len(blocks) != 0 || threshold == 1 {
+		threshold--
+		if len(blocks) > 0 || threshold == 0 {
 			break
 		}
-
-		threshold--
 	}
 
-	if threshold == 1 {
-		v, err := s.determinePreVote()
-		return *v, err
+	if len(blocks) == 0 {
+		return Vote{}, ErrNoGHOST
 	}
 
 	// if there are multiple, find the one with the highest number and return it
@@ -375,7 +373,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 	votes := s.getDirectVotes(stage)
 	blocks := make(map[common.Hash]uint64)
 
-	// check if any of them have >=2/3 votes
+	// check if any of them have >=threshold votes
 	for v := range votes {
 		total, err := s.getTotalVotesForBlock(v.hash, stage)
 		if err != nil {
@@ -387,13 +385,13 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 		}
 	}
 
-	// since we want to select the block with the highest number that has >=2/3 votes,
+	// since we want to select the block with the highest number that has >=threshold votes,
 	// we can return here since their ancestors won't have a higher number.
 	if len(blocks) != 0 {
 		return blocks, nil
 	}
 
-	// no block has >=2/3 direct votes, check for votes for ancestors recursively
+	// no block has >=threshold direct votes, check for votes for ancestors recursively
 	var err error
 	va := s.getVotes(stage)
 
