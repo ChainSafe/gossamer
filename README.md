@@ -87,7 +87,7 @@ start kusama node:
 ./bin/gossamer --chain ksmcc --key alice
 ```
 
-## Run Polkadot Node
+### Run Polkadot Node
 
 initialize polkadot node:
 ```
