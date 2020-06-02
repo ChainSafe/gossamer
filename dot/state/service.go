@@ -216,11 +216,6 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create block state: %s", err)
 	}
 
-	// headBlock, err := s.Block.GetHeader(s.Block.BestBlockHash())
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get chain head from database: %s", err)
-	// }
-
 	stateRoot, err := LoadLatestStorageHash(s.db)
 	if err != nil {
 		return fmt.Errorf("cannot load latest storage root: %s", err)
@@ -254,9 +249,6 @@ func (s *Service) Stop() error {
 	if err != nil {
 		return err
 	}
-
-	h, _ := s.Storage.trie.Hash()
-	log.Debug("[state] stored state root", "root", h)
 
 	err = s.Block.bt.Store()
 	if err != nil {
