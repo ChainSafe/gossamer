@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	database "github.com/ChainSafe/chaindb"
+
+	log "github.com/ChainSafe/log15"
 )
 
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
@@ -99,6 +101,8 @@ func StoreTrie(db database.Database, t *trie.Trie) error {
 	if err != nil {
 		return err
 	}
+
+	log.Debug("[state] storing trie", "root", roothash)
 
 	return db.Put(roothash[:], enc)
 }
