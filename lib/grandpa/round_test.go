@@ -152,10 +152,16 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage) {
+func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done bool) {
 	for v := range from {
 		for _, t := range to {
+			lock.Lock()
+			if done {
+				return
+			}
+
 			t <- v
+			lock.Unlock()
 		}
 	}
 }
@@ -171,11 +177,20 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	outs := make([]chan *VoteMessage, len(kr.Keys))
 	fins := make([]chan *types.Header, len(kr.Keys))
 
+	done := false
+	lock := sync.Mutex{}
+
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
 
-		defer close(in)
-		defer close(out)
+		defer func(gs *Service) {
+			lock.Lock()
+			close(in)
+			lock.Unlock()
+
+			gs.stopped.Store(true)
+			close(out)
+		}(gs)
 
 		gss[i] = gs
 		ins[i] = in
@@ -186,12 +201,12 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins)
+		go broadcastVotes(out, ins, &lock, done)
 	}
 
 	for _, gs := range gss {
 		time.Sleep(time.Millisecond * 100)
-		go gs.playGrandpaRound()
+		go gs.initiate()
 	}
 
 	wg := sync.WaitGroup{}
@@ -224,6 +239,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
+
+	// TODO: keep track of VoteMessages for blocks that don't exist yet, and try
+	// to re-validate them when we receive new blocks. this fixes the case where we may be
+	// behind on the syncing
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -232,28 +251,40 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	outs := make([]chan *VoteMessage, len(kr.Keys))
 	fins := make([]chan *types.Header, len(kr.Keys))
 
+	done := false
+	lock := sync.Mutex{}
+
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
 
-		defer close(in)
-		defer close(out)
+		defer func(gs *Service) {
+			lock.Lock()
+			close(in)
+			lock.Unlock()
+
+			gs.stopped.Store(true)
+			close(out)
+		}(gs)
 
 		gss[i] = gs
 		ins[i] = in
 		outs[i] = out
 		fins[i] = fin
 
-		r := rand.Intn(2)
+		r := 0
+		if i < 6 {
+			r = rand.Intn(2)
+		}
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins)
+		go broadcastVotes(out, ins, &lock, done)
 	}
 
 	for _, gs := range gss {
 		time.Sleep(time.Millisecond * 100)
-		go gs.playGrandpaRound()
+		go gs.initiate()
 	}
 
 	wg := sync.WaitGroup{}
@@ -284,8 +315,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 }
 
 func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
-	// this asserts that all validators finalize the same block if they all see the
-	// same pre-votes and pre-commits, even if their chains are different lengths
+	// this asserts that all validators finalize the same block even if 1/3 of voters equivocate
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -294,11 +324,21 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	outs := make([]chan *VoteMessage, len(kr.Keys))
 	fins := make([]chan *types.Header, len(kr.Keys))
 
+	done := false
+	lock := sync.Mutex{}
+	r := byte(rand.Intn(256))
+
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
 
-		defer close(in)
-		defer close(out)
+		defer func(gs *Service) {
+			lock.Lock()
+			close(in)
+			lock.Unlock()
+
+			gs.stopped.Store(true)
+			close(out)
+		}(gs)
 
 		gss[i] = gs
 		ins[i] = in
@@ -308,19 +348,19 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		// this creates a tree with 2 branches starting at depth 2
 		branches := make(map[int]int)
 		branches[2] = 1
-		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches)
+		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches, r)
 	}
 
-	// same blocktree for all nodes
+	// should have blocktree for all nodes
 	leaves := gss[0].blockState.Leaves()
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins)
+		go broadcastVotes(out, ins, &lock, done)
 	}
 
 	for _, gs := range gss {
 		time.Sleep(time.Millisecond * 100)
-		go gs.playGrandpaRound()
+		go gs.initiate()
 	}
 
 	// nodes 6, 7, 8 will equivocate
@@ -361,4 +401,85 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	for _, fb := range finalized {
 		require.Equal(t, finalized[0], fb)
 	}
+}
+
+func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
+	// this asserts that all validators finalize the same block in successive rounds
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+	ins := make([]chan *VoteMessage, len(kr.Keys))
+	outs := make([]chan *VoteMessage, len(kr.Keys))
+	fins := make([]chan *types.Header, len(kr.Keys))
+
+	done := false
+	lock := sync.Mutex{}
+
+	for i := range gss {
+		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
+
+		defer func(gs *Service) {
+			lock.Lock()
+			close(in)
+			lock.Unlock()
+
+			gs.stopped.Store(true)
+			close(out)
+		}(gs)
+
+		gss[i] = gs
+		ins[i] = in
+		outs[i] = out
+		fins[i] = fin
+
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4)
+	}
+
+	for _, out := range outs {
+		go broadcastVotes(out, ins, &lock, done)
+	}
+
+	for _, gs := range gss {
+		// start rounds at slightly different times to account for real-time node differences
+		time.Sleep(time.Millisecond * 100)
+		go gs.initiate()
+	}
+
+	rounds := 10
+
+	for j := 0; j < rounds; j++ {
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(kr.Keys))
+
+		finalized := make([]*types.Header, len(kr.Keys))
+
+		for i, fin := range fins {
+
+			go func(i int, fin <-chan *types.Header) {
+				select {
+				case f := <-fin:
+					t.Log(f)
+					finalized[i] = f
+				case <-time.After(testTimeout):
+					t.Errorf("did not receive finalized block from %d", i)
+				}
+				wg.Done()
+			}(i, fin)
+
+		}
+
+		wg.Wait()
+
+		for _, fb := range finalized {
+			require.Equal(t, finalized[0], fb)
+		}
+
+		for _, gs := range gss {
+			state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 1)
+		}
+
+	}
+
 }

@@ -17,7 +17,7 @@
 package grandpa
 
 import (
-	//"time"
+	"bytes"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -55,6 +55,11 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	msg, err := s.createVoteMessage(vote, stage, s.keypair)
 	if err != nil {
 		return err
+	}
+
+	// TOOD: this isn't actually safe
+	if s.stopped.Load().(bool) {
+		return nil
 	}
 
 	s.out <- msg
@@ -119,6 +124,12 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	vote := NewVote(m.message.hash, m.message.number)
+
+	// if the vote is from ourselves, ignore
+	kb := [32]byte(s.publicKeyBytes())
+	if bytes.Equal(m.message.authorityID[:], kb[:]) {
+		return vote, nil
+	}
 
 	equivocated := s.checkForEquivocation(voter, vote, m.stage)
 	if equivocated {
