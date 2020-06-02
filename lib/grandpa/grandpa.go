@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -35,6 +36,7 @@ type Service struct {
 	// preliminaries
 	blockState BlockState
 	keypair    *ed25519.Keypair //nolint
+	mapLock    sync.Mutex
 
 	// current state information
 	state           *State                             // current state
@@ -50,8 +52,9 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in  <-chan *VoteMessage
-	out chan<- *VoteMessage // TODO: make this generic
+	in        <-chan *VoteMessage
+	out       chan<- *VoteMessage  // TODO: make this generic
+	finalized chan<- *types.Header // channel that finalized blocks are output from at the end of a round
 }
 
 // Config represents a GRANDPA service configuration
@@ -61,6 +64,7 @@ type Config struct {
 	Keypair    *ed25519.Keypair
 	In         <-chan *VoteMessage
 	Out        chan<- *VoteMessage
+	Finalized  chan<- *types.Header
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -76,7 +80,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	return &Service{
-		state:              NewState(cfg.Voters, 0, 0),
+		state:              NewState(cfg.Voters, 0, 1),
 		blockState:         cfg.BlockState,
 		keypair:            cfg.Keypair,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
@@ -86,6 +90,9 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
+		in:                 cfg.In,
+		out:                cfg.Out,
+		finalized:          cfg.Finalized,
 	}, nil
 }
 
@@ -105,7 +112,7 @@ func (s *Service) initiate() error { //nolint
 	return s.playGrandpaRound()
 }
 
-func (s *Service) playGrandpaRound() error { //nolint
+func (s *Service) playGrandpaRound() error {
 	// save start time
 	start := time.Now()
 
@@ -117,12 +124,14 @@ func (s *Service) playGrandpaRound() error { //nolint
 		// TODO: broadcast finalization message
 	}
 
+	log.Debug("receiving pre-vote messages...")
+
 	s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
 
 		completable, err := s.isCompletable()
 		if err != nil {
-			log.Error("[grandpa] failed to check if round is completable", "error", err)
+			//log.Error("[grandpa] failed to check if round is completable", "error", err)
 		}
 
 		if time.Since(end) >= 0 || completable {
@@ -138,17 +147,21 @@ func (s *Service) playGrandpaRound() error { //nolint
 		return err
 	}
 
+	log.Debug("sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+
 	err = s.sendMessage(pv, prevote)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("receiving pre-vote messages...")
 
 	s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
 
 		completable, err := s.isCompletable() //nolint
 		if err != nil {
-			log.Error("[grandpa] failed to check if round is completable", "error", err)
+			//log.Error("[grandpa] failed to check if round is completable", "error", err)
 		}
 
 		if time.Since(end) >= 0 || completable {
@@ -163,6 +176,8 @@ func (s *Service) playGrandpaRound() error { //nolint
 	if err != nil {
 		return err
 	}
+
+	log.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
 
 	err = s.sendMessage(pc, precommit)
 	if err != nil {
@@ -179,7 +194,7 @@ func (s *Service) playGrandpaRound() error { //nolint
 	s.receiveMessages(func() bool {
 		completable, err := s.isCompletable()
 		if err != nil {
-			log.Error("[grandpa] failed to check if round is completable", "error", err)
+			//log.Error("[grandpa] failed to check if round is completable", "error", err)
 		}
 
 		finalizable, err := s.isFinalizable(s.state.round - 1)
@@ -198,7 +213,7 @@ func (s *Service) playGrandpaRound() error { //nolint
 }
 
 // attemptToFinalize loops until the round is finalizable
-func (s *Service) attemptToFinalize() error { //nolint
+func (s *Service) attemptToFinalize() error {
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
 		return err
@@ -209,6 +224,8 @@ func (s *Service) attemptToFinalize() error { //nolint
 		return err
 	}
 
+	log.Debug("attempt to finalize...", "votes for bfc", pc)
+
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
@@ -217,9 +234,12 @@ func (s *Service) attemptToFinalize() error { //nolint
 
 		// TODO: if we haven't received a finalization message for this block yet,
 		// broadcast a finalization message
+		log.Debug("finalized!!!", "head", s.head)
+		s.finalized <- s.head
 		return nil
 	}
 
+	time.Sleep(time.Millisecond * 100)
 	return s.attemptToFinalize()
 }
 
@@ -261,6 +281,11 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 func (s *Service) isFinalizable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
+
+	// TODO: in the case of a new authority set, keep track of last round number before change
+	if round == 0 {
+		return true, nil
+	}
 
 	if round == s.state.round {
 		pvb, err = s.getPreVotedBlock()
@@ -637,6 +662,9 @@ func (s *Service) getDirectVotes(stage subround) map[Vote]uint64 {
 	} else {
 		src = s.precommits
 	}
+
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
 
 	for _, v := range src {
 		votes[*v]++

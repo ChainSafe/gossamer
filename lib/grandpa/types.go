@@ -25,10 +25,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-type subround = byte
+type subround byte
 
 var prevote subround = 0
-var precommit subround = 1 //nolint
+var precommit subround = 1
+
+func (s subround) String() string {
+	if s == prevote {
+		return "prevote"
+	} else {
+		return "precommit"
+	}
+}
 
 // Voter represents a GRANDPA voter
 type Voter struct {
@@ -133,7 +141,7 @@ func (v *Vote) String() string {
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
-	stage byte
+	stage subround
 	vote  *Vote
 	round uint64
 	setID uint64
@@ -144,7 +152,7 @@ type FullVote struct {
 type VoteMessage struct {
 	setID   uint64
 	round   uint64
-	stage   byte // 0 for pre-vote, 1 for pre-commit
+	stage   subround // 0 for pre-vote, 1 for pre-commit
 	message *SignedMessage
 }
 

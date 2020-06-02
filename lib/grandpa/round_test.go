@@ -18,15 +18,20 @@ package grandpa
 
 import (
 	"math/rand"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/stretchr/testify/require"
 )
+
+var testTimeout = 15 * time.Second
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -44,20 +49,26 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) *Service {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *types.Header) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
+	in := make(chan *VoteMessage)
+	out := make(chan *VoteMessage)
+	finalized := make(chan *types.Header)
 
 	cfg := &Config{
 		BlockState: st.Block,
 		Voters:     voters,
 		Keypair:    kp,
+		In:         in,
+		Out:        out,
+		Finalized:  finalized,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	return gs
+	return gs, in, out, finalized
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
@@ -71,7 +82,7 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
 
 	for i, gs := range gss {
-		gs = setupGrandpa(t, kr.Keys[i])
+		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15)
 		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
@@ -106,7 +117,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
 
 	for i, gs := range gss {
-		gs = setupGrandpa(t, kr.Keys[i])
+		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 
 		r := rand.Intn(3)
@@ -141,6 +152,14 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
+func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage) {
+	for v := range from {
+		for _, t := range to {
+			t <- v
+		}
+	}
+}
+
 func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
@@ -148,16 +167,52 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
+	ins := make([]chan *VoteMessage, len(kr.Keys))
+	outs := make([]chan *VoteMessage, len(kr.Keys))
+	fins := make([]chan *types.Header, len(kr.Keys))
 
-	for i, gs := range gss {
-		gs = setupGrandpa(t, kr.Keys[i])
+	for i, _ := range gss {
+		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
+
+		defer close(in)
+		defer close(out)
+
 		gss[i] = gs
+		ins[i] = in
+		outs[i] = out
+		fins[i] = fin
 
-		r := 0
-		if i < 6 {
-			r = rand.Intn(4)
-		}
-
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4)
 	}
+
+	for _, out := range outs {
+		go broadcastVotes(out, ins)
+	}
+
+	for _, gs := range gss {
+		time.Sleep(time.Millisecond * 250)
+		go gs.playGrandpaRound()
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(kr.Keys))
+
+	finalized := make([]*types.Header, len(kr.Keys))
+
+	for i, fin := range fins {
+
+		go func(i int, fin <-chan *types.Header) {
+			select {
+			case f := <-fin:
+				t.Log(f)
+				finalized[i] = f
+			case <-time.After(testTimeout):
+				t.Errorf("did not receive finalized block from %d", i)
+			}
+			wg.Done()
+		}(i, fin)
+
+	}
+
+	wg.Wait()
 }

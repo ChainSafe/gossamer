@@ -28,19 +28,26 @@ import (
 
 // receiveMessages receives messages from the in channel until the specified end time is reached
 func (s *Service) receiveMessages(cond func() bool) {
-	for msg := range s.in {
+	go func() {
+		for msg := range s.in {
+			log.Debug("[grandpa] received vote message", "msg", msg)
+
+			v, err := s.validateMessage(msg)
+			if err != nil {
+				log.Debug("[grandpa] failed to validate vote message", "message", msg, "error", err)
+				continue
+			}
+
+			log.Debug("[grandpa] validated vote message", "vote", v, "subround", msg.stage)
+		}
+	}()
+
+	for {
 		if cond() {
 			return
 		}
-
-		v, err := s.validateMessage(msg)
-		if err != nil {
-			log.Debug("[grandpa] failed to validate vote message", "message", msg, "error", err)
-			continue
-		}
-
-		log.Debug("[grandpa] validated vote message", "vote", v)
 	}
+
 }
 
 // sendMessage sends a message through the out channel
@@ -123,6 +130,9 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
 	if m.stage == prevote {
 		s.prevotes[pk.AsBytes()] = vote
 	} else if m.stage == precommit {
@@ -141,6 +151,9 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 	var eq map[ed25519.PublicKeyBytes][]*Vote
 	var votes map[ed25519.PublicKeyBytes]*Vote
 
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
 	if stage == prevote {
 		eq = s.pvEquivocations
 		votes = s.prevotes
@@ -149,13 +162,14 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 		votes = s.precommits
 	}
 
+	// TODO: check for votes we've already seen
 	if eq[v] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
 		return true
 	}
 
-	if votes[v] != nil {
+	if votes[v] != nil && votes[v].hash != vote.hash {
 		// the voter has already voted, all their votes are now equivocatory
 		prev := votes[v]
 		eq[v] = []*Vote{prev, vote}
