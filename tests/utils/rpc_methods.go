@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2020 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,17 +14,17 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package utils
 
+//nolint
 var (
-	// BestBlockHashKey is the db location the hash of the best (unfinalized) block header.
-	BestBlockHashKey = []byte("best_hash")
-	// LatestStorageHashKey is the db location of the hash of the latest storage trie.
-	LatestStorageHashKey = []byte("latest_storage_hash")
-	// FinalizedBlockHashKey is the db location of the hash of the latest finalized block header.
-	FinalizedBlockHashKey = []byte("finalized_head")
-	// GenesisDataKey is the db location of the genesis data.
-	GenesisDataKey = []byte("genesis_data")
-	// BlockTreeKey is the db location of the encoded block tree structure.
-	BlockTreeKey = []byte("block_tree")
+	// CHAIN METHODS
+	ChainGetBlock  = "chain_getBlock"
+	ChainGetHeader = "chain_getHeader"
+
+	// AUTHOR METHODS
+	AuthorSubmitExtrinsic = "author_submitExtrinsic"
+
+	// STATE METHODS
+	StateGetStorage = "state_getStorage"
 )

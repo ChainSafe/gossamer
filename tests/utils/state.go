@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2020 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,17 +14,29 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package utils
 
-var (
-	// BestBlockHashKey is the db location the hash of the best (unfinalized) block header.
-	BestBlockHashKey = []byte("best_hash")
-	// LatestStorageHashKey is the db location of the hash of the latest storage trie.
-	LatestStorageHashKey = []byte("latest_storage_hash")
-	// FinalizedBlockHashKey is the db location of the hash of the latest finalized block header.
-	FinalizedBlockHashKey = []byte("finalized_head")
-	// GenesisDataKey is the db location of the genesis data.
-	GenesisDataKey = []byte("genesis_data")
-	// BlockTreeKey is the db location of the encoded block tree structure.
-	BlockTreeKey = []byte("block_tree")
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 )
+
+// GetStorage calls the endpoint state_getStorage
+func GetStorage(t *testing.T, node *Node, key []byte) []byte {
+	respBody, err := PostRPC(t, StateGetStorage, NewEndpoint(node.RPCPort), "[\""+common.BytesToHex(key)+"\"]")
+	require.NoError(t, err)
+
+	v := new(string)
+	err = DecodeRPC(t, respBody, v)
+	require.NoError(t, err)
+	if *v == "" {
+		return []byte{}
+	}
+
+	value, err := common.HexToBytes(*v)
+	require.NoError(t, err)
+
+	return value
+}

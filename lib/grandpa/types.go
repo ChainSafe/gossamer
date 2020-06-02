@@ -36,6 +36,11 @@ type Voter struct {
 	id  uint64 //nolint:unused
 }
 
+// PublicKeyBytes returns the voter key as PublicKeyBytes
+func (v *Voter) PublicKeyBytes() ed25519.PublicKeyBytes {
+	return v.key.AsBytes()
+}
+
 // State represents a GRANDPA state
 type State struct {
 	voters []*Voter // set of voters
@@ -122,7 +127,7 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 }
 
 func (v *Vote) String() string {
-	return fmt.Sprintf("hash=0x%s number=%d", v.hash, v.number)
+	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
 
 // FullVote represents a vote with additional information about the state
