@@ -124,7 +124,7 @@ func (s *Service) playGrandpaRound() error {
 		// TODO: broadcast finalization message
 	}
 
-	log.Debug("receiving pre-vote messages...")
+	log.Debug("grandpa] receiving pre-vote messages...")
 
 	s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
@@ -147,7 +147,7 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	log.Debug("sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+	log.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
 
 	err = s.sendMessage(pv, prevote)
 	if err != nil {
@@ -202,6 +202,10 @@ func (s *Service) playGrandpaRound() error {
 			log.Error("[grandpa] failed to check if round is finalizable", "error", err)
 		}
 
+		if s.bestFinalCandidate[s.state.round-1] == nil {
+			return false
+		}
+
 		if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
 			return true
 		}
@@ -224,7 +228,7 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	log.Debug("attempt to finalize...", "votes for bfc", pc)
+	log.Debug("[grandpa] attempt to finalize...", "votes for bfc", pc)
 
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
@@ -234,7 +238,7 @@ func (s *Service) attemptToFinalize() error {
 
 		// TODO: if we haven't received a finalization message for this block yet,
 		// broadcast a finalization message
-		log.Debug("finalized!!!", "head", s.head)
+		log.Debug("[grandpa] finalized!!!", "head", s.head)
 		s.finalized <- s.head
 		return nil
 	}

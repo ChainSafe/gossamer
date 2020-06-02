@@ -171,7 +171,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	outs := make([]chan *VoteMessage, len(kr.Keys))
 	fins := make([]chan *types.Header, len(kr.Keys))
 
-	for i, _ := range gss {
+	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
 
 		defer close(in)
@@ -190,7 +190,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	for _, gs := range gss {
-		time.Sleep(time.Millisecond * 250)
+		time.Sleep(time.Millisecond * 100)
 		go gs.playGrandpaRound()
 	}
 
@@ -215,4 +215,150 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	wg.Wait()
+
+	for _, fb := range finalized {
+		require.Equal(t, finalized[0], fb)
+	}
+}
+
+func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
+	// this asserts that all validators finalize the same block if they all see the
+	// same pre-votes and pre-commits, even if their chains are different lengths
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+	ins := make([]chan *VoteMessage, len(kr.Keys))
+	outs := make([]chan *VoteMessage, len(kr.Keys))
+	fins := make([]chan *types.Header, len(kr.Keys))
+
+	for i := range gss {
+		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
+
+		defer close(in)
+		defer close(out)
+
+		gss[i] = gs
+		ins[i] = in
+		outs[i] = out
+		fins[i] = fin
+
+		r := rand.Intn(2)
+		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
+	}
+
+	for _, out := range outs {
+		go broadcastVotes(out, ins)
+	}
+
+	for _, gs := range gss {
+		time.Sleep(time.Millisecond * 100)
+		go gs.playGrandpaRound()
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(kr.Keys))
+
+	finalized := make([]*types.Header, len(kr.Keys))
+
+	for i, fin := range fins {
+
+		go func(i int, fin <-chan *types.Header) {
+			select {
+			case f := <-fin:
+				t.Log(f)
+				finalized[i] = f
+			case <-time.After(testTimeout):
+				t.Errorf("did not receive finalized block from %d", i)
+			}
+			wg.Done()
+		}(i, fin)
+
+	}
+
+	wg.Wait()
+
+	for _, fb := range finalized {
+		require.Equal(t, finalized[0], fb)
+	}
+}
+
+func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
+	// this asserts that all validators finalize the same block if they all see the
+	// same pre-votes and pre-commits, even if their chains are different lengths
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gss := make([]*Service, len(kr.Keys))
+	ins := make([]chan *VoteMessage, len(kr.Keys))
+	outs := make([]chan *VoteMessage, len(kr.Keys))
+	fins := make([]chan *types.Header, len(kr.Keys))
+
+	for i := range gss {
+		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
+
+		defer close(in)
+		defer close(out)
+
+		gss[i] = gs
+		ins[i] = in
+		outs[i] = out
+		fins[i] = fin
+
+		// this creates a tree with 2 branches starting at depth 2
+		branches := make(map[int]int)
+		branches[2] = 1
+		state.AddBlocksToStateWithFixedBranches(t, gs.blockState.(*state.BlockState), 4, branches)
+	}
+
+	// same blocktree for all nodes
+	leaves := gss[0].blockState.Leaves()
+
+	for _, out := range outs {
+		go broadcastVotes(out, ins)
+	}
+
+	for _, gs := range gss {
+		time.Sleep(time.Millisecond * 100)
+		go gs.playGrandpaRound()
+	}
+
+	// nodes 6, 7, 8 will equivocate
+	for _, gs := range gss {
+		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
+		require.NoError(t, err)
+
+		vmsg, err := gs.createVoteMessage(vote, prevote, gs.keypair)
+		require.NoError(t, err)
+
+		for _, in := range ins {
+			in <- vmsg
+		}
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(kr.Keys))
+
+	finalized := make([]*types.Header, len(kr.Keys))
+
+	for i, fin := range fins {
+
+		go func(i int, fin <-chan *types.Header) {
+			select {
+			case f := <-fin:
+				t.Log(f)
+				finalized[i] = f
+			case <-time.After(testTimeout):
+				t.Errorf("did not receive finalized block from %d", i)
+			}
+			wg.Done()
+		}(i, fin)
+
+	}
+
+	wg.Wait()
+
+	for _, fb := range finalized {
+		require.Equal(t, finalized[0], fb)
+	}
 }

@@ -33,9 +33,11 @@ var precommit subround = 1
 func (s subround) String() string {
 	if s == prevote {
 		return "prevote"
-	} else {
+	} else if s == precommit {
 		return "precommit"
 	}
+
+	return "unknown"
 }
 
 // Voter represents a GRANDPA voter
