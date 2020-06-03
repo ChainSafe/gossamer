@@ -190,6 +190,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 		defer func(gs *Service) {
 			lock.Lock()
+			done = true
 			close(in)
 			lock.Unlock()
 
@@ -266,6 +267,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 		defer func(gs *Service) {
 			lock.Lock()
+			done = true
 			close(in)
 			lock.Unlock()
 
@@ -342,6 +344,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 		defer func(gs *Service) {
 			lock.Lock()
+			done = true
 			close(in)
 			lock.Unlock()
 
@@ -432,6 +435,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		defer func(gs *Service) {
 			lock.Lock()
+			done = true
 			close(in)
 			lock.Unlock()
 
