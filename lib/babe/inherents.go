@@ -34,7 +34,7 @@ var (
 )
 
 // InherentsData contains a mapping of inherent keys to values
-// keys must be 8 bytes, values are a variable-length byte array
+// keys must be 8 bytes, values are a scale-encoded byte array
 type InherentsData struct {
 	data map[[8]byte]([]byte)
 }
@@ -56,6 +56,24 @@ func (d *InherentsData) SetInt64Inherent(key []byte, data uint64) error {
 	binary.LittleEndian.PutUint64(val, data)
 
 	venc, err := scale.Encode(val)
+	if err != nil {
+		return err
+	}
+
+	kb := [8]byte{}
+	copy(kb[:], key)
+
+	d.data[kb] = venc
+	return nil
+}
+
+// SetBigIntInherent set as a big.Int (compact int) inherent
+func (d *InherentsData) SetBigIntInherent(key []byte, data *big.Int) error {
+	if len(key) != 8 {
+		return errors.New("inherent key must be 8 bytes")
+	}
+
+	venc, err := scale.Encode(data)
 	if err != nil {
 		return err
 	}
