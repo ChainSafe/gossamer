@@ -87,10 +87,15 @@ func (d *InherentsData) SetBigIntInherent(key []byte, data *big.Int) error {
 		return err
 	}
 
+	lenc, err := scale.Encode(big.NewInt(int64(len(venc))))
+	if err != nil {
+		return err
+	}
+
 	kb := [8]byte{}
 	copy(kb[:], key)
 
-	d.data[kb] = venc
+	d.data[kb] = append(lenc, venc...)
 	return nil
 }
 
