@@ -7,7 +7,7 @@ permalink: /
   <img alt="Gossamer logo" style="opacity: 0.9" src="https://chainsafe.github.io/gossamer/assets/img/gossamer_banner_white.png" width="500" />
 </div>
 <div align="center">
-  <h1 style="font-size: 110%">Gossamer Docs | <i>The Official Documentation for Gossamer</i></h1>
+  <h1 class="title">Gossamer Docs | <i>The Official Documentation for Gossamer</i></h1>
 </div>
 <br/>
 

@@ -19,7 +19,7 @@ The `gossamer` command accepts the following ***local flags*** and ***global fla
 --name value       Node implementation name
 --chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
---datadir value    Data directory for the node
+--base-path value    Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
 --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
 --port value       Set network listening port (default: 0)
@@ -69,7 +69,7 @@ List of ***local flags*** for `init` subcommand:
 --name value       Node implementation name
 --chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
---datadir value    Data directory for the node
+--base-path value    Data directory for the node
 ```
 
 List of ***local flags*** for `account` subcommand:
@@ -86,7 +86,7 @@ List of ***local flags*** for `account` subcommand:
 --name value       Node implementation name
 --chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
---datadir value    Data directory for the node
+--base-path value    Data directory for the node
 ```
 
 List of ***local flag*** options for `export` subcommand:
@@ -98,7 +98,7 @@ List of ***local flag*** options for `export` subcommand:
 --name value       Node implementation name
 --chain value       Node implementation id used to load default node configuration
 --config value     TOML configuration file
---datadir value    Data directory for the node
+--base-path value    Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
 --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
 --port value       Set network listening port (default: 0)
@@ -169,7 +169,7 @@ cp cfg/gssmr/config.toml cfg/gssmr/bob.toml
 ./bin/gossamer --key bob --config cfg/gssmr/bob.toml
 ```
 
-or run with port, datadir flags:
+or run with port, base-path flags:
 ```
 ./bin/gossmer --key bob --port 7002 --base-path ~/.gossamer/gssmr-bob --roles 4
 ```

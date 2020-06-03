@@ -37,7 +37,7 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `1.13.7`
+install go version `>=1.13`
 
 ### Installation
 
@@ -75,7 +75,7 @@ start gossamer node:
 ./bin/gossamer --chain gssmr --key alice
 ```
 
-### Run Kusama Node
+### Run Kusama Node (_in development_)
 
 initialize kusama node:
 ```
@@ -87,7 +87,7 @@ start kusama node:
 ./bin/gossamer --chain ksmcc --key alice
 ```
 
-### Run Polkadot Node
+### Run Polkadot Node (_in development_)
 
 initialize polkadot node:
 ```
