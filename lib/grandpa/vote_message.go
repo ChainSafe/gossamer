@@ -57,7 +57,9 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return err
 	}
 
-	// TOOD: this isn't actually safe
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
 	if s.stopped.Load().(bool) {
 		return nil
 	}

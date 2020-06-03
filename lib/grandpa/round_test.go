@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTimeout = 15 * time.Second
+var testTimeout = 10 * time.Second
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -152,15 +152,20 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done bool) {
+func broadcastVotes(t *testing.T, from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done *bool) {
 	for v := range from {
-		for _, t := range to {
+		for _, tc := range to {
 			lock.Lock()
-			if done {
+			if *done {
 				return
 			}
 
-			t <- v
+			select {
+			case tc <- v:
+			case <-time.After(testTimeout):
+				t.Error("could not write to channel")
+			}
+
 			lock.Unlock()
 		}
 	}
@@ -188,8 +193,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 			close(in)
 			lock.Unlock()
 
+			gs.chanLock.Lock()
 			gs.stopped.Store(true)
 			close(out)
+			gs.chanLock.Unlock()
 		}(gs)
 
 		gss[i] = gs
@@ -201,7 +208,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, done)
+		go broadcastVotes(t, out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -262,8 +269,10 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			close(in)
 			lock.Unlock()
 
+			gs.chanLock.Lock()
 			gs.stopped.Store(true)
 			close(out)
+			gs.chanLock.Unlock()
 		}(gs)
 
 		gss[i] = gs
@@ -279,7 +288,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, done)
+		go broadcastVotes(t, out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -336,8 +345,10 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			close(in)
 			lock.Unlock()
 
+			gs.chanLock.Lock()
 			gs.stopped.Store(true)
 			close(out)
+			gs.chanLock.Unlock()
 		}(gs)
 
 		gss[i] = gs
@@ -355,7 +366,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	leaves := gss[0].blockState.Leaves()
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, done)
+		go broadcastVotes(t, out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -424,8 +435,10 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			close(in)
 			lock.Unlock()
 
+			gs.chanLock.Lock()
 			gs.stopped.Store(true)
 			close(out)
+			gs.chanLock.Unlock()
 		}(gs)
 
 		gss[i] = gs
@@ -437,7 +450,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, done)
+		go broadcastVotes(t, out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {

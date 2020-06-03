@@ -170,20 +170,21 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	var chain []*types.Header
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(rand.Intn(256)))
+	leaves := gs.blockState.Leaves()
 
-	for {
-		chain, branches = state.AddBlocksToState(t, st.Block, 8)
-		if len(branches) != 0 {
-			break
-		}
-	}
+	a, err := st.Block.GetHeader(leaves[0])
+	require.NoError(t, err)
 
 	// A is a descendant of B
-	voteA := NewVoteFromHeader(chain[7])
-	voteB := NewVoteFromHeader(chain[5])
-	voteC := NewVoteFromHeader(branches[0])
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
+	require.NoError(t, err)
+	voteB, err := NewVoteFromHash(a.ParentHash, st.Block)
+	require.NoError(t, err)
+	voteC, err := NewVoteFromHash(leaves[1], st.Block)
+	require.NoError(t, err)
 
 	for i, k := range kr.Keys {
 		voter := k.Public().(*ed25519.PublicKey).AsBytes()
@@ -776,7 +777,7 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	branches[5] = 1
 	branches[6] = 1
 	branches[7] = 1
-	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(rand.Intn(256)))
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(0))
 
 	leaves := gs.blockState.Leaves()
 	require.Equal(t, 6, len(leaves))

@@ -38,6 +38,7 @@ type Service struct {
 	blockState BlockState
 	keypair    *ed25519.Keypair //nolint
 	mapLock    sync.Mutex
+	chanLock   sync.Mutex
 	stopped    atomic.Value
 
 	// current state information
@@ -52,7 +53,6 @@ type Service struct {
 	// TODO: do we need maps, or just info from previous round?
 	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
-	previousRound      uint64           // track previous round number in case setID changes, then round resets to 1
 
 	// channels for communication with other services
 	in        <-chan *VoteMessage
@@ -175,9 +175,10 @@ func (s *Service) playGrandpaRound() error {
 	if err != nil {
 		return err
 	}
+	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-
 	log.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+	s.mapLock.Unlock()
 
 	err = s.sendMessage(pv, prevote)
 	if err != nil {
@@ -206,9 +207,11 @@ func (s *Service) playGrandpaRound() error {
 	if err != nil {
 		return err
 	}
-	s.precommits[s.publicKeyBytes()] = pc
 
+	s.mapLock.Lock()
+	s.precommits[s.publicKeyBytes()] = pc
 	log.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
+	s.mapLock.Unlock()
 
 	err = s.sendMessage(pc, precommit)
 	if err != nil {
@@ -286,7 +289,9 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
+	s.mapLock.Lock()
 	prm := s.prevotes[s.derivePrimary().PublicKeyBytes()]
+	s.mapLock.Unlock()
 
 	if prm != nil && prm.number >= uint64(s.head.Number.Int64()) {
 		vote = prm
