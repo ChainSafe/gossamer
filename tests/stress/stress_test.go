@@ -139,21 +139,10 @@ func TestStressSync(t *testing.T) {
 }
 
 func TestRestartNode(t *testing.T) {
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitNodes(t, numNodes)
 	require.NoError(t, err)
 
-	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
-	require.NoError(t, err)
-
-	db, err := scribble.New(tempDir, nil)
-	require.NoError(t, err)
-
-	for _, node := range nodes {
-		header := utils.GetChainHead(t, node)
-
-		err = db.Write("blocks_"+node.Key, header.Number.String(), header)
-		require.NoError(t, err)
-	}
+	utils.RestartNodes(t, nodes)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
