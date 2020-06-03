@@ -194,7 +194,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 			lock.Unlock()
 
 			gs.chanLock.Lock()
-			gs.stopped.Store(true)
+			gs.stopped = true
 			close(out)
 			gs.chanLock.Unlock()
 		}(gs)
@@ -270,7 +270,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			lock.Unlock()
 
 			gs.chanLock.Lock()
-			gs.stopped.Store(true)
+			gs.stopped = true
 			close(out)
 			gs.chanLock.Unlock()
 		}(gs)
@@ -346,7 +346,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			lock.Unlock()
 
 			gs.chanLock.Lock()
-			gs.stopped.Store(true)
+			gs.stopped = true
 			close(out)
 			gs.chanLock.Unlock()
 		}(gs)
@@ -436,7 +436,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			lock.Unlock()
 
 			gs.chanLock.Lock()
-			gs.stopped.Store(true)
+			gs.stopped = true
 			close(out)
 			gs.chanLock.Unlock()
 		}(gs)

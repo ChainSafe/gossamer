@@ -60,7 +60,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
-	if s.stopped.Load().(bool) {
+	if s.stopped {
 		return nil
 	}
 

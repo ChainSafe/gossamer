@@ -19,7 +19,6 @@ package grandpa
 import (
 	"bytes"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,10 +35,10 @@ var interval = time.Second
 type Service struct {
 	// preliminaries
 	blockState BlockState
-	keypair    *ed25519.Keypair //nolint
+	keypair    *ed25519.Keypair
 	mapLock    sync.Mutex
 	chanLock   sync.Mutex
-	stopped    atomic.Value
+	stopped    bool
 
 	// current state information
 	state           *State                             // current state
@@ -50,7 +49,6 @@ type Service struct {
 	head            *types.Header                      // most recently finalized block
 
 	// historical information
-	// TODO: do we need maps, or just info from previous round?
 	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
@@ -100,9 +98,9 @@ func NewService(cfg *Config) (*Service, error) {
 		in:                 cfg.In,
 		out:                cfg.Out,
 		finalized:          cfg.Finalized,
+		stopped:            true,
 	}
 
-	s.stopped.Store(true)
 	return s, nil
 }
 
@@ -112,7 +110,7 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 
 // initiate initates a GRANDPA round
 func (s *Service) initiate() error {
-	s.stopped.Store(false)
+	s.stopped = false
 
 	if s.state.round == 0 {
 		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
@@ -175,6 +173,7 @@ func (s *Service) playGrandpaRound() error {
 	if err != nil {
 		return err
 	}
+
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
 	log.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
@@ -271,7 +270,7 @@ func (s *Service) attemptToFinalize() error {
 
 		// TODO: if we haven't received a finalization message for this block yet,
 		// broadcast a finalization message
-		log.Debug("[grandpa] finalized!!!", "head", s.head)
+		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
 		s.finalized <- s.head
 		return nil
 	}

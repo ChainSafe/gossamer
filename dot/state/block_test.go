@@ -214,43 +214,23 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	}
 
 	bs := newTestBlockState(t, genesisHeader)
+	currChain, branchChains := AddBlocksToState(t, bs, 8)
 
-	b := bs.BestBlockHash()
-	//require.NoError(t, err)
-	t.Log(b)
-	t.Log(genesisHeader.Hash())
-
-	branches := make(map[int]int)
-	branches[3] = 1
-	branches[4] = 1
-	AddBlocksToStateWithFixedBranches(t, bs, 8, branches, 0)
-	leaves := bs.Leaves()
-	curr, err := bs.BestBlockHeader()
-	require.NoError(t, err)
-
-	p, err := bs.GetHeader(curr.ParentHash)
-	require.NoError(t, err)
-
-	onChain, err := bs.isBlockOnCurrentChain(p)
-	require.NoError(t, err)
-
-	if !onChain {
-		t.Fatalf("Fail: expected block %s to be on current chain", p)
-	}
-
-	for _, lf := range leaves {
-		if lf == curr.Hash() {
-			continue
-		}
-
-		lfh, err := bs.GetHeader(lf)
+	for _, header := range currChain {
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		require.NoError(t, err)
 
-		onChain, err := bs.isBlockOnCurrentChain(lfh)
+		if !onChain {
+			t.Fatalf("Fail: expected block %s to be on current chain", header.Hash())
+		}
+	}
+
+	for _, header := range branchChains {
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		require.NoError(t, err)
 
 		if onChain {
-			t.Fatalf("Fail: expected block %s not to be on current chain", lf)
+			t.Fatalf("Fail: expected block %s not to be on current chain", header.Hash())
 		}
 	}
 }
