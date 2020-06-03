@@ -301,7 +301,7 @@ func (b *Session) invokeBlockAuthoring() {
 				return
 			}
 		} else {
-			log.Warn("[babe] cannot use median, not enough blocks synced")
+			log.Warn("[babe] cannot use median algorithm, not enough blocks synced")
 
 			slotNum, err = b.estimateCurrentSlot()
 			if err != nil {
