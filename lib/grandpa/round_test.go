@@ -485,7 +485,9 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		wg.Wait()
 
+		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalized {
+			require.Equal(t, head, fb.Hash())
 			require.Equal(t, finalized[0], fb)
 		}
 
