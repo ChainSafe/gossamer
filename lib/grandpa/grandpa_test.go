@@ -1319,7 +1319,6 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	branches[3] = 1
 	branches[7] = 1
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(rand.Intn(256)))
-
 	leaves := gs.blockState.Leaves()
 	require.Equal(t, 3, len(leaves))
 
