@@ -17,7 +17,6 @@
 package keystore
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -59,12 +58,16 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 
 	for i := 0; i < v.NumField(); i++ {
 		who := v.Field(i)
-		h, _ := common.HexToBytes(privateKeys[i])
-		kp, err := sr25519.NewKeypairFromSeed(h)
+		h, err := common.HexToBytes(privateKeys[i])
 		if err != nil {
-			fmt.Println(who)
 			return nil, err
 		}
+
+		kp, err := sr25519.NewKeypairFromSeed(h)
+		if err != nil {
+			return nil, err
+		}
+
 		who.Set(reflect.ValueOf(kp))
 	}
 
