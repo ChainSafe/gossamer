@@ -138,6 +138,27 @@ func TestStressSync(t *testing.T) {
 	require.Len(t, errList, 0)
 }
 
+func TestRestartNode(t *testing.T) {
+	nodes, err := utils.StartNodes(t, numNodes)
+	require.NoError(t, err)
+
+	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
+	require.NoError(t, err)
+
+	db, err := scribble.New(tempDir, nil)
+	require.NoError(t, err)
+
+	for _, node := range nodes {
+		header := utils.GetChainHead(t, node)
+
+		err = db.Write("blocks_"+node.Key, header.Number.String(), header)
+		require.NoError(t, err)
+	}
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
+
 // submitExtrinsicAssertInclusion submits an extrinsic to a random node and asserts that the extrinsic was included in some block
 // and that the nodes remain synced
 func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extrinsic.Extrinsic) {

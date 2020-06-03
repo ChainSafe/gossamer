@@ -182,6 +182,11 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
+func InitNodes(t *testing.T, num int) ([]*Node, error) {
+	var nodes []*Node
+	return nodes, nil
+}
+
 // StartNodes will spin up `num` gossamer nodes
 func StartNodes(t *testing.T, num int) ([]*Node, error) {
 	var nodes []*Node
