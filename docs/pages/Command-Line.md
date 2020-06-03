@@ -15,11 +15,11 @@ The `gossamer` command is the root command for the `gossamer` package (`cmd/goss
 The `gossamer` command accepts the following ***local flags*** and ***global flags***:
 
 ```
---verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--log value        Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---chain value       Node implementation id used to load default node configuration
+--chain value      Node implementation id used to load default node configuration
 --config value     TOML configuration file
---base-path value    Data directory for the node
+--base-path value  Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
 --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
 --port value       Set network listening port (default: 0)
@@ -65,11 +65,11 @@ List of ***local flags*** for `init` subcommand:
 ```
 --force            Disable all confirm prompts (the same as answering "Y" to all)
 --genesis value    Path to genesis JSON file
---verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--log value        Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---chain value       Node implementation id used to load default node configuration
+--chain value      Node implementation id used to load default node configuration
 --config value     TOML configuration file
---base-path value    Data directory for the node
+--base-path value  Data directory for the node
 ```
 
 List of ***local flags*** for `account` subcommand:
@@ -82,11 +82,11 @@ List of ***local flags*** for `account` subcommand:
 --ed25519          Specify account type as ed25519
 --sr25519          Specify account type as sr25519
 --secp256k1        Specify account type as secp256k1
---verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--log value        Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---chain value       Node implementation id used to load default node configuration
+--chain value      Node implementation id used to load default node configuration
 --config value     TOML configuration file
---base-path value    Data directory for the node
+--base-path value  Data directory for the node
 ```
 
 List of ***local flag*** options for `export` subcommand:
@@ -94,11 +94,11 @@ List of ***local flag*** options for `export` subcommand:
 ```
 --force            Disable all confirm prompts (the same as answering "Y" to all)
 --genesis value    Path to genesis JSON file
---verbosity value  Supports levels crit (silent) to trce (trace) (default: "info")
+--log value        Supports levels crit (silent) to trce (trace) (default: "info")
 --name value       Node implementation name
---chain value       Node implementation id used to load default node configuration
+--chain value      Node implementation id used to load default node configuration
 --config value     TOML configuration file
---base-path value    Data directory for the node
+--base-path value  Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
 --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
 --port value       Set network listening port (default: 0)
@@ -183,7 +183,7 @@ Available built-in keys:
 ./bin/gossmer --key charlie
 ./bin/gossmer --key dave
 ./bin/gossmer --key eve
-./bin/gossmer --key fred
+./bin/gossmer --key ferdie
 ./bin/gossmer --key george
 ./bin/gossmer --key heather
 ```
