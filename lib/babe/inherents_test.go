@@ -47,6 +47,8 @@ func TestInherentExtrinsics_Finalnum(t *testing.T) {
 	err = idata.SetBigIntInherent(Finalnum, big.NewInt(1))
 	require.NoError(t, err)
 
+	t.Log(idata)
+
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -44,6 +45,14 @@ func NewInherentsData() *InherentsData {
 	return &InherentsData{
 		data: make(map[[8]byte]([]byte)),
 	}
+}
+
+func (d *InherentsData) String() string {
+	str := ""
+	for k, v := range d.data {
+		str = str + fmt.Sprintf("key=%v\tvalue=%v\n", k, v)
+	}
+	return str
 }
 
 // SetInt64Inherent set the Int64 scale.Encode for a given data
