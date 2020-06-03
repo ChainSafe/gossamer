@@ -232,7 +232,7 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 		return err
 	}
 
-	// add Finalnum TODO: use blockState.GetFinalizedHead()
+	// add finalnum TODO: use blockState.GetFinalizedHead()
 	err = idata.SetBigIntInherent(Finalnum, big.NewInt(0))
 	if err != nil {
 		return err
