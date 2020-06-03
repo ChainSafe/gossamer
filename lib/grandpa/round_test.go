@@ -137,6 +137,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 	for i, gs := range gss {
 		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
-		require.True(t, onSameChain(gss[0].blockState, finalized.Hash(), gs.head.Hash()) || onSameChain(gs.blockState, finalized.Hash(), gs.head.Hash()), "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
+		headOk := onSameChain(gss[0].blockState, finalized.Hash(), gs.head.Hash())
+		finalizedOK := onSameChain(gs.blockState, finalized.Hash(), gs.head.Hash())
+		require.True(t, headOk || finalizedOK, "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
 	}
 }
