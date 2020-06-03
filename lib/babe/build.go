@@ -67,7 +67,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	log.Trace("[babe] initialized block")
 
 	// add block inherents
-	err = b.buildBlockInherents(slot)
+	err = b.buildBlockInherents()
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -224,7 +224,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 }
 
 // buildBlockInherents applies the inherents for a block
-func (b *Session) buildBlockInherents(slot Slot) error {
+func (b *Session) buildBlockInherents() error {
 	// Setup inherents: add timstap0
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
