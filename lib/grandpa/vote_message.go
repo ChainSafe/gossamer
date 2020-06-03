@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -25,6 +26,9 @@ import (
 
 	log "github.com/ChainSafe/log15"
 )
+
+// sendMessageTimeout is the timeout period for sending a Vote through the out channel
+var sendMessageTimeout = time.Second
 
 // receiveMessages receives messages from the in channel until the specified condition is met
 func (s *Service) receiveMessages(cond func() bool) {
@@ -64,7 +68,13 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	s.out <- msg
+	select {
+	case s.out <- msg:
+	case <-time.After(sendMessageTimeout):
+		log.Warn("[grandpa] failed to send vote message", "vote", vote)
+		return nil
+	}
+
 	return nil
 }
 

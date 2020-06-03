@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTimeout = 10 * time.Second
+var testTimeout = 12 * time.Second
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -285,7 +285,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		fins[i] = fin
 
 		r := 0
-		if i < 6 {
+		if i < 3 {
 			r = rand.Intn(2)
 		}
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
