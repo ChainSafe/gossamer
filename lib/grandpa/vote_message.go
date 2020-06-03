@@ -26,7 +26,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// receiveMessages receives messages from the in channel until the specified end time is reached
+// receiveMessages receives messages from the in channel until the specified condition is met
 func (s *Service) receiveMessages(cond func() bool) {
 	go func() {
 		for msg := range s.in {

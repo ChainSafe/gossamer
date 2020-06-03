@@ -263,8 +263,6 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	//log.Debug("[grandpa] attempt to finalize...", "bfc", bfc, "head", s.head.Number, "votes for bfc", pc)
-
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
