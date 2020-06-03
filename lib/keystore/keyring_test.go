@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
