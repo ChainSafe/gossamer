@@ -64,3 +64,13 @@ func CallRPC(node *Node, method, params string) (respJson map[string]interface{}
 	err = DecodeRPC_NT(respBody, &respJson)
 	return
 }
+
+func (fw *Framework) PrintDB(idx int) {
+	items, err := fw.db.ReadAll("blocks_" + fw.nodes[idx].Key)
+	if err != nil {
+		fmt.Errorf("error reading from db %v\n", err)
+	}
+	for _, item := range items {
+		fmt.Printf("%v", item)
+	}
+}

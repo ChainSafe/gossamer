@@ -26,7 +26,7 @@ func TestSyncSetup(t *testing.T) {
 	require.Len(t, err, 0)
 
 	framework.StoreChainHeads()
-
+	framework.PrintDB(0)
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }
