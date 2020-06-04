@@ -156,13 +156,28 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
 	blockNumberIn <- big.NewInt(11)
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 }
@@ -183,7 +198,15 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
