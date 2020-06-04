@@ -617,6 +617,7 @@ func TestExecuteBlock(t *testing.T) {
 		Runtime:          syncer.runtime,
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
+		BlockState:       syncer.blockState,
 	}
 
 	builder := newBlockBuilder(t, bcfg)
@@ -660,6 +661,7 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 		Runtime:          syncer.runtime,
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
+		BlockState:       syncer.blockState,
 	}
 
 	key := []byte("noot")
