@@ -219,18 +219,10 @@ func (se *Encoder) encodeBigInteger(i *big.Int) (bytesEncoded int, err error) {
 	err = binary.Write(se.Writer, binary.LittleEndian, lengthByte)
 	if err == nil {
 		// write integer itself
-		err = binary.Write(se.Writer, binary.LittleEndian, reverse(i.Bytes()))
+		err = binary.Write(se.Writer, binary.LittleEndian, reverseBytes(i.Bytes()))
 	}
 
 	return numBytes + 1, err
-}
-
-func reverse(b []byte) []byte {
-	c := make([]byte, len(b))
-	for i := 0; i < len(b); i++ {
-		c[i] = b[len(b)-i-1]
-	}
-	return c
 }
 
 // encodeBool performs the following:
