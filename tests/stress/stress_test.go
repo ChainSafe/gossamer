@@ -139,7 +139,7 @@ func TestStressSync(t *testing.T) {
 }
 
 func TestRestartNode(t *testing.T) {
-	nodes, err := utils.InitNodes(t, numNodes)
+	nodes, err := utils.InitNodes(numNodes)
 	require.NoError(t, err)
 
 	err = utils.RestartNodes(t, nodes)

@@ -49,7 +49,7 @@ type Node struct {
 	basePath string
 }
 
-func InitGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
+func InitGossamer(idx int, basePath string) (*Node, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -291,7 +291,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
-func InitNodes(t *testing.T, num int) ([]*Node, error) {
+func InitNodes(num int) ([]*Node, error) {
 	var nodes []*Node
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
 	if err != nil {
@@ -299,7 +299,7 @@ func InitNodes(t *testing.T, num int) ([]*Node, error) {
 	}
 
 	for i := 0; i < num; i++ {
-		node, err := InitGossamer(t, i, tempDir+strconv.Itoa(i))
+		node, err := InitGossamer(i, tempDir+strconv.Itoa(i))
 		if err != nil {
 			log.Error("failed to run gossamer", "i", i)
 			return nil, err
