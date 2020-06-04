@@ -137,6 +137,8 @@ func (s *Service) initiate() error {
 	}
 }
 
+// playGrandpaRound executes a round of GRANDPA
+// at the end of this round, a block will be finalized.
 func (s *Service) playGrandpaRound() error {
 	log.Debug("[grandpa] starting round", "round", s.state.round, "setID", s.state.setID)
 
@@ -148,7 +150,7 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		// TODO: broadcast finalization message
+		// TODO: broadcast finalization message #934
 	}
 
 	log.Debug("grandpa] receiving pre-vote messages...")
@@ -269,7 +271,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// TODO: if we haven't received a finalization message for this block yet,
-		// broadcast a finalization message
+		// broadcast a finalization message #934
 		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
 		s.finalized <- s.head
 		return nil

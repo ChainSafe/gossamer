@@ -49,7 +49,8 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	require.NoError(t, err)
 
 	// create base tree
-	for i := int(head.Number.Int64()) + 1; i <= depth; i++ {
+	startNum := int(head.Number.Int64())
+	for i := startNum + 1; i <= depth; i++ {
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
@@ -119,7 +120,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	require.NoError(t, err)
 
 	// create base tree
-	for i := int(head.Number.Int64()) + 1; i <= depth; i++ {
+	startNum := int(head.Number.Int64())
+	for i := startNum + 1; i <= depth; i++ {
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,

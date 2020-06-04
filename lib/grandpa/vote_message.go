@@ -185,7 +185,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 		votes = s.precommits
 	}
 
-	// TODO: check for votes we've already seen
+	// TODO: check for votes we've already seen #923
 	if eq[v] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
