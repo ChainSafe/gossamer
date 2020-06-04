@@ -600,10 +600,17 @@ func TestExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	slot := babe.NewSlot(1, 0, 0)
-	block, err := builder.BuildBlock(parent, *slot)
-	require.NoError(t, err)
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(1, 0, 0)
+		block, err = builder.BuildBlock(parent, *slot)
+		require.NoError(t, err)
+		if err == nil {
+			break
+		}
+	}
 
+	require.NoError(t, err)
 	_, err = syncer.executeBlock(block)
 	require.NoError(t, err)
 }
@@ -646,10 +653,16 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 	parent, err := syncer.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
-	block, err := builder.BuildBlock(parent, *slot)
-	require.NoError(t, err)
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
+		block, err = builder.BuildBlock(parent, *slot)
+		if err == nil {
+			break
+		}
+	}
 
+	require.NoError(t, err)
 	require.Equal(t, true, bytes.Contains(*block.Body, enc))
 	_, err = syncer.executeBlock(block)
 	require.NoError(t, err)
