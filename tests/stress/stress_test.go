@@ -91,7 +91,7 @@ func TestMain(m *testing.M) {
 }
 
 func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
+	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
 	exts := new(modules.PendingExtrinsicsResponse)

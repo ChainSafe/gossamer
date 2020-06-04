@@ -25,7 +25,7 @@ import (
 
 // GetStorage calls the endpoint state_getStorage
 func GetStorage(t *testing.T, node *Node, key []byte) []byte {
-	respBody, err := PostRPC(t, StateGetStorage, NewEndpoint(node.RPCPort), "[\""+common.BytesToHex(key)+"\"]")
+	respBody, err := PostRPC(StateGetStorage, NewEndpoint(node.RPCPort), "[\""+common.BytesToHex(key)+"\"]")
 	require.NoError(t, err)
 
 	v := new(string)

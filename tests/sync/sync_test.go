@@ -25,6 +25,8 @@ func TestSyncSetup(t *testing.T) {
 	err := framework.StartNodes(t)
 	require.Len(t, err, 0)
 
+	framework.StoreChainHeads()
+
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }

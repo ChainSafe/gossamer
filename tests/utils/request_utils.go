@@ -29,11 +29,13 @@ import (
 )
 
 // PostRPC utils for sending payload to endpoint and getting []byte back
-func PostRPC(t *testing.T, method, host, params string) ([]byte, error) {
+func PostRPC(method, host, params string) ([]byte, error) {
 	data := []byte(`{"jsonrpc":"2.0","method":"` + method + `","params":` + params + `,"id":1}`)
 	buf := &bytes.Buffer{}
 	_, err := buf.Write(data)
-	require.Nil(t, err)
+	if err != nil {
+		return nil, err
+	}
 
 	r, err := http.NewRequest("POST", host, buf)
 	if err != nil {
@@ -55,9 +57,8 @@ func PostRPC(t *testing.T, method, host, params string) ([]byte, error) {
 	}()
 
 	respBody, err := ioutil.ReadAll(resp.Body)
-	require.Nil(t, err)
 
-	return respBody, nil
+	return respBody, err
 
 }
 
@@ -83,6 +84,26 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	return nil
 }
 
+func DecodeRPC_NT(body []byte, target interface{}) error {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+
+	var response ServerResponse
+	err := decoder.Decode(&response)
+	if err != nil {
+		return err
+	}
+
+	if response.Error != nil {
+		return errors.New(response.Error.Message)
+	}
+
+	decoder = json.NewDecoder(bytes.NewReader(response.Result))
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(target)
+	return err
+}
 // NewEndpoint will create a new endpoint string based on utils.HOSTNAME and port
 func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port

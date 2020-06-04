@@ -264,7 +264,7 @@ func RunGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
 func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
-	respBody, err := PostRPC(t, method, gossamerHost, "{}")
+	respBody, err := PostRPC(method, gossamerHost, "{}")
 	if err != nil {
 		return err
 	}
