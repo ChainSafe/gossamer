@@ -42,11 +42,11 @@ var (
 
 // Node represents a gossamer process
 type Node struct {
-	Process *exec.Cmd
-	Key     string
-	RPCPort string
-	Idx     int
-	baseDir string
+	Process  *exec.Cmd
+	Key      string
+	RPCPort  string
+	Idx      int
+	basePath string
 }
 
 func InitGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
@@ -75,9 +75,9 @@ func InitGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
 	// TODO: get init exit code to see if node was successfully initialized
 	log.Info("Gossamer init ok")
 	return &Node{
-		Idx:     idx,
-		RPCPort: strconv.Itoa(BaseRPCPort + idx),
-		baseDir: basePath+strconv.Itoa(idx),
+		Idx:      idx,
+		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
+		basePath: basePath+strconv.Itoa(idx),
 	}, nil
 }
 
@@ -90,12 +90,11 @@ func RestartGossamer(t *testing.T, node *Node) error {
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
 
 	var key string
-	//var cmd *exec.Cmd
 
 	if node.Idx >= len(keyList) {
 		//nolint
 		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
-			"--basepath", node.baseDir,
+			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
 			"--rpcmods", "system,author,chain,state",
@@ -107,7 +106,7 @@ func RestartGossamer(t *testing.T, node *Node) error {
 		//nolint
 		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
 			"--key", key,
-			"--basepath", node.baseDir,
+			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
 			"--rpcmods", "system,author,chain,state",
@@ -117,7 +116,7 @@ func RestartGossamer(t *testing.T, node *Node) error {
 	}
 
 	// a new file will be created, it will be used for log the outputs from the node
-	f, err := os.Create(filepath.Join(node.baseDir, "gossamer.log"))
+	f, err := os.Create(filepath.Join(node.basePath, "gossamer.log"))
 	if err != nil {
 		log.Error("Error when trying to set a log file for gossamer output", "error", err)
 		return err

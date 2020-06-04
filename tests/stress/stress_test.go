@@ -142,10 +142,18 @@ func TestRestartNode(t *testing.T) {
 	nodes, err := utils.InitNodes(t, numNodes)
 	require.NoError(t, err)
 
-	utils.RestartNodes(t, nodes)
+	err = utils.RestartNodes(t, nodes)
+	require.NoError(t, err)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
+
+	err = utils.RestartNodes(t, nodes)
+	require.NoError(t, err)
+
+	errList = utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+
 }
 
 // submitExtrinsicAssertInclusion submits an extrinsic to a random node and asserts that the extrinsic was included in some block
