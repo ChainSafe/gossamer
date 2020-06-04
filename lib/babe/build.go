@@ -238,8 +238,13 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 		return err
 	}
 
-	// add finalnum TODO: use blockState.GetFinalizedHead()
-	err = idata.SetBigIntInherent(Finalnum, big.NewInt(0))
+	// add finalnum
+	fin, err := b.blockState.GetFinalizedHeader()
+	if err != nil {
+		return err
+	}
+
+	err = idata.SetBigIntInherent(Finalnum, fin.Number)
 	if err != nil {
 		return err
 	}
