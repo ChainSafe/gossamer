@@ -72,7 +72,6 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	case s.out <- msg:
 	case <-time.After(sendMessageTimeout):
 		log.Warn("[grandpa] failed to send vote message", "vote", vote)
-		return nil
 	}
 
 	return nil

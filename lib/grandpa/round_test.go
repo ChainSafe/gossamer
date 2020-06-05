@@ -52,8 +52,8 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *types.Header) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
-	in := make(chan *VoteMessage, 10)
-	out := make(chan *VoteMessage, 10)
+	in := make(chan *VoteMessage, 16)
+	out := make(chan *VoteMessage, 16)
 	finalized := make(chan *types.Header)
 
 	cfg := &Config{
@@ -173,6 +173,18 @@ func broadcastVotes(t *testing.T, from <-chan *VoteMessage, to []chan *VoteMessa
 	}
 }
 
+func cleanup(gs *Service, in, out chan *VoteMessage, lock *sync.Mutex, done *bool) {
+	lock.Lock()
+	*done = true
+	close(in)
+	lock.Unlock()
+
+	gs.chanLock.Lock()
+	gs.stopped = true
+	close(out)
+	gs.chanLock.Unlock()
+}
+
 func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
@@ -189,18 +201,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-
-		defer func(gs *Service) {
-			lock.Lock()
-			done = true
-			close(in)
-			lock.Unlock()
-
-			gs.chanLock.Lock()
-			gs.stopped = true
-			close(out)
-			gs.chanLock.Unlock()
-		}(gs)
+		defer cleanup(gs, in, out, &lock, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -266,18 +267,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-
-		defer func(gs *Service) {
-			lock.Lock()
-			done = true
-			close(in)
-			lock.Unlock()
-
-			gs.chanLock.Lock()
-			gs.stopped = true
-			close(out)
-			gs.chanLock.Unlock()
-		}(gs)
+		defer cleanup(gs, in, out, &lock, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -343,18 +333,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-
-		defer func(gs *Service, out chan *VoteMessage) {
-			lock.Lock()
-			done = true
-			close(in)
-			lock.Unlock()
-
-			gs.chanLock.Lock()
-			gs.stopped = true
-			close(out)
-			gs.chanLock.Unlock()
-		}(gs, out)
+		defer cleanup(gs, in, out, &lock, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -434,18 +413,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-
-		defer func(gs *Service) {
-			lock.Lock()
-			done = true
-			close(in)
-			lock.Unlock()
-
-			gs.chanLock.Lock()
-			gs.stopped = true
-			close(out)
-			gs.chanLock.Unlock()
-		}(gs)
+		defer cleanup(gs, in, out, &lock, &done)
 
 		gss[i] = gs
 		ins[i] = in
