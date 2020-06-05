@@ -52,8 +52,8 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *types.Header) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
-	in := make(chan *VoteMessage)
-	out := make(chan *VoteMessage)
+	in := make(chan *VoteMessage, 10)
+	out := make(chan *VoteMessage, 10)
 	finalized := make(chan *types.Header)
 
 	cfg := &Config{
@@ -344,7 +344,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
 
-		defer func(gs *Service) {
+		defer func(gs *Service, out chan *VoteMessage) {
 			lock.Lock()
 			done = true
 			close(in)
@@ -354,7 +354,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			gs.stopped = true
 			close(out)
 			gs.chanLock.Unlock()
-		}(gs)
+		}(gs, out)
 
 		gss[i] = gs
 		ins[i] = in
