@@ -51,7 +51,6 @@ func (s *Service) receiveMessages(cond func() bool) {
 			return
 		}
 	}
-
 }
 
 // sendMessage sends a message through the out channel
@@ -68,12 +67,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	select {
-	case s.out <- msg:
-	case <-time.After(sendMessageTimeout):
-		log.Warn("[grandpa] failed to send vote message", "vote", vote)
-	}
-
+	s.out <- msg
 	return nil
 }
 

@@ -181,10 +181,12 @@ func (s *Service) playGrandpaRound() error {
 	log.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
 	s.mapLock.Unlock()
 
-	err = s.sendMessage(pv, prevote)
-	if err != nil {
-		return err
-	}
+	go func() {
+		err = s.sendMessage(pv, prevote)
+		if err != nil {
+			log.Error("[grandpa] could not send prevote message", "error", err)
+		}
+	}()
 
 	log.Debug("receiving pre-vote messages...")
 
@@ -214,40 +216,44 @@ func (s *Service) playGrandpaRound() error {
 	log.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
 	s.mapLock.Unlock()
 
-	err = s.sendMessage(pc, precommit)
-	if err != nil {
-		return err
-	}
+	go func() {
+		err = s.sendMessage(pc, precommit)
+		if err != nil {
+			log.Error("[grandpa] could not send precommit message", "error", err)
+		}
+	}()
+
+	go func() {
+		// receive messages until current round is completable and previous round is finalizable
+		// and the last finalized block is greater than the best final candidate from the previous round
+		s.receiveMessages(func() bool {
+			completable, err := s.isCompletable()
+			if err != nil {
+				log.Trace("[grandpa] failed to check if round is completable", "error", err)
+			}
+
+			finalizable, err := s.isFinalizable(s.state.round - 1)
+			if err != nil {
+				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
+			}
+
+			// this shouldn't happen as long as playGrandpaRound is called through initiate
+			if s.bestFinalCandidate[s.state.round-1] == nil {
+				return false
+			}
+
+			if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
+				return true
+			}
+
+			return false
+		})
+	}()
 
 	err = s.attemptToFinalize()
 	if err != nil {
 		return err
 	}
-
-	// receive messages until current round is completable and previous round is finalizable
-	// and the last finalized block is greater than the best final candidate from the previous round
-	s.receiveMessages(func() bool {
-		completable, err := s.isCompletable()
-		if err != nil {
-			log.Debug("[grandpa] failed to check if round is completable", "error", err)
-		}
-
-		finalizable, err := s.isFinalizable(s.state.round - 1)
-		if err != nil {
-			log.Debug("[grandpa] failed to check if round is finalizable", "error", err)
-		}
-
-		// this shouldn't happen as long as playGrandpaRound is called through initiate
-		if s.bestFinalCandidate[s.state.round-1] == nil {
-			return false
-		}
-
-		if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
-			return true
-		}
-
-		return false
-	})
 
 	return nil
 }

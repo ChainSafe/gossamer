@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testTimeout = 12 * time.Second
+var testTimeout = 20 * time.Second
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -162,12 +162,7 @@ func broadcastVotes(t *testing.T, from <-chan *VoteMessage, to []chan *VoteMessa
 				return
 			}
 
-			select {
-			case tc <- v:
-			case <-time.After(testTimeout):
-				t.Error("could not write to channel")
-			}
-
+			tc <- v
 			lock.Unlock()
 		}
 	}
@@ -461,6 +456,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalized {
+			require.NotNil(t, fb)
 			require.Equal(t, head, fb.Hash())
 			require.Equal(t, finalized[0], fb)
 		}
