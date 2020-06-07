@@ -27,9 +27,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// sendMessageTimeout is the timeout period for sending a Vote through the out channel
-var sendMessageTimeout = time.Second
-
 // receiveMessages receives messages from the in channel until the specified condition is met
 func (s *Service) receiveMessages(cond func() bool) {
 	go func() {
