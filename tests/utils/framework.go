@@ -4,12 +4,14 @@ import (
 	"fmt"
 	scribble "github.com/nanobox-io/golang-scribble"
 	"io/ioutil"
+	"strconv"
 	"testing"
 )
 
 type Framework struct {
 	nodes []*Node
 	db *scribble.Driver
+	callQty int
 }
 
 func InitFramework(qtyNodes int) (*Framework, error) {
@@ -41,20 +43,21 @@ func (fw *Framework) KillNodes(t *testing.T) []error {
 	return TearDown(t, fw.nodes)
 }
 
-func (fw *Framework) StoreChainHeads() {
-	for _, node := range fw.nodes {
-		res, err := CallRPC(node, "chain_getHeader", "[]")
-		fmt.Errorf("error getting chain header %v", err)
-		fmt.Printf("resp %v\n", res["number"])
-		err = fw.db.Write("blocks_"+node.Key, res["number"].(string), res)
-		if err != nil {
-			fmt.Errorf("error writting to db %v", err)
-		}
-	}
-}
+//func (fw *Framework) StoreChainHeads() {
+//	for _, node := range fw.nodes {
+//		res, err := CallRPC(node, "chain_getHeader", "[]")
+//		fmt.Errorf("error getting chain header %v", err)
+//		fmt.Printf("resp %v\n", res["number"])
+//		err = fw.db.Write("blocks_"+node.Key, res["number"].(string), res)
+//		if err != nil {
+//			fmt.Errorf("error writting to db %v", err)
+//		}
+//	}
+//}
 
 // TODO ed, should params be []string instead?
-func CallRPC(node *Node, method, params string) (respJson map[string]interface{}, err error) {
+func (fw *Framework) CallRPC(idx int, method, params string) (respJson map[string]interface{}, err error) {
+	node := fw.nodes[idx]
 	respBody, err := PostRPC(method, NewEndpoint(node.RPCPort), params)
 	if err != nil {
 		return nil, err
@@ -62,15 +65,25 @@ func CallRPC(node *Node, method, params string) (respJson map[string]interface{}
 
 	respJson = make(map[string]interface{})
 	err = DecodeRPC_NT(respBody, &respJson)
+	err = fw.db.Write("node_"+node.Key, strconv.Itoa(fw.callQty) + "_" + method, respJson)
+	if err != nil {
+		fmt.Errorf("error writting to db %v", err)
+	}
+
+	fw.callQty++
+
 	return
 }
 
 func (fw *Framework) PrintDB(idx int) {
-	items, err := fw.db.ReadAll("blocks_" + fw.nodes[idx].Key)
+	items, err := fw.db.ReadAll("node_" + fw.nodes[idx].Key)
 	if err != nil {
 		fmt.Errorf("error reading from db %v\n", err)
 	}
 	for _, item := range items {
-		fmt.Printf("%v", item)
+		fmt.Printf("%v\n", item)
 	}
+}
+
+func (fw *Framework) PrintRecord() {
 }
