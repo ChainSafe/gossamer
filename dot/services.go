@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/system"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -35,7 +37,7 @@ import (
 func createStateService(cfg *Config) (*state.Service, error) {
 	log.Info("[dot] creating state service...")
 
-	stateSrvc := state.NewService(cfg.Global.DataDir)
+	stateSrvc := state.NewService(cfg.Global.BasePath)
 
 	// start state service (initialize state database)
 	err := stateSrvc.Start()
@@ -74,7 +76,7 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 	}
 
 	// create runtime executor
-	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImports)
+	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImports_NodeRuntime)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create runtime executor: %s", err)
 	}
@@ -120,7 +122,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 	networkConfig := network.Config{
 		BlockState:   stateSrvc.Block,
 		NetworkState: stateSrvc.Network,
-		DataDir:      cfg.Global.DataDir,
+		BasePath:     cfg.Global.BasePath,
 		Roles:        cfg.Core.Roles,
 		Port:         cfg.Network.Port,
 		Bootnodes:    cfg.Network.Bootnodes,
@@ -144,7 +146,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime, sysSrvc *system.Service) *rpc.HTTPServer {
 	log.Info(
 		"[dot] creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -153,7 +155,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		"ws port", cfg.RPC.WSPort,
 	)
 	rpcService := rpc.NewService()
-
 	rpcConfig := &rpc.HTTPServerConfig{
 		BlockAPI:            stateSrvc.Block,
 		StorageAPI:          stateSrvc.Storage,
@@ -162,11 +163,19 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		RuntimeAPI:          rt,
 		TransactionQueueAPI: stateSrvc.TransactionQueue,
 		RPCAPI:              rpcService,
+		SystemAPI:           sysSrvc,
 		Host:                cfg.RPC.Host,
 		RPCPort:             cfg.RPC.Port,
+		WSEnabled:           cfg.RPC.WSEnabled,
 		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,
 	}
 
 	return rpc.NewHTTPServer(rpcConfig)
+}
+
+// System service
+// creates a service for providing system related information
+func createSystemService(cfg *types.SystemInfo) *system.Service {
+	return system.NewService(cfg)
 }

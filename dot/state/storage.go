@@ -61,7 +61,7 @@ func NewStorageDB(db database.Database) *StorageDB {
 	}
 }
 
-// NewStorageState creates a new StorageState backed by the given trie and database located at dataDir.
+// NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
 func NewStorageState(db database.Database, t *trie.Trie) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
@@ -209,6 +209,10 @@ func (s *StorageState) GetBalance(key [32]byte) (uint64, error) {
 	bal, err := s.GetStorage(skey)
 	if err != nil {
 		return 0, err
+	}
+
+	if len(bal) != 8 {
+		return 0, nil
 	}
 
 	return binary.LittleEndian.Uint64(bal), nil

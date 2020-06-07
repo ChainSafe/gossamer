@@ -22,12 +22,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// NOT_IMPLEMENTED used as placeholder for not implemented yet funcs
-const NOT_IMPLEMENTED = "not yet implemented"
-
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
+	systemAPI  SystemAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -51,41 +49,35 @@ type SystemPeersResponse struct {
 	Peers []common.PeerInfo `json:"peers"`
 }
 
-// SystemPropertiesResponse struct to marshal json
-type SystemPropertiesResponse struct {
-	Ss58Format    int    `json:"ss58Format"`
-	TokenDecimals int    `json:"tokenDecimals"`
-	TokenSymbol   string `json:"tokenSymbol"`
-}
-
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
+		systemAPI:  sys,
 	}
 }
 
 // Chain returns the runtime chain
-func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.systemAPI.NodeName()
 	return nil
 }
 
 // Name returns the runtime name
-func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = "gossamer v0.0"
+func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.systemAPI.SystemName()
 	return nil
 }
 
 // Properties returns the runtime properties
-func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *interface{}) error {
+	*res = sm.systemAPI.Properties()
 	return nil
 }
 
 // Version returns the runtime version
-func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *StringResponse) error {
-	*res = NOT_IMPLEMENTED
+func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.systemAPI.SystemVersion()
 	return nil
 }
 
@@ -107,5 +99,28 @@ func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *Sy
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
 	peers := sm.networkAPI.Peers()
 	res.Peers = peers
+	return nil
+}
+
+// NodeRoles Returns the roles the node is running as.
+func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]interface{}) error {
+	resultArray := []interface{}{}
+
+	role := sm.networkAPI.NodeRoles()
+	switch role {
+	case 1:
+		resultArray = append(resultArray, "Full")
+	case 2:
+		resultArray = append(resultArray, "LightClient")
+	case 4:
+		resultArray = append(resultArray, "Authority")
+	default:
+		resultArray = append(resultArray, "UnknownRole")
+		uknrole := []interface{}{}
+		uknrole = append(uknrole, role)
+		resultArray = append(resultArray, uknrole)
+	}
+
+	*res = resultArray
 	return nil
 }

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"sync"
@@ -26,11 +27,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -77,7 +81,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
 	}
 
 	if cfg.TransactionQueue == nil {
@@ -106,7 +110,8 @@ func TestWatchForBlocks(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	number := big.NewInt(12)
 	blockNumberIn <- number
@@ -145,18 +150,34 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
 	blockNumberIn <- big.NewInt(11)
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 }
@@ -171,12 +192,21 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
@@ -221,7 +251,8 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	number := big.NewInt(12)
 	blockNumberIn <- number
@@ -277,7 +308,8 @@ func TestWatchForResponses(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	syncer.highestSeenBlock = big.NewInt(16)
 
@@ -355,7 +387,8 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	}
 
 	syncer := newTestSyncer(t, cfg)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	syncer.highestSeenBlock = big.NewInt(16)
 
@@ -412,7 +445,8 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
 	syncer := newTestSyncer(t, nil)
-	syncer.Start()
+	err := syncer.Start()
+	require.Nil(t, err)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -532,4 +566,129 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, int64(0), res)
+}
+
+func newBlockBuilder(t *testing.T, cfg *babe.SessionConfig) *babe.Session {
+	if cfg.Runtime == nil {
+		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	}
+
+	if cfg.Keypair == nil {
+		kp, err := sr25519.GenerateKeypair()
+		require.Nil(t, err)
+		cfg.Keypair = kp
+	}
+
+	cfg.Kill = make(chan struct{})
+	cfg.SyncLock = &sync.Mutex{}
+
+	cfg.AuthData = []*types.AuthorityData{
+		{
+			ID:     cfg.Keypair.Public().(*sr25519.PublicKey),
+			Weight: 1,
+		},
+	}
+
+	b, err := babe.NewSession(cfg)
+	require.NoError(t, err)
+
+	return b
+}
+
+func TestExecuteBlock(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.SUBSTRATE_TEST_RUNTIME, tt)
+
+	// load authority into runtime
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	require.NoError(t, err)
+
+	cfg := &SyncerConfig{
+		Runtime: rt,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+
+	bcfg := &babe.SessionConfig{
+		Runtime:          syncer.runtime,
+		TransactionQueue: syncer.transactionQueue,
+		Keypair:          kp,
+		BlockState:       syncer.blockState,
+	}
+
+	builder := newBlockBuilder(t, bcfg)
+	parent, err := syncer.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(1, 0, 0)
+		block, err = builder.BuildBlock(parent, *slot)
+		require.NoError(t, err)
+		if err == nil {
+			break
+		}
+	}
+
+	require.NoError(t, err)
+	_, err = syncer.executeBlock(block)
+	require.NoError(t, err)
+}
+
+func TestExecuteBlock_WithExtrinsic(t *testing.T) {
+	tt := trie.NewEmptyTrie()
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.SUBSTRATE_TEST_RUNTIME, tt)
+
+	// load authority into runtime
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	pubkey := kp.Public().Encode()
+	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	require.NoError(t, err)
+
+	cfg := &SyncerConfig{
+		Runtime: rt,
+	}
+
+	syncer := newTestSyncer(t, cfg)
+
+	bcfg := &babe.SessionConfig{
+		Runtime:          syncer.runtime,
+		TransactionQueue: syncer.transactionQueue,
+		Keypair:          kp,
+		BlockState:       syncer.blockState,
+	}
+
+	key := []byte("noot")
+	value := []byte("washere")
+	ext := extrinsic.NewStorageChangeExt(key, optional.NewBytes(true, value))
+	enc, err := ext.Encode()
+	require.NoError(t, err)
+
+	tx := transaction.NewValidTransaction(enc, new(transaction.Validity))
+	_, err = syncer.transactionQueue.Push(tx)
+	require.NoError(t, err)
+
+	builder := newBlockBuilder(t, bcfg)
+	parent, err := syncer.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
+		block, err = builder.BuildBlock(parent, *slot)
+		if err == nil {
+			break
+		}
+	}
+
+	require.NoError(t, err)
+	require.Equal(t, true, bytes.Contains(*block.Body, enc))
+	_, err = syncer.executeBlock(block)
+	require.NoError(t, err)
 }

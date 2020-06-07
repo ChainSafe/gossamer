@@ -21,8 +21,10 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/websocket"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -35,17 +37,28 @@ type HTTPServer struct {
 
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
-	BlockAPI            modules.BlockAPI
-	StorageAPI          modules.StorageAPI
-	NetworkAPI          modules.NetworkAPI
-	CoreAPI             modules.CoreAPI
-	RuntimeAPI          modules.RuntimeAPI
-	TransactionQueueAPI modules.TransactionQueueAPI
-	RPCAPI              modules.RPCAPI
-	Host                string
-	RPCPort             uint32
-	WSPort              uint32
-	Modules             []string
+	BlockAPI               modules.BlockAPI
+	StorageAPI             modules.StorageAPI
+	NetworkAPI             modules.NetworkAPI
+	CoreAPI                modules.CoreAPI
+	RuntimeAPI             modules.RuntimeAPI
+	TransactionQueueAPI    modules.TransactionQueueAPI
+	RPCAPI                 modules.RPCAPI
+	SystemAPI              modules.SystemAPI
+	Host                   string
+	RPCPort                uint32
+	WSEnabled              bool
+	WSPort                 uint32
+	Modules                []string
+	WSSubscriptions        map[uint32]*WebSocketSubscription
+	BlockAddedReceiver     chan *types.Block
+	BlockAddedReceiverDone chan struct{}
+}
+
+// WebSocketSubscription holds subscription details
+type WebSocketSubscription struct {
+	WSConnection     *websocket.Conn
+	SubscriptionType int
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
@@ -54,7 +67,9 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
 	}
-
+	if cfg.WSSubscriptions == nil {
+		cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
+	}
 	server.RegisterModules(cfg.Modules)
 	return server
 }
@@ -67,7 +82,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		var srvc interface{}
 		switch mod {
 		case "system":
-			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI)
+			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI)
 		case "author":
 			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
@@ -109,6 +124,10 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	if !h.serverConfig.WSEnabled {
+		return nil
+	}
+
 	log.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
@@ -119,10 +138,21 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	// init and start block received listener routine
+	if h.serverConfig.BlockAPI != nil {
+		h.serverConfig.BlockAddedReceiver = make(chan *types.Block)
+		h.serverConfig.BlockAddedReceiverDone = make(chan struct{})
+		h.serverConfig.BlockAPI.SetBlockAddedChannel(h.serverConfig.BlockAddedReceiver, h.serverConfig.BlockAddedReceiverDone)
+		go h.blockReceivedListener()
+	}
+
 	return nil
 }
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
+	if h.serverConfig.WSEnabled {
+		close(h.serverConfig.BlockAddedReceiverDone) // notify sender we're done receiving so it can close
+	}
 	return nil
 }

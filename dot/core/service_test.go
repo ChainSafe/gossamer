@@ -38,15 +38,18 @@ import (
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
 
+var babeAuthoritiesKey, _ = common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
+
 // newTestServiceWithFirstBlock creates a new test service with a test block
 func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, kp.Public().Encode()...))
+	// TODO: make a helper function to clean this up
+	err = tt.Put(babeAuthoritiesKey, append(append([]byte{4}, kp.Public().Encode()...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -122,7 +125,8 @@ func TestStartService(t *testing.T) {
 	err := s.Start()
 	require.Nil(t, err)
 
-	s.Stop()
+	err = s.Stop()
+	require.NoError(t, err)
 }
 
 func TestNotAuthority(t *testing.T) {
@@ -176,13 +180,9 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestCheckForRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e, tt)
+	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
 
 	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	pubkey := kp.Public().Encode()
-	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.Nil(t, err)
 
 	ks := keystore.NewKeystore()
@@ -196,6 +196,7 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
+	s.started = 1
 
 	_, err = runtime.GetRuntimeBlob(runtime.TESTS_FP, runtime.TEST_WASM_URL)
 	require.Nil(t, err)
@@ -208,4 +209,36 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 
 	err = s.checkForRuntimeChanges()
 	require.Nil(t, err)
+}
+
+func TestService_HasKey(t *testing.T) {
+	ks := keystore.NewKeystore()
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Insert(kr.Alice)
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	svc := NewTestService(t, cfg)
+
+	res, err := svc.HasKey(kr.Alice.Public().Hex(), "babe")
+	require.NoError(t, err)
+	require.True(t, res)
+}
+
+func TestService_HasKey_UnknownType(t *testing.T) {
+	ks := keystore.NewKeystore()
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Insert(kr.Alice)
+
+	cfg := &Config{
+		Keystore: ks,
+	}
+	svc := NewTestService(t, cfg)
+
+	res, err := svc.HasKey(kr.Alice.Public().Hex(), "xxxx")
+	require.EqualError(t, err, "unknown key type: xxxx")
+	require.False(t, res)
 }

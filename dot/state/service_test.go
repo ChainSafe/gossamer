@@ -18,7 +18,6 @@ package state
 
 import (
 	"math/big"
-	"math/rand"
 	"reflect"
 	"testing"
 
@@ -30,12 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
-
-// branch tree randomly
-type testBranch struct {
-	hash  common.Hash
-	depth int
-}
 
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
@@ -55,120 +48,40 @@ func TestService_Start(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
-	state.Stop()
+	err = state.Stop()
+	require.Nil(t, err)
 }
 
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = state.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
-	state.Stop()
-}
-
-func addBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
-	previousHash := blockState.BestBlockHash()
-
-	branches := []testBranch{}
-	r := *rand.New(rand.NewSource(rand.Int63()))
-
-	arrivalTime := uint64(1)
-	currentChain := []*types.Header{}
-	branchChains := []*types.Header{}
-
-	// create base tree
-	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
-				StateRoot:  trie.EmptyHash,
-			},
-			Body: &types.Body{},
-		}
-
-		currentChain = append(currentChain, block.Header)
-
-		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		require.Nil(t, err)
-
-		previousHash = hash
-
-		isBranch := r.Intn(2)
-		if isBranch == 1 {
-			branches = append(branches, testBranch{
-				hash:  hash,
-				depth: i,
-			})
-		}
-
-		arrivalTime++
-	}
-
-	// create tree branches
-	for _, branch := range branches {
-		previousHash = branch.hash
-
-		for i := branch.depth; i < depth; i++ {
-			block := &types.Block{
-				Header: &types.Header{
-					ParentHash: previousHash,
-					Number:     big.NewInt(int64(i) + 1),
-					StateRoot:  trie.EmptyHash,
-					Digest:     [][]byte{{byte(i)}},
-				},
-				Body: &types.Body{},
-			}
-
-			branchChains = append(branchChains, block.Header)
-
-			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
-			require.Nil(t, err)
-
-			previousHash = hash
-
-			arrivalTime++
-		}
-	}
-
-	return currentChain, branchChains
+	err = state.Stop()
+	require.Nil(t, err)
 }
 
 func TestService_BlockTree(t *testing.T) {
@@ -180,36 +93,30 @@ func TestService_BlockTree(t *testing.T) {
 	stateA := NewService(testDir)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
 	err = stateA.Initialize(genesisData, genesisHeader, tr)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	err = stateA.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	// add blocks to state
-	addBlocksToState(t, stateA.Block, 10)
+	AddBlocksToState(t, stateA.Block, 10)
 
-	stateA.Stop()
+	err = stateA.Stop()
+	require.Nil(t, err)
 
 	stateB := NewService(testDir)
 
 	err = stateB.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
-	stateB.Stop()
+	err = stateB.Stop()
+	require.Nil(t, err)
 
 	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
 		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())

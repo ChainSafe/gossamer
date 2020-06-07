@@ -50,6 +50,12 @@ func (blockDB *BlockDB) Get(key []byte) ([]byte, error) {
 	return blockDB.db.Get(key)
 }
 
+// Has appends `block` to the key and checks for existence in the db
+func (blockDB *BlockDB) Has(key []byte) (bool, error) {
+	key = append(blockPrefix, key...)
+	return blockDB.db.Has(key)
+}
+
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
 	bt                 *blocktree.BlockTree
@@ -57,6 +63,8 @@ type BlockState struct {
 	lock               sync.RWMutex
 	genesisHash        common.Hash
 	highestBlockHeader *types.Header
+	blockNotifier      chan<- *types.Block
+	doneNotifying      <-chan struct{}
 }
 
 // NewBlockDB instantiates a badgerDB instance for storing relevant BlockData
@@ -66,7 +74,7 @@ func NewBlockDB(db database.Database) *BlockDB {
 	}
 }
 
-// NewBlockState will create a new BlockState backed by the database located at dataDir
+// NewBlockState will create a new BlockState backed by the database located at basePath
 func NewBlockState(db database.Database, bt *blocktree.BlockTree) (*BlockState, error) {
 	if bt == nil {
 		return nil, fmt.Errorf("block tree is nil")
@@ -79,7 +87,16 @@ func NewBlockState(db database.Database, bt *blocktree.BlockTree) (*BlockState, 
 
 	bs.genesisHash = bt.GenesisHash()
 	var err error
+
+	// set the current highest block
 	bs.highestBlockHeader, err = bs.BestBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	// set the latest finalized head to the genesis header
+	// TODO: will need to load and set this upon node startup to the actual hash stored in the db
+	err = bs.SetFinalizedHash(bs.genesisHash)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +104,7 @@ func NewBlockState(db database.Database, bt *blocktree.BlockTree) (*BlockState, 
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at dataDir
+// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db database.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
 		bt: blocktree.NewBlockTreeFromGenesis(header, db),
@@ -164,6 +181,11 @@ func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
+// HasHeader returns if the db contains a header with the given hash
+func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
+	return bs.db.Has(headerKey(hash))
+}
+
 // GetHeader returns a BlockHeader for a given hash
 func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	result := new(types.Header)
@@ -186,6 +208,17 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	return result, err
 }
 
+// GetHeaderByNumber returns a block header given a number
+func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
+	if err != nil {
+		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
+	}
+
+	hash := common.NewHash(bh)
+	return bs.GetHeader(hash)
+}
+
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	header, err := bs.GetHeader(hash)
@@ -201,11 +234,11 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 }
 
 // GetBlockByNumber returns a block for a given blockNumber
-func (bs *BlockState) GetBlockByNumber(blockNumber *big.Int) (*types.Block, error) {
+func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
-	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
+	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
+		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
 	}
 
 	// Then find the block based on the hash
@@ -265,6 +298,26 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 	}
 
 	return types.NewBody(data), nil
+}
+
+// GetFinalizedHeader returns the latest finalized block header
+func (bs *BlockState) GetFinalizedHeader() (*types.Header, error) {
+	h, err := bs.db.Get(common.FinalizedBlockHashKey)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := bs.GetHeader(common.NewHash(h))
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// SetFinalizedHash sets the latest finalized block header
+func (bs *BlockState) SetFinalizedHash(hash common.Hash) error {
+	return bs.db.Put(common.FinalizedBlockHashKey, hash[:])
 }
 
 // SetBlockBody will add a block body to the db
@@ -372,6 +425,17 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 	if err != nil {
 		return err
 	}
+
+	if bs.blockNotifier != nil {
+		select {
+		case <-bs.doneNotifying:
+			close(bs.blockNotifier)
+			bs.blockNotifier = nil
+		default:
+			bs.blockNotifier <- block
+		}
+	}
+
 	return err
 }
 
@@ -391,10 +455,12 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 		return true, nil
 	}
 
-	_, err = bs.SubChain(header.Hash(), bestBlock.Hash())
+	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
 	if err != nil {
-		// subchain function will error if the new block is not a precessor of our best block,
-		// thus it is not on our current chain
+		return false, err
+	}
+
+	if !is {
 		return false, nil
 	}
 
@@ -481,6 +547,31 @@ func (bs *BlockState) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	return bs.bt.SubBlockchain(start, end)
 }
 
+// IsDescendantOf returns true if child is a descendant of parent, false otherwise.
+// it returns an error if parent or child are not in the blocktree.
+func (bs *BlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
+	if bs.bt == nil {
+		return false, fmt.Errorf("blocktree is nil")
+	}
+
+	return bs.bt.IsDescendantOf(parent, child)
+}
+
+// HighestCommonAncestor returns the block with the highest number that is an ancestor of both a and b
+func (bs *BlockState) HighestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+	return bs.bt.HighestCommonAncestor(a, b)
+}
+
+// Leaves returns the leaves of the blocktree as an array
+func (bs *BlockState) Leaves() []common.Hash {
+	return bs.bt.Leaves()
+}
+
+// BlocktreeAsString returns the blocktree as a string
+func (bs *BlockState) BlocktreeAsString() string {
+	return bs.bt.String()
+}
+
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
 	return StoreBestBlockHash(bs.db.db, hash)
 }
@@ -531,4 +622,10 @@ func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHea
 	enc := bh.Encode()
 
 	return bs.db.Put(babeHeaderKey(epoch, slot), enc)
+}
+
+// SetBlockAddedChannel to sets channel that blocks will be received on
+func (bs *BlockState) SetBlockAddedChannel(rcvr chan<- *types.Block, done <-chan struct{}) {
+	bs.blockNotifier = rcvr
+	bs.doneNotifying = done
 }

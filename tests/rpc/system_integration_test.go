@@ -80,7 +80,8 @@ func TestStableNetworkRPC(t *testing.T) {
 			require.Nil(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
-			utils.DecodeRPC(t, respBody, target)
+			err = utils.DecodeRPC(t, respBody, target)
+			require.Nil(t, err)
 
 			switch v := target.(type) {
 			case *modules.SystemHealthResponse:
@@ -100,7 +101,7 @@ func TestStableNetworkRPC(t *testing.T) {
 				t.Log("Will assert SystemPeersResponse", "target", target)
 
 				require.NotNil(t, v.Peers)
-				require.GreaterOrEqual(t, len(v.Peers), networkSize-1)
+				require.GreaterOrEqual(t, len(v.Peers), networkSize-2)
 
 				for _, vv := range v.Peers {
 					require.NotNil(t, vv.PeerID)

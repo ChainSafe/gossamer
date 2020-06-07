@@ -65,33 +65,34 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 }
 
 // GenerateKeypair create a new keypair with the corresponding type and saves
-// it to datadir/keystore/[public key].key in json format encrypted using the
+// it to basepath/keystore/[public key].key in json format encrypted using the
 // specified password and returns the resulting filepath of the new key
-func GenerateKeypair(keytype string, datadir string, password []byte) (string, error) {
+func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, password []byte) (string, error) {
 	if keytype == "" {
 		keytype = crypto.Sr25519Type
 	}
-
-	var kp crypto.Keypair
 	var err error
-	if keytype == crypto.Sr25519Type {
-		kp, err = sr25519.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate sr25519 keypair: %s", err)
-		}
-	} else if keytype == crypto.Ed25519Type {
-		kp, err = ed25519.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
-		}
-	} else if keytype == crypto.Secp256k1Type {
-		kp, err = secp256k1.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+
+	if kp == nil {
+		if keytype == crypto.Sr25519Type {
+			kp, err = sr25519.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate sr25519 keypair: %s", err)
+			}
+		} else if keytype == crypto.Ed25519Type {
+			kp, err = ed25519.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
+			}
+		} else if keytype == crypto.Secp256k1Type {
+			kp, err = secp256k1.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+			}
 		}
 	}
 
-	keyPath, err := utils.KeystoreDir(datadir)
+	keyPath, err := utils.KeystoreDir(basepath)
 	if err != nil {
 		return "", fmt.Errorf("failed to get keystore directory: %s", err)
 	}
@@ -126,9 +127,9 @@ func LoadKeystore(key string) (*Keystore, error) {
 
 	if key != "" {
 
-		kr, err := NewKeyring()
+		kr, err := NewSr25519Keyring()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create keyring")
+			return nil, fmt.Errorf("failed to create keyring: %s", err)
 		}
 
 		switch strings.ToLower(key) {
@@ -142,12 +143,14 @@ func LoadKeystore(key string) (*Keystore, error) {
 			ks.Insert(kr.Dave)
 		case "eve":
 			ks.Insert(kr.Eve)
-		case "fred":
-			ks.Insert(kr.Fred)
+		case "ferdie":
+			ks.Insert(kr.Ferdie)
 		case "george":
 			ks.Insert(kr.George)
 		case "heather":
 			ks.Insert(kr.Heather)
+		case "ian":
+			ks.Insert(kr.Ian)
 		default:
 			return nil, fmt.Errorf("invalid test key provided")
 		}
@@ -187,6 +190,35 @@ func ImportKeypair(fp string, dir string) (string, error) {
 	}
 
 	return keyFilePath, nil
+}
+
+// ImportRawPrivateKey imports a raw private key and saves it to the keystore directory
+func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string, error) {
+	var kp crypto.Keypair
+	var err error
+
+	if keytype == "" {
+		keytype = crypto.Sr25519Type
+	}
+
+	if keytype == crypto.Sr25519Type {
+		kp, err = sr25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to import sr25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Ed25519Type {
+		kp, err = ed25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Secp256k1Type {
+		kp, err = secp256k1.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+		}
+	}
+
+	return GenerateKeypair(keytype, kp, basepath, password)
 }
 
 // UnlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password
@@ -249,4 +281,54 @@ func UnlockKeys(ks *Keystore, dir string, unlock string, password string) error 
 	}
 
 	return nil
+}
+
+// DetermineKeyType takes string as defined in https://github.com/w3f/PSPs/blob/psp-rpc-api/psp-002.md#Key-types
+//  and returns the crypto.KeyType
+func DetermineKeyType(t string) crypto.KeyType {
+	// TODO: create separate keystores for different key types, issue #768
+	switch t {
+	case "babe":
+		return crypto.Sr25519Type
+	case "gran":
+		return crypto.Ed25519Type
+	case "acco":
+		return crypto.Sr25519Type
+	case "aura":
+		return crypto.Sr25519Type
+	case "imon":
+		return crypto.Sr25519Type
+	case "audi":
+		return crypto.Sr25519Type
+	case "dumy":
+		return crypto.Sr25519Type
+	}
+	return "unknown keytype"
+}
+
+// HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
+//  are issues decoding string
+func HasKey(pubKeyStr string, keyType string, keystore *Keystore) (bool, error) {
+	keyBytes, err := common.HexToBytes(pubKeyStr)
+	if err != nil {
+		return false, err
+	}
+	cKeyType := DetermineKeyType(keyType)
+
+	var pubKey crypto.PublicKey
+	// TODO: consider handling for different key types, see issue #768
+	switch cKeyType {
+	case crypto.Sr25519Type:
+		pubKey, err = sr25519.NewPublicKey(keyBytes)
+	case crypto.Ed25519Type:
+		pubKey, err = ed25519.NewPublicKey(keyBytes)
+	default:
+		err = fmt.Errorf("unknown key type: %s", keyType)
+	}
+
+	if err != nil {
+		return false, err
+	}
+	key := keystore.Get(pubKey.Address())
+	return key != nil, nil
 }

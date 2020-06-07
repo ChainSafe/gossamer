@@ -39,6 +39,7 @@ type BlockState interface {
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
+	HasHeader(hash common.Hash) (bool, error)
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
@@ -49,6 +50,7 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash
 	HighestBlockNumber() *big.Int
+	GetFinalizedHeader() (*types.Header, error)
 }
 
 // StorageState interface for storage state methods

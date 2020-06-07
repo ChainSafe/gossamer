@@ -18,11 +18,9 @@ package state
 
 import (
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -30,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestBlockState(header *types.Header) *BlockState {
+func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	db := database.NewMemDatabase()
 	blockDb := NewBlockDB(db)
 
@@ -40,14 +38,13 @@ func newTestBlockState(header *types.Header) *BlockState {
 		}
 	}
 
-	return &BlockState{
-		db: blockDb,
-		bt: blocktree.NewBlockTreeFromGenesis(header, db),
-	}
+	bs, err := NewBlockStateFromGenesis(db, header)
+	require.NoError(t, err)
+	return bs
 }
 
 func TestSetAndGetHeader(t *testing.T) {
-	bs := newTestBlockState(nil)
+	bs := newTestBlockState(t, nil)
 
 	header := &types.Header{
 		Number:    big.NewInt(0),
@@ -56,18 +53,28 @@ func TestSetAndGetHeader(t *testing.T) {
 	}
 
 	err := bs.SetHeader(header)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	res, err := bs.GetHeader(header.Hash())
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	require.Equal(t, header, res)
+}
+
+func TestHasHeader(t *testing.T) {
+	bs := newTestBlockState(t, nil)
+
+	header := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+		Digest:    [][]byte{},
 	}
 
-	if !reflect.DeepEqual(res, header) {
-		t.Fatalf("Fail: got %v expected %v", res, header)
-	}
+	err := bs.SetHeader(header)
+	require.NoError(t, err)
+
+	has, err := bs.HasHeader(header.Hash())
+	require.NoError(t, err)
+	require.Equal(t, true, has)
 }
 
 func TestGetBlockByNumber(t *testing.T) {
@@ -75,7 +82,7 @@ func TestGetBlockByNumber(t *testing.T) {
 		Number: big.NewInt(0),
 	}
 
-	bs := newTestBlockState(genesisHeader)
+	bs := newTestBlockState(t, genesisHeader)
 
 	blockHeader := &types.Header{
 		ParentHash: genesisHeader.Hash(),
@@ -90,13 +97,11 @@ func TestGetBlockByNumber(t *testing.T) {
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
 	err := bs.AddBlock(block)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
-	require.Nil(t, err)
-
+	require.NoError(t, err)
 	require.Equal(t, block, retBlock, "Could not validate returned retBlock as expected")
-
 }
 
 func TestAddBlock(t *testing.T) {
@@ -104,7 +109,7 @@ func TestAddBlock(t *testing.T) {
 		Number: big.NewInt(0),
 	}
 
-	bs := newTestBlockState(genesisHeader)
+	bs := newTestBlockState(t, genesisHeader)
 
 	// Create header
 	header0 := &types.Header{
@@ -124,7 +129,7 @@ func TestAddBlock(t *testing.T) {
 
 	// Add the block0 to the DB
 	err := bs.AddBlock(block0)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
@@ -144,16 +149,16 @@ func TestAddBlock(t *testing.T) {
 
 	// Add the block1 to the DB
 	err = bs.AddBlock(block1)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
 	retBlock, err := bs.GetBlockByHash(blockHash0)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	require.Equal(t, block0, retBlock, "Could not validate returned block0 as expected")
 
 	retBlock, err = bs.GetBlockByHash(blockHash1)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// this will panic if not successful, so catch and fail it so
 	func() {
@@ -178,12 +183,10 @@ func TestGetSlotForBlock(t *testing.T) {
 		StateRoot: trie.EmptyHash,
 	}
 
-	bs := newTestBlockState(genesisHeader)
+	bs := newTestBlockState(t, genesisHeader)
 
 	preDigest, err := common.HexToBytes("0x064241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	expectedSlot := uint64(17)
 
@@ -197,18 +200,11 @@ func TestGetSlotForBlock(t *testing.T) {
 	}
 
 	err = bs.AddBlock(block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res, expectedSlot) {
-		t.Fatalf("Fail: got %x expected %x", res, expectedSlot)
-	}
+	require.NoError(t, err)
+	require.Equal(t, expectedSlot, res)
 }
 
 func TestIsBlockOnCurrentChain(t *testing.T) {
@@ -217,14 +213,13 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 		StateRoot: trie.EmptyHash,
 	}
 
-	bs := newTestBlockState(genesisHeader)
-	currChain, branchChains := addBlocksToState(t, bs, 8)
+	bs := newTestBlockState(t, genesisHeader)
+	currChain, branchChains := AddBlocksToState(t, bs, 8)
 
 	for _, header := range currChain {
 		onChain, err := bs.isBlockOnCurrentChain(header)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		if !onChain {
 			t.Fatalf("Fail: expected block %s to be on current chain", header.Hash())
 		}
@@ -232,9 +227,8 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 
 	for _, header := range branchChains {
 		onChain, err := bs.isBlockOnCurrentChain(header)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
+
 		if onChain {
 			t.Fatalf("Fail: expected block %s not to be on current chain", header.Hash())
 		}
@@ -247,21 +241,17 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		StateRoot: trie.EmptyHash,
 	}
 
-	bs := newTestBlockState(genesisHeader)
-	currChain, branchChains := addBlocksToState(t, bs, 8)
+	bs := newTestBlockState(t, genesisHeader)
+	currChain, branchChains := AddBlocksToState(t, bs, 8)
 
 	bestHash := bs.BestBlockHash()
 	bestHeader, err := bs.BestBlockHeader()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var resBlock *types.Block
 	for _, header := range currChain {
 		resBlock, err = bs.GetBlockByNumber(header.Number)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		if resBlock.Header.Hash() != header.Hash() {
 			t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), header.Hash(), header.Number)
@@ -270,9 +260,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 	for _, header := range branchChains {
 		resBlock, err = bs.GetBlockByNumber(header.Number)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		if resBlock.Header.Hash() == header.Hash() {
 			t.Fatalf("Fail: should not have gotten block %s for branch block num=%d", header.Hash(), header.Number)
@@ -288,14 +276,10 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	err = bs.AddBlock(newBlock)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
 		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)

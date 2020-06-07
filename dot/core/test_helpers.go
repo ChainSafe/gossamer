@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var maxRetries = 5
+
 // testGenesisHeader is a test block header
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
@@ -66,7 +68,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
+		cfg.Runtime = runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
 	}
 
 	if cfg.Keystore == nil {

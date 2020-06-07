@@ -22,6 +22,7 @@ type BlockAPI interface {
 	HighestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
+	SetBlockAddedChannel(chan<- *types.Block, <-chan struct{})
 }
 
 // NetworkAPI interface for network state methods
@@ -29,6 +30,7 @@ type NetworkAPI interface {
 	Health() common.Health
 	NetworkState() common.NetworkState
 	Peers() []common.PeerInfo
+	NodeRoles() byte
 }
 
 // TransactionQueueAPI ...
@@ -42,9 +44,11 @@ type TransactionQueueAPI interface {
 // CoreAPI is the interface for the core methods
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
+	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
 	IsBabeAuthority() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
+	GetMetadata() ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
@@ -56,4 +60,12 @@ type RPCAPI interface {
 // RuntimeAPI is the interface for runtime methods
 type RuntimeAPI interface {
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+}
+
+// SystemAPI is the interface for handling system methods
+type SystemAPI interface {
+	SystemName() string
+	SystemVersion() string
+	NodeName() string
+	Properties() map[string]interface{}
 }

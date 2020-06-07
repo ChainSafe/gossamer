@@ -78,13 +78,13 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 	} else {
 
 		// get data directory from service
-		datadir, err := filepath.Abs(s.dbPath)
+		basepath, err := filepath.Abs(s.dbPath)
 		if err != nil {
-			return fmt.Errorf("failed to read datadir: %s", err)
+			return fmt.Errorf("failed to read basepath: %s", err)
 		}
 
 		// initialize database using data directory
-		db, err = database.NewBadgerDB(datadir)
+		db, err = database.NewBadgerDB(basepath)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
 		}
@@ -175,13 +175,13 @@ func (s *Service) Start() error {
 
 	db := s.db
 	if !s.isMemDB {
-		datadir, err := filepath.Abs(s.dbPath)
+		basepath, err := filepath.Abs(s.dbPath)
 		if err != nil {
 			return err
 		}
 
 		// initialize database
-		db, err = database.NewBadgerDB(datadir)
+		db, err = database.NewBadgerDB(basepath)
 		if err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func (s *Service) Start() error {
 	bt := blocktree.NewEmptyBlockTree(db)
 	err = bt.Load()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load blocktree: %s", err)
 	}
 
 	// create block state
@@ -216,15 +216,15 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create block state: %s", err)
 	}
 
-	headBlock, err := s.Block.GetHeader(s.Block.BestBlockHash())
+	stateRoot, err := LoadLatestStorageHash(s.db)
 	if err != nil {
-		return fmt.Errorf("failed to get chain head from database: %s", err)
+		return fmt.Errorf("cannot load latest storage root: %s", err)
 	}
 
-	log.Trace("[state] start", "best block state root", headBlock.StateRoot)
+	log.Debug("[state] start", "latest state root", stateRoot)
 
 	// load current storage state
-	err = s.Storage.LoadFromDB(headBlock.StateRoot)
+	err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to get state root from database: %s", err)
 	}
@@ -240,7 +240,12 @@ func (s *Service) Start() error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	err := s.Storage.StoreInDB()
+	err := s.storeHash()
+	if err != nil {
+		return err
+	}
+
+	err = s.Storage.StoreInDB()
 	if err != nil {
 		return err
 	}
@@ -261,7 +266,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	log.Trace("[state] stop", "best block hash", hash)
+	log.Debug("[state] stop", "best block hash", hash)
 
 	return s.db.Close()
 }

@@ -22,7 +22,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestExecVersion(t *testing.T) {
+func TestExecVersion_NodeRuntime(t *testing.T) {
+	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
+	expected := &Version{
+		Spec_name:         []byte("node"),
+		Impl_name:         []byte("substrate-node"),
+		Authoring_version: 10,
+		Spec_version:      193,
+		Impl_version:      193,
+	}
+
+	runtime := NewTestRuntime(t, NODE_RUNTIME)
+
+	ret, err := runtime.Exec(CoreVersion, []byte{})
+	require.Nil(t, err)
+
+	version := &VersionAPI{
+		RuntimeVersion: &Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
+	require.Nil(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func TestExecVersion_Old(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
 	expected := &Version{
 		Spec_name:         []byte("test"),
@@ -32,7 +63,7 @@ func TestExecVersion(t *testing.T) {
 		Impl_version:      1,
 	}
 
-	runtime := NewTestRuntime(t, POLKADOT_RUNTIME_c768a7e4c70e)
+	runtime := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	ret, err := runtime.Exec(CoreVersion, []byte{})
 	require.Nil(t, err)

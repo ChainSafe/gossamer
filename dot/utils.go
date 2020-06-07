@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NewTestConfig returns a new test configuration using the provided datadir
+// NewTestConfig returns a new test configuration using the provided basepath
 func NewTestConfig(t *testing.T) *Config {
 	dir := utils.NewTestDir(t)
 
@@ -38,15 +38,16 @@ func NewTestConfig(t *testing.T) *Config {
 
 	return &Config{
 		Global: GlobalConfig{
-			Name:    GssmrConfig().Global.Name,
-			ID:      GssmrConfig().Global.ID,
-			DataDir: dir,
+			Name:     GssmrConfig().Global.Name,
+			ID:       GssmrConfig().Global.ID,
+			BasePath: dir,
 		},
 		Init:    GssmrConfig().Init,
 		Account: GssmrConfig().Account,
 		Core:    GssmrConfig().Core,
 		Network: GssmrConfig().Network,
 		RPC:     GssmrConfig().RPC,
+		System:  GssmrConfig().System,
 	}
 }
 
@@ -54,7 +55,7 @@ func NewTestConfig(t *testing.T) *Config {
 func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 	cfg := NewTestConfig(t)
 
-	file, err := ioutil.TempFile(cfg.Global.DataDir, "config-")
+	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
 	if err != nil {
 		fmt.Println(fmt.Errorf("failed to create temporary file: %s", err))
 		require.Nil(t, err)
@@ -118,8 +119,8 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 func NewTestGenesisAndRuntime(t *testing.T) string {
 	dir := utils.NewTestDir(t)
 
-	_ = runtime.NewTestRuntime(t, runtime.POLKADOT_RUNTIME_c768a7e4c70e)
-	runtimeFilePath := runtime.GetAbsolutePath(runtime.POLKADOT_RUNTIME_FP_c768a7e4c70e)
+	_ = runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
 
 	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
 	require.Nil(t, err)
@@ -132,7 +133,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 		gen.Genesis.Raw[0] = make(map[string]string)
 	}
 	gen.Genesis.Raw[0]["0x3a636f6465"] = "0x" + hex
-	gen.Genesis.Raw[0]["0x89d892938a1ad12bbbd7e698505f791668241093caee86a94556a9f48da95856"] = "0x0000000000000001"
+	gen.Genesis.Raw[0]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
 	genFile, err := ioutil.TempFile(dir, "genesis-")
 	require.Nil(t, err)
