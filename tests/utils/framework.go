@@ -65,7 +65,8 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJson map[strin
 
 	respJson = make(map[string]interface{})
 	err = DecodeRPC_NT(respBody, &respJson)
-	err = fw.db.Write("node_"+node.Key, strconv.Itoa(fw.callQty) + "_" + method, respJson)
+	err = fw.db.Write("node_"+ strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty), respJson)
+	fmt.Printf("RPC call fi %v se %v \n", "node_"+strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty))
 	if err != nil {
 		fmt.Errorf("error writting to db %v", err)
 	}
@@ -85,5 +86,11 @@ func (fw *Framework) PrintDB(idx int) {
 	}
 }
 
-func (fw *Framework) PrintRecord() {
+func (fw *Framework) PrintRecord(nodeIdx int, callIdx int) {
+	v := make(map[string] interface{})
+	err := fw.db.Read("node_" + strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), &v)
+	if err != nil {
+		fmt.Errorf("error reading from db %v\n", err)
+	}
+	fmt.Printf("collection: %v resource: %v v: %v\n", "node_"+strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), v)
 }

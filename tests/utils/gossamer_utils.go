@@ -115,6 +115,8 @@ func RestartGossamer(t *testing.T, node *Node) error {
 		)
 	}
 
+	node.Key = key
+
 	// a new file will be created, it will be used for log the outputs from the node
 	f, err := os.Create(filepath.Join(node.basePath, "gossamer.log"))
 	if err != nil {
