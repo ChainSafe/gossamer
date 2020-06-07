@@ -65,10 +65,12 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJson map[strin
 
 	respJson = make(map[string]interface{})
 	err = DecodeRPC_NT(respBody, &respJson)
-	err = fw.db.Write("node_"+ strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty), respJson)
-	fmt.Printf("RPC call fi %v se %v \n", "node_"+strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty))
 	if err != nil {
-		fmt.Errorf("error writting to db %v", err)
+		return nil, fmt.Errorf("error making RPC call %v\n", err)
+	}
+	err = fw.db.Write("node_"+ strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty), respJson)
+	if err != nil {
+		return nil, fmt.Errorf("error writting to db %v", err)
 	}
 
 	fw.callQty++

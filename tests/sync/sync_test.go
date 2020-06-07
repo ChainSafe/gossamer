@@ -19,6 +19,7 @@ type testRPCCall struct {
 
 var tests = []testRPCCall {
 	{nodeIdx: 0, method:  "chain_getHeader", params:  "[]", delay: time.Second},
+	{nodeIdx: 0, method:  "chain_getBlockHash", params:  "[[0]]", delay: time.Second},
 	{nodeIdx: 0, method:  "state_getRuntimeVersion", params:  "[]", delay: time.Second},
 }
 func TestMain(m *testing.M) {
@@ -57,9 +58,11 @@ func TestCalls(t *testing.T) {
 	require.Len(t, err, 0)
 	for _, call := range tests {
 		time.Sleep(call.delay)
-		framework.CallRPC(call.nodeIdx, call.method, call.params)
+		res, err := framework.CallRPC(call.nodeIdx, call.method, call.params)
+		require.NoError(t, err)
+		fmt.Printf("res %v, err %v\n", res, err)
 	}
-	v := framework.GetRecord(0, 0)
+	v := framework.GetRecord(0, 1)
 	fmt.Printf("get Record %v\n", v)
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
