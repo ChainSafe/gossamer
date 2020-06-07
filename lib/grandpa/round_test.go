@@ -154,7 +154,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(t *testing.T, from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done *bool) {
+func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			lock.Lock()
@@ -207,7 +207,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(t, out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -277,7 +277,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(t, out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -345,7 +345,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	leaves := gss[0].blockState.Leaves()
 
 	for _, out := range outs {
-		go broadcastVotes(t, out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {
@@ -419,7 +419,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(t, out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &lock, &done)
 	}
 
 	for _, gs := range gss {

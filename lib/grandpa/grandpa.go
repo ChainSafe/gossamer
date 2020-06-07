@@ -227,7 +227,7 @@ func (s *Service) playGrandpaRound() error {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
-			completable, err := s.isCompletable()
+			completable, err := s.isCompletable() //nolint
 			if err != nil {
 				log.Trace("[grandpa] failed to check if round is completable", "error", err)
 			}
