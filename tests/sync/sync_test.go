@@ -58,9 +58,9 @@ func TestCalls(t *testing.T) {
 	for _, call := range tests {
 		time.Sleep(call.delay)
 		framework.CallRPC(call.nodeIdx, call.method, call.params)
-		//framework.PrintDB(call.nodeIdx)
 	}
-	framework.PrintRecord(0, 0)
+	v := framework.GetRecord(0, 0)
+	fmt.Printf("get Record %v\n", v)
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }

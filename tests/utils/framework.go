@@ -77,7 +77,7 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJson map[strin
 }
 
 func (fw *Framework) PrintDB(idx int) {
-	items, err := fw.db.ReadAll("node_" + fw.nodes[idx].Key)
+	items, err := fw.db.ReadAll("node_" + strconv.Itoa(fw.nodes[idx].Idx))
 	if err != nil {
 		fmt.Errorf("error reading from db %v\n", err)
 	}
@@ -86,11 +86,11 @@ func (fw *Framework) PrintDB(idx int) {
 	}
 }
 
-func (fw *Framework) PrintRecord(nodeIdx int, callIdx int) {
+func (fw *Framework) GetRecord(nodeIdx int, callIdx int) map[string]interface{} {
 	v := make(map[string] interface{})
 	err := fw.db.Read("node_" + strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), &v)
 	if err != nil {
 		fmt.Errorf("error reading from db %v\n", err)
 	}
-	fmt.Printf("collection: %v resource: %v v: %v\n", "node_"+strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), v)
+	return v
 }
