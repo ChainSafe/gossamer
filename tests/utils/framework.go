@@ -43,27 +43,16 @@ func (fw *Framework) KillNodes(t *testing.T) []error {
 	return TearDown(t, fw.nodes)
 }
 
-//func (fw *Framework) StoreChainHeads() {
-//	for _, node := range fw.nodes {
-//		res, err := CallRPC(node, "chain_getHeader", "[]")
-//		fmt.Errorf("error getting chain header %v", err)
-//		fmt.Printf("resp %v\n", res["number"])
-//		err = fw.db.Write("blocks_"+node.Key, res["number"].(string), res)
-//		if err != nil {
-//			fmt.Errorf("error writting to db %v", err)
-//		}
-//	}
-//}
-
-// TODO ed, should params be []string instead?
-func (fw *Framework) CallRPC(idx int, method, params string) (respJson map[string]interface{}, err error) {
+func (fw *Framework) CallRPC(idx int, method, params string) (respJson interface{}, err error) {
+	if idx >= len(fw.nodes) {
+		return nil, fmt.Errorf("node index greater than quantity of nodes")
+	}
 	node := fw.nodes[idx]
 	respBody, err := PostRPC(method, NewEndpoint(node.RPCPort), params)
 	if err != nil {
 		return nil, err
 	}
 
-	respJson = make(map[string]interface{})
 	err = DecodeRPC_NT(respBody, &respJson)
 	if err != nil {
 		return nil, fmt.Errorf("error making RPC call %v\n", err)
@@ -88,8 +77,8 @@ func (fw *Framework) PrintDB(idx int) {
 	}
 }
 
-func (fw *Framework) GetRecord(nodeIdx int, callIdx int) map[string]interface{} {
-	v := make(map[string] interface{})
+func (fw *Framework) GetRecord(nodeIdx int, callIdx int) interface{} {
+	var v interface{}
 	err := fw.db.Read("node_" + strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), &v)
 	if err != nil {
 		fmt.Errorf("error reading from db %v\n", err)
