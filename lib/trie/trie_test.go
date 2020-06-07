@@ -548,7 +548,8 @@ func TestGetKeysWithPrefix(t *testing.T) {
 	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
-		{key: []byte{0x07}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
 	}
 
@@ -556,16 +557,20 @@ func TestGetKeysWithPrefix(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
-	t.Log(trie)
-
 	expected := [][]byte{{0x01, 0x35}, {0x01, 0x35, 0x79}}
 	keys := trie.GetKeysWithPrefix([]byte{0x01})
 	if !reflect.DeepEqual(keys, expected) {
 		t.Fatalf("Fail: got %v expected %v", keys, expected)
 	}
 
-	expected = [][]byte{{0x01, 0x35}, {0x01, 0x35, 0x79}, {0x07}}
+	expected = [][]byte{{0x01, 0x35}, {0x01, 0x35, 0x79}, {0x07, 0x3a}, {0x07, 0x3b}}
 	keys = trie.GetKeysWithPrefix([]byte{0x0})
+	if !reflect.DeepEqual(keys, expected) {
+		t.Fatalf("Fail: got %v expected %v", keys, expected)
+	}
+
+	expected = [][]byte{{0x07, 0x3a}, {0x07, 0x3b}}
+	keys = trie.GetKeysWithPrefix([]byte{0x07, 0x30})
 	if !reflect.DeepEqual(keys, expected) {
 		t.Fatalf("Fail: got %v expected %v", keys, expected)
 	}
