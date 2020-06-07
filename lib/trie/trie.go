@@ -299,7 +299,7 @@ func (t *Trie) addAllKeys(parent node, prefix []byte, keys [][]byte) [][]byte {
 	switch p := parent.(type) {
 	case *branch:
 		if p.value != nil {
-			keys = append(keys, nibblesToKeyLE(append(append(prefix, p.key...))))
+			keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
 		}
 
 		for i, child := range p.children {
