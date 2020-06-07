@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
