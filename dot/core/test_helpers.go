@@ -63,7 +63,7 @@ func (v *mockVerifier) EpochNumber() uint64 {
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
 		cfg = &Config{
-			IsBabeAuthority: false,
+			IsBlockProducer: false,
 		}
 	}
 

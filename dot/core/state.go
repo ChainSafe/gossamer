@@ -18,9 +18,12 @@ package core
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -76,4 +79,15 @@ type TransactionQueue interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	RemoveExtrinsic(ext types.Extrinsic)
+}
+
+// BlockProducer is the interface that a block production service must implement
+type BlockProducer interface {
+	services.Service
+
+	BlockProduced() <-chan *types.Block
+	SetBlockProduced(<-chan *types.Block)
+	SetLock(*sync.Mutex) // TODO: use Pause instead
+	Pause()
+	SetRuntime(*runtime.Runtime)
 }

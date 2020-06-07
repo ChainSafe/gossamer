@@ -90,7 +90,7 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 		Runtime:          rt,
 		MsgRec:           networkMsgs, // message channel from network service to core service
 		MsgSend:          coreMsgs,    // message channel from core service to network service
-		IsBabeAuthority:  cfg.Core.Authority,
+		IsBlockProducer:  cfg.Core.Authority,
 		SyncChan:         syncChan,
 	}
 

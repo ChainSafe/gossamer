@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	//"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -55,20 +55,23 @@ type Service struct {
 	codeHash common.Hash
 
 	// Current BABE session
-	bs              *babe.Session
-	isBabeAuthority bool
+	//bs              *babe.Session
+	blockProducer   BlockProducer
+	isBlockProducer bool
 
 	// Keystore
 	keys *keystore.Keystore
 
 	// Channels for inter-process communication
-	msgRec    <-chan network.Message // receive messages from network service
-	msgSend   chan<- network.Message // send messages to network service
-	blkRec    <-chan types.Block     // receive blocks from BABE session
-	epochDone *sync.WaitGroup        // this is signaled when BABE epoch changes
-	babeKill  chan<- struct{}        // close this channel to kill current BABE session
-	lock      *sync.Mutex
-	started   uint32
+	msgRec  <-chan network.Message // receive messages from network service
+	msgSend chan<- network.Message // send messages to network service
+	blkRec  <-chan types.Block     // receive blocks from BABE session
+	//epochDone *sync.WaitGroup        // this is signaled when BABE epoch changes
+	//babeKill  chan<- struct{}        // close this channel to kill current BABE session
+
+	// State variables
+	lock    *sync.Mutex
+	started uint32
 
 	// Block synchronization
 	blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
@@ -84,7 +87,8 @@ type Config struct {
 	TransactionQueue TransactionQueue
 	Keystore         *keystore.Keystore
 	Runtime          *runtime.Runtime
-	IsBabeAuthority  bool
+	BlockProducer    BlockProducer
+	IsBlockProducer  bool
 
 	NewBlocks chan types.Block // only used for testing purposes
 	Verifier  Verifier         // only used for testing purposes
@@ -97,11 +101,11 @@ type Config struct {
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
 func NewService(cfg *Config) (*Service, error) {
-	if cfg.Keystore == nil {
-		return nil, ErrNilKeystore
-	}
+	// if cfg.Keystore == nil {
+	// 	return nil, ErrNilKeystore
+	// }
 
-	keys := cfg.Keystore.Sr25519Keypairs()
+	//keys := cfg.Keystore.Sr25519Keypairs()
 
 	if cfg.NewBlocks == nil {
 		cfg.NewBlocks = make(chan types.Block)
@@ -132,7 +136,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	var currentDescriptor *babe.NextEpochDescriptor
 
-	if cfg.IsBabeAuthority {
+	/*if cfg.IsBabeAuthority {
 		if cfg.Keystore.NumSr25519Keys() == 0 {
 			return nil, ErrNoKeysProvided
 		}
@@ -185,36 +189,36 @@ func NewService(cfg *Config) (*Service, error) {
 		srv.bs = bs
 
 		currentDescriptor = bs.Descriptor()
-	} else {
-		srv = &Service{
-			rt:               cfg.Runtime,
-			codeHash:         codeHash,
-			keys:             cfg.Keystore,
-			blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
-			msgRec:           cfg.MsgRec,
-			msgSend:          cfg.MsgSend,
-			blockState:       cfg.BlockState,
-			storageState:     cfg.StorageState,
-			transactionQueue: cfg.TransactionQueue,
-			isBabeAuthority:  false,
-			lock:             chanLock,
-			syncLock:         syncerLock,
-			blockNumOut:      cfg.SyncChan,
-			respOut:          respChan,
-		}
-
-		// thread safe way to change closed status
-		canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
-		if !canLock {
-			return nil, errors.New("failed to change Service status from stopped to started")
-		}
-
-		// TODO: load this from runtime BabeConfiguration
-		currentDescriptor = &babe.NextEpochDescriptor{
-			Authorities: []*types.AuthorityData{},
-			Randomness:  [babe.RandomnessLength]byte{},
-		}
+	} else {*/
+	srv = &Service{
+		rt:               cfg.Runtime,
+		codeHash:         codeHash,
+		keys:             cfg.Keystore,
+		blkRec:           cfg.NewBlocks, // becomes block receive channel in core service
+		msgRec:           cfg.MsgRec,
+		msgSend:          cfg.MsgSend,
+		blockState:       cfg.BlockState,
+		storageState:     cfg.StorageState,
+		transactionQueue: cfg.TransactionQueue,
+		isBlockProducer:  cfg.IsBlockProducer,
+		lock:             chanLock,
+		syncLock:         syncerLock,
+		blockNumOut:      cfg.SyncChan,
+		respOut:          respChan,
 	}
+
+	// thread safe way to change closed status
+	canLock := atomic.CompareAndSwapUint32(&srv.started, 0, 1)
+	if !canLock {
+		return nil, errors.New("failed to change Service status from stopped to started")
+	}
+
+	// TODO: load this from runtime BabeConfiguration
+	currentDescriptor = &babe.NextEpochDescriptor{
+		Authorities: []*types.AuthorityData{},
+		Randomness:  [babe.RandomnessLength]byte{},
+	}
+	//}
 
 	if cfg.Verifier == nil {
 		// TODO: load current epoch from database chain head
@@ -266,16 +270,16 @@ func (s *Service) Start() error {
 		return err
 	}
 
-	if s.isBabeAuthority {
-		// monitor babe session for epoch changes
-		go s.handleBabeSession()
+	// if s.isBabeAuthority {
+	// 	// monitor babe session for epoch changes
+	// 	go s.handleBabeSession()
 
-		err := s.bs.Start()
-		if err != nil {
-			log.Error("[core] could not start BABE", "error", err)
-			return err
-		}
-	}
+	// 	err := s.bs.Start()
+	// 	if err != nil {
+	// 		log.Error("[core] could not start BABE", "error", err)
+	// 		return err
+	// 	}
+	// }
 
 	return nil
 }
@@ -292,9 +296,9 @@ func (s *Service) Stop() error {
 		if s.msgSend != nil {
 			close(s.msgSend)
 		}
-		if s.isBabeAuthority {
-			close(s.babeKill)
-		}
+		// if s.isBlockProducer {
+		// 	close(s.babeKill)
+		// }
 
 		defer func() {
 			if ok := atomic.CompareAndSwapUint32(&s.started, 1, 0); !ok {
@@ -332,42 +336,42 @@ func (s *Service) safeMsgSend(msg network.Message) error {
 	return nil
 }
 
-func (s *Service) safeBabeKill() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// func (s *Service) safeBabeKill() error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
 
-	if atomic.LoadUint32(&s.started) == uint32(0) {
-		return ErrServiceStopped
-	}
+// 	if atomic.LoadUint32(&s.started) == uint32(0) {
+// 		return ErrServiceStopped
+// 	}
 
-	close(s.babeKill)
-	return nil
-}
+// 	close(s.babeKill)
+// 	return nil
+// }
 
-func (s *Service) handleBabeSession() {
-	// wait for BABE epoch to complete
-	s.epochDone.Add(1)
-	s.epochDone.Wait()
+// func (s *Service) handleBabeSession() {
+// 	// wait for BABE epoch to complete
+// 	s.epochDone.Add(1)
+// 	s.epochDone.Wait()
 
-	// TODO: fetch NextEpochDescriptor from verifier
+// 	// TODO: fetch NextEpochDescriptor from verifier
 
-	// create new BABE session
-	bs, err := s.initializeBabeSession()
-	if err != nil {
-		log.Error("[core] failed to initialize BABE session", "error", err)
-		return
-	}
+// 	// create new BABE session
+// 	bs, err := s.initializeBabeSession()
+// 	if err != nil {
+// 		log.Error("[core] failed to initialize BABE session", "error", err)
+// 		return
+// 	}
 
-	// start new BABE session
-	err = bs.Start()
-	if err != nil {
-		log.Error("[core] failed to start BABE session", "error", err)
-		return
-	}
+// 	// start new BABE session
+// 	err = bs.Start()
+// 	if err != nil {
+// 		log.Error("[core] failed to start BABE session", "error", err)
+// 		return
+// 	}
 
-	// append successfully started BABE session to core service
-	s.bs = bs
-}
+// 	// append successfully started BABE session to core service
+// 	s.bs = bs
+// }
 
 // receiveBlocks starts receiving blocks from the BABE session
 func (s *Service) receiveBlocks() {
@@ -492,11 +496,12 @@ func (s *Service) checkForRuntimeChanges() error {
 		}
 
 		// kill babe session, handleBabeSession will reload it with the new runtime
-		if s.isBabeAuthority {
-			err = s.safeBabeKill()
-			if err != nil {
-				return err
-			}
+		if s.isBlockProducer {
+			// err = s.safeBabeKill()
+			// if err != nil {
+			// 	return err
+			// }
+			s.blockProducer.SetRuntime(s.rt)
 		}
 	}
 
@@ -534,9 +539,9 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
-// IsBabeAuthority returns true if node is BABE authority
-func (s *Service) IsBabeAuthority() bool {
-	return s.isBabeAuthority
+// IsBlockProducer returns true if node is a block producer
+func (s *Service) IsBlockProducer() bool {
+	return s.isBlockProducer
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext

@@ -16,18 +16,18 @@
 
 package core
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-// test initializeBabeSession
-func TestInitializeBabeSession(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
+// // test initializeBabeSession
+// func TestInitializeBabeSession(t *testing.T) {
+// 	s := newTestServiceWithFirstBlock(t)
 
-	bs, err := s.initializeBabeSession()
-	require.Nil(t, err)
+// 	bs, err := s.initializeBabeSession()
+// 	require.Nil(t, err)
 
-	require.NotNil(t, bs)
-}
+// 	require.NotNil(t, bs)
+// }
