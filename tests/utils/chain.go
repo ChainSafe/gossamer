@@ -51,17 +51,6 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 	return HeaderResponseToHeader(t, header)
 }
 
-func GetChainHeadNT(node *Node) (*modules.ChainBlockHeaderResponse, error) {
-	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
-	if err != nil {
-		return nil, err
-	}
-
-	header := new(modules.ChainBlockHeaderResponse)
-	err = DecodeRPC_NT(respBody, header)
-
-	return header, err
-}
 // GetBlock calls the endpoint chain_getBlock
 func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")

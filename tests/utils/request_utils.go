@@ -84,6 +84,7 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	return nil
 }
 
+// DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
 func DecodeRPC_NT(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
@@ -104,6 +105,7 @@ func DecodeRPC_NT(body []byte, target interface{}) error {
 	err = decoder.Decode(target)
 	return err
 }
+
 // NewEndpoint will create a new endpoint string based on utils.HOSTNAME and port
 func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port

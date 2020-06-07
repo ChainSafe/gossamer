@@ -168,7 +168,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
+	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse

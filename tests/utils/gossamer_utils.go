@@ -49,6 +49,7 @@ type Node struct {
 	basePath string
 }
 
+// InitGossamer initializes given node number and returns node reference
 func InitGossamer(idx int, basePath string) (*Node, error) {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -57,7 +58,7 @@ func InitGossamer(idx int, basePath string) (*Node, error) {
 
 	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
 	genesisPath := filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
-
+	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--basepath", basePath+strconv.Itoa(idx),
 		"--genesis", genesisPath,
@@ -77,10 +78,11 @@ func InitGossamer(idx int, basePath string) (*Node, error) {
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
-		basePath: basePath+strconv.Itoa(idx),
+		basePath: basePath + strconv.Itoa(idx),
 	}, nil
 }
 
+// RestartGossamer starts given node (without Init which start does)
 func RestartGossamer(t *testing.T, node *Node) error {
 	currentDir, err := os.Getwd()
 	if err != nil {
@@ -293,6 +295,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
+// InitNodes initializes given number of nodes
 func InitNodes(num int) ([]*Node, error) {
 	var nodes []*Node
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
@@ -311,6 +314,8 @@ func InitNodes(num int) ([]*Node, error) {
 	}
 	return nodes, nil
 }
+
+//RestartNodes starts given array of nodes (No INIT, which happen is StartNodes)
 func RestartNodes(t *testing.T, nodes []*Node) error {
 	for i, n := range nodes {
 		fmt.Printf("i %v, n %v\n", i, n)
