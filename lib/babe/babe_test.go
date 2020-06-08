@@ -290,3 +290,11 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 1)
 	}
 }
+
+func TestStartAndStop(t *testing.T) {
+	bs := createTestService(t, nil)
+	err := bs.Start()
+	require.NoError(t, err)
+	err = bs.Stop()
+	require.NoError(t, err)
+}
