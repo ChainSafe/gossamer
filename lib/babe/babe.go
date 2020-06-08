@@ -37,8 +37,8 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
-// Session contains the VRF keys for the validator, as well as BABE configuation data
-type Session struct {
+// Service contains the VRF keys for the validator, as well as BABE configuation data
+type Service struct {
 	// Storage interfaces
 	blockState       BlockState
 	storageState     StorageState
@@ -61,17 +61,19 @@ type Session struct {
 
 	// Channels for inter-process communication
 	newBlocks chan<- types.Block // send blocks to core service
-	epochDone *sync.WaitGroup    // lets core know when the epoch is done
-	kill      <-chan struct{}    // kill session if this is closed
-	lock      sync.Mutex
-	started   uint32
+	//epochDone *sync.WaitGroup    // lets core know when the epoch is done
+	//kill      <-chan struct{}    // kill Service if this is closed
 
-	// Chain synchronization; session is locked for block building while syncing
-	syncLock *sync.Mutex
+	// State variables
+	lock    sync.Mutex
+	started uint32
+
+	// Chain synchronization; Service is locked for block building while syncing
+	//syncLock *sync.Mutex
 }
 
-// SessionConfig struct
-type SessionConfig struct {
+// ServiceConfig struct
+type ServiceConfig struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionQueue TransactionQueue
@@ -80,31 +82,31 @@ type SessionConfig struct {
 	NewBlocks        chan<- types.Block
 	AuthData         []*types.AuthorityData
 	EpochThreshold   *big.Int // should only be used for testing
-	StartSlot        uint64   // slot to begin session at
-	EpochDone        *sync.WaitGroup
-	Kill             <-chan struct{}
-	SyncLock         *sync.Mutex
+	StartSlot        uint64   // slot to begin Service at
+	// EpochDone        *sync.WaitGroup
+	// Kill             <-chan struct{}
+	// SyncLock         *sync.Mutex
 }
 
-// NewSession returns a new Babe session using the provided VRF keys and runtime
-func NewSession(cfg *SessionConfig) (*Session, error) {
+// NewService returns a new Babe Service using the provided VRF keys and runtime
+func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil {
-		return nil, errors.New("cannot create BABE session; no keypair provided")
+		return nil, errors.New("cannot create BABE Service; no keypair provided")
 	}
 
-	if cfg.Kill == nil {
-		return nil, errors.New("kill channel is nil")
-	}
+	// if cfg.Kill == nil {
+	// 	return nil, errors.New("kill channel is nil")
+	// }
 
-	if cfg.SyncLock == nil {
-		return nil, errors.New("syncLock is nil")
-	}
+	// if cfg.SyncLock == nil {
+	// 	return nil, errors.New("syncLock is nil")
+	// }
 
 	if cfg.BlockState == nil {
 		return nil, errors.New("blockState is nil")
 	}
 
-	babeSession := &Session{
+	babeService := &Service{
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		keypair:          cfg.Keypair,
@@ -115,48 +117,48 @@ func NewSession(cfg *SessionConfig) (*Session, error) {
 		authorityData:    cfg.AuthData,
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
-		epochDone:        cfg.EpochDone,
-		kill:             cfg.Kill,
-		syncLock:         cfg.SyncLock,
+		// epochDone:        cfg.EpochDone,
+		// kill:             cfg.Kill,
+		// syncLock:         cfg.SyncLock,
 	}
 
-	if ok := atomic.CompareAndSwapUint32(&babeSession.started, 0, 1); !ok {
-		return nil, errors.New("failed to change Session status from stopped to started")
+	if ok := atomic.CompareAndSwapUint32(&babeService.started, 0, 1); !ok {
+		return nil, errors.New("failed to change Service status from stopped to started")
 	}
 
 	var err error
-	babeSession.config, err = babeSession.rt.BabeConfiguration()
+	babeService.config, err = babeService.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Info("[babe] config", "SlotDuration (ms)", babeSession.config.SlotDuration, "EpochLength (slots)", babeSession.config.EpochLength)
+	log.Info("[babe] config", "SlotDuration (ms)", babeService.config.SlotDuration, "EpochLength (slots)", babeService.config.EpochLength)
 
-	if babeSession.authorityData == nil {
-		log.Info("[babe] setting authority data to genesis authorities", "authorities", babeSession.config.GenesisAuthorities)
+	if babeService.authorityData == nil {
+		log.Info("[babe] setting authority data to genesis authorities", "authorities", babeService.config.GenesisAuthorities)
 
-		babeSession.authorityData, err = types.AuthorityDataRawToAuthorityData(babeSession.config.GenesisAuthorities)
+		babeService.authorityData, err = types.AuthorityDataRawToAuthorityData(babeService.config.GenesisAuthorities)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	log.Info("[babe]", "authorities", babeSession.authorityData)
+	log.Info("[babe]", "authorities", babeService.authorityData)
 
-	babeSession.randomness = babeSession.config.Randomness
+	babeService.randomness = babeService.config.Randomness
 
-	err = babeSession.setAuthorityIndex()
+	err = babeService.setAuthorityIndex()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Trace("[babe]", "authority index", babeSession.authorityIndex)
+	log.Trace("[babe]", "authority index", babeService.authorityIndex)
 
-	return babeSession, nil
+	return babeService, nil
 }
 
-// Start a session
-func (b *Session) Start() error {
+// Start a Service
+func (b *Service) Start() error {
 	if b.epochThreshold == nil {
 		err := b.setEpochThreshold()
 		if err != nil {
@@ -177,63 +179,63 @@ func (b *Session) Start() error {
 
 	go b.invokeBlockAuthoring()
 
-	go func() {
-		err := b.checkForKill()
-		if err != nil {
-			log.Error("error running checkForKill", "error", err)
-		}
-	}()
+	// go func() {
+	// 	err := b.checkForKill()
+	// 	if err != nil {
+	// 		log.Error("error running checkForKill", "error", err)
+	// 	}
+	// }()
 
 	return nil
 }
 
-func (b *Session) stop() error {
+func (b *Service) stop() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
 	if atomic.LoadUint32(&b.started) == uint32(1) {
 		if ok := atomic.CompareAndSwapUint32(&b.started, 1, 0); !ok {
-			return errors.New("failed to change Session status from started to stopped")
+			return errors.New("failed to change Service status from started to stopped")
 		}
 
 		close(b.newBlocks)
-		b.epochDone.Done()
+		//b.epochDone.Done()
 	}
 
 	return nil
 }
 
-// Descriptor returns the NextEpochDescriptor for the current session.
-func (b *Session) Descriptor() *NextEpochDescriptor {
+// Descriptor returns the NextEpochDescriptor for the current Service.
+func (b *Service) Descriptor() *NextEpochDescriptor {
 	return &NextEpochDescriptor{
 		Authorities: b.authorityData,
 		Randomness:  b.randomness,
 	}
 }
 
-func (b *Session) safeSend(msg types.Block) error {
+func (b *Service) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 	if atomic.LoadUint32(&b.started) == uint32(0) {
-		return errors.New("session has been stopped")
+		return errors.New("Service has been stopped")
 	}
 	b.newBlocks <- msg
 	return nil
 }
 
 // AuthorityData returns the data related to the authority
-func (b *Session) AuthorityData() []*types.AuthorityData {
+func (b *Service) AuthorityData() []*types.AuthorityData {
 	return b.authorityData
 }
 
 // SetEpochData will set the authorityData and randomness
-func (b *Session) SetEpochData(data *NextEpochDescriptor) error {
+func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 	b.authorityData = data.Authorities
 	b.randomness = data.Randomness
 	return b.setAuthorityIndex()
 }
 
-func (b *Session) setAuthorityIndex() error {
+func (b *Service) setAuthorityIndex() error {
 	pub := b.keypair.Public()
 
 	log.Debug("[babe]", "authority key", pub.Hex(), "authorities", b.authorityData)
@@ -258,21 +260,21 @@ func isClosed(ch <-chan struct{}) bool {
 	return false
 }
 
-func (b *Session) checkForKill() error {
-	if isClosed(b.kill) {
-		err := b.stop()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
+// func (b *Service) checkForKill() error {
+// 	if isClosed(b.kill) {
+// 		err := b.stop()
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
+// 	return nil
+// }
 
-func (b *Session) isStopped() bool {
+func (b *Service) isStopped() bool {
 	return atomic.LoadUint32(&b.started) == uint32(0)
 }
 
-func (b *Session) invokeBlockAuthoring() {
+func (b *Service) invokeBlockAuthoring() {
 	if b.config == nil {
 		log.Error("[babe] block authoring", "error", "config is nil")
 		return
@@ -319,7 +321,8 @@ func (b *Session) invokeBlockAuthoring() {
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
 		start := time.Now().Unix()
-		b.syncLock.Lock()
+		//b.syncLock.Lock()
+		// TODO: add paused variable
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
 			if b.isStopped() {
@@ -332,7 +335,7 @@ func (b *Session) invokeBlockAuthoring() {
 			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration) * 2)
 		}
 
-		b.syncLock.Unlock()
+		//b.syncLock.Unlock()
 	}
 
 	err = b.stop()
@@ -342,7 +345,7 @@ func (b *Session) invokeBlockAuthoring() {
 	}
 }
 
-func (b *Session) handleSlot(slotNum uint64) {
+func (b *Service) handleSlot(slotNum uint64) {
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		log.Error("[babe] block authoring", "error", "parent header is nil")
@@ -388,7 +391,7 @@ func (b *Session) handleSlot(slotNum uint64) {
 // runLottery runs the lottery for a specific slot number
 // returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
 // output = return[0:32]; proof = return[32:96]
-func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
+func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.randomness[:]...)
@@ -421,12 +424,12 @@ func (b *Session) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	return nil, nil
 }
 
-func (b *Session) vrfSign(input []byte) (out []byte, proof []byte, err error) {
+func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
 	return b.keypair.VrfSign(input)
 }
 
 // sets the slot lottery threshold for the current epoch
-func (b *Session) setEpochThreshold() error {
+func (b *Service) setEpochThreshold() error {
 	var err error
 	if b.config == nil {
 		return errors.New("cannot set threshold: no babe config")
@@ -440,7 +443,7 @@ func (b *Session) setEpochThreshold() error {
 	return nil
 }
 
-func (b *Session) authorityWeights() []uint64 {
+func (b *Service) authorityWeights() []uint64 {
 	weights := make([]uint64, len(b.authorityData))
 	for i, auth := range b.authorityData {
 		weights[i] = auth.Weight
