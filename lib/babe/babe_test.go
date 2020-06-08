@@ -68,9 +68,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	// 	cfg.EpochDone.Add(1)
 	// }
 
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
-	}
+	// if cfg.NewBlocks == nil {
+	// 	cfg.NewBlocks = make(chan types.Block)
+	// }
 
 	if cfg.Runtime == nil {
 		cfg.Runtime = rt
@@ -114,6 +114,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 
+	babeService.started.Store(true)
 	babeService.config = babeCfg
 	return babeService
 }
@@ -252,11 +253,11 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	newBlocks := make(chan types.Block)
+	//newBlocks := make(chan types.Block)
 	TransactionQueue := state.NewTransactionQueue()
 
 	cfg := &ServiceConfig{
-		NewBlocks:        newBlocks,
+		//NewBlocks:        newBlocks,
 		TransactionQueue: TransactionQueue,
 	}
 
@@ -284,6 +285,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	newBlocks := babeService.GetBlockChannel()
 	block := <-newBlocks
 	blockNumber := big.NewInt(int64(1))
 	if !reflect.DeepEqual(block.Header.Number, blockNumber) {

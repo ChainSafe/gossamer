@@ -66,7 +66,7 @@ type Service struct {
 
 	// State variables
 	lock    sync.Mutex
-	started uint32
+	started atomic.Value
 
 	// Chain synchronization; Service is locked for block building while syncing
 	//syncLock *sync.Mutex
@@ -122,9 +122,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		// syncLock:         cfg.SyncLock,
 	}
 
-	if ok := atomic.CompareAndSwapUint32(&babeService.started, 0, 1); !ok {
-		return nil, errors.New("failed to change Service status from stopped to started")
-	}
+	babeService.started.Store(false)
 
 	var err error
 	babeService.config, err = babeService.rt.BabeConfiguration()
@@ -189,32 +187,32 @@ func (b *Service) Start() error {
 	return nil
 }
 
+// Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
-	// TODO: implement
+	b.started.Store(false)
 	return nil
 }
 
+// Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
-	// TODO: implement
+	b.started.Store(true)
 	return nil
 }
 
+// Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if atomic.LoadUint32(&b.started) == uint32(1) {
-		if ok := atomic.CompareAndSwapUint32(&b.started, 1, 0); !ok {
-			return errors.New("failed to change Service status from started to stopped")
-		}
-
+	if b.started.Load().(bool) {
+		b.started.Store(false)
 		close(b.blockChan)
-		//b.epochDone.Done()
 	}
 
 	return nil
 }
 
+// SetRuntime sets the service's runtime
 func (b *Service) SetRuntime(rt *runtime.Runtime) error {
 	b.rt = rt
 
@@ -242,7 +240,7 @@ func (b *Service) Descriptor() *NextEpochDescriptor {
 func (b *Service) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if atomic.LoadUint32(&b.started) == uint32(0) {
+	if !b.started.Load().(bool) {
 		return errors.New("Service has been stopped")
 	}
 	b.blockChan <- msg
@@ -297,7 +295,7 @@ func isClosed(ch <-chan struct{}) bool {
 // }
 
 func (b *Service) isStopped() bool {
-	return atomic.LoadUint32(&b.started) == uint32(0)
+	return !b.started.Load().(bool)
 }
 
 func (b *Service) invokeBlockAuthoring() {
@@ -351,8 +349,7 @@ func (b *Service) invokeBlockAuthoring() {
 		// TODO: add paused variable
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
-			if b.isStopped() {
-				return
+			for b.isStopped() {
 			}
 
 			b.handleSlot(slotNum)
