@@ -20,10 +20,26 @@ type testRPCCall struct {
 	delay   time.Duration
 }
 
+type checkDBCall struct {
+	call1idx int
+	call2idx int
+	field string
+}
+
 var tests = []testRPCCall{
 	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: 0},
+	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
+	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: time.Second * 10},
-	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: time.Second * 10},
+	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
+	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
+}
+
+var checks = []checkDBCall{
+	{call1idx: 0, call2idx: 1, field: "parentHash"},
+	{call1idx: 0, call2idx: 2, field: "parentHash"},
+	{call1idx: 3, call2idx: 4, field: "parentHash"},
+	{call1idx: 3, call2idx: 5, field: "parentHash"},
 }
 
 func TestMain(m *testing.M) {
@@ -42,7 +58,7 @@ func TestCallRPC(t *testing.T) {
 	require.Len(t, err, 0)
 	framework.CallRPC(0, "chain_getHeader", "[]")
 	framework.CallRPC(0, "chain_getHeader", "[]")
-	framework.PrintDB(0)
+	framework.PrintDB()
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }
@@ -56,6 +72,14 @@ func TestCalls(t *testing.T) {
 		_, err := framework.CallRPC(call.nodeIdx, call.method, call.params)
 		require.NoError(t, err)
 	}
+
+	// test check
+	for _, check := range checks {
+		res := framework.CheckEqual(check.call1idx, check.call2idx, check.field)
+		require.True(t, res)
+	}
+framework.PrintDB()
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }
+

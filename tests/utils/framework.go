@@ -70,7 +70,7 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface
 	if err != nil {
 		return nil, fmt.Errorf("error making RPC call %v", err)
 	}
-	err = fw.db.Write("node_"+strconv.Itoa(node.Idx), strconv.Itoa(fw.callQty), respJSON)
+	err = fw.db.Write("rpc", strconv.Itoa(fw.callQty), respJSON)
 	if err != nil {
 		return nil, fmt.Errorf("error writing to db %v", err)
 	}
@@ -81,8 +81,8 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface
 }
 
 // PrintDB prints all records for given node
-func (fw *Framework) PrintDB(idx int) {
-	items, err := fw.db.ReadAll("node_" + strconv.Itoa(fw.nodes[idx].Idx))
+func (fw *Framework) PrintDB() {
+	items, err := fw.db.ReadAll("rpc" )
 	if err != nil {
 		log.Fatal(fmt.Errorf("error reading from db %v", err))
 	}
@@ -92,11 +92,27 @@ func (fw *Framework) PrintDB(idx int) {
 }
 
 // GetRecord return value of record for node and call index
-func (fw *Framework) GetRecord(nodeIdx int, callIdx int) interface{} {
+func (fw *Framework) GetRecord(callIdx int) interface{} {
 	var v interface{}
-	err := fw.db.Read("node_"+strconv.Itoa(nodeIdx), strconv.Itoa(callIdx), &v)
+	err := fw.db.Read("rpc", strconv.Itoa(callIdx), &v)
 	if err != nil {
 		return fmt.Errorf("error reading from db %v", err)
 	}
 	return v
+}
+
+func (fw *Framework) CheckEqual(c1, c2 int, field string) bool {
+	var r1 map[string]interface{}
+	err := fw.db.Read("rpc", strconv.Itoa(c1), &r1)
+	if err != nil {
+		return false
+	}
+
+	var r2 map[string]interface{}
+	err = fw.db.Read("rpc", strconv.Itoa(c2), &r2)
+	if err != nil {
+		return false
+	}
+	fmt.Printf("field %v\n", r2["foo"])
+	return r1[field] == r2[field]
 }
