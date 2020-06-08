@@ -149,8 +149,6 @@ func (status *status) validMessage(msg *StatusMessage) bool {
 		)
 		return false
 	}
-
-	log.Debug("[network] validated peer")
 	return true
 }
 

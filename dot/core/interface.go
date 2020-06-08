@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -82,8 +81,6 @@ type TransactionQueue interface {
 
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
-	services.Service
-
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(*runtime.Runtime) error
 	Pause() error

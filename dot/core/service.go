@@ -53,8 +53,7 @@ type Service struct {
 	rt       *runtime.Runtime
 	codeHash common.Hash
 
-	// Current BABE session
-	//bs              *babe.Session
+	// Block production variables
 	blockProducer   BlockProducer
 	isBlockProducer bool
 
@@ -186,11 +185,10 @@ func NewService(cfg *Config) (*Service, error) {
 	srv.started = 1
 
 	syncerCfg := &SyncerConfig{
-		BlockState: cfg.BlockState,
-		BlockNumIn: cfg.SyncChan,
-		RespIn:     respChan,
-		MsgOut:     cfg.MsgSend,
-		//Lock:             syncerLock,
+		BlockState:       cfg.BlockState,
+		BlockNumIn:       cfg.SyncChan,
+		RespIn:           respChan,
+		MsgOut:           cfg.MsgSend,
 		ChanLock:         chanLock,
 		TransactionQueue: cfg.TransactionQueue,
 		Verifier:         cfg.Verifier,

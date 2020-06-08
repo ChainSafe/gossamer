@@ -200,6 +200,7 @@ func (b *Service) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }
 
+// GetBlockChannel returns the channel where new blocks are passed
 func (b *Service) GetBlockChannel() <-chan types.Block {
 	return b.blockChan
 }
@@ -313,7 +314,9 @@ func (b *Service) invokeBlockAuthoring() {
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
 			for b.isStopped() {
+				// wait until service resumes
 			}
+
 			b.handleSlot(slotNum)
 
 			// TODO: change this to sleep until start + slotDuration

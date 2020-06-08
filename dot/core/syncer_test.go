@@ -46,7 +46,6 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg = &SyncerConfig{}
 	}
 
-	//cfg.Lock = &sync.Mutex{}
 	cfg.ChanLock = &sync.Mutex{}
 
 	stateSrvc := state.NewService("")
@@ -271,7 +270,6 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 
 	// synced to block 12
 	syncer.synced = true
-	//syncer.lock.Unlock()
 
 	number = big.NewInt(16)
 	blockNumberIn <- number
@@ -333,7 +331,6 @@ func TestWatchForResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//syncer.lock.Lock()
 	syncer.synced = false
 
 	respIn <- resp

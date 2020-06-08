@@ -114,12 +114,11 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	}
 
 	return &Syncer{
-		blockState:    cfg.BlockState,
-		blockProducer: cfg.BlockProducer,
-		blockNumIn:    cfg.BlockNumIn,
-		respIn:        cfg.RespIn,
-		msgOut:        cfg.MsgOut,
-		//lock:             cfg.Lock,
+		blockState:       cfg.BlockState,
+		blockProducer:    cfg.BlockProducer,
+		blockNumIn:       cfg.BlockNumIn,
+		respIn:           cfg.RespIn,
+		msgOut:           cfg.MsgOut,
 		chanLock:         cfg.ChanLock,
 		synced:           true,
 		requestStart:     1,

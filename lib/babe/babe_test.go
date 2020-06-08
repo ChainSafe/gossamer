@@ -20,10 +20,7 @@ import (
 	"math"
 	"math/big"
 	"reflect"
-	//"sync"
-	//"sync/atomic"
 	"testing"
-	//"time"
 
 	"github.com/stretchr/testify/require"
 
