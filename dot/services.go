@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -26,10 +27,15 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 )
+
+// ErrNoKeysProvided is returned when no keys are given for an authority node
+var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 
 // State Service
 
@@ -58,6 +64,44 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	return stateSrvc, nil
+}
+
+func createBabeService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore, out chan<- types.Block) (*babe.Service, error) {
+	log.Info(
+		"[dot] creating BABE service...",
+		"authority", cfg.Core.Authority,
+	)
+
+	kps := ks.Sr25519Keypairs()
+	if len(kps) == 0 {
+		return nil, ErrNoKeysProvided
+	}
+
+	// get best slot to determine next start slot
+	bestHash := st.Block.BestBlockHash()
+	bestSlot, err := st.Block.GetSlotForBlock(bestHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get slot for latest block: %s", err)
+	}
+
+	bcfg := &babe.ServiceConfig{
+		Keypair:          kps[0].(*sr25519.Keypair),
+		Runtime:          rt,
+		NewBlocks:        out,
+		BlockState:       st.Block,
+		StorageState:     st.Storage,
+		TransactionQueue: st.TransactionQueue,
+		StartSlot:        bestSlot + 1,
+	}
+
+	// create new BABE service
+	bs, err := babe.NewService(bcfg)
+	if err != nil {
+		log.Error("[dot] failed to initialize BABE service", "error", err)
+		return nil, err
+	}
+
+	return bs, nil
 }
 
 // Core Service

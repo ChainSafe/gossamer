@@ -85,8 +85,8 @@ type TransactionQueue interface {
 type BlockProducer interface {
 	services.Service
 
-	BlockProduced() <-chan *types.Block
-	SetBlockProduced(<-chan *types.Block)
+	BlockProduced() <-chan types.Block
+	//SetBlockProduced(<-chan *types.Block)
 	SetLock(*sync.Mutex) // TODO: use Pause instead
 	Pause()
 	SetRuntime(*runtime.Runtime)

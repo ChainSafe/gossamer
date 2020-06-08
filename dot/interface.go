@@ -12,8 +12,8 @@ import (
 type BlockProducer interface {
 	services.Service
 
-	BlockProduced() <-chan *types.Block
-	SetBlockProduced(<-chan *types.Block)
+	BlockProduced() <-chan types.Block
+	SetBlockProduced(<-chan types.Block)
 	SetLock(*sync.Mutex) // TODO: can Pause be used instead?
 	Pause()
 	SetRuntime(*runtime.Runtime)
