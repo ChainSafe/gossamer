@@ -24,8 +24,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -37,62 +35,6 @@ import (
 
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
-
-var babeAuthoritiesKey, _ = common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
-
-// newTestServiceWithFirstBlock creates a new test service with a test block
-func newTestServiceWithFirstBlock(t *testing.T) *Service {
-	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt)
-
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	// TODO: make a helper function to clean this up
-	err = tt.Put(babeAuthoritiesKey, append(append([]byte{4}, kp.Public().Encode()...), []byte{1, 0, 0, 0, 0, 0, 0, 0}...))
-	require.Nil(t, err)
-
-	ks := keystore.NewKeystore()
-	ks.Insert(kp)
-
-	cfg := &Config{
-		Runtime:         rt,
-		Keystore:        ks,
-		IsBlockProducer: true,
-	}
-
-	s := NewTestService(t, cfg)
-
-	preDigest, err := common.HexToBytes("0x064241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	require.Nil(t, err)
-
-	nextEpochData := &babe.NextEpochDescriptor{
-		Authorities: []*types.AuthorityData{},
-	}
-
-	consensusDigest := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              nextEpochData.Encode(),
-	}
-
-	conDigest := consensusDigest.Encode()
-
-	header := &types.Header{
-		ParentHash: testGenesisHeader.Hash(),
-		Number:     big.NewInt(1),
-		Digest:     [][]byte{preDigest, conDigest},
-	}
-
-	firstBlock := &types.Block{
-		Header: header,
-		Body:   &types.Body{},
-	}
-
-	err = s.blockState.AddBlock(firstBlock)
-	require.Nil(t, err)
-
-	return s
-}
 
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()

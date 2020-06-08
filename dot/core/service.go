@@ -404,7 +404,7 @@ func (s *Service) checkForRuntimeChanges() error {
 	return nil
 }
 
-// // InsertKey inserts keypair into keystore
+// InsertKey inserts keypair into keystore
 func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
 }

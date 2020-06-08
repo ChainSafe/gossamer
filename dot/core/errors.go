@@ -26,7 +26,7 @@ var ErrNilVerifier = errors.New("cannot have nil Verifier")
 // ErrNilRuntime is returned when trying to instantiate a Service or Syncer without a runtime
 var ErrNilRuntime = errors.New("cannot have nil runtime")
 
-// ErrNilRuntime is returned when trying to instantiate a block producing Service without a block producer
+// ErrNilBlockProducer is returned when trying to instantiate a block producing Service without a block producer
 var ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
 
 // ErrNilChannel is returned if a channel is nil

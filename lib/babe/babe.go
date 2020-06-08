@@ -250,16 +250,6 @@ func (b *Service) setAuthorityIndex() error {
 	return fmt.Errorf("key not in BABE authority data")
 }
 
-func isClosed(ch <-chan struct{}) bool {
-	select {
-	case <-ch:
-		return true
-	default:
-	}
-
-	return false
-}
-
 func (b *Service) isStopped() bool {
 	return !b.started.Load().(bool)
 }
