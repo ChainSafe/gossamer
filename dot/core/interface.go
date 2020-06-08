@@ -86,8 +86,6 @@ type BlockProducer interface {
 
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(*runtime.Runtime) error
-	//SetBlockChannel(<-chan types.Block)
-	//SetLock(*sync.Mutex) // TODO: can Pause be used instead?
 	Pause() error
 	Resume() error
 }

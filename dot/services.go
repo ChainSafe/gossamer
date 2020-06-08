@@ -94,10 +94,19 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 	}
 
 	// get best slot to determine next start slot
-	bestHash := st.Block.BestBlockHash()
-	bestSlot, err := st.Block.GetSlotForBlock(bestHash)
+	header, err := st.Block.BestBlockHeader()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get slot for latest block: %s", err)
+		return nil, fmt.Errorf("failed to get latest block: %s", err)
+	}
+
+	var bestSlot uint64
+	if header.Number.Cmp(big.NewInt(0)) == 0 {
+		bestSlot = 0
+	} else {
+		bestSlot, err = st.Block.GetSlotForBlock(header.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get slot for latest block: %s", err)
+		}
 	}
 
 	bcfg := &babe.ServiceConfig{

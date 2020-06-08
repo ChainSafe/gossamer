@@ -61,31 +61,22 @@ type Service struct {
 
 	// Channels for inter-process communication
 	blockChan chan types.Block // send blocks to core service
-	//epochDone *sync.WaitGroup    // lets core know when the epoch is done
-	//kill      <-chan struct{}    // kill Service if this is closed
 
 	// State variables
 	lock    sync.Mutex
 	started atomic.Value
-
-	// Chain synchronization; Service is locked for block building while syncing
-	//syncLock *sync.Mutex
 }
 
-// ServiceConfig struct
+// ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionQueue TransactionQueue
 	Keypair          *sr25519.Keypair
 	Runtime          *runtime.Runtime
-	//NewBlocks        chan<- types.Block
-	AuthData       []*types.AuthorityData
-	EpochThreshold *big.Int // should only be used for testing
-	StartSlot      uint64   // slot to begin Service at
-	// EpochDone        *sync.WaitGroup
-	// Kill             <-chan struct{}
-	// SyncLock         *sync.Mutex
+	AuthData         []*types.AuthorityData
+	EpochThreshold   *big.Int // should only be used for testing
+	StartSlot        uint64   // slot to start at
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -93,14 +84,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if cfg.Keypair == nil {
 		return nil, errors.New("cannot create BABE Service; no keypair provided")
 	}
-
-	// if cfg.Kill == nil {
-	// 	return nil, errors.New("kill channel is nil")
-	// }
-
-	// if cfg.SyncLock == nil {
-	// 	return nil, errors.New("syncLock is nil")
-	// }
 
 	if cfg.BlockState == nil {
 		return nil, errors.New("blockState is nil")
@@ -117,9 +100,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authorityData:    cfg.AuthData,
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
-		// epochDone:        cfg.EpochDone,
-		// kill:             cfg.Kill,
-		// syncLock:         cfg.SyncLock,
 	}
 
 	babeService.started.Store(false)
@@ -141,6 +121,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		}
 	}
 
+	// TODO: format this
 	log.Info("[babe]", "authorities", babeService.authorityData)
 
 	babeService.randomness = babeService.config.Randomness
@@ -157,6 +138,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 // Start a Service
 func (b *Service) Start() error {
+	b.started.Store(true)
+
 	if b.epochThreshold == nil {
 		err := b.setEpochThreshold()
 		if err != nil {
@@ -164,7 +147,7 @@ func (b *Service) Start() error {
 		}
 	}
 
-	log.Trace("[babe]", "epochThreshold", b.epochThreshold)
+	log.Debug("[babe]", "epochThreshold", b.epochThreshold)
 
 	i := b.startSlot
 	var err error
@@ -176,14 +159,6 @@ func (b *Service) Start() error {
 	}
 
 	go b.invokeBlockAuthoring()
-
-	// go func() {
-	// 	err := b.checkForKill()
-	// 	if err != nil {
-	// 		log.Error("error running checkForKill", "error", err)
-	// 	}
-	// }()
-
 	return nil
 }
 
@@ -284,16 +259,6 @@ func isClosed(ch <-chan struct{}) bool {
 	return false
 }
 
-// func (b *Service) checkForKill() error {
-// 	if isClosed(b.kill) {
-// 		err := b.stop()
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return nil
-// }
-
 func (b *Service) isStopped() bool {
 	return !b.started.Load().(bool)
 }
@@ -345,30 +310,19 @@ func (b *Service) invokeBlockAuthoring() {
 
 	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
 		start := time.Now().Unix()
-		//b.syncLock.Lock()
-		// TODO: add paused variable
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
 			for b.isStopped() {
 			}
-
 			b.handleSlot(slotNum)
 
 			// TODO: change this to sleep until start + slotDuration
 			time.Sleep(time.Millisecond * time.Duration(b.config.SlotDuration) * 2)
 		}
-
-		//b.syncLock.Unlock()
 	}
 
 	// loop forever TODO: separate loop into another func
 	b.invokeBlockAuthoring()
-
-	// err = b.stop()
-	// if err != nil {
-	// 	log.Error("[babe] block authoring", "error", err)
-	// 	return
-	// }
 }
 
 func (b *Service) handleSlot(slotNum uint64) {

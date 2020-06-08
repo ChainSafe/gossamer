@@ -59,24 +59,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		}
 	}
 
-	// if cfg.Kill == nil {
-	// 	cfg.Kill = make(chan struct{})
-	// }
-
-	// if cfg.EpochDone == nil {
-	// 	cfg.EpochDone = new(sync.WaitGroup)
-	// 	cfg.EpochDone.Add(1)
-	// }
-
-	// if cfg.NewBlocks == nil {
-	// 	cfg.NewBlocks = make(chan types.Block)
-	// }
-
 	if cfg.Runtime == nil {
 		cfg.Runtime = rt
 	}
-
-	//cfg.SyncLock = &sync.Mutex{}
 
 	if cfg.Keypair == nil {
 		cfg.Keypair, err = sr25519.GenerateKeypair()
@@ -118,38 +103,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService.config = babeCfg
 	return babeService
 }
-
-// func TestKill(t *testing.T) {
-// 	killChan := make(chan struct{})
-
-// 	cfg := &ServiceConfig{
-// 		Kill: killChan,
-// 	}
-
-// 	babeService := createTestService(t, cfg)
-// 	err := babeService.Start()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	if atomic.LoadUint32(&babeService.started) == uint32(0) {
-// 		t.Fatalf("did not start Service")
-// 	}
-
-// 	close(killChan)
-
-// 	babeServiceKilled := true
-// 	for i := 0; i < 10; i++ {
-// 		time.Sleep(1 * time.Second)
-// 		if atomic.LoadUint32(&babeService.started) == uint32(1) {
-// 			babeServiceKilled = false
-// 		} else {
-// 			break
-// 		}
-// 	}
-
-// 	require.True(t, babeServiceKilled, "did not kill Service")
-// }
 
 func TestCalculateThreshold(t *testing.T) {
 	// C = 1

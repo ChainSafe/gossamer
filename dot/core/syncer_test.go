@@ -524,7 +524,7 @@ func TestCoreExecuteBlock(t *testing.T) {
 	res, err := syncer.executeBlock(block)
 	require.Nil(t, err)
 
-	// if execute block return a non-empty byte array, something when wrong
+	// if execute block returns a non-empty byte array, something went wrong
 	require.Equal(t, []byte{}, res)
 }
 
@@ -578,9 +578,6 @@ func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service {
 		require.Nil(t, err)
 		cfg.Keypair = kp
 	}
-
-	//cfg.Kill = make(chan struct{})
-	//cfg.SyncLock = &sync.Mutex{}
 
 	cfg.AuthData = []*types.AuthorityData{
 		{

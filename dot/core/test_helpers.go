@@ -59,28 +59,35 @@ func (v *mockVerifier) EpochNumber() uint64 {
 	return 1
 }
 
+// mockBlockProducer implemented the BlockProducer interface
 type mockBlockProducer struct{}
 
+// Start mocks starting
 func (b *mockBlockProducer) Start() error {
 	return nil
 }
 
+// Stop mocks stopping
 func (b *mockBlockProducer) Stop() error {
 	return nil
 }
 
+// Pause mocks pausing
 func (b *mockBlockProducer) Pause() error {
 	return nil
 }
 
+// Resume mocks resuming
 func (b *mockBlockProducer) Resume() error {
 	return nil
 }
 
+// GetBlockChannel returns a new channel
 func (b *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 	return make(chan types.Block)
 }
 
+// SetRuntime mocks setting runtime
 func (b *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }

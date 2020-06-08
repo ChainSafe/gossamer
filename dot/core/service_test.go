@@ -67,7 +67,7 @@ func newTestServiceWithFirstBlock(t *testing.T) *Service {
 	require.Nil(t, err)
 
 	nextEpochData := &babe.NextEpochDescriptor{
-		Authorities: []*types.AuthorityData{}, //s.bs.AuthorityData(),
+		Authorities: []*types.AuthorityData{},
 	}
 
 	consensusDigest := &types.ConsensusDigest{
@@ -128,18 +128,6 @@ func TestStartService(t *testing.T) {
 	err = s.Stop()
 	require.NoError(t, err)
 }
-
-// func TestNotAuthority(t *testing.T) {
-// 	cfg := &Config{
-// 		Keystore:        keystore.NewKeystore(),
-// 		IsBlockProducer: false,
-// 	}
-
-// 	s := NewTestService(t, cfg)
-// 	if s.bs != nil {
-// 		t.Fatal("Fail: should not have babe session")
-// 	}
-// }
 
 func TestAnnounceBlock(t *testing.T) {
 	msgSend := make(chan network.Message)
