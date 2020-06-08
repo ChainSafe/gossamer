@@ -395,9 +395,11 @@ func (s *Service) checkForRuntimeChanges() error {
 			return err
 		}
 
-		// kill babe session, handleBabeSession will reload it with the new runtime
 		if s.isBlockProducer {
-			s.blockProducer.SetRuntime(s.rt)
+			err = s.blockProducer.SetRuntime(s.rt)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
