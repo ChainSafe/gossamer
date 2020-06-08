@@ -82,7 +82,7 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface
 
 // PrintDB prints all records for given node
 func (fw *Framework) PrintDB() {
-	items, err := fw.db.ReadAll("rpc" )
+	items, err := fw.db.ReadAll("rpc")
 	if err != nil {
 		log.Fatal(fmt.Errorf("error reading from db %v", err))
 	}
@@ -101,6 +101,7 @@ func (fw *Framework) GetRecord(callIdx int) interface{} {
 	return v
 }
 
+// CheckEqual returns true if the field values are equal
 func (fw *Framework) CheckEqual(c1, c2 int, field string) bool {
 	var r1 map[string]interface{}
 	err := fw.db.Read("rpc", strconv.Itoa(c1), &r1)

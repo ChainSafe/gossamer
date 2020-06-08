@@ -23,7 +23,7 @@ type testRPCCall struct {
 type checkDBCall struct {
 	call1idx int
 	call2idx int
-	field string
+	field    string
 }
 
 var tests = []testRPCCall{
@@ -78,8 +78,7 @@ func TestCalls(t *testing.T) {
 		res := framework.CheckEqual(check.call1idx, check.call2idx, check.field)
 		require.True(t, res)
 	}
-framework.PrintDB()
+	framework.PrintDB()
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }
-
