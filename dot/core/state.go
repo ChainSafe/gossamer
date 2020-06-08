@@ -18,7 +18,6 @@ package core
 
 import (
 	"math/big"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -85,9 +84,10 @@ type TransactionQueue interface {
 type BlockProducer interface {
 	services.Service
 
-	BlockProduced() <-chan types.Block
-	//SetBlockProduced(<-chan *types.Block)
-	SetLock(*sync.Mutex) // TODO: use Pause instead
-	Pause()
-	SetRuntime(*runtime.Runtime)
+	GetBlockChannel() <-chan types.Block
+	SetRuntime(*runtime.Runtime) error
+	//SetBlockChannel(<-chan types.Block)
+	//SetLock(*sync.Mutex) // TODO: can Pause be used instead?
+	Pause() error
+	Resume() error
 }

@@ -101,9 +101,9 @@ type Config struct {
 // NewService returns a new core service that connects the runtime, BABE
 // session, and network service.
 func NewService(cfg *Config) (*Service, error) {
-	// if cfg.Keystore == nil {
-	// 	return nil, ErrNilKeystore
-	// }
+	if cfg.Keystore == nil {
+		return nil, ErrNilKeystore
+	}
 
 	//keys := cfg.Keystore.Sr25519Keypairs()
 
@@ -121,6 +121,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 	if cfg.Runtime == nil {
 		return nil, ErrNilRuntime
+	}
+
+	if cfg.IsBlockProducer && cfg.BlockProducer == nil {
+		return nil, ErrNilBlockProducer
 	}
 
 	codeHash, err := cfg.StorageState.LoadCodeHash()
@@ -232,11 +236,11 @@ func NewService(cfg *Config) (*Service, error) {
 	srv.started = 1
 
 	syncerCfg := &SyncerConfig{
-		BlockState:       cfg.BlockState,
-		BlockNumIn:       cfg.SyncChan,
-		RespIn:           respChan,
-		MsgOut:           cfg.MsgSend,
-		Lock:             syncerLock,
+		BlockState: cfg.BlockState,
+		BlockNumIn: cfg.SyncChan,
+		RespIn:     respChan,
+		MsgOut:     cfg.MsgSend,
+		//Lock:             syncerLock,
 		ChanLock:         chanLock,
 		TransactionQueue: cfg.TransactionQueue,
 		Verifier:         cfg.Verifier,
@@ -508,7 +512,7 @@ func (s *Service) checkForRuntimeChanges() error {
 	return nil
 }
 
-// InsertKey inserts keypair into keystore
+// // InsertKey inserts keypair into keystore
 func (s *Service) InsertKey(kp crypto.Keypair) {
 	s.keys.Insert(kp)
 }

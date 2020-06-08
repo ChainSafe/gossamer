@@ -60,7 +60,7 @@ type Service struct {
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 
 	// Channels for inter-process communication
-	newBlocks chan<- types.Block // send blocks to core service
+	blockChan chan types.Block // send blocks to core service
 	//epochDone *sync.WaitGroup    // lets core know when the epoch is done
 	//kill      <-chan struct{}    // kill Service if this is closed
 
@@ -79,10 +79,10 @@ type ServiceConfig struct {
 	TransactionQueue TransactionQueue
 	Keypair          *sr25519.Keypair
 	Runtime          *runtime.Runtime
-	NewBlocks        chan<- types.Block
-	AuthData         []*types.AuthorityData
-	EpochThreshold   *big.Int // should only be used for testing
-	StartSlot        uint64   // slot to begin Service at
+	//NewBlocks        chan<- types.Block
+	AuthData       []*types.AuthorityData
+	EpochThreshold *big.Int // should only be used for testing
+	StartSlot      uint64   // slot to begin Service at
 	// EpochDone        *sync.WaitGroup
 	// Kill             <-chan struct{}
 	// SyncLock         *sync.Mutex
@@ -113,7 +113,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		rt:               cfg.Runtime,
 		transactionQueue: cfg.TransactionQueue,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		newBlocks:        cfg.NewBlocks,
+		blockChan:        make(chan types.Block),
 		authorityData:    cfg.AuthData,
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
@@ -189,7 +189,17 @@ func (b *Service) Start() error {
 	return nil
 }
 
-func (b *Service) stop() error {
+func (b *Service) Pause() error {
+	// TODO: implement
+	return nil
+}
+
+func (b *Service) Resume() error {
+	// TODO: implement
+	return nil
+}
+
+func (b *Service) Stop() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
@@ -198,11 +208,27 @@ func (b *Service) stop() error {
 			return errors.New("failed to change Service status from started to stopped")
 		}
 
-		close(b.newBlocks)
+		close(b.blockChan)
 		//b.epochDone.Done()
 	}
 
 	return nil
+}
+
+func (b *Service) SetRuntime(rt *runtime.Runtime) error {
+	b.rt = rt
+
+	var err error
+	b.config, err = b.rt.BabeConfiguration()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (b *Service) GetBlockChannel() <-chan types.Block {
+	return b.blockChan
 }
 
 // Descriptor returns the NextEpochDescriptor for the current Service.
@@ -219,7 +245,7 @@ func (b *Service) safeSend(msg types.Block) error {
 	if atomic.LoadUint32(&b.started) == uint32(0) {
 		return errors.New("Service has been stopped")
 	}
-	b.newBlocks <- msg
+	b.blockChan <- msg
 	return nil
 }
 
@@ -338,11 +364,14 @@ func (b *Service) invokeBlockAuthoring() {
 		//b.syncLock.Unlock()
 	}
 
-	err = b.stop()
-	if err != nil {
-		log.Error("[babe] block authoring", "error", err)
-		return
-	}
+	// loop forever TODO: separate loop into another func
+	b.invokeBlockAuthoring()
+
+	// err = b.stop()
+	// if err != nil {
+	// 	log.Error("[babe] block authoring", "error", err)
+	// 	return
+	// }
 }
 
 func (b *Service) handleSlot(slotNum uint64) {

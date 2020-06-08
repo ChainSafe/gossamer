@@ -59,6 +59,32 @@ func (v *mockVerifier) EpochNumber() uint64 {
 	return 1
 }
 
+type mockBlockProducer struct{}
+
+func (b *mockBlockProducer) Start() error {
+	return nil
+}
+
+func (b *mockBlockProducer) Stop() error {
+	return nil
+}
+
+func (b *mockBlockProducer) Pause() error {
+	return nil
+}
+
+func (b *mockBlockProducer) Resume() error {
+	return nil
+}
+
+func (b *mockBlockProducer) GetBlockChannel() <-chan types.Block {
+	return make(chan types.Block)
+}
+
+func (b *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
+	return nil
+}
+
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
