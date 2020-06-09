@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -49,26 +48,20 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *types.Header) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *FinalizationMessage) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
-	in := make(chan *VoteMessage, 16)
-	out := make(chan *VoteMessage, 16)
-	finalized := make(chan *types.Header)
 
 	cfg := &Config{
 		BlockState: st.Block,
 		Voters:     voters,
 		Keypair:    kp,
-		In:         in,
-		Out:        out,
-		Finalized:  finalized,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	return gs, in, out, finalized
+	return gs, gs.in, gs.out, gs.finalized
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
@@ -189,7 +182,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	gss := make([]*Service, len(kr.Keys))
 	ins := make([]chan *VoteMessage, len(kr.Keys))
 	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *types.Header, len(kr.Keys))
+	fins := make([]chan *FinalizationMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -218,11 +211,11 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*types.Header, len(kr.Keys))
+	finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *types.Header) {
+		go func(i int, fin <-chan *FinalizationMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
@@ -255,7 +248,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	gss := make([]*Service, len(kr.Keys))
 	ins := make([]chan *VoteMessage, len(kr.Keys))
 	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *types.Header, len(kr.Keys))
+	fins := make([]chan *FinalizationMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -288,11 +281,11 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*types.Header, len(kr.Keys))
+	finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *types.Header) {
+		go func(i int, fin <-chan *FinalizationMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
@@ -320,7 +313,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	gss := make([]*Service, len(kr.Keys))
 	ins := make([]chan *VoteMessage, len(kr.Keys))
 	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *types.Header, len(kr.Keys))
+	fins := make([]chan *FinalizationMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -369,11 +362,11 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*types.Header, len(kr.Keys))
+	finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *types.Header) {
+		go func(i int, fin <-chan *FinalizationMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
@@ -401,7 +394,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	gss := make([]*Service, len(kr.Keys))
 	ins := make([]chan *VoteMessage, len(kr.Keys))
 	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *types.Header, len(kr.Keys))
+	fins := make([]chan *FinalizationMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -435,11 +428,11 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(kr.Keys))
 
-		finalized := make([]*types.Header, len(kr.Keys))
+		finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 		for i, fin := range fins {
 
-			go func(i int, fin <-chan *types.Header) {
+			go func(i int, fin <-chan *FinalizationMessage) {
 				select {
 				case f := <-fin:
 					t.Log(f)
@@ -457,7 +450,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalized {
 			require.NotNil(t, fb)
-			require.Equal(t, head, fb.Hash())
+			require.Equal(t, head, fb.vote.hash)
 			require.Equal(t, finalized[0], fb)
 		}
 

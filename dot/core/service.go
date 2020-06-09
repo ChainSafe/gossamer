@@ -49,6 +49,7 @@ type Service struct {
 	blockState       BlockState
 	storageState     StorageState
 	transactionQueue TransactionQueue
+	finalityGadget   FinalityGadget
 
 	// Current runtime and hash of the current runtime code
 	rt       *runtime.Runtime
@@ -82,6 +83,7 @@ type Config struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionQueue TransactionQueue
+	FinalityGadget   FinalityGadget
 	Keystore         *keystore.Keystore
 	Runtime          *runtime.Runtime
 	IsBabeAuthority  bool
@@ -150,6 +152,7 @@ func NewService(cfg *Config) (*Service, error) {
 			blockState:       cfg.BlockState,
 			storageState:     cfg.StorageState,
 			transactionQueue: cfg.TransactionQueue,
+			finalityGadget:   cfg.FinalityGadget,
 			epochDone:        epochDone,
 			babeKill:         babeKill,
 			isBabeAuthority:  true,
@@ -275,6 +278,11 @@ func (s *Service) Start() error {
 			log.Error("[core] could not start BABE", "error", err)
 			return err
 		}
+	}
+
+	if s.finalityGadget != nil {
+		go s.sendVoteMessages()
+		go s.sendFinalityMessages()
 	}
 
 	return nil
@@ -464,6 +472,13 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 		}
 
 		err = s.ProcessTransactionMessage(msg)
+	case network.ConsensusMsgType: // 5
+		msg, ok := msg.(*network.ConsensusMessage)
+		if !ok {
+			return ErrMessageCast("ConsensusMessage")
+		}
+
+		err = s.processConsensusMessage(msg)
 	default:
 		err = ErrUnsupportedMsgType(msgType)
 	}

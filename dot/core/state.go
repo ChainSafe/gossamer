@@ -19,6 +19,7 @@ package core
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -76,4 +77,17 @@ type TransactionQueue interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	RemoveExtrinsic(ext types.Extrinsic)
+}
+
+// FinalityGadget is the interface that a finality gadget must implement
+type FinalityGadget interface {
+	GetVoteOutChannel() <-chan FinalityMessage
+	GetVoteInChannel() chan<- FinalityMessage
+	GetFinalizedChannel() <-chan FinalityMessage
+	DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error)
+}
+
+// FinalityMessage is the interface a finality message must implement
+type FinalityMessage interface {
+	ToConsensusMessage() (*network.ConsensusMessage, error)
 }

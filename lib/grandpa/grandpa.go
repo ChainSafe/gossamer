@@ -53,9 +53,9 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in        <-chan *VoteMessage
-	out       chan<- *VoteMessage  // TODO: make this generic
-	finalized chan<- *types.Header // channel that finalized blocks are output from at the end of a round
+	in        chan *VoteMessage
+	out       chan *VoteMessage
+	finalized chan *FinalizationMessage // channel that finalized blocks are output from at the end of a round
 }
 
 // Config represents a GRANDPA service configuration
@@ -63,9 +63,9 @@ type Config struct {
 	BlockState BlockState
 	Voters     []*Voter
 	Keypair    *ed25519.Keypair
-	In         <-chan *VoteMessage
-	Out        chan<- *VoteMessage
-	Finalized  chan<- *types.Header
+	// In         <-chan *VoteMessage
+	// Out        chan<- *VoteMessage
+	// Finalized  chan<- *types.Header
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -95,9 +95,9 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
-		in:                 cfg.In,
-		out:                cfg.Out,
-		finalized:          cfg.Finalized,
+		in:                 make(chan *VoteMessage, 128),
+		out:                make(chan *VoteMessage, 128),
+		finalized:          make(chan *FinalizationMessage, 128),
 		stopped:            true,
 	}
 
@@ -279,7 +279,12 @@ func (s *Service) attemptToFinalize() error {
 		// TODO: if we haven't received a finalization message for this block yet,
 		// broadcast a finalization message #934
 		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
-		s.finalized <- s.head
+		msg, err := s.newFinalizationMessage(s.head)
+		if err != nil {
+			return err
+		}
+
+		s.finalized <- msg
 		return nil
 	}
 
