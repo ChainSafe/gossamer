@@ -2,6 +2,8 @@ package core
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
+
+	log "github.com/ChainSafe/log15"
 )
 
 // processConsensusMessage routes a consensus message from the network to the finality gadget
@@ -13,6 +15,7 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 	}
 
 	// TODO: safety
+	log.Debug("[core] sending VoteMessage to network", "msg", msg)
 	in <- fm
 	return nil
 }
@@ -26,7 +29,7 @@ func (s *Service) sendVoteMessages() error {
 		if err != nil {
 			return err
 		}
-
+		log.Debug("[core] sending VoteMessage to grandpa", "msg", msg)
 		s.msgSend <- msg
 	}
 	return nil
@@ -38,6 +41,8 @@ func (s *Service) sendFinalityMessages() error {
 	for v := range out {
 		// TODO: safety
 		// TODO: update state.finalizedHead
+		log.Debug("[core] sending FinalityMessage to network", "msg", v)
+		log.Info("[core] finalized block!!!", "msg", v)
 		msg, err := v.ToConsensusMessage()
 		if err != nil {
 			return err

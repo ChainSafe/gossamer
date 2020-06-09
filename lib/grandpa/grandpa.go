@@ -101,6 +101,22 @@ func NewService(cfg *Config) (*Service, error) {
 	return s, nil
 }
 
+func (s *Service) Start() error {
+	go func() {
+		err := s.initiate()
+		if err != nil {
+			log.Error("[grandpa] failed to initiate")
+		}
+	}()
+
+	return nil
+}
+
+func (s *Service) Stop() error {
+	// TODO
+	return nil
+}
+
 func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 	return s.keypair.Public().(*ed25519.PublicKey).AsBytes()
 }

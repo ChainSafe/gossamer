@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -81,6 +82,8 @@ type TransactionQueue interface {
 
 // FinalityGadget is the interface that a finality gadget must implement
 type FinalityGadget interface {
+	services.Service
+
 	GetVoteOutChannel() <-chan FinalityMessage
 	GetVoteInChannel() chan<- FinalityMessage
 	GetFinalizedChannel() <-chan FinalityMessage

@@ -281,6 +281,7 @@ func (s *Service) Start() error {
 	}
 
 	if s.finalityGadget != nil {
+		log.Debug("[core] routing finality gadget messages")
 		go s.sendVoteMessages()
 		go s.sendFinalityMessages()
 	}

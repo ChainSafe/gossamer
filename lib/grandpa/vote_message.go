@@ -28,8 +28,14 @@ import (
 
 // receiveMessages receives messages from the in channel until the specified condition is met
 func (s *Service) receiveMessages(cond func() bool) {
-	go func() {
+	done := false
+
+	go func(done *bool) {
 		for msg := range s.in {
+			if *done {
+				return
+			}
+
 			log.Debug("[grandpa] received vote message", "msg", msg)
 
 			vm, ok := msg.(*VoteMessage)
@@ -46,10 +52,11 @@ func (s *Service) receiveMessages(cond func() bool) {
 
 			log.Debug("[grandpa] validated vote message", "vote", v, "subround", vm.stage)
 		}
-	}()
+	}(&done)
 
 	for {
 		if cond() {
+			done = true
 			return
 		}
 	}
