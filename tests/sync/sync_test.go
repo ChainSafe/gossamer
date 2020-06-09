@@ -30,7 +30,7 @@ var tests = []testRPCCall{
 	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
-	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: time.Second * 10},
+	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: time.Second * 15},
 	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
 }
@@ -53,16 +53,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestCallRPC(t *testing.T) {
-	err := framework.StartNodes(t)
-	require.Len(t, err, 0)
-	framework.CallRPC(0, "chain_getHeader", "[]")
-	framework.CallRPC(0, "chain_getHeader", "[]")
-	framework.PrintDB()
-	err = framework.KillNodes(t)
-	require.Len(t, err, 0)
-}
-
 // this starts nodes and runs RPC calls (which loads db)
 func TestCalls(t *testing.T) {
 	err := framework.StartNodes(t)
@@ -73,12 +63,14 @@ func TestCalls(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	framework.PrintDB()
+
 	// test check
 	for _, check := range checks {
 		res := framework.CheckEqual(check.call1idx, check.call2idx, check.field)
 		require.True(t, res)
 	}
-	framework.PrintDB()
+
 	err = framework.KillNodes(t)
 	require.Len(t, err, 0)
 }

@@ -114,6 +114,6 @@ func (fw *Framework) CheckEqual(c1, c2 int, field string) bool {
 	if err != nil {
 		return false
 	}
-	fmt.Printf("field %v\n", r2["foo"])
+
 	return r1[field] == r2[field]
 }
