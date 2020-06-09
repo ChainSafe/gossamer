@@ -163,7 +163,12 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		// TODO: broadcast finalization message #934
+		msg, err := s.newFinalizationMessage(s.head, s.state.round-1)
+		if err != nil {
+			return err
+		}
+
+		s.finalized <- msg
 	}
 
 	log.Debug("grandpa] receiving pre-vote messages...")
@@ -245,7 +250,7 @@ func (s *Service) playGrandpaRound() error {
 				log.Trace("[grandpa] failed to check if round is completable", "error", err)
 			}
 
-			finalizable, err := s.isFinalizable(s.state.round - 1)
+			finalizable, err := s.isFinalizable(s.state.round)
 			if err != nil {
 				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
 			}
@@ -283,20 +288,22 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
+	//log.Info("attemptToFinalize", "bfc", bfc, "votes", pc)
+
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
 			return err
 		}
 
-		// TODO: if we haven't received a finalization message for this block yet,
-		// broadcast a finalization message #934
+		// if we haven't received a finalization message for this block yet, broadcast a finalization message
 		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
-		msg, err := s.newFinalizationMessage(s.head)
+		msg, err := s.newFinalizationMessage(s.head, s.state.round)
 		if err != nil {
 			return err
 		}
 
+		// TODO: safety
 		s.finalized <- msg
 		return nil
 	}
@@ -368,7 +375,12 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 		return false, err
 	}
 
-	if bfc.number <= pvb.number && (s.state.round == 0 || s.bestFinalCandidate[s.state.round-1].number <= bfc.number) {
+	pc, err := s.getTotalVotesForBlock(bfc.hash, precommit)
+	if err != nil {
+		return false, err
+	}
+
+	if bfc.number <= pvb.number && (s.state.round == 0 || s.bestFinalCandidate[s.state.round-1].number <= bfc.number) && pc >= s.state.threshold() {
 		return true, nil
 	}
 

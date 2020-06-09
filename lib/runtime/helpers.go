@@ -75,7 +75,6 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-// TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
 func (r *Runtime) GrandpaAuthorities() ([]*types.GrandpaAuthorityData, error) {
 	ret, err := r.Exec(GrandpaAuthorities, []byte{})
 	if err != nil {
@@ -96,15 +95,6 @@ func (r *Runtime) GrandpaAuthorities() ([]*types.GrandpaAuthorityData, error) {
 			ID:  1,
 		}
 	}
-
-	// auths := make([]*types.AuthorityData, len(keys))
-	// for i, auth := range authsRaw {
-	// 	auths[i] = new(types.AuthorityData)
-	// 	err = auths[i].FromRaw(auth)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 
 	return types.GrandpaAuthorityDataRawToAuthorityData(authsRaw)
 }

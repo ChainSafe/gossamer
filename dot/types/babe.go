@@ -46,6 +46,7 @@ func (a *AuthorityDataRaw) Decode(r io.Reader) (*AuthorityDataRaw, error) {
 }
 
 // AuthorityData represents a BABE authority
+// TODO: rename to BABEAuthorityData
 type AuthorityData struct {
 	ID     *sr25519.PublicKey
 	Weight uint64

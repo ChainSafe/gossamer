@@ -110,9 +110,10 @@ func (f *FinalizationMessage) ToConsensusMessage() (*network.ConsensusMessage, e
 	}, nil
 }
 
-func (s *Service) newFinalizationMessage(header *types.Header) (*FinalizationMessage, error) {
+func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) {
 	return &FinalizationMessage{
-		round: s.state.round,
+		round: round,
 		vote:  NewVoteFromHeader(header),
+		// TODO: add justification
 	}, nil
 }

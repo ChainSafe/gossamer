@@ -1,7 +1,6 @@
 package types
 
 import (
-	//"encoding/binary"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"

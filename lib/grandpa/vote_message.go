@@ -33,6 +33,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 	go func(done *bool) {
 		for msg := range s.in {
 			if *done {
+				log.Debug("[grandpa] returning from receiveMessages")
 				return
 			}
 
@@ -77,6 +78,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	}
 
 	s.out <- msg
+	log.Debug("[grandpa] sent VoteMessage", "msg", msg)
 	return nil
 }
 

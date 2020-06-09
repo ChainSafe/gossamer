@@ -169,7 +169,7 @@ func cleanup(gs *Service, in, out chan FinalityMessage, lock *sync.Mutex, done *
 
 	gs.chanLock.Lock()
 	gs.stopped = true
-	close(out)
+	//close(out)
 	gs.chanLock.Unlock()
 }
 
@@ -214,12 +214,21 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 	for i, fin := range fins {
-
 		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
-				t.Log(f)
+
+				// receive first message, which is finalized block from previous round
+				if f.(*FinalizationMessage).round == 0 {
+					select {
+					case f = <-fin:
+					case <-time.After(testTimeout):
+						t.Errorf("did not receive finalized block from %d", i)
+					}
+				}
+
 				finalized[i] = f.(*FinalizationMessage)
+
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
 			}
@@ -288,7 +297,16 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
-				t.Log(f)
+
+				// receive first message, which is finalized block from previous round
+				if f.(*FinalizationMessage).round == 0 {
+					select {
+					case f = <-fin:
+					case <-time.After(testTimeout):
+						t.Errorf("did not receive finalized block from %d", i)
+					}
+				}
+
 				finalized[i] = f.(*FinalizationMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
@@ -369,7 +387,16 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
-				t.Log(f)
+
+				// receive first message, which is finalized block from previous round
+				if f.(*FinalizationMessage).round == 0 {
+					select {
+					case f = <-fin:
+					case <-time.After(testTimeout):
+						t.Errorf("did not receive finalized block from %d", i)
+					}
+				}
+
 				finalized[i] = f.(*FinalizationMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
@@ -435,7 +462,16 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			go func(i int, fin <-chan FinalityMessage) {
 				select {
 				case f := <-fin:
-					t.Log(f)
+
+					// receive first message, which is finalized block from previous round
+					if f.(*FinalizationMessage).round == uint64(j) {
+						select {
+						case f = <-fin:
+						case <-time.After(testTimeout):
+							t.Errorf("did not receive finalized block from %d", i)
+						}
+					}
+
 					finalized[i] = f.(*FinalizationMessage)
 				case <-time.After(testTimeout):
 					t.Errorf("did not receive finalized block from %d", i)
