@@ -171,6 +171,7 @@ func (b *Service) Pause() error {
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
 	b.started.Store(true)
+	go b.invokeBlockAuthoring()
 	return nil
 }
 
@@ -303,8 +304,8 @@ func (b *Service) invokeBlockAuthoring() {
 		start := time.Now().Unix()
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
-			for b.isStopped() {
-				// wait until service resumes
+			if b.isStopped() {
+				return
 			}
 
 			b.handleSlot(slotNum)
