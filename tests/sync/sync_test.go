@@ -30,7 +30,7 @@ var tests = []testRPCCall{
 	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
-	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: time.Second * 15},
+	{nodeIdx: 0, method: "chain_getHeader", params: "[]", delay: time.Second * 10},
 	{nodeIdx: 1, method: "chain_getHeader", params: "[]", delay: 0},
 	{nodeIdx: 2, method: "chain_getHeader", params: "[]", delay: 0},
 }
@@ -43,6 +43,10 @@ var checks = []checkDBCall{
 }
 
 func TestMain(m *testing.M) {
+	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "sync" {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
+		return
+	}
 	fw, err := utils.InitFramework(3)
 	if err != nil {
 		log.Fatal(fmt.Errorf("error initializing test framework"))

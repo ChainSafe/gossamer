@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strconv"
 	"testing"
 
@@ -82,12 +81,8 @@ func (fw *Framework) CallRPC(idx int, method, params string) (respJSON interface
 
 // PrintDB prints all records for given node
 func (fw *Framework) PrintDB() {
-	items, err := fw.db.ReadAll("rpc")
-	if err != nil {
-		log.Fatal(fmt.Errorf("error reading from db %v", err))
-	}
-	for _, item := range items {
-		fmt.Printf("%v\n", item)
+	for i := 0; i < fw.callQty; i++ {
+		fmt.Printf("Call: %v: Val: %v\n", i, fw.GetRecord(i))
 	}
 }
 
