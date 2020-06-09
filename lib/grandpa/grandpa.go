@@ -115,7 +115,11 @@ func (s *Service) Start() error {
 
 // Stop stops the GRANDPA finality service
 func (s *Service) Stop() error {
-	// TODO
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	s.stopped = true
+	close(s.out)
 	return nil
 }
 
@@ -143,6 +147,10 @@ func (s *Service) initiate() error {
 		err := s.playGrandpaRound()
 		if err != nil {
 			return err
+		}
+
+		if s.stopped {
+			return nil
 		}
 
 		err = s.initiate()
@@ -243,40 +251,38 @@ func (s *Service) playGrandpaRound() error {
 		}
 	}()
 
-	done := false
-	go func(done *bool) {
+	go func() {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
-			// completable, err := s.isCompletable() //nolint
-			// if err != nil {
-			// 	log.Trace("[grandpa] failed to check if round is completable", "error", err)
-			// }
+			completable, err := s.isCompletable() //nolint
+			if err != nil {
+				log.Trace("[grandpa] failed to check if round is completable", "error", err)
+			}
 
-			// finalizable, err := s.isFinalizable(s.state.round)
-			// if err != nil {
-			// 	log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
-			// }
+			finalizable, err := s.isFinalizable(s.state.round)
+			if err != nil {
+				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
+			}
 
-			// // this shouldn't happen as long as playGrandpaRound is called through initiate
-			// if s.bestFinalCandidate[s.state.round-1] == nil {
-			// 	return false
-			// }
+			// this shouldn't happen as long as playGrandpaRound is called through initiate
+			if s.bestFinalCandidate[s.state.round-1] == nil {
+				return false
+			}
 
-			// if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
-			// 	return true
-			// }
+			if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
+				return true
+			}
 
 			return false
 		})
-	}(&done)
+	}()
 
 	err = s.attemptToFinalize()
 	if err != nil {
 		return err
 	}
 
-	done = true
 	return nil
 }
 
@@ -291,8 +297,6 @@ func (s *Service) attemptToFinalize() error {
 	if err != nil {
 		return err
 	}
-
-	//log.Info("attemptToFinalize", "bfc", bfc, "votes", pc)
 
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()

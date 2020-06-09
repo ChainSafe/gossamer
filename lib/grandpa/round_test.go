@@ -147,29 +147,24 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, lock *sync.Mutex, done *bool) {
+func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, done *bool) {
 	for v := range from {
 		for _, tc := range to {
-			lock.Lock()
 			if *done {
 				return
 			}
 
 			tc <- v
-			lock.Unlock()
 		}
 	}
 }
 
-func cleanup(gs *Service, in, out chan FinalityMessage, lock *sync.Mutex, done *bool) { //nolint
-	lock.Lock()
+func cleanup(gs *Service, in, out chan FinalityMessage, done *bool) { //nolint
 	*done = true
 	close(in)
-	lock.Unlock()
 
 	gs.chanLock.Lock()
 	gs.stopped = true
-	//close(out)
 	gs.chanLock.Unlock()
 }
 
@@ -183,13 +178,11 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	ins := make([]chan FinalityMessage, len(kr.Keys))
 	outs := make([]chan FinalityMessage, len(kr.Keys))
 	fins := make([]chan FinalityMessage, len(kr.Keys))
-
 	done := false
-	lock := sync.Mutex{}
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &lock, &done)
+		defer cleanup(gs, in, out, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -200,7 +193,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &done)
 	}
 
 	for _, gs := range gss {
@@ -258,13 +251,11 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	ins := make([]chan FinalityMessage, len(kr.Keys))
 	outs := make([]chan FinalityMessage, len(kr.Keys))
 	fins := make([]chan FinalityMessage, len(kr.Keys))
-
 	done := false
-	lock := sync.Mutex{}
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &lock, &done)
+		defer cleanup(gs, in, out, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -279,7 +270,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &done)
 	}
 
 	for _, gs := range gss {
@@ -334,12 +325,11 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	fins := make([]chan FinalityMessage, len(kr.Keys))
 
 	done := false
-	lock := sync.Mutex{}
 	r := byte(rand.Intn(256))
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &lock, &done)
+		defer cleanup(gs, in, out, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -356,7 +346,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	leaves := gss[0].blockState.Leaves()
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &done)
 	}
 
 	for _, gs := range gss {
@@ -422,13 +412,11 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	ins := make([]chan FinalityMessage, len(kr.Keys))
 	outs := make([]chan FinalityMessage, len(kr.Keys))
 	fins := make([]chan FinalityMessage, len(kr.Keys))
-
 	done := false
-	lock := sync.Mutex{}
 
 	for i := range gss {
 		gs, in, out, fin := setupGrandpa(t, kr.Keys[i])
-		defer cleanup(gs, in, out, &lock, &done)
+		defer cleanup(gs, in, out, &done)
 
 		gss[i] = gs
 		ins[i] = in
@@ -439,7 +427,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	}
 
 	for _, out := range outs {
-		go broadcastVotes(out, ins, &lock, &done)
+		go broadcastVotes(out, ins, &done)
 	}
 
 	for _, gs := range gss {

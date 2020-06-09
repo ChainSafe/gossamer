@@ -34,7 +34,6 @@ func (s *Service) sendVoteMessages() {
 		log.Debug("[core] sending VoteMessage to grandpa", "msg", msg)
 		s.msgSend <- msg
 	}
-	return
 }
 
 // sendFinalityMessages routes a FinalizationMessage from the finality gadget to the network
@@ -53,5 +52,4 @@ func (s *Service) sendFinalizationMessages() {
 
 		s.msgSend <- msg
 	}
-	return
 }
