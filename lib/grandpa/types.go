@@ -51,6 +51,20 @@ func (v *Voter) PublicKeyBytes() ed25519.PublicKeyBytes {
 	return v.key.AsBytes()
 }
 
+// NewVotersFromAuthorityData returns an array of Voters given an array of GrandpaAuthorityData
+func NewVotersFromAuthorityData(ad []*types.GrandpaAuthorityData) []*Voter {
+	v := make([]*Voter, len(ad))
+
+	for i, d := range ad {
+		v[i] = &Voter{
+			key: d.Key,
+			id:  d.ID,
+		}
+	}
+
+	return v
+}
+
 // State represents a GRANDPA state
 type State struct {
 	voters []*Voter // set of voters

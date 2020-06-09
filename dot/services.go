@@ -63,32 +63,37 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
+func createRuntime(st *state.Service, ks *keystore.Keystore) (*runtime.Runtime, error) {
+	// load runtime code from trie
+	code, err := st.Storage.GetStorage([]byte(":code"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+	}
+
+	// create runtime executor
+	rt, err := runtime.NewRuntime(code, st.Storage, ks, runtime.RegisterImports_NodeRuntime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+	}
+
+	return rt, nil
+}
+
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, *runtime.Runtime, error) {
+func createCoreService(cfg *Config, fg core.FinalityGadget, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, error) {
 	log.Info(
 		"[dot] creating core service...",
 		"authority", cfg.Core.Authority,
 	)
-
-	// load runtime code from trie
-	code, err := stateSrvc.Storage.GetStorage([]byte(":code"))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
-	}
-
-	// create runtime executor
-	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImports_NodeRuntime)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create runtime executor: %s", err)
-	}
 
 	// set core configuration
 	coreConfig := &core.Config{
 		BlockState:       stateSrvc.Block,
 		StorageState:     stateSrvc.Storage,
 		TransactionQueue: stateSrvc.TransactionQueue,
+		FinalityGadget:   fg,
 		Keystore:         ks,
 		Runtime:          rt,
 		MsgRec:           networkMsgs, // message channel from network service to core service
@@ -101,10 +106,10 @@ func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Serv
 	coreSrvc, err := core.NewService(coreConfig)
 	if err != nil {
 		log.Error("[dot] failed to create core service", "error", err)
-		return nil, nil, err
+		return nil, err
 	}
 
-	return coreSrvc, rt, nil
+	return coreSrvc, nil
 }
 
 // Network Service
@@ -183,11 +188,14 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 	return system.NewService(cfg)
 }
 
+// createGRANDPAService creates a new GRANDPA service
 func createGRANDPAService(rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*grandpa.Service, error) {
-	voters, err := rt.GrandpaAuthorities()
+	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
 	}
+
+	voters := grandpa.NewVotersFromAuthorityData(ad)
 
 	keys := ks.Ed25519Keypairs()
 	if len(keys) == 0 {

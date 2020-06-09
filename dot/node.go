@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -205,13 +206,28 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	}
 	nodeSrvcs = append(nodeSrvcs, stateSrvc)
 
+	// create runtime
+	rt, err := createRuntime(stateSrvc, ks)
+	if err != nil {
+		return nil, err
+	}
+
+	var fg core.FinalityGadget
+	if cfg.Core.Authority {
+		// create GRANDPA service
+		fg, err = createGRANDPAService(rt, stateSrvc, ks)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Syncer
 	syncChan := make(chan *big.Int, 128)
 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, rt, err := createCoreService(cfg, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
+	coreSrvc, err := createCoreService(cfg, fg, rt, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}

@@ -32,13 +32,19 @@ func (s *Service) receiveMessages(cond func() bool) {
 		for msg := range s.in {
 			log.Debug("[grandpa] received vote message", "msg", msg)
 
-			v, err := s.validateMessage(msg)
-			if err != nil {
-				log.Debug("[grandpa] failed to validate vote message", "message", msg, "error", err)
+			vm, ok := msg.(*VoteMessage)
+			if !ok {
+				log.Warn("[grandpa] failed to cast message to VoteMessage")
 				continue
 			}
 
-			log.Debug("[grandpa] validated vote message", "vote", v, "subround", msg.stage)
+			v, err := s.validateMessage(vm)
+			if err != nil {
+				log.Debug("[grandpa] failed to validate vote message", "message", vm, "error", err)
+				continue
+			}
+
+			log.Debug("[grandpa] validated vote message", "vote", v, "subround", vm.stage)
 		}
 	}()
 

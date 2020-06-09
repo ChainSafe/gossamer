@@ -47,17 +47,6 @@ func NewGrandpaAuthorityData(pub *ed25519.PublicKey, id uint64) *GrandpaAuthorit
 	}
 }
 
-// // ToRaw returns the GrandpaAuthorityData as GrandpaAuthorityDataRaw. It encodes the authority public keys.
-// func (a *GrandpaAuthorityData) ToRaw() *AuthorityDataRaw {
-// 	raw := new(AuthorityDataRaw)
-
-// 	key := a.Key.Encode()
-// 	copy(raw.Key[:], key)
-
-// 	raw.ID = a.ID
-// 	return raw
-// }
-
 // FromRaw sets the GrandpaAuthorityData given GrandpaAuthorityDataRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
 func (a *GrandpaAuthorityData) FromRaw(raw *GrandpaAuthorityDataRaw) error {
@@ -70,38 +59,6 @@ func (a *GrandpaAuthorityData) FromRaw(raw *GrandpaAuthorityDataRaw) error {
 	a.ID = raw.ID
 	return nil
 }
-
-// // Encode returns the SCALE encoding of the AuthorityData.
-// func (a *AuthorityData) Encode() []byte {
-// 	raw := a.ToRaw()
-
-// 	enc := raw.ID[:]
-
-// 	weightBytes := make([]byte, 8)
-// 	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
-
-// 	return append(enc, weightBytes...)
-// }
-
-// // Decode sets the AuthorityData to the SCALE decoded input.
-// func (a *AuthorityData) Decode(r io.Reader) error {
-// 	id, err := common.Read32Bytes(r)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	weight, err := common.ReadUint64(r)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	raw := &AuthorityDataRaw{
-// 		ID:     id,
-// 		Weight: weight,
-// 	}
-
-// 	return a.FromRaw(raw)
-// }
 
 // GrandpaAuthorityDataRawToAuthorityData turns a slice of AuthorityDataRaw into a slice of AuthorityData
 func GrandpaAuthorityDataRawToAuthorityData(adr []*GrandpaAuthorityDataRaw) ([]*GrandpaAuthorityData, error) {

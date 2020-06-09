@@ -48,7 +48,7 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *VoteMessage, chan *VoteMessage, chan *FinalizationMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan FinalityMessage, chan FinalityMessage, chan FinalityMessage) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 
@@ -147,7 +147,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync.Mutex, done *bool) {
+func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, lock *sync.Mutex, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			lock.Lock()
@@ -161,7 +161,7 @@ func broadcastVotes(from <-chan *VoteMessage, to []chan *VoteMessage, lock *sync
 	}
 }
 
-func cleanup(gs *Service, in, out chan *VoteMessage, lock *sync.Mutex, done *bool) {
+func cleanup(gs *Service, in, out chan FinalityMessage, lock *sync.Mutex, done *bool) {
 	lock.Lock()
 	*done = true
 	close(in)
@@ -180,9 +180,9 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *VoteMessage, len(kr.Keys))
-	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *FinalizationMessage, len(kr.Keys))
+	ins := make([]chan FinalityMessage, len(kr.Keys))
+	outs := make([]chan FinalityMessage, len(kr.Keys))
+	fins := make([]chan FinalityMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -215,11 +215,11 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *FinalizationMessage) {
+		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
-				finalized[i] = f
+				finalized[i] = f.(*FinalizationMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
 			}
@@ -246,9 +246,9 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *VoteMessage, len(kr.Keys))
-	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *FinalizationMessage, len(kr.Keys))
+	ins := make([]chan FinalityMessage, len(kr.Keys))
+	outs := make([]chan FinalityMessage, len(kr.Keys))
+	fins := make([]chan FinalityMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -285,11 +285,11 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *FinalizationMessage) {
+		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
-				finalized[i] = f
+				finalized[i] = f.(*FinalizationMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
 			}
@@ -311,9 +311,9 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *VoteMessage, len(kr.Keys))
-	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *FinalizationMessage, len(kr.Keys))
+	ins := make([]chan FinalityMessage, len(kr.Keys))
+	outs := make([]chan FinalityMessage, len(kr.Keys))
+	fins := make([]chan FinalityMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -366,11 +366,11 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan *FinalizationMessage) {
+		go func(i int, fin <-chan FinalityMessage) {
 			select {
 			case f := <-fin:
 				t.Log(f)
-				finalized[i] = f
+				finalized[i] = f.(*FinalizationMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalized block from %d", i)
 			}
@@ -392,9 +392,9 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan *VoteMessage, len(kr.Keys))
-	outs := make([]chan *VoteMessage, len(kr.Keys))
-	fins := make([]chan *FinalizationMessage, len(kr.Keys))
+	ins := make([]chan FinalityMessage, len(kr.Keys))
+	outs := make([]chan FinalityMessage, len(kr.Keys))
+	fins := make([]chan FinalityMessage, len(kr.Keys))
 
 	done := false
 	lock := sync.Mutex{}
@@ -432,11 +432,11 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		for i, fin := range fins {
 
-			go func(i int, fin <-chan *FinalizationMessage) {
+			go func(i int, fin <-chan FinalityMessage) {
 				select {
 				case f := <-fin:
 					t.Log(f)
-					finalized[i] = f
+					finalized[i] = f.(*FinalizationMessage)
 				case <-time.After(testTimeout):
 					t.Errorf("did not receive finalized block from %d", i)
 				}

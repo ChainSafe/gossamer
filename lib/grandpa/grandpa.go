@@ -53,9 +53,9 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in        chan *VoteMessage
-	out       chan *VoteMessage
-	finalized chan *FinalizationMessage // channel that finalized blocks are output from at the end of a round
+	in        chan FinalityMessage // only used to receive *VoteMessage
+	out       chan FinalityMessage // only used to send *VoteMessage
+	finalized chan FinalityMessage // only used to send *FinalizationMessage; channel that finalized blocks are output from at the end of a round
 }
 
 // Config represents a GRANDPA service configuration
@@ -92,9 +92,9 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
-		in:                 make(chan *VoteMessage, 128),
-		out:                make(chan *VoteMessage, 128),
-		finalized:          make(chan *FinalizationMessage, 128),
+		in:                 make(chan FinalityMessage, 128),
+		out:                make(chan FinalityMessage, 128),
+		finalized:          make(chan FinalityMessage, 128),
 		stopped:            true,
 	}
 

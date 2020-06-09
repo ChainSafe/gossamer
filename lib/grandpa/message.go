@@ -1,6 +1,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -8,23 +9,25 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+type FinalityMessage = core.FinalityMessage
+
 // GetVoteOutChannel returns a read-only VoteMessage channel
-func (s *Service) GetVoteOutChannel() <-chan *VoteMessage {
+func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
 	return s.out
 }
 
 // GetVoteInChannel returns a write-only VoteMessage channel
-func (s *Service) GetVoteInChannel() chan<- *VoteMessage {
+func (s *Service) GetVoteInChannel() chan<- FinalityMessage {
 	return s.in
 }
 
 // GetFinalizedChannel returns a read-only FinalizationMessage channel
-func (s *Service) GetFinalizedChannel() <-chan *FinalizationMessage {
+func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
 	return s.finalized
 }
 
 // DecodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
-func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (interface{}, error) {
+func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (FinalityMessage, error) {
 	m, err := scale.Decode(msg.Data, new(VoteMessage))
 	if err != nil {
 		// try FinalizatioNmessage
@@ -32,9 +35,11 @@ func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (interface{}, err
 		if err != nil {
 			return nil, err
 		}
+
+		return m.(*FinalizationMessage), nil
 	}
 
-	return m, nil
+	return m.(*VoteMessage), nil
 }
 
 // FullVote represents a vote with additional information about the state
