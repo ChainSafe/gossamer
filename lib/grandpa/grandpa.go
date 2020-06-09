@@ -101,6 +101,7 @@ func NewService(cfg *Config) (*Service, error) {
 	return s, nil
 }
 
+// Start begins the GRANDPA finality service
 func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
@@ -112,6 +113,7 @@ func (s *Service) Start() error {
 	return nil
 }
 
+// Stop stops the GRANDPA finality service
 func (s *Service) Stop() error {
 	// TODO
 	return nil
@@ -241,38 +243,40 @@ func (s *Service) playGrandpaRound() error {
 		}
 	}()
 
-	go func() {
+	done := false
+	go func(done *bool) {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
-			completable, err := s.isCompletable() //nolint
-			if err != nil {
-				log.Trace("[grandpa] failed to check if round is completable", "error", err)
-			}
+			// completable, err := s.isCompletable() //nolint
+			// if err != nil {
+			// 	log.Trace("[grandpa] failed to check if round is completable", "error", err)
+			// }
 
-			finalizable, err := s.isFinalizable(s.state.round)
-			if err != nil {
-				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
-			}
+			// finalizable, err := s.isFinalizable(s.state.round)
+			// if err != nil {
+			// 	log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
+			// }
 
-			// this shouldn't happen as long as playGrandpaRound is called through initiate
-			if s.bestFinalCandidate[s.state.round-1] == nil {
-				return false
-			}
+			// // this shouldn't happen as long as playGrandpaRound is called through initiate
+			// if s.bestFinalCandidate[s.state.round-1] == nil {
+			// 	return false
+			// }
 
-			if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
-				return true
-			}
+			// if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
+			// 	return true
+			// }
 
 			return false
 		})
-	}()
+	}(&done)
 
 	err = s.attemptToFinalize()
 	if err != nil {
 		return err
 	}
 
+	done = true
 	return nil
 }
 

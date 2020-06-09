@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+// FinalityMessage is an alias for the core.FinalityMessage interface
 type FinalityMessage = core.FinalityMessage
 
 // GetVoteOutChannel returns a read-only VoteMessage channel
@@ -78,6 +79,7 @@ type Justification struct {
 }
 
 // FinalizationMessage represents a network finalization message
+//nolint:structcheck
 type FinalizationMessage struct {
 	round         uint64
 	vote          *Vote
@@ -110,7 +112,7 @@ func (f *FinalizationMessage) ToConsensusMessage() (*network.ConsensusMessage, e
 	}, nil
 }
 
-func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) {
+func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) { //nolint
 	return &FinalizationMessage{
 		round: round,
 		vote:  NewVoteFromHeader(header),

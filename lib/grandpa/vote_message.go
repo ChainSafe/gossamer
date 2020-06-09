@@ -57,7 +57,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 
 	for {
 		if cond() {
-			done = true
+			//done = true
 			return
 		}
 	}

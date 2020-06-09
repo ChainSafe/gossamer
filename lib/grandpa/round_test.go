@@ -161,7 +161,7 @@ func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, lock
 	}
 }
 
-func cleanup(gs *Service, in, out chan FinalityMessage, lock *sync.Mutex, done *bool) {
+func cleanup(gs *Service, in, out chan FinalityMessage, lock *sync.Mutex, done *bool) { //nolint
 	lock.Lock()
 	*done = true
 	close(in)

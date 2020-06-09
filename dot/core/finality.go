@@ -21,22 +21,24 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 }
 
 // sendVoteMessages routes a VoteMessage from the finality gadget to the network
-func (s *Service) sendVoteMessages() error {
+func (s *Service) sendVoteMessages() {
 	out := s.finalityGadget.GetVoteOutChannel()
 	for v := range out {
 		// TODO: safety
 		msg, err := v.ToConsensusMessage()
 		if err != nil {
-			return err
+			log.Error("[core] failed to convert VoteMessage to ConsensusMessage", "msg", msg)
+			continue
 		}
+
 		log.Debug("[core] sending VoteMessage to grandpa", "msg", msg)
 		s.msgSend <- msg
 	}
-	return nil
+	return
 }
 
-// sendFinalityMessages routes a FinalityMessage from the finality gadget to the network
-func (s *Service) sendFinalityMessages() error {
+// sendFinalityMessages routes a FinalizationMessage from the finality gadget to the network
+func (s *Service) sendFinalizationMessages() {
 	out := s.finalityGadget.GetFinalizedChannel()
 	for v := range out {
 		// TODO: safety
@@ -45,10 +47,11 @@ func (s *Service) sendFinalityMessages() error {
 		log.Info("[core] finalized block!!!", "msg", v)
 		msg, err := v.ToConsensusMessage()
 		if err != nil {
-			return err
+			log.Error("[core] failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
+			continue
 		}
 
 		s.msgSend <- msg
 	}
-	return nil
+	return
 }
