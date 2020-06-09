@@ -76,7 +76,7 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
 // TODO: this seems to be out-of-date, the call is now named Grandpa_authorities and takes a block number.
-func (r *Runtime) GrandpaAuthorities() ([]*types.AuthorityData, error) {
+func (r *Runtime) GrandpaAuthorities() ([]*types.GrandpaAuthorityData, error) {
 	ret, err := r.Exec(GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
@@ -88,25 +88,25 @@ func (r *Runtime) GrandpaAuthorities() ([]*types.AuthorityData, error) {
 	}
 
 	keys := decodedKeys.([][32]byte)
-	authsRaw := make([]*types.AuthorityDataRaw, len(keys))
+	authsRaw := make([]*types.GrandpaAuthorityDataRaw, len(keys))
 
 	for i, key := range keys {
-		authsRaw[i] = &types.AuthorityDataRaw{
-			ID:     key,
-			Weight: 1,
+		authsRaw[i] = &types.GrandpaAuthorityDataRaw{
+			Key: key,
+			ID:  1,
 		}
 	}
 
-	auths := make([]*types.AuthorityData, len(keys))
-	for i, auth := range authsRaw {
-		auths[i] = new(types.AuthorityData)
-		err = auths[i].FromRaw(auth)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// auths := make([]*types.AuthorityData, len(keys))
+	// for i, auth := range authsRaw {
+	// 	auths[i] = new(types.AuthorityData)
+	// 	err = auths[i].FromRaw(auth)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	return auths, err
+	return types.GrandpaAuthorityDataRawToAuthorityData(authsRaw)
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
