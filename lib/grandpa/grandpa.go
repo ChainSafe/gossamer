@@ -63,9 +63,6 @@ type Config struct {
 	BlockState BlockState
 	Voters     []*Voter
 	Keypair    *ed25519.Keypair
-	// In         <-chan *VoteMessage
-	// Out        chan<- *VoteMessage
-	// Finalized  chan<- *types.Header
 }
 
 // NewService returns a new GRANDPA Service instance.

@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -26,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -178,4 +181,24 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 // creates a service for providing system related information
 func createSystemService(cfg *types.SystemInfo) *system.Service {
 	return system.NewService(cfg)
+}
+
+func createGRANDPAService(rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*grandpa.Service, error) {
+	voters, err := rt.GrandpaAuthorities()
+	if err != nil {
+		return nil, err
+	}
+
+	keys := ks.Ed25519Keypairs()
+	if len(keys) == 0 {
+		return nil, errors.New("no ed25519 keys provided for GRANDPA")
+	}
+
+	cfg := &grandpa.Config{
+		BlockState: st.Block,
+		Voters:     voters,
+		Keypair:    keys[0].(*ed25519.Keypair),
+	}
+
+	return grandpa.NewService(cfg)
 }

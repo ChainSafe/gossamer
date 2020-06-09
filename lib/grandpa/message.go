@@ -8,18 +8,22 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+// GetVoteOutChannel returns a read-only VoteMessage channel
 func (s *Service) GetVoteOutChannel() <-chan *VoteMessage {
 	return s.out
 }
 
+// GetVoteInChannel returns a write-only VoteMessage channel
 func (s *Service) GetVoteInChannel() chan<- *VoteMessage {
 	return s.in
 }
 
+// GetFinalizedChannel returns a read-only FinalizationMessage channel
 func (s *Service) GetFinalizedChannel() <-chan *FinalizationMessage {
 	return s.finalized
 }
 
+// DecodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
 func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (interface{}, error) {
 	m, err := scale.Decode(msg.Data, new(VoteMessage))
 	if err != nil {
@@ -75,6 +79,7 @@ type FinalizationMessage struct {
 	justification []*Justification //nolint:unused
 }
 
+// ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
 	enc, err := scale.Encode(v)
 	if err != nil {
@@ -87,6 +92,7 @@ func (v *VoteMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
 	}, nil
 }
 
+// ToConsensusMessage converts the FinalizationMessage into a network-level consensus message
 func (f *FinalizationMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
 	enc, err := scale.Encode(f)
 	if err != nil {
