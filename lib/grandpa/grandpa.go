@@ -388,6 +388,8 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 		return false, err
 	}
 
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
 	if bfc.number <= pvb.number && (s.state.round == 0 || s.bestFinalCandidate[s.state.round-1].number <= bfc.number) && pc >= s.state.threshold() {
 		return true, nil
 	}

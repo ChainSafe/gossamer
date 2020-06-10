@@ -24,6 +24,8 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"runtime"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -70,8 +72,20 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	case [][32]byte, [][]byte:
 		out, err = sd.DecodeArray(t)
 	case interface{}:
-		if o, err := sd.DecodeCustom(t); err == nil {
-			return o, nil
+		// check if type has a custom Decode function defined
+		// but first, make sure that the function that called this function wasn't the type's Decode function,
+		// or else we will end up in an infinite recursive loop
+		pc, _, _, ok := runtime.Caller(1)
+		details := runtime.FuncForPC(pc)
+		var caller string
+		if ok && details != nil {
+			caller = details.Name()
+		}
+
+		if !strings.Contains(caller, "Decode") || strings.Contains(caller, "scale") {
+			if o, err := sd.DecodeCustom(t); err == nil {
+				return o, nil
+			}
 		}
 
 		out, err = sd.DecodeInterface(t)
