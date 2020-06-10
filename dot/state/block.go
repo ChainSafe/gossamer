@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -195,7 +196,9 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 		return nil, err
 	}
 
-	err = result.Decode(data)
+	rw := &bytes.Buffer{}
+	rw.Write(data)
+	_, err = result.Decode(rw)
 	if err != nil {
 		return nil, err
 	}
