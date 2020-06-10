@@ -217,7 +217,8 @@ func TestFinalizeBlock(t *testing.T) {
 
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
+	//rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestRuntime(t, NODE_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()

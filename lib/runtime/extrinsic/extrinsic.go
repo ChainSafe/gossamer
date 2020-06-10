@@ -349,3 +349,13 @@ func (e *StorageChangeExt) Key() []byte {
 func (e *StorageChangeExt) Value() *optional.Bytes {
 	return e.value
 }
+
+// Call interface for method extrinsic is calling
+type Call interface {
+}
+
+// UncheckedExtrinsic generic implementation of pre-verification extrinsic
+type UncheckedExtrinsic struct {
+	Signature interface{} // optional type Address, Signature, Extra
+	Function  Call
+}
