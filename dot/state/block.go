@@ -197,7 +197,11 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	rw := &bytes.Buffer{}
-	rw.Write(data)
+	_, err = rw.Write(data)
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = result.Decode(rw)
 	if err != nil {
 		return nil, err
