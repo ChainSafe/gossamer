@@ -163,7 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	ad, err := types.AuthorityDataRawToAuthorityData(babeCfg.GenesisAuthorities)
+	ad, err := types.BABEAuthorityDataRawToAuthorityData(babeCfg.GenesisAuthorities)
 	if err != nil {
 		return nil, err
 	}

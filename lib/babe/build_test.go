@@ -186,7 +186,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	var err error
 	babeService := createTestService(t, cfg)
 
-	babeService.authorityData = []*types.AuthorityData{
+	babeService.authorityData = []*types.BABEAuthorityData{
 		{ID: nil, Weight: 1},
 	}
 

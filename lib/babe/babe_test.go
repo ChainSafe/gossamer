@@ -66,11 +66,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.AuthData == nil {
-		auth := &types.AuthorityData{
+		auth := &types.BABEAuthorityData{
 			ID:     cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
-		cfg.AuthData = []*types.AuthorityData{auth}
+		cfg.AuthData = []*types.BABEAuthorityData{auth}
 	}
 
 	if cfg.TransactionQueue == nil {
@@ -216,13 +216,13 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
-		GenesisAuthorities: []*types.AuthorityDataRaw{},
+		GenesisAuthorities: []*types.BABEAuthorityDataRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     false,
 	}
 
 	babeService.authorityIndex = 0
-	babeService.authorityData = []*types.AuthorityData{
+	babeService.authorityData = []*types.BABEAuthorityData{
 		{ID: nil, Weight: 1},
 		{ID: nil, Weight: 1},
 		{ID: nil, Weight: 1},
@@ -255,7 +255,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
 
-	authData := []*types.AuthorityData{
+	authData := []*types.BABEAuthorityData{
 		{ID: pubA, Weight: 1},
 		{ID: pubB, Weight: 1},
 	}

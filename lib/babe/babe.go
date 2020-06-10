@@ -54,7 +54,7 @@ type Service struct {
 	config         *types.BabeConfiguration
 	randomness     [RandomnessLength]byte
 	authorityIndex uint64
-	authorityData  []*types.AuthorityData
+	authorityData  []*types.BABEAuthorityData
 	epochThreshold *big.Int // validator threshold for this epoch
 	startSlot      uint64
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
@@ -74,7 +74,7 @@ type ServiceConfig struct {
 	TransactionQueue TransactionQueue
 	Keypair          *sr25519.Keypair
 	Runtime          *runtime.Runtime
-	AuthData         []*types.AuthorityData
+	AuthData         []*types.BABEAuthorityData
 	EpochThreshold   *big.Int // should only be used for testing
 	StartSlot        uint64   // slot to start at
 }
@@ -115,7 +115,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if babeService.authorityData == nil {
 		log.Info("[babe] setting authority data to genesis authorities", "authorities", babeService.config.GenesisAuthorities)
 
-		babeService.authorityData, err = types.AuthorityDataRawToAuthorityData(babeService.config.GenesisAuthorities)
+		babeService.authorityData, err = types.BABEAuthorityDataRawToAuthorityData(babeService.config.GenesisAuthorities)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +221,7 @@ func (b *Service) safeSend(msg types.Block) error {
 }
 
 // AuthorityData returns the data related to the authority
-func (b *Service) AuthorityData() []*types.AuthorityData {
+func (b *Service) AuthorityData() []*types.BABEAuthorityData {
 	return b.authorityData
 }
 
