@@ -212,7 +212,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 		return nil, err
 	}
 
+	var bp BlockProducer
 	var fg core.FinalityGadget
+
 	if cfg.Core.Authority {
 		// create GRANDPA service
 		fg, err = createGRANDPAService(rt, stateSrvc, ks)
@@ -220,6 +222,14 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 			return nil, err
 		}
 		nodeSrvcs = append(nodeSrvcs, fg)
+
+		// create BABE service
+		bp, err = createBABEService(cfg, rt, stateSrvc, ks)
+		if err != nil {
+			return nil, err
+		}
+
+		nodeSrvcs = append(nodeSrvcs, bp)
 	}
 
 	// Syncer
@@ -228,7 +238,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, fg, rt, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
+	coreSrvc, err := createCoreService(cfg, bp, fg, rt, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}

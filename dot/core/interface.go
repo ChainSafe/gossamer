@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -93,4 +94,12 @@ type FinalityGadget interface {
 // FinalityMessage is the interface a finality message must implement
 type FinalityMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
+}
+
+// BlockProducer is the interface that a block production service must implement
+type BlockProducer interface {
+	GetBlockChannel() <-chan types.Block
+	SetRuntime(*runtime.Runtime) error
+	Pause() error
+	Resume() error
 }

@@ -27,12 +27,17 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 )
+
+// ErrNoKeysProvided is returned when no keys are given for an authority node
+var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 
 // State Service
 
@@ -79,10 +84,56 @@ func createRuntime(st *state.Service, ks *keystore.Keystore) (*runtime.Runtime, 
 	return rt, nil
 }
 
+func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*babe.Service, error) {
+	log.Info(
+		"[dot] creating BABE service...",
+		"authority", cfg.Core.Authority,
+	)
+
+	kps := ks.Sr25519Keypairs()
+	if len(kps) == 0 {
+		return nil, ErrNoKeysProvided
+	}
+
+	// get best slot to determine next start slot
+	header, err := st.Block.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest block: %s", err)
+	}
+
+	var bestSlot uint64
+	if header.Number.Cmp(big.NewInt(0)) == 0 {
+		bestSlot = 0
+	} else {
+		bestSlot, err = st.Block.GetSlotForBlock(header.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get slot for latest block: %s", err)
+		}
+	}
+
+	bcfg := &babe.ServiceConfig{
+		Keypair:          kps[0].(*sr25519.Keypair),
+		Runtime:          rt,
+		BlockState:       st.Block,
+		StorageState:     st.Storage,
+		TransactionQueue: st.TransactionQueue,
+		StartSlot:        bestSlot + 1,
+	}
+
+	// create new BABE service
+	bs, err := babe.NewService(bcfg)
+	if err != nil {
+		log.Error("[dot] failed to initialize BABE service", "error", err)
+		return nil, err
+	}
+
+	return bs, nil
+}
+
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, fg core.FinalityGadget, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, error) {
 	log.Info(
 		"[dot] creating core service...",
 		"authority", cfg.Core.Authority,
@@ -93,12 +144,13 @@ func createCoreService(cfg *Config, fg core.FinalityGadget, rt *runtime.Runtime,
 		BlockState:       stateSrvc.Block,
 		StorageState:     stateSrvc.Storage,
 		TransactionQueue: stateSrvc.TransactionQueue,
+		BlockProducer:    bp,
 		FinalityGadget:   fg,
 		Keystore:         ks,
 		Runtime:          rt,
 		MsgRec:           networkMsgs, // message channel from network service to core service
 		MsgSend:          coreMsgs,    // message channel from core service to network service
-		IsBabeAuthority:  cfg.Core.Authority,
+		IsBlockProducer:  cfg.Core.Authority,
 		SyncChan:         syncChan,
 	}
 

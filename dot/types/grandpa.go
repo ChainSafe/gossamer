@@ -46,6 +46,15 @@ func NewGrandpaAuthorityData(pub *ed25519.PublicKey, id uint64) *GrandpaAuthorit
 	}
 }
 
+// ToRaw returns the GrandpaAuthorityData as GrandpaAuthorityDataRaw. It encodes the authority public keys.
+func (a *GrandpaAuthorityData) ToRaw() *GrandpaAuthorityDataRaw {
+	raw := new(GrandpaAuthorityDataRaw)
+
+	raw.Key = a.Key.AsBytes()
+	raw.ID = a.ID
+	return raw
+}
+
 // FromRaw sets the GrandpaAuthorityData given GrandpaAuthorityDataRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
 func (a *GrandpaAuthorityData) FromRaw(raw *GrandpaAuthorityDataRaw) error {

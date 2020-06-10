@@ -14,7 +14,7 @@ RPC_PORT=8540
 HOSTNAME="0.0.0.0"
 MODE="stable"
 
-declare -a keys=("alice" "bob" "charlie" "dave" "eve")
+declare -a keys=("alice" "bob" "charlie" "dave" "eve" "ferdie" "george" "heather" "ian")
 
 usage() {
   echo "Usage: $SCRIPT"

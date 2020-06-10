@@ -81,22 +81,12 @@ func (r *Runtime) GrandpaAuthorities() ([]*types.GrandpaAuthorityData, error) {
 		return nil, err
 	}
 
-	decodedKeys, err := scale.Decode(ret, [][32]byte{})
+	adr, err := scale.Decode(ret, []*types.GrandpaAuthorityDataRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	keys := decodedKeys.([][32]byte)
-	authsRaw := make([]*types.GrandpaAuthorityDataRaw, len(keys))
-
-	for i, key := range keys {
-		authsRaw[i] = &types.GrandpaAuthorityDataRaw{
-			Key: key,
-			ID:  1,
-		}
-	}
-
-	return types.GrandpaAuthorityDataRawToAuthorityData(authsRaw)
+	return types.GrandpaAuthorityDataRawToAuthorityData(adr.([]*types.GrandpaAuthorityDataRaw))
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
