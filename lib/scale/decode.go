@@ -83,8 +83,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		}
 
 		if !strings.Contains(caller, "Decode") || strings.Contains(caller, "scale") {
-			if o, err := sd.DecodeCustom(t); err == nil {
-				return o, nil
+			if out, err = sd.DecodeCustom(t); err == nil {
+				return out, nil
 			}
 		}
 
@@ -499,8 +499,7 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) { //nolint
 					*ptr = o.([]string)
 				}
 			default:
-				var o interface{}
-				if o, err := sd.DecodeCustom(fieldValue); err == nil {
+				if o, err = sd.DecodeCustom(fieldValue); err == nil {
 					field.Set(reflect.ValueOf(o))
 					continue
 				}

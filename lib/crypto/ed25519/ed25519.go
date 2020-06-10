@@ -60,7 +60,7 @@ func (b PublicKeyBytes) Encode() ([]byte, error) {
 	return b[:], nil
 }
 
-// Encode returns the SCALE encoding of PublicKeyBytes
+// Decode returns the SCALE decoded PublicKeyBytes
 func (b PublicKeyBytes) Decode(r io.Reader) ([PublicKeyLength]byte, error) {
 	_, err := r.Read(b[:])
 	return b, err

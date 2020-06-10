@@ -54,4 +54,5 @@ var ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")
 // at all, so it shouldn't ever happen.
 var ErrNoGHOST = errors.New("cannot determine grandpa-GHOST")
 
+// ErrCannotDecodeSubround is returned when a subround value cannot be decoded
 var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")

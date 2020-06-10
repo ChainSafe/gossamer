@@ -17,6 +17,8 @@
 package types
 
 import (
+	"io"
+
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -63,11 +65,12 @@ func (b *Block) Encode() ([]byte, error) {
 	return append(enc, encBody...), nil
 }
 
-// // Decode decodes the SCALE encoded input into this block
-// func (b *Block) Decode(in []byte) error {
-// 	_, err := scale.Decode(in, b)
-// 	return err
-// }
+// Decode decodes the SCALE encoded input into this block
+func (b *Block) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(b)
+	return err
+}
 
 // DeepCopy returns a copy of the block
 func (b *Block) DeepCopy() *Block {
