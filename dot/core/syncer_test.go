@@ -411,7 +411,6 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//syncer.lock.Lock()
 	syncer.synced = false
 
 	respIn <- resp

@@ -203,11 +203,9 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	//newBlocks := make(chan types.Block)
 	TransactionQueue := state.NewTransactionQueue()
 
 	cfg := &ServiceConfig{
-		//NewBlocks:        newBlocks,
 		TransactionQueue: TransactionQueue,
 	}
 
