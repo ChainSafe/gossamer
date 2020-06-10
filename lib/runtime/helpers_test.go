@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"reflect"
@@ -217,8 +218,7 @@ func TestFinalizeBlock(t *testing.T) {
 
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	//rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
-	rt := NewTestRuntime(t, NODE_RUNTIME)
+	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
@@ -293,7 +293,8 @@ func TestValidateTransaction_StorageChange(t *testing.T) {
 }
 
 func TestValidateTransaction_Transfer(t *testing.T) {
-	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
+	//rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestRuntime(t, NODE_RUNTIME)
 
 	alice := kr.Alice.Public().Encode()
 	bob := kr.Bob.Public().Encode()
@@ -309,7 +310,13 @@ func TestValidateTransaction_Transfer(t *testing.T) {
 	require.NoError(t, err)
 	tx, err := ext.Encode()
 	require.NoError(t, err)
+	fmt.Printf("tx %v\n", tx)
 
+	//hexStr := "0x2d0284ff78b6dd81f9f55c08fdedb28e5e78e44a1ce6568164d4bd43fa4630a7a388592701e4889c783aa67312b696676ad7add4d71ec8ad203208c24881dc6e3e4c23625d0cfada50030ee1cfff326fcf25bb9d28d545b75450abb2113cc6f6d3f26b97890004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
+	hexStr := "0x2d0284ff78b6dd81f9f55c08fdedb28e5e78e44a1ce6568164d4bd43fa4630a7a3885927011018488255f97b0c5eda7debee8641f6335da0be36a7ba6ebc332d0cf346575757685b0621cce6b520bc7687ebf8bf969c0657ab0bff02c3b21110ee6927d2800004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
+
+	hxB, err := common.HexToBytes(hexStr)
+	fmt.Printf("txb %v\n", hxB)
 	validity, err := rt.ValidateTransaction(tx)
 	require.NoError(t, err)
 
