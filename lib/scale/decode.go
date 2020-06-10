@@ -70,6 +70,10 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	case [][32]byte, [][]byte:
 		out, err = sd.DecodeArray(t)
 	case interface{}:
+		if o, err := sd.DecodeCustom(t); err == nil {
+			return o, nil
+		}
+
 		out, err = sd.DecodeInterface(t)
 	default:
 		return nil, errors.New("decode error: unsupported type")
@@ -466,6 +470,11 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) { //nolint
 				if _, err = sd.Reader.Read(b); err == nil {
 					copy((*ptr)[:], b)
 				}
+			case *[64]byte:
+				b := make([]byte, 64)
+				if _, err = sd.Reader.Read(b); err == nil {
+					copy((*ptr)[:], b)
+				}
 			case *string:
 				if o, err = sd.DecodeByteArray(); err == nil {
 					// get the pointer to the value and set the value
@@ -477,6 +486,11 @@ func (sd *Decoder) DecodeTuple(t interface{}) (interface{}, error) { //nolint
 				}
 			default:
 				var o interface{}
+				if o, err := sd.DecodeCustom(fieldValue); err == nil {
+					field.Set(reflect.ValueOf(o))
+					continue
+				}
+
 				// TODO: clean up this function, can use field.Set everywhere (remove switch case?)
 				if o, err = sd.Decode(v.Field(i).Interface()); err == nil {
 					field.Set(reflect.ValueOf(o))

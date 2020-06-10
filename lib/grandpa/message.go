@@ -1,6 +1,8 @@
 package grandpa
 
 import (
+	"io"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -11,6 +13,9 @@ import (
 
 // FinalityMessage is an alias for the core.FinalityMessage interface
 type FinalityMessage = core.FinalityMessage
+
+// ConsensusMessage is an alias for network.ConsensusMessage
+type ConsensusMessage = network.ConsensusMessage
 
 // GetVoteOutChannel returns a read-only VoteMessage channel
 func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
@@ -28,11 +33,15 @@ func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
 }
 
 // DecodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
-func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (FinalityMessage, error) {
-	m, err := scale.Decode(msg.Data, new(VoteMessage))
+func (s *Service) DecodeMessage(msg *ConsensusMessage) (FinalityMessage, error) {
+	m, err := scale.Decode(msg.Data, &VoteMessage{Message: new(SignedMessage)})
 	if err != nil {
 		// try FinalizatioNmessage
-		m, err = scale.Decode(msg.Data, new(FinalizationMessage))
+		// TODO: scale should be able to handle nil pointers
+		m, err = scale.Decode(msg.Data, &FinalizationMessage{
+			Vote: new(Vote),
+			//Justification: []*Justification{},
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -46,67 +55,73 @@ func (s *Service) DecodeMessage(msg *network.ConsensusMessage) (FinalityMessage,
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
-	stage subround
-	vote  *Vote
-	round uint64
-	setID uint64
+	Stage subround
+	Vote  *Vote
+	Round uint64
+	SetID uint64
+}
+
+// SignedMessage represents a block hash and number signed by an authority
+type SignedMessage struct {
+	Hash        common.Hash
+	Number      uint64
+	Signature   [64]byte // ed25519.SignatureLength
+	AuthorityID ed25519.PublicKeyBytes
 }
 
 // VoteMessage represents a network-level vote message
 // https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/gossip.rs#L336
 type VoteMessage struct {
-	setID   uint64
-	round   uint64
-	stage   subround // 0 for pre-vote, 1 for pre-commit
-	message *SignedMessage
-}
-
-// SignedMessage represents a block hash and number signed by an authority
-// https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/lib.rs#L146
-type SignedMessage struct {
-	hash        common.Hash
-	number      uint64
-	signature   [64]byte // ed25519.SignatureLength
-	authorityID ed25519.PublicKeyBytes
-}
-
-// Justification represents a justification for a finalized block
-//nolint:structcheck
-type Justification struct {
-	vote      *Vote    //nolint:unused
-	signature []byte   //nolint:unused
-	pubkey    [32]byte //nolint:unused
-}
-
-// FinalizationMessage represents a network finalization message
-//nolint:structcheck
-type FinalizationMessage struct {
-	round         uint64
-	vote          *Vote
-	justification []*Justification //nolint:unused
+	SetID   uint64
+	Round   uint64
+	Stage   subround // 0 for pre-vote, 1 for pre-commit
+	Message *SignedMessage
 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
-func (v *VoteMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	enc, err := scale.Encode(v)
 	if err != nil {
 		return nil, err
 	}
 
-	return &network.ConsensusMessage{
+	return &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              enc,
 	}, nil
 }
 
+// Justification represents a justification for a finalized block
+//nolint:structcheck
+type Justification struct {
+	Vote      *Vote    //nolint:unused
+	Signature []byte   //nolint:unused
+	Pubkey    [32]byte //nolint:unused
+}
+
+// Decode returns the SCALE decoded Justification
+func (j *Justification) Decode(r io.Reader) (*Justification, error) {
+	sd := &scale.Decoder{Reader: r}
+	i, err := sd.Decode(j)
+	return i.(*Justification), err
+}
+
+// FinalizationMessage represents a network finalization message
+//nolint:structcheck
+type FinalizationMessage struct {
+	Round uint64
+	Vote  *Vote
+	//Justification []*Justification //nolint:unused
+}
+
 // ToConsensusMessage converts the FinalizationMessage into a network-level consensus message
-func (f *FinalizationMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	enc, err := scale.Encode(f)
 	if err != nil {
 		return nil, err
 	}
 
-	return &network.ConsensusMessage{
+	return &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              enc,
 	}, nil
@@ -114,8 +129,8 @@ func (f *FinalizationMessage) ToConsensusMessage() (*network.ConsensusMessage, e
 
 func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) { //nolint
 	return &FinalizationMessage{
-		round: round,
-		vote:  NewVoteFromHeader(header),
+		Round: round,
+		Vote:  NewVoteFromHeader(header),
 		// TODO: add justification
 	}, nil
 }

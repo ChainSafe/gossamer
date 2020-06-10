@@ -212,7 +212,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).round == 0 {
+				if f.(*FinalizationMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -290,7 +290,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).round == 0 {
+				if f.(*FinalizationMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -379,7 +379,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).round == 0 {
+				if f.(*FinalizationMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -452,7 +452,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 				case f := <-fin:
 
 					// receive first message, which is finalized block from previous round
-					if f.(*FinalizationMessage).round == uint64(j) {
+					if f.(*FinalizationMessage).Round == uint64(j) {
 						select {
 						case f = <-fin:
 						case <-time.After(testTimeout):
@@ -474,7 +474,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalized {
 			require.NotNil(t, fb)
-			require.Equal(t, head, fb.vote.hash)
+			require.Equal(t, head, fb.Vote.hash)
 			require.Equal(t, finalized[0], fb)
 		}
 

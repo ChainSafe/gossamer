@@ -53,3 +53,5 @@ var ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")
 // ErrNoGHOST is returned when there is no GHOST. the only case where this could happen is if there are no votes
 // at all, so it shouldn't ever happen.
 var ErrNoGHOST = errors.New("cannot determine grandpa-GHOST")
+
+var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")

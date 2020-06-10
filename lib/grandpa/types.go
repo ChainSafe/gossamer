@@ -18,7 +18,9 @@ package grandpa
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,6 +31,25 @@ type subround byte
 
 var prevote subround = 0
 var precommit subround = 1
+
+func (s subround) Encode() ([]byte, error) {
+	return []byte{byte(s)}, nil
+}
+
+func (s subround) Decode(r io.Reader) (subround, error) {
+	b, err := common.ReadByte(r)
+	if err != nil {
+		return 255, nil
+	}
+
+	if b == 0 {
+		return prevote, nil
+	} else if b == 1 {
+		return precommit, nil
+	} else {
+		return 255, ErrCannotDecodeSubround
+	}
+}
 
 func (s subround) String() string {
 	if s == prevote {
@@ -150,6 +171,30 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 	return NewVoteFromHeader(h), nil
 }
 
+// Encode returns the SCALE encoding of a Vote
+func (v *Vote) Encode() ([]byte, error) {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, v.number)
+	return append(v.hash[:], buf...), nil
+}
+
+// Decode returns the SCALE decoded Vote
+func (v *Vote) Decode(r io.Reader) (*Vote, error) {
+	var err error
+	v.hash, err = common.ReadHash(r)
+	if err != nil {
+		return nil, err
+	}
+
+	v.number, err = common.ReadUint64(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+// String returns the Vote as a string
 func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
