@@ -257,12 +257,12 @@ func (s *Service) playGrandpaRound() error {
 		s.receiveMessages(func() bool {
 			completable, err := s.isCompletable() //nolint
 			if err != nil {
-				log.Trace("[grandpa] failed to check if round is completable", "error", err)
+				return false
 			}
 
 			finalizable, err := s.isFinalizable(s.state.round)
 			if err != nil {
-				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
+				return false
 			}
 
 			// this shouldn't happen as long as playGrandpaRound is called through initiate

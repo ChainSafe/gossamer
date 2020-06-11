@@ -56,3 +56,6 @@ var ErrNoGHOST = errors.New("cannot determine grandpa-GHOST")
 
 // ErrCannotDecodeSubround is returned when a subround value cannot be decoded
 var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")
+
+// ErrInvalidMessageType is returned when a network.Message cannot be decoded
+var ErrInvalidMessageType = errors.New("cannot decode invalid message type")
