@@ -82,7 +82,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 			caller = details.Name()
 		}
 
-		if !strings.Contains(caller, "Decode") || strings.Contains(caller, "scale") {
+		// allow the call to DecodeCustom to proceed if the call comes from inside scale, and isn't a test
+		if !strings.Contains(caller, "Decode") || (strings.Contains(caller, "scale") && !strings.Contains(caller, "test")) {
 			if out, err = sd.DecodeCustom(t); err == nil {
 				return out, nil
 			}
