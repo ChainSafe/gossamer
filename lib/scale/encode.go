@@ -51,6 +51,7 @@ func EncodeCustom(in interface{}) ([]byte, error) {
 // EncodeCustom checks if interface has method Encode, if so use that, otherwise use regular scale encoding
 func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	someType := reflect.TypeOf(in)
+	// TODO: if not a pointer, check if type pointer has Encode method
 	_, ok := someType.MethodByName("Encode")
 	if ok {
 		res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})

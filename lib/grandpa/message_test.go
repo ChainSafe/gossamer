@@ -16,7 +16,7 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 
 	cm := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x4d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a777700000000000050de12b09722c4676f022d7200001b90183b3cf7e2e0a5ec009859b3c0956db6ccf35ac019ff5fd73640e3f0dcf658a92b56842b7821f4b7e77eb891931d370034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data:              common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a777700000000000050de12b09722c4676f022d7200001b90183b3cf7e2e0a5ec009859b3c0956db6ccf35ac019ff5fd73640e3f0dcf658a92b56842b7821f4b7e77eb891931d370034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
 	msg, err := gs.DecodeMessage(cm)
@@ -46,7 +46,7 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 
 	cm := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x4d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0100000000000000"),
+		Data:              common.MustHexToBytes("0x014d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0100000000000000"),
 	}
 
 	msg, err := gs.DecodeMessage(cm)
@@ -92,7 +92,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 	expected := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x4d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a777700000000000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data:              common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a777700000000000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
 	require.Equal(t, expected, cm)
@@ -121,7 +121,7 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 
 	expected := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x4d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0000000000000000"),
+		Data:              common.MustHexToBytes("0x014d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0000000000000000"),
 	}
 
 	require.Equal(t, expected, cm)

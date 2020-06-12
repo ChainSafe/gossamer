@@ -32,24 +32,36 @@ func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
 	return s.finalized
 }
 
+var (
+	// TODO: determine correct prefixes
+	voteType         byte = 0
+	finalizationType byte = 1
+)
+
 // DecodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
-func (s *Service) DecodeMessage(msg *ConsensusMessage) (FinalityMessage, error) {
-	m, err := scale.Decode(msg.Data, &VoteMessage{Message: new(SignedMessage)})
-	if err != nil {
-		// try FinalizatioNmessage
+func (s *Service) DecodeMessage(msg *ConsensusMessage) (m FinalityMessage, err error) {
+	var mi interface{}
+
+	switch msg.Data[0] {
+	case voteType:
+		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
+		m = mi.(*VoteMessage)
+	case finalizationType:
 		// TODO: scale should be able to handle nil pointers
-		m, err = scale.Decode(msg.Data, &FinalizationMessage{
+		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{
 			Vote: new(Vote),
 			//Justification: []*Justification{},
 		})
-		if err != nil {
-			return nil, err
-		}
-
-		return m.(*FinalizationMessage), nil
+		m = mi.(*FinalizationMessage)
+	default:
+		return nil, ErrInvalidMessageType
 	}
 
-	return m.(*VoteMessage), nil
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 // FullVote represents a vote with additional information about the state
@@ -87,7 +99,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 
 	return &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              enc,
+		Data:              append([]byte{voteType}, enc...),
 	}, nil
 }
 
@@ -123,7 +135,7 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 
 	return &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              enc,
+		Data:              append([]byte{finalizationType}, enc...),
 	}, nil
 }
 

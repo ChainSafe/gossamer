@@ -132,8 +132,10 @@ func (s *Service) initiate() error {
 	s.stopped = false
 
 	if s.state.round == 0 {
+		s.mapLock.Lock()
 		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
 		s.bestFinalCandidate[0] = NewVoteFromHeader(s.head)
+		s.mapLock.Unlock()
 	}
 
 	s.state.round++
@@ -257,20 +259,24 @@ func (s *Service) playGrandpaRound() error {
 		s.receiveMessages(func() bool {
 			completable, err := s.isCompletable() //nolint
 			if err != nil {
-				log.Trace("[grandpa] failed to check if round is completable", "error", err)
+				return false
 			}
 
 			finalizable, err := s.isFinalizable(s.state.round)
 			if err != nil {
-				log.Trace("[grandpa] failed to check if round is finalizable", "error", err)
-			}
-
-			// this shouldn't happen as long as playGrandpaRound is called through initiate
-			if s.bestFinalCandidate[s.state.round-1] == nil {
 				return false
 			}
 
-			if completable && finalizable && uint64(s.head.Number.Int64()) >= s.bestFinalCandidate[s.state.round-1].number {
+			// this shouldn't happen as long as playGrandpaRound is called through initiate
+			s.mapLock.Lock()
+			prevBfc := s.bestFinalCandidate[s.state.round-1]
+			s.mapLock.Unlock()
+
+			if prevBfc == nil {
+				return false
+			}
+
+			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
 
@@ -371,7 +377,10 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 			return false, err
 		}
 	} else {
+		s.mapLock.Lock()
 		v, has := s.preVotedBlock[round]
+		s.mapLock.Unlock()
+
 		if !has {
 			return false, ErrNoPreVotedBlock
 		}
@@ -389,8 +398,10 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 	}
 
 	s.mapLock.Lock()
-	defer s.mapLock.Unlock()
-	if bfc.number <= pvb.number && (s.state.round == 0 || s.bestFinalCandidate[s.state.round-1].number <= bfc.number) && pc >= s.state.threshold() {
+	prevBfc := s.bestFinalCandidate[s.state.round-1]
+	s.mapLock.Unlock()
+
+	if bfc.number <= pvb.number && (s.state.round == 0 || prevBfc.number <= bfc.number) && pc >= s.state.threshold() {
 		return true, nil
 	}
 
@@ -409,10 +420,13 @@ func (s *Service) finalize() error {
 	if err != nil {
 		return err
 	}
+	s.mapLock.Lock()
 	s.preVotedBlock[s.state.round] = &pv
 
 	// set best final candidate
 	s.bestFinalCandidate[s.state.round] = bfc
+	s.mapLock.Unlock()
+
 	s.head, err = s.blockState.GetHeader(bfc.hash)
 	if err != nil {
 		return err
