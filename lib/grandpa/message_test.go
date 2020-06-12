@@ -1,12 +1,14 @@
 package grandpa
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +48,7 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 
 	cm := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x014d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0100000000000000"),
+		Data:              common.MustHexToBytes("0x014d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a010000000000000000"),
 	}
 
 	msg, err := gs.DecodeMessage(cm)
@@ -113,8 +115,21 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
+	gs.justification[77] = []*Justification{
+		{
+			Vote: &Vote{
+				hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+				number: 999,
+			},
+			Signature:   [64]byte{1, 2, 3, 4},
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+
 	fm, err := gs.newFinalizationMessage(gs.head, 77)
 	require.NoError(t, err)
+
+	t.Log(fm.Justification[0])
 
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
@@ -125,4 +140,46 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	}
 
 	require.Equal(t, expected, cm)
+}
+
+func TestJustificationEncoding(t *testing.T) {
+	just := &Justification{
+		Vote: &Vote{
+			hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+			number: 999,
+		},
+		Signature:   [64]byte{1, 2, 3, 4},
+		AuthorityID: [32]byte{5, 6, 7, 8},
+	}
+
+	enc, err := just.Encode()
+	require.NoError(t, err)
+
+	rw := &bytes.Buffer{}
+	rw.Write(enc)
+	dec, err := new(Justification).Decode(rw)
+	require.NoError(t, err)
+	require.Equal(t, just, dec)
+}
+
+func TestJustificationArrayEncoding(t *testing.T) {
+	just := []*Justification{
+		{
+			Vote: &Vote{
+				hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+				number: 999,
+			},
+			Signature:   [64]byte{1, 2, 3, 4},
+			AuthorityID: [32]byte{5, 6, 7, 8},
+		},
+	}
+
+	enc, err := scale.Encode(just)
+	require.NoError(t, err)
+
+	t.Log(enc)
+
+	// dec, err := scale.Decode(enc, new(Justification))
+	// require.NoError(t, err)
+	// require.Equal(t, just, dec.(*Justification))
 }

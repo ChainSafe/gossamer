@@ -1,6 +1,7 @@
 package grandpa
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -104,11 +105,22 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 }
 
 // Justification represents a justification for a finalized block
-//nolint:structcheck
 type Justification struct {
-	Vote      *Vote    //nolint:unused
-	Signature []byte   //nolint:unused
-	Pubkey    [32]byte //nolint:unused
+	Vote        *Vote
+	Signature   [64]byte
+	AuthorityID ed25519.PublicKeyBytes
+}
+
+// Encode returns the SCALE encoded Justification
+func (j *Justification) Encode() ([]byte, error) {
+	rw := &bytes.Buffer{}
+	se := &scale.Encoder{Writer: rw}
+	_, err := se.Encode(j)
+	if err != nil {
+		return nil, err
+	}
+
+	return rw.Bytes(), nil
 }
 
 // Decode returns the SCALE decoded Justification
@@ -119,11 +131,10 @@ func (j *Justification) Decode(r io.Reader) (*Justification, error) {
 }
 
 // FinalizationMessage represents a network finalization message
-//nolint:structcheck
 type FinalizationMessage struct {
-	Round uint64
-	Vote  *Vote
-	//Justification []*Justification //nolint:unused
+	Round         uint64
+	Vote          *Vote
+	Justification []*Justification
 }
 
 // ToConsensusMessage converts the FinalizationMessage into a network-level consensus message
@@ -139,10 +150,10 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) { //nolint
+func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) {
 	return &FinalizationMessage{
-		Round: round,
-		Vote:  NewVoteFromHeader(header),
-		// TODO: add justification
+		Round:         round,
+		Vote:          NewVoteFromHeader(header),
+		Justification: s.justification[round],
 	}, nil
 }

@@ -180,6 +180,11 @@ func (v *Vote) Encode() ([]byte, error) {
 
 // Decode returns the SCALE decoded Vote
 func (v *Vote) Decode(r io.Reader) (*Vote, error) {
+	// TODO: scale should handle nil pointers that are typed
+	if v == nil {
+		v = new(Vote)
+	}
+
 	var err error
 	v.hash, err = common.ReadHash(r)
 	if err != nil {
