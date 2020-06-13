@@ -193,3 +193,35 @@ func TestCreateBABEService(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
+
+func TestCreateGrandpaService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	// TODO: improve dot tests #687
+	cfg.Core.Authority = true
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.Nil(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.Nil(t, err)
+
+	ks := keystore.NewKeystore()
+	kr, err := keystore.NewEd25519Keyring()
+	require.Nil(t, err)
+	ks.Insert(kr.Alice)
+
+	rt, err := createRuntime(stateSrvc, ks)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(rt, stateSrvc, ks)
+	require.NoError(t, err)
+	require.NotNil(t, gs)
+}
