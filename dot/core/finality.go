@@ -15,7 +15,7 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 	}
 
 	// TODO: safety
-	log.Debug("[core] sending VoteMessage to network", "msg", msg)
+	log.Debug("[core] sending VoteMessage to FinalityGadget", "msg", msg)
 	in <- fm
 	return nil
 }
@@ -31,7 +31,7 @@ func (s *Service) sendVoteMessages() {
 			continue
 		}
 
-		log.Debug("[core] sending VoteMessage to grandpa", "msg", msg)
+		log.Debug("[core] sending VoteMessage to network", "msg", msg)
 		s.msgSend <- msg
 	}
 }

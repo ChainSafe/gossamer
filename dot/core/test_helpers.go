@@ -19,6 +19,7 @@ package core
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -34,6 +35,9 @@ import (
 )
 
 var maxRetries = 5
+
+// testMessageTimeout is the wait time for messages to be exchanged
+var testMessageTimeout = time.Second
 
 // testGenesisHeader is a test block header
 var testGenesisHeader = &types.Header{
@@ -90,6 +94,48 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 // SetRuntime mocks setting runtime
 func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
+}
+
+// mockFinalityGadget implements the FinalityGadget interface
+type mockFinalityGadget struct {
+	in        chan FinalityMessage
+	out       chan FinalityMessage
+	finalized chan FinalityMessage
+}
+
+func (fg *mockFinalityGadget) Start() error {
+	return nil
+}
+
+func (fg *mockFinalityGadget) Stop() error {
+	return nil
+}
+
+func (fg *mockFinalityGadget) GetVoteOutChannel() <-chan FinalityMessage {
+	return fg.out
+}
+
+func (fg *mockFinalityGadget) GetVoteInChannel() chan<- FinalityMessage {
+	return fg.in
+}
+
+func (fg *mockFinalityGadget) GetFinalizedChannel() <-chan FinalityMessage {
+	return fg.finalized
+}
+
+func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error) {
+	return &mockFinalityMessage{}, nil
+}
+
+var testConsensusMessage = &network.ConsensusMessage{
+	ConsensusEngineID: types.GrandpaEngineID,
+	Data:              []byte("nootwashere"),
+}
+
+type mockFinalityMessage struct{}
+
+func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	return testConsensusMessage, nil
 }
 
 // NewTestService creates a new test core service
