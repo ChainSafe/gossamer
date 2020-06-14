@@ -148,6 +148,7 @@ func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, 
 	return testConsensusMessage, nil
 }
 
+// GetFinalizedHash returns testFinalizedHash
 func (fm *mockFinalityMessage) GetFinalizedHash() (common.Hash, error) {
 	return testFinalizedHash, nil
 }

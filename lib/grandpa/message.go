@@ -103,6 +103,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
+// GetFinalizedHash returns ErrNotFinalizationMessage
 func (v *VoteMessage) GetFinalizedHash() (common.Hash, error) {
 	return common.Hash{}, ErrNotFinalizationMessage
 }
@@ -143,6 +144,7 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
+// GetFinalizedHash returns the hash of the block that's being finalized
 func (f *FinalizationMessage) GetFinalizedHash() (common.Hash, error) {
 	return f.Vote.hash, nil
 }
