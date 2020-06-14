@@ -44,7 +44,7 @@ func (s *Service) sendFinalizationMessages() {
 		// update state.finalizedHead
 		hash, err := v.GetFinalizedHash()
 		if err == nil {
-			err := s.blockState.SetFinalizedHash(hash)
+			err = s.blockState.SetFinalizedHash(hash)
 			if err != nil {
 				log.Error("[core] could not set finalized block hash", "hash", hash, "error", err)
 			}
