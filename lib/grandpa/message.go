@@ -1,7 +1,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -48,11 +47,7 @@ func (s *Service) DecodeMessage(msg *ConsensusMessage) (m FinalityMessage, err e
 		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
 		m = mi.(*VoteMessage)
 	case finalizationType:
-		// TODO: scale should be able to handle nil pointers
-		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{
-			Vote: new(Vote),
-			//Justification: []*Justification{},
-		})
+		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{})
 		m = mi.(*FinalizationMessage)
 	default:
 		return nil, ErrInvalidMessageType
@@ -113,14 +108,14 @@ type Justification struct {
 
 // Encode returns the SCALE encoded Justification
 func (j *Justification) Encode() ([]byte, error) {
-	rw := &bytes.Buffer{}
-	se := &scale.Encoder{Writer: rw}
-	_, err := se.Encode(j)
+	enc, err := j.Vote.Encode()
 	if err != nil {
 		return nil, err
 	}
 
-	return rw.Bytes(), nil
+	enc = append(enc, j.Signature[:]...)
+	enc = append(enc, j.AuthorityID[:]...)
+	return enc, nil
 }
 
 // Decode returns the SCALE decoded Justification

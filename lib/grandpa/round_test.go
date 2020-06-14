@@ -169,6 +169,10 @@ func cleanup(gs *Service, in, out chan FinalityMessage, done *bool) { //nolint
 }
 
 func TestPlayGrandpaRound_BaseCase(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 	kr, err := keystore.NewEd25519Keyring()
@@ -241,6 +245,10 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 }
 
 func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 
@@ -321,6 +329,10 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 }
 
 func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	// this asserts that all validators finalize the same block even if 1/3 of voters equivocate
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -413,6 +425,10 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 }
 
 func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	// this asserts that all validators finalize the same block in successive rounds
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)

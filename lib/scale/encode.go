@@ -32,6 +32,26 @@ import (
 // Encoder is a wrapping around io.Writer
 type Encoder struct {
 	Writer io.Writer
+	caller string
+}
+
+// Encode returns the SCALE encoding of the given interface
+func Encode(in interface{}) ([]byte, error) {
+	pc, _, _, ok := runtime.Caller(1)
+	details := runtime.FuncForPC(pc)
+	var caller string
+	if ok && details != nil {
+		caller = details.Name()
+	}
+
+	buffer := &bytes.Buffer{}
+	se := Encoder{
+		Writer: buffer,
+		caller: caller,
+	}
+	_, err := se.Encode(in)
+	output := buffer.Bytes()
+	return output, err
 }
 
 // EncodeCustom checks if interface has method Encode, if so use that, otherwise use regular scale encoding
@@ -50,66 +70,8 @@ func EncodeCustom(in interface{}) ([]byte, error) {
 	return Encode(in)
 }
 
-// EncodeCustom checks if interface has method Encode, if so use that, otherwise use regular scale encoding
-func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
-	someType := reflect.TypeOf(in)
-	// TODO: if not a pointer, check if type pointer has Encode method
-	_, ok := someType.MethodByName("Encode")
-	if ok {
-		res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})
-		val := res[0].Interface()
-		err := res[1].Interface()
-		if err != nil {
-			return 0, err.(error)
-		}
-		return se.Writer.Write(val.([]byte))
-	}
-	return se.Encode(in)
-}
-
-// Encode to byte array
-func Encode(in interface{}) ([]byte, error) {
-	buffer := bytes.Buffer{}
-	se := Encoder{&buffer}
-	_, err := se.Encode(in)
-	output := buffer.Bytes()
-	return output, err
-}
-
-func (se *Encoder) tryEncodeCustom(caller string, in interface{}) (int, error) {
-	if strings.Contains(caller, "Encode") && !strings.Contains(caller, "scale") || strings.Contains(caller, "scale.Encode") {
-		return 0, fmt.Errorf("cannot call EncodeCustom")
-	}
-
-	// allow the call to DecodeCustom to proceed if the call comes from inside scale, and isn't a test
-	if !strings.Contains(caller, "EncodeCustom") {
-		if out, err := se.EncodeCustom(in); err == nil {
-			return out, nil
-		}
-	}
-
-	return 0, fmt.Errorf("cannot call EncodeCustom")
-}
-
 // Encode is the top-level function which performs SCALE encoding of b which may be of type []byte, int16, int32, int64, or bool
 func (se *Encoder) Encode(b interface{}) (n int, err error) {
-	// check if type has a custom Decode function defined
-	// but first, make sure that the function that called this function wasn't the type's Decode function,
-	// or else we will end up in an infinite recursive loop
-	pc, _, _, ok := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-	var caller string
-	if ok && details != nil {
-		caller = details.Name()
-	}
-
-	fmt.Println(caller)
-
-	n, err = se.tryEncodeCustom(caller, b)
-	if err == nil {
-		return n, nil
-	}
-
 	switch v := b.(type) {
 	case []byte:
 		n, err = se.encodeByteArray(v)
@@ -126,6 +88,22 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case [64]byte:
 		n, err = se.Writer.Write(v[:])
 	case interface{}:
+		// check if type has a custom Encode function defined
+		// but first, make sure that the function that called this function wasn't the type's Encode function,
+		// or else we will end up in an infinite recursive loop
+		if se.caller == "" {
+			pc, _, _, ok := runtime.Caller(1)
+			details := runtime.FuncForPC(pc)
+			if ok && details != nil {
+				se.caller = details.Name()
+			}
+		}
+
+		n, err = se.tryEncodeCustom(se.caller, b)
+		if err == nil {
+			return n, nil
+		}
+
 		t := reflect.TypeOf(b).Kind()
 		switch t {
 		case reflect.Ptr:
@@ -135,16 +113,46 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		case reflect.Slice, reflect.Array:
 			n, err = se.encodeArray(v)
 		default:
-			// n, err = se.EncodeCustom(b)
-			// if err != nil {
 			return 0, fmt.Errorf("unsupported type: %T", b)
-			//}
 		}
 	default:
 		return 0, fmt.Errorf("unsupported type: %T", b)
 	}
 
 	return n, err
+}
+
+func (se *Encoder) tryEncodeCustom(caller string, in interface{}) (int, error) {
+	// scale.Encoder.Encode was called by a custom Encode function, or scale.Encode, so don't call EncodeCustom again
+	if strings.Contains(caller, "Encode") && !strings.Contains(caller, "scale") || strings.Contains(caller, "scale.Encode") || strings.Contains(caller, "Test") {
+		return 0, fmt.Errorf("cannot call EncodeCustom")
+	}
+
+	// allow the call to EncodeCustom to proceed if the call comes from inside scale, and isn't a test
+	if !strings.Contains(caller, "EncodeCustom") || !strings.Contains(caller, "test") {
+		if out, err := se.EncodeCustom(in); err == nil {
+			return out, nil
+		}
+	}
+
+	return 0, fmt.Errorf("cannot call EncodeCustom")
+}
+
+// EncodeCustom checks if interface has method Encode, if so use that, otherwise use regular scale encoding
+func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
+	someType := reflect.TypeOf(in)
+	// TODO: if not a pointer, check if type pointer has Encode method
+	_, ok := someType.MethodByName("Encode")
+	if ok {
+		res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})
+		val := res[0].Interface()
+		err := res[1].Interface()
+		if err != nil {
+			return 0, err.(error)
+		}
+		return se.Writer.Write(val.([]byte))
+	}
+	return 0, fmt.Errorf("cannot call EncodeCustom")
 }
 
 // encodeByteArray performs the following:
@@ -295,8 +303,6 @@ func (se *Encoder) encodeBool(l bool) (bytesEncoded int, err error) {
 // encodeTuple reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
 // encoded as their respective types
 func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
-	fmt.Println(t)
-
 	var v reflect.Value
 	switch reflect.ValueOf(t).Kind() {
 	case reflect.Ptr:
@@ -308,13 +314,10 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	values := make([]interface{}, 0)
 
 	for i := 0; i < v.NumField(); i++ {
-		fmt.Println(v.Field(i))
 		if v.Field(i).CanInterface() {
 			values = append(values, v.Field(i).Interface())
 		}
 	}
-
-	fmt.Println(values)
 
 	for _, item := range values {
 		n, err := se.Encode(item)
@@ -399,11 +402,17 @@ func (se *Encoder) encodeArray(t interface{}) (bytesEncoded int, err error) {
 		}
 	default:
 		s := reflect.ValueOf(t)
-		n, err = se.encodeInteger(uint(s.Len()))
-		bytesEncoded += n
+		t := reflect.TypeOf(arr).Kind()
+		switch t {
+		case reflect.Slice:
+			n, err = se.encodeInteger(uint(s.Len()))
+			bytesEncoded += n
+		case reflect.Array:
+			// don't encode length
+		}
 
 		for i := 0; i < s.Len(); i++ {
-			n, err = se.Encode(s.Index(i))
+			n, err = se.EncodeCustom(s.Index(i).Interface())
 			bytesEncoded += n
 		}
 	}
