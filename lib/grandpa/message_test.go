@@ -141,9 +141,7 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 		},
 	}
 
-	fm, err := gs.newFinalizationMessage(gs.head, 77)
-	require.NoError(t, err)
-
+	fm := gs.newFinalizationMessage(gs.head, 77)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 

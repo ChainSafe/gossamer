@@ -184,11 +184,7 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		msg, err := s.newFinalizationMessage(s.head, s.state.round-1)
-		if err != nil {
-			return err
-		}
-
+		msg := s.newFinalizationMessage(s.head, s.state.round-1)
 		s.finalized <- msg
 	}
 
@@ -321,10 +317,7 @@ func (s *Service) attemptToFinalize() error {
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
 		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
-		msg, err := s.newFinalizationMessage(s.head, s.state.round)
-		if err != nil {
-			return err
-		}
+		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety
 		s.finalized <- msg
