@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -142,7 +141,6 @@ func (s *Service) Start() error {
 	if !s.noMDNS {
 		s.mdns.start()
 	}
-fmt.Printf("GENESIS HASH: %v\n", s.blockState.GenesisHash())
 	return nil
 }
 
