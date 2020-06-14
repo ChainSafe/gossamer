@@ -23,8 +23,6 @@ import (
 	"io"
 	"math/big"
 	"reflect"
-	"runtime"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -32,22 +30,13 @@ import (
 // Encoder is a wrapping around io.Writer
 type Encoder struct {
 	Writer io.Writer
-	caller string
 }
 
 // Encode returns the SCALE encoding of the given interface
 func Encode(in interface{}) ([]byte, error) {
-	pc, _, _, ok := runtime.Caller(1)
-	details := runtime.FuncForPC(pc)
-	var caller string
-	if ok && details != nil {
-		caller = details.Name()
-	}
-
 	buffer := &bytes.Buffer{}
 	se := Encoder{
 		Writer: buffer,
-		caller: caller,
 	}
 	_, err := se.Encode(in)
 	output := buffer.Bytes()
@@ -88,32 +77,10 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	case [64]byte:
 		n, err = se.Writer.Write(v[:])
 	case interface{}:
-		// check if type has a custom Encode function defined
-		// but first, make sure that the function that called this function wasn't the type's Encode function,
-		// or else we will end up in an infinite recursive loop
-		if se.caller == "" {
-			pc, _, _, ok := runtime.Caller(1)
-			details := runtime.FuncForPC(pc)
-			if ok && details != nil {
-				se.caller = details.Name()
-			}
-		}
-
-		// n, err = se.tryEncodeCustom(se.caller, b)
-		// if err == nil {
-		// 	return n, nil
-		// }
-
 		t := reflect.TypeOf(b).Kind()
 		switch t {
 		case reflect.Ptr:
-			v = reflect.ValueOf(v).Elem()
-			switch v {
-			case reflect.Slice, reflect.Array:
-				n, err = se.encodeArray(v)
-			default:
-				n, err = se.encodeTuple(v)
-			}
+			n, err = se.encodeTuple(v)
 		case reflect.Struct:
 			n, err = se.encodeTuple(v)
 		case reflect.Slice, reflect.Array:
@@ -128,24 +95,7 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 	return n, err
 }
 
-func (se *Encoder) tryEncodeCustom(caller string, in interface{}) (int, error) {
-	fmt.Println(se.caller)
-	// scale.Encoder.Encode was called by a custom Encode function, or scale.Encode, so don't call EncodeCustom again
-	if strings.Contains(caller, "Encode") && !strings.Contains(caller, "scale") || strings.Contains(caller, "scale.Encode") || strings.Contains(caller, "Test") || strings.Contains(caller, "testType") {
-		return 0, fmt.Errorf("cannot call EncodeCustom")
-	}
-
-	// allow the call to EncodeCustom to proceed if the call comes from inside scale, and isn't a test
-	if !strings.Contains(caller, "EncodeCustom") || !strings.Contains(caller, "test") || !strings.Contains(caller, "Hash") {
-		if out, err := se.EncodeCustom(in); err == nil {
-			return out, nil
-		}
-	}
-
-	return 0, fmt.Errorf("cannot call EncodeCustom")
-}
-
-// EncodeCustom checks if interface has method Encode, if so use that, otherwise use regular scale encoding
+// EncodeCustom checks if interface has method Encode, if so use that, otherwise return error
 func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	someType := reflect.TypeOf(in)
 	// TODO: if not a pointer, check if type pointer has Encode method
@@ -162,7 +112,8 @@ func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	return 0, fmt.Errorf("cannot call EncodeCustom")
 }
 
-func (se *Encoder) EncodeCustomOrEncode(in interface{}) (int, error) {
+// encodeCustomOrEncode tries to use EncodeCustom, if that fails, it reverts to Encode
+func (se *Encoder) encodeCustomOrEncode(in interface{}) (int, error) {
 	n, err := se.EncodeCustom(in)
 	if err == nil {
 		return n, err
@@ -420,21 +371,21 @@ func (se *Encoder) encodeArray(t interface{}) (bytesEncoded int, err error) {
 			n, err = se.Encode(elem)
 			bytesEncoded += n
 		}
-		// default:
-		// 	s := reflect.ValueOf(t)
-		// 	t := reflect.TypeOf(arr).Kind()
-		// 	switch t {
-		// 	case reflect.Slice:
-		// 		n, err = se.encodeInteger(uint(s.Len()))
-		// 		bytesEncoded += n
-		// 	case reflect.Array:
-		// 		// don't encode length
-		// 	}
+	default:
+		s := reflect.ValueOf(t)
+		t := reflect.TypeOf(arr).Kind()
+		switch t {
+		case reflect.Slice:
+			n, err = se.encodeInteger(uint(s.Len()))
+			bytesEncoded += n
+		case reflect.Array:
+			// don't encode length
+		}
 
-		// 	for i := 0; i < s.Len(); i++ {
-		// 		n, err = se.EncodeCustom(s.Index(i).Interface())
-		// 		bytesEncoded += n
-		// 	}
+		for i := 0; i < s.Len(); i++ {
+			n, err = se.encodeCustomOrEncode(s.Index(i).Interface())
+			bytesEncoded += n
+		}
 	}
 
 	return bytesEncoded, err
