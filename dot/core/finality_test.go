@@ -78,4 +78,8 @@ func TestSendFinalizationMessages(t *testing.T) {
 	case <-time.After(testMessageTimeout):
 		t.Fatal("did not receive finality message")
 	}
+
+	h, err := s.blockState.GetFinalizedHash()
+	require.NoError(t, err)
+	require.Equal(t, testFinalizedHash, h)
 }

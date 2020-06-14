@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -138,11 +139,17 @@ var testConsensusMessage = &network.ConsensusMessage{
 	Data:              []byte("nootwashere"),
 }
 
+var testFinalizedHash = common.NewHash([]byte("finalized"))
+
 type mockFinalityMessage struct{}
 
 // ToConsensusMessage returns a testConsensusMessage
 func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
 	return testConsensusMessage, nil
+}
+
+func (fm *mockFinalityMessage) GetFinalizedHash() (common.Hash, error) {
+	return testFinalizedHash, nil
 }
 
 // NewTestService creates a new test core service
