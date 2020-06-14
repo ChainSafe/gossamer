@@ -287,13 +287,9 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 	}
 
 	for _, item := range values {
-		n, err := se.EncodeCustom(item)
+		n, err := se.encodeCustomOrEncode(item)
 		if err != nil {
-			n, err = se.Encode(item)
-			if err != nil {
-				return bytesEncoded, err
-			}
-			//return bytesEncoded, err
+			return bytesEncoded, err
 		}
 
 		bytesEncoded += n
