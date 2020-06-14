@@ -141,6 +141,7 @@ func (s *Service) Start() error {
 	if !s.noMDNS {
 		s.mdns.start()
 	}
+
 	return nil
 }
 
