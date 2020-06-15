@@ -57,7 +57,15 @@ func (s *Service) sendFinalizationMessages() {
 	out := s.finalityGadget.GetFinalizedChannel()
 	for v := range out {
 		// TODO: safety
-		// TODO: update state.finalizedHead
+		// update state.finalizedHead
+		hash, err := v.GetFinalizedHash()
+		if err == nil {
+			err = s.blockState.SetFinalizedHash(hash)
+			if err != nil {
+				log.Error("[core] could not set finalized block hash", "hash", hash, "error", err)
+			}
+		}
+
 		log.Debug("[core] sending FinalityMessage to network", "msg", v)
 		log.Info("[core] finalized block!!!", "msg", v)
 		msg, err := v.ToConsensusMessage()
