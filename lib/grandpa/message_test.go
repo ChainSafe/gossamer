@@ -13,6 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var testVote = &Vote{
+	hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+	number: 999,
+}
+
+var testSignature = [64]byte{1, 2, 3, 4}
+var testAuthorityID = [32]byte{5, 6, 7, 8}
+
 func TestDecodeMessage_VoteMessage(t *testing.T) {
 	gs := &Service{}
 
@@ -67,11 +75,8 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 		},
 		Justification: []*Justification{
 			{
-				Vote: &Vote{
-					hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-					number: 999,
-				},
-				Signature:   [64]byte{1, 2, 3, 4},
+				Vote:        testVote,
+				Signature:   testSignature,
 				AuthorityID: gs.publicKeyBytes(),
 			},
 		},
@@ -132,11 +137,8 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 
 	gs.justification[77] = []*Justification{
 		{
-			Vote: &Vote{
-				hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-				number: 999,
-			},
-			Signature:   [64]byte{1, 2, 3, 4},
+			Vote:        testVote,
+			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
@@ -155,12 +157,9 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 
 func TestJustificationEncoding(t *testing.T) {
 	just := &Justification{
-		Vote: &Vote{
-			hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-			number: 999,
-		},
-		Signature:   [64]byte{1, 2, 3, 4},
-		AuthorityID: [32]byte{5, 6, 7, 8},
+		Vote:        testVote,
+		Signature:   testSignature,
+		AuthorityID: testAuthorityID,
 	}
 
 	enc, err := just.Encode()
@@ -176,12 +175,9 @@ func TestJustificationEncoding(t *testing.T) {
 func TestJustificationArrayEncoding(t *testing.T) {
 	just := []*Justification{
 		{
-			Vote: &Vote{
-				hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
-				number: 999,
-			},
-			Signature:   [64]byte{1, 2, 3, 4},
-			AuthorityID: [32]byte{5, 6, 7, 8},
+			Vote:        testVote,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
 		},
 	}
 
