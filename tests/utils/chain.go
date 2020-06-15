@@ -51,6 +51,20 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 	return HeaderResponseToHeader(t, header)
 }
 
+// GetFinalizedHead calls the endpoint chain_getFinalizedHead to get the latest finalized head
+func GetFinalizedHead(t *testing.T, node *Node) common.Hash {
+	respBody, err := PostRPC(ChainGetFinalizedHead, NewEndpoint(node.RPCPort), "[]")
+	require.NoError(t, err)
+
+	var hash modules.ChainHashResponse
+	err = DecodeRPC(t, respBody, &hash)
+	require.Nil(t, err)
+
+	h, err := common.HexToHash(hash.(string))
+	require.NoError(t, err)
+	return h
+}
+
 // GetBlock calls the endpoint chain_getBlock
 func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")

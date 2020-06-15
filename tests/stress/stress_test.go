@@ -64,6 +64,56 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	return hashes, err
 }
 
+// compareFinalizedHeads calls getFinalizedHead for each node in the array
+// it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
+func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		hash := utils.GetFinalizedHead(t, node)
+		log.Info("got finalized head from node", "hash", hash, "node", node.Key)
+		hashes[hash] = append(hashes[hash], node.Key)
+	}
+
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node finalized head hashes don't match")
+	}
+
+	return hashes, err
+}
+
+// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
+func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareChainHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
+}
+
+// compareFinalizedHeadsWithRetry calls compareFinalizedHeads, retrying up to maxRetries times if it errors.
+func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareFinalizedHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
+}
+
 func TestMain(m *testing.M) {
 	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
@@ -101,22 +151,6 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
 	return *exts
 }
 
-// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
-	var hashes map[common.Hash][]string
-	var err error
-
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
-}
-
 func TestStressSync(t *testing.T) {
 	nodes, err := utils.StartNodes(t, numNodes)
 	require.NoError(t, err)
@@ -133,6 +167,8 @@ func TestStressSync(t *testing.T) {
 		err = db.Write("blocks_"+node.Key, header.Number.String(), header)
 		require.NoError(t, err)
 	}
+
+	compareChainHeadsWithRetry(t, nodes)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
@@ -289,4 +325,17 @@ func TestStress_StorageChange(t *testing.T) {
 
 	require.Equal(t, 0, len(errs), errs)
 	compareChainHeadsWithRetry(t, nodes)
+}
+
+func TestStress_Grandpa(t *testing.T) {
+	nodes, err := utils.StartNodes(t, numNodes)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+
+	compareChainHeadsWithRetry(t, nodes)
+	compareFinalizedHeadsWithRetry(t, nodes)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
 }
