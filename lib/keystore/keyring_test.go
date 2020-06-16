@@ -72,5 +72,7 @@ func TestNewEd25519Keyring(t *testing.T) {
 		if key[:66] != privateKeys[i] {
 			t.Fatalf("Fail: got %s expected %s", key[:66], privateKeys[i])
 		}
+
+		t.Logf("%s", v.Field(i).Interface().(*ed25519.Keypair).Public().Hex())
 	}
 }

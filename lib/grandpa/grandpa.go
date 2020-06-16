@@ -79,6 +79,8 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilKeypair
 	}
 
+	log.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+
 	head, err := cfg.BlockState.GetFinalizedHeader()
 	if err != nil {
 		return nil, err
