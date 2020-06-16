@@ -33,7 +33,7 @@ import (
 
 //TODO: #799
 var (
-	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
+	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 	basePort = 7000
 
 	// BaseRPCPort is the starting RPC port for test nodes
@@ -99,6 +99,7 @@ func RestartGossamer(t *testing.T, node *Node) error {
 			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
+			"--ws-enabled", "false",
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
@@ -111,6 +112,7 @@ func RestartGossamer(t *testing.T, node *Node) error {
 			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
+			"--ws-enabled", "false",
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",

@@ -99,7 +99,8 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
 }
 
 // compareFinalizedHeadsWithRetry calls compareFinalizedHeads, retrying up to maxRetries times if it errors.
-func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+// it returns the finalized hash if it succeeds
+func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node) common.Hash {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -112,6 +113,12 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
 		time.Sleep(time.Second)
 	}
 	require.NoError(t, err, hashes)
+
+	for h := range hashes {
+		return h
+	}
+
+	return common.Hash{}
 }
 
 func TestMain(m *testing.M) {
@@ -328,13 +335,18 @@ func TestStress_StorageChange(t *testing.T) {
 }
 
 func TestStress_Grandpa(t *testing.T) {
+	numNodes = 9 // since genesis has 9 authorities, so we need to run 9 nodes
 	nodes, err := utils.StartNodes(t, numNodes)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second * 10)
 
 	compareChainHeadsWithRetry(t, nodes)
-	compareFinalizedHeadsWithRetry(t, nodes)
+	prev := compareFinalizedHeadsWithRetry(t, nodes)
+
+	time.Sleep(time.Second * 30)
+	curr := compareFinalizedHeadsWithRetry(t, nodes)
+	require.NotEqual(t, prev, curr)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)

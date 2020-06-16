@@ -62,6 +62,8 @@ type ChainBlockResponse struct {
 // ChainHashResponse interface to handle response
 type ChainHashResponse interface{}
 
+type ChainHashHexResponse string
+
 // ChainModule is an RPC module providing access to storage API points.
 type ChainModule struct {
 	blockAPI BlockAPI
@@ -127,13 +129,13 @@ func (cm *ChainModule) GetHead(r *http.Request, req *ChainBlockNumberRequest, re
 }
 
 // GetFinalizedHead returns the most recently finalized block hash
-func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) error {
+func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashHexResponse) error {
 	h, err := cm.blockAPI.GetFinalizedHash()
 	if err != nil {
 		return err
 	}
 
-	*res = common.BytesToHex(h[:])
+	*res = ChainHashHexResponse(common.BytesToHex(h[:]))
 	return nil
 }
 
