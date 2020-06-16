@@ -17,6 +17,7 @@ package extrinsic
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -92,4 +93,31 @@ func (ue *UncheckedExtrinsic) encodeBalance() ([]byte, error) {
 		return nil, fmt.Errorf("could not encode pallet %v", ue.Pallet)
 	}
 	return enc, nil
+}
+
+
+func (ue *UncheckedExtrinsic)Sign(key *sr25519.PrivateKey) {
+	msg, err := ue.Encode()
+	fmt.Printf("tran enc %x\n", msg)
+
+	sig, err := key.Sign(msg)
+	if err != nil {
+		//return nil, err
+	}
+
+	sigb := [64]byte{}
+	copy(sigb[:], sig)
+	fmt.Printf("Sigb %v\n", sigb)
+	ue.Signature = sigb
+}
+
+type SignedPayload struct {
+	Call interface{}
+	Extra interface{}
+}
+func from_raw(call interface{}, extra interface{}) SignedPayload {
+	return SignedPayload{
+		Call:  call,
+		Extra: extra,
+	}
 }

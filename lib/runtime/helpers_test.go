@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"reflect"
@@ -488,6 +489,7 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	//tx, err := ext.Encode()
 	//require.NoError(t, err)
 
+
 	ux := extrinsic.UncheckedExtrinsic{
 		Function: extrinsic.Balances,
 		Pallet:   extrinsic.PB_Transfer,
@@ -496,7 +498,14 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	encUx, err := ux.Encode()
 	require.NoError(t, err)
 
-	res, err := rt.ApplyExtrinsic(encUx)
+	ux.Sign(kr.Alice.Private().(*sr25519.PrivateKey))
+	fmt.Printf("enc ux %x\n", encUx)
+	fmt.Printf("ux sig %x\n", ux.Signature)
+
+	tranSigned := "0x2d0284ff78b6dd81f9f55c08fdedb28e5e78e44a1ce6568164d4bd43fa4630a7a3885927011ab6cbf4ad0525f3cb51eb1b7239dfd0a20b602c80cb31fc1582142a9c8f2b209301860423725101aa78d2a69707c295c2ada07e5ef2397bbf7b29238eaf568c0004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
+	tranB := common.MustHexToBytes(tranSigned)
+fmt.Printf("tran len %v\n", len(tranB))
+	res, err := rt.ApplyExtrinsic(tranB)
 	require.NoError(t, err)
 
 	// TODO ed, With old runtime we were getting 0x01020001 Apply error, Payment
