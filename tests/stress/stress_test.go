@@ -334,8 +334,8 @@ func TestStress_StorageChange(t *testing.T) {
 	compareChainHeadsWithRetry(t, nodes)
 }
 
-func TestStress_Grandpa(t *testing.T) {
-	numNodes = 1 // since genesis has 9 authorities, so we need to run 9 nodes
+func TestStress_Grandpa_OneAuthority(t *testing.T) {
+	numNodes = 1
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth)
 	require.NoError(t, err)
 
@@ -344,7 +344,25 @@ func TestStress_Grandpa(t *testing.T) {
 	compareChainHeadsWithRetry(t, nodes)
 	prev := compareFinalizedHeadsWithRetry(t, nodes)
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 10)
+	curr := compareFinalizedHeadsWithRetry(t, nodes)
+	require.NotEqual(t, prev, curr)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
+
+func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
+	numNodes = 3
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+
+	compareChainHeadsWithRetry(t, nodes)
+	prev := compareFinalizedHeadsWithRetry(t, nodes)
+
+	time.Sleep(time.Second * 10)
 	curr := compareFinalizedHeadsWithRetry(t, nodes)
 	require.NotEqual(t, prev, curr)
 

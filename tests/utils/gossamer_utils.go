@@ -42,8 +42,9 @@ var (
 	currentDir, _ = os.Getwd()
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
-	GenesisOneAuth string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis_oneauth.json")
-	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	GenesisOneAuth    string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis_oneauth.json")
+	GenesisThreeAuths string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis_threeauths.json")
+	GenesisDefault    string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 )
 
 // Node represents a gossamer process
