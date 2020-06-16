@@ -159,7 +159,7 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
 }
 
 func TestStressSync(t *testing.T) {
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -185,13 +185,13 @@ func TestRestartNode(t *testing.T) {
 	nodes, err := utils.InitNodes(numNodes)
 	require.NoError(t, err)
 
-	err = utils.RestartNodes(t, nodes)
+	err = utils.StartNodes(t, nodes)
 	require.NoError(t, err)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 
-	err = utils.RestartNodes(t, nodes)
+	err = utils.StartNodes(t, nodes)
 	require.NoError(t, err)
 
 	errList = utils.TearDown(t, nodes)
@@ -278,7 +278,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 func TestStress_IncludeData(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
@@ -296,7 +296,7 @@ func TestStress_IncludeData(t *testing.T) {
 func TestStress_StorageChange(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -335,8 +335,8 @@ func TestStress_StorageChange(t *testing.T) {
 }
 
 func TestStress_Grandpa(t *testing.T) {
-	numNodes = 9 // since genesis has 9 authorities, so we need to run 9 nodes
-	nodes, err := utils.StartNodes(t, numNodes)
+	numNodes = 1 // since genesis has 9 authorities, so we need to run 9 nodes
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second * 10)
