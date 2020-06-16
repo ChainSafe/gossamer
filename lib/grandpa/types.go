@@ -91,6 +91,7 @@ func NewVotersFromAuthorityData(ad []*types.GrandpaAuthorityData) []*Voter {
 	return v
 }
 
+// Voters represents []*Voter
 type Voters []*Voter
 
 // String returns a formatted Voters string

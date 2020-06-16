@@ -42,9 +42,12 @@ var (
 	currentDir, _ = os.Getwd()
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
-	GenesisOneAuth    string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis_oneauth.json")
-	GenesisThreeAuths string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis_threeauths.json")
-	GenesisDefault    string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	// GenesisOneAuth is the genesis file that has 1 authority
+	GenesisOneAuth string = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
+	// GenesisThreeAuths is the genesis file that has 3 authorities
+	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	// GenesisDefault is the default gssmr genesis file
+	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 )
 
 // Node represents a gossamer process
