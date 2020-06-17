@@ -17,10 +17,8 @@ package extrinsic
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"math/big"
-
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"math/big"
 )
 
 // Call interface for method extrinsic is calling
@@ -50,32 +48,52 @@ const (
 	PB_Transfer_keep_alive
 )
 
-// UncheckedExtrinsic generic implementation of pre-verification extrinsic
-type UncheckedExtrinsic struct {
-	Signature interface{} // optional type Address, Signature, Extra
-	Function  Call
+type Function struct {
+	Call  Call
 	Pallet    Pallet
 	CallData  interface{}
 }
+// UncheckedExtrinsic generic implementation of pre-verification extrinsic
+type UncheckedExtrinsic struct {
+	Signed []byte
+	Signature []byte
+	Extra []byte
+	Function Function
+}
+
+func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
+	enc := []byte{}
+	enc = append(enc, []byte{45, 2, 132, 255}...)
+	enc = append(enc, ux.Signed...)
+	enc = append(enc, []byte{1}...)   // TODO determine what this represents
+	enc = append(enc, ux.Signature...)
+	enc = append(enc, ux.Extra...)
+	fncEnc, err := ux.Function.Encode()
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, fncEnc...)
+	return enc, nil
+}
 
 // Encode scale encode the UncheckedExtrinsic
-func (ue *UncheckedExtrinsic) Encode() ([]byte, error) {
-	switch ue.Function {
+func (f *Function) Encode() ([]byte, error) {
+	switch f.Call {
 	case Balances:
 		// encode Balances type call
-		return ue.encodeBalance()
+		return f.encodeBalance()
 	}
 	return nil, nil
 }
 
-func (ue *UncheckedExtrinsic) encodeBalance() ([]byte, error) {
+func (f *Function) encodeBalance() ([]byte, error) {
 	enc := []byte{}
-	enc = append(enc, byte(ue.Function))
-	switch ue.Pallet {
+	enc = append(enc, byte(f.Call))
+	switch f.Pallet {
 	case PB_Transfer:
-		enc = append(enc, byte(ue.Pallet))
+		enc = append(enc, byte(f.Pallet))
 		enc = append(enc, byte(255)) // TODO not sure why this is used, research
-		t := ue.CallData.(Transfer)
+		t := f.CallData.(Transfer)
 		enc = append(enc, t.to[:]...)
 
 		amtEnc, err := scale.Encode(big.NewInt(int64(t.amount))) // TODO, research why amount needs bigInt encoding (not uint64)
@@ -83,41 +101,65 @@ func (ue *UncheckedExtrinsic) encodeBalance() ([]byte, error) {
 			return nil, err
 		}
 		enc = append(enc, amtEnc...)
-		enc = append([]byte{byte(4)}, enc...) // TODO not sure why this needs a 4 here, research
+		//enc = append([]byte{byte(4)}, enc...) // TODO not sure why this needs a 4 here, research
 
-		enc, err = scale.Encode(enc)
-		if err != nil {
-			return nil, err
-		}
+		//enc, err = scale.Encode(enc)
+		//if err != nil {
+		//	return nil, err
+		//}
 	default:
-		return nil, fmt.Errorf("could not encode pallet %v", ue.Pallet)
+		return nil, fmt.Errorf("could not encode pallet %v", f.Pallet)
 	}
 	return enc, nil
 }
 
 
-func (ue *UncheckedExtrinsic)Sign(key *sr25519.PrivateKey) {
-	msg, err := ue.Encode()
-	fmt.Printf("tran enc %x\n", msg)
-
-	sig, err := key.Sign(msg)
-	if err != nil {
-		//return nil, err
-	}
-
-	sigb := [64]byte{}
-	copy(sigb[:], sig)
-	fmt.Printf("Sigb %v\n", sigb)
-	ue.Signature = sigb
-}
+//func (ue *UncheckedExtrinsic)Sign(key *sr25519.PrivateKey) {
+	//msg, err := ue.Encode()
+	//fmt.Printf("tran enc %x\n", msg)
+	//
+	//sig, err := key.Sign(msg)
+	//if err != nil {
+	//	//return nil, err
+	//}
+	//
+	//sigb := [64]byte{}
+	//copy(sigb[:], sig)
+	//fmt.Printf("Sigb %v\n", sigb)
+	//ue.Signature = sigb
+//}
 
 type SignedPayload struct {
-	Call interface{}
+	Function Function
 	Extra interface{}
+	AdditionSigned interface{}
 }
-func from_raw(call interface{}, extra interface{}) SignedPayload {
+func FromRaw(fnc Function, extra interface{}, additional interface{}) SignedPayload {
 	return SignedPayload{
-		Call:  call,
+		Function:  fnc,
 		Extra: extra,
+		AdditionSigned: additional,
 	}
+}
+
+func (sp *SignedPayload) Encode() ([]byte, error) {
+	enc, err := sp.Function.Encode()
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, []byte{0}...)  // TODO, determine why this byte is added
+
+	exEnc, err := scale.Encode(sp.Extra)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, exEnc...)
+
+	addEnc, err := scale.Encode(sp.AdditionSigned)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, addEnc...)
+
+	return enc, nil
 }

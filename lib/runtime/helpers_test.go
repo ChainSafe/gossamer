@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"os"
 	"reflect"
@@ -489,23 +490,77 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	//tx, err := ext.Encode()
 	//require.NoError(t, err)
 
-
-	ux := extrinsic.UncheckedExtrinsic{
-		Function: extrinsic.Balances,
+	fnc := extrinsic.Function{
+		Call:     extrinsic.Balances,
 		Pallet:   extrinsic.PB_Transfer,
 		CallData: *transfer,
 	}
-	encUx, err := ux.Encode()
+	extra := struct {
+		Nonce                    *big.Int
+		ChargeTransactionPayment *big.Int
+	}{
+		big.NewInt(1),
+		big.NewInt(0),
+	}
+	additional := struct {
+		SpecVersion uint32
+		TransacionVersion uint32
+		GenesisHash common.Hash
+		GenesisHash2 common.Hash
+	}{252, 1, common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16"), common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")}
+
+	rawPayload := extrinsic.FromRaw(fnc, extra, additional)
+	rawEnc, err := rawPayload.Encode()
+	require.NoError(t, err)
+	fmt.Printf("RAW ENC %v\n", rawEnc)
+
+
+	//
+	//rawEncH := common.BytesToHex(rawEnc)
+	//fmt.Printf("sig hex %v\n", rawEncH)
+
+	key := kr.Alice.Private().(*sr25519.PrivateKey)
+	fmt.Printf("Alice Private %v\n", key.Hex())
+	sig, err := key.Sign(rawEnc)
 	require.NoError(t, err)
 
-	ux.Sign(kr.Alice.Private().(*sr25519.PrivateKey))
-	fmt.Printf("enc ux %x\n", encUx)
-	fmt.Printf("ux sig %x\n", ux.Signature)
+	//sigb := [64]byte{}
+	//copy(sigb[:], sig)
+	fmt.Printf("Sig %v\n", sig)
+	fmt.Printf("SigHEx %x\n", sig)
+	fmt.Printf("AlicePublic %v\n", kr.Alice.Public().Hex())
 
-	tranSigned := "0x2d0284ff78b6dd81f9f55c08fdedb28e5e78e44a1ce6568164d4bd43fa4630a7a3885927011ab6cbf4ad0525f3cb51eb1b7239dfd0a20b602c80cb31fc1582142a9c8f2b209301860423725101aa78d2a69707c295c2ada07e5ef2397bbf7b29238eaf568c0004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
-	tranB := common.MustHexToBytes(tranSigned)
-fmt.Printf("tran len %v\n", len(tranB))
-	res, err := rt.ApplyExtrinsic(tranB)
+	ex2, err := scale.Encode(extra)
+	require.NoError(t, err)
+	ex2 = append([]byte{0}, ex2...)  // todo determine what this represents
+
+	ux := extrinsic.UncheckedExtrinsic{
+		Function: fnc,
+		Signature: sig,
+		Signed: kr.Alice.Public().Encode(),
+		Extra: ex2,
+	}
+
+	fmt.Printf("UX %v\n", ux)
+
+
+	uxEnc, err := ux.Encode()
+	require.NoError(t, err)
+	fmt.Printf("uxEnc %v\n", uxEnc)
+	fmt.Printf("unExn %x\n", uxEnc)
+
+	//rustSigH := "0x0a64b45408ef4539fcbcc69b4deaa155ffa230fcd95b19962a8c7e9c8359ee17f0623299e32b6742965c09f6d46987caaa923112175370d4af08230fc4167682"
+	//rustSigH := "0x6e5f3231e4368dfc334fffecf4ad7c22058c97840bcd07eacad8b0ff92b48a41213ef5260514344159c273b3308392891275f686d8bef17e0fb454bc7486e186"
+	//rustSigH := "0xe2073ab4d8d984e4b1403ff39859da72a4c719a77d9e649b81ca1e2c2a064c38d360dbd6364f739fb7b8531fbde8fd1d78e171e43676de57c9656ff571f3b588"
+	//rustSig := common.MustHexToBytes(rustSigH)
+	//ok, err := kr.Alice.Public().Verify(rawEnc, rustSig)
+	//fmt.Printf("KEY VERIFY %v\n", ok)
+
+	//tranSigned := "0x2d0284ff78b6dd81f9f55c08fdedb28e5e78e44a1ce6568164d4bd43fa4630a7a3885927011ab6cbf4ad0525f3cb51eb1b7239dfd0a20b602c80cb31fc1582142a9c8f2b209301860423725101aa78d2a69707c295c2ada07e5ef2397bbf7b29238eaf568c0004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
+	//tranB := common.MustHexToBytes(tranSigned)
+
+	fmt.Printf("tran len %v\n", len(uxEnc))
+	res, err := rt.ApplyExtrinsic(uxEnc)
 	require.NoError(t, err)
 
 	// TODO ed, With old runtime we were getting 0x01020001 Apply error, Payment
