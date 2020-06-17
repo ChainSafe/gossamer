@@ -85,6 +85,8 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	in := make(chan FinalityMessage, 128)
+
 	s := &Service{
 		state:              NewState(cfg.Voters, 0, 0),
 		blockState:         cfg.BlockState,
@@ -98,9 +100,9 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
-		tracker:            newTracker(cfg.BlockState),
+		tracker:            newTracker(cfg.BlockState, in),
 		head:               head,
-		in:                 make(chan FinalityMessage, 128),
+		in:                 in,
 		out:                make(chan FinalityMessage, 128),
 		finalized:          make(chan FinalityMessage, 128),
 		stopped:            true,
