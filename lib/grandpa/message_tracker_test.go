@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	"github.com/stretchr/testify/require"
@@ -82,4 +83,41 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	case <-time.After(testTimeout):
 		t.Errorf("did not receive vote message")
 	}
+}
+
+func TestMessageTracker_ProcessMessage(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, _, _, _ := setupGrandpa(t, kr.Bob)
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	gs.Start()
+
+	parent, err := gs.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	next := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     big.NewInt(4),
+	}
+
+	msg, err := gs.createVoteMessage(NewVoteFromHeader(next), prevote, kr.Alice)
+	require.NoError(t, err)
+
+	_, err = gs.validateMessage(msg)
+	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.Equal(t, []*VoteMessage{msg}, gs.tracker.messages[next.Hash()])
+
+	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
+		Header: next,
+		Body:   &types.Body{},
+	})
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	expected := &Vote{
+		hash:   msg.Message.Hash,
+		number: msg.Message.Number,
+	}
+	require.Equal(t, expected, gs.prevotes[kr.Alice.Public().(*ed25519.PublicKey).AsBytes()])
 }

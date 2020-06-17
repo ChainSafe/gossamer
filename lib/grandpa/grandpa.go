@@ -120,6 +120,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
+	s.tracker.start()
 	return nil
 }
 
@@ -130,6 +131,7 @@ func (s *Service) Stop() error {
 
 	s.stopped = true
 	close(s.out)
+	s.tracker.stop()
 	return nil
 }
 
