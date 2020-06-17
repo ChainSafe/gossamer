@@ -28,7 +28,7 @@ type tracker struct {
 	messages map[common.Hash][]*VoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	mapLock  *sync.Mutex
 	in       <-chan common.Hash
-	out      chan<- FinalityMessage // send a VoteMessage back to grandpa
+	out      chan<- FinalityMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
 }
 
 func newTracker(bs BlockState, out chan<- FinalityMessage) *tracker {
