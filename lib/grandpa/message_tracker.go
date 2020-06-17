@@ -17,23 +17,32 @@
 package grandpa
 
 import (
-	"math/big"
+	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// BlockState is the interface required by GRANDPA into the block state
-type BlockState interface {
-	HasHeader(hash common.Hash) (bool, error)
-	GetHeader(hash common.Hash) (*types.Header, error)
-	GetHeaderByNumber(num *big.Int) (*types.Header, error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
-	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
-	GetFinalizedHeader() (*types.Header, error)
-	SetFinalizedHash(hash common.Hash) error
-	BestBlockHeader() (*types.Header, error)
-	Leaves() []common.Hash
-	BlocktreeAsString() string
-	SetHashChannel(h chan<- common.Hash)
+// tracker keeps track of messages that have been received that have failed to validate with ErrBlockDoesNotExist
+// these messages may be needed again in the case that we are slightly out of sync with the rest of the network
+type tracker struct {
+	messages map[common.Hash]*VoteMessage // map of vote block hash -> VoteMessage
+	mapLock  *sync.Mutex
+	in       <-chan common.Hash
+}
+
+func newTracker(bs BlockState) *tracker {
+	in := make(chan common.Hash)
+	bs.SetHashChannel(in)
+
+	return &tracker{
+		messages: make(map[common.Hash]*VoteMessage),
+		mapLock:  &sync.Mutex{},
+		in:       in,
+	}
+}
+
+func (t *tracker) add(v *VoteMessage) {
+	t.mapLock.Lock()
+	t.messages[v.Message.Hash] = v
+	t.mapLock.Unlock()
 }

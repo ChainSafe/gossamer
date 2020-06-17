@@ -48,6 +48,7 @@ type Service struct {
 	pcJustifications []*Justification                   // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
+	tracker          *tracker                           // tracker of vote messages we may need in the future
 	head             *types.Header                      // most recently finalized block
 
 	// historical information
@@ -97,6 +98,7 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
+		tracker:            newTracker(cfg.BlockState),
 		head:               head,
 		in:                 make(chan FinalityMessage, 128),
 		out:                make(chan FinalityMessage, 128),
