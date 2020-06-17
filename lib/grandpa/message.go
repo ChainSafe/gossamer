@@ -47,11 +47,7 @@ func (s *Service) DecodeMessage(msg *ConsensusMessage) (m FinalityMessage, err e
 		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
 		m = mi.(*VoteMessage)
 	case finalizationType:
-		// TODO: scale should be able to handle nil pointers
-		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{
-			Vote: new(Vote),
-			//Justification: []*Justification{},
-		})
+		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{})
 		m = mi.(*FinalizationMessage)
 	default:
 		return nil, ErrInvalidMessageType
@@ -103,12 +99,28 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
+// GetFinalizedHash returns ErrNotFinalizationMessage
+func (v *VoteMessage) GetFinalizedHash() (common.Hash, error) {
+	return common.Hash{}, ErrNotFinalizationMessage
+}
+
 // Justification represents a justification for a finalized block
-//nolint:structcheck
 type Justification struct {
-	Vote      *Vote    //nolint:unused
-	Signature []byte   //nolint:unused
-	Pubkey    [32]byte //nolint:unused
+	Vote        *Vote
+	Signature   [64]byte
+	AuthorityID ed25519.PublicKeyBytes
+}
+
+// Encode returns the SCALE encoded Justification
+func (j *Justification) Encode() ([]byte, error) {
+	enc, err := j.Vote.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	enc = append(enc, j.Signature[:]...)
+	enc = append(enc, j.AuthorityID[:]...)
+	return enc, nil
 }
 
 // Decode returns the SCALE decoded Justification
@@ -119,11 +131,10 @@ func (j *Justification) Decode(r io.Reader) (*Justification, error) {
 }
 
 // FinalizationMessage represents a network finalization message
-//nolint:structcheck
 type FinalizationMessage struct {
-	Round uint64
-	Vote  *Vote
-	//Justification []*Justification //nolint:unused
+	Round         uint64
+	Vote          *Vote
+	Justification []*Justification
 }
 
 // ToConsensusMessage converts the FinalizationMessage into a network-level consensus message
@@ -139,10 +150,15 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-func (s *Service) newFinalizationMessage(header *types.Header, round uint64) (*FinalizationMessage, error) { //nolint
+// GetFinalizedHash returns the hash of the block that's being finalized
+func (f *FinalizationMessage) GetFinalizedHash() (common.Hash, error) {
+	return f.Vote.hash, nil
+}
+
+func (s *Service) newFinalizationMessage(header *types.Header, round uint64) *FinalizationMessage {
 	return &FinalizationMessage{
-		Round: round,
-		Vote:  NewVoteFromHeader(header),
-		// TODO: add justification
-	}, nil
+		Round:         round,
+		Vote:          NewVoteFromHeader(header),
+		Justification: s.justification[round],
+	}
 }
