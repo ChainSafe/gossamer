@@ -80,6 +80,8 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilKeypair
 	}
 
+	log.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+
 	head, err := cfg.BlockState.GetFinalizedHeader()
 	if err != nil {
 		return nil, err
@@ -194,9 +196,9 @@ func (s *Service) playGrandpaRound() error {
 		s.finalized <- msg
 	}
 
-	log.Debug("grandpa] receiving pre-vote messages...")
+	log.Debug("[grandpa] receiving pre-vote messages...")
 
-	s.receiveMessages(func() bool {
+	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
 
 		completable, err := s.isCompletable()
@@ -210,6 +212,8 @@ func (s *Service) playGrandpaRound() error {
 
 		return false
 	})
+
+	time.Sleep(interval * 2)
 
 	// broadcast pre-vote
 	pv, err := s.determinePreVote()
@@ -231,7 +235,7 @@ func (s *Service) playGrandpaRound() error {
 
 	log.Debug("receiving pre-vote messages...")
 
-	s.receiveMessages(func() bool {
+	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
 
 		completable, err := s.isCompletable() //nolint
@@ -245,6 +249,8 @@ func (s *Service) playGrandpaRound() error {
 
 		return false
 	})
+
+	time.Sleep(interval * 2)
 
 	// broadcast pre-commit
 	pc, err := s.determinePreCommit()
