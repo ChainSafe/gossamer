@@ -353,17 +353,18 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 }
 
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
-	t.Skip() // this is blocked by #923
+	//t.Skip() // this is blocked by #923
 	numNodes = 3
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 7)
 
+	// TODO: check for round #s, add dev rpc call??
 	compareChainHeadsWithRetry(t, nodes)
 	prev := compareFinalizedHeadsWithRetry(t, nodes)
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 30)
 	curr := compareFinalizedHeadsWithRetry(t, nodes)
 	require.NotEqual(t, prev, curr)
 

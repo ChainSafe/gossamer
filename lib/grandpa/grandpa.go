@@ -153,6 +153,7 @@ func (s *Service) initiate() error {
 	}
 
 	s.state.round++
+	s.tracker.stop()
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
@@ -161,6 +162,7 @@ func (s *Service) initiate() error {
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.justification = make(map[uint64][]*Justification)
+	s.tracker = newTracker(s.blockState, s.in)
 
 	for {
 		err := s.playGrandpaRound()
@@ -284,11 +286,11 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			// this shouldn't happen as long as playGrandpaRound is called through initiate
 			s.mapLock.Lock()
 			prevBfc := s.bestFinalCandidate[s.state.round-1]
 			s.mapLock.Unlock()
 
+			// this shouldn't happen as long as playGrandpaRound is called through initiate
 			if prevBfc == nil {
 				return false
 			}
@@ -328,7 +330,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
+		log.Debug("[grandpa] finalized block!!!", "round", s.state.round, "hash", s.head)
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety

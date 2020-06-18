@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -77,8 +78,12 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	s.out <- msg
-	log.Debug("[grandpa] sent VoteMessage", "msg", msg)
+	for i := 0; i < 2; i++ {
+		s.out <- msg
+		log.Debug("[grandpa] sent VoteMessage", "msg", msg)
+		time.Sleep(time.Second)
+	}
+
 	return nil
 }
 
@@ -131,6 +136,11 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	// check that setIDs match
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
+	}
+
+	// check that vote is for current round
+	if m.Round != s.state.round {
+		return nil, ErrRoundMismatch
 	}
 
 	// check for equivocation ie. multiple votes within one subround
