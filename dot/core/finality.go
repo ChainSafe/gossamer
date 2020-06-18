@@ -59,8 +59,8 @@ func (s *Service) sendFinalizationMessages() {
 		log.Info("[core] finalized block!!!", "msg", v)
 		msg, err := v.ToConsensusMessage()
 
-		// TODO: safety
-		// update state
+		// update finalized hash for this round in database
+		// TODO: this also happens in grandpa.finalize(); decide which is preferred
 		hash, err := v.GetFinalizedHash()
 		if err == nil {
 			err = s.blockState.SetFinalizedHash(hash, v.GetRound())
@@ -76,6 +76,9 @@ func (s *Service) sendFinalizationMessages() {
 			continue
 		}
 
-		s.msgSend <- msg
+		err = s.safeMsgSend(msg)
+		if err != nil {
+			log.Error("[core] failed to send finalization message to network", "error", err)
+		}
 	}
 }

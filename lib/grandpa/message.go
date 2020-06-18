@@ -104,6 +104,7 @@ func (v *VoteMessage) GetFinalizedHash() (common.Hash, error) {
 	return common.Hash{}, ErrNotFinalizationMessage
 }
 
+// GetRound returns the round associated with the VoteMessage
 func (v *VoteMessage) GetRound() uint64 {
 	return v.Round
 }
@@ -159,6 +160,7 @@ func (f *FinalizationMessage) GetFinalizedHash() (common.Hash, error) {
 	return f.Vote.hash, nil
 }
 
+// GetRound returns the round associated with the FinalizationMessage
 func (f *FinalizationMessage) GetRound() uint64 {
 	return f.Round
 }
