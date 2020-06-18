@@ -450,8 +450,14 @@ func (s *Service) finalize() error {
 		return err
 	}
 
-	// set finalized head in db
-	return s.blockState.SetFinalizedHash(bfc.hash, s.state.round)
+	// set finalized head for round in db
+	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round)
+	if err != nil {
+		return err
+	}
+
+	// set latest finalized head in db
+	return s.blockState.SetFinalizedHash(bfc.hash, 0)
 }
 
 // derivePrimary returns the primary for the current round
