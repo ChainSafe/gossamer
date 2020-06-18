@@ -56,19 +56,21 @@ func (s *Service) sendVoteMessages() {
 func (s *Service) sendFinalizationMessages() {
 	out := s.finalityGadget.GetFinalizedChannel()
 	for v := range out {
+		log.Info("[core] finalized block!!!", "msg", v)
+		msg, err := v.ToConsensusMessage()
+
 		// TODO: safety
-		// update state.finalizedHead
+		// update state
 		hash, err := v.GetFinalizedHash()
 		if err == nil {
-			err = s.blockState.SetFinalizedHash(hash)
+			err = s.blockState.SetFinalizedHash(hash, v.GetRound())
 			if err != nil {
 				log.Error("[core] could not set finalized block hash", "hash", hash, "error", err)
 			}
 		}
 
 		log.Debug("[core] sending FinalityMessage to network", "msg", v)
-		log.Info("[core] finalized block!!!", "msg", v)
-		msg, err := v.ToConsensusMessage()
+
 		if err != nil {
 			log.Error("[core] failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
 			continue

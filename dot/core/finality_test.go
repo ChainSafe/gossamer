@@ -95,7 +95,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 		t.Fatal("did not receive finality message")
 	}
 
-	h, err := s.blockState.GetFinalizedHash()
+	h, err := s.blockState.GetFinalizedHash(0)
 	require.NoError(t, err)
 	require.Equal(t, testFinalizedHash, h)
 }
