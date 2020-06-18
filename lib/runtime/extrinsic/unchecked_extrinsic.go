@@ -17,7 +17,9 @@ package extrinsic
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/stretchr/testify/require"
 	"math/big"
 )
 
@@ -59,6 +61,40 @@ type UncheckedExtrinsic struct {
 	Signature []byte
 	Extra []byte
 	Function Function
+}
+
+func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash common.Hash) UncheckedExtrinsic {
+	fnc := buildFunction(fnct)
+	ux := UncheckedExtrinsic{}
+
+	extra := struct {
+		Nonce *big.Int
+		ChargeTransactionPayment *big.Int
+	}{
+		index,
+		big.NewInt(0),
+	}
+	additional := struct {
+		SpecVersion uint32
+		TransacionVersion uint32
+		GenesisHash common.Hash
+		GenesisHash2 common.Hash
+	}{252, 1, genesisHash, genesisHash}
+	rawPayload := fromRaw(fnc, extra, additional)
+	rawEnc, err := rawPayload.Encode()
+	require.NoError(t, err)
+	fmt.Printf("RAW ENC %v\n", rawEnc)
+
+	return ux
+}
+
+func buildFunction(fnct interface{}) *Function {
+	// TODO make this build the function
+	return &Function{
+		Call:     Balances,
+		Pallet:   PB_Transfer,
+		CallData: fnct,
+	}
 }
 
 func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
@@ -134,7 +170,7 @@ type SignedPayload struct {
 	Extra interface{}
 	AdditionSigned interface{}
 }
-func FromRaw(fnc Function, extra interface{}, additional interface{}) SignedPayload {
+func fromRaw(fnc Function, extra interface{}, additional interface{}) SignedPayload {
 	return SignedPayload{
 		Function:  fnc,
 		Extra: extra,
