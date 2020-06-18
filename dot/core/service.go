@@ -234,7 +234,6 @@ func (s *Service) Stop() error {
 	defer s.lock.Unlock()
 
 	// close channel to network service
-	// TODO: change to atomic.Value
 	if s.started.Load().(bool) {
 		if s.msgSend != nil {
 			close(s.msgSend)
