@@ -17,11 +17,15 @@ package extrinsic
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/stretchr/testify/require"
 	"math/big"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
+
+const specVersion uint32 = 252      // encoded as additional singed data when building UncheckedExtrinsic
+const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
 
 // Call interface for method extrinsic is calling
 type Call byte
@@ -50,58 +54,86 @@ const (
 	PB_Transfer_keep_alive
 )
 
+// Function struct to represent extrinsic call function
 type Function struct {
-	Call  Call
-	Pallet    Pallet
-	CallData  interface{}
+	Call     Call
+	Pallet   Pallet
+	CallData interface{}
 }
+
 // UncheckedExtrinsic generic implementation of pre-verification extrinsic
 type UncheckedExtrinsic struct {
-	Signed []byte
+	Signed    []byte
 	Signature []byte
-	Extra []byte
-	Function Function
+	Extra     []byte
+	Function  Function
 }
 
-func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash common.Hash) UncheckedExtrinsic {
-	fnc := buildFunction(fnct)
-	ux := UncheckedExtrinsic{}
-
+// CreateUncheckedExtrinsic builds UncheckedExtrinsic given function interface, index, genesisHash and Keypair
+func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash common.Hash, signer crypto.Keypair) (*UncheckedExtrinsic, error) {
+	fnc, err := buildFunction(fnct)
+	if err != nil {
+		return nil, err
+	}
 	extra := struct {
-		Nonce *big.Int
+		Nonce                    *big.Int
 		ChargeTransactionPayment *big.Int
 	}{
 		index,
 		big.NewInt(0),
 	}
 	additional := struct {
-		SpecVersion uint32
-		TransacionVersion uint32
-		GenesisHash common.Hash
-		GenesisHash2 common.Hash
-	}{252, 1, genesisHash, genesisHash}
+		SpecVersion        uint32
+		TransactionVersion uint32
+		GenesisHash        common.Hash
+		GenesisHash2       common.Hash
+	}{specVersion, transactionVersion, genesisHash, genesisHash}
+
 	rawPayload := fromRaw(fnc, extra, additional)
 	rawEnc, err := rawPayload.Encode()
-	require.NoError(t, err)
-	fmt.Printf("RAW ENC %v\n", rawEnc)
+	if err != nil {
+		return nil, err
+	}
 
-	return ux
+	sig, err := signer.Sign(rawEnc)
+	if err != nil {
+		return nil, err
+	}
+
+	extraEnc, err := scale.Encode(extra)
+	if err != nil {
+		return nil, err
+	}
+	extraEnc = append([]byte{0}, extraEnc...) // todo determine what this represents
+
+	ux := &UncheckedExtrinsic{
+		Function:  *fnc,
+		Signature: sig,
+		Signed:    signer.Public().Encode(),
+		Extra:     extraEnc,
+	}
+	return ux, nil
 }
 
-func buildFunction(fnct interface{}) *Function {
-	// TODO make this build the function
-	return &Function{
-		Call:     Balances,
-		Pallet:   PB_Transfer,
-		CallData: fnct,
+func buildFunction(fnct interface{}) (*Function, error) {
+	switch v := fnct.(type) {
+	case *Transfer:
+		return &Function{
+			Call:     Balances,
+			Pallet:   PB_Transfer,
+			CallData: fnct,
+		}, nil
+	default:
+		return nil, fmt.Errorf("could not build Function for type %T", v)
 	}
 }
 
+// Encode scale encode UncheckedExtrinsic
 func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 	enc := []byte{}
-	enc = append(enc, []byte{45, 2, 132, 255}...)
+	enc = append(enc, []byte{45, 2, 132, 255}...) // TODO determine what this represents
 	enc = append(enc, ux.Signed...)
-	enc = append(enc, []byte{1}...)   // TODO determine what this represents
+	enc = append(enc, []byte{1}...) // TODO determine what this represents
 	enc = append(enc, ux.Signature...)
 	enc = append(enc, ux.Extra...)
 	fncEnc, err := ux.Function.Encode()
@@ -129,61 +161,42 @@ func (f *Function) encodeBalance() ([]byte, error) {
 	case PB_Transfer:
 		enc = append(enc, byte(f.Pallet))
 		enc = append(enc, byte(255)) // TODO not sure why this is used, research
-		t := f.CallData.(Transfer)
+		t := f.CallData.(*Transfer)
 		enc = append(enc, t.to[:]...)
 
-		amtEnc, err := scale.Encode(big.NewInt(int64(t.amount))) // TODO, research why amount needs bigInt encoding (not uint64)
+		amtEnc, err := scale.Encode(big.NewInt(int64(t.amount)))
 		if err != nil {
 			return nil, err
 		}
 		enc = append(enc, amtEnc...)
-		//enc = append([]byte{byte(4)}, enc...) // TODO not sure why this needs a 4 here, research
 
-		//enc, err = scale.Encode(enc)
-		//if err != nil {
-		//	return nil, err
-		//}
 	default:
 		return nil, fmt.Errorf("could not encode pallet %v", f.Pallet)
 	}
 	return enc, nil
 }
 
-
-//func (ue *UncheckedExtrinsic)Sign(key *sr25519.PrivateKey) {
-	//msg, err := ue.Encode()
-	//fmt.Printf("tran enc %x\n", msg)
-	//
-	//sig, err := key.Sign(msg)
-	//if err != nil {
-	//	//return nil, err
-	//}
-	//
-	//sigb := [64]byte{}
-	//copy(sigb[:], sig)
-	//fmt.Printf("Sigb %v\n", sigb)
-	//ue.Signature = sigb
-//}
-
-type SignedPayload struct {
-	Function Function
-	Extra interface{}
+type signedPayload struct {
+	Function       Function
+	Extra          interface{}
 	AdditionSigned interface{}
 }
-func fromRaw(fnc Function, extra interface{}, additional interface{}) SignedPayload {
-	return SignedPayload{
-		Function:  fnc,
-		Extra: extra,
+
+func fromRaw(fnc *Function, extra interface{}, additional interface{}) signedPayload {
+	return signedPayload{
+		Function:       *fnc,
+		Extra:          extra,
 		AdditionSigned: additional,
 	}
 }
 
-func (sp *SignedPayload) Encode() ([]byte, error) {
+// Encode scale encode SignedPayload
+func (sp *signedPayload) Encode() ([]byte, error) {
 	enc, err := sp.Function.Encode()
 	if err != nil {
 		return nil, err
 	}
-	enc = append(enc, []byte{0}...)  // TODO, determine why this byte is added
+	enc = append(enc, []byte{0}...) // TODO, determine why this byte is added
 
 	exEnc, err := scale.Encode(sp.Extra)
 	if err != nil {
