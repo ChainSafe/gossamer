@@ -140,8 +140,8 @@ func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res 
 	return nil
 }
 
-// GetFinalizedHeadAtRound returns the hash of the block finalized at the given round
-func (cm *ChainModule) GetFinalizedHeadAtRound(r *http.Request, req *ChainIntRequest, res *ChainHashResponse) error {
+// GetFinalizedHeadByRound returns the hash of the block finalized at the given round
+func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainIntRequest, res *ChainHashResponse) error {
 	h, err := cm.blockAPI.GetFinalizedHash(uint64(*req))
 	if err != nil {
 		return err

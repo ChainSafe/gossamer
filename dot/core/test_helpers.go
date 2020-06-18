@@ -154,7 +154,7 @@ func (fm *mockFinalityMessage) GetFinalizedHash() (common.Hash, error) {
 }
 
 func (fm *mockFinalityMessage) GetRound() uint64 {
-	return 0
+	return 1
 }
 
 // NewTestService creates a new test core service
