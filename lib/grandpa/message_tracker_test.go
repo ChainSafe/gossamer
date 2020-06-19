@@ -92,6 +92,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	gs, _, _, _ := setupGrandpa(t, kr.Bob)
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
 	gs.Start()
+	require.False(t, gs.tracker.stopped)
 
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -105,7 +106,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = gs.validateMessage(msg)
-	require.Equal(t, err, ErrBlockDoesNotExist)
+	require.Equal(t, ErrBlockDoesNotExist, err)
 	require.Equal(t, []*VoteMessage{msg}, gs.tracker.messages[next.Hash()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
@@ -119,5 +120,5 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 		hash:   msg.Message.Hash,
 		number: msg.Message.Number,
 	}
-	require.Equal(t, expected, gs.prevotes[kr.Alice.Public().(*ed25519.PublicKey).AsBytes()])
+	require.Equal(t, expected, gs.prevotes[kr.Alice.Public().(*ed25519.PublicKey).AsBytes()], gs.tracker.messages)
 }

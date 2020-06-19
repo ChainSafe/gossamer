@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -41,16 +42,19 @@ func newTracker(bs BlockState, out chan<- FinalityMessage) *tracker {
 		mapLock:  &sync.Mutex{},
 		in:       in,
 		out:      out,
-		stopped:  false,
+		stopped:  true,
 	}
 }
 
 func (t *tracker) start() {
+	fmt.Println("starting", t.stopped)
+	t.stopped = false
 	go t.handleBlocks()
 }
 
 func (t *tracker) stop() {
 	// close channel
+	fmt.Println("stopping", t.stopped)
 	t.stopped = true
 }
 
@@ -62,11 +66,16 @@ func (t *tracker) add(v *VoteMessage) {
 
 func (t *tracker) handleBlocks() {
 	for h := range t.in {
+		fmt.Println("handling", h, t.stopped)
+
 		if t.stopped {
-			return
+			fmt.Println("returning from handleBlocks")
+			//return
 		}
 
 		t.mapLock.Lock()
+
+		fmt.Println("sending", t.messages[h])
 
 		if t.messages[h] != nil {
 			for _, v := range t.messages[h] {
