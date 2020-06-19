@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-const specVersion uint32 = 252      // encoded as additional singed data when building UncheckedExtrinsic
+const specVersion uint32 = 193      // encoded as additional singed data when building UncheckedExtrinsic
 const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
 
 // Call interface for method extrinsic is calling
@@ -52,6 +52,19 @@ const (
 	PB_Set_balance
 	PB_Force_transfer
 	PB_Transfer_keep_alive
+)
+
+const (
+	SYS_fill_block Pallet = iota
+	SYS_remark
+	SYS_set_heap_pages
+	SYS_set_code
+	SYS_set_code_without_checks
+	SYS_set_changes_trie_config
+	SYS_set_storage
+	SYS_kill_storage
+	SYS_kill_prefix
+	SYS_suicide
 )
 
 // Function struct to represent extrinsic call function
@@ -115,12 +128,30 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 	return ux, nil
 }
 
+func CreateUncheckExtrinsicUnsigned(fnct interface{})(*UncheckedExtrinsic, error) {
+	fnc, err := buildFunction(fnct)
+	if err != nil {
+		return nil, err
+	}
+
+	ux := &UncheckedExtrinsic{
+		Function:  *fnc,
+	}
+	return ux, nil
+}
+
 func buildFunction(fnct interface{}) (*Function, error) {
 	switch v := fnct.(type) {
 	case *Transfer:
 		return &Function{
 			Call:     Balances,
 			Pallet:   PB_Transfer,
+			CallData: fnct,
+		}, nil
+	case *StorageChangeExt:
+		return &Function{
+			Call:     System,
+			Pallet:   SYS_set_storage,
 			CallData: fnct,
 		}, nil
 	default:
@@ -150,10 +181,37 @@ func (f *Function) Encode() ([]byte, error) {
 	case Balances:
 		// encode Balances type call
 		return f.encodeBalance()
+	case System:
+		return f.encodeSystem()
 	}
 	return nil, nil
 }
 
+func (f *Function) encodeSystem() ([]byte, error) {
+	enc := []byte{}
+	enc = append(enc, byte(f.Call))
+	switch f.Pallet {
+	case SYS_set_storage:
+		enc = append(enc, byte(f.Pallet))
+		//enc = append(enc, byte(255)) // TODO not sure why this is used, research
+		t := f.CallData.(*StorageChangeExt)
+		kEnc, err := scale.Encode(t.key)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("kEnc %v\n", kEnc)
+		enc = append(enc, kEnc...)
+		if t.value.Exists() {
+			vEnc, err := scale.Encode(t.value.Value())
+			if err != nil {
+				return nil, err
+			}
+			fmt.Printf("vEnc %v\n", vEnc)
+			enc = append(enc, vEnc...)
+		}
+	}
+	return enc, nil
+}
 func (f *Function) encodeBalance() ([]byte, error) {
 	enc := []byte{}
 	enc = append(enc, byte(f.Call))

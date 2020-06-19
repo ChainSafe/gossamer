@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"os"
 	"reflect"
@@ -406,6 +408,57 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NotEqual(t, []byte("testvalue"), val)
 }
 
+func TestApplyExtrinsic_StorageChange_Set_UncheckedExt(t *testing.T) {
+	rt := NewTestRuntime(t, NODE_RUNTIME)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	err := rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
+	tx, err := ext.Encode()
+	fmt.Printf("extEnc %v\n", tx)
+	require.NoError(t, err)
+
+	extUx, err := extrinsic.CreateUncheckExtrinsicUnsigned(ext)
+	require.NoError(t, err)
+	fmt.Printf("extUx %v\n", extUx)
+
+	txUx, err := extUx.Encode()
+	fmt.Printf("txUx %v\n", txUx)
+
+	uxF, err := extUx.Function.Encode()
+	require.NoError(t, err)
+	fmt.Printf("fnc Enc %v\n",uxF)
+	uxF = append([]byte{4}, uxF...)
+	exF2, err := scale.Encode(uxF)
+	fmt.Printf("Uxf2 %v\n", exF2)
+
+	res, err := rt.ApplyExtrinsic(exF2)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0}, res)
+
+	val, err := rt.storage.GetStorage([]byte("testkey"))
+	require.NoError(t, err)
+	require.Equal(t, []byte("testvalue"), val)
+
+	for i := 0; i < maxRetries; i++ {
+		_, err = rt.FinalizeBlock()
+		if err == nil {
+			break
+		}
+	}
+	require.NoError(t, err)
+
+	val, err = rt.storage.GetStorage([]byte("testkey"))
+	require.NoError(t, err)
+	// TODO: why does calling finalize_block modify the storage?
+	require.NotEqual(t, []byte("testvalue"), val)
+}
+
 func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
@@ -490,7 +543,12 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 
 	uxEnc, err := ux.Encode()
 	require.NoError(t, err)
+fmt.Printf("uxExc %v\n", uxEnc)
+	//uxTest := "0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016c54d14ad8d7fc93bc3fc4acf5e0fd05761b0fc47822da9878826f0331a60241e6facb501a2b3949c34f1b7116678d05809d303df6dc2b7815db2a6ab72023810004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
 
+
+
+	//res, err := rt.ApplyExtrinsic(common.MustHexToBytes(uxTest))
 	res, err := rt.ApplyExtrinsic(uxEnc)
 	require.NoError(t, err)
 
