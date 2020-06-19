@@ -47,14 +47,12 @@ func newTracker(bs BlockState, out chan<- FinalityMessage) *tracker {
 }
 
 func (t *tracker) start() {
-	fmt.Println("starting", t.stopped)
 	t.stopped = false
 	go t.handleBlocks()
 }
 
 func (t *tracker) stop() {
 	// close channel
-	fmt.Println("stopping", t.stopped)
 	t.stopped = true
 }
 
@@ -69,7 +67,6 @@ func (t *tracker) handleBlocks() {
 		fmt.Println("handling", h, t.stopped)
 
 		if t.stopped {
-			fmt.Println("returning from handleBlocks")
 			//return
 		}
 
