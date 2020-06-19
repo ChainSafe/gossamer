@@ -84,6 +84,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 		MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
+	s.started.Store(true)
 
 	go s.sendFinalizationMessages()
 	fg.finalized <- &mockFinalityMessage{}
