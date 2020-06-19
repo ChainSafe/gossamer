@@ -58,6 +58,10 @@ func (s *Service) sendFinalizationMessages() {
 	for v := range out {
 		log.Info("[core] finalized block!!!", "msg", v)
 		msg, err := v.ToConsensusMessage()
+		if err != nil {
+			log.Error("[core] failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
+			continue
+		}
 
 		// update finalized hash for this round in database
 		// TODO: this also happens in grandpa.finalize(); decide which is preferred
@@ -70,12 +74,6 @@ func (s *Service) sendFinalizationMessages() {
 		}
 
 		log.Debug("[core] sending FinalityMessage to network", "msg", v)
-
-		if err != nil {
-			log.Error("[core] failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
-			continue
-		}
-
 		err = s.safeMsgSend(msg)
 		if err != nil {
 			log.Error("[core] failed to send finalization message to network", "error", err)
