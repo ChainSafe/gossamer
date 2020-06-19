@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -64,15 +63,11 @@ func (t *tracker) add(v *VoteMessage) {
 
 func (t *tracker) handleBlocks() {
 	for h := range t.in {
-		fmt.Println("handling", h, t.stopped)
-
 		if t.stopped {
-			//return
+			return
 		}
 
 		t.mapLock.Lock()
-
-		fmt.Println("sending", t.messages[h])
 
 		if t.messages[h] != nil {
 			for _, v := range t.messages[h] {

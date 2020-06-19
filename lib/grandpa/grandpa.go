@@ -103,12 +103,12 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
-		tracker:            newTracker(cfg.BlockState, in),
-		head:               head,
-		in:                 in,
-		out:                make(chan FinalityMessage, 128),
-		finalized:          make(chan FinalityMessage, 128),
-		stopped:            true,
+		//tracker:            newTracker(cfg.BlockState, in),
+		head:      head,
+		in:        in,
+		out:       make(chan FinalityMessage, 128),
+		finalized: make(chan FinalityMessage, 128),
+		stopped:   true,
 	}
 
 	return s, nil
@@ -123,7 +123,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	s.tracker.start()
+	//s.tracker.start()
 	return nil
 }
 
@@ -154,7 +154,9 @@ func (s *Service) initiate() error {
 	}
 
 	s.state.round++
-	s.tracker.stop()
+	if s.tracker != nil {
+		s.tracker.stop()
+	}
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
@@ -164,6 +166,7 @@ func (s *Service) initiate() error {
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.justification = make(map[uint64][]*Justification)
 	s.tracker = newTracker(s.blockState, s.in)
+	s.tracker.start()
 
 	for {
 		err := s.playGrandpaRound()
