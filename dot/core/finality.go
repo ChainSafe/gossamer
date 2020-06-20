@@ -85,4 +85,3 @@ func (s *Service) sendFinalizationMessages() {
 		}
 	}
 }
-
