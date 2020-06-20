@@ -167,6 +167,7 @@ func (s *Service) initiate() error {
 	s.justification = make(map[uint64][]*Justification)
 	s.tracker = newTracker(s.blockState, s.in)
 	s.tracker.start()
+	log.Trace("[grandpa] started message tracker")
 
 	for {
 		err := s.playGrandpaRound()
