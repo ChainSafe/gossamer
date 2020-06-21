@@ -71,6 +71,11 @@ func (s *Service) sendFinalizationMessages() {
 			if err != nil {
 				log.Error("[core] could not set finalized block hash", "hash", hash, "error", err)
 			}
+
+			err = s.blockState.SetFinalizedHash(hash, 0)
+			if err != nil {
+				log.Error("[core] could not set finalized block hash", "hash", hash, "error", err)
+			}
 		}
 
 		log.Debug("[core] sending FinalityMessage to network", "msg", v)
