@@ -119,7 +119,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			log.Error("[grandpa] failed to initiate")
+			log.Error("[grandpa] failed to initiate", "error", err)
 		}
 	}()
 
@@ -270,12 +270,23 @@ func (s *Service) playGrandpaRound() error {
 	log.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
 	s.mapLock.Unlock()
 
-	go func() {
-		err = s.sendMessage(pc, precommit)
-		if err != nil {
-			log.Error("[grandpa] could not send precommit message", "error", err)
+	finalized := false
+
+	go func(finalized *bool) {
+		for {
+			if *finalized {
+				return
+			}
+
+			err = s.sendMessage(pc, precommit)
+			if err != nil {
+				log.Error("[grandpa] could not send precommit message", "error", err)
+			}
+
+			time.Sleep(time.Second)
 		}
-	}()
+
+	}(&finalized)
 
 	go func() {
 		// receive messages until current round is completable and previous round is finalizable
@@ -308,11 +319,15 @@ func (s *Service) playGrandpaRound() error {
 		})
 	}()
 
+	log.Debug("[grandpa] going to attempt to finalize", "votes", s.precommits)
+
 	err = s.attemptToFinalize()
 	if err != nil {
+		log.Error("[grandpa] failed to finalize", "error", err)
 		return err
 	}
 
+	finalized = true
 	return nil
 }
 
@@ -328,6 +343,8 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
+	log.Debug("[grandpa] attempting to finalize", "bfc", bfc.hash, "votes", pc)
+
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
@@ -335,7 +352,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		log.Debug("[grandpa] finalized block!!!", "round", s.state.round, "hash", s.head)
+		log.Debug("[grandpa] finalized block!!!", "round", s.state.round, "hash", s.head.Hash())
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety
@@ -343,7 +360,7 @@ func (s *Service) attemptToFinalize() error {
 		return nil
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 500)
 	return s.attemptToFinalize()
 }
 
@@ -485,6 +502,8 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		return nil, err
 	}
 
+	//log.Debug("[grandpa] possible precommited blocks", "blocks", blocks)
+
 	// if there are no blocks with >=2/3 pre-commits, just return the pre-voted block
 	// TODO: is this correct? the spec implies that it should return nil, but discussions have suggested
 	// that we return the prevoted block.
@@ -532,6 +551,17 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 				number: n,
 			}
 		}
+	}
+
+	// TODO: probably just return whatever is in the map
+	if [32]byte(bfc.hash) == [32]byte{} {
+		for h, n := range blocks {
+			return &Vote{
+				hash:   h,
+				number: n,
+			}, nil
+		}
+		//return &prevoted, nil
 	}
 
 	return bfc, nil

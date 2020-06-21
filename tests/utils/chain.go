@@ -70,7 +70,7 @@ func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Has
 	require.NoError(t, err)
 
 	var hash string
-	err = DecodeRPC(t, respBody, "could not decode hash")
+	err = DecodeRPC(t, respBody, &hash)
 	if err != nil {
 		return common.Hash{}, err
 	}

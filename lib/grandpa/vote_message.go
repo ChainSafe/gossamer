@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -78,11 +77,8 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	for i := 0; i < 2; i++ {
-		s.out <- msg
-		log.Debug("[grandpa] sent VoteMessage", "msg", msg)
-		time.Sleep(time.Second)
-	}
+	s.out <- msg
+	log.Debug("[grandpa] sent VoteMessage", "msg", msg)
 
 	return nil
 }
@@ -163,10 +159,11 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if err == ErrBlockDoesNotExist {
-		s.tracker.add(m)
-	}
+	// if err == ErrBlockDoesNotExist {
+	// 	s.tracker.add(m)
+	// }
 	if err != nil {
+		s.tracker.add(m)
 		return nil, err
 	}
 
