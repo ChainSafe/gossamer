@@ -144,10 +144,10 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 }
 
 func TestMain(m *testing.M) {
-	// if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
-	// 	_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
-	// 	return
-	// }
+	if utils.MODE != "stress" {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
+		return
+	}
 
 	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
 
@@ -160,9 +160,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if utils.HOSTNAME == "" {
-		//_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, skipping stress test")
 		utils.HOSTNAME = "localhost"
-		//return
 	}
 
 	// Start all tests

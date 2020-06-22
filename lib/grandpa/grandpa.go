@@ -103,12 +103,11 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
-		//tracker:            newTracker(cfg.BlockState, in),
-		head:      head,
-		in:        in,
-		out:       make(chan FinalityMessage, 128),
-		finalized: make(chan FinalityMessage, 128),
-		stopped:   true,
+		head:               head,
+		in:                 in,
+		out:                make(chan FinalityMessage, 128),
+		finalized:          make(chan FinalityMessage, 128),
+		stopped:            true,
 	}
 
 	return s, nil
@@ -123,7 +122,6 @@ func (s *Service) Start() error {
 		}
 	}()
 
-	//s.tracker.start()
 	return nil
 }
 
@@ -272,6 +270,7 @@ func (s *Service) playGrandpaRound() error {
 
 	finalized := false
 
+	// continue to send precommit messages until round is done
 	go func(finalized *bool) {
 		for {
 			if *finalized {
@@ -319,8 +318,6 @@ func (s *Service) playGrandpaRound() error {
 		})
 	}()
 
-	log.Debug("[grandpa] going to attempt to finalize", "votes", s.precommits)
-
 	err = s.attemptToFinalize()
 	if err != nil {
 		log.Error("[grandpa] failed to finalize", "error", err)
@@ -343,8 +340,6 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	log.Debug("[grandpa] attempting to finalize", "bfc", bfc.hash, "votes", pc)
-
 	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
@@ -360,7 +355,7 @@ func (s *Service) attemptToFinalize() error {
 		return nil
 	}
 
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 100)
 	return s.attemptToFinalize()
 }
 
@@ -502,8 +497,6 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		return nil, err
 	}
 
-	//log.Debug("[grandpa] possible precommited blocks", "blocks", blocks)
-
 	// if there are no blocks with >=2/3 pre-commits, just return the pre-voted block
 	// TODO: is this correct? the spec implies that it should return nil, but discussions have suggested
 	// that we return the prevoted block.
@@ -553,7 +546,8 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		}
 	}
 
-	// TODO: probably just return whatever is in the map
+	// TODO: this returns the first block in the map of blocks w/ >=2/3 precommits, should
+	// the prevoted block be returned instead?
 	if [32]byte(bfc.hash) == [32]byte{} {
 		for h, n := range blocks {
 			return &Vote{
@@ -561,7 +555,6 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 				number: n,
 			}, nil
 		}
-		//return &prevoted, nil
 	}
 
 	return bfc, nil

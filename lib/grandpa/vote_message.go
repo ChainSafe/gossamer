@@ -159,11 +159,10 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	// if err == ErrBlockDoesNotExist {
-	// 	s.tracker.add(m)
-	// }
-	if err != nil {
+	if err == ErrBlockDoesNotExist {
 		s.tracker.add(m)
+	}
+	if err != nil {
 		return nil, err
 	}
 
