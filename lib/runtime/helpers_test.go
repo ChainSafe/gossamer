@@ -1,8 +1,6 @@
 package runtime
 
 import (
-	"fmt"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"os"
 	"reflect"
@@ -208,7 +206,6 @@ func TestFinalizeBlock(t *testing.T) {
 
 // TODO: the following tests need to be updated to use NODE_RUNTIME.
 // this will likely result in some of them being removed (need to determine what extrinsic types are valid)
-
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
 	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
@@ -408,57 +405,6 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NotEqual(t, []byte("testvalue"), val)
 }
 
-func TestApplyExtrinsic_StorageChange_Set_UncheckedExt(t *testing.T) {
-	rt := NewTestRuntime(t, NODE_RUNTIME)
-
-	header := &types.Header{
-		Number: big.NewInt(77),
-	}
-
-	err := rt.InitializeBlock(header)
-	require.NoError(t, err)
-
-	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
-	tx, err := ext.Encode()
-	fmt.Printf("extEnc %v\n", tx)
-	require.NoError(t, err)
-
-	extUx, err := extrinsic.CreateUncheckExtrinsicUnsigned(ext)
-	require.NoError(t, err)
-	fmt.Printf("extUx %v\n", extUx)
-
-	txUx, err := extUx.Encode()
-	fmt.Printf("txUx %v\n", txUx)
-
-	uxF, err := extUx.Function.Encode()
-	require.NoError(t, err)
-	fmt.Printf("fnc Enc %v\n",uxF)
-	uxF = append([]byte{4}, uxF...)
-	exF2, err := scale.Encode(uxF)
-	fmt.Printf("Uxf2 %v\n", exF2)
-
-	res, err := rt.ApplyExtrinsic(exF2)
-	require.NoError(t, err)
-	require.Equal(t, []byte{0, 0}, res)
-
-	val, err := rt.storage.GetStorage([]byte("testkey"))
-	require.NoError(t, err)
-	require.Equal(t, []byte("testvalue"), val)
-
-	for i := 0; i < maxRetries; i++ {
-		_, err = rt.FinalizeBlock()
-		if err == nil {
-			break
-		}
-	}
-	require.NoError(t, err)
-
-	val, err = rt.storage.GetStorage([]byte("testkey"))
-	require.NoError(t, err)
-	// TODO: why does calling finalize_block modify the storage?
-	require.NotEqual(t, []byte("testvalue"), val)
-}
-
 func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
 
@@ -515,46 +461,6 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 	require.Equal(t, []byte{1, 2, 0, 1}, res)
 }
 
-func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
-	rt := NewTestRuntime(t, NODE_RUNTIME)
-
-	// Init transfer
-	header := &types.Header{
-		Number: big.NewInt(77),
-	}
-	err := rt.InitializeBlock(header)
-	require.NoError(t, err)
-
-	alice := kr.Alice.Public().Encode()
-	bob := kr.Bob.Public().Encode()
-
-	ab := [32]byte{}
-	copy(ab[:], alice)
-
-	bb := [32]byte{}
-	copy(bb[:], bob)
-
-	var nonce uint64 = 0
-	transfer := extrinsic.NewTransfer(ab, bb, 1000, nonce)
-	gensisHash := common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")
-
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transfer, new(big.Int).SetUint64(nonce), gensisHash, kr.Alice)
-	require.NoError(t, err)
-
-	uxEnc, err := ux.Encode()
-	require.NoError(t, err)
-fmt.Printf("uxExc %v\n", uxEnc)
-	//uxTest := "0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d016c54d14ad8d7fc93bc3fc4acf5e0fd05761b0fc47822da9878826f0331a60241e6facb501a2b3949c34f1b7116678d05809d303df6dc2b7815db2a6ab72023810004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f"
-
-
-
-	//res, err := rt.ApplyExtrinsic(common.MustHexToBytes(uxTest))
-	res, err := rt.ApplyExtrinsic(uxEnc)
-	require.NoError(t, err)
-
-	require.Equal(t, []byte{1, 2, 0, 5}, res) // 0x01020005 represents Apply error, Type: AncientBirthBlock
-}
-
 // TODO, this test replaced by TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic, should this be removed?
 func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	rt := NewTestRuntime(t, SUBSTRATE_TEST_RUNTIME)
@@ -595,51 +501,4 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	bal, err = rt.storage.GetBalance(bb)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
-}
-
-func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
-	rt := NewTestRuntime(t, NODE_RUNTIME)
-
-	// Init transfer
-	header := &types.Header{
-		Number: big.NewInt(77),
-	}
-	err := rt.InitializeBlock(header)
-	require.NoError(t, err)
-
-	alice := kr.Alice.Public().Encode()
-	bob := kr.Bob.Public().Encode()
-
-	ab := [32]byte{}
-	copy(ab[:], alice)
-
-	bb := [32]byte{}
-	copy(bb[:], bob)
-
-	rt.storage.SetBalance(ab, 2000)
-
-	var nonce uint64 = 1
-	transfer := extrinsic.NewTransfer(ab, bb, 1000, nonce)
-	gensisHash := common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")
-
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transfer, new(big.Int).SetUint64(nonce), gensisHash, kr.Alice)
-	require.NoError(t, err)
-
-	uxEnc, err := ux.Encode()
-	require.NoError(t, err)
-
-	res, err := rt.ApplyExtrinsic(uxEnc)
-	require.NoError(t, err)
-
-	require.Equal(t, []byte{1, 2, 0, 5}, res) // 0x01020005 represents Apply error, Type: AncientBirthBlock
-
-	// TODO: not sure why balances aren't getting adjusted properly, because of AncientBirthBlock?
-	bal, err := rt.storage.GetBalance(ab)
-	require.NoError(t, err)
-	require.Equal(t, uint64(2000), bal)
-
-	// TODO this causes runtime error because balance for bb is nil (and GetBalance breaks when trys binary.LittleEndian.Uint64(bal))
-	//bal, err = rt.storage.GetBalance(bb)
-	//require.NoError(t, err)
-	//require.Equal(t, uint64(1000), bal)
 }

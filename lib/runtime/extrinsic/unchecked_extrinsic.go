@@ -54,6 +54,7 @@ const (
 	PB_Transfer_keep_alive
 )
 
+// pallet_system calls
 const (
 	SYS_fill_block Pallet = iota
 	SYS_remark
@@ -128,14 +129,15 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 	return ux, nil
 }
 
-func CreateUncheckExtrinsicUnsigned(fnct interface{})(*UncheckedExtrinsic, error) {
+// CreateUncheckedExtrinsicUnsigned to build unsigned extrinsic
+func CreateUncheckedExtrinsicUnsigned(fnct interface{}) (*UncheckedExtrinsic, error) {
 	fnc, err := buildFunction(fnct)
 	if err != nil {
 		return nil, err
 	}
 
 	ux := &UncheckedExtrinsic{
-		Function:  *fnc,
+		Function: *fnc,
 	}
 	return ux, nil
 }
@@ -254,7 +256,7 @@ func (sp *signedPayload) Encode() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	enc = append(enc, []byte{0}...) // TODO, determine why this byte is added
+	//enc = append(enc, []byte{0}...) // TODO, determine why this byte is added
 
 	exEnc, err := scale.Encode(sp.Extra)
 	if err != nil {

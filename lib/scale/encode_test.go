@@ -94,7 +94,6 @@ var encodeTests = []encodeTest{
 	{val: []byte{0x01, 0x01}, output: []byte{0x08, 0x01, 0x01}, bytesEncoded: 3},
 	{val: byteArray(32), output: append([]byte{0x80}, byteArray(32)...), bytesEncoded: 33},
 	{val: byteArray(64), output: append([]byte{0x01, 0x01}, byteArray(64)...), bytesEncoded: 66},
-	{val: byteArray(139), output: append([]byte{0x01, 0x01}, byteArray(64)...), bytesEncoded: 66},
 	{val: byteArray(16384), output: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...), bytesEncoded: 16388},
 
 	// common.Hash
