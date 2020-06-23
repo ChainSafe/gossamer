@@ -389,3 +389,20 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
 }
+
+func TestStress_Grandpa_NineAuthorities(t *testing.T) {
+	numNodes = 9
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 20)
+	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
+	t.Logf("finalized hash in round 1: %s", fin)
+
+	// time.Sleep(time.Second * 10)
+	// fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
+	// t.Logf("finalized hash in round 2: %s", fin)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
