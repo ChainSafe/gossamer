@@ -216,22 +216,51 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	require.Equal(t, []string{"0xdbfdd87392d9ee52f499610582737daceecf83dc3ad7946fcadeb01c86e1ef75", "0x80d653de440352760f89366c302c02a92ab059f396e2bfbf7f860e6e256cd698"}, res)
 }
 
+func TestChainGetFinalizedHead(t *testing.T) {
+	chain := newTestChainService(t)
+	svc := NewChainModule(chain.Block)
+
+	var res ChainHashResponse
+	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
+	require.NoError(t, err)
+	expected := genesisHeader.Hash()
+	require.Equal(t, common.BytesToHex(expected[:]), res)
+}
+
+func TestChainGetFinalizedHeadByRound(t *testing.T) {
+	chain := newTestChainService(t)
+	svc := NewChainModule(chain.Block)
+
+	var res ChainHashResponse
+	req := ChainIntRequest(0)
+	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
+	require.NoError(t, err)
+	expected := genesisHeader.Hash()
+	require.Equal(t, common.BytesToHex(expected[:]), res)
+
+	testhash := common.Hash{1, 2, 3, 4}
+	err = chain.Block.SetFinalizedHash(testhash, 77)
+	require.NoError(t, err)
+
+	req = ChainIntRequest(77)
+	err = svc.GetFinalizedHeadByRound(nil, &req, &res)
+	require.NoError(t, err)
+	require.Equal(t, common.BytesToHex(testhash[:]), res)
+}
+
+var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+
 func newTestChainService(t *testing.T) *state.Service {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 	stateSrvc := state.NewService(testDir)
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	tr := trie.NewEmptyTrie()
 
 	stateSrvc.UseMemDB()
-
 	genesisData := new(genesis.Data)
 
-	err = stateSrvc.Initialize(genesisData, genesisHeader, tr)
+	err := stateSrvc.Initialize(genesisData, genesisHeader, tr)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -48,6 +48,7 @@ type Service struct {
 	pcJustifications []*Justification                   // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
+	tracker          *tracker                           // tracker of vote messages we may need in the future
 	head             *types.Header                      // most recently finalized block
 
 	// historical information
@@ -79,10 +80,15 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilKeypair
 	}
 
-	head, err := cfg.BlockState.GetFinalizedHeader()
+	log.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+
+	// get latest finalized header
+	head, err := cfg.BlockState.GetFinalizedHeader(0)
 	if err != nil {
 		return nil, err
 	}
+
+	in := make(chan FinalityMessage, 128)
 
 	s := &Service{
 		state:              NewState(cfg.Voters, 0, 0),
@@ -97,8 +103,9 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
+		tracker:            newTracker(cfg.BlockState, in),
 		head:               head,
-		in:                 make(chan FinalityMessage, 128),
+		in:                 in,
 		out:                make(chan FinalityMessage, 128),
 		finalized:          make(chan FinalityMessage, 128),
 		stopped:            true,
@@ -116,6 +123,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
+	s.tracker.start()
 	return nil
 }
 
@@ -126,6 +134,7 @@ func (s *Service) Stop() error {
 
 	s.stopped = true
 	close(s.out)
+	s.tracker.stop()
 	return nil
 }
 
@@ -188,9 +197,9 @@ func (s *Service) playGrandpaRound() error {
 		s.finalized <- msg
 	}
 
-	log.Debug("grandpa] receiving pre-vote messages...")
+	log.Debug("[grandpa] receiving pre-vote messages...")
 
-	s.receiveMessages(func() bool {
+	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
 
 		completable, err := s.isCompletable()
@@ -204,6 +213,8 @@ func (s *Service) playGrandpaRound() error {
 
 		return false
 	})
+
+	time.Sleep(interval * 2)
 
 	// broadcast pre-vote
 	pv, err := s.determinePreVote()
@@ -225,7 +236,7 @@ func (s *Service) playGrandpaRound() error {
 
 	log.Debug("receiving pre-vote messages...")
 
-	s.receiveMessages(func() bool {
+	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
 
 		completable, err := s.isCompletable() //nolint
@@ -239,6 +250,8 @@ func (s *Service) playGrandpaRound() error {
 
 		return false
 	})
+
+	time.Sleep(interval * 2)
 
 	// broadcast pre-commit
 	pc, err := s.determinePreCommit()
@@ -437,8 +450,14 @@ func (s *Service) finalize() error {
 		return err
 	}
 
-	// set finalized head in db
-	return s.blockState.SetFinalizedHash(bfc.hash)
+	// set finalized head for round in db
+	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round)
+	if err != nil {
+		return err
+	}
+
+	// set latest finalized head in db
+	return s.blockState.SetFinalizedHash(bfc.hash, 0)
 }
 
 // derivePrimary returns the primary for the current round

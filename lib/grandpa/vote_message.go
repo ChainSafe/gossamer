@@ -153,6 +153,9 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
+	if err == ErrBlockDoesNotExist {
+		s.tracker.add(m)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -251,6 +254,7 @@ func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	if err != nil {
 		return err
 	}
+
 	ok, err := pk.Verify(msg, m.Message.Signature[:])
 	if err != nil {
 		return err

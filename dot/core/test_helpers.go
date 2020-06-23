@@ -35,7 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var maxRetries = 5
+var maxRetries = 12
 
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
@@ -151,6 +151,10 @@ func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, 
 // GetFinalizedHash returns testFinalizedHash
 func (fm *mockFinalityMessage) GetFinalizedHash() (common.Hash, error) {
 	return testFinalizedHash, nil
+}
+
+func (fm *mockFinalityMessage) GetRound() uint64 {
+	return 1
 }
 
 // NewTestService creates a new test core service

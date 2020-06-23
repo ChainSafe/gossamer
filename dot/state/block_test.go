@@ -24,12 +24,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-	db := database.NewMemDatabase()
+	db := chaindb.NewMemDatabase()
 	blockDb := NewBlockDB(db)
 
 	if header == nil {
@@ -284,4 +284,24 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
 		t.Fatalf("Fail: got %s expected %s for block %d", resBlock.Header.Hash(), newBlock.Header.Hash(), newBlock.Header.Number)
 	}
+}
+
+func TestFinalizedHash(t *testing.T) {
+	genesisHeader := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	bs := newTestBlockState(t, genesisHeader)
+	h, err := bs.GetFinalizedHash(0)
+	require.NoError(t, err)
+	require.Equal(t, genesisHeader.Hash(), h)
+
+	testhash := common.Hash{1, 2, 3, 4}
+	err = bs.SetFinalizedHash(testhash, 1)
+	require.NoError(t, err)
+
+	h, err = bs.GetFinalizedHash(1)
+	require.NoError(t, err)
+	require.Equal(t, testhash, h)
 }
