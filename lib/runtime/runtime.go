@@ -28,7 +28,7 @@ import (
 )
 
 var memory, memErr = wasm.NewMemory(17, 0)
-var logger = log.New("srvc", "RUNTIME")
+var logger = log.New("pkg", "RUNTIME")
 
 // Ctx struct
 type Ctx struct {
@@ -93,7 +93,7 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 		keystore:  ks,
 	}
 
-	logger.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
+	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)
 	instance.SetContextData(&runtimeCtx)
 
 	r := Runtime{

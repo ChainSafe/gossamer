@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
 	"github.com/ChainSafe/gossamer/dot/types"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 )
 
@@ -184,13 +183,13 @@ func KsmccConfig() *Config {
 func LoadConfig(cfg *Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
-		log.Error("[dot] failed to create absolute path for toml configuration file", "error", err)
+		logger.Error("failed to create absolute path for toml configuration file", "error", err)
 		return err
 	}
 
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] failed to open toml configuration file", "error", err)
+		logger.Error("failed to open toml configuration file", "error", err)
 		return err
 	}
 
@@ -211,7 +210,7 @@ func LoadConfig(cfg *Config, fp string) error {
 	}
 
 	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		log.Error("[dot] failed to decode configuration", "error", err)
+		logger.Error("failed to decode configuration", "error", err)
 		return err
 	}
 
@@ -227,24 +226,24 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 	)
 
 	if raw, err = toml.Marshal(*cfg); err != nil {
-		log.Error("[dot] failed to marshal configuration", "error", err)
+		logger.Error("failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] failed to create configuration file", "error", err)
+		logger.Error("failed to create configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(raw)
 	if err != nil {
-		log.Error("[dot] failed to write to configuration file", "error", err)
+		logger.Error("failed to write to configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		log.Error("[dot] failed to close configuration file", "error", err)
+		logger.Error("failed to close configuration file", "error", err)
 		os.Exit(1)
 	}
 
