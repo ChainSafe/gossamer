@@ -25,6 +25,7 @@ import (
 
 // gossip submodule
 type gossip struct {
+	logger  log.Logger
 	host    *host
 	hasSeen *sync.Map
 }
@@ -32,6 +33,7 @@ type gossip struct {
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) *gossip {
 	return &gossip{
+		logger:  host.logger.New("module", "gossip"),
 		host:    host,
 		hasSeen: &sync.Map{},
 	}
@@ -46,7 +48,7 @@ func (g *gossip) handleMessage(msg Message, from peer.ID) {
 		// set message to has been seen
 		g.hasSeen.Store(msg.IDString(), true)
 
-		log.Trace(
+		g.logger.Trace(
 			"[network ] Gossiping message from peer",
 			"host", g.host.id(),
 			"type", msg.GetType(),

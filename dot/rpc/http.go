@@ -19,6 +19,7 @@ package rpc
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -31,6 +32,7 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
+	logger       log.Logger
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 }
@@ -63,13 +65,20 @@ type WebSocketSubscription struct {
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
+	logger := log.New("srvc", "RPC")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(h)
+
 	server := &HTTPServer{
+		logger:       logger,
 		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
 	}
+
 	if cfg.WSSubscriptions == nil {
 		cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
 	}
+
 	server.RegisterModules(cfg.Modules)
 	return server
 }
@@ -78,13 +87,13 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 func (h *HTTPServer) RegisterModules(mods []string) {
 
 	for _, mod := range mods {
-		log.Debug("[rpc] Enabling rpc module", "module", mod)
+		h.logger.Debug("[rpc] Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
+			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "state":
@@ -92,14 +101,14 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "rpc":
 			srvc = modules.NewRPCModule(h.serverConfig.RPCAPI)
 		default:
-			log.Warn("[rpc] Unrecognized module", "module", mod)
+			h.logger.Warn("[rpc] Unrecognized module", "module", mod)
 			continue
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
 
 		if err != nil {
-			log.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
+			h.logger.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
 		}
 
 		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
@@ -114,13 +123,13 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	log.Info("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
+	h.logger.Info("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
-			log.Error("[rpc] http error", "err", err)
+			h.logger.Error("[rpc] http error", "err", err)
 		}
 	}()
 
@@ -128,13 +137,13 @@ func (h *HTTPServer) Start() error {
 		return nil
 	}
 
-	log.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
+	h.logger.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
-			log.Error("[rpc] http error", "err", err)
+			h.logger.Error("[rpc] http error", "err", err)
 		}
 	}()
 
