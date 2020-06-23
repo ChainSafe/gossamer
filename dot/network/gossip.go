@@ -49,7 +49,7 @@ func (g *gossip) handleMessage(msg Message, from peer.ID) {
 		g.hasSeen.Store(msg.IDString(), true)
 
 		g.logger.Trace(
-			"[network ] Gossiping message from peer",
+			"Gossiping message from peer",
 			"host", g.host.id(),
 			"type", msg.GetType(),
 		)

@@ -131,7 +131,7 @@ func (c *Config) build() error {
 
 	// check bootnoode configuration
 	if !c.NoBootstrap && len(c.Bootnodes) == 0 {
-		c.logger.Warn("[network] Bootstrap is enabled but no bootstrap nodes are defined")
+		c.logger.Warn("Bootstrap is enabled but no bootstrap nodes are defined")
 	}
 
 	return nil
@@ -165,7 +165,7 @@ func (c *Config) buildIdentity() error {
 		// generate key if no key exists
 		if key == nil {
 			c.logger.Info(
-				"[network] Generating p2p identity",
+				"Generating p2p identity",
 				"RandSeed", c.RandSeed,
 				"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
 			)
@@ -181,7 +181,7 @@ func (c *Config) buildIdentity() error {
 		c.privateKey = key
 	} else {
 		c.logger.Info(
-			"[network] Generating p2p identity from seed",
+			"Generating p2p identity from seed",
 			"RandSeed", c.RandSeed,
 			"KeyFile", path.Join(c.BasePath, DefaultKeyFile),
 		)
@@ -203,7 +203,7 @@ func (c *Config) buildIdentity() error {
 func (c *Config) buildProtocol() error {
 	if c.ProtocolID == "" {
 		c.logger.Warn(
-			"[network] ProtocolID not defined, using DefaultProtocolID",
+			"ProtocolID not defined, using DefaultProtocolID",
 			"DefaultProtocolID", DefaultProtocolID,
 		)
 		c.ProtocolID = DefaultProtocolID
@@ -214,7 +214,7 @@ func (c *Config) buildProtocol() error {
 		// expecting the default protocol format ("/gossamer/gssmr/0")
 		if len(s) != 4 {
 			c.logger.Warn(
-				"[network] Unable to parse ProtocolID, using DefaultProtocolVersion",
+				"Unable to parse ProtocolID, using DefaultProtocolVersion",
 				"DefaultProtocolVersion", DefaultProtocolVersion,
 			)
 		} else {
@@ -222,7 +222,7 @@ func (c *Config) buildProtocol() error {
 			i, err := strconv.Atoi(s[len(s)-1])
 			if err != nil {
 				c.logger.Warn(
-					"[network] Unable to parse ProtocolID, using DefaultProtocolVersion",
+					"Unable to parse ProtocolID, using DefaultProtocolVersion",
 					"DefaultProtocolVersion", DefaultProtocolVersion,
 				)
 			} else {
@@ -233,7 +233,7 @@ func (c *Config) buildProtocol() error {
 
 	if c.MinSupportedVersion < c.ProtocolVersion {
 		c.logger.Warn(
-			"[network] MinSupportedVersion less than ProtocolVersion, using ProtocolVersion",
+			"MinSupportedVersion less than ProtocolVersion, using ProtocolVersion",
 			"ProtocolVersion", c.ProtocolVersion,
 		)
 		c.MinSupportedVersion = c.ProtocolVersion

@@ -136,7 +136,7 @@ func (s *Service) Start() error {
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
-		s.logger.Info("[network] Started listening", "address", addr)
+		s.logger.Info("Started listening", "address", addr)
 	}
 
 	if !s.noBootstrap {
@@ -161,13 +161,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		s.logger.Error("[network] Failed to close mDNS discovery service", "error", err)
+		s.logger.Error("Failed to close mDNS discovery service", "error", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		s.logger.Error("[network] Failed to close host", "error", err)
+		s.logger.Error("Failed to close host", "error", err)
 	}
 
 	s.lock.Lock()
@@ -206,7 +206,7 @@ func (s *Service) receiveCoreMessages() {
 		// receive message from core service
 		msg, ok := <-s.msgRec
 		if !ok || msg == nil {
-			s.logger.Warn("[network] Received nil message from core service")
+			s.logger.Warn("Received nil message from core service")
 			return // exit
 		}
 
@@ -216,7 +216,7 @@ func (s *Service) receiveCoreMessages() {
 		}
 
 		s.logger.Debug(
-			"[network] Broadcasting message from core service",
+			"Broadcasting message from core service",
 			"host", s.host.id(),
 			"type", msg.GetType(),
 		)
@@ -244,7 +244,7 @@ func (s *Service) handleConn(conn network.Conn) {
 		// get latest block header from block state
 		latestBlock, err := s.blockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			s.logger.Error("[network] Failed to get chain head", "error", err)
+			s.logger.Error("Failed to get chain head", "error", err)
 			return
 		}
 
@@ -273,7 +273,7 @@ func (s *Service) handleConn(conn network.Conn) {
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		s.logger.Error("[network] Failed to get connection from stream")
+		s.logger.Error("Failed to get connection from stream")
 		return
 	}
 
@@ -290,26 +290,26 @@ func (s *Service) readStream(r *bufio.Reader, peer peer.ID) {
 	for {
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
-			s.logger.Error("[network] Failed to read LEB128 encoding", "error", err)
+			s.logger.Error("Failed to read LEB128 encoding", "error", err)
 			return
 		}
 
 		msgBytes := make([]byte, length)
 		n, err := r.Read(msgBytes)
 		if err != nil {
-			s.logger.Error("[network] Failed to read message from stream", "error", err)
+			s.logger.Error("Failed to read message from stream", "error", err)
 			return
 		}
 
 		if uint64(n) != length {
-			s.logger.Error("[network] Failed to read entire message", "length", length, "read", n)
+			s.logger.Error("Failed to read entire message", "length", length, "read", n)
 			return
 		}
 
 		// decode message based on message type
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
-			s.logger.Error("[network] Failed to decode message from peer", "peer", peer, "err", err)
+			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			return // exit
 		}
 
@@ -322,7 +322,7 @@ func (s *Service) readStream(r *bufio.Reader, peer peer.ID) {
 // handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	s.logger.Trace(
-		"[network] Received message from peer",
+		"Received message from peer",
 		"host", s.host.id(),
 		"peer", peer,
 		"type", msg.GetType(),
@@ -337,7 +337,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 				if s.syncer.hasRequestedBlockID(resp.ID) {
 					err := s.safeMsgSend(msg)
 					if err != nil {
-						s.logger.Error("[network] Failed to send message", "ID", resp.ID, "error", err)
+						s.logger.Error("Failed to send message", "ID", resp.ID, "error", err)
 					}
 
 					s.syncer.removeRequestedBlockID(resp.ID)
@@ -347,7 +347,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			} else {
 				err := s.safeMsgSend(msg)
 				if err != nil {
-					s.logger.Error("[network] Failed to send message", "error", err)
+					s.logger.Error("Failed to send message", "error", err)
 				}
 			}
 

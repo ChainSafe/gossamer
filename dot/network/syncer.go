@@ -48,14 +48,14 @@ func newSyncer(host *host, blockState BlockState, syncChan chan<- *big.Int) *syn
 
 // addRequestedBlockID adds a requested block id to non-persistent state
 func (s *syncer) addRequestedBlockID(blockID uint64) {
-	s.logger.Trace("[network] Adding block to network syncer...", "block", blockID)
+	s.logger.Trace("Adding block to network syncer...", "block", blockID)
 	s.requestedBlockIDs.Store(blockID, true)
 }
 
 // hasRequestedBlockID returns true if the block id has been requested
 func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
 	if requested, ok := s.requestedBlockIDs.Load(blockID); ok {
-		s.logger.Trace("[network] Checking block in network syncer...", "block", blockID, "requested", requested)
+		s.logger.Trace("Checking block in network syncer...", "block", blockID, "requested", requested)
 		return requested.(bool)
 	}
 
@@ -64,7 +64,7 @@ func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
 
 // removeRequestedBlockID removes a requested block id from non-persistent state
 func (s *syncer) removeRequestedBlockID(blockID uint64) {
-	s.logger.Trace("[network] Removing block from network syncer...", "block", blockID)
+	s.logger.Trace("Removing block from network syncer...", "block", blockID)
 	s.requestedBlockIDs.Delete(blockID)
 }
 
@@ -75,7 +75,7 @@ func (s *syncer) handleStatusMesssage(statusMessage *StatusMessage) {
 	// get latest block header from block state
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		s.logger.Error("[network] Failed to get best block header from block state", "error", err)
+		s.logger.Error("Failed to get best block header from block state", "error", err)
 		return
 	}
 
@@ -83,7 +83,7 @@ func (s *syncer) handleStatusMesssage(statusMessage *StatusMessage) {
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-		s.logger.Debug("[network] sending new block to syncer", "number", statusMessage.BestBlockNumber)
+		s.logger.Debug("sending new block to syncer", "number", statusMessage.BestBlockNumber)
 		s.syncChan <- bestBlockNum
 	}
 }

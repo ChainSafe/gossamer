@@ -87,7 +87,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 func (h *HTTPServer) RegisterModules(mods []string) {
 
 	for _, mod := range mods {
-		h.logger.Debug("[rpc] Enabling rpc module", "module", mod)
+		h.logger.Debug("Enabling rpc module", "module", mod)
 		var srvc interface{}
 		switch mod {
 		case "system":
@@ -101,14 +101,14 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "rpc":
 			srvc = modules.NewRPCModule(h.serverConfig.RPCAPI)
 		default:
-			h.logger.Warn("[rpc] Unrecognized module", "module", mod)
+			h.logger.Warn("Unrecognized module", "module", mod)
 			continue
 		}
 
 		err := h.rpcServer.RegisterService(srvc, mod)
 
 		if err != nil {
-			h.logger.Warn("[rpc] Failed to register module", "mod", mod, "err", err)
+			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
 		}
 
 		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
@@ -123,13 +123,13 @@ func (h *HTTPServer) Start() error {
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json")
 	h.rpcServer.RegisterCodec(NewDotUpCodec(), "application/json;charset=UTF-8")
 
-	h.logger.Info("[rpc] Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
+	h.logger.Info("Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
-			h.logger.Error("[rpc] http error", "err", err)
+			h.logger.Error("http error", "err", err)
 		}
 	}()
 
@@ -137,13 +137,13 @@ func (h *HTTPServer) Start() error {
 		return nil
 	}
 
-	h.logger.Info("[rpc] Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
+	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
-			h.logger.Error("[rpc] http error", "err", err)
+			h.logger.Error("http error", "err", err)
 		}
 	}()
 

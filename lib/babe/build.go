@@ -39,7 +39,7 @@ func (b *Service) BuildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
-	b.logger.Trace("[babe] build block", "parent", parent, "slot", slot)
+	b.logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
@@ -47,7 +47,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	b.logger.Trace("[babe] built pre-digest")
+	b.logger.Trace("built pre-digest")
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
@@ -62,7 +62,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	b.logger.Trace("[babe] initialized block")
+	b.logger.Trace("initialized block")
 
 	// add block inherents
 	err = b.buildBlockInherents(slot)
@@ -70,7 +70,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	b.logger.Trace("[babe] built block inherents")
+	b.logger.Trace("built block inherents")
 
 	// add block extrinsics
 	included, err := b.buildBlockExtrinsics(slot)
@@ -78,7 +78,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot build extrinsics: %s", err)
 	}
 
-	b.logger.Trace("[babe] built block extrinsics")
+	b.logger.Trace("built block extrinsics")
 
 	// finalize block
 	header, err = b.rt.FinalizeBlock()
@@ -87,7 +87,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot finalize block: %s", err)
 	}
 
-	b.logger.Trace("[babe] finalized block")
+	b.logger.Trace("finalized block")
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))
@@ -103,7 +103,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	header.Digest = append(header.Digest, seal.Encode())
 
-	b.logger.Trace("[babe] built block seal")
+	b.logger.Trace("built block seal")
 
 	body, err := extrinsicsToBody(included)
 	if err != nil {
@@ -188,7 +188,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 	included := []*transaction.ValidTransaction{}
 
 	for !hasSlotEnded(slot) && next != nil {
-		b.logger.Trace("[babe] build block", "applying extrinsic", next)
+		b.logger.Trace("build block", "applying extrinsic", next)
 		ret, err := b.rt.ApplyExtrinsic(next)
 		if err != nil {
 			return nil, err
@@ -210,7 +210,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 
 		}
 
-		b.logger.Trace("[babe] build block applied extrinsic", "extrinsic", next)
+		b.logger.Trace("build block applied extrinsic", "extrinsic", next)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
 		t := b.transactionQueue.Pop()
@@ -293,9 +293,9 @@ func (b *Service) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		hash, err := b.transactionQueue.Push(t)
 		if err != nil {
-			b.logger.Trace("[babe] Failed to add transaction to queue", "error", err)
+			b.logger.Trace("Failed to add transaction to queue", "error", err)
 		} else {
-			b.logger.Trace("[babe] Added transaction to queue", "hash", hash)
+			b.logger.Trace("Added transaction to queue", "hash", hash)
 		}
 	}
 }

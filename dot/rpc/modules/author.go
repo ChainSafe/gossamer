@@ -118,7 +118,7 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 	}
 
 	cm.coreAPI.InsertKey(keyPair)
-	cm.logger.Info("[rpc] inserted key into keystore", "key", keyPair.Public().Hex())
+	cm.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
 
@@ -183,18 +183,18 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		var hash common.Hash
 		hash, err = cm.txQueueAPI.Push(vtx)
 		if err != nil {
-			cm.logger.Trace("[rpc] submitted extrinsic failed to push transaction to queue", "error", err)
+			cm.logger.Trace("submitted extrinsic failed to push transaction to queue", "error", err)
 			return err
 		}
 
 		*res = ExtrinsicHashResponse(hash.String())
-		cm.logger.Trace("[rpc] submitted extrinsic", "tx", vtx, "hash", hash.String())
+		cm.logger.Trace("submitted extrinsic", "tx", vtx, "hash", hash.String())
 	}
 
 	//broadcast
 	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	if err != nil {
-		cm.logger.Trace("[rpc] submitted extrinsic failed to submit Extrinsic to network", "error", err)
+		cm.logger.Trace("submitted extrinsic failed to submit Extrinsic to network", "error", err)
 	}
 
 	return err

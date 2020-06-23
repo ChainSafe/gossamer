@@ -38,6 +38,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,6 +92,10 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg.Verifier = &mockVerifier{}
 	}
 
+	if cfg.logger == nil {
+		cfg.logger = log.New("srvc", "CORE", "module", "SYNC")
+	}
+
 	syncer, err := NewSyncer(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +109,7 @@ func TestWatchForBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
@@ -145,6 +151,7 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 	}
 
@@ -186,6 +193,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
@@ -245,6 +253,7 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
@@ -300,6 +309,7 @@ func TestWatchForResponses(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,
@@ -378,6 +388,7 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("srvc", "CORE", "module", "SYNC"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,

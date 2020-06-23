@@ -85,7 +85,7 @@ func NewService(cfg *Config) (*Service, error) {
 	logger := log.New("srvc", "GRANDPA")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(h)
-	logger.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
 
 	// get latest finalized header
 	head, err := cfg.BlockState.GetFinalizedHeader(0)
@@ -125,7 +125,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			s.logger.Error("[grandpa] failed to initiate")
+			s.logger.Error("failed to initiate")
 		}
 	}()
 
@@ -189,7 +189,7 @@ func (s *Service) initiate() error {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalized.
 func (s *Service) playGrandpaRound() error {
-	s.logger.Debug("[grandpa] starting round", "round", s.state.round, "setID", s.state.setID)
+	s.logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
 
 	// save start time
 	start := time.Now()
@@ -203,7 +203,7 @@ func (s *Service) playGrandpaRound() error {
 		s.finalized <- msg
 	}
 
-	s.logger.Debug("[grandpa] receiving pre-vote messages...")
+	s.logger.Debug("receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
@@ -230,13 +230,13 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-	s.logger.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+	s.logger.Debug("sending pre-vote message...", "vote", pv, "votes", s.prevotes)
 	s.mapLock.Unlock()
 
 	go func() {
 		err = s.sendMessage(pv, prevote)
 		if err != nil {
-			s.logger.Error("[grandpa] could not send prevote message", "error", err)
+			s.logger.Error("could not send prevote message", "error", err)
 		}
 	}()
 
@@ -273,7 +273,7 @@ func (s *Service) playGrandpaRound() error {
 	go func() {
 		err = s.sendMessage(pc, precommit)
 		if err != nil {
-			s.logger.Error("[grandpa] could not send precommit message", "error", err)
+			s.logger.Error("could not send precommit message", "error", err)
 		}
 	}()
 
@@ -335,7 +335,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		s.logger.Debug("[grandpa] finalized block!!!", "hash", s.head)
+		s.logger.Debug("finalized block!!!", "hash", s.head)
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety
