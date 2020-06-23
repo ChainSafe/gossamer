@@ -74,7 +74,7 @@ type Syncer struct {
 }
 
 // SyncerConfig is the configuration for the Syncer.
-// TOOD: unexport these or separate syncer into another package
+// TODO: unexport these or separate syncer into another package
 type SyncerConfig struct {
 	logger           log.Logger
 	BlockState       BlockState
