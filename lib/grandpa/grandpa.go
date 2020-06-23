@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"os"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ var interval = time.Second
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
+	logger     log.Logger
 	blockState BlockState
 	keypair    *ed25519.Keypair
 	mapLock    sync.Mutex
@@ -80,7 +82,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilKeypair
 	}
 
-	log.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+	logger := log.New("srvc", "GRANDPA")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(h)
+	logger.Info("[grandpa] creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
 
 	// get latest finalized header
 	head, err := cfg.BlockState.GetFinalizedHeader(0)
@@ -91,6 +96,7 @@ func NewService(cfg *Config) (*Service, error) {
 	in := make(chan FinalityMessage, 128)
 
 	s := &Service{
+		logger:             logger,
 		state:              NewState(cfg.Voters, 0, 0),
 		blockState:         cfg.BlockState,
 		keypair:            cfg.Keypair,
@@ -119,7 +125,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			log.Error("[grandpa] failed to initiate")
+			s.logger.Error("[grandpa] failed to initiate")
 		}
 	}()
 
@@ -183,7 +189,7 @@ func (s *Service) initiate() error {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalized.
 func (s *Service) playGrandpaRound() error {
-	log.Debug("[grandpa] starting round", "round", s.state.round, "setID", s.state.setID)
+	s.logger.Debug("[grandpa] starting round", "round", s.state.round, "setID", s.state.setID)
 
 	// save start time
 	start := time.Now()
@@ -197,7 +203,7 @@ func (s *Service) playGrandpaRound() error {
 		s.finalized <- msg
 	}
 
-	log.Debug("[grandpa] receiving pre-vote messages...")
+	s.logger.Debug("[grandpa] receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 2)
@@ -224,17 +230,17 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-	log.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+	s.logger.Debug("[grandpa] sending pre-vote message...", "vote", pv, "votes", s.prevotes)
 	s.mapLock.Unlock()
 
 	go func() {
 		err = s.sendMessage(pv, prevote)
 		if err != nil {
-			log.Error("[grandpa] could not send prevote message", "error", err)
+			s.logger.Error("[grandpa] could not send prevote message", "error", err)
 		}
 	}()
 
-	log.Debug("receiving pre-vote messages...")
+	s.logger.Debug("receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
@@ -261,13 +267,13 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.precommits[s.publicKeyBytes()] = pc
-	log.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
+	s.logger.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
 	s.mapLock.Unlock()
 
 	go func() {
 		err = s.sendMessage(pc, precommit)
 		if err != nil {
-			log.Error("[grandpa] could not send precommit message", "error", err)
+			s.logger.Error("[grandpa] could not send precommit message", "error", err)
 		}
 	}()
 
@@ -329,7 +335,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		log.Debug("[grandpa] finalized block!!!", "hash", s.head)
+		s.logger.Debug("[grandpa] finalized block!!!", "hash", s.head)
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety

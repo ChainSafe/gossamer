@@ -30,6 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	log "github.com/ChainSafe/log15"
 )
 
 var emptyHash = trie.EmptyHash
@@ -263,6 +265,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	bs := &Service{
 		authorityData: authData,
 		keypair:       kpA,
+		logger:        log.New("BABE"),
 	}
 
 	err = bs.setAuthorityIndex()
@@ -277,6 +280,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	bs = &Service{
 		authorityData: authData,
 		keypair:       kpB,
+		logger:        log.New("BABE"),
 	}
 
 	err = bs.setAuthorityIndex()
