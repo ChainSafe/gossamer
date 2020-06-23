@@ -117,7 +117,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	}
 
 	return &Syncer{
-		logger:           cfg.logger.New("module", "SYNC"),
+		logger:           cfg.logger.New("module", "sync"),
 		blockState:       cfg.BlockState,
 		blockProducer:    cfg.BlockProducer,
 		blockNumIn:       cfg.BlockNumIn,

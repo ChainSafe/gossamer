@@ -195,6 +195,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	cfg.Verifier = &mockVerifier{}
+	cfg.LogLvl = 3
 
 	stateSrvc := state.NewService("", 0)
 	stateSrvc.UseMemDB()

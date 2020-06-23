@@ -37,6 +37,7 @@ import (
 const NetworkStateTimeout = time.Minute
 
 var _ services.Service = &Service{}
+var logger = log.New("pkg", "network")
 
 // Service describes a network service
 type Service struct {
@@ -71,9 +72,8 @@ type Service struct {
 func NewService(cfg *Config) (*Service, error) {
 	ctx := context.Background()
 
-	logger := log.New("srvc", "NET")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	cfg.logger = logger
 
 	// build configuration

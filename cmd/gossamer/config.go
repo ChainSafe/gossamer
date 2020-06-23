@@ -144,6 +144,9 @@ func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
 
+	// set log config TOOD: improve this
+	cfg.Global.LogLevel = ctx.String(LogFlag.Name)
+
 	return cfg
 }
 

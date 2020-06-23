@@ -33,12 +33,12 @@ import (
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
-	state = NewService(testDir)
+	state = NewService(testDir, 5)
 	return state
 }
 
 func newTestMemDBService() *Service {
-	state := NewService("")
+	state := NewService("", 5)
 	state.UseMemDB()
 	return state
 }
@@ -90,7 +90,7 @@ func TestService_BlockTree(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	stateA := NewService(testDir)
+	stateA := NewService(testDir, 5)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
 	require.Nil(t, err)
@@ -110,7 +110,7 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Stop()
 	require.Nil(t, err)
 
-	stateB := NewService(testDir)
+	stateB := NewService(testDir, 5)
 
 	err = stateB.Start()
 	require.Nil(t, err)

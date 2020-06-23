@@ -40,7 +40,7 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestState(t *testing.T) *state.Service {
-	stateSrvc := state.NewService("")
+	stateSrvc := state.NewService("", 3)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)

@@ -39,6 +39,7 @@ type HTTPServer struct {
 
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
+	LogLvl                 log.Lvl
 	BlockAPI               modules.BlockAPI
 	StorageAPI             modules.StorageAPI
 	NetworkAPI             modules.NetworkAPI
@@ -65,9 +66,9 @@ type WebSocketSubscription struct {
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
-	logger := log.New("srvc", "RPC")
+	logger := log.New("pkg", "rpc")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	server := &HTTPServer{
 		logger:       logger,

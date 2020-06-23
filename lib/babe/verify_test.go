@@ -34,7 +34,7 @@ import (
 var testEpoch = uint64(2)
 
 func newTestVerificationManager(t *testing.T, withBlock bool, descriptor *NextEpochDescriptor) *VerificationManager {
-	dbSrv := state.NewService("")
+	dbSrv := state.NewService("", 3)
 	dbSrv.UseMemDB()
 
 	genesisData := new(genesis.Data)

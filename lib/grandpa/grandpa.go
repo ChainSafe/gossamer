@@ -66,6 +66,7 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
+	LogLvl     log.Lvl
 	BlockState BlockState
 	Voters     []*Voter
 	Keypair    *ed25519.Keypair
@@ -82,9 +83,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilKeypair
 	}
 
-	logger := log.New("srvc", "GRANDPA")
+	logger := log.New("pkg", "grandpa")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+
 	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
 
 	// get latest finalized header

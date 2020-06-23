@@ -120,6 +120,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 	}
 
 	bcfg := &babe.ServiceConfig{
+		LogLvl:           cfg.Global.lvl,
 		Keypair:          kps[0].(*sr25519.Keypair),
 		Runtime:          rt,
 		BlockState:       st.Block,
@@ -149,6 +150,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, rt
 
 	// set core configuration
 	coreConfig := &core.Config{
+		LogLvl:           cfg.Global.lvl,
 		BlockState:       stateSrvc.Block,
 		StorageState:     stateSrvc.Storage,
 		TransactionQueue: stateSrvc.TransactionQueue,

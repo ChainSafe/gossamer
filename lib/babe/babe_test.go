@@ -80,7 +80,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.BlockState == nil || cfg.StorageState == nil {
-		dbSrv := state.NewService("")
+		dbSrv := state.NewService("", 3)
 		dbSrv.UseMemDB()
 
 		genesisData := new(genesis.Data)
@@ -94,6 +94,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.BlockState = dbSrv.Block
 		cfg.StorageState = dbSrv.Storage
 	}
+
+	cfg.LogLvl = 3
 
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)

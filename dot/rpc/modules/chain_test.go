@@ -253,7 +253,7 @@ var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0),
 func newTestChainService(t *testing.T) *state.Service {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
-	stateSrvc := state.NewService(testDir)
+	stateSrvc := state.NewService(testDir, 3)
 
 	tr := trie.NewEmptyTrie()
 

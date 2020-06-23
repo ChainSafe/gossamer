@@ -81,6 +81,7 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
+	LogLvl           log.Lvl
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionQueue TransactionQueue
@@ -121,9 +122,9 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockProducer
 	}
 
-	logger := log.New("srvc", "CORE")
+	logger := log.New("pkg", "core")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	codeHash, err := cfg.StorageState.LoadCodeHash()
 	if err != nil {

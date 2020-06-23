@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	cfg.ChanLock = &sync.Mutex{}
 
-	stateSrvc := state.NewService("")
+	stateSrvc := state.NewService("", 3)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
@@ -93,8 +94,11 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 	}
 
 	if cfg.logger == nil {
-		cfg.logger = log.New("srvc", "CORE", "module", "SYNC")
+		cfg.logger = log.New("pkg", "core")
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer, err := NewSyncer(cfg)
 	if err != nil {
@@ -109,10 +113,13 @@ func TestWatchForBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -151,9 +158,12 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -193,10 +203,13 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -253,10 +266,13 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -309,11 +325,14 @@ func TestWatchForResponses(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -388,11 +407,14 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
-		logger:     log.New("srvc", "CORE", "module", "SYNC"),
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()

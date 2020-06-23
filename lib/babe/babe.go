@@ -72,6 +72,7 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
+	LogLvl           log.Lvl
 	BlockState       BlockState
 	StorageState     StorageState
 	TransactionQueue TransactionQueue
@@ -92,9 +93,9 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errors.New("blockState is nil")
 	}
 
-	logger := log.New("srvc", "BABE")
+	logger := log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	babeService := &Service{
 		logger:           logger,
