@@ -19,6 +19,7 @@ package runtime
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -27,6 +28,7 @@ import (
 )
 
 var memory, memErr = wasm.NewMemory(17, 0)
+var logger = log.New("srvc", "RUNTIME")
 
 // Ctx struct
 type Ctx struct {
@@ -61,6 +63,9 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 		return nil, errors.New("runtime does not have storage trie")
 	}
 
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(h)
+
 	imports, err := registerImports()
 	if err != nil {
 		return nil, err
@@ -88,7 +93,7 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 		keystore:  ks,
 	}
 
-	log.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
+	logger.Debug("[NewRuntime]", "runtimeCtx", runtimeCtx)
 	instance.SetContextData(&runtimeCtx)
 
 	r := Runtime{
@@ -129,7 +134,7 @@ func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
 	defer func() {
 		err = r.free(ptr)
 		if err != nil {
-			log.Error("exec: could not free ptr", "error", err)
+			logger.Error("exec: could not free ptr", "error", err)
 		}
 	}()
 
