@@ -30,7 +30,7 @@ import (
 
 // app is the cli application
 var app = cli.NewApp()
-var logger = log.New("pkg", "CMD")
+var logger = log.New("pkg", "cmd")
 
 var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)

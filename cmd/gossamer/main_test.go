@@ -228,6 +228,8 @@ func TestInvalidCommand(t *testing.T) {
 }
 
 func TestGossamerCommand(t *testing.T) {
+	t.Skip() // not sure how relevant this is anymore, it also slows down the tests a lot
+
 	basePort := 7000
 	genesisPath := utils.GetGssmrGenesisPath()
 
@@ -253,7 +255,6 @@ func TestGossamerCommand(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-
 		t.Log("Going to gossamer cmd", "iteration", i)
 
 		// start
