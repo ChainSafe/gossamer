@@ -43,7 +43,7 @@ import (
 
 var (
 	numNodes   = 3
-	maxRetries = 8
+	maxRetries = 24
 )
 
 // compareChainHeads calls getChainHead for each node in the array
