@@ -77,6 +77,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 
 	s.out <- msg
 	s.logger.Debug("sent VoteMessage", "msg", msg)
+
 	return nil
 }
 
@@ -129,6 +130,11 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	// check that setIDs match
 	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
+	}
+
+	// check that vote is for current round
+	if m.Round != s.state.round {
+		return nil, ErrRoundMismatch
 	}
 
 	// check for equivocation ie. multiple votes within one subround
