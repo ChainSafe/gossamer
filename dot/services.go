@@ -33,6 +33,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
+	log "github.com/ChainSafe/log15"
 )
 
 // ErrNoKeysProvided is returned when no keys are given for an authority node
@@ -44,7 +46,7 @@ var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Info("creating state service...")
 
-	stateSrvc := state.NewService(cfg.Global.BasePath)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.lvl)
 
 	// start state service (initialize state database)
 	err := stateSrvc.Start()
@@ -67,15 +69,22 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(st *state.Service, ks *keystore.Keystore) (*runtime.Runtime, error) {
+func createRuntime(st *state.Service, ks *keystore.Keystore, lvl log.Lvl) (*runtime.Runtime, error) {
 	// load runtime code from trie
 	code, err := st.Storage.GetStorage([]byte(":code"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
 	}
 
+	cfg := &runtime.Config{
+		Storage:  st.Storage,
+		Keystore: ks,
+		Imports:  runtime.RegisterImports_NodeRuntime,
+		LogLvl:   lvl,
+	}
+
 	// create runtime executor
-	rt, err := runtime.NewRuntime(code, st.Storage, ks, runtime.RegisterImports_NodeRuntime)
+	rt, err := runtime.NewRuntime(code, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 	}

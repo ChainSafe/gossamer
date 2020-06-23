@@ -191,7 +191,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath)
+	stateSrvc := state.NewService(cfg.Global.BasePath, 4)
 
 	header := &types.Header{
 		Number:         big.NewInt(0),

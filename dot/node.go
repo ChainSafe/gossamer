@@ -37,7 +37,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var logger = log.New("pkg", "DOT")
+var logger = log.New("pkg", "dot")
 
 // Node is a container for all the components of a node.
 type Node struct {
@@ -50,8 +50,10 @@ type Node struct {
 // InitNode initializes a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	err := setupLogger(cfg)
+	if err != nil {
+		return err
+	}
 
 	logger.Info(
 		"initializing node...",
@@ -80,7 +82,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.lvl)
 
 	// declare genesis data
 	data := gen.GenesisData()
@@ -176,8 +178,10 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	err := setupLogger(cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	// if authority node, should have at least 1 key in keystore
 	if cfg.Core.Authority && ks.NumSr25519Keys() == 0 {
@@ -210,7 +214,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	nodeSrvcs = append(nodeSrvcs, stateSrvc)
 
 	// create runtime
-	rt, err := createRuntime(stateSrvc, ks)
+	rt, err := createRuntime(stateSrvc, ks, cfg.Global.lvl)
 	if err != nil {
 		return nil, err
 	}

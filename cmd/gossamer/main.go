@@ -99,16 +99,15 @@ func main() {
 // configuration, loads the keystore, initializes the node if not initialized,
 // then creates and starts the node and node services
 func gossamerAction(ctx *cli.Context) error {
-
 	// check for unknown command arguments
 	if arguments := ctx.Args(); len(arguments) > 0 {
 		return fmt.Errorf("failed to read command argument: %q", arguments[0])
 	}
 
-	// start gossamer logger
-	err := startLogger(ctx)
+	// setup gossamer logger
+	lvl, err := setupLogger(ctx)
 	if err != nil {
-		logger.Error("failed to start logger", "error", err)
+		logger.Error("failed to setup logger", "error", err)
 		return err
 	}
 
@@ -119,6 +118,8 @@ func gossamerAction(ctx *cli.Context) error {
 		logger.Error("failed to create node configuration", "error", err)
 		return err
 	}
+
+	cfg.Global.LogLevel = lvl.String()
 
 	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)
@@ -175,9 +176,9 @@ func gossamerAction(ctx *cli.Context) error {
 // initAction is the action for the "init" subcommand, initializes the trie and
 // state databases and loads initial state from the configured genesis file
 func initAction(ctx *cli.Context) error {
-	err := startLogger(ctx)
+	lvl, err := setupLogger(ctx)
 	if err != nil {
-		logger.Error("failed to start logger", "error", err)
+		logger.Error("failed to setup logger", "error", err)
 		return err
 	}
 
@@ -186,6 +187,8 @@ func initAction(ctx *cli.Context) error {
 		logger.Error("failed to create node configuration", "error", err)
 		return err
 	}
+
+	cfg.Global.LogLevel = lvl.String()
 
 	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)

@@ -43,10 +43,10 @@ type Service struct {
 }
 
 // NewService create a new instance of Service
-func NewService(path string) *Service {
-	logger := log.New("srvc", "STATE")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+func NewService(path string, lvl log.Lvl) *Service {
+	logger := log.New("pkg", "state")
+	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
 
 	return &Service{
 		logger:  logger,

@@ -27,12 +27,6 @@ import (
 
 // exportAction is the action for the "export" subcommand
 func exportAction(ctx *cli.Context) error {
-	err := startLogger(ctx)
-	if err != nil {
-		logger.Error("failed to start logger", "error", err)
-		return err
-	}
-
 	// use --config value as export destination
 	config := ctx.GlobalString(ConfigFlag.Name)
 

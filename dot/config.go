@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
 	"github.com/ChainSafe/gossamer/dot/types"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
 )
 
@@ -47,6 +48,8 @@ type GlobalConfig struct {
 	Name     string `toml:"name"`
 	ID       string `toml:"id"`
 	BasePath string `toml:"basepath"`
+	LogLevel string `toml:"log"`
+	lvl      log.Lvl
 }
 
 // InitConfig is the configuration for the node initialization

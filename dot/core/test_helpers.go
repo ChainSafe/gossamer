@@ -196,7 +196,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	cfg.Verifier = &mockVerifier{}
 
-	stateSrvc := state.NewService("")
+	stateSrvc := state.NewService("", 0)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)

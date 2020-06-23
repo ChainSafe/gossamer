@@ -32,14 +32,6 @@ import (
 // then, if the import flag is set, if so, it imports a keypair
 // finally, if the list flag is set, it lists all the keys in the keystore
 func accountAction(ctx *cli.Context) error {
-
-	// start gossamer logger
-	err := startLogger(ctx)
-	if err != nil {
-		logger.Error("failed to start logger", "error", err)
-		return err
-	}
-
 	// create dot configuration
 	cfg, err := createDotConfig(ctx)
 	if err != nil {

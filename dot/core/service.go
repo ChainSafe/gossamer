@@ -403,7 +403,14 @@ func (s *Service) checkForRuntimeChanges() error {
 
 		s.rt.Stop()
 
-		s.rt, err = runtime.NewRuntime(code, s.storageState, s.keys, runtime.RegisterImports_NodeRuntime)
+		cfg := &runtime.Config{
+			Storage:  s.storageState,
+			Keystore: s.keys,
+			Imports:  runtime.RegisterImports_NodeRuntime,
+			LogLvl:   -1, // don't change runtime package log level
+		}
+
+		s.rt, err = runtime.NewRuntime(code, cfg)
 		if err != nil {
 			return err
 		}

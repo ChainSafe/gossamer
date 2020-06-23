@@ -28,13 +28,21 @@ import (
 )
 
 var memory, memErr = wasm.NewMemory(17, 0)
-var logger = log.New("pkg", "RUNTIME")
+var logger = log.New("pkg", "runtime")
 
 // Ctx struct
 type Ctx struct {
 	storage   Storage
 	allocator *FreeingBumpHeapAllocator
 	keystore  *keystore.Keystore
+}
+
+// Config represents a runtime configuration
+type Config struct {
+	Storage  Storage
+	Keystore *keystore.Keystore
+	Imports  func() (*wasm.Imports, error)
+	LogLvl   log.Lvl
 }
 
 // Runtime struct
@@ -47,26 +55,29 @@ type Runtime struct {
 }
 
 // NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, s Storage, ks *keystore.Keystore, registerImports func() (*wasm.Imports, error)) (*Runtime, error) {
+func NewRuntimeFromFile(fp string, cfg *Config) (*Runtime, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, s, ks, registerImports)
+	return NewRuntime(bytes, cfg)
 }
 
 // NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports func() (*wasm.Imports, error)) (*Runtime, error) {
-	if s == nil {
+func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
+	if cfg.Storage == nil {
 		return nil, errors.New("runtime does not have storage trie")
 	}
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(h)
+	// if cfg.LogLvl set to < 0, then don't change package log level
+	if cfg.LogLvl >= 0 {
+		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	}
 
-	imports, err := registerImports()
+	imports, err := cfg.Imports()
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +99,9 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 	memAllocator := NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := Ctx{
-		storage:   s,
+		storage:   cfg.Storage,
 		allocator: memAllocator,
-		keystore:  ks,
+		keystore:  cfg.Keystore,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)
@@ -98,9 +109,9 @@ func NewRuntime(code []byte, s Storage, ks *keystore.Keystore, registerImports f
 
 	r := Runtime{
 		vm:        instance,
-		storage:   s,
+		storage:   cfg.Storage,
 		mutex:     sync.Mutex{},
-		keystore:  ks,
+		keystore:  cfg.Keystore,
 		allocator: memAllocator,
 	}
 
