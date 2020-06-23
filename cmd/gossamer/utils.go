@@ -31,8 +31,7 @@ import (
 
 // startLogger starts the gossamer logger
 func startLogger(ctx *cli.Context) error {
-	logger := log.Root()
-	handler := logger.GetHandler()
+	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 
 	var lvl log.Lvl
 
