@@ -18,7 +18,7 @@ package modules
 
 import (
 	"encoding/hex"
-	"fmt"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -189,9 +189,11 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	metadata, err := sm.coreAPI.GetMetadata()
-	//metadata = append([]byte{109, 101, 116, 97}, metadata...)
-	fmt.Printf("MetaData %v\n", metadata)
-	*res = common.BytesToHex(metadata[4:])
+	if err != nil {
+		return err
+	}
+	decoded, err := scale.Decode(metadata, []byte{})
+	*res = common.BytesToHex(decoded.([]byte))
 	return err
 }
 
