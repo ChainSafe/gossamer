@@ -26,8 +26,8 @@ description: > # this means to ignore newlines until "show_excerpts:"
   The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host
 show_excerpts: false # set to true to show excerpts on the homepage
 
-baseurl: /gossamer/
-relative_url: /gossamer/
+baseurl: /
+relative_url: /
 
 # Minima date format
 # refer to https://shopify.github.io/liquid/filters/date/ if you want to customize this
