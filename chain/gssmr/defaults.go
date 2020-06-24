@@ -28,7 +28,7 @@ var (
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/gssmr")
 
-	// LogConfig
+	// DefaultLvl is the default log level
 	DefaultLvl = string("info")
 
 	// InitConfig
