@@ -80,7 +80,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.BlockState == nil || cfg.StorageState == nil {
-		dbSrv := state.NewService("", 3)
+		dbSrv := state.NewService("", log.LvlInfo)
 		dbSrv.UseMemDB()
 
 		genesisData := new(genesis.Data)

@@ -228,7 +228,7 @@ func TestInvalidCommand(t *testing.T) {
 }
 
 func TestGossamerCommand(t *testing.T) {
-	t.Skip() // not sure how relevant this is anymore, it also slows down the tests a lot
+	t.Skip() // TODO: not sure how relevant this is anymore, it also slows down the tests a lot
 
 	basePort := 7000
 	genesisPath := utils.GetGssmrGenesisPath()

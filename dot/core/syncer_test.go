@@ -50,7 +50,7 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 
 	cfg.ChanLock = &sync.Mutex{}
 
-	stateSrvc := state.NewService("", 3)
+	stateSrvc := state.NewService("", log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
