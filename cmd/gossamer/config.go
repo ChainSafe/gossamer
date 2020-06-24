@@ -78,33 +78,6 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	return cfg, nil
 }
 
-func createLogConfig(ctx *cli.Context) (*dot.Config, error) {
-	cfg, err := loadConfigFile(ctx)
-	if err != nil {
-		logger.Error("failed to load toml configuration", "error", err)
-		return nil, err
-	}
-
-	var lvl log.Lvl
-	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		lvl = log.Lvl(lvlToInt)
-	} else if lvl, err = log.LvlFromString(ctx.String(LogFlag.Name)); err != nil {
-		return nil, err
-	}
-
-	//cfg.Global.LogLevel = lvl.String()
-	if cfg.Global.LogLevel == "" {
-		cfg.Global.LogLevel = lvl.String()
-	}
-
-	// TODO: check log levels for each pkg
-	if cfg.Log.CoreLvl == "" {
-		cfg.Log.CoreLvl = cfg.Global.LogLevel
-	}
-
-	return cfg, nil
-}
-
 // createDotConfig creates a new dot configuration from the provided flag values
 func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	cfg, err = loadConfigFile(ctx)
@@ -112,6 +85,10 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 		logger.Error("failed to load toml configuration", "error", err)
 		return nil, err
 	}
+
+	// set log config
+	setLogConfig(ctx, &cfg.Global, &cfg.Log)
+	logger.Info("loaded package log configuration", "cfg", cfg.Log)
 
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
@@ -139,6 +116,9 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
 
+	// set log config
+	setLogConfig(ctx, &cfg.Global, &cfg.Log)
+
 	// set init configuration values
 	setDotInitConfig(ctx, &cfg.Init)
 
@@ -153,12 +133,10 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 // createExportConfig creates a new dot configuration from the provided flag values
 func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
-	///cfg = DefaultCfg // start with default configuration
-	var err error
-	cfg, err = createLogConfig(ctx)
-	if err != nil {
-		cfg = DefaultCfg
-	}
+	cfg = DefaultCfg // start with default configuration
+
+	// set log config
+	setLogConfig(ctx, &cfg.Global, &cfg.Log)
 
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
@@ -182,6 +160,50 @@ func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
 	cfg.Global.LogLevel = ctx.String(LogFlag.Name)
 
 	return cfg
+}
+
+func setLogConfig(ctx *cli.Context, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (*dot.LogConfig, error) {
+	var lvl log.Lvl
+	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
+		lvl = log.Lvl(lvlToInt)
+	} else if lvl, err = log.LvlFromString(ctx.String(LogFlag.Name)); err != nil {
+		return nil, err
+	}
+
+	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
+		globalCfg.LogLevel = lvl.String()
+	}
+
+	// check and set log levels for each pkg
+	if logCfg.CoreLvl == "" {
+		logCfg.CoreLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.NetworkLvl == "" {
+		logCfg.NetworkLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.RPCLvl == "" {
+		logCfg.RPCLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.StateLvl == "" {
+		logCfg.StateLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.RuntimeLvl == "" {
+		logCfg.RuntimeLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.BlockProducerLvl == "" {
+		logCfg.BlockProducerLvl = globalCfg.LogLevel
+	}
+
+	if logCfg.FinalityGadgetLvl == "" {
+		logCfg.FinalityGadgetLvl = globalCfg.LogLevel
+	}
+
+	return logCfg, nil
 }
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context
@@ -212,6 +234,14 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	// check --basepath flag and update node configuration
 	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
 		cfg.BasePath = basepath
+	}
+
+	// check --log flag
+	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
+		lvl := log.Lvl(lvlToInt)
+		cfg.LogLevel = lvl.String()
+	} else if lvl, err := log.LvlFromString(ctx.String(LogFlag.Name)); err == nil {
+		cfg.LogLevel = lvl.String()
 	}
 
 	logger.Debug(

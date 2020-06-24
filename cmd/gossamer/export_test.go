@@ -54,22 +54,22 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis --basepath --name --log",
 			[]string{"config", "genesis", "basepath", "name", "log"},
-			[]interface{}{testConfig, genFile.Name(), testDir, testName, "trace"},
+			[]interface{}{testConfig, genFile.Name(), testDir, testName, "info"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:     testName,
 					ID:       testCfg.Global.ID,
 					BasePath: testCfg.Global.BasePath,
-					LogLevel: "trace",
+					LogLevel: "info",
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           "trace",
-					NetworkLvl:        "trace",
-					RPCLvl:            "trace",
-					StateLvl:          "trace",
-					RuntimeLvl:        "trace",
-					BlockProducerLvl:  "trace",
-					FinalityGadgetLvl: "trace",
+					CoreLvl:           "info",
+					NetworkLvl:        "info",
+					RPCLvl:            "info",
+					StateLvl:          "info",
+					RuntimeLvl:        "info",
+					BlockProducerLvl:  "info",
+					FinalityGadgetLvl: "info",
 				},
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
