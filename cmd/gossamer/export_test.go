@@ -62,6 +62,15 @@ func TestExportCommand(t *testing.T) {
 					BasePath: testCfg.Global.BasePath,
 					LogLevel: "trace",
 				},
+				Log: dot.LogConfig{
+					CoreLvl:           "trace",
+					NetworkLvl:        "trace",
+					RPCLvl:            "trace",
+					StateLvl:          "trace",
+					RuntimeLvl:        "trace",
+					BlockProducerLvl:  "trace",
+					FinalityGadgetLvl: "trace",
+				},
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
 				},
@@ -86,6 +95,15 @@ func TestExportCommand(t *testing.T) {
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
 				},
+				Log: dot.LogConfig{
+					CoreLvl:           "info",
+					NetworkLvl:        "info",
+					RPCLvl:            "info",
+					StateLvl:          "info",
+					RuntimeLvl:        "info",
+					BlockProducerLvl:  "info",
+					FinalityGadgetLvl: "info",
+				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
@@ -106,6 +124,15 @@ func TestExportCommand(t *testing.T) {
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
 					Genesis: genFile.Name(),
+				},
+				Log: dot.LogConfig{
+					CoreLvl:           "info",
+					NetworkLvl:        "info",
+					RPCLvl:            "info",
+					StateLvl:          "info",
+					RuntimeLvl:        "info",
+					BlockProducerLvl:  "info",
+					FinalityGadgetLvl: "info",
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,

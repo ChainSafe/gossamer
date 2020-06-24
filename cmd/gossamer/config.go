@@ -26,6 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+
+	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -71,6 +73,33 @@ func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
 	if cfg == nil {
 		logger.Info("loading default configuration...", "id", "gssmr")
 		cfg = DefaultCfg
+	}
+
+	return cfg, nil
+}
+
+func createLogConfig(ctx *cli.Context) (*dot.Config, error) {
+	cfg, err := loadConfigFile(ctx)
+	if err != nil {
+		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	var lvl log.Lvl
+	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
+		lvl = log.Lvl(lvlToInt)
+	} else if lvl, err = log.LvlFromString(ctx.String(LogFlag.Name)); err != nil {
+		return nil, err
+	}
+
+	//cfg.Global.LogLevel = lvl.String()
+	if cfg.Global.LogLevel == "" {
+		cfg.Global.LogLevel = lvl.String()
+	}
+
+	// TODO: check log levels for each pkg
+	if cfg.Log.CoreLvl == "" {
+		cfg.Log.CoreLvl = cfg.Global.LogLevel
 	}
 
 	return cfg, nil
@@ -124,7 +153,12 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 // createExportConfig creates a new dot configuration from the provided flag values
 func createExportConfig(ctx *cli.Context) (cfg *dot.Config) {
-	cfg = DefaultCfg // start with default configuration
+	///cfg = DefaultCfg // start with default configuration
+	var err error
+	cfg, err = createLogConfig(ctx)
+	if err != nil {
+		cfg = DefaultCfg
+	}
 
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
