@@ -93,6 +93,10 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errors.New("blockState is nil")
 	}
 
+	if cfg.Runtime == nil {
+		return nil, errors.New("runtime is nil")
+	}
+
 	logger := log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -174,6 +178,7 @@ func (b *Service) Start() error {
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
 	b.started.Store(false)
+	b.logger.Info("service paused")
 	return nil
 }
 
@@ -181,6 +186,7 @@ func (b *Service) Pause() error {
 func (b *Service) Resume() error {
 	b.started.Store(true)
 	go b.invokeBlockAuthoring()
+	b.logger.Info("service resumed")
 	return nil
 }
 
@@ -195,6 +201,11 @@ func (b *Service) Stop() error {
 	}
 
 	return nil
+}
+
+// IsStopped returns true if the service is stopped (ie not producing blocks)
+func (b *Service) IsStopped() bool {
+	return !b.started.Load().(bool)
 }
 
 // SetRuntime sets the service's runtime
@@ -256,10 +267,6 @@ func (b *Service) setAuthorityIndex() error {
 	return fmt.Errorf("key not in BABE authority data")
 }
 
-func (b *Service) isStopped() bool {
-	return !b.started.Load().(bool)
-}
-
 func (b *Service) invokeBlockAuthoring() {
 	if b.config == nil {
 		b.logger.Error("block authoring", "error", "config is nil")
@@ -309,7 +316,7 @@ func (b *Service) invokeBlockAuthoring() {
 		start := time.Now().Unix()
 
 		if uint64(time.Now().Unix()-start) <= b.config.SlotDuration*1000000 {
-			if b.isStopped() {
+			if b.IsStopped() {
 				return
 			}
 
