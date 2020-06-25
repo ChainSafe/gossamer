@@ -36,6 +36,12 @@ type NetworkAPI interface {
 	Start() error
 }
 
+// BlockProducerAPI is the interface for BlockProducer methods
+type BlockProducerAPI interface {
+	Pause() error
+	Resume() error
+}
+
 // TransactionQueueAPI ...
 type TransactionQueueAPI interface {
 	Push(*transaction.ValidTransaction) (common.Hash, error)
