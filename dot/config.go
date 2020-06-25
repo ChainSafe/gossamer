@@ -35,6 +35,7 @@ import (
 // Config is a collection of configurations throughout the system
 type Config struct {
 	Global  GlobalConfig     `toml:"global"`
+	Log     LogConfig        `toml:"log"`
 	Init    InitConfig       `toml:"init"`
 	Account AccountConfig    `toml:"account"`
 	Core    CoreConfig       `toml:"core"`
@@ -48,6 +49,19 @@ type GlobalConfig struct {
 	Name     string `toml:"name"`
 	ID       string `toml:"id"`
 	BasePath string `toml:"basepath"`
+	LogLevel string `toml:"log"`
+	lvl      log.Lvl
+}
+
+// LogConfig represents the log levels for individual packages
+type LogConfig struct {
+	CoreLvl           string `toml:"core"`
+	NetworkLvl        string `toml:"network"`
+	RPCLvl            string `toml:"rpc"`
+	StateLvl          string `toml:"state"`
+	RuntimeLvl        string `toml:"runtime"`
+	BlockProducerLvl  string `toml:"babe"`
+	FinalityGadgetLvl string `toml:"grandpa"`
 }
 
 // InitConfig is the configuration for the node initialization
@@ -109,6 +123,16 @@ func GssmrConfig() *Config {
 			Name:     gssmr.DefaultName,
 			ID:       gssmr.DefaultID,
 			BasePath: gssmr.DefaultBasePath,
+			LogLevel: gssmr.DefaultLvl,
+		},
+		Log: LogConfig{
+			CoreLvl:           gssmr.DefaultLvl,
+			NetworkLvl:        gssmr.DefaultLvl,
+			RPCLvl:            gssmr.DefaultLvl,
+			StateLvl:          gssmr.DefaultLvl,
+			RuntimeLvl:        gssmr.DefaultLvl,
+			BlockProducerLvl:  gssmr.DefaultLvl,
+			FinalityGadgetLvl: gssmr.DefaultLvl,
 		},
 		Init: InitConfig{
 			Genesis: gssmr.DefaultGenesis,
@@ -149,6 +173,15 @@ func KsmccConfig() *Config {
 			ID:       ksmcc.DefaultID,
 			BasePath: ksmcc.DefaultBasePath,
 		},
+		Log: LogConfig{
+			CoreLvl:           ksmcc.DefaultLvl,
+			NetworkLvl:        ksmcc.DefaultLvl,
+			RPCLvl:            ksmcc.DefaultLvl,
+			StateLvl:          ksmcc.DefaultLvl,
+			RuntimeLvl:        ksmcc.DefaultLvl,
+			BlockProducerLvl:  ksmcc.DefaultLvl,
+			FinalityGadgetLvl: ksmcc.DefaultLvl,
+		},
 		Init: InitConfig{
 			Genesis: ksmcc.DefaultGenesis,
 		},
@@ -184,13 +217,13 @@ func KsmccConfig() *Config {
 func LoadConfig(cfg *Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
-		log.Error("[dot] failed to create absolute path for toml configuration file", "error", err)
+		logger.Error("failed to create absolute path for toml configuration file", "error", err)
 		return err
 	}
 
 	file, err := os.Open(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] failed to open toml configuration file", "error", err)
+		logger.Error("failed to open toml configuration file", "error", err)
 		return err
 	}
 
@@ -211,7 +244,7 @@ func LoadConfig(cfg *Config, fp string) error {
 	}
 
 	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		log.Error("[dot] failed to decode configuration", "error", err)
+		logger.Error("failed to decode configuration", "error", err)
 		return err
 	}
 
@@ -227,24 +260,24 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 	)
 
 	if raw, err = toml.Marshal(*cfg); err != nil {
-		log.Error("[dot] failed to marshal configuration", "error", err)
+		logger.Error("failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
 
 	newFile, err = os.Create(filepath.Clean(fp))
 	if err != nil {
-		log.Error("[dot] failed to create configuration file", "error", err)
+		logger.Error("failed to create configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	_, err = newFile.Write(raw)
 	if err != nil {
-		log.Error("[dot] failed to write to configuration file", "error", err)
+		logger.Error("failed to write to configuration file", "error", err)
 		os.Exit(1)
 	}
 
 	if err := newFile.Close(); err != nil {
-		log.Error("[dot] failed to close configuration file", "error", err)
+		logger.Error("failed to close configuration file", "error", err)
 		os.Exit(1)
 	}
 

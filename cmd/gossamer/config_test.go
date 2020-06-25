@@ -142,6 +142,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
+				LogLevel: "info",
 			},
 		},
 		{
@@ -152,6 +153,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       "ksmcc",
 				BasePath: testCfg.Global.BasePath,
+				LogLevel: "info",
 			},
 		},
 		{
@@ -162,6 +164,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     "test_name",
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
+				LogLevel: "info",
 			},
 		},
 		{
@@ -172,6 +175,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: "test_basepath",
+				LogLevel: "info",
 			},
 		},
 		{
@@ -182,6 +186,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
+				LogLevel: "info",
 			},
 		},
 	}
@@ -537,6 +542,16 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
+			LogLevel: testCfg.Global.LogLevel,
+		},
+		Log: dot.LogConfig{
+			CoreLvl:           "info",
+			NetworkLvl:        "info",
+			RPCLvl:            "info",
+			StateLvl:          "info",
+			RuntimeLvl:        "info",
+			BlockProducerLvl:  "info",
+			FinalityGadgetLvl: "info",
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
@@ -578,6 +593,16 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
+			LogLevel: testCfg.Global.LogLevel,
+		},
+		Log: dot.LogConfig{
+			CoreLvl:           "info",
+			NetworkLvl:        "info",
+			RPCLvl:            "info",
+			StateLvl:          "info",
+			RuntimeLvl:        "info",
+			BlockProducerLvl:  "info",
+			FinalityGadgetLvl: "info",
 		},
 		Init: dot.InitConfig{
 			Genesis: DefaultCfg.Init.Genesis,
@@ -615,6 +640,16 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
+			LogLevel: testCfg.Global.LogLevel,
+		},
+		Log: dot.LogConfig{
+			CoreLvl:           "info",
+			NetworkLvl:        "info",
+			RPCLvl:            "info",
+			StateLvl:          "info",
+			RuntimeLvl:        "info",
+			BlockProducerLvl:  "info",
+			FinalityGadgetLvl: "info",
 		},
 		Init: dot.InitConfig{
 			Genesis: genFile.Name(),
