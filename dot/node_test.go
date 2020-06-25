@@ -21,19 +21,22 @@ import (
 	"encoding/binary"
 	"math/big"
 	"reflect"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,8 +100,43 @@ func TestNewNode(t *testing.T) {
 	// TODO: improve dot tests #687
 	cfg.Core.Authority = false
 
-	_, err = NewNode(cfg, ks)
+	node, err := NewNode(cfg, ks)
 	require.Nil(t, err)
+
+	bp := node.Services.Get(&babe.Service{})
+	require.Nil(t, bp)
+	fg := node.Services.Get(&grandpa.Service{})
+	require.Nil(t, fg)
+}
+
+func TestNewNode_Authority(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.Nil(t, err)
+
+	ks, err := keystore.LoadKeystore("alice")
+	require.Nil(t, err)
+	require.NotNil(t, ks)
+
+	// TODO: improve dot tests #687
+	cfg.Core.Authority = true
+
+	node, err := NewNode(cfg, ks)
+	require.Nil(t, err)
+
+	bp := node.Services.Get(&babe.Service{})
+	require.NotNil(t, bp)
+	fg := node.Services.Get(&grandpa.Service{})
+	require.NotNil(t, fg)
 }
 
 // TestStartNode
@@ -132,10 +170,7 @@ func TestStartNode(t *testing.T) {
 	}()
 
 	time.Sleep(100 * time.Millisecond)
-	require.Equal(t, uint32(1), atomic.LoadUint32(&node.started))
-
 	node.Stop()
-	require.Equal(t, uint32(0), atomic.LoadUint32(&node.started))
 }
 
 // TestStopNode
@@ -157,7 +192,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.Nil(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath)
+	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
 
 	header := &types.Header{
 		Number:         big.NewInt(0),
@@ -309,11 +344,9 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	}
 
 	kr, _ := keystore.NewSr25519Keyring()
-	alice := kr.Alice.Public().Encode()
-	ab := [32]byte{}
-	copy(ab[:], alice)
+	alice := kr.Alice.Public().(*sr25519.PublicKey).AsBytes()
 
-	bal, err := stateSrv.Storage.GetBalance(ab)
+	bal, err := stateSrv.Storage.GetBalance(alice)
 	require.NoError(t, err)
 
 	genbal := "0x0000000000000001"

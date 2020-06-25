@@ -66,99 +66,128 @@ package runtime
 // extern int32_t ext_sandbox_memory_get(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
 // extern int32_t ext_sandbox_memory_set(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
 // extern void ext_log(void *context, int32_t a, int32_t b, int32_t c, int32_t d, int32_t e);
+// extern void ext_twox_256(void *context, int32_t a, int32_t b, int32_t c);
+// extern int32_t ext_exists_storage(void *context, int32_t a, int32_t b);
+// extern int32_t ext_exists_child_storage(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
+// extern void ext_clear_child_prefix(void *context, int32_t a, int32_t b, int32_t c, int32_t d);
 import "C"
 
 import (
 	"unsafe"
 
-	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 //export ext_kill_child_storage
 func ext_kill_child_storage(context unsafe.Pointer, a, b C.int32_t) {
-	log.Trace("[ext_kill_child_storage] executing...")
-	log.Warn("[ext_kill_child_storage] not yet implemented")
+	logger.Trace("[ext_kill_child_storage] executing...")
+	logger.Warn("[ext_kill_child_storage] not yet implemented")
 }
 
 //export ext_sandbox_memory_new
 func ext_sandbox_memory_new(context unsafe.Pointer, a, b C.int32_t) C.int32_t {
-	log.Trace("[ext_sandbox_memory_new] executing...")
-	log.Warn("[ext_sandbox_memory_new] not yet implemented")
+	logger.Trace("[ext_sandbox_memory_new] executing...")
+	logger.Warn("[ext_sandbox_memory_new] not yet implemented")
 	return 0
 }
 
 //export ext_sandbox_memory_teardown
 func ext_sandbox_memory_teardown(context unsafe.Pointer, a C.int32_t) {
-	log.Trace("[ext_sandbox_memory_teardown] executing...")
-	log.Warn("[ext_sandbox_memory_teardown] not yet implemented")
+	logger.Trace("[ext_sandbox_memory_teardown] executing...")
+	logger.Warn("[ext_sandbox_memory_teardown] not yet implemented")
 }
 
 //export ext_sandbox_instantiate
 func ext_sandbox_instantiate(context unsafe.Pointer, a, b, c, d, e, f C.int32_t) C.int32_t {
-	log.Trace("[ext_sandbox_instantiate] executing...")
-	log.Warn("[ext_sandbox_instantiate] not yet implemented")
+	logger.Trace("[ext_sandbox_instantiate] executing...")
+	logger.Warn("[ext_sandbox_instantiate] not yet implemented")
 	return 0
 }
 
 //export ext_sandbox_invoke
 func ext_sandbox_invoke(context unsafe.Pointer, a, b, c, d, e, f, g, h C.int32_t) C.int32_t {
-	log.Trace("[ext_sandbox_invoke] executing...")
-	log.Warn("[ext_sandbox_invoke] not yet implemented")
+	logger.Trace("[ext_sandbox_invoke] executing...")
+	logger.Warn("[ext_sandbox_invoke] not yet implemented")
 	return 0
 }
 
 //export ext_sandbox_instance_teardown
 func ext_sandbox_instance_teardown(context unsafe.Pointer, a C.int32_t) {
-	log.Trace("[ext_sandbox_instance_teardown] executing...")
-	log.Warn("[ext_sandbox_instance_teardown] not yet implemented")
+	logger.Trace("[ext_sandbox_instance_teardown] executing...")
+	logger.Warn("[ext_sandbox_instance_teardown] not yet implemented")
 }
 
 //export ext_get_allocated_child_storage
 func ext_get_allocated_child_storage(context unsafe.Pointer, a, b, c, d, e C.int32_t) C.int32_t {
-	log.Trace("[ext_get_allocated_child_storage] executing...")
-	log.Warn("[ext_get_allocated_child_storage] not yet implemented")
+	logger.Trace("[ext_get_allocated_child_storage] executing...")
+	logger.Warn("[ext_get_allocated_child_storage] not yet implemented")
 	return 0
 }
 
 //export ext_child_storage_root
 func ext_child_storage_root(context unsafe.Pointer, a, b, c C.int32_t) C.int32_t {
-	log.Trace("[ext_child_storage_root] executing...")
-	log.Warn("[ext_child_storage_root] not yet implemented")
+	logger.Trace("[ext_child_storage_root] executing...")
+	logger.Warn("[ext_child_storage_root] not yet implemented")
 	return 0
 }
 
 //export ext_clear_child_storage
 func ext_clear_child_storage(context unsafe.Pointer, a, b, c, d C.int32_t) {
-	log.Trace("[ext_clear_child_storage] executing...")
-	log.Warn("[ext_clear_child_storage] not yet implemented")
+	logger.Trace("[ext_clear_child_storage] executing...")
+	logger.Warn("[ext_clear_child_storage] not yet implemented")
 }
 
 //export ext_secp256k1_ecdsa_recover_compressed
 func ext_secp256k1_ecdsa_recover_compressed(context unsafe.Pointer, a, b, c C.int32_t) C.int32_t {
-	log.Trace("[ext_secp256k1_ecdsa_recover_compressed] executing...")
-	log.Warn("[ext_secp256k1_ecdsa_recover_compressed] not yet implemented")
+	logger.Trace("[ext_secp256k1_ecdsa_recover_compressed] executing...")
+	logger.Warn("[ext_secp256k1_ecdsa_recover_compressed] not yet implemented")
 	return 0
 }
 
 //export ext_sandbox_memory_get
 func ext_sandbox_memory_get(context unsafe.Pointer, a, b, c, d C.int32_t) C.int32_t {
-	log.Trace("[ext_sandbox_memory_get] executing...")
-	log.Warn("[ext_sandbox_memory_get] not yet implemented")
+	logger.Trace("[ext_sandbox_memory_get] executing...")
+	logger.Warn("[ext_sandbox_memory_get] not yet implemented")
 	return 0
 }
 
 //export ext_sandbox_memory_set
 func ext_sandbox_memory_set(context unsafe.Pointer, a, b, c, d C.int32_t) C.int32_t {
-	log.Trace("[ext_sandbox_memory_set] executing...")
-	log.Warn("[ext_sandbox_memory_set] not yet implemented")
+	logger.Trace("[ext_sandbox_memory_set] executing...")
+	logger.Warn("[ext_sandbox_memory_set] not yet implemented")
 	return 0
 }
 
 //export ext_log
 func ext_log(context unsafe.Pointer, a, b, c, d, e C.int32_t) {
-	log.Trace("[ext_log] executing...")
-	log.Warn("[ext_log] not yet implemented")
+	logger.Trace("[ext_log] executing...")
+	logger.Warn("[ext_log] not yet implemented")
+}
+
+//export ext_twox_256
+func ext_twox_256(context unsafe.Pointer, data, len, out C.int32_t) {
+	logger.Trace("[ext_twox_256] executing...")
+	logger.Warn("[ext_twox_256] not yet implemented")
+}
+
+//export ext_exists_storage
+func ext_exists_storage(context unsafe.Pointer, a, b C.int32_t) C.int32_t {
+	logger.Trace("[ext_exists_storage] executing...")
+	logger.Warn("[ext_exists_storage] not yet implemented")
+	return 0
+}
+
+//export ext_exists_child_storage
+func ext_exists_child_storage(context unsafe.Pointer, a, b, c, d C.int32_t) C.int32_t {
+	logger.Trace("[ext_exists_child_storage] executing...")
+	logger.Warn("[ext_exists_child_storage] not yet implemented")
+	return 0
+}
+
+//export ext_clear_child_prefix
+func ext_clear_child_prefix(context unsafe.Pointer, a, b, c, d C.int32_t) {
+	logger.Trace("[ext_clear_child_prefix] executing...")
+	logger.Warn("[ext_clear_child_prefix] not yet implemented")
 }
 
 // RegisterImports_NodeRuntime returns the wasm imports for the substrate v0.6.x node runtime
@@ -352,6 +381,22 @@ func RegisterImports_NodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_log", ext_log, C.ext_log)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_twox_256", ext_twox_256, C.ext_twox_256)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_exists_storage", ext_exists_storage, C.ext_exists_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_exists_child_storage", ext_exists_child_storage, C.ext_exists_child_storage)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_clear_child_prefix", ext_clear_child_prefix, C.ext_clear_child_prefix)
 	if err != nil {
 		return nil, err
 	}

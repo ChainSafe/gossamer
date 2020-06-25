@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2020 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,20 +14,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
-
-import (
-	"testing"
-
-	"github.com/stretchr/testify/require"
-)
-
-// test initializeBabeSession
-func TestInitializeBabeSession(t *testing.T) {
-	s := newTestServiceWithFirstBlock(t)
-
-	bs, err := s.initializeBabeSession()
-	require.Nil(t, err)
-
-	require.NotNil(t, bs)
-}
+package sync

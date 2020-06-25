@@ -67,27 +67,28 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 // GenerateKeypair create a new keypair with the corresponding type and saves
 // it to basepath/keystore/[public key].key in json format encrypted using the
 // specified password and returns the resulting filepath of the new key
-func GenerateKeypair(keytype string, basepath string, password []byte) (string, error) {
+func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, password []byte) (string, error) {
 	if keytype == "" {
 		keytype = crypto.Sr25519Type
 	}
-
-	var kp crypto.Keypair
 	var err error
-	if keytype == crypto.Sr25519Type {
-		kp, err = sr25519.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate sr25519 keypair: %s", err)
-		}
-	} else if keytype == crypto.Ed25519Type {
-		kp, err = ed25519.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
-		}
-	} else if keytype == crypto.Secp256k1Type {
-		kp, err = secp256k1.GenerateKeypair()
-		if err != nil {
-			return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+
+	if kp == nil {
+		if keytype == crypto.Sr25519Type {
+			kp, err = sr25519.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate sr25519 keypair: %s", err)
+			}
+		} else if keytype == crypto.Ed25519Type {
+			kp, err = ed25519.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
+			}
+		} else if keytype == crypto.Secp256k1Type {
+			kp, err = secp256k1.GenerateKeypair()
+			if err != nil {
+				return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+			}
 		}
 	}
 
@@ -126,30 +127,44 @@ func LoadKeystore(key string) (*Keystore, error) {
 
 	if key != "" {
 
-		kr, err := NewSr25519Keyring()
+		srkr, err := NewSr25519Keyring()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create keyring: %s", err)
+		}
+
+		edkr, err := NewEd25519Keyring()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create keyring: %s", err)
 		}
 
 		switch strings.ToLower(key) {
 		case "alice":
-			ks.Insert(kr.Alice)
+			ks.Insert(srkr.Alice)
+			ks.Insert(edkr.Alice)
 		case "bob":
-			ks.Insert(kr.Bob)
+			ks.Insert(srkr.Bob)
+			ks.Insert(edkr.Bob)
 		case "charlie":
-			ks.Insert(kr.Charlie)
+			ks.Insert(srkr.Charlie)
+			ks.Insert(edkr.Charlie)
 		case "dave":
-			ks.Insert(kr.Dave)
+			ks.Insert(srkr.Dave)
+			ks.Insert(edkr.Dave)
 		case "eve":
-			ks.Insert(kr.Eve)
-		case "fred":
-			ks.Insert(kr.Fred)
+			ks.Insert(srkr.Eve)
+			ks.Insert(edkr.Eve)
+		case "ferdie":
+			ks.Insert(srkr.Ferdie)
+			ks.Insert(edkr.Ferdie)
 		case "george":
-			ks.Insert(kr.George)
+			ks.Insert(srkr.George)
+			ks.Insert(edkr.George)
 		case "heather":
-			ks.Insert(kr.Heather)
+			ks.Insert(srkr.Heather)
+			ks.Insert(edkr.Heather)
 		case "ian":
-			ks.Insert(kr.Ian)
+			ks.Insert(srkr.Ian)
+			ks.Insert(edkr.Ian)
 		default:
 			return nil, fmt.Errorf("invalid test key provided")
 		}
@@ -189,6 +204,35 @@ func ImportKeypair(fp string, dir string) (string, error) {
 	}
 
 	return keyFilePath, nil
+}
+
+// ImportRawPrivateKey imports a raw private key and saves it to the keystore directory
+func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string, error) {
+	var kp crypto.Keypair
+	var err error
+
+	if keytype == "" {
+		keytype = crypto.Sr25519Type
+	}
+
+	if keytype == crypto.Sr25519Type {
+		kp, err = sr25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to import sr25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Ed25519Type {
+		kp, err = ed25519.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate ed25519 keypair: %s", err)
+		}
+	} else if keytype == crypto.Secp256k1Type {
+		kp, err = secp256k1.NewKeypairFromPrivateKeyString(key)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate secp256k1 keypair: %s", err)
+		}
+	}
+
+	return GenerateKeypair(keytype, kp, basepath, password)
 }
 
 // UnlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password

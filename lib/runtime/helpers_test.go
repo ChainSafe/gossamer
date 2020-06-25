@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
@@ -31,38 +32,29 @@ func TestExportRuntime(t *testing.T) {
 func TestGrandpaAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
-	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
+	require.NoError(t, err)
 
 	err = tt.Put(TestAuthorityDataKey, value)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	rt := NewTestRuntimeWithTrie(t, NODE_RUNTIME, tt)
 
 	auths, err := rt.GrandpaAuthorities()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	authABytes, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authBBytes, _ := common.HexToBytes("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
 
-	authA, _ := sr25519.NewPublicKey(authABytes)
-	authB, _ := sr25519.NewPublicKey(authBBytes)
+	authA, _ := ed25519.NewPublicKey(authABytes)
+	authB, _ := ed25519.NewPublicKey(authBBytes)
 
-	expected := []*types.AuthorityData{
-		{ID: authA, Weight: 1},
-		{ID: authB, Weight: 1},
+	expected := []*types.GrandpaAuthorityData{
+		{Key: authA, ID: 0},
+		{Key: authB, ID: 1},
 	}
 
-	// TODO: why does the second key not get loaded?
-	if !reflect.DeepEqual(auths[0], expected[0]) {
-		t.Fatalf("Fail: got %v expected %v", auths, expected)
-	}
+	require.Equal(t, expected, auths)
 }
 
 func TestConfigurationFromRuntime_noAuth(t *testing.T) {
@@ -134,7 +126,7 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	authA, _ := common.HexToHash("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authB, _ := common.HexToHash("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
 
-	expectedAuthData := []*types.AuthorityDataRaw{
+	expectedAuthData := []*types.BABEAuthorityDataRaw{
 		{ID: authA, Weight: 1},
 		{ID: authB, Weight: 1},
 	}
@@ -315,8 +307,8 @@ func TestValidateTransaction_Transfer(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/ea2644a235f4b189c8029b9c9eac9d4df64ee91e/core/test-runtime/src/system.rs#L190
 	expected := &transaction.Validity{
 		Priority:  0x3e8,
-		Requires:  [][]byte{{0xb5, 0x47, 0xb1, 0x90, 0x37, 0x10, 0x7e, 0x1f, 0x79, 0x4c, 0xa8, 0x69, 0x0, 0xa1, 0xb5, 0x98}},
-		Provides:  [][]byte{{0xe4, 0x80, 0x7d, 0x1b, 0x67, 0x49, 0x37, 0xbf, 0xc7, 0x89, 0xbb, 0xdd, 0x88, 0x6a, 0xdd, 0xd6}},
+		Requires:  [][]byte{{0x92, 0x9d, 0x3d, 0x63, 0x3f, 0x62, 0x1e, 0xf2, 0x80, 0x31, 0x96, 0x5a, 0x8c, 0xa5, 0xbb, 0xf9}},
+		Provides:  [][]byte{{0x56, 0xf3, 0xd1, 0x60, 0xa1, 0xe7, 0xc8, 0xf6, 0xe1, 0xbc, 0xb1, 0xa1, 0x95, 0x29, 0x5e, 0xc9}},
 		Longevity: 0x40,
 		Propagate: true,
 	}

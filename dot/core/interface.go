@@ -19,8 +19,11 @@ package core
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -50,6 +53,9 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash
 	HighestBlockNumber() *big.Int
+	GetFinalizedHeader(uint64) (*types.Header, error)
+	GetFinalizedHash(uint64) (common.Hash, error)
+	SetFinalizedHash(common.Hash, uint64) error
 }
 
 // StorageState interface for storage state methods
@@ -75,4 +81,29 @@ type TransactionQueue interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 	RemoveExtrinsic(ext types.Extrinsic)
+}
+
+// FinalityGadget is the interface that a finality gadget must implement
+type FinalityGadget interface {
+	services.Service
+
+	GetVoteOutChannel() <-chan FinalityMessage
+	GetVoteInChannel() chan<- FinalityMessage
+	GetFinalizedChannel() <-chan FinalityMessage
+	DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error)
+}
+
+// FinalityMessage is the interface a finality message must implement
+type FinalityMessage interface {
+	ToConsensusMessage() (*network.ConsensusMessage, error)
+	GetFinalizedHash() (common.Hash, error)
+	GetRound() uint64
+}
+
+// BlockProducer is the interface that a block production service must implement
+type BlockProducer interface {
+	GetBlockChannel() <-chan types.Block
+	SetRuntime(*runtime.Runtime) error
+	Pause() error
+	Resume() error
 }

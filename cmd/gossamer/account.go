@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
 
@@ -33,65 +32,47 @@ import (
 // then, if the import flag is set, if so, it imports a keypair
 // finally, if the list flag is set, it lists all the keys in the keystore
 func accountAction(ctx *cli.Context) error {
-
-	// start gossamer logger
-	err := startLogger(ctx)
-	if err != nil {
-		log.Error("[cmd] failed to start logger", "error", err)
-		return err
-	}
-
 	// create dot configuration
 	cfg, err := createDotConfig(ctx)
 	if err != nil {
-		log.Error("[cmd] failed to create dot configuration", "error", err)
+		logger.Error("failed to create dot configuration", "error", err)
 		return err
 	}
 
 	basepath := cfg.Global.BasePath
+	var file string
+
+	// check if --ed25519, --sr25519, --secp256k1 is set
+	keytype := crypto.Sr25519Type
+	if flagtype := ctx.Bool(Sr25519Flag.Name); flagtype {
+		keytype = crypto.Sr25519Type
+	} else if flagtype := ctx.Bool(Ed25519Flag.Name); flagtype {
+		keytype = crypto.Ed25519Type
+	} else if flagtype := ctx.Bool(Secp256k1Flag.Name); flagtype {
+		keytype = crypto.Secp256k1Type
+	}
 
 	// check --generate flag and generate new keypair
 	if keygen := ctx.Bool(GenerateFlag.Name); keygen {
-		log.Info("[cmd] generating keypair...")
+		logger.Info("generating keypair...")
 
-		// check if --ed25519, --sr25519, --secp256k1 is set
-		keytype := crypto.Sr25519Type
-		if flagtype := ctx.Bool(Sr25519Flag.Name); flagtype {
-			keytype = crypto.Sr25519Type
-		} else if flagtype := ctx.Bool(Ed25519Flag.Name); flagtype {
-			keytype = crypto.Ed25519Type
-		} else if flagtype := ctx.Bool(Secp256k1Flag.Name); flagtype {
-			keytype = crypto.Secp256k1Type
-		}
-
-		// check if --password is set
-		var password []byte = nil
-		if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
-			password = []byte(pwdflag)
-		}
-
-		if password == nil {
-			password = getPassword("Enter password to encrypt keystore file:")
-		}
-
-		var file string
-		file, err = keystore.GenerateKeypair(keytype, basepath, password)
+		file, err = keystore.GenerateKeypair(keytype, nil, basepath, getKeystorePassword(ctx))
 		if err != nil {
-			log.Error("[cmd] failed to generate keypair", "error", err)
+			logger.Error("failed to generate keypair", "error", err)
 			return err
 		}
 
-		log.Info("[cmd] generated key", "file", file)
+		logger.Info("generated key", "file", file)
 	}
 
 	// check if --import is set
 	if keyimport := ctx.String(ImportFlag.Name); keyimport != "" {
-		log.Info("[cmd] importing keypair...")
+		logger.Info("importing keypair...")
 
 		// import keypair
 		_, err = keystore.ImportKeypair(keyimport, basepath)
 		if err != nil {
-			log.Error("[cmd] failed to import key", "error", err)
+			logger.Error("failed to import key", "error", err)
 			return err
 		}
 	}
@@ -100,12 +81,38 @@ func accountAction(ctx *cli.Context) error {
 	if keylist := ctx.Bool(ListFlag.Name); keylist {
 		_, err = utils.KeystoreFilepaths(basepath)
 		if err != nil {
-			log.Error("[cmd] failed to list keys", "error", err)
+			logger.Error("failed to list keys", "error", err)
 			return err
 		}
 	}
 
+	// check if --import-raw is set
+	if importraw := ctx.String(ImportRawFlag.Name); importraw != "" {
+		file, err = keystore.ImportRawPrivateKey(importraw, keytype, basepath, getKeystorePassword(ctx))
+		if err != nil {
+			logger.Error("failed to import private key", "error", err)
+			return err
+		}
+
+		logger.Info("imported key", "file", file)
+	}
+
 	return nil
+}
+
+// getKeystorePassword checks if the --password flag is set, if not,
+func getKeystorePassword(ctx *cli.Context) []byte {
+	// check if --password is set
+	var password []byte
+	if pwdflag := ctx.String(PasswordFlag.Name); pwdflag != "" {
+		password = []byte(pwdflag)
+	}
+
+	if password == nil {
+		password = getPassword("Enter password to encrypt keystore file:")
+	}
+
+	return password
 }
 
 // unlockKeystore compares the length of passwords to the length of accounts,

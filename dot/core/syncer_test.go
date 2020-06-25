@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -38,6 +39,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,10 +48,9 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg = &SyncerConfig{}
 	}
 
-	cfg.Lock = &sync.Mutex{}
 	cfg.ChanLock = &sync.Mutex{}
 
-	stateSrvc := state.NewService("")
+	stateSrvc := state.NewService("", log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
@@ -92,6 +93,13 @@ func newTestSyncer(t *testing.T, cfg *SyncerConfig) *Syncer {
 		cfg.Verifier = &mockVerifier{}
 	}
 
+	if cfg.logger == nil {
+		cfg.logger = log.New("pkg", "core")
+	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
+
 	syncer, err := NewSyncer(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -105,9 +113,13 @@ func TestWatchForBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -146,8 +158,12 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	blockNumberIn := make(chan *big.Int)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -156,13 +172,28 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
 	blockNumberIn <- big.NewInt(11)
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 }
@@ -172,9 +203,13 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -183,7 +218,15 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 	number := big.NewInt(12)
 	blockNumberIn <- number
 
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
+	cmp := 0
+	for i := 0; i < maxRetries; i++ {
+		cmp = syncer.highestSeenBlock.Cmp(number)
+		if cmp == 0 {
+			break
+		}
+	}
+
+	if cmp != 0 {
 		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
 	}
 
@@ -223,9 +266,13 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -248,7 +295,6 @@ func TestWatchForBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 
 	// synced to block 12
 	syncer.synced = true
-	syncer.lock.Unlock()
 
 	number = big.NewInt(16)
 	blockNumberIn <- number
@@ -279,10 +325,14 @@ func TestWatchForResponses(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -310,7 +360,6 @@ func TestWatchForResponses(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	syncer.lock.Lock()
 	syncer.synced = false
 
 	respIn <- resp
@@ -358,10 +407,14 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 	msgOut := make(chan network.Message)
 
 	cfg := &SyncerConfig{
+		logger:     log.New("pkg", "core"),
 		BlockNumIn: blockNumberIn,
 		RespIn:     respIn,
 		MsgOut:     msgOut,
 	}
+
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	cfg.logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer := newTestSyncer(t, cfg)
 	err := syncer.Start()
@@ -391,7 +444,6 @@ func TestWatchForResponses_MissingBlocks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	syncer.lock.Lock()
 	syncer.synced = false
 
 	respIn <- resp
@@ -501,7 +553,7 @@ func TestCoreExecuteBlock(t *testing.T) {
 	res, err := syncer.executeBlock(block)
 	require.Nil(t, err)
 
-	// if execute block return a non-empty byte array, something when wrong
+	// if execute block returns a non-empty byte array, something went wrong
 	require.Equal(t, []byte{}, res)
 }
 
@@ -545,7 +597,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.Equal(t, int64(0), res)
 }
 
-func newBlockBuilder(t *testing.T, cfg *babe.SessionConfig) *babe.Session {
+func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service {
 	if cfg.Runtime == nil {
 		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
 	}
@@ -556,17 +608,14 @@ func newBlockBuilder(t *testing.T, cfg *babe.SessionConfig) *babe.Session {
 		cfg.Keypair = kp
 	}
 
-	cfg.Kill = make(chan struct{})
-	cfg.SyncLock = &sync.Mutex{}
-
-	cfg.AuthData = []*types.AuthorityData{
+	cfg.AuthData = []*types.BABEAuthorityData{
 		{
 			ID:     cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		},
 	}
 
-	b, err := babe.NewSession(cfg)
+	b, err := babe.NewService(cfg)
 	require.NoError(t, err)
 
 	return b
@@ -590,20 +639,28 @@ func TestExecuteBlock(t *testing.T) {
 
 	syncer := newTestSyncer(t, cfg)
 
-	bcfg := &babe.SessionConfig{
+	bcfg := &babe.ServiceConfig{
 		Runtime:          syncer.runtime,
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
+		BlockState:       syncer.blockState,
 	}
 
 	builder := newBlockBuilder(t, bcfg)
 	parent, err := syncer.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	slot := babe.NewSlot(1, 0, 0)
-	block, err := builder.BuildBlock(parent, *slot)
-	require.NoError(t, err)
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(1, 0, 0)
+		block, err = builder.BuildBlock(parent, *slot)
+		require.NoError(t, err)
+		if err == nil {
+			break
+		}
+	}
 
+	require.NoError(t, err)
 	_, err = syncer.executeBlock(block)
 	require.NoError(t, err)
 }
@@ -626,10 +683,11 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 
 	syncer := newTestSyncer(t, cfg)
 
-	bcfg := &babe.SessionConfig{
+	bcfg := &babe.ServiceConfig{
 		Runtime:          syncer.runtime,
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
+		BlockState:       syncer.blockState,
 	}
 
 	key := []byte("noot")
@@ -646,10 +704,16 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 	parent, err := syncer.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
-	block, err := builder.BuildBlock(parent, *slot)
-	require.NoError(t, err)
+	var block *types.Block
+	for i := 0; i < maxRetries; i++ {
+		slot := babe.NewSlot(uint64(time.Now().Unix()), 100000, 1)
+		block, err = builder.BuildBlock(parent, *slot)
+		if err == nil {
+			break
+		}
+	}
 
+	require.NoError(t, err)
 	require.Equal(t, true, bytes.Contains(*block.Body, enc))
 	_, err = syncer.executeBlock(block)
 	require.NoError(t, err)

@@ -29,7 +29,7 @@ import (
 )
 
 func TestSystemRPC(t *testing.T) {
-	if utils.GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
+	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
@@ -65,7 +65,7 @@ func TestSystemRPC(t *testing.T) {
 					ShouldHavePeers: true,
 				},
 			},
-			skip: false,
+			params: "{}",
 		},
 		{
 			description: "test system_peers",
@@ -73,7 +73,7 @@ func TestSystemRPC(t *testing.T) {
 			expected: modules.SystemPeersResponse{
 				Peers: []common.PeerInfo{},
 			},
-			skip: false,
+			params: "{}",
 		},
 		{
 			description: "test system_network_state",
@@ -83,7 +83,7 @@ func TestSystemRPC(t *testing.T) {
 					PeerID: "",
 				},
 			},
-			skip: false,
+			params: "{}",
 		},
 		{ //TODO
 			description: "test system_addReservedPeer",
@@ -108,7 +108,7 @@ func TestSystemRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.StartNodes(t, 3)
+	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault)
 
 	//use only first server for tests
 	require.Nil(t, err)
