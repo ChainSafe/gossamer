@@ -298,11 +298,10 @@ func (sm *StateModule) Control(r *http.Request, req *[]string, res *string) erro
 	case "babe":
 		switch reqA[1] {
 		case "stop":
-			err = sm.coreAPI.SafeBabeKill()
+			err = sm.coreAPI.Stop()
 			*res = "babe service stopped"
 		case "start":
-			//err = sm.coreAPI.Start()
-			sm.coreAPI.InitializeBabeSession()
+			err = sm.coreAPI.Start()
 			*res = "babe service started"
 		}
 	case "network":
