@@ -58,8 +58,6 @@ type CoreAPI interface {
 	IsBlockProducer() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata() ([]byte, error)
-	Stop() error
-	Start() error
 }
 
 // RPCAPI is the interface for methods related to RPC service

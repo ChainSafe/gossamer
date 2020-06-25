@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -24,6 +25,11 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	var err error
 	switch reqA[0] {
 	case "babe":
+		if m.blockProducerAPI == nil {
+			err = errors.New("not a block producer")
+			return err
+		}
+
 		switch reqA[1] {
 		case "stop":
 			err = m.blockProducerAPI.Pause()
