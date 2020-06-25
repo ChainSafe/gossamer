@@ -24,7 +24,6 @@ import (
 	"regexp"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -33,6 +32,9 @@ type ChainHashRequest string
 
 // ChainBlockNumberRequest interface can accept string, float64 or []
 type ChainBlockNumberRequest interface{}
+
+// ChainIntRequest represents an integer
+type ChainIntRequest uint64
 
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
@@ -126,8 +128,26 @@ func (cm *ChainModule) GetHead(r *http.Request, req *ChainBlockNumberRequest, re
 	return cm.GetBlockHash(r, req, res)
 }
 
-// GetFinalizedHead isn't implemented properly yet.
-func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) {
+// GetFinalizedHead returns the most recently finalized block hash
+func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) error {
+	h, err := cm.blockAPI.GetFinalizedHash(0)
+	if err != nil {
+		return err
+	}
+
+	*res = common.BytesToHex(h[:])
+	return nil
+}
+
+// GetFinalizedHeadByRound returns the hash of the block finalized at the given round
+func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainIntRequest, res *ChainHashResponse) error {
+	h, err := cm.blockAPI.GetFinalizedHash(uint64(*req))
+	if err != nil {
+		return err
+	}
+
+	*res = common.BytesToHex(h[:])
+	return nil
 }
 
 //GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.

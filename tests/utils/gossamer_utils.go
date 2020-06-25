@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,105 +32,118 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-//TODO: #799
 var (
-	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "fred", "george", "heather"}
+	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 	basePort = 7000
 
 	// BaseRPCPort is the starting RPC port for test nodes
 	BaseRPCPort = 8540
+
+	currentDir, _ = os.Getwd()
+	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
+
+	// GenesisOneAuth is the genesis file that has 1 authority
+	GenesisOneAuth string = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
+	// GenesisThreeAuths is the genesis file that has 3 authorities
+	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	// GenesisDefault is the default gssmr genesis file
+	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 )
 
 // Node represents a gossamer process
 type Node struct {
-	Process *exec.Cmd
-	Key     string
-	RPCPort string
-	Idx     int
+	Process  *exec.Cmd
+	Key      string
+	RPCPort  string
+	Idx      int
+	basePath string
 }
 
-// RunGossamer will start a gossamer instance and check if its online and returns CMD, otherwise return err
-func RunGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
-	currentDir, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	gossamerCMD := filepath.Join(currentDir, "../..", "bin/gossamer")
-	genesisPath := filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
-
+// InitGossamer initializes given node number and returns node reference
+func InitGossamer(idx int, basePath, genesis string) (*Node, error) {
 	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--basepath", basePath+strconv.Itoa(idx),
-		"--genesis", genesisPath,
+		"--genesis", genesis,
 		"--force",
 	)
 
 	//add step for init
-	log.Info("Going to init gossamer", "cmdInit", cmdInit)
+	log.Info("initializing gossamer...", "cmdInit", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
-		log.Error("Could not init gossamer", "err", err, "output", string(stdOutInit))
+		fmt.Println(stdOutInit)
 		return nil, err
 	}
 
 	// TODO: get init exit code to see if node was successfully initialized
-	log.Info("Gossamer init ok")
+	log.Info("initialized gossamer!")
 
+	return &Node{
+		Idx:      idx,
+		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
+		basePath: basePath + strconv.Itoa(idx),
+	}, nil
+}
+
+// StartGossamer starts given node
+func StartGossamer(t *testing.T, node *Node) error {
 	var key string
-	var cmd *exec.Cmd
-	rpcPort := strconv.Itoa(BaseRPCPort + idx)
-
-	if idx >= len(keyList) {
+	if node.Idx >= len(keyList) {
 		//nolint
-		cmd = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
-			"--basepath", basePath+strconv.Itoa(idx),
+		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
+			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
-			"--rpcport", rpcPort,
+			"--rpcport", node.RPCPort,
+			"--ws=false",
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
 		)
 	} else {
-		key = keyList[idx]
+		key = keyList[node.Idx]
 		//nolint
-		cmd = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+idx),
+		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
 			"--key", key,
-			"--basepath", basePath+strconv.Itoa(idx),
+			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
-			"--rpcport", rpcPort,
+			"--rpcport", node.RPCPort,
+			"--ws=false",
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",
+			"--log", "debug",
 		)
 	}
 
+	node.Key = key
+
 	// a new file will be created, it will be used for log the outputs from the node
-	f, err := os.Create(filepath.Join(basePath+strconv.Itoa(idx), "gossamer.log"))
+	f, err := os.Create(filepath.Join(node.basePath, "gossamer.log"))
 	if err != nil {
 		log.Error("Error when trying to set a log file for gossamer output", "error", err)
-		return nil, err
+		return err
 	}
 
 	//this is required to be able to have multiple inputs into same file
 	multiWriter := io.MultiWriter(f, os.Stdout)
 
-	cmd.Stdout = multiWriter
-	cmd.Stderr = multiWriter
+	node.Process.Stdout = multiWriter
+	node.Process.Stderr = multiWriter
 
-	log.Info("Going to execute gossamer", "cmd", cmd)
-	err = cmd.Start()
+	log.Info("Going to execute gossamer", "cmd", node.Process)
+	err = node.Process.Start()
 	if err != nil {
 		log.Error("Could not execute gossamer cmd", "err", err)
-		return nil, err
+		return err
 	}
 
-	log.Info("wait few secs for node to come up", "cmd.Process.Pid", cmd.Process.Pid)
+	log.Info("wait few secs for node to come up", "cmd.Process.Pid", node.Process.Process.Pid)
 	var started bool
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(1 * time.Second)
-		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+rpcPort); err == nil {
+		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
 			started = true
 			break
 		} else {
@@ -138,24 +152,36 @@ func RunGossamer(t *testing.T, idx int, basePath string) (*Node, error) {
 	}
 
 	if started {
-		log.Info("Gossamer started", "key", key, "cmd.Process.Pid", cmd.Process.Pid)
+		log.Info("Gossamer started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
 	} else {
 		log.Crit("Gossamer didn't start!", "err", err)
 	}
 
-	return &Node{
-		Process: cmd,
-		Key:     key,
-		RPCPort: rpcPort,
-		Idx:     idx,
-	}, nil
+	return nil
 }
 
-// CheckNodeStarted check if gossamer node is already started
+// RunGossamer will initialize and start a gossamer instance
+func RunGossamer(t *testing.T, idx int, basepath, genesis string) (*Node, error) {
+	node, err := InitGossamer(idx, basepath, genesis)
+	if err != nil {
+		log.Crit("could not initialize gossamer", "error", err)
+		os.Exit(1)
+	}
+
+	err = StartGossamer(t, node)
+	if err != nil {
+		log.Crit("could not start gossamer", "error", err)
+		os.Exit(1)
+	}
+
+	return node, nil
+}
+
+// CheckNodeStarted check if gossamer node is started
 func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 	method := "system_health"
 
-	respBody, err := PostRPC(t, method, gossamerHost, "{}")
+	respBody, err := PostRPC(method, gossamerHost, "{}")
 	if err != nil {
 		return err
 	}
@@ -182,17 +208,16 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
-// StartNodes will spin up `num` gossamer nodes
-func StartNodes(t *testing.T, num int) ([]*Node, error) {
+// InitNodes initializes given number of nodes
+func InitNodes(num int) ([]*Node, error) {
 	var nodes []*Node
-
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
 	if err != nil {
 		return nil, err
 	}
 
 	for i := 0; i < num; i++ {
-		node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i))
+		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault)
 		if err != nil {
 			log.Error("failed to run gossamer", "i", i)
 			return nil, err
@@ -200,6 +225,45 @@ func StartNodes(t *testing.T, num int) ([]*Node, error) {
 
 		nodes = append(nodes, node)
 	}
+	return nodes, nil
+}
+
+// StartNodes starts given array of nodes
+func StartNodes(t *testing.T, nodes []*Node) error {
+	for _, n := range nodes {
+		err := StartGossamer(t, n)
+		if err != nil {
+			return nil
+		}
+	}
+	return nil
+}
+
+// InitializeAndStartNodes will spin up `num` gossamer nodes
+func InitializeAndStartNodes(t *testing.T, num int, genesis string) ([]*Node, error) {
+	var nodes []*Node
+
+	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i := 0; i < num; i++ {
+		go func(i int) {
+			node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i), genesis)
+			if err != nil {
+				log.Error("failed to run gossamer", "i", i)
+			}
+
+			nodes = append(nodes, node)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 
 	return nodes, nil
 }

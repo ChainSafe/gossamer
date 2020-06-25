@@ -17,6 +17,7 @@
 package dot
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -26,18 +27,26 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	log "github.com/ChainSafe/log15"
 )
+
+// ErrNoKeysProvided is returned when no keys are given for an authority node
+var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 
 // State Service
 
 // createStateService creates the state service and initialize state database
 func createStateService(cfg *Config) (*state.Service, error) {
-	log.Info("[dot] creating state service...")
+	logger.Info("creating state service...")
 
-	stateSrvc := state.NewService(cfg.Global.BasePath)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.lvl)
 
 	// start state service (initialize state database)
 	err := stateSrvc.Start()
@@ -60,56 +69,117 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-// Core Service
-
-// createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, *runtime.Runtime, error) {
-	log.Info(
-		"[dot] creating core service...",
-		"authority", cfg.Core.Authority,
-	)
-
+func createRuntime(st *state.Service, ks *keystore.Keystore, lvl log.Lvl) (*runtime.Runtime, error) {
 	// load runtime code from trie
-	code, err := stateSrvc.Storage.GetStorage([]byte(":code"))
+	code, err := st.Storage.GetStorage([]byte(":code"))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+	}
+
+	cfg := &runtime.Config{
+		Storage:  st.Storage,
+		Keystore: ks,
+		Imports:  runtime.RegisterImports_NodeRuntime,
+		LogLvl:   lvl,
 	}
 
 	// create runtime executor
-	rt, err := runtime.NewRuntime(code, stateSrvc.Storage, ks, runtime.RegisterImports_NodeRuntime)
+	rt, err := runtime.NewRuntime(code, cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 	}
+
+	return rt, nil
+}
+
+func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*babe.Service, error) {
+	logger.Info(
+		"creating BABE service...",
+		"authority", cfg.Core.Authority,
+	)
+
+	kps := ks.Sr25519Keypairs()
+	if len(kps) == 0 {
+		return nil, ErrNoKeysProvided
+	}
+
+	// get best slot to determine next start slot
+	header, err := st.Block.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest block: %s", err)
+	}
+
+	var bestSlot uint64
+	if header.Number.Cmp(big.NewInt(0)) == 0 {
+		bestSlot = 0
+	} else {
+		bestSlot, err = st.Block.GetSlotForBlock(header.Hash())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get slot for latest block: %s", err)
+		}
+	}
+
+	bcfg := &babe.ServiceConfig{
+		LogLvl:           cfg.Global.lvl,
+		Keypair:          kps[0].(*sr25519.Keypair),
+		Runtime:          rt,
+		BlockState:       st.Block,
+		StorageState:     st.Storage,
+		TransactionQueue: st.TransactionQueue,
+		StartSlot:        bestSlot + 1,
+	}
+
+	// create new BABE service
+	bs, err := babe.NewService(bcfg)
+	if err != nil {
+		logger.Error("failed to initialize BABE service", "error", err)
+		return nil, err
+	}
+
+	return bs, nil
+}
+
+// Core Service
+
+// createCoreService creates the core service from the provided core configuration
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*core.Service, error) {
+	logger.Info(
+		"creating core service...",
+		"authority", cfg.Core.Authority,
+	)
 
 	// set core configuration
 	coreConfig := &core.Config{
+		LogLvl:           cfg.Global.lvl,
 		BlockState:       stateSrvc.Block,
 		StorageState:     stateSrvc.Storage,
 		TransactionQueue: stateSrvc.TransactionQueue,
+		BlockProducer:    bp,
+		FinalityGadget:   fg,
 		Keystore:         ks,
 		Runtime:          rt,
 		MsgRec:           networkMsgs, // message channel from network service to core service
 		MsgSend:          coreMsgs,    // message channel from core service to network service
-		IsBabeAuthority:  cfg.Core.Authority,
+		IsBlockProducer:  cfg.Core.Authority,
 		SyncChan:         syncChan,
 	}
 
 	// create new core service
 	coreSrvc, err := core.NewService(coreConfig)
 	if err != nil {
-		log.Error("[dot] failed to create core service", "error", err)
-		return nil, nil, err
+		logger.Error("failed to create core service", "error", err)
+		return nil, err
 	}
 
-	return coreSrvc, rt, nil
+	return coreSrvc, nil
 }
 
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncChan chan *big.Int) (*network.Service, error) {
-	log.Info(
-		"[dot] creating network service...",
+	logger.Info(
+		"creating network service...",
 		"roles", cfg.Core.Roles,
 		"port", cfg.Network.Port,
 		"bootnodes", cfg.Network.Bootnodes,
@@ -136,7 +206,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 
 	networkSrvc, err := network.NewService(&networkConfig)
 	if err != nil {
-		log.Error("[dot] failed to create network service", "error", err)
+		logger.Error("failed to create network service", "error", err)
 		return nil, err
 	}
 
@@ -147,11 +217,12 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 
 // createRPCService creates the RPC service from the provided core configuration
 func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, rt *runtime.Runtime, sysSrvc *system.Service) *rpc.HTTPServer {
-	log.Info(
-		"[dot] creating rpc service...",
+	logger.Info(
+		"creating rpc service...",
 		"host", cfg.RPC.Host,
 		"rpc port", cfg.RPC.Port,
 		"mods", cfg.RPC.Modules,
+		"ws enabled", cfg.RPC.WSEnabled,
 		"ws port", cfg.RPC.WSPort,
 	)
 	rpcService := rpc.NewService()
@@ -178,4 +249,27 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 // creates a service for providing system related information
 func createSystemService(cfg *types.SystemInfo) *system.Service {
 	return system.NewService(cfg)
+}
+
+// createGRANDPAService creates a new GRANDPA service
+func createGRANDPAService(rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*grandpa.Service, error) {
+	ad, err := rt.GrandpaAuthorities()
+	if err != nil {
+		return nil, err
+	}
+
+	voters := grandpa.NewVotersFromAuthorityData(ad)
+
+	keys := ks.Ed25519Keypairs()
+	if len(keys) == 0 {
+		return nil, errors.New("no ed25519 keys provided for GRANDPA")
+	}
+
+	cfg := &grandpa.Config{
+		BlockState: st.Block,
+		Voters:     voters,
+		Keypair:    keys[0].(*ed25519.Keypair),
+	}
+
+	return grandpa.NewService(cfg)
 }

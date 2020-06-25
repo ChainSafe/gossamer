@@ -17,21 +17,77 @@
 package grandpa
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
+	"bytes"
+
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// CreateVoteMessage returns a signed VoteMessage given a header
-func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*VoteMessage, error) {
-	vote := NewVoteFromHeader(header)
+// receiveMessages receives messages from the in channel until the specified condition is met
+func (s *Service) receiveMessages(cond func() bool) {
+	done := false
 
+	go func(done *bool) {
+		for msg := range s.in {
+			if *done {
+				s.logger.Debug("returning from receiveMessages")
+				return
+			}
+
+			s.logger.Debug("received vote message", "msg", msg)
+
+			vm, ok := msg.(*VoteMessage)
+			if !ok {
+				s.logger.Warn("failed to cast message to VoteMessage")
+				continue
+			}
+
+			v, err := s.validateMessage(vm)
+			if err != nil {
+				s.logger.Debug("failed to validate vote message", "message", vm, "error", err)
+				continue
+			}
+
+			s.logger.Debug("validated vote message", "vote", v, "subround", vm.Stage)
+		}
+	}(&done)
+
+	for {
+		if cond() {
+			done = true
+			return
+		}
+	}
+}
+
+// sendMessage sends a message through the out channel
+func (s *Service) sendMessage(vote *Vote, stage subround) error {
+	msg, err := s.createVoteMessage(vote, stage, s.keypair)
+	if err != nil {
+		return err
+	}
+
+	s.chanLock.Lock()
+	defer s.chanLock.Unlock()
+
+	if s.stopped {
+		return nil
+	}
+
+	s.out <- msg
+	s.logger.Debug("sent VoteMessage", "msg", msg)
+
+	return nil
+}
+
+// createVoteMessage returns a signed VoteMessage given a header
+func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypair) (*VoteMessage, error) {
 	msg, err := scale.Encode(&FullVote{
-		stage: s.subround,
-		vote:  vote,
-		round: s.state.round,
-		setID: s.state.setID,
+		Stage: stage,
+		Vote:  vote,
+		Round: s.state.round,
+		SetID: s.state.setID,
 	})
 	if err != nil {
 		return nil, err
@@ -43,25 +99,25 @@ func (s *Service) CreateVoteMessage(header *types.Header, kp crypto.Keypair) (*V
 	}
 
 	sm := &SignedMessage{
-		hash:        vote.hash,
-		number:      vote.number,
-		signature:   ed25519.NewSignatureBytes(sig),
-		authorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+		Hash:        vote.hash,
+		Number:      vote.number,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
 	return &VoteMessage{
-		setID:   s.state.setID,
-		round:   s.state.round,
-		stage:   s.subround,
-		message: sm,
+		SetID:   s.state.setID,
+		Round:   s.state.round,
+		Stage:   stage,
+		Message: sm,
 	}, nil
 }
 
-// ValidateMessage validates a VoteMessage and adds it to the current votes
+// validateMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
+func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	// check for message signature
-	pk, err := ed25519.NewPublicKey(m.message.authorityID[:])
+	pk, err := ed25519.NewPublicKey(m.Message.AuthorityID[:])
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +128,13 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	// check that setIDs match
-	if m.setID != s.state.setID {
+	if m.SetID != s.state.setID {
 		return nil, ErrSetIDMismatch
+	}
+
+	// check that vote is for current round
+	if m.Round != s.state.round {
+		return nil, ErrRoundMismatch
 	}
 
 	// check for equivocation ie. multiple votes within one subround
@@ -82,22 +143,42 @@ func (s *Service) ValidateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
-	vote := NewVote(m.message.hash, m.message.number)
+	vote := NewVote(m.Message.Hash, m.Message.Number)
 
-	equivocated := s.checkForEquivocation(voter, vote, m.stage)
+	// if the vote is from ourselves, ignore
+	kb := [32]byte(s.publicKeyBytes())
+	if bytes.Equal(m.Message.AuthorityID[:], kb[:]) {
+		return vote, nil
+	}
+
+	equivocated := s.checkForEquivocation(voter, vote, m.Stage)
 	if equivocated {
 		return nil, ErrEquivocation
 	}
 
 	err = s.validateVote(vote)
+	if err == ErrBlockDoesNotExist {
+		s.tracker.add(m)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	if m.stage == prevote {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
+	just := &Justification{
+		Vote:        vote,
+		Signature:   m.Message.Signature,
+		AuthorityID: pk.AsBytes(),
+	}
+
+	if m.Stage == prevote {
 		s.prevotes[pk.AsBytes()] = vote
-	} else if m.stage == precommit {
+		s.pvJustifications = append(s.pvJustifications, just)
+	} else if m.Stage == precommit {
 		s.precommits[pk.AsBytes()] = vote
+		s.pcJustifications = append(s.pcJustifications, just)
 	}
 
 	return vote, nil
@@ -112,6 +193,9 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 	var eq map[ed25519.PublicKeyBytes][]*Vote
 	var votes map[ed25519.PublicKeyBytes]*Vote
 
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
 	if stage == prevote {
 		eq = s.pvEquivocations
 		votes = s.prevotes
@@ -120,13 +204,14 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 		votes = s.precommits
 	}
 
+	// TODO: check for votes we've already seen #923
 	if eq[v] != nil {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
 		return true
 	}
 
-	if votes[v] != nil {
+	if votes[v] != nil && votes[v].hash != vote.hash {
 		// the voter has already voted, all their votes are now equivocatory
 		prev := votes[v]
 		eq[v] = []*Vote{prev, vote}
@@ -165,15 +250,16 @@ func (s *Service) validateVote(v *Vote) error {
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Encode(&FullVote{
-		stage: m.stage,
-		vote:  NewVote(m.message.hash, m.message.number),
-		round: m.round,
-		setID: m.setID,
+		Stage: m.Stage,
+		Vote:  NewVote(m.Message.Hash, m.Message.Number),
+		Round: m.Round,
+		SetID: m.SetID,
 	})
 	if err != nil {
 		return err
 	}
-	ok, err := pk.Verify(msg, m.message.signature[:])
+
+	ok, err := pk.Verify(msg, m.Message.Signature[:])
 	if err != nil {
 		return err
 	}

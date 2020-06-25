@@ -17,8 +17,15 @@
 package scale
 
 import (
+	"bytes"
+	"io"
+	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecodeComplexStruct(t *testing.T) {
@@ -80,4 +87,84 @@ func TestEncodeDecodeComplexStruct(t *testing.T) {
 	if !reflect.DeepEqual(output.(*ComplexStruct), test) {
 		t.Errorf("Fail: got %+v expected %+v", output.(*ComplexStruct), test)
 	}
+}
+
+var bigIntTests = []*big.Int{
+	big.NewInt(0),
+	big.NewInt(1),
+	big.NewInt(42),
+	big.NewInt(64),
+	big.NewInt(69),
+	big.NewInt(16383),
+	big.NewInt(16384),
+	big.NewInt(1073741823),
+	big.NewInt(1073741824),
+	big.NewInt(1<<32 - 1),
+	big.NewInt(1 << 32),
+}
+
+func TestEncodeDecodeBigInt(t *testing.T) {
+	for _, test := range bigIntTests {
+		enc, err := Encode(test)
+		require.NoError(t, err)
+
+		dec, err := Decode(enc, big.NewInt(0))
+		require.NoError(t, err)
+		require.Equal(t, test, dec)
+	}
+
+}
+
+type testType struct {
+	Data [64]byte
+}
+
+func (t *testType) Encode() ([]byte, error) {
+	return Encode(t)
+}
+
+func (t *testType) Decode(r io.Reader) (*testType, error) {
+	sd := Decoder{Reader: r}
+	ti, err := sd.Decode(t)
+	return ti.(*testType), err
+}
+
+func TestEncodeDecodeCustom_NoRecursion(t *testing.T) {
+	tt := new(testType)
+	tt.Data = [64]byte{1, 2, 3, 4}
+	enc, err := tt.Encode()
+	require.NoError(t, err)
+
+	rw := &bytes.Buffer{}
+	rw.Write(enc)
+	dec, err := new(testType).Decode(rw)
+	require.NoError(t, err)
+	require.Equal(t, tt, dec)
+}
+
+type MyType [32]byte
+
+func (t *MyType) Encode() ([]byte, error) {
+	return t[:], nil
+}
+
+func (t *MyType) Decode(r io.Reader) (*MyType, error) {
+	m, err := common.ReadHash(r)
+	mt := MyType(m)
+	return &mt, err
+}
+
+type testType2 struct {
+	Data *MyType
+}
+
+func TestEncodeDecodeCustom_InsideStruct(t *testing.T) {
+	tt := new(testType2)
+	tt.Data = &MyType{1, 2, 3, 4}
+	enc, err := Encode(tt)
+	require.NoError(t, err)
+
+	dec, err := Decode(enc, new(testType2))
+	require.NoError(t, err)
+	require.Equal(t, tt, dec)
 }

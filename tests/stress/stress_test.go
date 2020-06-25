@@ -43,7 +43,7 @@ import (
 
 var (
 	numNodes   = 3
-	maxRetries = 8
+	maxRetries = 24
 )
 
 // compareChainHeads calls getChainHead for each node in the array
@@ -64,41 +64,44 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	return hashes, err
 }
 
-func TestMain(m *testing.M) {
-	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stress" {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
-		return
+// compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
+// it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
+func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		hash := utils.GetFinalizedHead(t, node)
+		log.Info("got finalized head from node", "hash", hash, "node", node.Key)
+		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
-	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
-
-	if utils.NETWORK_SIZE != "" {
-		var err error
-		numNodes, err = strconv.Atoi(utils.NETWORK_SIZE)
-		if err == nil {
-			_, _ = fmt.Fprintf(os.Stdout, "Going to use custom network size %d\n", numNodes)
-		}
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node finalized head hashes don't match")
 	}
 
-	if utils.HOSTNAME == "" {
-		_, _ = fmt.Fprintln(os.Stdout, "HOSTNAME is not set, skipping stress test")
-		return
-	}
-
-	// Start all tests
-	code := m.Run()
-	os.Exit(code)
+	return hashes, err
 }
 
-func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
-	require.NoError(t, err)
+// compareFinalizedHeadsByRound calls getFinalizedHeadByRound for each node in the array
+// it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
+func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint64) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		hash, err := utils.GetFinalizedHeadByRound(t, node, round)
+		if err != nil {
+			continue
+		}
 
-	exts := new(modules.PendingExtrinsicsResponse)
-	err = utils.DecodeRPC(t, respBody, exts)
-	require.NoError(t, err)
+		log.Info("got finalized head from node", "hash", hash, "node", node.Key, "round", round)
+		hashes[hash] = append(hashes[hash], node.Key)
+	}
 
-	return *exts
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node finalized head hashes don't match")
+	}
+
+	return hashes, err
 }
 
 // compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
@@ -117,8 +120,67 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
 	require.NoError(t, err, hashes)
 }
 
+// compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
+// it returns the finalized hash if it succeeds
+func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uint64) common.Hash {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareFinalizedHeadsByRound(t, nodes, round)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
+
+	for h := range hashes {
+		return h
+	}
+
+	return common.Hash{}
+}
+
+func TestMain(m *testing.M) {
+	if utils.MODE != "stress" {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")
+		return
+	}
+
+	_, _ = fmt.Fprintln(os.Stdout, "Going to start stress test")
+
+	if utils.NETWORK_SIZE != "" {
+		var err error
+		numNodes, err = strconv.Atoi(utils.NETWORK_SIZE)
+		if err == nil {
+			_, _ = fmt.Fprintf(os.Stdout, "Going to use custom network size %d\n", numNodes)
+		}
+	}
+
+	if utils.HOSTNAME == "" {
+		utils.HOSTNAME = "localhost"
+	}
+
+	// Start all tests
+	code := m.Run()
+	os.Exit(code)
+}
+
+func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
+	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
+	require.NoError(t, err)
+
+	exts := new(modules.PendingExtrinsicsResponse)
+	err = utils.DecodeRPC(t, respBody, exts)
+	require.NoError(t, err)
+
+	return *exts
+}
+
 func TestStressSync(t *testing.T) {
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -134,8 +196,28 @@ func TestStressSync(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	compareChainHeadsWithRetry(t, nodes)
+
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
+}
+
+func TestRestartNode(t *testing.T) {
+	nodes, err := utils.InitNodes(numNodes)
+	require.NoError(t, err)
+
+	err = utils.StartNodes(t, nodes)
+	require.NoError(t, err)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+
+	err = utils.StartNodes(t, nodes)
+	require.NoError(t, err)
+
+	errList = utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+
 }
 
 // submitExtrinsicAssertInclusion submits an extrinsic to a random node and asserts that the extrinsic was included in some block
@@ -150,7 +232,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(t, utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
+	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)
 
 	var hash modules.ExtrinsicHashResponse
@@ -217,7 +299,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 func TestStress_IncludeData(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
@@ -235,7 +317,7 @@ func TestStress_IncludeData(t *testing.T) {
 func TestStress_StorageChange(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.StartNodes(t, numNodes)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -271,4 +353,39 @@ func TestStress_StorageChange(t *testing.T) {
 
 	require.Equal(t, 0, len(errs), errs)
 	compareChainHeadsWithRetry(t, nodes)
+}
+
+func TestStress_Grandpa_OneAuthority(t *testing.T) {
+	numNodes = 1
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+
+	compareChainHeadsWithRetry(t, nodes)
+	prev, _ := compareFinalizedHeads(t, nodes)
+
+	time.Sleep(time.Second * 10)
+	curr, _ := compareFinalizedHeads(t, nodes)
+	require.NotEqual(t, prev, curr)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
+
+func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
+	numNodes = 3
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
+	t.Logf("finalized hash in round 1: %s", fin)
+
+	time.Sleep(time.Second * 10)
+	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
+	t.Logf("finalized hash in round 2: %s", fin)
+
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
 }

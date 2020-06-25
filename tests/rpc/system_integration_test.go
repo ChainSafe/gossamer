@@ -30,11 +30,10 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) {
-	if utils.GOSSAMER_INTEGRATION_TEST_MODE != "stable" {
+	if utils.MODE != "stable" {
 		t.Skip("Integration tests are disabled, going to skip.")
 	}
 	log.Info("Going to run NetworkAPI tests",
-		"GOSSAMER_INTEGRATION_TEST_MODE", utils.GOSSAMER_INTEGRATION_TEST_MODE,
 		"HOSTNAME", utils.HOSTNAME,
 		"PORT", utils.PORT,
 	)
@@ -76,7 +75,7 @@ func TestStableNetworkRPC(t *testing.T) {
 
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
-			respBody, err := utils.PostRPC(t, test.method, "http://"+utils.HOSTNAME+":"+utils.PORT, "{}")
+			respBody, err := utils.PostRPC(test.method, "http://"+utils.HOSTNAME+":"+utils.PORT, "{}")
 			require.Nil(t, err)
 
 			target := reflect.New(reflect.TypeOf(test.expected)).Interface()

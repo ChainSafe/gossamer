@@ -27,7 +27,7 @@ import (
 )
 
 func TestContractsRPC(t *testing.T) {
-	if utils.GOSSAMER_INTEGRATION_TEST_MODE != rpcSuite {
+	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
@@ -46,7 +46,7 @@ func TestContractsRPC(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-	nodes, err := utils.StartNodes(t, 1)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

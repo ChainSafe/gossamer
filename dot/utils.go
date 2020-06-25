@@ -28,7 +28,26 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
+
+	log "github.com/ChainSafe/log15"
 )
+
+// setupLogger sets up the gossamer logger
+func setupLogger(cfg *Config) error {
+	if cfg.Global.LogLevel == "" {
+		cfg.Global.LogLevel = "info"
+	}
+
+	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	lvl, err := log.LvlFromString(cfg.Global.LogLevel)
+	if err != nil {
+		return err
+	}
+
+	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
+	cfg.Global.lvl = lvl
+	return nil
+}
 
 // NewTestConfig returns a new test configuration using the provided basepath
 func NewTestConfig(t *testing.T) *Config {
@@ -41,6 +60,7 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:     GssmrConfig().Global.Name,
 			ID:       GssmrConfig().Global.ID,
 			BasePath: dir,
+			LogLevel: "info",
 		},
 		Init:    GssmrConfig().Init,
 		Account: GssmrConfig().Account,
@@ -133,7 +153,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 		gen.Genesis.Raw[0] = make(map[string]string)
 	}
 	gen.Genesis.Raw[0]["0x3a636f6465"] = "0x" + hex
-	gen.Genesis.Raw[0]["0x89d892938a1ad12bbbd7e698505f791668241093caee86a94556a9f48da95856"] = "0x0000000000000001"
+	gen.Genesis.Raw[0]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
 	genFile, err := ioutil.TempFile(dir, "genesis-")
 	require.Nil(t, err)

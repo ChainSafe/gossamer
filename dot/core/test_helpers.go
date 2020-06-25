@@ -19,19 +19,27 @@ package core
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+var maxRetries = 12
+
+// testMessageTimeout is the wait time for messages to be exchanged
+var testMessageTimeout = time.Second
 
 // testGenesisHeader is a test block header
 var testGenesisHeader = &types.Header{
@@ -57,11 +65,104 @@ func (v *mockVerifier) EpochNumber() uint64 {
 	return 1
 }
 
+// mockBlockProducer implements the BlockProducer interface
+type mockBlockProducer struct{}
+
+// Start mocks starting
+func (bp *mockBlockProducer) Start() error {
+	return nil
+}
+
+// Stop mocks stopping
+func (bp *mockBlockProducer) Stop() error {
+	return nil
+}
+
+// Pause mocks pausing
+func (bp *mockBlockProducer) Pause() error {
+	return nil
+}
+
+// Resume mocks resuming
+func (bp *mockBlockProducer) Resume() error {
+	return nil
+}
+
+// GetBlockChannel returns a new channel
+func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
+	return make(chan types.Block)
+}
+
+// SetRuntime mocks setting runtime
+func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
+	return nil
+}
+
+// mockFinalityGadget implements the FinalityGadget interface
+type mockFinalityGadget struct {
+	in        chan FinalityMessage
+	out       chan FinalityMessage
+	finalized chan FinalityMessage
+}
+
+// Start mocks starting
+func (fg *mockFinalityGadget) Start() error {
+	return nil
+}
+
+// Stop mocks stopping
+func (fg *mockFinalityGadget) Stop() error {
+	return nil
+}
+
+// GetVoteOutChannel returns the out channel
+func (fg *mockFinalityGadget) GetVoteOutChannel() <-chan FinalityMessage {
+	return fg.out
+}
+
+// GetVoteInChannel returns the in channel
+func (fg *mockFinalityGadget) GetVoteInChannel() chan<- FinalityMessage {
+	return fg.in
+}
+
+// GetFinalizedChannel returns the finalized channel
+func (fg *mockFinalityGadget) GetFinalizedChannel() <-chan FinalityMessage {
+	return fg.finalized
+}
+
+// DecodeMessage returns a mockFinalityMessage
+func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error) {
+	return &mockFinalityMessage{}, nil
+}
+
+var testConsensusMessage = &network.ConsensusMessage{
+	ConsensusEngineID: types.GrandpaEngineID,
+	Data:              []byte("nootwashere"),
+}
+
+var testFinalizedHash = common.NewHash([]byte("finalized"))
+
+type mockFinalityMessage struct{}
+
+// ToConsensusMessage returns a testConsensusMessage
+func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	return testConsensusMessage, nil
+}
+
+// GetFinalizedHash returns testFinalizedHash
+func (fm *mockFinalityMessage) GetFinalizedHash() (common.Hash, error) {
+	return testFinalizedHash, nil
+}
+
+func (fm *mockFinalityMessage) GetRound() uint64 {
+	return 1
+}
+
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
 		cfg = &Config{
-			IsBabeAuthority: false,
+			IsBlockProducer: false,
 		}
 	}
 
@@ -95,8 +196,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	cfg.Verifier = &mockVerifier{}
+	cfg.LogLvl = 3
 
-	stateSrvc := state.NewService("")
+	stateSrvc := state.NewService("", log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)

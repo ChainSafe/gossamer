@@ -24,6 +24,7 @@ type BlockAPI interface {
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
 	SetBlockAddedChannel(chan<- *types.Block, <-chan struct{})
+	GetFinalizedHash(uint64) (common.Hash, error)
 }
 
 // NetworkAPI interface for network state methods
@@ -49,7 +50,7 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion() (*runtime.VersionAPI, error)
-	IsBabeAuthority() bool
+	IsBlockProducer() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata() ([]byte, error)
 	Stop() error

@@ -18,6 +18,7 @@ package state
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -25,14 +26,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
+	logger           log.Logger
 	dbPath           string
-	db               database.Database
+	db               chaindb.Database
 	isMemDB          bool // set to true if using an in-memory database; only used for testing.
 	Storage          *StorageState
 	Block            *BlockState
@@ -41,8 +43,13 @@ type Service struct {
 }
 
 // NewService create a new instance of Service
-func NewService(path string) *Service {
+func NewService(path string, lvl log.Lvl) *Service {
+	logger := log.New("pkg", "state")
+	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
+
 	return &Service{
+		logger:  logger,
 		dbPath:  path,
 		db:      nil,
 		isMemDB: false,
@@ -60,20 +67,20 @@ func (s *Service) UseMemDB() {
 }
 
 // DB returns the Service's database
-func (s *Service) DB() database.Database {
+func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie) error {
-	var db database.Database
+	var db chaindb.Database
 
 	// check database type
 	if s.isMemDB {
 
 		// create memory database
-		db = database.NewMemDatabase()
+		db = chaindb.NewMemDatabase()
 
 	} else {
 
@@ -84,7 +91,7 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		}
 
 		// initialize database using data directory
-		db, err = database.NewBadgerDB(basepath)
+		db, err = chaindb.NewBadgerDB(basepath)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)
 		}
@@ -138,7 +145,7 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(db database.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
+func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
 
 	// write genesis trie to database
 	err := StoreTrie(db, t)
@@ -181,7 +188,7 @@ func (s *Service) Start() error {
 		}
 
 		// initialize database
-		db, err = database.NewBadgerDB(basepath)
+		db, err = chaindb.NewBadgerDB(basepath)
 		if err != nil {
 			return err
 		}
@@ -195,7 +202,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to get best block hash: %s", err)
 	}
 
-	log.Trace("[state] start", "best block hash", fmt.Sprintf("0x%x", bestHash))
+	s.logger.Trace("start", "best block hash", fmt.Sprintf("0x%x", bestHash))
 
 	// create storage state
 	s.Storage, err = NewStorageState(db, trie.NewEmptyTrie())
@@ -221,7 +228,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("cannot load latest storage root: %s", err)
 	}
 
-	log.Debug("[state] start", "latest state root", stateRoot)
+	s.logger.Debug("start", "latest state root", stateRoot)
 
 	// load current storage state
 	err = s.Storage.LoadFromDB(stateRoot)
@@ -266,7 +273,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	log.Debug("[state] stop", "best block hash", hash)
+	s.logger.Debug("stop", "best block hash", hash)
 
 	return s.db.Close()
 }

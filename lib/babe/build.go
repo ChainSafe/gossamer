@@ -28,20 +28,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
-	log "github.com/ChainSafe/log15"
 )
 
 // BuildBlock builds a block for the slot with the given parent.
 // TODO: separate block builder logic into separate module. The only reason this is exported is so other packages
 // can build blocks for testing, but it would be preferred to have the builder functionality separated.
-func (b *Session) BuildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+func (b *Service) BuildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
 	return b.buildBlock(parent, slot)
 }
 
 // construct a block for this slot with the given parent
-func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
-	log.Trace("[babe] build block", "parent", parent, "slot", slot)
+func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+	b.logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
@@ -49,11 +47,11 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	log.Trace("[babe] built pre-digest")
+	b.logger.Trace("built pre-digest")
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(common.Hash{}, number, common.Hash{}, common.Hash{}, [][]byte{})
+	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, [][]byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +62,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	log.Trace("[babe] initialized block")
+	b.logger.Trace("initialized block")
 
 	// add block inherents
 	err = b.buildBlockInherents(slot)
@@ -72,7 +70,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	log.Trace("[babe] built block inherents")
+	b.logger.Trace("built block inherents")
 
 	// add block extrinsics
 	included, err := b.buildBlockExtrinsics(slot)
@@ -80,7 +78,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot build extrinsics: %s", err)
 	}
 
-	log.Trace("[babe] built block extrinsics")
+	b.logger.Trace("built block extrinsics")
 
 	// finalize block
 	header, err = b.rt.FinalizeBlock()
@@ -89,7 +87,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot finalize block: %s", err)
 	}
 
-	log.Trace("[babe] finalized block")
+	b.logger.Trace("finalized block")
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))
@@ -105,7 +103,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	header.Digest = append(header.Digest, seal.Encode())
 
-	log.Trace("[babe] built block seal")
+	b.logger.Trace("built block seal")
 
 	body, err := extrinsicsToBody(included)
 	if err != nil {
@@ -122,7 +120,7 @@ func (b *Session) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
-func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
+func (b *Service) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
 	encHeader, err := header.Encode()
 	if err != nil {
 		return nil, err
@@ -141,7 +139,7 @@ func (b *Session) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
-func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
+func (b *Service) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
 	babeHeader, err := b.buildBlockBabeHeader(slot)
 	if err != nil {
 		return nil, err
@@ -157,7 +155,7 @@ func (b *Session) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 
 // buildBlockBabeHeader creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *Session) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
+func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
 		// if we don't have a proof already set, re-run lottery.
 		// this can be removed when this is separated into a block builder module,
@@ -185,12 +183,12 @@ func (b *Session) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
+func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
 	next := b.nextReadyExtrinsic()
 	included := []*transaction.ValidTransaction{}
 
 	for !hasSlotEnded(slot) && next != nil {
-		log.Trace("[babe] build block", "applying extrinsic", next)
+		b.logger.Trace("build block", "applying extrinsic", next)
 		ret, err := b.rt.ApplyExtrinsic(next)
 		if err != nil {
 			return nil, err
@@ -212,7 +210,7 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 
 		}
 
-		log.Trace("[babe] build block applied extrinsic", "extrinsic", next)
+		b.logger.Trace("build block applied extrinsic", "extrinsic", next)
 
 		// keep track of included transactions; re-add them to queue later if block building fails
 		t := b.transactionQueue.Pop()
@@ -224,15 +222,27 @@ func (b *Session) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 }
 
 // buildBlockInherents applies the inherents for a block
-func (b *Session) buildBlockInherents(slot Slot) error {
-	// Setup inherents: add timstap0 and babeslot
+func (b *Service) buildBlockInherents(slot Slot) error {
+	// Setup inherents: add timstap0
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
 	if err != nil {
 		return err
 	}
 
+	// add babeslot
 	err = idata.SetInt64Inherent(Babeslot, slot.number)
+	if err != nil {
+		return err
+	}
+
+	// add finalnum
+	fin, err := b.blockState.GetFinalizedHeader(0)
+	if err != nil {
+		return err
+	}
+
+	err = idata.SetBigIntInherent(Finalnum, fin.Number)
 	if err != nil {
 		return err
 	}
@@ -241,9 +251,6 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 	if err != nil {
 		return err
 	}
-
-	// TODO: inherent_extrinsics needs to be called for each inherent
-	// this currently only returns the timestamp (first inherent)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := b.rt.InherentExtrinsics(ienc)
@@ -282,19 +289,19 @@ func (b *Session) buildBlockInherents(slot Slot) error {
 	return nil
 }
 
-func (b *Session) addToQueue(txs []*transaction.ValidTransaction) {
+func (b *Service) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		hash, err := b.transactionQueue.Push(t)
 		if err != nil {
-			log.Trace("[babe] Failed to add transaction to queue", "error", err)
+			b.logger.Trace("Failed to add transaction to queue", "error", err)
 		} else {
-			log.Trace("[babe] Added transaction to queue", "hash", hash)
+			b.logger.Trace("Added transaction to queue", "hash", hash)
 		}
 	}
 }
 
 // nextReadyExtrinsic peeks from the transaction queue. it does not remove any transactions from the queue
-func (b *Session) nextReadyExtrinsic() types.Extrinsic {
+func (b *Service) nextReadyExtrinsic() types.Extrinsic {
 	transaction := b.transactionQueue.Peek()
 	if transaction == nil {
 		return nil
@@ -317,7 +324,6 @@ func extrinsicsToBody(txs []*transaction.ValidTransaction) (*types.Body, error) 
 }
 
 func determineError(res []byte) (string, error) {
-	log.Error("[babe] build block apply extrinsic", "error", res)
 	var errTxt strings.Builder
 	var err error
 
