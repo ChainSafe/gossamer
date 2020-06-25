@@ -29,8 +29,7 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	switch reqA[0] {
 	case "babe":
 		if m.blockProducerAPI == nil {
-			err = errors.New("not a block producer")
-			return err
+			return errors.New("not a block producer")
 		}
 
 		switch reqA[1] {
