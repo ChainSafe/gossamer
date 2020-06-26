@@ -180,7 +180,7 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
 }
 
 func TestStressSync(t *testing.T) {
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-db")
@@ -203,7 +203,7 @@ func TestStressSync(t *testing.T) {
 }
 
 func TestRestartNode(t *testing.T) {
-	nodes, err := utils.InitNodes(numNodes)
+	nodes, err := utils.InitNodes(numNodes, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	err = utils.StartNodes(t, nodes)
@@ -299,7 +299,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 func TestStress_IncludeData(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
@@ -317,7 +317,7 @@ func TestStress_IncludeData(t *testing.T) {
 func TestStress_StorageChange(t *testing.T) {
 	t.Skip()
 
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -357,7 +357,7 @@ func TestStress_StorageChange(t *testing.T) {
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	numNodes = 1
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second * 10)
@@ -375,7 +375,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	numNodes = 3
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second * 10)
@@ -392,10 +392,17 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	numNodes = 9
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigLogNone)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 20)
+	tmpdir, err := ioutil.TempDir("", "gossamer-stress-8")
+	require.NoError(t, err)
+	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
+	require.NoError(t, err)
+
+	nodes = append(nodes, node)
+
+	time.Sleep(time.Second * 30)
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
 	t.Logf("finalized hash in round 1: %s", fin)
 

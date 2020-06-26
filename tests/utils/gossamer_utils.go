@@ -48,6 +48,13 @@ var (
 	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
 	// GenesisDefault is the default gssmr genesis file
 	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+
+	// ConfigDefault is the default config file
+	ConfigDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/config.toml")
+	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
+	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
+	// ConfigLogNone is a config file where log levels are set to CRIT for all packages
+	ConfigLogNone string = filepath.Join(currentDir, "../utils/config_log_none.toml")
 )
 
 // Node represents a gossamer process
@@ -57,12 +64,14 @@ type Node struct {
 	RPCPort  string
 	Idx      int
 	basePath string
+	config   string
 }
 
 // InitGossamer initializes given node number and returns node reference
-func InitGossamer(idx int, basePath, genesis string) (*Node, error) {
+func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
+		"--config", config,
 		"--basepath", basePath+strconv.Itoa(idx),
 		"--genesis", genesis,
 		"--force",
@@ -83,6 +92,7 @@ func InitGossamer(idx int, basePath, genesis string) (*Node, error) {
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
 		basePath: basePath + strconv.Itoa(idx),
+		config:   config,
 	}, nil
 }
 
@@ -92,6 +102,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 	if node.Idx >= len(keyList) {
 		//nolint
 		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
+			"--config", node.config,
 			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
@@ -104,6 +115,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 		key = keyList[node.Idx]
 		//nolint
 		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
+			"--config", node.config,
 			"--key", key,
 			"--basepath", node.basePath,
 			"--rpchost", HOSTNAME,
@@ -112,7 +124,6 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "debug",
 		)
 	}
 
@@ -161,8 +172,8 @@ func StartGossamer(t *testing.T, node *Node) error {
 }
 
 // RunGossamer will initialize and start a gossamer instance
-func RunGossamer(t *testing.T, idx int, basepath, genesis string) (*Node, error) {
-	node, err := InitGossamer(idx, basepath, genesis)
+func RunGossamer(t *testing.T, idx int, basepath, genesis, config string) (*Node, error) {
+	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
 		log.Crit("could not initialize gossamer", "error", err)
 		os.Exit(1)
@@ -209,7 +220,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 }
 
 // InitNodes initializes given number of nodes
-func InitNodes(num int) ([]*Node, error) {
+func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
 	if err != nil {
@@ -217,7 +228,7 @@ func InitNodes(num int) ([]*Node, error) {
 	}
 
 	for i := 0; i < num; i++ {
-		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault)
+		node, err := InitGossamer(i, tempDir+strconv.Itoa(i), GenesisDefault, config)
 		if err != nil {
 			log.Error("failed to run gossamer", "i", i)
 			return nil, err
@@ -240,7 +251,7 @@ func StartNodes(t *testing.T, nodes []*Node) error {
 }
 
 // InitializeAndStartNodes will spin up `num` gossamer nodes
-func InitializeAndStartNodes(t *testing.T, num int, genesis string) ([]*Node, error) {
+func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*Node, error) {
 	var nodes []*Node
 
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")
@@ -253,7 +264,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis string) ([]*Node, er
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
-			node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i), genesis)
+			node, err := RunGossamer(t, i, tempDir+strconv.Itoa(i), genesis, config)
 			if err != nil {
 				log.Error("failed to run gossamer", "i", i)
 			}
