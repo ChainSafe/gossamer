@@ -34,6 +34,7 @@ type NetworkAPI interface {
 	NodeRoles() byte
 	Stop() error
 	Start() error
+	IsStopped() bool
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods

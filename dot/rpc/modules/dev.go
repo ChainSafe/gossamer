@@ -7,6 +7,8 @@ import (
 
 var blockProducerStoppedMsg = "babe service stopped"
 var blockProducerStartedMsg = "babe service started"
+var networkStoppedMsg = "network service stopped"
+var networkStartedMsg = "network service started"
 
 // DevModule is an RPC module that provides developer endpoints
 type DevModule struct {
@@ -44,10 +46,10 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 		switch reqA[1] {
 		case "stop":
 			err = m.networkAPI.Stop()
-			*res = "network service stopped"
+			*res = networkStoppedMsg
 		case "start":
 			err = m.networkAPI.Start()
-			*res = "network service started"
+			*res = networkStartedMsg
 		}
 	}
 	return err

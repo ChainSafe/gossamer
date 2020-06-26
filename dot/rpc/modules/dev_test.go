@@ -60,5 +60,17 @@ func TestDevControl_Babe(t *testing.T) {
 }
 
 func TestDevControl_Network(t *testing.T) {
+	net := newNetworkService(t)
+	m := NewDevModule(nil, net)
 
+	var res string
+	err := m.Control(nil, &[]string{"network", "stop"}, &res)
+	require.NoError(t, err)
+	require.Equal(t, networkStoppedMsg, res)
+	require.True(t, net.IsStopped())
+
+	err = m.Control(nil, &[]string{"network", "start"}, &res)
+	require.NoError(t, err)
+	require.Equal(t, networkStartedMsg, res)
+	require.False(t, net.IsStopped())
 }
