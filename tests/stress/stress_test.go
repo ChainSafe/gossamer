@@ -406,9 +406,9 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
 	t.Logf("finalized hash in round 1: %s", fin)
 
-	// time.Sleep(time.Second * 10)
-	// fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
-	// t.Logf("finalized hash in round 2: %s", fin)
+	time.Sleep(time.Second * 10)
+	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
+	t.Logf("finalized hash in round 2: %s", fin)
 
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
