@@ -43,10 +43,9 @@ type Service struct {
 	stopped    bool
 
 	// current state information
-	state      *State                           // current state
-	prevotes   map[ed25519.PublicKeyBytes]*Vote // pre-votes for the current round
-	precommits map[ed25519.PublicKeyBytes]*Vote // pre-commits for the current round
-	//pvJustifications []*Justification                   // pre-vote justifications for the current round TODO: is this used anywhere?
+	state            *State                             // current state
+	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
+	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
 	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
@@ -98,13 +97,12 @@ func NewService(cfg *Config) (*Service, error) {
 	in := make(chan FinalityMessage, 128)
 
 	s := &Service{
-		logger:     logger,
-		state:      NewState(cfg.Voters, 0, 0),
-		blockState: cfg.BlockState,
-		keypair:    cfg.Keypair,
-		prevotes:   make(map[ed25519.PublicKeyBytes]*Vote),
-		precommits: make(map[ed25519.PublicKeyBytes]*Vote),
-		//pvJustifications:   []*Justification{},
+		logger:             logger,
+		state:              NewState(cfg.Voters, 0, 0),
+		blockState:         cfg.BlockState,
+		keypair:            cfg.Keypair,
+		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
+		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
 		pcJustifications:   make(map[common.Hash][]*Justification),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
@@ -166,7 +164,6 @@ func (s *Service) initiate() error {
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-	//s.pvJustifications = []*Justification{}
 	s.pcJustifications = make(map[common.Hash][]*Justification)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
@@ -240,13 +237,6 @@ func (s *Service) playGrandpaRound() error {
 	s.mapLock.Unlock()
 
 	finalized := false
-
-	// go func() {
-	// 	err = s.sendMessage(pv, prevote)
-	// 	if err != nil {
-	// 		s.logger.Error("could not send prevote message", "error", err)
-	// 	}
-	// }()
 
 	// continue to send prevote messages until round is done
 	go func(finalized *bool) {
