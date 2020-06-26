@@ -43,11 +43,11 @@ type Service struct {
 	stopped    bool
 
 	// current state information
-	state            *State                             // current state
-	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
-	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
-	pvJustifications []*Justification                   // pre-vote justifications for the current round TODO: is this used anywhere?
-	pcJustifications []*Justification                   // pre-commit justifications for the current round
+	state      *State                           // current state
+	prevotes   map[ed25519.PublicKeyBytes]*Vote // pre-votes for the current round
+	precommits map[ed25519.PublicKeyBytes]*Vote // pre-commits for the current round
+	//pvJustifications []*Justification                   // pre-vote justifications for the current round TODO: is this used anywhere?
+	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
@@ -98,14 +98,14 @@ func NewService(cfg *Config) (*Service, error) {
 	in := make(chan FinalityMessage, 128)
 
 	s := &Service{
-		logger:             logger,
-		state:              NewState(cfg.Voters, 0, 0),
-		blockState:         cfg.BlockState,
-		keypair:            cfg.Keypair,
-		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
-		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
-		pvJustifications:   []*Justification{},
-		pcJustifications:   []*Justification{},
+		logger:     logger,
+		state:      NewState(cfg.Voters, 0, 0),
+		blockState: cfg.BlockState,
+		keypair:    cfg.Keypair,
+		prevotes:   make(map[ed25519.PublicKeyBytes]*Vote),
+		precommits: make(map[ed25519.PublicKeyBytes]*Vote),
+		//pvJustifications:   []*Justification{},
+		pcJustifications:   make(map[common.Hash][]*Justification),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		preVotedBlock:      make(map[uint64]*Vote),
@@ -166,8 +166,8 @@ func (s *Service) initiate() error {
 
 	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-	s.pvJustifications = []*Justification{}
-	s.pcJustifications = []*Justification{}
+	//s.pvJustifications = []*Justification{}
+	s.pcJustifications = make(map[common.Hash][]*Justification)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.justification = make(map[uint64][]*Justification)
@@ -236,15 +236,33 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-	s.logger.Debug("sending pre-vote message...", "vote", pv, "votes", s.prevotes)
+	s.logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 	s.mapLock.Unlock()
 
-	go func() {
-		err = s.sendMessage(pv, prevote)
-		if err != nil {
-			s.logger.Error("could not send prevote message", "error", err)
+	finalized := false
+
+	// go func() {
+	// 	err = s.sendMessage(pv, prevote)
+	// 	if err != nil {
+	// 		s.logger.Error("could not send prevote message", "error", err)
+	// 	}
+	// }()
+
+	// continue to send prevote messages until round is done
+	go func(finalized *bool) {
+		for {
+			if *finalized {
+				return
+			}
+
+			err = s.sendMessage(pv, prevote)
+			if err != nil {
+				s.logger.Error("could not send prevote message", "error", err)
+			}
+
+			time.Sleep(time.Second)
 		}
-	}()
+	}(&finalized)
 
 	s.logger.Debug("receiving pre-vote messages...")
 
@@ -273,10 +291,8 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.precommits[s.publicKeyBytes()] = pc
-	s.logger.Debug("sending pre-commit message...", "vote", pc, "votes", s.precommits)
+	s.logger.Debug("sending pre-commit message...", "vote", pc, "precommits", s.precommits)
 	s.mapLock.Unlock()
-
-	finalized := false
 
 	// continue to send precommit messages until round is done
 	go func(finalized *bool) {
@@ -292,7 +308,6 @@ func (s *Service) playGrandpaRound() error {
 
 			time.Sleep(time.Second)
 		}
-
 	}(&finalized)
 
 	go func() {
@@ -468,7 +483,7 @@ func (s *Service) finalize() error {
 	s.bestFinalCandidate[s.state.round] = bfc
 
 	// set justification
-	s.justification[s.state.round] = s.pcJustifications
+	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 	s.mapLock.Unlock()
 
 	s.head, err = s.blockState.GetHeader(bfc.hash)
