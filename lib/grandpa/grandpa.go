@@ -261,6 +261,7 @@ func (s *Service) playGrandpaRound() error {
 			}
 
 			time.Sleep(time.Second)
+			s.logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
 	}(&finalized)
 
@@ -307,6 +308,7 @@ func (s *Service) playGrandpaRound() error {
 			}
 
 			time.Sleep(time.Second)
+			s.logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
 	}(&finalized)
 

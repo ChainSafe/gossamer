@@ -132,7 +132,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			break
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(5 * time.Second)
 	}
 	require.NoError(t, err, hashes)
 
@@ -392,12 +392,18 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	numNodes = 9
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigLogNone)
-	require.NoError(t, err)
 
+	// only log info from 1 node
 	tmpdir, err := ioutil.TempDir("", "gossamer-stress-8")
 	require.NoError(t, err)
 	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second * 10)
+
+	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
+	// all nodes vote for different blocks.
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigLogNone)
 	require.NoError(t, err)
 
 	nodes = append(nodes, node)
@@ -406,7 +412,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
 	t.Logf("finalized hash in round 1: %s", fin)
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 30)
 	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
 	t.Logf("finalized hash in round 2: %s", fin)
 
