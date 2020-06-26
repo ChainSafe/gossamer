@@ -74,12 +74,15 @@ type Function struct {
 	Pallet   Pallet
 	CallData interface{}
 }
+type Signature struct {
+	Address common.Address
+	Sig []byte
+	Extra []byte
 
+}
 // UncheckedExtrinsic generic implementation of pre-verification extrinsic
 type UncheckedExtrinsic struct {
-	Signed    []byte
-	Signature []byte
-	Extra     []byte
+	Signature Signature
 	Function  Function
 }
 
@@ -120,11 +123,14 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 	}
 	extraEnc = append([]byte{0}, extraEnc...) // todo determine what this represents
 
+	signature := Signature{
+		Address: signer.Public().Address(),
+		Sig: sig,
+		Extra: extraEnc,
+	}
 	ux := &UncheckedExtrinsic{
 		Function:  *fnc,
-		Signature: sig,
-		Signed:    signer.Public().Encode(),
-		Extra:     extraEnc,
+		Signature: signature,
 	}
 	return ux, nil
 }
@@ -164,11 +170,17 @@ func buildFunction(fnct interface{}) (*Function, error) {
 // Encode scale encode UncheckedExtrinsic
 func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 	enc := []byte{}
-	enc = append(enc, []byte{45, 2, 132, 255}...) // TODO determine what this represents
-	enc = append(enc, ux.Signed...)
-	enc = append(enc, []byte{1}...) // TODO determine what this represents
-	enc = append(enc, ux.Signature...)
-	enc = append(enc, ux.Extra...)
+	//enc = append(enc, []byte{45, 2, 132, 255}...) // TODO determine what this represents
+	//enc = append(enc, ux.Signed...)
+	//enc = append(enc, []byte{1}...) // TODO determine what this represents
+	//enc = append(enc, ux.Signature...)
+	//enc = append(enc, ux.Extra...)
+	sigEnc, err := ux.Signature.Encode()
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, sigEnc...)
+
 	fncEnc, err := ux.Function.Encode()
 	if err != nil {
 		return nil, err
@@ -177,6 +189,9 @@ func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+func (s *Signature) Encode() ([]byte, error) {
+	return scale.Encode(s)
+}
 // Encode scale encode the UncheckedExtrinsic
 func (f *Function) Encode() ([]byte, error) {
 	switch f.Call {

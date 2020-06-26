@@ -18,7 +18,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
