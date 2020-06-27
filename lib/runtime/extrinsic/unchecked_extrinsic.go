@@ -69,6 +69,11 @@ const (
 	SYS_suicide
 )
 
+// session calls
+const (
+	SESS_set_keys Pallet = iota
+)
+
 // Function struct to represent extrinsic call function
 type Function struct {
 	Call     Call
@@ -90,11 +95,11 @@ type UncheckedExtrinsic struct {
 }
 
 // CreateUncheckedExtrinsic builds UncheckedExtrinsic given function interface, index, genesisHash and Keypair
-func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash common.Hash, signer crypto.Keypair) (*UncheckedExtrinsic, error) {
-	fnc, err := buildFunction(fnct)
-	if err != nil {
-		return nil, err
-	}
+func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.Hash, signer crypto.Keypair) (*UncheckedExtrinsic, error) {
+	//fnc, err := buildFunction(fnct)
+	//if err != nil {
+	//	return nil, err
+	//}
 	extra := struct {
 		Era                      [1]byte // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int
@@ -169,6 +174,12 @@ func buildFunction(fnct interface{}) (*Function, error) {
 			Pallet:   SYS_set_storage,
 			CallData: fnct,
 		}, nil
+	case *AuthoritiesChangeExt:
+		return &Function{
+			Call:     Session,
+			Pallet:   SESS_set_keys,
+			CallData: fnct,
+		}, nil
 	default:
 		return nil, fmt.Errorf("could not build Function for type %T", v)
 	}
@@ -218,9 +229,16 @@ func (f *Function) Encode() ([]byte, error) {
 	switch f.Call {
 	case Balances:
 		// encode Balances type call
-		return f.encodeBalance()
+		enc := []byte{byte(f.Call), byte(f.Pallet)}
+		dataEnc, err := scale.Encode(f.CallData)
+		if err != nil {
+			return nil, err
+		}
+		return append(enc, dataEnc...), nil
 	case System:
 		return f.encodeSystem()
+	case Session:
+		return f.encodeSession()
 	}
 	return nil, nil
 }
@@ -231,20 +249,17 @@ func (f *Function) encodeSystem() ([]byte, error) {
 	switch f.Pallet {
 	case SYS_set_storage:
 		enc = append(enc, byte(f.Pallet))
-		//enc = append(enc, byte(255)) // TODO not sure why this is used, research
 		t := f.CallData.(*StorageChangeExt)
 		kEnc, err := scale.Encode(t.key)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("kEnc %v\n", kEnc)
 		enc = append(enc, kEnc...)
 		if t.value.Exists() {
 			vEnc, err := scale.Encode(t.value.Value())
 			if err != nil {
 				return nil, err
 			}
-			fmt.Printf("vEnc %v\n", vEnc)
 			enc = append(enc, vEnc...)
 		}
 	}
@@ -268,6 +283,40 @@ func (f *Function) encodeBalance() ([]byte, error) {
 
 	default:
 		return nil, fmt.Errorf("could not encode pallet %v", f.Pallet)
+	}
+	return enc, nil
+}
+
+func (f *Function) encodeSession() ([]byte, error) {
+	enc := []byte{}
+	enc = append(enc, byte(f.Call))
+	switch f.Pallet {
+	case SESS_set_keys:
+		enc = append(enc, byte(f.Pallet))
+		t := f.CallData.(*AuthoritiesChangeExt)
+		fmt.Printf("Session call data %v\n", t)
+		acEnc, err := t.Encode()
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("AC enc %v\n", acEnc)
+		tstEnc, err := scale.Encode(t.authorityIDs[0])
+		fmt.Printf("TestEnc %v\n", tstEnc)
+		enc = append(enc, tstEnc...)
+		//kEnc, err := scale.Encode(t.key)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//fmt.Printf("kEnc %v\n", kEnc)
+		//enc = append(enc, kEnc...)
+		//if t.value.Exists() {
+		//	vEnc, err := scale.Encode(t.value.Value())
+		//	if err != nil {
+		//		return nil, err
+		//	}
+		//	fmt.Printf("vEnc %v\n", vEnc)
+		//	enc = append(enc, vEnc...)
+		//}
 	}
 	return enc, nil
 }
