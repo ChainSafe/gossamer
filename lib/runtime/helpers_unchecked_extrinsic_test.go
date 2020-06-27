@@ -14,6 +14,7 @@ import (
 )
 
 func TestApplyExtrinsic_AuthoritiesChange_UncheckedExt(t *testing.T) {
+	t.Skip()
 	// TODO: update AuthoritiesChange to need to be signed by an authority
 	rt := NewTestRuntime(t, NODE_RUNTIME)
 

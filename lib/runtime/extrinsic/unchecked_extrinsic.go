@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+// TODO determine how to get these values from the Runtime
 const specVersion uint32 = 193      // encoded as additional singed data when building UncheckedExtrinsic
 const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
 
@@ -74,12 +75,14 @@ type Function struct {
 	Pallet   Pallet
 	CallData interface{}
 }
+
+// Signature struct to represent signature parts
 type Signature struct {
 	Address []byte
-	Sig []byte
-	Extra []byte
-
+	Sig     []byte
+	Extra   []byte
 }
+
 // UncheckedExtrinsic generic implementation of pre-verification extrinsic
 type UncheckedExtrinsic struct {
 	Signature Signature
@@ -93,7 +96,7 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 		return nil, err
 	}
 	extra := struct {
-		Era [1]byte  // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
+		Era                      [1]byte // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int
 		ChargeTransactionPayment *big.Int
 	}{
@@ -129,8 +132,8 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 
 	signature := Signature{
 		Address: signer.Public().Encode(),
-		Sig: sig,
-		Extra: extraEnc,
+		Sig:     sig,
+		Extra:   extraEnc,
 	}
 	ux := &UncheckedExtrinsic{
 		Function:  *fnc,
@@ -194,6 +197,7 @@ func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 	return sEnc, nil
 }
 
+// Encode to encode Signature type
 func (s *Signature) Encode() ([]byte, error) {
 	enc := []byte{}
 	//TODO determine why this 255 byte is here
@@ -203,11 +207,12 @@ func (s *Signature) Encode() ([]byte, error) {
 	}
 	enc = append(enc, addEnc...)
 	// TODO find better way to handle keytype
-	enc = append(enc, []byte{1}...)  //this seems to represent signing key type 0 - Ed25519, 1 - Sr22219, 2 - Ecdsa
+	enc = append(enc, []byte{1}...) //this seems to represent signing key type 0 - Ed25519, 1 - Sr22219, 2 - Ecdsa
 	enc = append(enc, s.Sig...)
 	enc = append(enc, s.Extra...)
 	return enc, nil
 }
+
 // Encode scale encode the UncheckedExtrinsic
 func (f *Function) Encode() ([]byte, error) {
 	switch f.Call {
