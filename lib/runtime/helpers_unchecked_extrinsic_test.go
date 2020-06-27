@@ -110,16 +110,19 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	bb := [32]byte{}
 	copy(bb[:], bob)
 
-	var nonce uint64 = 0
+	var nonce uint64 = 1
 	transfer := extrinsic.NewTransfer(ab, bb, 1000, nonce)
 	gensisHash := common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")
 
 	ux, err := extrinsic.CreateUncheckedExtrinsic(transfer, new(big.Int).SetUint64(nonce), gensisHash, kr.Alice)
 	require.NoError(t, err)
 
+	fmt.Printf("ux %v\n", ux)
+
 	uxEnc, err := ux.Encode()
 	require.NoError(t, err)
-
+	fmt.Printf(" uxEnc 0x%v\n", uxEnc)
+	fmt.Printf("uxEnc Len %v\n", len(uxEnc))
 	res, err := rt.ApplyExtrinsic(uxEnc)
 	require.NoError(t, err)
 

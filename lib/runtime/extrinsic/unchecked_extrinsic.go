@@ -75,7 +75,7 @@ type Function struct {
 	CallData interface{}
 }
 type Signature struct {
-	Address common.Address
+	Address []byte
 	Sig []byte
 	Extra []byte
 
@@ -93,9 +93,11 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 		return nil, err
 	}
 	extra := struct {
+		Era [1]byte  // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int
 		ChargeTransactionPayment *big.Int
 	}{
+		[1]byte{0},
 		index,
 		big.NewInt(0),
 	}
@@ -121,10 +123,12 @@ func CreateUncheckedExtrinsic(fnct interface{}, index *big.Int, genesisHash comm
 	if err != nil {
 		return nil, err
 	}
-	extraEnc = append([]byte{0}, extraEnc...) // todo determine what this represents
+	fmt.Printf("encode extra %v\n", extraEnc)
+	// TODO this changes mortality, determine how to set
+	//extraEnc = append([]byte{22}, extraEnc...)
 
 	signature := Signature{
-		Address: signer.Public().Address(),
+		Address: signer.Public().Encode(),
 		Sig: sig,
 		Extra: extraEnc,
 	}
@@ -170,11 +174,6 @@ func buildFunction(fnct interface{}) (*Function, error) {
 // Encode scale encode UncheckedExtrinsic
 func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 	enc := []byte{}
-	//enc = append(enc, []byte{45, 2, 132, 255}...) // TODO determine what this represents
-	//enc = append(enc, ux.Signed...)
-	//enc = append(enc, []byte{1}...) // TODO determine what this represents
-	//enc = append(enc, ux.Signature...)
-	//enc = append(enc, ux.Extra...)
 	sigEnc, err := ux.Signature.Encode()
 	if err != nil {
 		return nil, err
@@ -186,11 +185,28 @@ func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
 		return nil, err
 	}
 	enc = append(enc, fncEnc...)
-	return enc, nil
+
+	sEnc, err := scale.Encode(enc)
+	if err != nil {
+		return nil, err
+	}
+
+	return sEnc, nil
 }
 
 func (s *Signature) Encode() ([]byte, error) {
-	return scale.Encode(s)
+	enc := []byte{}
+	//TODO determine why this 255 byte is here
+	addEnc, err := scale.Encode(append([]byte{255}, s.Address...))
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, addEnc...)
+	// TODO find better way to handle keytype
+	enc = append(enc, []byte{1}...)  //this seems to represent signing key type 0 - Ed25519, 1 - Sr22219, 2 - Ecdsa
+	enc = append(enc, s.Sig...)
+	enc = append(enc, s.Extra...)
+	return enc, nil
 }
 // Encode scale encode the UncheckedExtrinsic
 func (f *Function) Encode() ([]byte, error) {
@@ -271,12 +287,14 @@ func (sp *signedPayload) Encode() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	//enc = append(enc, []byte{0}...) // TODO, determine why this byte is added
 
 	exEnc, err := scale.Encode(sp.Extra)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO this changes mortality, determine how to set
+	//exEnc = append([]byte{22}, exEnc...)  // testing era
 	enc = append(enc, exEnc...)
 
 	addEnc, err := scale.Encode(sp.AdditionSigned)
