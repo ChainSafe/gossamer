@@ -73,7 +73,7 @@ type Syncer struct {
 	verifier Verifier
 
 	// Consensus digest handling
-	digestHandler digestHandler
+	digestHandler digestHandlerI
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -89,7 +89,7 @@ type SyncerConfig struct {
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
 	Verifier         Verifier
-	DigestHandler    digestHandler
+	DigestHandler    digestHandlerI
 }
 
 var responseTimeout = 3 * time.Second
@@ -446,7 +446,12 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 	// TODO: if block is from the next epoch, increment epoch
 
 	// handle consensus digest for authority changes
-	err = s.handleDigests(block.Header)
+	if s.digestHandler != nil {
+		err = s.handleDigests(block.Header)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

@@ -138,6 +138,10 @@ func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (Finality
 func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.GrandpaAuthorityData) {
 }
 
+func (fg *mockFinalityGadget) Authorities() []*types.GrandpaAuthorityData {
+	return nil
+}
+
 var testConsensusMessage = &network.ConsensusMessage{
 	ConsensusEngineID: types.GrandpaEngineID,
 	Data:              []byte("nootwashere"),

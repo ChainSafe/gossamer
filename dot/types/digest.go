@@ -181,34 +181,6 @@ func (d *ConsensusDigest) DataType() byte {
 	return d.Data[0]
 }
 
-var ScheduledChangeType = byte(1)
-var ForcedChangeType = byte(2)
-var DisabledType = byte(3)
-var PauseType = byte(4)
-var ResumeType = byte(5)
-
-type GrandpaScheduledChange struct {
-	Auths []*GrandpaAuthorityDataRaw
-	Delay uint32
-}
-
-type GrandpaForcedChange struct {
-	Auths []*GrandpaAuthorityDataRaw
-	Delay uint32
-}
-
-type Disabled struct {
-	Auth *GrandpaAuthorityDataRaw
-}
-
-type Pause struct {
-	Delay uint32
-}
-
-type Resume struct {
-	Delay uint32
-}
-
 // SealDigest contains the seal or signature. This is only used by native code.
 type SealDigest struct {
 	ConsensusEngineID ConsensusEngineID
