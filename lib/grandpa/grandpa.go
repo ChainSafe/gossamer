@@ -147,7 +147,15 @@ func (s *Service) Stop() error {
 }
 
 // UpdateAuthorities schedules an update to the grandpa voter set and increments the setID at the end of the current round
-func (s *Service) UpdateAuthorities(v []*Voter) {
+func (s *Service) UpdateAuthorities(ad []*types.GrandpaAuthorityData) {
+	v := make([]*Voter, len(ad))
+	for i, a := range ad {
+		v[i] = &Voter{
+			key: a.Key,
+			id:  a.ID,
+		}
+	}
+
 	s.nextAuthorities = v
 }
 
