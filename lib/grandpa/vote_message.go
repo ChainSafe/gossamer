@@ -106,8 +106,8 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 	}
 
 	return &VoteMessage{
-		SetID:   s.state.setID,
 		Round:   s.state.round,
+		SetID:   s.state.setID,
 		Stage:   stage,
 		Message: sm,
 	}, nil
