@@ -104,7 +104,7 @@ func TestImportChannel_Multi(t *testing.T) {
 				require.Equal(t, big.NewInt(1), b.Header.Number)
 				wg.Done()
 			case <-time.After(testMessageTimeout):
-				t.Fatal("did not receive imported block: ch=", i)
+				t.Error("did not receive imported block: ch=", i)
 			}
 		}(i, ch)
 
@@ -144,7 +144,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 			case <-ch:
 				wg.Done()
 			case <-time.After(testMessageTimeout):
-				t.Fatal("did not receive finalized block: ch=", i)
+				t.Error("did not receive finalized block: ch=", i)
 			}
 		}(i, ch)
 
