@@ -73,7 +73,7 @@ type Syncer struct {
 	verifier Verifier
 
 	// Consensus digest handling
-	digestHandler digestHandlerI
+	digestHandler *digestHandler
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -89,7 +89,7 @@ type SyncerConfig struct {
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
 	Verifier         Verifier
-	DigestHandler    digestHandlerI
+	DigestHandler    *digestHandler
 }
 
 var responseTimeout = 3 * time.Second

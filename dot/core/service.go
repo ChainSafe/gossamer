@@ -189,7 +189,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	srv.started.Store(false)
 
-	var dh digestHandlerI
+	var dh *digestHandler
 	if cfg.IsBlockProducer {
 		dh = newDigestHandler(cfg.BlockState, cfg.BlockProducer, cfg.FinalityGadget)
 	}

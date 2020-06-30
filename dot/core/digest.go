@@ -3,14 +3,11 @@ package core
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
-
-type digestHandlerI interface {
-	handleConsensusDigest(*types.ConsensusDigest) error
-}
 
 type digestHandler struct {
 	// interfaces
@@ -88,28 +85,35 @@ func (h *digestHandler) handleGrandpaChanges() {
 			// save authority data for Resume
 			h.grandpaAuths = h.grandpa.Authorities()
 			h.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{})
+			h.grandpaPause = nil
 			continue
 		}
 
 		resume := h.grandpaResume
 		if resume != nil && curr.Number.Cmp(resume.atBlock) == 0 {
 			h.grandpa.UpdateAuthorities(h.grandpaAuths)
+			h.grandpaResume = nil
 			continue
 		}
 
 		fc := h.grandpaForcedChange
 		if fc != nil && curr.Number.Cmp(fc.atBlock) == 0 {
 			h.grandpa.UpdateAuthorities(fc.auths)
+			h.grandpaForcedChange = nil
 			continue
 		}
 
 		sc := h.grandpaScheduledChange
 		if sc != nil && curr.Number.Cmp(sc.atBlock) == 0 {
 			h.grandpa.UpdateAuthorities(sc.auths)
+			h.grandpaScheduledChange = nil
 		}
+
+		time.Sleep(time.Millisecond * 100)
 	}
 }
 
+// handleConsensusDigest is the function used by the syncer to handler a consensus digest
 func (h *digestHandler) handleConsensusDigest(d *types.ConsensusDigest) error {
 	t := d.DataType()
 
@@ -145,7 +149,7 @@ func (h *digestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 		}
 
 		sc := &types.GrandpaScheduledChange{}
-		dec, err := scale.Decode(d.Data, sc)
+		dec, err := scale.Decode(d.Data[1:], sc)
 		if err != nil {
 			return err
 		}
@@ -176,7 +180,7 @@ func (h *digestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 		}
 
 		fc := &types.GrandpaForcedChange{}
-		dec, err := scale.Decode(d.Data, fc)
+		dec, err := scale.Decode(d.Data[1:], fc)
 		if err != nil {
 			return err
 		}
@@ -195,7 +199,7 @@ func (h *digestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 
 func (h *digestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
 	od := &types.OnDisabled{}
-	dec, err := scale.Decode(d.Data, od)
+	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
 		return err
 	}
@@ -226,7 +230,7 @@ func (h *digestHandler) handlePause(d *types.ConsensusDigest) error {
 	}
 
 	p := &types.Pause{}
-	dec, err := scale.Decode(d.Data, p)
+	dec, err := scale.Decode(d.Data[1:], p)
 	if err != nil {
 		return err
 	}
@@ -238,7 +242,7 @@ func (h *digestHandler) handlePause(d *types.ConsensusDigest) error {
 		// TODO
 	} else {
 		h.grandpaPause = &pause{
-			atBlock: big.NewInt(0).Add(curr.Number, delay),
+			atBlock: big.NewInt(-1).Add(curr.Number, delay),
 		}
 	}
 
@@ -252,7 +256,7 @@ func (h *digestHandler) handleResume(d *types.ConsensusDigest) error {
 	}
 
 	p := &types.Resume{}
-	dec, err := scale.Decode(d.Data, p)
+	dec, err := scale.Decode(d.Data[1:], p)
 	if err != nil {
 		return err
 	}
@@ -264,7 +268,7 @@ func (h *digestHandler) handleResume(d *types.ConsensusDigest) error {
 		// TODO
 	} else {
 		h.grandpaResume = &resume{
-			atBlock: big.NewInt(0).Add(curr.Number, delay),
+			atBlock: big.NewInt(-1).Add(curr.Number, delay),
 		}
 	}
 
@@ -281,6 +285,6 @@ func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBl
 
 	return &grandpaChange{
 		auths:   auths,
-		atBlock: big.NewInt(0).Add(currBlock, d),
+		atBlock: big.NewInt(-1).Add(currBlock, d),
 	}, nil
 }
