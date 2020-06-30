@@ -61,12 +61,9 @@ const (
 	SYS_remark
 	SYS_set_heap_pages
 	SYS_set_code
-	SYS_set_code_without_checks
-	SYS_set_changes_trie_config
 	SYS_set_storage
 	SYS_kill_storage
 	SYS_kill_prefix
-	SYS_suicide
 )
 
 // session calls
@@ -96,10 +93,6 @@ type UncheckedExtrinsic struct {
 
 // CreateUncheckedExtrinsic builds UncheckedExtrinsic given function interface, index, genesisHash and Keypair
 func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.Hash, signer crypto.Keypair) (*UncheckedExtrinsic, error) {
-	//fnc, err := buildFunction(fnct)
-	//if err != nil {
-	//	return nil, err
-	//}
 	extra := struct {
 		Era                      [1]byte // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int
@@ -148,45 +141,16 @@ func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.
 }
 
 // CreateUncheckedExtrinsicUnsigned to build unsigned extrinsic
-func CreateUncheckedExtrinsicUnsigned(fnct interface{}) (*UncheckedExtrinsic, error) {
-	fnc, err := buildFunction(fnct)
-	if err != nil {
-		return nil, err
-	}
-
+func CreateUncheckedExtrinsicUnsigned(fnc *Function) (*UncheckedExtrinsic, error) {
 	ux := &UncheckedExtrinsic{
 		Function: *fnc,
 	}
 	return ux, nil
 }
 
-func buildFunction(fnct interface{}) (*Function, error) {
-	switch v := fnct.(type) {
-	case *Transfer:
-		return &Function{
-			Call:     Balances,
-			Pallet:   PB_Transfer,
-			CallData: fnct,
-		}, nil
-	case *StorageChangeExt:
-		return &Function{
-			Call:     System,
-			Pallet:   SYS_set_storage,
-			CallData: fnct,
-		}, nil
-	case *AuthoritiesChangeExt:
-		return &Function{
-			Call:     Session,
-			Pallet:   SESS_set_keys,
-			CallData: fnct,
-		}, nil
-	default:
-		return nil, fmt.Errorf("could not build Function for type %T", v)
-	}
-}
-
 // Encode scale encode UncheckedExtrinsic
 func (ux *UncheckedExtrinsic) Encode() ([]byte, error) {
+	// TODO deal with signed/unsigned encoding
 	enc := []byte{}
 	sigEnc, err := ux.Signature.Encode()
 	if err != nil {
@@ -226,99 +190,12 @@ func (s *Signature) Encode() ([]byte, error) {
 
 // Encode scale encode the UncheckedExtrinsic
 func (f *Function) Encode() ([]byte, error) {
-	switch f.Call {
-	case Balances:
-		// encode Balances type call
-		enc := []byte{byte(f.Call), byte(f.Pallet)}
-		dataEnc, err := scale.Encode(f.CallData)
-		if err != nil {
-			return nil, err
-		}
-		return append(enc, dataEnc...), nil
-	case System:
-		return f.encodeSystem()
-	case Session:
-		return f.encodeSession()
+	enc := []byte{byte(f.Call), byte(f.Pallet)}
+	dataEnc, err := scale.Encode(f.CallData)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
-}
-
-func (f *Function) encodeSystem() ([]byte, error) {
-	enc := []byte{}
-	enc = append(enc, byte(f.Call))
-	switch f.Pallet {
-	case SYS_set_storage:
-		enc = append(enc, byte(f.Pallet))
-		t := f.CallData.(*StorageChangeExt)
-		kEnc, err := scale.Encode(t.key)
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, kEnc...)
-		if t.value.Exists() {
-			vEnc, err := scale.Encode(t.value.Value())
-			if err != nil {
-				return nil, err
-			}
-			enc = append(enc, vEnc...)
-		}
-	}
-	return enc, nil
-}
-func (f *Function) encodeBalance() ([]byte, error) {
-	enc := []byte{}
-	enc = append(enc, byte(f.Call))
-	switch f.Pallet {
-	case PB_Transfer:
-		enc = append(enc, byte(f.Pallet))
-		enc = append(enc, byte(255)) // TODO not sure why this is used, research
-		t := f.CallData.(*Transfer)
-		enc = append(enc, t.to[:]...)
-
-		amtEnc, err := scale.Encode(big.NewInt(int64(t.amount)))
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, amtEnc...)
-
-	default:
-		return nil, fmt.Errorf("could not encode pallet %v", f.Pallet)
-	}
-	return enc, nil
-}
-
-func (f *Function) encodeSession() ([]byte, error) {
-	enc := []byte{}
-	enc = append(enc, byte(f.Call))
-	switch f.Pallet {
-	case SESS_set_keys:
-		enc = append(enc, byte(f.Pallet))
-		t := f.CallData.(*AuthoritiesChangeExt)
-		fmt.Printf("Session call data %v\n", t)
-		acEnc, err := t.Encode()
-		if err != nil {
-			return nil, err
-		}
-		fmt.Printf("AC enc %v\n", acEnc)
-		tstEnc, err := scale.Encode(t.authorityIDs[0])
-		fmt.Printf("TestEnc %v\n", tstEnc)
-		enc = append(enc, tstEnc...)
-		//kEnc, err := scale.Encode(t.key)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//fmt.Printf("kEnc %v\n", kEnc)
-		//enc = append(enc, kEnc...)
-		//if t.value.Exists() {
-		//	vEnc, err := scale.Encode(t.value.Value())
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	fmt.Printf("vEnc %v\n", vEnc)
-		//	enc = append(enc, vEnc...)
-		//}
-	}
-	return enc, nil
+	return append(enc, dataEnc...), nil
 }
 
 type signedPayload struct {
