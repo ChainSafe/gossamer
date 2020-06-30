@@ -66,11 +66,7 @@ func TestFinalizedChannel(t *testing.T) {
 
 	for i := 0; i < 1; i++ {
 		select {
-		case b := <-ch:
-			// ignore genesis block
-			if b.Number.Cmp(big.NewInt(0)) == 1 {
-				require.Equal(t, big.NewInt(int64(i+1)), b.Number, b)
-			}
+		case <-ch:
 		case <-time.After(testMessageTimeout):
 			t.Fatal("did not receive finalized block")
 		}
