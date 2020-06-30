@@ -37,8 +37,8 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 	copy(sig[:], sigb)
 
 	expected := &VoteMessage{
-		Round: 99,
-		SetID: 77,
+		Round: 77,
+		SetID: 99,
 		Stage: precommit,
 		Message: &SignedMessage{
 			Hash:        common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),

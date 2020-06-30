@@ -48,7 +48,7 @@ type digestHandler struct {
 	grandpaAuths           []*types.GrandpaAuthorityData // saved in case of pause
 }
 
-type babeChange struct {
+type babeChange struct { //nolint
 	auths   []*types.BABEAuthorityData //nolint
 	atBlock *big.Int                   //nolint
 }
