@@ -93,30 +93,42 @@ func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
+	if len(bs.imported) == 0 {
+		return
+	}
+
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
 
+	logger.Trace("notifying imported block chans...", "chans", bs.imported)
+
 	for _, ch := range bs.imported {
-		go func() {
+		go func(ch chan<- *types.Block) {
 			ch <- block
-		}()
+		}(ch)
 	}
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash) {
+	if len(bs.finalized) == 0 {
+		return
+	}
+
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		logger.Error("failed to get finalized header", "hash", hash, "error", err)
 		return
 	}
 
+	logger.Trace("notifying finalized block chans...", "chans", bs.finalized)
+
 	bs.finalizedLock.RLock()
 	defer bs.finalizedLock.RUnlock()
 
 	for _, ch := range bs.finalized {
-		go func() {
+		go func(ch chan<- *types.Header) {
 			ch <- header
-		}()
+		}(ch)
 	}
 }
 

@@ -18,6 +18,7 @@ package state
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ var testMessageTimeout = time.Second * 3
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.Block)
+	ch := make(chan *types.Block, 3)
 	id, err := bs.RegisterImportedChannel(ch)
 	require.NoError(t, err)
 
@@ -41,10 +42,9 @@ func TestImportChannel(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		select {
-		case b := <-ch:
-			require.Equal(t, big.NewInt(int64(i+1)), b.Header.Number)
+		case <-ch:
 		case <-time.After(testMessageTimeout):
-			t.Fatal("did not receive finality message")
+			t.Fatal("did not receive imported block")
 		}
 	}
 }
@@ -69,10 +69,90 @@ func TestFinalizedChannel(t *testing.T) {
 		case b := <-ch:
 			// ignore genesis block
 			if b.Number.Cmp(big.NewInt(0)) == 1 {
-				require.Equal(t, big.NewInt(int64(i+1)), b.Number, b)	
+				require.Equal(t, big.NewInt(int64(i+1)), b.Number, b)
 			}
 		case <-time.After(testMessageTimeout):
-			t.Fatal("did not receive finality message")
+			t.Fatal("did not receive finalized block")
 		}
+	}
+}
+
+func TestImportChannel_Multi(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	num := 5
+	chs := make([]chan *types.Block, num)
+	ids := make([]byte, num)
+
+	var err error
+	for i := 0; i < num; i++ {
+		chs[i] = make(chan *types.Block)
+		ids[i], err = bs.RegisterImportedChannel(chs[i])
+		require.NoError(t, err)
+	}
+
+	AddBlocksToState(t, bs, 1)
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i, ch := range chs {
+
+		go func(i int, ch chan *types.Block) {
+			select {
+			case b := <-ch:
+				require.Equal(t, big.NewInt(1), b.Header.Number)
+				wg.Done()
+			case <-time.After(testMessageTimeout):
+				t.Fatal("did not receive imported block: ch=", i)
+			}
+		}(i, ch)
+
+	}
+
+	wg.Wait()
+
+	for _, id := range ids {
+		bs.UnregisterImportedChannel(id)
+	}
+}
+
+func TestFinalizedChannel_Multi(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	num := 5
+	chs := make([]chan *types.Header, num)
+	ids := make([]byte, num)
+
+	var err error
+	for i := 0; i < num; i++ {
+		chs[i] = make(chan *types.Header)
+		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
+		require.NoError(t, err)
+	}
+
+	chain, _ := AddBlocksToState(t, bs, 1)
+	bs.SetFinalizedHash(chain[0].Hash(), 0)
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i, ch := range chs {
+
+		go func(i int, ch chan *types.Header) {
+			select {
+			case <-ch:
+				wg.Done()
+			case <-time.After(testMessageTimeout):
+				t.Fatal("did not receive finalized block: ch=", i)
+			}
+		}(i, ch)
+
+	}
+
+	wg.Wait()
+
+	for _, id := range ids {
+		bs.UnregisterFinalizedChannel(id)
 	}
 }
