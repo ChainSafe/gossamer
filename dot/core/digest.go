@@ -35,10 +35,10 @@ type digestHandler struct {
 	stopped bool
 
 	// BABE changes
-	babeScheduledChange *babeChange
-	babeForcedChange    *babeChange
-	babePause           *pause
-	babeResume          *resume
+	babeScheduledChange *babeChange //nolint
+	babeForcedChange    *babeChange //nolint
+	babePause           *pause      //nolint
+	babeResume          *resume     //nolint
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -49,8 +49,8 @@ type digestHandler struct {
 }
 
 type babeChange struct {
-	auths   []*types.BABEAuthorityData
-	atBlock *big.Int
+	auths   []*types.BABEAuthorityData //nolint
+	atBlock *big.Int                   //nolint
 }
 
 type grandpaChange struct {
@@ -147,8 +147,6 @@ func (h *digestHandler) handleConsensusDigest(d *types.ConsensusDigest) error {
 	default:
 		return errors.New("invalid consensus digest data")
 	}
-
-	return nil
 }
 
 func (h *digestHandler) handleScheduledChange(d *types.ConsensusDigest) error {

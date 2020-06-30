@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *digestHandler {
+func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *digestHandler { //nolint
 	stateSrvc := state.NewService("", log.LvlInfo)
 	stateSrvc.UseMemDB()
 
