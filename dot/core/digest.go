@@ -77,6 +77,7 @@ func (h *digestHandler) handleGrandpaChanges() {
 			return
 		}
 
+		// TODO: update block state to register new channels for added blocks
 		curr, err := h.blockState.BestBlockHeader()
 		if err != nil {
 			continue
