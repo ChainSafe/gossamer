@@ -117,9 +117,16 @@ func TestApplyExtrinsic_StorageChange_Set_UncheckedExt(t *testing.T) {
 func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	rt := NewTestRuntime(t, NODE_RUNTIME)
 
+	// genesisHash from runtime must match genesisHash used in transfer payload message signing
+	// genesis bytes for runtime seems to be stored in allocated storage at key 0xdfa1667c116b77971ada377f9bd9c485a0566b8e477ae01969120423f2f124ea
+	//  runtime trace logs show genesis set to below:
+	genesisBytes := []byte{83, 121, 115, 116, 101, 109, 32, 66, 108, 111, 99, 107, 72, 97, 115, 104, 0, 0, 0, 0, 101, 117, 101, 50, 54, 188, 7, 185, 79, 198, 211, 234}
+	genesisHash := common.BytesToHash(genesisBytes)
+
 	// Init transfer
 	header := &types.Header{
-		Number: big.NewInt(1),
+		ParentHash: genesisHash,
+		Number:     big.NewInt(1),
 	}
 	err := rt.InitializeBlock(header)
 	require.NoError(t, err)
@@ -128,46 +135,44 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	bb := [32]byte{}
 	copy(bb[:], bob)
 
-	var nonce uint64 = 1
+	var nonce uint64 = 0
 	tranCallData := struct {
 		Type byte
 		To   [32]byte
 		Amt  *big.Int
 	}{
-		Type: byte(255), // TODO determine why this is 255 (Address type?)
+		Type: byte(255), // TODO determine why this is 255 (Lookup type?)
 		To:   bb,
-		Amt:  big.NewInt(1000),
+		Amt:  big.NewInt(1234),
 	}
 	transferF := &extrinsic.Function{
 		Call:     extrinsic.Balances,
 		Pallet:   extrinsic.PB_Transfer,
 		CallData: tranCallData,
 	}
-	gensisHash := common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")
 
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), gensisHash, kr.Alice)
+	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), genesisHash, kr.Alice)
 	require.NoError(t, err)
 
 	uxEnc, err := ux.Encode()
 	require.NoError(t, err)
 
-	// test encoding from substrate subkey
-	//uxtExc := []byte{49, 2, 132, 255, 212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125, 1, 198, 191, 77, 13, 84, 220, 237, 107, 19, 190, 230, 176, 7, 204, 142, 40, 146, 150, 84, 141, 230, 75, 149, 63, 254, 157, 173, 91, 213, 194, 192, 40, 129, 37, 114, 60, 207, 38, 242, 40, 157, 32, 159, 126, 226, 173, 21, 144, 178, 48, 148, 18, 18, 36, 21, 148, 64, 206, 2, 71, 153, 56, 22, 140, 38, 0, 4, 0, 6, 0, 255, 142, 175, 4, 21, 22, 135, 115, 99, 38, 201, 254, 161, 126, 37, 252, 82, 135, 97, 54, 147, 201, 18, 144, 156, 178, 38, 170, 71, 148, 242, 106, 72, 161, 15}
 	res, err := rt.ApplyExtrinsic(uxEnc)
 	require.NoError(t, err)
 
-	// we get below when header number is not 1
-	//require.Equal(t, []byte{1, 2, 0, 5}, res) // 0x01020005 represents Apply error, Type: AncientBirthBlock
-	// TODO determine why were getting this response
-	require.Equal(t, []byte{1, 2, 0, 4}, res) // 0x01020004 represents Apply error, Type: BadProof ie bad signatrue
+	require.Equal(t, []byte{1, 2, 0, 1}, res) // 0x01020001 represents Apply error, Type: Payment: Inability to pay (expected result)
 }
 
 func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 	rt := NewTestRuntime(t, NODE_RUNTIME)
 
+	genesisBytes := []byte{83, 121, 115, 116, 101, 109, 32, 66, 108, 111, 99, 107, 72, 97, 115, 104, 0, 0, 0, 0, 101, 117, 101, 50, 54, 188, 7, 185, 79, 198, 211, 234}
+	genesisHash := common.BytesToHash(genesisBytes)
+
 	// Init transfer
 	header := &types.Header{
-		Number: big.NewInt(1),
+		ParentHash: genesisHash,
+		Number:     big.NewInt(1),
 	}
 	err := rt.InitializeBlock(header)
 	require.NoError(t, err)
@@ -183,7 +188,7 @@ func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 
 	rt.storage.SetBalance(ab, 2000)
 
-	var nonce uint64 = 1
+	var nonce uint64 = 0
 	tranCallData := struct {
 		Type byte
 		To   [32]byte
@@ -198,9 +203,8 @@ func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 		Pallet:   extrinsic.PB_Transfer,
 		CallData: tranCallData,
 	}
-	gensisHash := common.MustHexToHash("0xcdd6bfd33737a9995d2b3463875408ba90be2789ad1e3edf3ac9736a40ca0a16")
 
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), gensisHash, kr.Alice)
+	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), genesisHash, kr.Alice)
 	require.NoError(t, err)
 
 	uxEnc, err := ux.Encode()
@@ -209,8 +213,8 @@ func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 	res, err := rt.ApplyExtrinsic(uxEnc)
 	require.NoError(t, err)
 
-	// TODO determine why were getting this response
-	require.Equal(t, []byte{1, 2, 0, 4}, res) // 0x01020004 represents Apply error, Type: BadProof
+	// TODO determine why were getting this response, set balance above should have fixed
+	require.Equal(t, []byte{1, 2, 0, 1}, res) // 0x01020001 represents Apply error, Type: Payment: Inability to pay some fees
 
 	// TODO: not sure why balances aren't getting adjusted properly, because of AncientBirthBlock?
 	bal, err := rt.storage.GetBalance(ab)

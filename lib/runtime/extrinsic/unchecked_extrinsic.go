@@ -16,7 +16,6 @@
 package extrinsic
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -25,8 +24,8 @@ import (
 )
 
 // TODO determine how to get these values from the Runtime
-const specVersion uint32 = 193      // encoded as additional singed data when building UncheckedExtrinsic
-const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
+const specVersion uint32 = 193 // encoded as additional singed data when building UncheckedExtrinsic
+//const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
 
 // Call interface for method extrinsic is calling
 type Call byte
@@ -103,11 +102,11 @@ func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.
 		big.NewInt(0),
 	}
 	additional := struct {
-		SpecVersion        uint32
-		TransactionVersion uint32
-		GenesisHash        common.Hash
-		GenesisHash2       common.Hash
-	}{specVersion, transactionVersion, genesisHash, genesisHash}
+		SpecVersion uint32
+		//TransactionVersion uint32
+		GenesisHash  common.Hash
+		GenesisHash2 common.Hash
+	}{specVersion, genesisHash, genesisHash}
 
 	rawPayload := fromRaw(fnc, extra, additional)
 	rawEnc, err := rawPayload.Encode()
@@ -124,7 +123,6 @@ func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("encode extra %v\n", extraEnc)
 	// TODO this changes mortality, determine how to set
 	//extraEnc = append([]byte{22}, extraEnc...)
 
