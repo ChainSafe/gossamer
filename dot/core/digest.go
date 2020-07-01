@@ -44,6 +44,7 @@ type digestHandler struct {
 	babeForcedChange    *babeChange
 	babePause           *pause
 	babeResume          *resume
+	babeAuths           []*types.BABEAuthorityData // saved in case of pause
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -117,6 +118,7 @@ func (h *digestHandler) handleBlockImport() {
 		}
 
 		h.handleGrandpaChangesOnImport(block.Header.Number)
+		h.handleBABEChangesOnImport(block.Header.Number)
 	}
 }
 
@@ -127,7 +129,41 @@ func (h *digestHandler) handleBlockFinalization() {
 		}
 
 		h.handleGrandpaChangesOnFinalization(header.Number)
+		h.handleBABEChangesOnFinalization(header.Number)
 	}
+}
+
+func (h *digestHandler) handleBABEChangesOnImport(num *big.Int) {
+	resume := h.babeResume
+	if resume != nil && num.Cmp(resume.atBlock) == 0 {
+		h.babe.SetAuthorities(h.babeAuths)
+		h.babeResume = nil
+	}
+
+	fc := h.babeForcedChange
+	if fc != nil && num.Cmp(fc.atBlock) == 0 {
+		h.babe.SetAuthorities(fc.auths)
+		h.babeForcedChange = nil
+	}
+}
+
+func (h *digestHandler) handleBABEChangesOnFinalization(num *big.Int) {
+	pause := h.babePause
+	if pause != nil && num.Cmp(pause.atBlock) == 0 {
+		// save authority data for Resume
+		h.babeAuths = h.babe.Authorities()
+		h.babe.SetAuthorities([]*types.BABEAuthorityData{})
+		h.babePause = nil
+	}
+
+	sc := h.babeScheduledChange
+	if sc != nil && num.Cmp(sc.atBlock) == 0 {
+		h.babe.SetAuthorities(sc.auths)
+		h.babeScheduledChange = nil
+	}
+
+	// if blocks get finalized before forced change takes place, disregard it
+	h.babeForcedChange = nil
 }
 
 func (h *digestHandler) handleGrandpaChangesOnImport(num *big.Int) {
