@@ -240,7 +240,7 @@ func (b *Service) safeSend(msg types.Block) error {
 	return nil
 }
 
-// AuthorityData returns the current BABE authorities
+// Authorities returns the current BABE authorities
 func (b *Service) Authorities() []*types.BABEAuthorityData {
 	return b.authorityData
 }
