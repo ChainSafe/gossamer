@@ -30,7 +30,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second
+var interval = time.Second * 5
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
@@ -370,7 +370,7 @@ func (s *Service) attemptToFinalize() error {
 		return nil
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 10)
 	return s.attemptToFinalize()
 }
 

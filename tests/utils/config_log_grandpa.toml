@@ -8,6 +8,7 @@ log = "crit"
 core = "info"
 babe = "info"
 grandpa = "trace"
+runtime = "crit"
 
 [init]
 genesis = "./chain/gssmr/genesis.json"

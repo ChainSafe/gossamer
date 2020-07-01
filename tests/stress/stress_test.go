@@ -64,6 +64,24 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	return hashes, err
 }
 
+// compareBlocksByNumber calls getBlockByNumber for each node in the array
+// it returns a map of block hashes to node key names, and an error if the hashes don't all match
+func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
+	hashes := make(map[common.Hash][]string)
+	for _, node := range nodes {
+		hash := utils.GetBlockHash(t, node, num)
+		log.Info("getting hash from node", "hash", hash, "node", node.Key)
+		hashes[hash] = append(hashes[hash], node.Key)
+	}
+
+	var err error
+	if len(hashes) != 1 {
+		err = errors.New("node hashes don't match")
+	}
+
+	return hashes, err
+}
+
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
 // it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
 func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
@@ -399,7 +417,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
@@ -411,6 +429,12 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	time.Sleep(time.Second * 30)
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
 	t.Logf("finalized hash in round 1: %s", fin)
+
+	// get latest block number
+	header := utils.GetChainHead(t, nodes[numNodes-1])
+	num := strconv.Itoa(int(header.Number.Int64()))
+	hashes, err := compareBlocksByNumber(t, nodes, num)
+	require.NoError(t, err, hashes)
 
 	time.Sleep(time.Second * 30)
 	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
