@@ -23,16 +23,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// TODO determine how to get these values from the Runtime
-const specVersion uint32 = 193 // encoded as additional singed data when building UncheckedExtrinsic
-//const transactionVersion uint32 = 1 // encoded as additional singed data when building UncheckedExtrinsic
-
-// Call interface for method extrinsic is calling
-type Call byte
+// Pallet index for module extrinsic is calling
+type Pallet byte
 
 // consts for node_runtime calls
 const (
-	System Call = iota
+	System Pallet = iota
 	Utility
 	Babe
 	Timestamp
@@ -43,12 +39,12 @@ const (
 	Session
 )
 
-// Pallet for runtime sub-calls
-type Pallet int
+// PalletFunction for function index within pallet
+type PalletFunction byte
 
 // pallet_balances calls
 const (
-	PB_Transfer Pallet = iota
+	PB_Transfer PalletFunction = iota
 	PB_Set_balance
 	PB_Force_transfer
 	PB_Transfer_keep_alive
@@ -56,7 +52,7 @@ const (
 
 // pallet_system calls
 const (
-	SYS_fill_block Pallet = iota
+	SYS_fill_block PalletFunction = iota
 	SYS_remark
 	SYS_set_heap_pages
 	SYS_set_code
@@ -67,14 +63,14 @@ const (
 
 // session calls
 const (
-	SESS_set_keys Pallet = iota
+	SESS_set_keys PalletFunction = iota
 )
 
 // Function struct to represent extrinsic call function
 type Function struct {
-	Call     Call
-	Pallet   Pallet
-	CallData interface{}
+	Pall         Pallet
+	PallFunc     PalletFunction
+	FuncCallData interface{}
 }
 
 // Signature struct to represent signature parts
@@ -91,7 +87,7 @@ type UncheckedExtrinsic struct {
 }
 
 // CreateUncheckedExtrinsic builds UncheckedExtrinsic given function interface, index, genesisHash and Keypair
-func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.Hash, signer crypto.Keypair) (*UncheckedExtrinsic, error) {
+func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.Hash, signer crypto.Keypair, additional interface{}) (*UncheckedExtrinsic, error) {
 	extra := struct {
 		Era                      [1]byte // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int
@@ -101,20 +97,14 @@ func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.
 		index,
 		big.NewInt(0),
 	}
-	additional := struct {
-		SpecVersion uint32
-		//TransactionVersion uint32
-		GenesisHash  common.Hash
-		GenesisHash2 common.Hash
-	}{specVersion, genesisHash, genesisHash}
 
-	rawPayload := fromRaw(fnc, extra, additional)
-	rawEnc, err := rawPayload.Encode()
+	payload := buildPayload(fnc, extra, additional)
+	payloadEnc, err := payload.Encode()
 	if err != nil {
 		return nil, err
 	}
 
-	sig, err := signer.Sign(rawEnc)
+	signedPayload, err := signer.Sign(payloadEnc)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +118,7 @@ func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.
 
 	signature := Signature{
 		Address: signer.Public().Encode(),
-		Sig:     sig,
+		Sig:     signedPayload,
 		Extra:   extraEnc,
 	}
 	ux := &UncheckedExtrinsic{
@@ -188,22 +178,23 @@ func (s *Signature) Encode() ([]byte, error) {
 
 // Encode scale encode the UncheckedExtrinsic
 func (f *Function) Encode() ([]byte, error) {
-	enc := []byte{byte(f.Call), byte(f.Pallet)}
-	dataEnc, err := scale.Encode(f.CallData)
+	enc := []byte{byte(f.Pall), byte(f.PallFunc)}
+	dataEnc, err := scale.Encode(f.FuncCallData)
 	if err != nil {
 		return nil, err
 	}
 	return append(enc, dataEnc...), nil
 }
 
-type signedPayload struct {
+// payload struct to hold items that need to be signed
+type payload struct {
 	Function       Function
 	Extra          interface{}
 	AdditionSigned interface{}
 }
 
-func fromRaw(fnc *Function, extra interface{}, additional interface{}) signedPayload {
-	return signedPayload{
+func buildPayload(fnc *Function, extra interface{}, additional interface{}) payload {
+	return payload{
 		Function:       *fnc,
 		Extra:          extra,
 		AdditionSigned: additional,
@@ -211,7 +202,7 @@ func fromRaw(fnc *Function, extra interface{}, additional interface{}) signedPay
 }
 
 // Encode scale encode SignedPayload
-func (sp *signedPayload) Encode() ([]byte, error) {
+func (sp *payload) Encode() ([]byte, error) {
 	enc, err := sp.Function.Encode()
 	if err != nil {
 		return nil, err
