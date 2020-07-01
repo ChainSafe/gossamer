@@ -72,13 +72,10 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
-	for {
-		_, branches = state.AddBlocksToState(t, st.Block, 3)
-		if len(branches) != 0 {
-			break
-		}
-	}
+	branches := make(map[int]int)
+	branches[6] = 1
+	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, 0)
+	leaves := gs.blockState.Leaves()
 
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
@@ -90,7 +87,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	gs.prevotes[voter.key.AsBytes()] = vote
 
-	vote2 := NewVoteFromHeader(branches[0])
+	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(voter, vote2, prevote)
@@ -296,7 +293,8 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
-	gs.tracker = newTracker(st.Block, gs.in)
+	gs.tracker, err = newTracker(st.Block, gs.in)
+	require.NoError(t, err)
 
 	fake := &types.Header{
 		Number: big.NewInt(77),

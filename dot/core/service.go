@@ -189,6 +189,14 @@ func NewService(cfg *Config) (*Service, error) {
 
 	srv.started.Store(false)
 
+	var dh *digestHandler
+	if cfg.IsBlockProducer {
+		dh, err = newDigestHandler(cfg.BlockState, cfg.BlockProducer, cfg.FinalityGadget)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	syncerCfg := &SyncerConfig{
 		logger:           logger,
 		BlockState:       cfg.BlockState,
@@ -199,6 +207,7 @@ func NewService(cfg *Config) (*Service, error) {
 		TransactionQueue: cfg.TransactionQueue,
 		Verifier:         cfg.Verifier,
 		Runtime:          cfg.Runtime,
+		DigestHandler:    dh,
 	}
 
 	syncer, err := NewSyncer(syncerCfg)
