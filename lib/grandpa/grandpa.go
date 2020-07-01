@@ -30,7 +30,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second * 5
+var interval = time.Second * 3
 
 // Service represents the current state of the grandpa protocol
 type Service struct {

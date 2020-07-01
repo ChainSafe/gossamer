@@ -53,14 +53,16 @@ func GetChainHead(t *testing.T, node *Node) *types.Header {
 }
 
 // GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head
-func GetBlockHash(t *testing.T, node *Node, num string) common.Hash {
+func GetBlockHash(t *testing.T, node *Node, num string) (common.Hash, error) {
 	respBody, err := PostRPC(ChainGetBlockHash, NewEndpoint(node.RPCPort), "["+num+"]")
 	require.NoError(t, err)
 
 	var hash string
 	err = DecodeRPC(t, respBody, &hash)
-	require.Nil(t, err)
-	return common.MustHexToHash(hash)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return common.MustHexToHash(hash), nil
 }
 
 // GetFinalizedHead calls the endpoint chain_getFinalizedHead to get the latest finalized head

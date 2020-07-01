@@ -69,7 +69,10 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
-		hash := utils.GetBlockHash(t, node, num)
+		hash, err := utils.GetBlockHash(t, node, num)
+		if err != nil {
+			return hashes, err
+		}
 		log.Info("getting hash from node", "hash", hash, "node", node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
@@ -80,6 +83,22 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 	}
 
 	return hashes, err
+}
+
+// compareBlocksByNumberWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
+func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareBlocksByNumber(t, nodes, num)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
@@ -320,6 +339,11 @@ func TestStress_IncludeData(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
 	time.Sleep(5 * time.Second)
 
 	// create IncludeData extrnsic
@@ -327,9 +351,6 @@ func TestStress_IncludeData(t *testing.T) {
 	submitExtrinsicAssertInclusion(t, nodes, ext)
 
 	compareChainHeadsWithRetry(t, nodes)
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
 
 func TestStress_StorageChange(t *testing.T) {
@@ -378,6 +399,11 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth, utils.ConfigDefault)
 	require.NoError(t, err)
 
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
 	time.Sleep(time.Second * 10)
 
 	compareChainHeadsWithRetry(t, nodes)
@@ -386,15 +412,17 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	time.Sleep(time.Second * 10)
 	curr, _ := compareFinalizedHeads(t, nodes)
 	require.NotEqual(t, prev, curr)
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
 
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	numNodes = 3
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
 
 	time.Sleep(time.Second * 10)
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
@@ -403,9 +431,6 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	time.Sleep(time.Second * 10)
 	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
 	t.Logf("finalized hash in round 2: %s", fin)
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }
 
 func TestStress_Grandpa_NineAuthorities(t *testing.T) {
@@ -417,7 +442,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 10)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
@@ -426,20 +451,22 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 
 	nodes = append(nodes, node)
 
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
 	time.Sleep(time.Second * 30)
 	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
 	t.Logf("finalized hash in round 1: %s", fin)
 
 	// get latest block number
 	header := utils.GetChainHead(t, nodes[numNodes-1])
-	num := strconv.Itoa(int(header.Number.Int64()))
+	num := strconv.Itoa(int(header.Number.Int64()) - 1)
 	hashes, err := compareBlocksByNumber(t, nodes, num)
 	require.NoError(t, err, hashes)
 
 	time.Sleep(time.Second * 30)
 	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
 	t.Logf("finalized hash in round 2: %s", fin)
-
-	errList := utils.TearDown(t, nodes)
-	require.Len(t, errList, 0)
 }

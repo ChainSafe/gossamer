@@ -5,8 +5,8 @@ basepath = "~/.gossamer/gssmr"
 log = "crit"
 
 [log]
-core = "info"
-babe = "info"
+core = "crit"
+babe = "crit"
 grandpa = "trace"
 runtime = "crit"
 
