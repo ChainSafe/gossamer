@@ -25,7 +25,7 @@ import (
 // Pallet index for module extrinsic is calling
 type Pallet byte
 
-// consts for node_runtime calls
+// consts for node_runtime Pallets
 const (
 	System Pallet = iota
 	Utility
@@ -41,7 +41,7 @@ const (
 // PalletFunction for function index within pallet
 type PalletFunction byte
 
-// pallet_balances calls
+// pallet_balances function index
 const (
 	PB_Transfer PalletFunction = iota
 	PB_Set_balance
@@ -49,7 +49,7 @@ const (
 	PB_Transfer_keep_alive
 )
 
-// pallet_system calls
+// pallet_system function index
 const (
 	SYS_fill_block PalletFunction = iota
 	SYS_remark
@@ -60,7 +60,7 @@ const (
 	SYS_kill_prefix
 )
 
-// session calls
+// session function index
 const (
 	SESS_set_keys PalletFunction = iota
 )
