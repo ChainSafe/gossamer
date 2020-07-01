@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -30,7 +31,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second * 3
+var interval = time.Second
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
@@ -218,6 +219,16 @@ func (s *Service) initiate() error {
 	log.Trace("[grandpa] started message tracker")
 
 	for {
+		h, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			break
+		}
+		if h.Number.Cmp(big.NewInt(0)) == 1 {
+			break
+		}
+	}
+
+	for {
 		err := s.playGrandpaRound()
 		if err != nil {
 			return err
@@ -295,7 +306,7 @@ func (s *Service) playGrandpaRound() error {
 				s.logger.Error("could not send prevote message", "error", err)
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 3)
 			s.logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
 	}(&finalized)
@@ -342,7 +353,7 @@ func (s *Service) playGrandpaRound() error {
 				s.logger.Error("could not send precommit message", "error", err)
 			}
 
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 3)
 			s.logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
 	}(&finalized)
@@ -609,12 +620,13 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 	// TODO: this returns the first block in the map of blocks w/ >=2/3 precommits, should
 	// the prevoted block be returned instead?
 	if [32]byte(bfc.hash) == [32]byte{} {
-		for h, n := range blocks {
-			return &Vote{
-				hash:   h,
-				number: n,
-			}, nil
-		}
+		// for h, n := range blocks {
+		// 	return &Vote{
+		// 		hash:   h,
+		// 		number: n,
+		// 	}, nil
+		// }
+		return &prevoted, nil
 	}
 
 	return bfc, nil

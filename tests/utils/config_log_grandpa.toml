@@ -6,7 +6,7 @@ log = "crit"
 
 [log]
 core = "crit"
-babe = "crit"
+babe = "info"
 grandpa = "trace"
 runtime = "crit"
 
