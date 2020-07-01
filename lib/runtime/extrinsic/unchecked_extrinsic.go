@@ -18,7 +18,6 @@ package extrinsic
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
@@ -87,7 +86,7 @@ type UncheckedExtrinsic struct {
 }
 
 // CreateUncheckedExtrinsic builds UncheckedExtrinsic given function interface, index, genesisHash and Keypair
-func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, genesisHash common.Hash, signer crypto.Keypair, additional interface{}) (*UncheckedExtrinsic, error) {
+func CreateUncheckedExtrinsic(fnc *Function, index *big.Int, signer crypto.Keypair, additional interface{}) (*UncheckedExtrinsic, error) {
 	extra := struct {
 		Era                      [1]byte // TODO determine how Era is determined (Immortal is [1]byte{0}, Mortal is [2]byte{X, 0}, Need to determine how X is calculated)
 		Nonce                    *big.Int

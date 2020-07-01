@@ -62,7 +62,7 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 		CurrentBlockHash common.Hash
 	}{uint32(rtVer.RuntimeVersion.Spec_version), genesisHash, genesisHash}
 
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), genesisHash, kr.Alice, additional)
+	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), kr.Alice, additional)
 	require.NoError(t, err)
 
 	uxEnc, err := ux.Encode()
@@ -129,7 +129,7 @@ func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 		CurrentBlockHash common.Hash
 	}{uint32(rtVer.RuntimeVersion.Spec_version), genesisHash, genesisHash}
 
-	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), genesisHash, kr.Alice, additional)
+	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), kr.Alice, additional)
 	require.NoError(t, err)
 
 	uxEnc, err := ux.Encode()

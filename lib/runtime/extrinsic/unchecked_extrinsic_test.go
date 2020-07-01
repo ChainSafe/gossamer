@@ -47,7 +47,7 @@ func TestCreateUncheckedExtrinsic(t *testing.T) {
 		CurrentBlockHash common.Hash
 	}{193, genesisHash, genesisHash}
 
-	ux, err := CreateUncheckedExtrinsic(testTransFunc, new(big.Int).SetUint64(nonce), genesisHash, signer, additional)
+	ux, err := CreateUncheckedExtrinsic(testTransFunc, new(big.Int).SetUint64(nonce), signer, additional)
 	require.NoError(t, err)
 
 	require.Equal(t, testTransFunc, &ux.Function)
@@ -71,7 +71,7 @@ func TestUncheckedExtrinsic_Encode(t *testing.T) {
 		CurrentBlockHash common.Hash
 	}{193, genesisHash, genesisHash}
 
-	ux, err := CreateUncheckedExtrinsic(testTransFunc, new(big.Int).SetUint64(nonce), genesisHash, signer, additional)
+	ux, err := CreateUncheckedExtrinsic(testTransFunc, new(big.Int).SetUint64(nonce), signer, additional)
 	require.NoError(t, err)
 
 	uxEnc, err := ux.Encode()
