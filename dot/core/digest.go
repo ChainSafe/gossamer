@@ -26,9 +26,11 @@ import (
 
 type digestHandler struct {
 	// interfaces
-	blockState BlockState
-	grandpa    FinalityGadget
-	babe       BlockProducer
+	blockState          BlockState
+	grandpa             FinalityGadget
+	babe                BlockProducer
+	isFinalityAuthority bool
+	isBlockProducer     bool
 
 	// block notification channels
 	imported    chan *types.Block
@@ -84,15 +86,20 @@ func newDigestHandler(blockState BlockState, babe BlockProducer, grandpa Finalit
 		return nil, err
 	}
 
+	isFinalityAuthority := grandpa != nil
+	isBlockProducer := babe != nil
+
 	return &digestHandler{
-		blockState:  blockState,
-		grandpa:     grandpa,
-		babe:        babe,
-		stopped:     true,
-		imported:    imported,
-		importedID:  iid,
-		finalized:   finalized,
-		finalizedID: fid,
+		blockState:          blockState,
+		grandpa:             grandpa,
+		babe:                babe,
+		isFinalityAuthority: isFinalityAuthority,
+		isBlockProducer:     isBlockProducer,
+		stopped:             true,
+		imported:            imported,
+		importedID:          iid,
+		finalized:           finalized,
+		finalizedID:         fid,
 	}, nil
 }
 
@@ -116,7 +123,9 @@ func (h *digestHandler) handleBlockImport() {
 			return
 		}
 
-		h.handleGrandpaChangesOnImport(block.Header.Number)
+		if h.isFinalityAuthority {
+			h.handleGrandpaChangesOnImport(block.Header.Number)
+		}
 	}
 }
 
@@ -126,7 +135,9 @@ func (h *digestHandler) handleBlockFinalization() {
 			return
 		}
 
-		h.handleGrandpaChangesOnFinalization(header.Number)
+		if h.isFinalityAuthority {
+			h.handleGrandpaChangesOnFinalization(header.Number)
+		}
 	}
 }
 

@@ -146,22 +146,23 @@ func NewService(cfg *Config) (*Service, error) {
 	var srv = &Service{}
 
 	srv = &Service{
-		logger:           logger,
-		rt:               cfg.Runtime,
-		codeHash:         codeHash,
-		keys:             cfg.Keystore,
-		msgRec:           cfg.MsgRec,
-		msgSend:          cfg.MsgSend,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
-		transactionQueue: cfg.TransactionQueue,
-		isBlockProducer:  cfg.IsBlockProducer,
-		blockProducer:    cfg.BlockProducer,
-		finalityGadget:   cfg.FinalityGadget,
-		lock:             chanLock,
-		syncLock:         syncerLock,
-		blockNumOut:      cfg.SyncChan,
-		respOut:          respChan,
+		logger:              logger,
+		rt:                  cfg.Runtime,
+		codeHash:            codeHash,
+		keys:                cfg.Keystore,
+		msgRec:              cfg.MsgRec,
+		msgSend:             cfg.MsgSend,
+		blockState:          cfg.BlockState,
+		storageState:        cfg.StorageState,
+		transactionQueue:    cfg.TransactionQueue,
+		isBlockProducer:     cfg.IsBlockProducer,
+		blockProducer:       cfg.BlockProducer,
+		finalityGadget:      cfg.FinalityGadget,
+		isFinalityAuthority: cfg.IsFinalityAuthority,
+		lock:                chanLock,
+		syncLock:            syncerLock,
+		blockNumOut:         cfg.SyncChan,
+		respOut:             respChan,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -198,7 +199,7 @@ func NewService(cfg *Config) (*Service, error) {
 	srv.started.Store(false)
 
 	var dh *digestHandler
-	if cfg.IsBlockProducer {
+	if cfg.IsBlockProducer || cfg.IsFinalityAuthority {
 		dh, err = newDigestHandler(cfg.BlockState, cfg.BlockProducer, cfg.FinalityGadget)
 		if err != nil {
 			return nil, err
