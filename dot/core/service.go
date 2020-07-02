@@ -50,7 +50,6 @@ type Service struct {
 	blockState       BlockState
 	storageState     StorageState
 	transactionQueue TransactionQueue
-	finalityGadget   FinalityGadget
 
 	// Current runtime and hash of the current runtime code
 	rt       *runtime.Runtime
@@ -59,6 +58,10 @@ type Service struct {
 	// Block production variables
 	blockProducer   BlockProducer
 	isBlockProducer bool
+
+	// Finality gadget variables
+	finalityGadget      FinalityGadget
+	isFinalityAuthority bool
 
 	// Keystore
 	keys *keystore.Keystore
@@ -81,15 +84,16 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	TransactionQueue TransactionQueue
-	FinalityGadget   FinalityGadget
-	Keystore         *keystore.Keystore
-	Runtime          *runtime.Runtime
-	BlockProducer    BlockProducer
-	IsBlockProducer  bool
+	LogLvl              log.Lvl
+	BlockState          BlockState
+	StorageState        StorageState
+	TransactionQueue    TransactionQueue
+	Keystore            *keystore.Keystore
+	Runtime             *runtime.Runtime
+	BlockProducer       BlockProducer
+	IsBlockProducer     bool
+	FinalityGadget      FinalityGadget
+	IsFinalityAuthority bool
 
 	NewBlocks chan types.Block // only used for testing purposes
 	Verifier  Verifier         // only used for testing purposes
@@ -120,6 +124,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 	if cfg.IsBlockProducer && cfg.BlockProducer == nil {
 		return nil, ErrNilBlockProducer
+	}
+
+	if cfg.IsFinalityAuthority && cfg.FinalityGadget == nil {
+		return nil, ErrNilFinalityGadget
 	}
 
 	logger := log.New("pkg", "core")
