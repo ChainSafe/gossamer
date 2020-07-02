@@ -45,7 +45,7 @@ var ErrNilRuntime = errors.New("cannot have nil runtime")
 // ErrNilBlockProducer is returned when trying to instantiate a block producing Service without a block producer
 var ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
 
-// ErrNilBlockProducer is returned when trying to instantiate a finalizing Service without a finality gadget
+// ErrNilFinalityGadget is returned when trying to instantiate a finalizing Service without a finality gadget
 var ErrNilFinalityGadget = errors.New("cannot have nil FinalityGadget")
 
 // ErrNilChannel is returned if a channel is nil
