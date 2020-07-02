@@ -340,8 +340,6 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 
 	logger.Debug(
 		"core configuration",
-		// "authority", cfg.Authority,
-		// "roles", cfg.Roles,
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 	)

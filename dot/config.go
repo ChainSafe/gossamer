@@ -127,15 +127,6 @@ func GssmrConfig() *Config {
 			BasePath: gssmr.DefaultBasePath,
 			LogLevel: gssmr.DefaultLvl,
 		},
-		// Log: LogConfig{
-		// 	CoreLvl:           gssmr.DefaultLvl,
-		// 	NetworkLvl:        gssmr.DefaultLvl,
-		// 	RPCLvl:            gssmr.DefaultLvl,
-		// 	StateLvl:          gssmr.DefaultLvl,
-		// 	RuntimeLvl:        gssmr.DefaultLvl,
-		// 	BlockProducerLvl:  gssmr.DefaultLvl,
-		// 	FinalityGadgetLvl: gssmr.DefaultLvl,
-		// },
 		Init: InitConfig{
 			Genesis: gssmr.DefaultGenesis,
 		},
@@ -177,15 +168,6 @@ func KsmccConfig() *Config {
 			ID:       ksmcc.DefaultID,
 			BasePath: ksmcc.DefaultBasePath,
 		},
-		// Log: LogConfig{
-		// 	CoreLvl:           ksmcc.DefaultLvl,
-		// 	NetworkLvl:        ksmcc.DefaultLvl,
-		// 	RPCLvl:            ksmcc.DefaultLvl,
-		// 	StateLvl:          ksmcc.DefaultLvl,
-		// 	RuntimeLvl:        ksmcc.DefaultLvl,
-		// 	BlockProducerLvl:  ksmcc.DefaultLvl,
-		// 	FinalityGadgetLvl: ksmcc.DefaultLvl,
-		// },
 		Init: InitConfig{
 			Genesis: ksmcc.DefaultGenesis,
 		},
