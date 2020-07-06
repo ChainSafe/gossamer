@@ -18,11 +18,11 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"net/http"
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
@@ -33,12 +33,12 @@ import (
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	logger       log.Logger
-	rpcServer    *rpc.Server // Actual RPC call handler
-	serverConfig *HTTPServerConfig
-	blockChan    chan *types.Block
-	chanID       byte // channel ID
-	storageChan  chan *state.KeyValue
+	logger        log.Logger
+	rpcServer     *rpc.Server // Actual RPC call handler
+	serverConfig  *HTTPServerConfig
+	blockChan     chan *types.Block
+	chanID        byte // channel ID
+	storageChan   chan *state.KeyValue
 	storageChanID byte // storage channel ID
 }
 
@@ -66,7 +66,7 @@ type HTTPServerConfig struct {
 type WebSocketSubscription struct {
 	WSConnection     *websocket.Conn
 	SubscriptionType int
-	Filter map[string]bool
+	Filter           map[string]bool
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

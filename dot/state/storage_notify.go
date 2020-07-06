@@ -19,12 +19,14 @@ import (
 	"errors"
 )
 
+// KeyValue struct to hold key value pairs
 type KeyValue struct {
-	Key []byte
+	Key   []byte
 	Value []byte
 }
 
-func (s *StorageState) RegisterStorageChangeChannel(ch chan <- *KeyValue) (byte, error) {
+// RegisterStorageChangeChannel function to register storage change channels
+func (s *StorageState) RegisterStorageChangeChannel(ch chan<- *KeyValue) (byte, error) {
 	s.changedLock.RLock()
 
 	if len(s.changed) == 256 {

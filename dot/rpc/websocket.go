@@ -19,14 +19,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
 )
@@ -204,7 +203,7 @@ func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, s
 	wss := &WebSocketSubscription{
 		WSConnection:     conn,
 		SubscriptionType: subscriptionType,
-		Filter: filter,
+		Filter:           filter,
 	}
 	wssub[sub] = wss
 	h.serverConfig.WSSubscriptions = wssub
