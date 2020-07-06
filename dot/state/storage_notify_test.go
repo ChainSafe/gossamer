@@ -16,6 +16,7 @@
 package state
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -42,5 +43,46 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 		case <-time.After(testMessageTimeout):
 			t.Fatal("did not receive storage change message")
 		}
+	}
+}
+
+func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
+	ss := newTestStorageState(t)
+
+	num := 5
+	chs := make([]chan *KeyValue, num)
+	ids := make([]byte, num)
+
+	var err error
+	for i := 0; i < num; i++ {
+		chs[i] = make(chan *KeyValue)
+		ids[i], err = ss.RegisterStorageChangeChannel(chs[i])
+		require.NoError(t, err)
+	}
+
+	key1 := []byte("key1")
+	ss.SetStorage(key1, []byte("value1"))
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i, ch := range chs {
+
+		go func(i int, ch chan *KeyValue) {
+			select {
+			case c := <-ch:
+				require.Equal(t, key1, c.Key)
+				wg.Done()
+			case <-time.After(testMessageTimeout):
+				t.Error("did not receive storage change: ch=", i)
+			}
+		}(i, ch)
+
+	}
+
+	wg.Wait()
+
+	for _, id := range ids {
+		ss.UnregisterStorageChangeChannel(id)
 	}
 }
