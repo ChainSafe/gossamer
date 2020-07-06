@@ -31,7 +31,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second * 5
+var interval = time.Second
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
@@ -218,6 +218,7 @@ func (s *Service) initiate() error {
 	s.tracker.start()
 	log.Trace("[grandpa] started message tracker")
 
+	// don't begin grandpa until we are at block 1
 	for {
 		h, err := s.blockState.BestBlockHeader()
 		if err != nil {
@@ -617,15 +618,7 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 		}
 	}
 
-	// TODO: this returns the first block in the map of blocks w/ >=2/3 precommits, should
-	// the prevoted block be returned instead?
 	if [32]byte(bfc.hash) == [32]byte{} {
-		// for h, n := range blocks {
-		// 	return &Vote{
-		// 		hash:   h,
-		// 		number: n,
-		// 	}, nil
-		// }
 		return &prevoted, nil
 	}
 

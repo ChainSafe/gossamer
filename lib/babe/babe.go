@@ -139,8 +139,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	babeService.randomness = babeService.config.Randomness
 
-	//babeService.epochThreshold = big.NewInt(0).SetBytes([]byte{0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-
 	err = babeService.setAuthorityIndex()
 	if err != nil {
 		return nil, err
