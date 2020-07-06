@@ -22,7 +22,7 @@ import (
 
 // processConsensusMessage routes a consensus message from the network to the finality gadget
 func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
-	return s.finalityMessageHandler.HandleMessage(msg)
+	return s.consensusMessageHandler.HandleMessage(msg)
 }
 
 // sendVoteMessages routes a VoteMessage from the finality gadget to the network

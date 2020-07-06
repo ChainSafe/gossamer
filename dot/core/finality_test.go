@@ -37,13 +37,6 @@ func TestProcessConsensusMessage(t *testing.T) {
 	})
 	err := s.processConsensusMessage(testConsensusMessage)
 	require.NoError(t, err)
-
-	select {
-	case f := <-fg.in:
-		require.Equal(t, &mockFinalityMessage{}, f)
-	case <-time.After(testMessageTimeout):
-		t.Fatal("did not receive finality message")
-	}
 }
 
 func TestSendVoteMessages(t *testing.T) {
@@ -59,6 +52,7 @@ func TestSendVoteMessages(t *testing.T) {
 		MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
+	s.started.Store(true)
 
 	go s.sendVoteMessages()
 	fg.out <- &mockFinalityMessage{}

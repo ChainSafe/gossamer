@@ -60,9 +60,9 @@ type Service struct {
 	isBlockProducer bool
 
 	// Finality gadget variables
-	finalityGadget         FinalityGadget
-	isFinalityAuthority    bool
-	finalityMessageHandler FinalityMessageHandler
+	finalityGadget          FinalityGadget
+	isFinalityAuthority     bool
+	consensusMessageHandler ConsensusMessageHandler
 
 	// Keystore
 	keys *keystore.Keystore
@@ -85,17 +85,17 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl                 log.Lvl
-	BlockState             BlockState
-	StorageState           StorageState
-	TransactionQueue       TransactionQueue
-	Keystore               *keystore.Keystore
-	Runtime                *runtime.Runtime
-	BlockProducer          BlockProducer
-	IsBlockProducer        bool
-	FinalityGadget         FinalityGadget
-	IsFinalityAuthority    bool
-	FinalityMessageHandler FinalityMessageHandler
+	LogLvl                  log.Lvl
+	BlockState              BlockState
+	StorageState            StorageState
+	TransactionQueue        TransactionQueue
+	Keystore                *keystore.Keystore
+	Runtime                 *runtime.Runtime
+	BlockProducer           BlockProducer
+	IsBlockProducer         bool
+	FinalityGadget          FinalityGadget
+	IsFinalityAuthority     bool
+	ConsensusMessageHandler ConsensusMessageHandler
 
 	NewBlocks chan types.Block // only used for testing purposes
 	Verifier  Verifier         // only used for testing purposes
@@ -132,8 +132,8 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilFinalityGadget
 	}
 
-	if cfg.FinalityMessageHandler == nil {
-		return nil, ErrNilFinalityMessageHandler
+	if cfg.ConsensusMessageHandler == nil {
+		return nil, ErrNilConsensusMessageHandler
 	}
 
 	logger := log.New("pkg", "core")
@@ -152,25 +152,25 @@ func NewService(cfg *Config) (*Service, error) {
 	var srv = &Service{}
 
 	srv = &Service{
-		logger:                 logger,
-		rt:                     cfg.Runtime,
-		codeHash:               codeHash,
-		keys:                   cfg.Keystore,
-		msgRec:                 cfg.MsgRec,
-		msgSend:                cfg.MsgSend,
-		blkRec:                 cfg.NewBlocks,
-		blockState:             cfg.BlockState,
-		storageState:           cfg.StorageState,
-		transactionQueue:       cfg.TransactionQueue,
-		isBlockProducer:        cfg.IsBlockProducer,
-		blockProducer:          cfg.BlockProducer,
-		finalityGadget:         cfg.FinalityGadget,
-		finalityMessageHandler: cfg.FinalityMessageHandler,
-		isFinalityAuthority:    cfg.IsFinalityAuthority,
-		lock:                   chanLock,
-		syncLock:               syncerLock,
-		blockNumOut:            cfg.SyncChan,
-		respOut:                respChan,
+		logger:                  logger,
+		rt:                      cfg.Runtime,
+		codeHash:                codeHash,
+		keys:                    cfg.Keystore,
+		msgRec:                  cfg.MsgRec,
+		msgSend:                 cfg.MsgSend,
+		blkRec:                  cfg.NewBlocks,
+		blockState:              cfg.BlockState,
+		storageState:            cfg.StorageState,
+		transactionQueue:        cfg.TransactionQueue,
+		isBlockProducer:         cfg.IsBlockProducer,
+		blockProducer:           cfg.BlockProducer,
+		finalityGadget:          cfg.FinalityGadget,
+		consensusMessageHandler: cfg.ConsensusMessageHandler,
+		isFinalityAuthority:     cfg.IsFinalityAuthority,
+		lock:                    chanLock,
+		syncLock:                syncerLock,
+		blockNumOut:             cfg.SyncChan,
+		respOut:                 respChan,
 	}
 
 	if cfg.NewBlocks != nil {
