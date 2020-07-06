@@ -166,7 +166,7 @@ func (h *HTTPServer) Start() error {
 		go h.blockReceivedListener()
 	}
 
-	// todo ed init and start storage change listener routine
+	// init and start storage change listener routine
 	if h.serverConfig.StorageAPI != nil {
 		var err error
 		h.storageChan = make(chan *state.KeyValue)
@@ -185,6 +185,9 @@ func (h *HTTPServer) Stop() error {
 	if h.serverConfig.WSEnabled {
 		h.serverConfig.BlockAPI.UnregisterImportedChannel(h.chanID)
 		close(h.blockChan)
+
+		h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(h.storageChanID)
+		close(h.storageChan)
 	}
 	return nil
 }

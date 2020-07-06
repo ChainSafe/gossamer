@@ -49,6 +49,15 @@ func (s *StorageState) RegisterStorageChangeChannel(ch chan<- *KeyValue) (byte, 
 	return id, nil
 }
 
+// UnregisterStorageChangeChannel removes the storage change notification channel with the given ID.
+// A channel must be unregistered before closing it.
+func (s *StorageState) UnregisterStorageChangeChannel(id byte) {
+	s.changedLock.Lock()
+	defer s.changedLock.Unlock()
+
+	delete(s.changed, id)
+}
+
 func (s *StorageState) notifyChanged(change *KeyValue) {
 	s.changedLock.RLock()
 	defer s.changedLock.RUnlock()

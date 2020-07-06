@@ -16,6 +16,7 @@ type StorageAPI interface {
 	GetStorage(key []byte) ([]byte, error)
 	Entries() map[string][]byte
 	RegisterStorageChangeChannel(ch chan<- *state.KeyValue) (byte, error)
+	UnregisterStorageChangeChannel(id byte)
 }
 
 // BlockAPI is the interface for the block state
