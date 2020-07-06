@@ -162,6 +162,11 @@ func (h *HTTPServer) Start() error {
 		go h.blockReceivedListener()
 	}
 
+	// todo ed init and start storage change listener routine
+	if h.serverConfig.StorageAPI != nil {
+
+	}
+
 	return nil
 }
 

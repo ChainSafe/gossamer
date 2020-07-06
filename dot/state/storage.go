@@ -120,6 +120,7 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 func (s *StorageState) SetStorage(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+// TODO ed add channel notify here
 	return s.trie.Put(key, value)
 }
 
