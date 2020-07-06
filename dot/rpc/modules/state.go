@@ -285,8 +285,9 @@ func (sm *StateModule) SubscribeRuntimeVersion(r *http.Request, req *StateStorag
 	return sm.GetRuntimeVersion(r, nil, res)
 }
 
-// SubscribeStorage handled by websocket handler, but this func should remain
-//  here so it's added to rpc_methods list
+// SubscribeStorage Storage subscription. If storage keys are specified, it creates a message for each block which
+//  changes the specified storage keys. If none are specified, then it creates a message for every block.
+//  This endpoint communicates over the Websockt protocol, but this func should remain here so it's added to rpc_methods list
 func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
 	return nil
 }
