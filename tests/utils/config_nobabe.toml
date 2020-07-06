@@ -5,10 +5,7 @@ basepath = "~/.gossamer/gssmr"
 log = "crit"
 
 [log]
-core = "crit"
-babe = "info"
-grandpa = "trace"
-runtime = "crit"
+core = "info"
 
 [init]
 genesis = "./chain/gssmr/genesis.json"
@@ -20,11 +17,10 @@ unlock = ""
 [core]
 authority = true
 roles = 4
-babe-authority = true
+babe-authority = false
 grandpa-authority = true
 
 [network]
-port = 7001
 bootnodes = []
 protocol = "/gossamer/gssmr/0"
 nobootstrap = false

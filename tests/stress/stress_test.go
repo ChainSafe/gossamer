@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/big"
+	//"math/big"
 	"math/rand"
 	"os"
 	"strconv"
@@ -53,7 +53,7 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		header := utils.GetChainHead(t, node)
-		log.Info("getting header from node", "header", header, "hash", header.Hash(), "node", node.Key)
+		log.Info("got header from node", "hash", header.Hash(), "node", node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}
 
@@ -172,7 +172,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 
 		time.Sleep(3 * time.Second)
 	}
-	require.NoError(t, err, hashes)
+	require.NoError(t, err, fmt.Sprintf("round=%d hashes=%v", round, hashes))
 
 	for h := range hashes {
 		return h
@@ -443,20 +443,11 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
-	for {
-		header := utils.GetChainHead(t, node)
-		t.Logf("got header from leading node: %s", header)
-		if header.Number.Cmp(big.NewInt(0)) == 1 {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
+	time.Sleep(time.Second * 3)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigLogNone)
 	require.NoError(t, err)
-
 	nodes = append(nodes, node)
 
 	defer func() {
@@ -464,17 +455,41 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	time.Sleep(time.Second * 20)
-	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
-	t.Logf("finalized hash in round 1: %s", fin)
+	numRounds := 3
+	for i := 1; i < numRounds+1; i++ {
+		// TODO: this is a long time for a round to complete; this is because syncing is very inefficient
+		// need to improve syncing protocol
+		time.Sleep(time.Second * 20)
+		fin := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		t.Logf("finalized hash in round %d: %s", i, fin)
+	}
+}
 
-	// get latest block number
-	// header := utils.GetChainHead(t, nodes[numNodes-1])
-	// num := strconv.Itoa(int(header.Number.Int64()) - 3)
-	// hashes, err := compareBlocksByNumber(t, nodes, num)
-	// require.NoError(t, err, hashes)
+func TestSync_SingleBlockProducer(t *testing.T) {
+	numNodes = 9
 
-	time.Sleep(time.Second * 20)
-	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
-	t.Logf("finalized hash in round 2: %s", fin)
+	// only log info from 1 node
+	tmpdir, err := ioutil.TempDir("", "gossamer-stress-8")
+	require.NoError(t, err)
+	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigBABE)
+	require.NoError(t, err)
+
+	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
+	// all nodes vote for different blocks.
+	time.Sleep(time.Second * 3)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	numCmps := 10
+	for i := 0; i < numCmps; i++ {
+		t.Log("comparing...", i)
+		compareChainHeadsWithRetry(t, nodes)
+		time.Sleep(time.Second * 5)
+	}
 }

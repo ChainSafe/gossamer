@@ -5,10 +5,8 @@ basepath = "~/.gossamer/gssmr"
 log = "crit"
 
 [log]
-core = "crit"
+core = "info"
 babe = "info"
-grandpa = "trace"
-runtime = "crit"
 
 [init]
 genesis = "./chain/gssmr/genesis.json"

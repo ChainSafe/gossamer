@@ -31,7 +31,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second
+var interval = time.Second * 5
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
@@ -306,7 +306,7 @@ func (s *Service) playGrandpaRound() error {
 				s.logger.Error("could not send prevote message", "error", err)
 			}
 
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * 5)
 			s.logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
 	}(&finalized)
@@ -353,7 +353,7 @@ func (s *Service) playGrandpaRound() error {
 				s.logger.Error("could not send precommit message", "error", err)
 			}
 
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * 5)
 			s.logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
 	}(&finalized)

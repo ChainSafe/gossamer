@@ -55,6 +55,11 @@ var (
 	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigLogNone is a config file where log levels are set to CRIT for all packages
 	ConfigLogNone string = filepath.Join(currentDir, "../utils/config_log_none.toml")
+
+	// ConfigBABE is a config file with BABE and BABE logging enabled
+	ConfigBABE string = filepath.Join(currentDir, "../utils/config_babe.toml")
+	// ConfigNoBABE is a config file with BABE disabled
+	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 )
 
 // Node represents a gossamer process
