@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	//"math/big"
 	"math/rand"
 	"os"
 	"strconv"
@@ -44,8 +43,10 @@ import (
 
 var (
 	numNodes   = 3
-	maxRetries = 16
+	maxRetries = 24
 )
+
+var logger = log.New("pkg", "tests/stress")
 
 // compareChainHeads calls getChainHead for each node in the array
 // it returns a map of chainHead hashes to node key names, and an error if the hashes don't all match
@@ -53,7 +54,7 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		header := utils.GetChainHead(t, node)
-		log.Info("got header from node", "hash", header.Hash(), "node", node.Key)
+		logger.Info("got header from node", "hash", header.Hash(), "node", node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}
 
@@ -74,7 +75,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 		if err != nil {
 			return hashes, err
 		}
-		log.Info("getting hash from node", "hash", hash, "node", node.Key)
+		logger.Info("getting hash from node", "hash", hash, "node", node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -97,7 +98,7 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 			break
 		}
 
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second)
 	}
 	require.NoError(t, err, hashes)
 }
@@ -108,7 +109,7 @@ func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		hash := utils.GetFinalizedHead(t, node)
-		log.Info("got finalized head from node", "hash", hash, "node", node.Key)
+		logger.Info("got finalized head from node", "hash", hash, "node", node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -130,7 +131,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 			continue
 		}
 
-		log.Info("got finalized head from node", "hash", hash, "node", node.Key, "round", round)
+		logger.Info("got finalized head from node", "hash", hash, "node", node.Key, "round", round)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -201,6 +202,11 @@ func TestMain(m *testing.M) {
 		utils.HOSTNAME = "localhost"
 	}
 
+	// TODO: implement test log flag
+	utils.SetLogLevel(log.LvlInfo)
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(log.LvlFilterHandler(log.LvlInfo, h))
+
 	// Start all tests
 	code := m.Run()
 	os.Exit(code)
@@ -265,7 +271,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	require.NoError(t, err)
 
 	txStr := hex.EncodeToString(tx)
-	log.Info("submitting transaction", "tx", txStr)
+	logger.Info("submitting transaction", "tx", txStr)
 
 	// send extrinsic to random node
 	idx := rand.Intn(len(nodes))
@@ -292,7 +298,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	}
 
 	header := utils.GetChainHead(t, nodes[idx])
-	log.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
+	logger.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
 
 	// search from child -> parent blocks for extrinsic
 	var resExts []types.Extrinsic
@@ -310,8 +316,8 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 			}
 
 			header = block.Header
-			log.Info("got block from node", "hash", header.Hash(), "node", nodes[j].Key)
-			log.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[j].Key)
+			logger.Info("got block from node", "hash", header.Hash(), "node", nodes[j].Key)
+			logger.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[j].Key)
 
 			if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
 				resExts, err = block.Body.AsExtrinsics()
@@ -379,7 +385,7 @@ func TestStress_StorageChange(t *testing.T) {
 	// for each node, check that storage was updated accordingly
 	errs := []error{}
 	for _, node := range nodes {
-		log.Info("getting storage from node", "node", node.Key)
+		logger.Info("getting storage from node", "node", node.Key)
 		res := utils.GetStorage(t, node, key)
 
 		// TODO: why does finalize_block modify the storage value?
@@ -467,9 +473,10 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	numNodes = 9
+	utils.SetLogLevel(log.LvlInfo)
 
 	// only log info from 1 node
-	tmpdir, err := ioutil.TempDir("", "gossamer-stress-8")
+	tmpdir, err := ioutil.TempDir("", "gossamer-stress-sync")
 	require.NoError(t, err)
 	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigBABE)
 	require.NoError(t, err)
@@ -489,7 +496,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	numCmps := 10
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		compareChainHeadsWithRetry(t, nodes)
-		time.Sleep(time.Second * 5)
+		compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		time.Sleep(time.Second)
 	}
 }
