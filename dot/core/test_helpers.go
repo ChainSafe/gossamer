@@ -70,6 +70,12 @@ type mockBlockProducer struct {
 	auths []*types.BABEAuthorityData
 }
 
+func newMockBlockProducer() *mockBlockProducer {
+	return &mockBlockProducer{
+		auths: []*types.BABEAuthorityData{},
+	}
+}
+
 // Start mocks starting
 func (bp *mockBlockProducer) Start() error {
 	return nil
@@ -177,6 +183,12 @@ func (fm *mockFinalityMessage) GetRound() uint64 {
 	return 1
 }
 
+type mockFinalityMessageHandler struct{}
+
+func (h *mockFinalityMessageHandler) HandleMessage(msg *network.ConsensusMessage) error {
+	return nil
+}
+
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
@@ -234,6 +246,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.StorageState == nil {
 		cfg.StorageState = stateSrvc.Storage
+	}
+
+	if cfg.FinalityMessageHandler == nil {
+		cfg.FinalityMessageHandler = &mockFinalityMessageHandler{}
 	}
 
 	s, err := NewService(cfg)
