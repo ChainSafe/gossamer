@@ -31,8 +31,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var logger = log.New("pkg", "tests/stress")
-
 func TestMain(m *testing.M) {
 	if utils.MODE != "stress" {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip stress test")

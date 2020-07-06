@@ -74,7 +74,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	for i := 1; i < numRounds+1; i++ {
 		// TODO: this is a long time for a round to complete; this is because syncing is inefficient
 		// need to improve syncing protocol
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 15)
 		fin := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		t.Logf("finalized hash in round %d: %s", i, fin)
 	}

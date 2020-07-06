@@ -23,6 +23,7 @@ import (
 var (
 	numNodes   = 3
 	maxRetries = 24
+	logger     = log.New("pkg", "tests/stress")
 )
 
 // compareChainHeads calls getChainHead for each node in the array
@@ -41,6 +42,22 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 	}
 
 	return hashes, err
+}
+
+// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
+func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+	var hashes map[common.Hash][]string
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		hashes, err = compareChainHeads(t, nodes)
+		if err == nil {
+			break
+		}
+
+		time.Sleep(time.Second)
+	}
+	require.NoError(t, err, hashes)
 }
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
@@ -118,22 +135,6 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 	}
 
 	return hashes, err
-}
-
-// compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
-	var hashes map[common.Hash][]string
-	var err error
-
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareChainHeads(t, nodes)
-		if err == nil {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-	require.NoError(t, err, hashes)
 }
 
 // compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
