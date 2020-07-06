@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -164,8 +163,6 @@ var testConsensusMessage = &network.ConsensusMessage{
 	ConsensusEngineID: types.GrandpaEngineID,
 	Data:              []byte("nootwashere"),
 }
-
-var testFinalizedHash = common.NewHash([]byte("finalized"))
 
 type mockFinalityMessage struct{}
 
