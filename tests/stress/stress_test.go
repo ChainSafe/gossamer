@@ -461,11 +461,11 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numRounds := 3
+	numRounds := 2
 	for i := 1; i < numRounds+1; i++ {
-		// TODO: this is a long time for a round to complete; this is because syncing is very inefficient
+		// TODO: this is a long time for a round to complete; this is because syncing is inefficient
 		// need to improve syncing protocol
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 10)
 		fin := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		t.Logf("finalized hash in round %d: %s", i, fin)
 	}
