@@ -66,6 +66,7 @@ type HTTPServerConfig struct {
 type WebSocketSubscription struct {
 	WSConnection     *websocket.Conn
 	SubscriptionType int
+	Filter map[string]bool
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

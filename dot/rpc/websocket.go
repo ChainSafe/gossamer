@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -128,15 +129,16 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			switch method {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 				subType = SUB_NEW_HEAD
-			case "chain_subscribeStorage":
+			case "state_subscribeStorage":
 				subType = SUB_STORAGE
 			case "chain_subscribeFinalizedHeads":
 				subType = SUB_FINALIZED_HEAD
 			}
-
+			params := msg["params"]
 			var e1 error
-			_, e1 = h.registerSubscription(ws, mid, subType)
+			_, e1 = h.registerSubscription(ws, mid, subType, params)
 			if e1 != nil {
+				// todo send error message to client
 				log.Error("[rpc] failed to register subscription", "error", err)
 			}
 			continue
@@ -191,12 +193,18 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int) (uint32, error) {
+func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int, params interface{}) (uint32, error) {
 	wssub := h.serverConfig.WSSubscriptions
 	sub := uint32(len(wssub)) + 1
+	pA := params.([]interface{})
+	filter := make(map[string]bool)
+	for _, param := range pA {
+		filter[param.(string)] = true
+	}
 	wss := &WebSocketSubscription{
 		WSConnection:     conn,
 		SubscriptionType: subscriptionType,
+		Filter: filter,
 	}
 	wssub[sub] = wss
 	h.serverConfig.WSSubscriptions = wssub
@@ -240,6 +248,29 @@ func (h *HTTPServer) storageChangeListener() {
 	}
 
 	for change := range h.storageChan {
-		fmt.Printf("Storage Change %v\n", change)
+
+		if change != nil {
+			for i, sub := range h.serverConfig.WSSubscriptions {
+				if sub.SubscriptionType == SUB_STORAGE {
+					// check it change key is in subscription filter
+					cKey := common.BytesToHex(change.Key)
+					if len(sub.Filter) > 0 && !sub.Filter[cKey] {
+						continue
+					}
+
+					changeM := make(map[string]interface{})
+					changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+					res := newSubcriptionBaseResponseJSON(i)
+					res.Method = "state_storage"
+					res.Params = changeM
+					if sub.WSConnection != nil {
+						err := sub.WSConnection.WriteJSON(res)
+						if err != nil {
+							log.Error("[rpc] error writing response", "error", err)
+						}
+					}
+				}
+			}
+		}
 	}
 }
