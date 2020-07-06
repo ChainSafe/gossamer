@@ -15,12 +15,51 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package state
 
+import (
+	"errors"
+)
+
 type KeyValue struct {
 	Key []byte
 	Value []byte
 }
 
 func (s *StorageState) RegisterStorageChangeChannel(ch chan <- *KeyValue) (byte, error) {
-	// TODO implement
-	return 0, nil
+	s.changedLock.RLock()
+
+	if len(s.changed) == 256 {
+		return 0, errors.New("channel limit reached")
+	}
+
+	var id byte
+	for {
+		id = generateID()
+		if s.changed[id] == nil {
+			break
+		}
+	}
+
+	s.changedLock.RUnlock()
+
+	s.changedLock.Lock()
+	s.changed[id] = ch
+	s.changedLock.Unlock()
+	return id, nil
+}
+
+func (s *StorageState) notifyChanged(change *KeyValue) {
+	s.changedLock.RLock()
+	defer s.changedLock.RUnlock()
+
+	if len(s.changed) == 0 {
+		return
+	}
+
+	logger.Trace("notifying changed storage chans...", "chans", s.changed)
+
+	for _, ch := range s.changed {
+		go func(ch chan<- *KeyValue) {
+			ch <- change
+		}(ch)
+	}
 }

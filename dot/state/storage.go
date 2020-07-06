@@ -52,6 +52,10 @@ type StorageState struct {
 	trie *trie.Trie
 	db   *StorageDB
 	lock sync.RWMutex
+
+	// change notifiers
+	changed map[byte]chan<- *KeyValue
+	changedLock  sync.RWMutex
 }
 
 // NewStorageDB instantiates badgerDB instance for storing trie structure
@@ -74,6 +78,7 @@ func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 	return &StorageState{
 		trie: t,
 		db:   NewStorageDB(db),
+		changed: make(map[byte]chan<- *KeyValue),
 	}, nil
 }
 
@@ -120,8 +125,18 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 func (s *StorageState) SetStorage(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+	kv := &KeyValue{
+		Key:   key,
+		Value: value,
+	}
+	//fmt.Printf("SetStorage Key: %x Value: %x\n", key, value)
 // TODO ed add channel notify here
-	return s.trie.Put(key, value)
+	err := s.trie.Put(key, value)
+	if err != nil {
+		return err
+	}
+	s.notifyChanged(kv)
+	return nil
 }
 
 // ClearPrefix not implemented

@@ -18,6 +18,7 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"net/http"
 	"os"
 
@@ -37,6 +38,8 @@ type HTTPServer struct {
 	serverConfig *HTTPServerConfig
 	blockChan    chan *types.Block
 	chanID       byte // channel ID
+	storageChan  chan *state.KeyValue
+	storageChanID byte // storage channel ID
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -164,7 +167,13 @@ func (h *HTTPServer) Start() error {
 
 	// todo ed init and start storage change listener routine
 	if h.serverConfig.StorageAPI != nil {
-
+		var err error
+		h.storageChan = make(chan *state.KeyValue)
+		h.storageChanID, err = h.serverConfig.StorageAPI.RegisterStorageChangeChannel(h.storageChan)
+		if err != nil {
+			return err
+		}
+		go h.storageChangeListener()
 	}
 
 	return nil

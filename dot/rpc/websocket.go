@@ -233,3 +233,13 @@ func (h *HTTPServer) blockReceivedListener() {
 		}
 	}
 }
+
+func (h *HTTPServer) storageChangeListener() {
+	if h.serverConfig.StorageAPI == nil {
+		return
+	}
+
+	for change := range h.storageChan {
+		fmt.Printf("Storage Change %v\n", change)
+	}
+}
