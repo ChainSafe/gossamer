@@ -103,7 +103,8 @@ type FinalityMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 }
 
-type FinalityMessageHandler interface {
+// ConsensusMessageHandler is the interface a consensus message handler must implement
+type ConsensusMessageHandler interface {
 	HandleMessage(*network.ConsensusMessage) error
 }
 

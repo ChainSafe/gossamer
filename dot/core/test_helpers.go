@@ -174,9 +174,9 @@ func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, 
 	return testConsensusMessage, nil
 }
 
-type mockFinalityMessageHandler struct{}
+type mockConsensusMessageHandler struct{}
 
-func (h *mockFinalityMessageHandler) HandleMessage(msg *network.ConsensusMessage) error {
+func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessage) error {
 	return nil
 }
 
@@ -239,8 +239,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
-	if cfg.FinalityMessageHandler == nil {
-		cfg.FinalityMessageHandler = &mockFinalityMessageHandler{}
+	if cfg.ConsensusMessageHandler == nil {
+		cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
 	}
 
 	s, err := NewService(cfg)

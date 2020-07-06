@@ -48,8 +48,8 @@ var ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
 // ErrNilFinalityGadget is returned when trying to instantiate a finalizing Service without a finality gadget
 var ErrNilFinalityGadget = errors.New("cannot have nil FinalityGadget")
 
-// ErrNilFinalityMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
-var ErrNilFinalityMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
+// ErrNilConsensusMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
+var ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
 
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {
