@@ -72,7 +72,12 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) error {
 
 		time.Sleep(time.Second)
 	}
-	return fmt.Errorf("%w: hashes=%v", err, hashes)
+
+	if err != nil {
+		err = fmt.Errorf("%w: hashes=%v", err, hashes)
+	}
+
+	return err
 }
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array

@@ -68,6 +68,11 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_NineAuthorities(t *testing.T) {
+	// short for now, remove when syncing is more stable
+	if testing.Short() {
+		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
+	}
+
 	numNodes = 9
 
 	// only log info from 1 node
