@@ -61,6 +61,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRestartNode(t *testing.T) {
+	numNodes = 1
 	nodes, err := utils.InitNodes(numNodes, utils.ConfigDefault)
 	require.NoError(t, err)
 
