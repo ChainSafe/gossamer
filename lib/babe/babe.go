@@ -448,25 +448,12 @@ func (b *Service) authorityWeights() []uint64 {
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
-// equation: threshold = 2^128 * (1 - (1-c)^(w_k/sum(w_i)))
-// where k is the authority index, and sum(w_i) is the
-// sum of all the authority weights
-// see: https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
+// equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 func calculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
 	}
-
-	// sum(w_i)
-	// var sum uint64 = 0
-	// for _, weight := range authorityWeights {
-	// 	sum += weight
-	// }
-
-	// if sum == 0 {
-	// 	return nil, errors.New("invalid authority weights: sums to zero")
-	// }
 
 	// 1 / len(authorities)
 	theta := float64(1) / float64(numAuths)
