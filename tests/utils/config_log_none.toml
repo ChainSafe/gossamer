@@ -1,7 +1,6 @@
 [global]
 name = "gssmr"
 id = "gssmr"
-basepath = "~/.gossamer/gssmr"
 log = "crit"
 
 [init]
@@ -25,8 +24,6 @@ nomdns = false
 
 [rpc]
 enabled = false
-port = 8545
 host = "localhost"
 modules = ["system", "author", "chain", "state"]
-ws-port = 8546
 ws-enabled = false
