@@ -86,7 +86,8 @@ func TestSync_Basic(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	compareChainHeadsWithRetry(t, nodes)
+	err = compareChainHeadsWithRetry(t, nodes)
+	require.NoError(t, err)
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
@@ -114,7 +115,8 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	numCmps := 10
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
-		compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		require.NoError(t, err)
 		time.Sleep(time.Second)
 	}
 }

@@ -57,11 +57,13 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second * 10)
-	fin := compareFinalizedHeadsWithRetry(t, nodes, 1)
+	fin, err := compareFinalizedHeadsWithRetry(t, nodes, 1)
+	require.NoError(t, err)
 	t.Logf("finalized hash in round 1: %s", fin)
 
 	time.Sleep(time.Second * 10)
-	fin = compareFinalizedHeadsWithRetry(t, nodes, 2)
+	fin, err = compareFinalizedHeadsWithRetry(t, nodes, 2)
+	require.NoError(t, err)
 	t.Logf("finalized hash in round 2: %s", fin)
 }
 
@@ -86,12 +88,13 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numRounds := 3
+	numRounds := 2
 	for i := 1; i < numRounds+1; i++ {
 		// TODO: this is a long time for a round to complete; this is because syncing is inefficient
 		// need to improve syncing protocol
 		time.Sleep(time.Second * 10)
-		fin := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
+		require.NoError(t, err)
 		t.Logf("finalized hash in round %d: %s", i, fin)
 	}
 }

@@ -19,7 +19,6 @@ package stress
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -54,14 +53,14 @@ func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]str
 
 	var err error
 	if len(hashes) != 1 {
-		err = errors.New("node chain head hashes don't match")
+		err = errChainHeadMismatch
 	}
 
 	return hashes, err
 }
 
 // compareChainHeadsWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
+func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) error {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -73,7 +72,7 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) {
 
 		time.Sleep(time.Second)
 	}
-	require.NoError(t, err, hashes)
+	return fmt.Errorf("%w: hashes=%v", err, hashes)
 }
 
 // compareBlocksByNumber calls getBlockByNumber for each node in the array
@@ -90,15 +89,19 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 	}
 
 	var err error
-	if len(hashes) != 1 {
-		err = errors.New("node hashes don't match")
+	if len(hashes) == 0 {
+		err = errNoBlockAtNumber
+	}
+
+	if len(hashes) > 1 {
+		err = errBlocksAtNumberMismatch
 	}
 
 	return hashes, err
 }
 
 // compareBlocksByNumberWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) {
+func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) error {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -110,7 +113,12 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 
 		time.Sleep(time.Second)
 	}
-	require.NoError(t, err, hashes)
+
+	if err != nil {
+		err = fmt.Errorf("%w: hashes=%v", err, hashes)
+	}
+
+	return err
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
@@ -124,8 +132,12 @@ func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][
 	}
 
 	var err error
-	if len(hashes) != 1 {
-		err = errors.New("node finalized head hashes don't match")
+	if len(hashes) == 0 {
+		err = errNoFinalizedBlock
+	}
+
+	if len(hashes) > 1 {
+		err = errFinalizedBlockMismatch
 	}
 
 	return hashes, err
@@ -146,8 +158,12 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 	}
 
 	var err error
-	if len(hashes) != 1 {
-		err = errors.New("node finalized head hashes don't match")
+	if len(hashes) == 0 {
+		err = errNoFinalizedBlock
+	}
+
+	if len(hashes) > 1 {
+		err = errFinalizedBlockMismatch
 	}
 
 	return hashes, err
@@ -155,7 +171,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 
 // compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
 // it returns the finalized hash if it succeeds
-func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uint64) common.Hash {
+func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uint64) (common.Hash, error) {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -165,15 +181,22 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			break
 		}
 
+		if err == errFinalizedBlockMismatch {
+			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
+		}
+
 		time.Sleep(3 * time.Second)
 	}
-	require.NoError(t, err, fmt.Sprintf("round=%d hashes=%v", round, hashes))
 
-	for h := range hashes {
-		return h
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
 	}
 
-	return common.Hash{}
+	for h := range hashes {
+		return h, nil
+	}
+
+	return common.Hash{}, nil
 }
 
 func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte { //nolint
