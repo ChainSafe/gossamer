@@ -176,7 +176,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 	return common.Hash{}
 }
 
-func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
+func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte { //nolint
 	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
@@ -189,7 +189,7 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte {
 
 // submitExtrinsicAssertInclusion submits an extrinsic to a random node and asserts that the extrinsic was included in some block
 // and that the nodes remain synced
-func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extrinsic.Extrinsic) {
+func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extrinsic.Extrinsic) { //nolint
 	tx, err := ext.Encode()
 	require.NoError(t, err)
 
