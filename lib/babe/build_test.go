@@ -81,7 +81,7 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
 	}
 
 	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
+		t.Fatal("proof was nil when under threshold")
 	}
 
 	babeService.slotToProof[slotNumber] = outAndProof
@@ -89,7 +89,7 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte) (*types.Block, Slot) {
 	// create proof that we can authorize this block
-	babeService.epochThreshold = big.NewInt(0)
+	babeService.epochThreshold = maxThreshold
 	babeService.authorityIndex = 0
 
 	slotNumber := uint64(1)
@@ -130,6 +130,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	cfg := &ServiceConfig{
 		TransactionQueue: transactionQueue,
+		LogLvl:           4,
 	}
 
 	babeService := createTestService(t, cfg)

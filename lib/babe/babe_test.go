@@ -35,6 +35,7 @@ import (
 )
 
 var emptyHash = trie.EmptyHash
+var maxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 
 var genesisHeader = &types.Header{
 	Number:    big.NewInt(0),
@@ -95,13 +96,15 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.StorageState = dbSrv.Storage
 	}
 
-	cfg.LogLvl = 3
-
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 
 	babeService.started.Store(true)
 	babeService.config = babeCfg
+	if cfg.EpochThreshold == nil {
+		babeService.epochThreshold = maxThreshold
+	}
+
 	return babeService
 }
 
@@ -121,7 +124,7 @@ func TestCalculateThreshold(t *testing.T) {
 	var C1 uint64 = 1
 	var C2 uint64 = 1
 
-	expected := new(big.Int).Lsh(big.NewInt(1), 128)
+	expected := new(big.Int).Lsh(big.NewInt(1), 256)
 
 	threshold, err := calculateThreshold(C1, C2, 3)
 	require.NoError(t, err)
@@ -139,7 +142,7 @@ func TestCalculateThreshold(t *testing.T) {
 	pp_exp := math.Pow(pp, theta)
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
-	q := new(big.Int).Lsh(big.NewInt(1), 128)
+	q := new(big.Int).Lsh(big.NewInt(1), 256)
 	expected = q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 
 	threshold, err = calculateThreshold(C1, C2, 3)
@@ -162,7 +165,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
-	babeService.epochThreshold = big.NewInt(0)
+	babeService.epochThreshold = maxThreshold
 
 	outAndProof, err := babeService.runLottery(0)
 	if err != nil {
@@ -176,7 +179,7 @@ func TestRunLottery(t *testing.T) {
 
 func TestRunLottery_False(t *testing.T) {
 	babeService := createTestService(t, nil)
-	babeService.epochThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+	babeService.epochThreshold = big.NewInt(0)
 
 	outAndProof, err := babeService.runLottery(0)
 	if err != nil {
@@ -193,6 +196,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 	cfg := &ServiceConfig{
 		TransactionQueue: TransactionQueue,
+		LogLvl:           3,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -218,6 +222,8 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	babeService.epochThreshold = maxThreshold
 
 	newBlocks := babeService.GetBlockChannel()
 	block := <-newBlocks
@@ -278,7 +284,9 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 }
 
 func TestStartAndStop(t *testing.T) {
-	bs := createTestService(t, nil)
+	bs := createTestService(t, &ServiceConfig{
+		LogLvl: 0,
+	})
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()

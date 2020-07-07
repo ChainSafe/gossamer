@@ -135,7 +135,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	// TODO: format this
-	logger.Info("[babe]", "authorities", babeService.authorityData)
+	logger.Info("created BABE service", "authorities", babeService.authorityData)
 
 	babeService.randomness = babeService.config.Randomness
 
@@ -144,7 +144,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	logger.Trace("[babe]", "authority index", babeService.authorityIndex)
+	logger.Trace("created BABE service", "authority index", babeService.authorityIndex, "threshold", babeService.epochThreshold)
 
 	return babeService, nil
 }
@@ -260,7 +260,7 @@ func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 func (b *Service) setAuthorityIndex() error {
 	pub := b.keypair.Public()
 
-	b.logger.Debug("[babe]", "authority key", pub.Hex(), "authorities", b.authorityData)
+	b.logger.Debug("set authority index", "authority key", pub.Hex(), "authorities", b.authorityData)
 
 	for i, auth := range b.authorityData {
 		if bytes.Equal(pub.Encode(), auth.ID.Encode()) {
@@ -405,7 +405,7 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 		}
 	}
 
-	if outputInt.Cmp(b.epochThreshold) > 0 {
+	if outputInt.Cmp(b.epochThreshold) < 0 {
 		outbytes := [sr25519.VrfOutputLength]byte{}
 		copy(outbytes[:], output)
 		proofbytes := [sr25519.VrfProofLength]byte{}
@@ -436,15 +436,8 @@ func (b *Service) setEpochThreshold() error {
 		return err
 	}
 
+	b.logger.Info("set epoch threshold", "threshold", b.epochThreshold.Bytes())
 	return nil
-}
-
-func (b *Service) authorityWeights() []uint64 {
-	weights := make([]uint64, len(b.authorityData))
-	for i, auth := range b.authorityData {
-		weights[i] = auth.Weight
-	}
-	return weights
 }
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
@@ -466,8 +459,8 @@ func calculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
 
-	// 1 << 128
-	q := new(big.Int).Lsh(big.NewInt(1), 128)
+	// 1 << 256
+	q := new(big.Int).Lsh(big.NewInt(1), 256)
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
 	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
