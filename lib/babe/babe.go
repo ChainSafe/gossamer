@@ -431,7 +431,7 @@ func (b *Service) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, b.authorityIndex, b.authorityWeights())
+	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
 	if err != nil {
 		return err
 	}
@@ -452,30 +452,30 @@ func (b *Service) authorityWeights() []uint64 {
 // where k is the authority index, and sum(w_i) is the
 // sum of all the authority weights
 // see: https://github.com/paritytech/substrate/blob/master/core/consensus/babe/src/lib.rs#L1022
-func calculateThreshold(C1, C2, authorityIndex uint64, authorityWeights []uint64) (*big.Int, error) {
+func calculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
 	}
 
 	// sum(w_i)
-	var sum uint64 = 0
-	for _, weight := range authorityWeights {
-		sum += weight
-	}
+	// var sum uint64 = 0
+	// for _, weight := range authorityWeights {
+	// 	sum += weight
+	// }
 
-	if sum == 0 {
-		return nil, errors.New("invalid authority weights: sums to zero")
-	}
+	// if sum == 0 {
+	// 	return nil, errors.New("invalid authority weights: sums to zero")
+	// }
 
-	// w_k/sum(w_i)
-	theta := float64(authorityWeights[authorityIndex]) / float64(sum)
+	// 1 / len(authorities)
+	theta := float64(1) / float64(numAuths)
 
-	// (1-c)^(w_k/sum(w_i)))
+	// (1-c)^(theta)
 	pp := 1 - c
 	pp_exp := math.Pow(pp, theta)
 
-	// 1 - (1-c)^(w_k/sum(w_i)))
+	// 1 - (1-c)^(theta)
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
 

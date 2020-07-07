@@ -120,12 +120,10 @@ func TestCalculateThreshold(t *testing.T) {
 	// C = 1
 	var C1 uint64 = 1
 	var C2 uint64 = 1
-	var authorityIndex uint64 = 0
-	authorityWeights := []uint64{1, 1, 1}
 
 	expected := new(big.Int).Lsh(big.NewInt(1), 128)
 
-	threshold, err := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
+	threshold, err := calculateThreshold(C1, C2, 3)
 	require.NoError(t, err)
 
 	if threshold.Cmp(expected) != 0 {
@@ -144,7 +142,7 @@ func TestCalculateThreshold(t *testing.T) {
 	q := new(big.Int).Lsh(big.NewInt(1), 128)
 	expected = q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
 
-	threshold, err = calculateThreshold(C1, C2, authorityIndex, authorityWeights)
+	threshold, err = calculateThreshold(C1, C2, 3)
 	require.NoError(t, err)
 
 	if threshold.Cmp(expected) != 0 {
@@ -152,28 +150,13 @@ func TestCalculateThreshold(t *testing.T) {
 	}
 }
 
-func TestCalculateThreshold_AuthorityWeights(t *testing.T) {
+func TestCalculateThreshold_Failing(t *testing.T) {
 	var C1 uint64 = 5
-	var C2 uint64 = 17
-	var authorityIndex uint64 = 3
-	authorityWeights := []uint64{3, 1, 4, 6, 10}
+	var C2 uint64 = 4
 
-	theta := float64(6) / float64(24)
-	c := float64(C1) / float64(C2)
-	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
-	q := new(big.Int).Lsh(big.NewInt(1), 128)
-	expected := q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
-
-	threshold, err := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if threshold.Cmp(expected) != 0 {
-		t.Fatalf("Fail: got %d expected %d", threshold, expected)
+	_, err := calculateThreshold(C1, C2, 3)
+	if err == nil {
+		t.Fatal("Fail: did not err for c>1")
 	}
 }
 
@@ -202,18 +185,6 @@ func TestRunLottery_False(t *testing.T) {
 
 	if outAndProof != nil {
 		t.Fatal("proof was not nil when under threshold")
-	}
-}
-
-func TestCalculateThreshold_Failing(t *testing.T) {
-	var C1 uint64 = 5
-	var C2 uint64 = 4
-	var authorityIndex uint64 = 3
-	authorityWeights := []uint64{3, 1, 4, 6, 10}
-
-	_, err := calculateThreshold(C1, C2, authorityIndex, authorityWeights)
-	if err == nil {
-		t.Fatal("Fail: did not err for c>1")
 	}
 }
 
