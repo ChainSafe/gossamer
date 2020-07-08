@@ -644,6 +644,7 @@ func TestExecuteBlock(t *testing.T) {
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
 		BlockState:       syncer.blockState,
+		EpochThreshold:   babe.MaxThreshold,
 	}
 
 	builder := newBlockBuilder(t, bcfg)
@@ -688,6 +689,7 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 		TransactionQueue: syncer.transactionQueue,
 		Keypair:          kp,
 		BlockState:       syncer.blockState,
+		EpochThreshold:   babe.MaxThreshold,
 	}
 
 	key := []byte("noot")
