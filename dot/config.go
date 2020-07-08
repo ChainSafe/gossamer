@@ -140,7 +140,6 @@ func GssmrConfig() *Config {
 			Roles:            gssmr.DefaultRoles,
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
-			//BabeThreshold: "",
 		},
 		Network: NetworkConfig{
 			Port:        gssmr.DefaultNetworkPort,
@@ -180,7 +179,6 @@ func KsmccConfig() *Config {
 		Core: CoreConfig{
 			Authority: ksmcc.DefaultAuthority,
 			Roles:     ksmcc.DefaultRoles,
-			//BabeThreshold: "",
 		},
 		Network: NetworkConfig{
 			Port:        ksmcc.DefaultNetworkPort,
