@@ -134,6 +134,11 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 		return nil, err
 	}
 
+	threshold, ok := cfg.Core.BabeThreshold.(*big.Int)
+	if !ok && threshold != nil {
+		return nil, errors.New("invalid BabeThreshold in configuration")
+	}
+
 	bcfg := &babe.ServiceConfig{
 		LogLvl:           lvl,
 		Keypair:          kps[0].(*sr25519.Keypair),
@@ -142,6 +147,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 		StorageState:     st.Storage,
 		TransactionQueue: st.TransactionQueue,
 		StartSlot:        bestSlot + 1,
+		EpochThreshold:   threshold,
 	}
 
 	// create new BABE service
@@ -168,21 +174,29 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, rt
 		return nil, err
 	}
 
+	var handler core.ConsensusMessageHandler
+	if gs, ok := fg.(*grandpa.Service); ok {
+		handler = grandpa.NewMessageHandler(gs, stateSrvc.Block)
+	} else {
+		handler = grandpa.NewMessageHandler(nil, stateSrvc.Block)
+	}
+
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:              lvl,
-		BlockState:          stateSrvc.Block,
-		StorageState:        stateSrvc.Storage,
-		TransactionQueue:    stateSrvc.TransactionQueue,
-		BlockProducer:       bp,
-		FinalityGadget:      fg,
-		Keystore:            ks,
-		Runtime:             rt,
-		MsgRec:              networkMsgs, // message channel from network service to core service
-		MsgSend:             coreMsgs,    // message channel from core service to network service
-		IsBlockProducer:     cfg.Core.BabeAuthority,
-		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
-		SyncChan:            syncChan,
+		LogLvl:                  lvl,
+		BlockState:              stateSrvc.Block,
+		StorageState:            stateSrvc.Storage,
+		TransactionQueue:        stateSrvc.TransactionQueue,
+		BlockProducer:           bp,
+		FinalityGadget:          fg,
+		ConsensusMessageHandler: handler,
+		Keystore:                ks,
+		Runtime:                 rt,
+		MsgRec:                  networkMsgs, // message channel from network service to core service
+		MsgSend:                 coreMsgs,    // message channel from core service to network service
+		IsBlockProducer:         cfg.Core.BabeAuthority,
+		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
+		SyncChan:                syncChan,
 	}
 
 	// create new core service

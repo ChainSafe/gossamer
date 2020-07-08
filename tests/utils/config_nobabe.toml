@@ -1,17 +1,10 @@
 [global]
 name = "gssmr"
 id = "gssmr"
-basepath = "~/.gossamer/gssmr"
-log = "info"
+log = "crit"
 
 [log]
-core = ""
-network = ""
-rpc = ""
-state = ""
-runtime = ""
-babe = ""
-grandpa = ""
+core = "info"
 
 [init]
 genesis = "./chain/gssmr/genesis.json"
@@ -23,12 +16,10 @@ unlock = ""
 [core]
 authority = true
 roles = 4
-babe-authority = true
+babe-authority = false
 grandpa-authority = true
-babe-threshold = ""
 
 [network]
-port = 7001
 bootnodes = []
 protocol = "/gossamer/gssmr/0"
 nobootstrap = false
@@ -36,8 +27,6 @@ nomdns = false
 
 [rpc]
 enabled = false
-port = 8545
 host = "localhost"
 modules = ["system", "author", "chain", "state"]
-ws-port = 8546
 ws-enabled = false
