@@ -196,7 +196,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 
 	cfg := &ServiceConfig{
 		TransactionQueue: TransactionQueue,
-		LogLvl:           3,
+		LogLvl:           log.LvlInfo,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -285,7 +285,7 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 
 func TestStartAndStop(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{
-		LogLvl: 0,
+		LogLvl: log.LvlCrit,
 	})
 	err := bs.Start()
 	require.NoError(t, err)

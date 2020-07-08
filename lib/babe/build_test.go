@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -130,7 +131,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	cfg := &ServiceConfig{
 		TransactionQueue: transactionQueue,
-		LogLvl:           4,
+		LogLvl:           log.LvlDebug,
 	}
 
 	babeService := createTestService(t, cfg)
