@@ -178,6 +178,8 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 		if cmp == 0 {
 			break
 		}
+
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	if cmp != 0 {
@@ -191,6 +193,8 @@ func TestWatchForBlocks_NotHighestSeen(t *testing.T) {
 		if cmp == 0 {
 			break
 		}
+
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	if cmp != 0 {
@@ -224,6 +228,8 @@ func TestWatchForBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 		if cmp == 0 {
 			break
 		}
+
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	if cmp != 0 {
