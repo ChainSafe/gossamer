@@ -653,7 +653,7 @@ func TestExt_keccak_256(t *testing.T) {
 
 	mem := runtime.vm.Memory.Data()
 
-	data := []byte("hello")
+	data := []byte(nil)
 	pos := 170
 	out := pos + len(data)
 	copy(mem[pos:pos+len(data)], data)
@@ -668,8 +668,7 @@ func TestExt_keccak_256(t *testing.T) {
 	require.Nil(t, err)
 
 	// test case from https://github.com/debris/tiny-keccak/blob/master/tests/keccak.rs#L4
-	//expected, err := common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
-	expected, err := common.HexToHash("0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8")
+	expected, err := common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
 	require.Nil(t, err)
 
 	if !bytes.Equal(expected[:], mem[out:out+32]) {
