@@ -38,8 +38,17 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+var (
+	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
+	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
+	// MinThreshold is the minimum BABE threshold (node never authorized to produce a block)
+	MinThreshold = big.NewInt(0)
+)
+
+// AuthprityData is an alias for []*types.BABEAuthorityData
 type AuthorityData []*types.BABEAuthorityData
 
+// String returns the AuthorityData as a formatted string
 func (d AuthorityData) String() string {
 	str := ""
 	for _, di := range []*types.BABEAuthorityData(d) {
@@ -47,13 +56,6 @@ func (d AuthorityData) String() string {
 	}
 	return str
 }
-
-var (
-	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
-	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
-	// MinThreshold is the minimum BABE threshold (node never authorized to produce a block)
-	MinThreshold = big.NewInt(0)
-)
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
@@ -139,8 +141,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Info("genesis authorities", "auths", babeService.config.GenesisAuthorities)
 
 	logger.Info("config", "SlotDuration (ms)", babeService.config.SlotDuration, "EpochLength (slots)", babeService.config.EpochLength)
 

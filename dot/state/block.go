@@ -347,6 +347,7 @@ func (bs *BlockState) GetFinalizedHash(round uint64) (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
+	// round that is being queried for has not yet finalized
 	if round > r {
 		return common.Hash{}, nil
 	}
@@ -372,14 +373,17 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round uint64) error {
 	return bs.db.Put(finalizedHashKey(round), hash[:])
 }
 
+// SetRound sets the latest finalized GRANDPA round in the db
+// TODO: this needs to use both setID and round
 func (bs *BlockState) SetRound(round uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
-	return bs.db.Put([]byte("round"), buf)
+	return bs.db.Put(common.LatestFinalizedRoundKey, buf)
 }
 
+// GetRound gets the latest finalized GRANDPA round from the db
 func (bs *BlockState) GetRound() (uint64, error) {
-	r, err := bs.db.Get([]byte("round"))
+	r, err := bs.db.Get(common.LatestFinalizedRoundKey)
 	if err != nil {
 		return 0, err
 	}
