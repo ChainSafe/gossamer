@@ -141,6 +141,11 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
+	err = bs.SetRound(0)
+	if err != nil {
+		return nil, err
+	}
+
 	return bs, nil
 }
 
@@ -337,6 +342,15 @@ func (bs *BlockState) GetFinalizedHeader(round uint64) (*types.Header, error) {
 
 // GetFinalizedHash gets the latest finalized block header
 func (bs *BlockState) GetFinalizedHash(round uint64) (common.Hash, error) {
+	r, err := bs.GetRound()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	if round > r {
+		return common.Hash{}, nil
+	}
+
 	h, err := bs.db.Get(finalizedHashKey(round))
 	if err != nil {
 		return common.Hash{}, err
@@ -348,7 +362,30 @@ func (bs *BlockState) GetFinalizedHash(round uint64) (common.Hash, error) {
 // SetFinalizedHash sets the latest finalized block header
 func (bs *BlockState) SetFinalizedHash(hash common.Hash, round uint64) error {
 	go bs.notifyFinalized(hash)
+	if round > 0 {
+		err := bs.SetRound(round)
+		if err != nil {
+			return err
+		}
+	}
+
 	return bs.db.Put(finalizedHashKey(round), hash[:])
+}
+
+func (bs *BlockState) SetRound(round uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, round)
+	return bs.db.Put([]byte("round"), buf)
+}
+
+func (bs *BlockState) GetRound() (uint64, error) {
+	r, err := bs.db.Get([]byte("round"))
+	if err != nil {
+		return 0, err
+	}
+
+	round := binary.LittleEndian.Uint64(r)
+	return round, nil
 }
 
 // SetBlockBody will add a block body to the db

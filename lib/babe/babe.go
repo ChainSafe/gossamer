@@ -38,6 +38,16 @@ import (
 // RandomnessLength is the length of the epoch randomness (32 bytes)
 const RandomnessLength = 32
 
+type AuthorityData []*types.BABEAuthorityData
+
+func (d AuthorityData) String() string {
+	str := ""
+	for _, di := range []*types.BABEAuthorityData(d) {
+		str = str + fmt.Sprintf("[key=0x%x idx=%d] ", di.ID.Encode(), di.Weight)
+	}
+	return str
+}
+
 var (
 	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
 	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
@@ -130,6 +140,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
+	logger.Info("genesis authorities", "auths", babeService.config.GenesisAuthorities)
+
 	logger.Info("config", "SlotDuration (ms)", babeService.config.SlotDuration, "EpochLength (slots)", babeService.config.EpochLength)
 
 	if babeService.authorityData == nil {
@@ -142,7 +154,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	// TODO: format this
-	logger.Info("created BABE service", "authorities", babeService.authorityData)
+	logger.Info("created BABE service", "authorities", AuthorityData(babeService.authorityData))
 
 	babeService.randomness = babeService.config.Randomness
 
@@ -267,7 +279,7 @@ func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 func (b *Service) setAuthorityIndex() error {
 	pub := b.keypair.Public()
 
-	b.logger.Debug("set authority index", "authority key", pub.Hex(), "authorities", b.authorityData)
+	b.logger.Debug("set authority index", "authority key", pub.Hex(), "authorities", AuthorityData(b.authorityData))
 
 	for i, auth := range b.authorityData {
 		if bytes.Equal(pub.Encode(), auth.ID.Encode()) {
