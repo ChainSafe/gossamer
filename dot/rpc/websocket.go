@@ -19,12 +19,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/gorilla/websocket"
@@ -123,19 +123,25 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		method := msg["method"]
 		// if method contains subscribe, then register subscription
 		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
-			mid := msg["id"].(float64)
-			var subType int
+			reqid := msg["id"].(float64)
+			//var subType int
 			switch method {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
-				subType = SUB_NEW_HEAD
+				//subType = SUB_NEW_HEAD
 			case "state_subscribeStorage":
-				subType = SUB_STORAGE
+				//subType = SUB_STORAGE
+				cr, err := h.createStateChangeListener(ws, reqid)
+				if err != nil {
+					log.Error("[rpc] websocket failed write message", "error", err)
+				}
+				go cr.startStateChangeListener()
 			case "chain_subscribeFinalizedHeads":
-				subType = SUB_FINALIZED_HEAD
+				//subType = SUB_FINALIZED_HEAD
 			}
-			params := msg["params"]
+			//params := msg["params"]
 			var e1 error
-			_, e1 = h.registerSubscription(ws, mid, subType, params)
+			//_, e1 = h.registerSubscription(ws, mid, subType, params)
+			
 			if e1 != nil {
 				// todo send error message to client
 				log.Error("[rpc] failed to register subscription", "error", err)
@@ -192,84 +198,142 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int, params interface{}) (uint32, error) {
-	wssub := h.serverConfig.WSSubscriptions
-	sub := uint32(len(wssub)) + 1
-	pA := params.([]interface{})
-	filter := make(map[string]bool)
-	for _, param := range pA {
-		filter[param.(string)] = true
+//func (h *HTTPServer) registerSubscription(conn *websocket.Conn, reqID float64, subscriptionType int, params interface{}) (uint32, error) {
+//	wssub := h.serverConfig.WSSubscriptions
+//	sub := uint32(len(wssub)) + 1
+//	pA := params.([]interface{})
+//	filter := make(map[string]bool)
+//	for _, param := range pA {
+//		filter[param.(string)] = true
+//	}
+//	wss := &WebSocketSubscription{
+//		WSConnection:     conn,
+//		SubscriptionType: subscriptionType,
+//		Filter:           filter,
+//	}
+//	wssub[sub] = wss
+//	h.serverConfig.WSSubscriptions = wssub
+//	initRes := newSubscriptionResponseJSON()
+//	initRes.Result = sub
+//	initRes.ID = reqID
+//
+//	return sub, conn.WriteJSON(initRes)
+//}
+type StateChangeListener struct {
+	Chan   chan *state.KeyValue
+	WSConnection     *websocket.Conn
+}
+
+func (h *HTTPServer) createStateChangeListener(conn *websocket.Conn, reqID float64) (*StateChangeListener, error) {
+	cr := &StateChangeListener{
+		Chan: make(chan *state.KeyValue),
+		WSConnection: conn,
 	}
-	wss := &WebSocketSubscription{
-		WSConnection:     conn,
-		SubscriptionType: subscriptionType,
-		Filter:           filter,
-	}
-	wssub[sub] = wss
-	h.serverConfig.WSSubscriptions = wssub
+	h.stateChangeListener = append(h.stateChangeListener, cr)
+	h.serverConfig.StorageAPI.RegisterStorageChangeChannel(cr.Chan)
+	// TODO respond to client with subscription id
 	initRes := newSubscriptionResponseJSON()
-	initRes.Result = sub
+	//	initRes.Result = sub
 	initRes.ID = reqID
 
-	return sub, conn.WriteJSON(initRes)
+	return cr, conn.WriteJSON(initRes)
 }
+func (cr *StateChangeListener) startStateChangeListener() {
+	for change := range cr.Chan {
+		fmt.Printf("change listener %v\n", change)
+		if change != nil {
+		//	for i, sub := range h.serverConfig.WSSubscriptions {
+		//		if sub.SubscriptionType == SUB_STORAGE {
+					// TODO check if change key is in subscription filter
+					cKey := common.BytesToHex(change.Key)
+		//			if len(sub.Filter) > 0 && !sub.Filter[cKey] {
+		//				continue
+		//			}
+		//
+					changeM := make(map[string]interface{})
+					changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+					res := newSubcriptionBaseResponseJSON(1)  // todo handle subscription id
+					res.Method = "state_storage"
+					res.Params = changeM
+					if cr.WSConnection != nil {
+						err := cr.WSConnection.WriteJSON(res)
+						if err != nil {
+							log.Error("[rpc] error writing response", "error", err)
+						}
+					}
+		//		}
+		//	}
+		}
+	}
+}
+
+//func (h *HTTPServer)startStateChangeListener() {
+//	// resister channel
+//	h.storageChan = make(chan *state.KeyValue)
+//	h.storageChanID, err = h.serverConfig.StorageAPI.RegisterStorageChangeChannel(h.storageChan)
+//	if err != nil {
+//		return err
+//	}
+//	go h.storageChangeListener()
+//
+//}
 
 func (h *HTTPServer) blockReceivedListener() {
 	if h.serverConfig.BlockAPI == nil {
 		return
 	}
-
-	for block := range h.blockChan {
-		if block != nil {
-			for i, sub := range h.serverConfig.WSSubscriptions {
-				if sub.SubscriptionType == SUB_NEW_HEAD {
-					head := modules.HeaderToJSON(*block.Header)
-					headM := make(map[string]interface{})
-					headM["result"] = head
-					res := newSubcriptionBaseResponseJSON(i)
-					res.Method = "chain_newHead"
-					res.Params = headM
-					if sub.WSConnection != nil {
-						err := sub.WSConnection.WriteJSON(res)
-						if err != nil {
-							log.Error("[rpc] error writing response", "error", err)
-						}
-					}
-				}
-			}
-		}
-	}
+// todo implement this
+	//for block := range h.blockChan {
+	//	if block != nil {
+	//		for i, sub := range h.serverConfig.WSSubscriptions {
+	//			if sub.SubscriptionType == SUB_NEW_HEAD {
+	//				head := modules.HeaderToJSON(*block.Header)
+	//				headM := make(map[string]interface{})
+	//				headM["result"] = head
+	//				res := newSubcriptionBaseResponseJSON(i)
+	//				res.Method = "chain_newHead"
+	//				res.Params = headM
+	//				if sub.WSConnection != nil {
+	//					err := sub.WSConnection.WriteJSON(res)
+	//					if err != nil {
+	//						log.Error("[rpc] error writing response", "error", err)
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
-func (h *HTTPServer) storageChangeListener() {
-	if h.serverConfig.StorageAPI == nil {
-		return
-	}
-
-	for change := range h.storageChan {
-
-		if change != nil {
-			for i, sub := range h.serverConfig.WSSubscriptions {
-				if sub.SubscriptionType == SUB_STORAGE {
-					// check it change key is in subscription filter
-					cKey := common.BytesToHex(change.Key)
-					if len(sub.Filter) > 0 && !sub.Filter[cKey] {
-						continue
-					}
-
-					changeM := make(map[string]interface{})
-					changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
-					res := newSubcriptionBaseResponseJSON(i)
-					res.Method = "state_storage"
-					res.Params = changeM
-					if sub.WSConnection != nil {
-						err := sub.WSConnection.WriteJSON(res)
-						if err != nil {
-							log.Error("[rpc] error writing response", "error", err)
-						}
-					}
-				}
-			}
-		}
-	}
-}
+//func (h *HTTPServer) storageChangeListener() {
+//	if h.serverConfig.StorageAPI == nil {
+//		return
+//	}
+//
+//	for change := range h.storageChan {
+//
+//		if change != nil {
+//			for i, sub := range h.serverConfig.WSSubscriptions {
+//				if sub.SubscriptionType == SUB_STORAGE {
+//					// check if change key is in subscription filter
+//					cKey := common.BytesToHex(change.Key)
+//					if len(sub.Filter) > 0 && !sub.Filter[cKey] {
+//						continue
+//					}
+//
+//					changeM := make(map[string]interface{})
+//					changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+//					res := newSubcriptionBaseResponseJSON(i)
+//					res.Method = "state_storage"
+//					res.Params = changeM
+//					if sub.WSConnection != nil {
+//						err := sub.WSConnection.WriteJSON(res)
+//						if err != nil {
+//							log.Error("[rpc] error writing response", "error", err)
+//						}
+//					}
+//				}
+//			}
+//		}
+//	}
+//}

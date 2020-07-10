@@ -22,8 +22,6 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
 	"github.com/gorilla/websocket"
@@ -36,10 +34,11 @@ type HTTPServer struct {
 	logger        log.Logger
 	rpcServer     *rpc.Server // Actual RPC call handler
 	serverConfig  *HTTPServerConfig
-	blockChan     chan *types.Block
-	chanID        byte // channel ID
-	storageChan   chan *state.KeyValue
-	storageChanID byte // storage channel ID
+	//blockChan     chan *types.Block
+	//chanID        byte // channel ID
+	//storageChan   chan *state.KeyValue
+	//storageChanID byte // storage channel ID
+	stateChangeListener []*StateChangeListener
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -156,26 +155,26 @@ func (h *HTTPServer) Start() error {
 	}()
 
 	// init and start block received listener routine
-	if h.serverConfig.BlockAPI != nil {
-		var err error
-		h.blockChan = make(chan *types.Block)
-		h.chanID, err = h.serverConfig.BlockAPI.RegisterImportedChannel(h.blockChan)
-		if err != nil {
-			return err
-		}
-		go h.blockReceivedListener()
-	}
+	//if h.serverConfig.BlockAPI != nil {
+	//	var err error
+	//	h.blockChan = make(chan *types.Block)
+	//	h.chanID, err = h.serverConfig.BlockAPI.RegisterImportedChannel(h.blockChan)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	go h.blockReceivedListener()
+	//}
 
 	// init and start storage change listener routine
-	if h.serverConfig.StorageAPI != nil {
-		var err error
-		h.storageChan = make(chan *state.KeyValue)
-		h.storageChanID, err = h.serverConfig.StorageAPI.RegisterStorageChangeChannel(h.storageChan)
-		if err != nil {
-			return err
-		}
-		go h.storageChangeListener()
-	}
+	//if h.serverConfig.StorageAPI != nil {
+	//	var err error
+	//	h.storageChan = make(chan *state.KeyValue)
+	//	h.storageChanID, err = h.serverConfig.StorageAPI.RegisterStorageChangeChannel(h.storageChan)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	go h.storageChangeListener()
+	//}
 
 	return nil
 }
@@ -183,11 +182,13 @@ func (h *HTTPServer) Start() error {
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
 	if h.serverConfig.WSEnabled {
-		h.serverConfig.BlockAPI.UnregisterImportedChannel(h.chanID)
-		close(h.blockChan)
-
-		h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(h.storageChanID)
-		close(h.storageChan)
+		// TODO handle closing all channels
+		// TODO handle closing individual channels
+		//h.serverConfig.BlockAPI.UnregisterImportedChannel(h.chanID)
+		//close(h.blockChan)
+		//
+		//h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(h.storageChanID)
+		//close(h.storageChan)
 	}
 	return nil
 }

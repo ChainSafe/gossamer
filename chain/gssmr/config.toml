@@ -25,7 +25,7 @@ authority = true
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-threshold = ""
+babe-threshold = "max"
 
 [network]
 port = 7001
