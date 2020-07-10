@@ -45,7 +45,7 @@ var (
 	MinThreshold = big.NewInt(0)
 )
 
-// AuthprityData is an alias for []*types.BABEAuthorityData
+// AuthorityData is an alias for []*types.BABEAuthorityData
 type AuthorityData []*types.BABEAuthorityData
 
 // String returns the AuthorityData as a formatted string
