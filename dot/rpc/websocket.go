@@ -19,26 +19,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"net/http"
+	"os"
+	"strings"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
-	"io/ioutil"
-	"math/big"
-	"net/http"
-	"os"
-	"strings"
 )
-
 
 // SubscriptionBaseResponseJSON for base json response
 type SubscriptionBaseResponseJSON struct {
 	Jsonrpc      string      `json:"jsonrpc"`
 	Method       string      `json:"method"`
 	Params       interface{} `json:"params"`
-	Subscription byte      `json:"subscription"`
+	Subscription byte        `json:"subscription"`
 }
 
 func newSubcriptionBaseResponseJSON(sub byte) SubscriptionBaseResponseJSON {
@@ -51,7 +51,7 @@ func newSubcriptionBaseResponseJSON(sub byte) SubscriptionBaseResponseJSON {
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  byte  `json:"result"`
+	Result  byte    `json:"result"`
 	ID      float64 `json:"id"`
 }
 
@@ -59,7 +59,7 @@ func newSubscriptionResponseJSON(subID byte, reqID float64) SubscriptionResponse
 	return SubscriptionResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
-		ID: reqID,
+		ID:      reqID,
 	}
 }
 
@@ -80,7 +80,7 @@ type ErrorMessageJSON struct {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true  // todo determine how this should check orgigin
+			return true // todo determine how this should check orgigin
 		},
 	}
 
@@ -96,15 +96,15 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go wsc.handleComm()
 }
 
-
+// NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 	logger := log.New("pkg", "rpc")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	c := &WSConn{
-		wsconn: conn,
+		wsconn:       conn,
 		serverConfig: cfg,
-		logger: logger,
+		logger:       logger,
 	}
 	return c
 }
@@ -116,7 +116,7 @@ func (c *WSConn) safeSend(msg interface{}) error {
 	return c.wsconn.WriteJSON(msg)
 }
 
-func (c *WSConn)handleComm()  {
+func (c *WSConn) handleComm() {
 	for {
 		_, mbytes, err := c.wsconn.ReadMessage()
 		if err != nil {
@@ -125,112 +125,113 @@ func (c *WSConn)handleComm()  {
 		}
 		c.logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
 
-			// determine if request is for subscribe method type
-			var msg map[string]interface{}
-			err = json.Unmarshal(mbytes, &msg)
+		// determine if request is for subscribe method type
+		var msg map[string]interface{}
+		err = json.Unmarshal(mbytes, &msg)
+		if err != nil {
+			c.logger.Error("websocket failed to unmarshal request message", "error", err)
+			res := &ErrorResponseJSON{
+				Jsonrpc: "2.0",
+				Error: &ErrorMessageJSON{
+					Code:    big.NewInt(-32600),
+					Message: "Invalid request",
+				},
+				ID: nil,
+			}
+			err = c.safeSend(res)
 			if err != nil {
-				c.logger.Error("websocket failed to unmarshal request message", "error", err)
-				res := &ErrorResponseJSON{
-					Jsonrpc: "2.0",
-					Error: &ErrorMessageJSON{
-						Code:    big.NewInt(-32600),
-						Message: "Invalid request",
-					},
-					ID: nil,
-				}
-				err = c.safeSend(res)
-				if err != nil {
-					c.logger.Error("websocket failed write message", "error", err)
-				}
-				continue
+				c.logger.Error("websocket failed write message", "error", err)
 			}
-			method := msg["method"]
-			// if method contains subscribe, then register subscription
-			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
-				reqid := msg["id"].(float64)
-				params := msg["params"]
-				switch method {
-				case "chain_subscribeNewHeads", "chain_subscribeNewHead":
-					bl, err := c.initBlockListener(reqid)
-					if err != nil {
-						c.logger.Error("failed to create block listener", "error", err)
-					}
-					c.blockListeners = append(c.blockListeners, bl)
-					go bl.listen()
-				case "state_subscribeStorage":
-					scl, err := c.initStateChangeListener(reqid, params)
-					if err != nil {
-						c.logger.Error("failed to create state change listener", "error", err)
-					}
-					c.storageChangeListeners = append(c.storageChangeListeners, scl)
-					go scl.listen()
-				case "chain_subscribeFinalizedHeads":
+			continue
+		}
+		method := msg["method"]
+		// if method contains subscribe, then register subscription
+		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+			reqid := msg["id"].(float64)
+			params := msg["params"]
+			switch method {
+			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
+				bl, err1 := c.initBlockListener(reqid)
+				if err1 != nil {
+					c.logger.Error("failed to create block listener", "error", err)
 				}
-				continue
+				c.blockListeners = append(c.blockListeners, bl)
+				go bl.listen()
+			case "state_subscribeStorage":
+				scl, err2 := c.initStateChangeListener(reqid, params)
+				if err2 != nil {
+					c.logger.Error("failed to create state change listener", "error", err)
+				}
+				c.storageChangeListeners = append(c.storageChangeListeners, scl)
+				go scl.listen()
+			case "chain_subscribeFinalizedHeads":
 			}
+			continue
+		}
 
-			// handle non-subscribe calls
-			client := &http.Client{}
-			buf := &bytes.Buffer{}
-			_, err = buf.Write(mbytes)
-			if err != nil {
-				c.logger.Error("failed to write message to buffer", "error", err)
-				return
-			}
+		// handle non-subscribe calls
+		client := &http.Client{}
+		buf := &bytes.Buffer{}
+		_, err = buf.Write(mbytes)
+		if err != nil {
+			c.logger.Error("failed to write message to buffer", "error", err)
+			return
+		}
 
 		rpcHost := fmt.Sprintf("http://%s:%d/", c.serverConfig.Host, c.serverConfig.RPCPort)
-			req, err := http.NewRequest("POST", rpcHost, buf)
-			if err != nil {
-				c.logger.Error("failed request to rpc service", "error", err)
-				return
-			}
+		req, err := http.NewRequest("POST", rpcHost, buf)
+		if err != nil {
+			c.logger.Error("failed request to rpc service", "error", err)
+			return
+		}
 
-			req.Header.Set("Content-Type", "application/json;")
+		req.Header.Set("Content-Type", "application/json;")
 
-			res, err := client.Do(req)
-			if err != nil {
-				c.logger.Error("websocket error calling rpc", "error", err)
-				return
-			}
+		res, err := client.Do(req)
+		if err != nil {
+			c.logger.Error("websocket error calling rpc", "error", err)
+			return
+		}
 
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				c.logger.Error("error reading response body", "error", err)
-				return
-			}
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			c.logger.Error("error reading response body", "error", err)
+			return
+		}
 
-			err = res.Body.Close()
-			if err != nil {
-				c.logger.Error("error closing response body", "error", err)
-				return
-			}
-			var wsSend interface{}
-			err = json.Unmarshal(body, &wsSend)
-			if err != nil {
-				c.logger.Error("error unmarshal rpc response", "error", err)
-				return
-			}
+		err = res.Body.Close()
+		if err != nil {
+			c.logger.Error("error closing response body", "error", err)
+			return
+		}
+		var wsSend interface{}
+		err = json.Unmarshal(body, &wsSend)
+		if err != nil {
+			c.logger.Error("error unmarshal rpc response", "error", err)
+			return
+		}
 
-			err = c.safeSend(wsSend)
-			if err != nil {
-				c.logger.Error("error writing json response", "error", err)
-				return
-			}
+		err = c.safeSend(wsSend)
+		if err != nil {
+			c.logger.Error("error writing json response", "error", err)
+			return
+		}
 	}
 }
 
+// StateChangeListener for listening to state change channels
 type StateChangeListener struct {
-	channel   chan *state.KeyValue
-	filter map[string]bool
-	wsconn *WSConn
-	subID byte
+	channel chan *state.KeyValue
+	filter  map[string]bool
+	wsconn  *WSConn
+	subID   byte
 }
 
-func (c *WSConn) initStateChangeListener(reqID float64, params interface{}) (*StateChangeListener, error){
+func (c *WSConn) initStateChangeListener(reqID float64, params interface{}) (*StateChangeListener, error) {
 	scl := &StateChangeListener{
 		channel: make(chan *state.KeyValue),
-		filter: make(map[string]bool),
-		wsconn: c,
+		filter:  make(map[string]bool),
+		wsconn:  c,
 	}
 	pA := params.([]interface{})
 	for _, param := range pA {
@@ -266,22 +267,25 @@ func (l *StateChangeListener) listen() {
 			res := newSubcriptionBaseResponseJSON(l.subID)
 			res.Method = "state_storage"
 			res.Params = changeM
-			l.wsconn.safeSend(res)
+			err := l.wsconn.safeSend(res)
+			if err != nil {
+				l.wsconn.logger.Error("error sending websocket message", "error", err)
+			}
 		}
 	}
 }
 
+// BlockListener to handle listening for blocks channel
 type BlockListener struct {
-	channel   chan *types.Block
-	wsconn *WSConn
-	subID byte
+	channel chan *types.Block
+	wsconn  *WSConn
+	subID   byte
 }
 
-
-func (c *WSConn) initBlockListener(reqID float64) (*BlockListener, error){
-	bl := &BlockListener {
+func (c *WSConn) initBlockListener(reqID float64) (*BlockListener, error) {
+	bl := &BlockListener{
 		channel: make(chan *types.Block),
-		wsconn: c,
+		wsconn:  c,
 	}
 
 	subID, err := c.serverConfig.BlockAPI.RegisterImportedChannel(bl.channel)
@@ -301,14 +305,16 @@ func (c *WSConn) initBlockListener(reqID float64) (*BlockListener, error){
 func (l *BlockListener) listen() {
 	for block := range l.channel {
 		if block != nil {
-					head := modules.HeaderToJSON(*block.Header)
-					headM := make(map[string]interface{})
-					headM["result"] = head
-					res := newSubcriptionBaseResponseJSON(l.subID)
-					res.Method = "chain_newHead"
-					res.Params = headM
-					l.wsconn.safeSend(res)
+			head := modules.HeaderToJSON(*block.Header)
+			headM := make(map[string]interface{})
+			headM["result"] = head
+			res := newSubcriptionBaseResponseJSON(l.subID)
+			res.Method = "chain_newHead"
+			res.Params = headM
+			err := l.wsconn.safeSend(res)
+			if err != nil {
+				l.wsconn.logger.Error("error sending websocket message", "error", err)
 			}
 		}
+	}
 }
-

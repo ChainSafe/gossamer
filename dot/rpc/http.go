@@ -18,22 +18,23 @@ package rpc
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
 	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
+	"github.com/gorilla/websocket"
 )
 
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
-	logger        log.Logger
-	rpcServer     *rpc.Server // Actual RPC call handler
-	serverConfig  *HTTPServerConfig
-	wsConns []*WSConn
+	logger       log.Logger
+	rpcServer    *rpc.Server // Actual RPC call handler
+	serverConfig *HTTPServerConfig
+	wsConns      []*WSConn
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -55,14 +56,16 @@ type HTTPServerConfig struct {
 	Modules             []string
 }
 
+// WSConn struct to hold WebSocket Connection references
 type WSConn struct {
-	wsconn *websocket.Conn
-	mu sync.Mutex
-	serverConfig  *HTTPServerConfig
-	logger        log.Logger
-	blockListeners []*BlockListener
+	wsconn                 *websocket.Conn
+	mu                     sync.Mutex
+	serverConfig           *HTTPServerConfig
+	logger                 log.Logger
+	blockListeners         []*BlockListener
 	storageChangeListeners []*StateChangeListener
 }
+
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	logger := log.New("pkg", "rpc")
@@ -161,7 +164,10 @@ func (h *HTTPServer) Stop() error {
 				h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(scl.subID)
 				close(scl.channel)
 			}
-			conn.wsconn.Close()
+			err := conn.wsconn.Close()
+			if err != nil {
+				h.logger.Error("error closing websocket connection", "error", err)
+			}
 		}
 	}
 	return nil
