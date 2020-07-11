@@ -7,7 +7,7 @@ log = "info"
 [log]
 core = ""
 network = ""
-rpc = "debug"
+rpc = ""
 state = ""
 runtime = ""
 babe = ""
@@ -25,7 +25,7 @@ authority = true
 roles = 4
 babe-authority = true
 grandpa-authority = true
-babe-threshold = "max"
+babe-threshold = ""
 
 [network]
 port = 7001

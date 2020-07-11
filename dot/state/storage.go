@@ -129,8 +129,6 @@ func (s *StorageState) SetStorage(key []byte, value []byte) error {
 		Key:   key,
 		Value: value,
 	}
-	//fmt.Printf("SetStorage Key: %x Value: %x\n", key, value)
-	// TODO ed add channel notify here
 	err := s.trie.Put(key, value)
 	if err != nil {
 		return err
@@ -149,7 +147,16 @@ func (s *StorageState) ClearPrefix(prefix []byte) {
 func (s *StorageState) ClearStorage(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.trie.Delete(key)
+	kv := &KeyValue{
+		Key:   key,
+		Value: nil,
+	}
+	err := s.trie.Delete(key)
+	if err != nil {
+		return err
+	}
+	s.notifyChanged(kv)
+	return nil
 }
 
 // Entries returns Entries from the trie
