@@ -16,18 +16,16 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
-	"io/ioutil"
+	"github.com/gorilla/websocket"
 	"math/big"
 	"net/http"
+	"os"
 	"strings"
-
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/gorilla/websocket"
 )
 
 // consts to represent subscription type
@@ -42,10 +40,10 @@ type SubscriptionBaseResponseJSON struct {
 	Jsonrpc      string      `json:"jsonrpc"`
 	Method       string      `json:"method"`
 	Params       interface{} `json:"params"`
-	Subscription uint32      `json:"subscription"`
+	Subscription byte      `json:"subscription"`
 }
 
-func newSubcriptionBaseResponseJSON(sub uint32) SubscriptionBaseResponseJSON {
+func newSubcriptionBaseResponseJSON(sub byte) SubscriptionBaseResponseJSON {
 	return SubscriptionBaseResponseJSON{
 		Jsonrpc:      "2.0",
 		Subscription: sub,
@@ -55,14 +53,15 @@ func newSubcriptionBaseResponseJSON(sub uint32) SubscriptionBaseResponseJSON {
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  uint32  `json:"result"`
+	Result  byte  `json:"result"`
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON() SubscriptionResponseJSON {
+func newSubscriptionResponseJSON(subID byte, reqID float64) SubscriptionResponseJSON {
 	return SubscriptionResponseJSON{
 		Jsonrpc: "2.0",
-		Result:  0,
+		Result:  subID,
+		ID: reqID,
 	}
 }
 
@@ -83,118 +82,125 @@ type ErrorMessageJSON struct {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true
+			return true  // todo determine how this should check orgigin
 		},
 	}
+
+	// todo create struct to hold ws connections so we can control writes to it.
 	ws, err := upg.Upgrade(w, r, nil)
 	if err != nil {
 		h.logger.Error("websocket upgrade failed", "error", err)
 		return
 	}
-
-	rpcHost := fmt.Sprintf("http://%s:%d/", h.serverConfig.Host, h.serverConfig.RPCPort)
-	for {
-		_, mbytes, err := ws.ReadMessage()
-		if err != nil {
-			h.logger.Error("websocket failed to read message", "error", err)
-			return
-		}
-		h.logger.Trace("websocket received", "message", fmt.Sprintf("%s", mbytes))
-
-		// determine if request is for subscribe method type
-		var msg map[string]interface{}
-		err = json.Unmarshal(mbytes, &msg)
-		if err != nil {
-			h.logger.Error("websocket failed to unmarshal request message", "error", err)
-			res := &ErrorResponseJSON{
-				Jsonrpc: "2.0",
-				Error: &ErrorMessageJSON{
-					Code:    big.NewInt(-32600),
-					Message: "Invalid request",
-				},
-				ID: nil,
-			}
-			err = ws.WriteJSON(res)
-			if err != nil {
-				h.logger.Error("websocket failed write message", "error", err)
-			}
-			continue
-		}
-		method := msg["method"]
-		// if method contains subscribe, then register subscription
-		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
-			reqid := msg["id"].(float64)
-			//var subType int
-			switch method {
-			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
-				//subType = SUB_NEW_HEAD
-			case "state_subscribeStorage":
-				//subType = SUB_STORAGE
-				cr, err := h.createStateChangeListener(ws, reqid)
-				if err != nil {
-					h.logger.Error("failed to create state change listener", "error", err)
-				}
-				go cr.startStateChangeListener()
-			case "chain_subscribeFinalizedHeads":
-				//subType = SUB_FINALIZED_HEAD
-			}
-			//params := msg["params"]
-			var e1 error
-			//_, e1 = h.registerSubscription(ws, mid, subType, params)
-			
-			if e1 != nil {
-				// todo send error message to client
-				h.logger.Error("failed to register subscription", "error", err)
-			}
-			continue
-		}
-
-		client := &http.Client{}
-		buf := &bytes.Buffer{}
-		_, err = buf.Write(mbytes)
-		if err != nil {
-			h.logger.Error("failed to write message to buffer", "error", err)
-			return
-		}
-
-		req, err := http.NewRequest("POST", rpcHost, buf)
-		if err != nil {
-			h.logger.Error("failed request to rpc service", "error", err)
-			return
-		}
-
-		req.Header.Set("Content-Type", "application/json;")
-
-		res, err := client.Do(req)
-		if err != nil {
-			h.logger.Error("websocket error calling rpc", "error", err)
-			return
-		}
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			h.logger.Error("error reading response body", "error", err)
-			return
-		}
-
-		err = res.Body.Close()
-		if err != nil {
-			h.logger.Error("error closing response body", "error", err)
-			return
-		}
-		var wsSend interface{}
-		err = json.Unmarshal(body, &wsSend)
-		if err != nil {
-			h.logger.Error("error unmarshal rpc response", "error", err)
-			return
-		}
-
-		err = ws.WriteJSON(wsSend)
-		if err != nil {
-			h.logger.Error("error writing json response", "error", err)
-			return
-		}
-	}
+	// create wsConn
+	wsc := NewWSConn(ws, h.serverConfig)
+	h.logger.Debug("WS UPGRADE", "ws", wsc)
+	h.wsConns = append(h.wsConns, wsc)
+	go wsc.handleComm()
+	h.logger.Debug("STARTED HANDLE COMM");
+	//rpcHost := fmt.Sprintf("http://%s:%d/", h.serverConfig.Host, h.serverConfig.RPCPort)
+	//for {
+	//	_, mbytes, err := ws.ReadMessage()
+	//	if err != nil {
+	//		h.logger.Error("websocket failed to read message", "error", err)
+	//		return
+	//	}
+	//	h.logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
+	//
+	//	// determine if request is for subscribe method type
+	//	var msg map[string]interface{}
+	//	err = json.Unmarshal(mbytes, &msg)
+	//	if err != nil {
+	//		h.logger.Error("websocket failed to unmarshal request message", "error", err)
+	//		res := &ErrorResponseJSON{
+	//			Jsonrpc: "2.0",
+	//			Error: &ErrorMessageJSON{
+	//				Code:    big.NewInt(-32600),
+	//				Message: "Invalid request",
+	//			},
+	//			ID: nil,
+	//		}
+	//		err = ws.WriteJSON(res)
+	//		if err != nil {
+	//			h.logger.Error("websocket failed write message", "error", err)
+	//		}
+	//		continue
+	//	}
+	//	method := msg["method"]
+	//	// if method contains subscribe, then register subscription
+	//	if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+	//		reqid := msg["id"].(float64)
+	//		//var subType int
+	//		switch method {
+	//		case "chain_subscribeNewHeads", "chain_subscribeNewHead":
+	//			//subType = SUB_NEW_HEAD
+	//		case "state_subscribeStorage":
+	//			//subType = SUB_STORAGE
+	//			cr, err := h.createStateChangeListener(ws, reqid)
+	//			if err != nil {
+	//				h.logger.Error("failed to create state change listener", "error", err)
+	//			}
+	//			go cr.startStateChangeListener()
+	//		case "chain_subscribeFinalizedHeads":
+	//			//subType = SUB_FINALIZED_HEAD
+	//		}
+	//		//params := msg["params"]
+	//		var e1 error
+	//		//_, e1 = h.registerSubscription(ws, mid, subType, params)
+	//
+	//		if e1 != nil {
+	//			// todo send error message to client
+	//			h.logger.Error("failed to register subscription", "error", err)
+	//		}
+	//		continue
+	//	}
+	//
+	//	client := &http.Client{}
+	//	buf := &bytes.Buffer{}
+	//	_, err = buf.Write(mbytes)
+	//	if err != nil {
+	//		h.logger.Error("failed to write message to buffer", "error", err)
+	//		return
+	//	}
+	//
+	//	req, err := http.NewRequest("POST", rpcHost, buf)
+	//	if err != nil {
+	//		h.logger.Error("failed request to rpc service", "error", err)
+	//		return
+	//	}
+	//
+	//	req.Header.Set("Content-Type", "application/json;")
+	//
+	//	res, err := client.Do(req)
+	//	if err != nil {
+	//		h.logger.Error("websocket error calling rpc", "error", err)
+	//		return
+	//	}
+	//
+	//	body, err := ioutil.ReadAll(res.Body)
+	//	if err != nil {
+	//		h.logger.Error("error reading response body", "error", err)
+	//		return
+	//	}
+	//
+	//	err = res.Body.Close()
+	//	if err != nil {
+	//		h.logger.Error("error closing response body", "error", err)
+	//		return
+	//	}
+	//	var wsSend interface{}
+	//	err = json.Unmarshal(body, &wsSend)
+	//	if err != nil {
+	//		h.logger.Error("error unmarshal rpc response", "error", err)
+	//		return
+	//	}
+	//
+	//	err = ws.WriteJSON(wsSend)
+	//	if err != nil {
+	//		h.logger.Error("error writing json response", "error", err)
+	//		return
+	//	}
+	//}
 
 }
 
@@ -219,57 +225,138 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 //
 //	return sub, conn.WriteJSON(initRes)
 //}
+// todo consider logger?
+func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
+	logger := log.New("pkg", "rpc")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	c := &WSConn{
+		wsconn: conn,
+		serverConfig: cfg,
+		logger: logger,
+	}
+	return c
+}
+func (c *WSConn)handleComm()  {
+	for {
+		_, mbytes, err := c.wsconn.ReadMessage()
+		if err != nil {
+			c.logger.Error("websocket failed to read message", "error", err)
+			return
+		}
+		c.logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
+
+			// determine if request is for subscribe method type
+			var msg map[string]interface{}
+			err = json.Unmarshal(mbytes, &msg)
+			if err != nil {
+				c.logger.Error("websocket failed to unmarshal request message", "error", err)
+				res := &ErrorResponseJSON{
+					Jsonrpc: "2.0",
+					Error: &ErrorMessageJSON{
+						Code:    big.NewInt(-32600),
+						Message: "Invalid request",
+					},
+					ID: nil,
+				}
+				err = c.wsconn.WriteJSON(res)
+				if err != nil {
+					c.logger.Error("websocket failed write message", "error", err)
+				}
+				continue
+			}
+			method := msg["method"]
+			// if method contains subscribe, then register subscription
+			if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
+				reqid := msg["id"].(float64)
+				c.logger.Debug("Subscribe request", "r id", reqid)
+				params := msg["params"]
+				switch method {
+				case "chain_subscribeNewHeads", "chain_subscribeNewHead":
+		//			//subType = SUB_NEW_HEAD
+				case "state_subscribeStorage":
+		//			//subType = SUB_STORAGE
+					scl, err := c.initStateChangeListener(reqid, params)
+					if err != nil {
+						c.logger.Error("failed to create state change listener", "error", err)
+					}
+					go scl.listen()
+				case "chain_subscribeFinalizedHeads":
+		//			//subType = SUB_FINALIZED_HEAD
+				}
+		//
+		//		var e1 error
+		//		//_, e1 = h.registerSubscription(ws, mid, subType, params)
+		//
+		//		if e1 != nil {
+		//			// todo send error message to client
+		//			h.logger.Error("failed to register subscription", "error", err)
+		//		}
+				continue
+			}
+
+	}
+}
 type StateChangeListener struct {
-	Chan   chan *state.KeyValue
-	WSConnection     *websocket.Conn
-	logger log.Logger
+	channel   chan *state.KeyValue
+	filter map[string]bool
+	wsconn *WSConn
+	subID byte
 }
 
-func (h *HTTPServer) createStateChangeListener(conn *websocket.Conn, reqID float64) (*StateChangeListener, error) {
-	cr := &StateChangeListener{
-		Chan: make(chan *state.KeyValue),
-		WSConnection: conn,
-		logger: h.logger,
+func (c *WSConn) initStateChangeListener(reqID float64, params interface{}) (*StateChangeListener, error){
+	scl := &StateChangeListener{
+		channel: make(chan *state.KeyValue),
+		filter: make(map[string]bool),
+		wsconn: c,
+	}
+	pA := params.([]interface{})
+	for _, param := range pA {
+		scl.filter[param.(string)] = true
 	}
 
-	h.stateChangeListener = append(h.stateChangeListener, cr)
-	h.serverConfig.StorageAPI.RegisterStorageChangeChannel(cr.Chan)
-	// TODO respond to client with subscription id
-	initRes := newSubscriptionResponseJSON()
-	//	initRes.Result = sub
-	initRes.ID = reqID
+	subID, err := c.serverConfig.StorageAPI.RegisterStorageChangeChannel(scl.channel)
+	if err != nil {
+		return nil, err
+	}
+	scl.subID = subID
 
-	return cr, conn.WriteJSON(initRes)
+	initRes := newSubscriptionResponseJSON(subID, reqID)
+	err = c.safeSend(initRes)
+	if err != nil {
+		return nil, err
+	}
+	return scl, nil
 }
-func (cr *StateChangeListener) startStateChangeListener() {
-	for change := range cr.Chan {
-		cr.logger.Info("Change Listener", "change", change)
+
+// make this two parts, one in init and return chan ID, second to lister/respond
+func (c *StateChangeListener) listen() {
+
+	for change := range c.channel {
 		if change != nil {
-		//	for i, sub := range h.serverConfig.WSSubscriptions {
-		//		if sub.SubscriptionType == SUB_STORAGE {
-					// TODO check if change key is in subscription filter
-					cKey := common.BytesToHex(change.Key)
-		//			if len(sub.Filter) > 0 && !sub.Filter[cKey] {
-		//				continue
-		//			}
-		//
-					changeM := make(map[string]interface{})
-					changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
-					res := newSubcriptionBaseResponseJSON(1)  // todo handle subscription id
-					res.Method = "state_storage"
-					res.Params = changeM
-					if cr.WSConnection != nil {
-						err := cr.WSConnection.WriteJSON(res)
-						if err != nil {
-							cr.logger.Error("error writing response", "error", err)
-						}
-					}
-		//		}
-		//	}
+			//check if change key is in subscription filter
+			cKey := common.BytesToHex(change.Key)
+			if len(c.filter) > 0 && !c.filter[cKey] {
+				continue
+			}
+
+			changeM := make(map[string]interface{})
+			changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+			res := newSubcriptionBaseResponseJSON(c.subID)
+			res.Method = "state_storage"
+			res.Params = changeM
+			c.wsconn.safeSend(res)
 		}
 	}
 }
 
+
+func (c *WSConn) safeSend(msg interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.wsconn.WriteJSON(msg)
+}
 //func (h *HTTPServer)startStateChangeListener() {
 //	// resister channel
 //	h.storageChan = make(chan *state.KeyValue)

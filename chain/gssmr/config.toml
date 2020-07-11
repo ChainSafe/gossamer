@@ -7,7 +7,7 @@ log = "info"
 [log]
 core = ""
 network = ""
-rpc = ""
+rpc = "debug"
 state = ""
 runtime = ""
 babe = ""

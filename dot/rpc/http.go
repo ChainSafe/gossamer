@@ -18,15 +18,15 @@ package rpc
 
 import (
 	"fmt"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
-	"github.com/gorilla/websocket"
-
-	log "github.com/ChainSafe/log15"
 )
 
 // HTTPServer gateway for RPC server
@@ -38,7 +38,8 @@ type HTTPServer struct {
 	//chanID        byte // channel ID
 	//storageChan   chan *state.KeyValue
 	//storageChanID byte // storage channel ID
-	stateChangeListener []*StateChangeListener
+	//stateChangeListener map[byte]*StateChangeListener
+	wsConns []*WSConn
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -58,16 +59,21 @@ type HTTPServerConfig struct {
 	WSEnabled           bool
 	WSPort              uint32
 	Modules             []string
-	WSSubscriptions     map[uint32]*WebSocketSubscription
+	//WSSubscriptions     map[uint32]*WebSocketSubscription
 }
 
 // WebSocketSubscription holds subscription details
-type WebSocketSubscription struct {
-	WSConnection     *websocket.Conn
-	SubscriptionType int
-	Filter           map[string]bool
+//type WebSocketSubscription struct {
+//	WSConnection     *websocket.Conn
+//	SubscriptionType int
+//	Filter           map[string]bool
+//}
+type WSConn struct {
+	wsconn *websocket.Conn
+	mu sync.Mutex
+	serverConfig  *HTTPServerConfig
+	logger        log.Logger
 }
-
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	logger := log.New("pkg", "rpc")
@@ -78,11 +84,12 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		logger:       logger,
 		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
+		//stateChangeListener: make(map[byte]*StateChangeListener),
 	}
 
-	if cfg.WSSubscriptions == nil {
-		cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
-	}
+	//if cfg.WSSubscriptions == nil {
+	//	cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
+	//}
 
 	server.RegisterModules(cfg.Modules)
 	return server
