@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/mux"
@@ -34,11 +33,6 @@ type HTTPServer struct {
 	logger        log.Logger
 	rpcServer     *rpc.Server // Actual RPC call handler
 	serverConfig  *HTTPServerConfig
-	//blockChan     chan *types.Block
-	//chanID        byte // channel ID
-	//storageChan   chan *state.KeyValue
-	//storageChanID byte // storage channel ID
-	//stateChangeListener map[byte]*StateChangeListener
 	wsConns []*WSConn
 }
 
@@ -59,15 +53,8 @@ type HTTPServerConfig struct {
 	WSEnabled           bool
 	WSPort              uint32
 	Modules             []string
-	//WSSubscriptions     map[uint32]*WebSocketSubscription
 }
 
-// WebSocketSubscription holds subscription details
-//type WebSocketSubscription struct {
-//	WSConnection     *websocket.Conn
-//	SubscriptionType int
-//	Filter           map[string]bool
-//}
 type WSConn struct {
 	wsconn *websocket.Conn
 	mu sync.Mutex
@@ -84,12 +71,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 		logger:       logger,
 		rpcServer:    rpc.NewServer(),
 		serverConfig: cfg,
-		//stateChangeListener: make(map[byte]*StateChangeListener),
 	}
-
-	//if cfg.WSSubscriptions == nil {
-	//	cfg.WSSubscriptions = make(map[uint32]*WebSocketSubscription)
-	//}
 
 	server.RegisterModules(cfg.Modules)
 	return server
@@ -160,28 +142,6 @@ func (h *HTTPServer) Start() error {
 			h.logger.Error("http error", "err", err)
 		}
 	}()
-
-	// init and start block received listener routine
-	//if h.serverConfig.BlockAPI != nil {
-	//	var err error
-	//	h.blockChan = make(chan *types.Block)
-	//	h.chanID, err = h.serverConfig.BlockAPI.RegisterImportedChannel(h.blockChan)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	go h.blockReceivedListener()
-	//}
-
-	// init and start storage change listener routine
-	//if h.serverConfig.StorageAPI != nil {
-	//	var err error
-	//	h.storageChan = make(chan *state.KeyValue)
-	//	h.storageChanID, err = h.serverConfig.StorageAPI.RegisterStorageChangeChannel(h.storageChan)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	go h.storageChangeListener()
-	//}
 
 	return nil
 }
