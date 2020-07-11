@@ -155,12 +155,14 @@ func (c *WSConn)handleComm()  {
 					if err != nil {
 						c.logger.Error("failed to create block listener", "error", err)
 					}
+					c.blockListeners = append(c.blockListeners, bl)
 					go bl.listen()
 				case "state_subscribeStorage":
 					scl, err := c.initStateChangeListener(reqid, params)
 					if err != nil {
 						c.logger.Error("failed to create state change listener", "error", err)
 					}
+					c.storageChangeListeners = append(c.storageChangeListeners, scl)
 					go scl.listen()
 				case "chain_subscribeFinalizedHeads":
 				}

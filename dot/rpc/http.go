@@ -60,6 +60,8 @@ type WSConn struct {
 	mu sync.Mutex
 	serverConfig  *HTTPServerConfig
 	logger        log.Logger
+	blockListeners []*BlockListener
+	storageChangeListeners []*StateChangeListener
 }
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
@@ -149,13 +151,18 @@ func (h *HTTPServer) Start() error {
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
 	if h.serverConfig.WSEnabled {
-		// TODO handle closing all channels
-		// TODO handle closing individual channels
-		//h.serverConfig.BlockAPI.UnregisterImportedChannel(h.chanID)
-		//close(h.blockChan)
-		//
-		//h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(h.storageChanID)
-		//close(h.storageChan)
+		// close all channels and websocket connections
+		for _, conn := range h.wsConns {
+			for _, bl := range conn.blockListeners {
+				h.serverConfig.BlockAPI.UnregisterImportedChannel(bl.subID)
+				close(bl.channel)
+			}
+			for _, scl := range conn.storageChangeListeners {
+				h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(scl.subID)
+				close(scl.channel)
+			}
+			conn.wsconn.Close()
+		}
 	}
 	return nil
 }
