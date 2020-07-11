@@ -58,14 +58,14 @@ type HTTPServerConfig struct {
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
-	wsconn                 *websocket.Conn
-	mu                     sync.Mutex
-	serverConfig           *HTTPServerConfig
-	logger                 log.Logger
-	blockSubChannels         map[int]byte
+	wsconn             *websocket.Conn
+	mu                 sync.Mutex
+	serverConfig       *HTTPServerConfig
+	logger             log.Logger
+	blockSubChannels   map[int]byte
 	storageSubChannels map[int]byte
-	qtyListeners int
-	subscriptions map[int]Listener
+	qtyListeners       int
+	subscriptions      map[int]Listener
 }
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

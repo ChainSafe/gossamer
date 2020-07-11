@@ -38,7 +38,7 @@ type SubscriptionBaseResponseJSON struct {
 	Jsonrpc      string      `json:"jsonrpc"`
 	Method       string      `json:"method"`
 	Params       interface{} `json:"params"`
-	Subscription int        `json:"subscription"`
+	Subscription int         `json:"subscription"`
 }
 
 func newSubcriptionBaseResponseJSON(subID int) SubscriptionBaseResponseJSON {
@@ -51,7 +51,7 @@ func newSubcriptionBaseResponseJSON(subID int) SubscriptionBaseResponseJSON {
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  int    `json:"result"`
+	Result  int     `json:"result"`
 	ID      float64 `json:"id"`
 }
 
@@ -102,11 +102,11 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	c := &WSConn{
-		wsconn:       conn,
-		serverConfig: cfg,
-		logger:       logger,
-		subscriptions: make(map[int]Listener),
-		blockSubChannels: make(map[int]byte),
+		wsconn:             conn,
+		serverConfig:       cfg,
+		logger:             logger,
+		subscriptions:      make(map[int]Listener),
+		blockSubChannels:   make(map[int]byte),
 		storageSubChannels: make(map[int]byte),
 	}
 	return c
@@ -219,9 +219,11 @@ func (c *WSConn) handleComm() {
 		}
 	}
 }
-func (c *WSConn)startListener(lid int) {
+func (c *WSConn) startListener(lid int) {
 	go c.subscriptions[lid].Listen()
 }
+
+// Listener interface for functions that define Listener related functions
 type Listener interface {
 	Listen()
 }
@@ -232,7 +234,7 @@ type StorageChangeListener struct {
 	filter  map[string]bool
 	wsconn  *WSConn
 	chanID  byte
-	subID int
+	subID   int
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
@@ -265,7 +267,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	return scl.subID, nil
 }
 
-// make this two parts, one in init and return chan ID, second to lister/respond
+// Listen implementation of Listen interface to listen for channel changes
 func (l *StorageChangeListener) Listen() {
 	for change := range l.channel {
 		if change != nil {
@@ -293,7 +295,7 @@ type BlockListener struct {
 	channel chan *types.Block
 	wsconn  *WSConn
 	chanID  byte
-	subID int
+	subID   int
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (int, error) {
@@ -310,6 +312,7 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	c.qtyListeners++
 	bl.subID = c.qtyListeners
 	c.subscriptions[bl.subID] = bl
+	c.blockSubChannels[bl.subID] = chanID
 	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
 	err = c.safeSend(initRes)
 	if err != nil {
@@ -318,6 +321,7 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	return bl.subID, nil
 }
 
+// Listen implementation of Listen interface to listen for channel changes
 func (l *BlockListener) Listen() {
 	for block := range l.channel {
 		if block != nil {
