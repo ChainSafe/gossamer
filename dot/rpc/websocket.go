@@ -38,24 +38,24 @@ type SubscriptionBaseResponseJSON struct {
 	Jsonrpc      string      `json:"jsonrpc"`
 	Method       string      `json:"method"`
 	Params       interface{} `json:"params"`
-	Subscription byte        `json:"subscription"`
+	Subscription int        `json:"subscription"`
 }
 
-func newSubcriptionBaseResponseJSON(sub byte) SubscriptionBaseResponseJSON {
+func newSubcriptionBaseResponseJSON(subID int) SubscriptionBaseResponseJSON {
 	return SubscriptionBaseResponseJSON{
 		Jsonrpc:      "2.0",
-		Subscription: sub,
+		Subscription: subID,
 	}
 }
 
 // SubscriptionResponseJSON for json subscription responses
 type SubscriptionResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  byte    `json:"result"`
+	Result  int    `json:"result"`
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON(subID byte, reqID float64) SubscriptionResponseJSON {
+func newSubscriptionResponseJSON(subID int, reqID float64) SubscriptionResponseJSON {
 	return SubscriptionResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
@@ -105,6 +105,9 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 		wsconn:       conn,
 		serverConfig: cfg,
 		logger:       logger,
+		subscriptions: make(map[int]Listener),
+		blockSubChannels: make(map[int]byte),
+		storageSubChannels: make(map[int]byte),
 	}
 	return c
 }
@@ -155,15 +158,13 @@ func (c *WSConn) handleComm() {
 				if err1 != nil {
 					c.logger.Error("failed to create block listener", "error", err)
 				}
-				c.blockListeners = append(c.blockListeners, bl)
-				go bl.listen()
+				c.startListener(bl)
 			case "state_subscribeStorage":
-				scl, err2 := c.initStateChangeListener(reqid, params)
+				scl, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
 					c.logger.Error("failed to create state change listener", "error", err)
 				}
-				c.storageChangeListeners = append(c.storageChangeListeners, scl)
-				go scl.listen()
+				c.startListener(scl)
 			case "chain_subscribeFinalizedHeads":
 			}
 			continue
@@ -218,17 +219,24 @@ func (c *WSConn) handleComm() {
 		}
 	}
 }
+func (c *WSConn)startListener(lid int) {
+	go c.subscriptions[lid].Listen()
+}
+type Listener interface {
+	Listen()
+}
 
-// StateChangeListener for listening to state change channels
-type StateChangeListener struct {
+// StorageChangeListener for listening to state change channels
+type StorageChangeListener struct {
 	channel chan *state.KeyValue
 	filter  map[string]bool
 	wsconn  *WSConn
-	subID   byte
+	chanID  byte
+	subID int
 }
 
-func (c *WSConn) initStateChangeListener(reqID float64, params interface{}) (*StateChangeListener, error) {
-	scl := &StateChangeListener{
+func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
+	scl := &StorageChangeListener{
 		channel: make(chan *state.KeyValue),
 		filter:  make(map[string]bool),
 		wsconn:  c,
@@ -238,22 +246,27 @@ func (c *WSConn) initStateChangeListener(reqID float64, params interface{}) (*St
 		scl.filter[param.(string)] = true
 	}
 
-	subID, err := c.serverConfig.StorageAPI.RegisterStorageChangeChannel(scl.channel)
+	chanID, err := c.serverConfig.StorageAPI.RegisterStorageChangeChannel(scl.channel)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	scl.subID = subID
+	scl.chanID = chanID
 
-	initRes := newSubscriptionResponseJSON(subID, reqID)
+	c.qtyListeners++
+	scl.subID = c.qtyListeners
+	c.subscriptions[scl.subID] = scl
+	c.storageSubChannels[scl.subID] = chanID
+
+	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
 	err = c.safeSend(initRes)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return scl, nil
+	return scl.subID, nil
 }
 
 // make this two parts, one in init and return chan ID, second to lister/respond
-func (l *StateChangeListener) listen() {
+func (l *StorageChangeListener) Listen() {
 	for change := range l.channel {
 		if change != nil {
 			//check if change key is in subscription filter
@@ -279,30 +292,33 @@ func (l *StateChangeListener) listen() {
 type BlockListener struct {
 	channel chan *types.Block
 	wsconn  *WSConn
-	subID   byte
+	chanID  byte
+	subID int
 }
 
-func (c *WSConn) initBlockListener(reqID float64) (*BlockListener, error) {
+func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	bl := &BlockListener{
 		channel: make(chan *types.Block),
 		wsconn:  c,
 	}
 
-	subID, err := c.serverConfig.BlockAPI.RegisterImportedChannel(bl.channel)
+	chanID, err := c.serverConfig.BlockAPI.RegisterImportedChannel(bl.channel)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	bl.subID = subID
-
-	initRes := newSubscriptionResponseJSON(subID, reqID)
+	bl.chanID = chanID
+	c.qtyListeners++
+	bl.subID = c.qtyListeners
+	c.subscriptions[bl.subID] = bl
+	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
 	err = c.safeSend(initRes)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return bl, nil
+	return bl.subID, nil
 }
 
-func (l *BlockListener) listen() {
+func (l *BlockListener) Listen() {
 	for block := range l.channel {
 		if block != nil {
 			head := modules.HeaderToJSON(*block.Header)
