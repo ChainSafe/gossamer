@@ -18,7 +18,6 @@ package dot
 
 import (
 	"flag"
-	"github.com/gorilla/websocket"
 	"math/big"
 	"net/url"
 	"testing"
@@ -27,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
 
