@@ -113,11 +113,11 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numCmps := 10
+	numCmps := 5
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err)
+		require.NoError(t, err, i)
 		time.Sleep(time.Second)
 	}
 }
