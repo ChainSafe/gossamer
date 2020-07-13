@@ -123,7 +123,7 @@ func (c *WSConn) handleComm() {
 	for {
 		_, mbytes, err := c.wsconn.ReadMessage()
 		if err != nil {
-			c.logger.Error("websocket failed to read message", "error", err)
+			c.logger.Warn("websocket failed to read message", "error", err)
 			return
 		}
 		c.logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
@@ -132,7 +132,7 @@ func (c *WSConn) handleComm() {
 		var msg map[string]interface{}
 		err = json.Unmarshal(mbytes, &msg)
 		if err != nil {
-			c.logger.Error("websocket failed to unmarshal request message", "error", err)
+			c.logger.Warn("websocket failed to unmarshal request message", "error", err)
 			res := &ErrorResponseJSON{
 				Jsonrpc: "2.0",
 				Error: &ErrorMessageJSON{
@@ -143,7 +143,7 @@ func (c *WSConn) handleComm() {
 			}
 			err = c.safeSend(res)
 			if err != nil {
-				c.logger.Error("websocket failed write message", "error", err)
+				c.logger.Warn("websocket failed write message", "error", err)
 			}
 			continue
 		}
@@ -156,13 +156,13 @@ func (c *WSConn) handleComm() {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 				bl, err1 := c.initBlockListener(reqid)
 				if err1 != nil {
-					c.logger.Error("failed to create block listener", "error", err)
+					c.logger.Warn("failed to create block listener", "error", err)
 				}
 				c.startListener(bl)
 			case "state_subscribeStorage":
 				scl, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
-					c.logger.Error("failed to create state change listener", "error", err)
+					c.logger.Warn("failed to create state change listener", "error", err)
 				}
 				c.startListener(scl)
 			case "chain_subscribeFinalizedHeads":
@@ -175,14 +175,14 @@ func (c *WSConn) handleComm() {
 		buf := &bytes.Buffer{}
 		_, err = buf.Write(mbytes)
 		if err != nil {
-			c.logger.Error("failed to write message to buffer", "error", err)
+			c.logger.Warn("failed to write message to buffer", "error", err)
 			return
 		}
 
 		rpcHost := fmt.Sprintf("http://%s:%d/", c.serverConfig.Host, c.serverConfig.RPCPort)
 		req, err := http.NewRequest("POST", rpcHost, buf)
 		if err != nil {
-			c.logger.Error("failed request to rpc service", "error", err)
+			c.logger.Warn("failed request to rpc service", "error", err)
 			return
 		}
 
@@ -190,31 +190,31 @@ func (c *WSConn) handleComm() {
 
 		res, err := client.Do(req)
 		if err != nil {
-			c.logger.Error("websocket error calling rpc", "error", err)
+			c.logger.Warn("websocket error calling rpc", "error", err)
 			return
 		}
 
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			c.logger.Error("error reading response body", "error", err)
+			c.logger.Warn("error reading response body", "error", err)
 			return
 		}
 
 		err = res.Body.Close()
 		if err != nil {
-			c.logger.Error("error closing response body", "error", err)
+			c.logger.Warn("error closing response body", "error", err)
 			return
 		}
 		var wsSend interface{}
 		err = json.Unmarshal(body, &wsSend)
 		if err != nil {
-			c.logger.Error("error unmarshal rpc response", "error", err)
+			c.logger.Warn("error unmarshal rpc response", "error", err)
 			return
 		}
 
 		err = c.safeSend(wsSend)
 		if err != nil {
-			c.logger.Error("error writing json response", "error", err)
+			c.logger.Warn("error writing json response", "error", err)
 			return
 		}
 	}
