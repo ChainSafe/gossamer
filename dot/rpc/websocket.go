@@ -67,7 +67,7 @@ func newSubscriptionResponseJSON(subID int, reqID float64) SubscriptionResponseJ
 type ErrorResponseJSON struct {
 	Jsonrpc string            `json:"jsonrpc"`
 	Error   *ErrorMessageJSON `json:"error"`
-	ID      *big.Int          `json:"id"`
+	ID      float64           `json:"id"`
 }
 
 // ErrorMessageJSON json for error messages
@@ -118,6 +118,20 @@ func (c *WSConn) safeSend(msg interface{}) error {
 
 	return c.wsconn.WriteJSON(msg)
 }
+func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) error {
+	res := &ErrorResponseJSON{
+		Jsonrpc: "2.0",
+		Error: &ErrorMessageJSON{
+			Code:    errorCode,
+			Message: message,
+		},
+		ID: reqID,
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.wsconn.WriteJSON(res)
+}
 
 func (c *WSConn) handleComm() {
 	for {
@@ -133,15 +147,7 @@ func (c *WSConn) handleComm() {
 		err = json.Unmarshal(mbytes, &msg)
 		if err != nil {
 			c.logger.Warn("websocket failed to unmarshal request message", "error", err)
-			res := &ErrorResponseJSON{
-				Jsonrpc: "2.0",
-				Error: &ErrorMessageJSON{
-					Code:    big.NewInt(-32600),
-					Message: "Invalid request",
-				},
-				ID: nil,
-			}
-			err = c.safeSend(res)
+			err = c.safeSendError(0, big.NewInt(-32600), "Invalid request")
 			if err != nil {
 				c.logger.Warn("websocket failed write message", "error", err)
 			}
@@ -157,12 +163,14 @@ func (c *WSConn) handleComm() {
 				bl, err1 := c.initBlockListener(reqid)
 				if err1 != nil {
 					c.logger.Warn("failed to create block listener", "error", err)
+					continue
 				}
 				c.startListener(bl)
 			case "state_subscribeStorage":
 				scl, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
 					c.logger.Warn("failed to create state change listener", "error", err)
+					continue
 				}
 				c.startListener(scl)
 			case "chain_subscribeFinalizedHeads":
@@ -247,7 +255,13 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	for _, param := range pA {
 		scl.filter[param.(string)] = true
 	}
-
+	if c.serverConfig.StorageAPI == nil {
+		err := c.safeSendError(reqID, nil, "error StorageAPI not set")
+		if err != nil {
+			c.logger.Warn("error sending error message", "error", err)
+		}
+		return 0, fmt.Errorf("error StorageAPI not set")
+	}
 	chanID, err := c.serverConfig.StorageAPI.RegisterStorageChangeChannel(scl.channel)
 	if err != nil {
 		return 0, err
@@ -304,6 +318,13 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 		wsconn:  c,
 	}
 
+	if c.serverConfig.BlockAPI == nil {
+		err := c.safeSendError(reqID, nil, "error BlockAPI not set")
+		if err != nil {
+			c.logger.Warn("error sending error message", "error", err)
+		}
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
 	chanID, err := c.serverConfig.BlockAPI.RegisterImportedChannel(bl.channel)
 	if err != nil {
 		return 0, err
