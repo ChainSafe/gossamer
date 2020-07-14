@@ -199,7 +199,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	if cfg.Verifier == nil {
 		// TODO: load current epoch from database chain head
-		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 0, descriptor)
+		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 1, descriptor)
 		if err != nil {
 			return nil, err
 		}
