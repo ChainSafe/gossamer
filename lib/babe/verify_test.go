@@ -105,22 +105,6 @@ func TestGetBlockEpoch(t *testing.T) {
 	require.Equal(t, vm.currentEpoch, epoch)
 }
 
-// // test isBlockFromEpoch
-// func TestIsBlockFromEpoch(t *testing.T) {
-// 	vm := newTestVerificationManager(t, true, nil)
-
-// 	header, err := vm.blockState.BestBlockHeader()
-// 	require.Nil(t, err)
-
-// 	ok, err := vm.isBlockFromEpoch(header, testEpoch)
-// 	require.Nil(t, err)
-// 	require.Equal(t, true, ok)
-
-// 	ok, err = vm.isBlockFromEpoch(header, 1)
-// 	require.Nil(t, err)
-// 	require.Equal(t, false, ok)
-// }
-
 func TestCheckForConsensusDigest_NoDigest(t *testing.T) {
 	header := &types.Header{
 		ParentHash: genesisHeader.Hash(),
@@ -181,74 +165,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, true, ok)
 }
-
-// func TestVerificationManager_VerifyBlock_WithDigest(t *testing.T) {
-// 	babeService := createTestService(t, &ServiceConfig{
-// 		EpochThreshold: maxThreshold,
-// 	})
-// 	descriptor := babeService.Descriptor()
-
-// 	vm := newTestVerificationManager(t, false, descriptor)
-// 	vm.currentEpoch = 0
-
-// 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{})
-
-// 	consensusDigest := &types.ConsensusDigest{
-// 		ConsensusEngineID: types.BabeEngineID,
-// 		Data:              descriptor.Encode(),
-// 	}
-
-// 	conDigest := consensusDigest.Encode()
-// 	block.Header.Digest = [][]byte{block.Header.Digest[0], conDigest}
-// 	block.Header.Number = big.NewInt(2)
-
-// 	// re-sign block
-// 	seal, err := babeService.buildBlockSeal(block.Header)
-// 	require.Nil(t, err)
-
-// 	encSeal := seal.Encode()
-// 	block.Header.Digest = append(block.Header.Digest, encSeal)
-
-// 	err = vm.blockState.AddBlock(block)
-// 	require.Nil(t, err)
-
-// 	ok, err := vm.VerifyBlock(block.Header)
-// 	require.Nil(t, err)
-// 	require.Equal(t, true, ok)
-// 	require.Equal(t, block.Header, vm.firstBlock)
-
-// 	// create block with lower number, check that it's chosen as first block of epoch
-// 	block.Header.Number = big.NewInt(1)
-
-// 	seal, err = babeService.buildBlockSeal(block.Header)
-// 	require.Nil(t, err)
-
-// 	encSeal = seal.Encode()
-// 	block.Header.Digest = append(block.Header.Digest, encSeal)
-
-// 	ok, err = vm.VerifyBlock(block.Header)
-// 	require.Nil(t, err)
-// 	require.Equal(t, true, ok)
-// 	require.Equal(t, block.Header, vm.firstBlock)
-
-// 	// create block with higher number, check that it's not chosen as first block of epoch
-// 	expected := block.Header.DeepCopy()
-// 	newBlock := &types.Block{
-// 		Header: block.Header.DeepCopy(),
-// 	}
-
-// 	newBlock.Header.Number = big.NewInt(99)
-// 	seal, err = babeService.buildBlockSeal(newBlock.Header)
-// 	require.Nil(t, err)
-
-// 	encSeal = seal.Encode()
-// 	newBlock.Header.Digest = append(newBlock.Header.Digest, encSeal)
-
-// 	ok, err = vm.VerifyBlock(newBlock.Header)
-// 	require.Nil(t, err)
-// 	require.Equal(t, true, ok)
-// 	require.Equal(t, expected, vm.firstBlock)
-// }
 
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()

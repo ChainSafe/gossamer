@@ -45,7 +45,7 @@ type VerificationManager struct {
 
 	// current epoch information
 	currentEpoch uint64
-	verifier *epochVerifier // TODO: may need to keep historical verifiers
+	verifier     *epochVerifier // TODO: may need to keep historical verifiers
 }
 
 // NewVerificationManager returns a new VerificationManager
@@ -79,19 +79,18 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 
 	if epoch == v.currentEpoch {
 		return v.verifier.verifyAuthorshipRight(header)
-	} else {
-		if v.epochDescriptors[epoch] == nil {
-			return false, fmt.Errorf("epoch %d: %w", epoch, ErrNoDescriptor)
-		}
-
-		verifier, err := newEpochVerifier(v.blockState, v.epochDescriptors[epoch])
-		if err != nil {
-			return false, err
-		}
-		return verifier.verifyAuthorshipRight(header)
 	}
 
-	return false, nil
+	if v.epochDescriptors[epoch] == nil {
+		return false, fmt.Errorf("epoch %d: %w", epoch, ErrNoDescriptor)
+	}
+
+	verifier, err := newEpochVerifier(v.blockState, v.epochDescriptors[epoch])
+	if err != nil {
+		return false, err
+	}
+
+	return verifier.verifyAuthorshipRight(header)
 }
 
 // getBlockEpoch gets the epoch number using the provided block hash

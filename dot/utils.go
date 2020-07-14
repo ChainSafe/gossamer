@@ -93,7 +93,6 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 		require.NoError(t, err)
 	}
 
-	fmt.Println(file.Name())
 	cfgFile := ExportConfig(cfg, file.Name())
 
 	return cfg, cfgFile
