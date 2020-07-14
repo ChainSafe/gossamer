@@ -38,8 +38,11 @@ type Data struct {
 }
 
 // Fields stores genesis raw data
+//type Fields struct {
+//	Raw [2]map[string]string
+//}
 type Fields struct {
-	Raw [2]map[string]string
+	Raw map[string]map[string]string
 }
 
 // GenesisData formats genesis for trie storage

@@ -49,7 +49,7 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
 
-	r := g.GenesisFields().Raw[0]
+	r := g.GenesisFields().Raw["top"]
 
 	err := t.Load(r)
 	if err != nil {
