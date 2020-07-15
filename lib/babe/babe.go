@@ -480,7 +480,7 @@ func (b *Service) setEpochThreshold() error {
 	return nil
 }
 
-// calculates the slot lottery threshold for the authority at authorityIndex.
+// CalculateThreshold calculates the slot lottery threshold
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
