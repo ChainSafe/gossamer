@@ -157,19 +157,7 @@ func (b *Service) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 // the BABE header includes the proof of authorship right for this slot.
 func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	if b.slotToProof[slot.number] == nil {
-		// if we don't have a proof already set, re-run lottery.
-		// this can be removed when this is separated into a block builder module,
-		// as it's currently needed for core tests.
-		proof, err := b.runLottery(slot.number)
-		if err != nil {
-			return nil, err
-		}
-
-		if proof == nil {
-			return nil, ErrNotAuthorized
-		}
-
-		b.slotToProof[slot.number] = proof
+		return nil, ErrNotAuthorized
 	}
 
 	outAndProof := b.slotToProof[slot.number]
