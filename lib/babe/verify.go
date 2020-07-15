@@ -18,15 +18,11 @@ package babe
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 )
-
-// ErrNoDescriptor is returned when attempting to get a EpochDescriptor that isn't set for an epoch
-var ErrNoDescriptor = errors.New("nil EpochDescriptor for epoch")
 
 // EpochDescriptor contains the information needed to verify blocks within a BABE epoch
 type EpochDescriptor struct {
@@ -82,7 +78,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	}
 
 	if v.epochDescriptors[epoch] == nil {
-		return false, fmt.Errorf("epoch %d: %w", epoch, ErrNoDescriptor)
+		// TODO: return an error here once updating of the verifier's epoch data is implemented
+		return v.verifier.verifyAuthorshipRight(header)
 	}
 
 	verifier, err := newEpochVerifier(v.blockState, v.epochDescriptors[epoch])
