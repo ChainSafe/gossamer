@@ -7,15 +7,15 @@ import (
 )
 
 type benchmarker struct {
-	logger log.Logger
-	start time.Time
-	startBlock uint64
+	logger          log.Logger
+	start           time.Time
+	startBlock      uint64
 	blocksPerSecond []float64
 }
 
 func newBenchmarker(logger log.Logger) *benchmarker {
 	return &benchmarker{
-		logger: logger.New("module", "benchmarker"),
+		logger:          logger.New("module", "benchmarker"),
 		blocksPerSecond: []float64{},
 	}
 }
@@ -39,5 +39,5 @@ func (b *benchmarker) average() float64 {
 	for _, bps := range b.blocksPerSecond {
 		sum += bps
 	}
-	return sum/float64(len(b.blocksPerSecond))
+	return sum / float64(len(b.blocksPerSecond))
 }

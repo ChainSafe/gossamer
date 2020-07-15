@@ -132,7 +132,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		benchmarker: 	newBenchmarker(cfg.logger),
+		benchmarker:      newBenchmarker(cfg.logger),
 	}, nil
 }
 
