@@ -96,7 +96,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	)
 
 	//add step for init
-	logger.Info("initializing gossamer...", "cmdInit", cmdInit)
+	logger.Info("initializing gossamer...", "cmd", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
 		fmt.Println(stdOutInit)
@@ -162,7 +162,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 	node.Process.Stdout = multiWriter
 	node.Process.Stderr = multiWriter
 
-	logger.Debug("Going to execute gossamer", "cmd", node.Process)
+	logger.Info("starting gossamer...", "cmd", node.Process)
 	err = node.Process.Start()
 	if err != nil {
 		logger.Error("Could not execute gossamer cmd", "err", err)
@@ -302,11 +302,17 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 
 // TearDown will stop gossamer nodes
 func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
-	for i := range nodes {
+	for i, node := range nodes {
 		cmd := nodes[i].Process
 		err := KillProcess(t, cmd)
 		if err != nil {
 			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			errorList = append(errorList, err)
+		}
+
+		err = os.RemoveAll(node.basePath)
+		if err != nil {
+			logger.Error("failed to remove directory", "basepath", node.basePath)
 			errorList = append(errorList, err)
 		}
 	}

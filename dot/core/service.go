@@ -216,6 +216,8 @@ func NewService(cfg *Config) (*Service, error) {
 		}
 	}
 
+	log.Info("verifier", "threshold", threshold)
+
 	srv.started.Store(false)
 
 	var dh *digestHandler
