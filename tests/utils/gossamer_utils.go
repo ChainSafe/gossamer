@@ -300,7 +300,21 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 	return nodes, nil
 }
 
-// TearDown will stop gossamer nodes
+// StopNodes stops the given nodes
+func StopNodes(t *testing.T, nodes []*Node) (errs []error) {
+	for i := range nodes {
+		cmd := nodes[i].Process
+		err := KillProcess(t, cmd)
+		if err != nil {
+			logger.Error("failed to kill gossamer", "i", i, "cmd", cmd)
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
+// TearDown stops the given nodes and remove their datadir
 func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 	for i, node := range nodes {
 		cmd := nodes[i].Process
