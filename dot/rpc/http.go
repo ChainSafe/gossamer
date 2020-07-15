@@ -60,17 +60,19 @@ type HTTPServerConfig struct {
 type WSConn struct {
 	wsconn             *websocket.Conn
 	mu                 sync.Mutex
-	serverConfig       *HTTPServerConfig
-	logger             log.Logger
 	blockSubChannels   map[int]byte
 	storageSubChannels map[int]byte
 	qtyListeners       int
 	subscriptions      map[int]Listener
+	storageAPI         modules.StorageAPI
+	blockAPI           modules.BlockAPI
 }
+
+var logger log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server
 func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
-	logger := log.New("pkg", "rpc")
+	logger = log.New("pkg", "rpc")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
