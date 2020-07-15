@@ -451,7 +451,7 @@ func (b *Service) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
+	b.epochThreshold, err = CalculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
 	if err != nil {
 		return err
 	}
@@ -462,7 +462,7 @@ func (b *Service) setEpochThreshold() error {
 
 // calculates the slot lottery threshold for the authority at authorityIndex.
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
-func calculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
+func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
