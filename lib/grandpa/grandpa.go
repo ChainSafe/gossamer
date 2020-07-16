@@ -225,7 +225,7 @@ func (s *Service) initiate() error {
 			return nil
 		}
 
-		h, err := s.blockState.BestBlockHeader()	
+		h, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
 		}

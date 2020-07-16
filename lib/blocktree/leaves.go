@@ -73,7 +73,7 @@ func (ls *leafMap) deepestLeaf() *node {
 		if node == nil {
 			return true
 		}
-		
+
 		if max.Cmp(node.depth) < 0 {
 			max = node.depth
 			dLeaf = node
