@@ -134,7 +134,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	alice, err := utils.RunGossamer(t, 0, tmpdir, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
-	time.Sleep(time.Minute)
+	time.Sleep(time.Second * 15)
 
 	// start syncing node
 	tmpdir, err = ioutil.TempDir("", "gossamer-stress-bob")
@@ -149,7 +149,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numCmps := 10
+	numCmps := 30
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
