@@ -76,7 +76,7 @@ func (t *tracker) handleBlocks() {
 			if b == nil {
 				continue
 			}
-			
+
 			t.mapLock.Lock()
 
 			h := b.Header.Hash()
