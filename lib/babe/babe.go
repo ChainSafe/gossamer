@@ -99,7 +99,7 @@ type ServiceConfig struct {
 	Runtime          *runtime.Runtime
 	AuthData         []*types.BABEAuthorityData
 	EpochThreshold   *big.Int // for development purposes
-	SlotDuration      uint64 // for development purposes; in milliseconds
+	SlotDuration     uint64   // for development purposes; in milliseconds
 	StartSlot        uint64   // slot to start at
 }
 
