@@ -225,8 +225,12 @@ func (s *Service) initiate() error {
 			return nil
 		}
 
-		h := s.blockState.BestBlockHash()
-		if h != s.blockState.GenesisHash() {
+		h, err := s.blockState.BestBlockHeader()	
+		if err != nil {
+			continue
+		}
+
+		if h != nil && h.Number.Int64() > 0 {
 			break
 		}
 	}
