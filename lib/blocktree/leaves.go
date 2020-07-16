@@ -67,17 +67,9 @@ func (ls *leafMap) replace(old, new *node) {
 func (ls *leafMap) deepestLeaf() *node {
 	max := big.NewInt(-1)
 
-	if ls.smap == nil {
-		return nil
-	}
-
-	dLeaf := new(node)
+	var dLeaf *node
 	ls.smap.Range(func(h, n interface{}) bool {
 		node := n.(*node)
-		if node == nil {
-			return true
-		}
-
 		if max.Cmp(node.depth) < 0 {
 			max = node.depth
 			dLeaf = node

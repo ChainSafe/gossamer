@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	//"math/big"
 	"os"
 	"sync"
 	"time"
