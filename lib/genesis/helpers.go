@@ -45,6 +45,28 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	return g, err
 }
 
+func NewGenesisFromJSONHR(file string) (*Genesis, error) {
+	fp, err := filepath.Abs(file)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	g := new(Genesis)
+
+	err = json.Unmarshal(data, g)
+	fmt.Printf("raw top %v\n", g.Genesis.Raw["top"])
+	top := g.Genesis.Raw["top"]
+	for k, _ := range top {
+		fmt.Printf("k: %v\n", k)
+	}
+	return g, err
+}
+
 // NewTrieFromGenesis creates a new trie from the raw genesis data
 func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
