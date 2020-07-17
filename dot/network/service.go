@@ -93,9 +93,9 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errors.New("MsgSend is nil")
 	}
 
-	if cfg.SyncChan == nil {
-		return nil, errors.New("SyncChan is nil")
-	}
+	// if cfg.SyncChan == nil {
+	// 	return nil, errors.New("SyncChan is nil")
+	// }
 
 	// create a new host instance
 	host, err := newHost(ctx, cfg, logger)

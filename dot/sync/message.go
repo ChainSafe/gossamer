@@ -159,7 +159,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 // HandleBlockAnnounce creates a block request message from the block
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
-func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
+func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
 	s.logger.Debug("received BlockAnnounceMessage")
 
 	// create header from message
@@ -171,20 +171,21 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 		msg.Digest,
 	)
 	if err != nil {
-		return err
+		s.logger.Error("failed to handle BlockAnnounce", "error", err)
+		return nil
 	}
 
 	// check if block header is stored in block state
 	has, err := s.blockState.HasHeader(header.Hash())
 	if err != nil {
-		return err
+		s.logger.Error("failed to handle BlockAnnounce", "error", err)
 	}
 
 	// save block header if we don't have it already
 	if !has {
 		err = s.blockState.SetHeader(header)
 		if err != nil {
-			return err
+			s.logger.Error("failed to handle BlockAnnounce", "error", err)
 		}
 		s.logger.Debug(
 			"saved block header to block state",
@@ -193,17 +194,19 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 		)
 	}
 
-	// check if block body is stored in block state (if we should send to syncer)
+	// check if block body is stored in block state (ie. if we have the full block already)
 	_, err = s.blockState.GetBlockBody(header.Hash())
 	if err != nil && err.Error() == "Key not found" {
 		s.logger.Debug(
 			"sending block number to syncer",
 			"number", msg.Number,
 		)
-		// TODO: create block response
 
+		// create block request to send
+		s.requestStart = header.Number.Int64()
+		return s.createBlockRequest()
 	} else if err != nil {
-		return err
+		s.logger.Error("failed to handle BlockAnnounce", "error", err)
 	}
 
 	return nil

@@ -20,8 +20,8 @@ import (
 	"errors"
 	"math/big"
 	mrand "math/rand"
-	"sync"
-	"sync/atomic"
+	// "sync"
+	// "sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -48,17 +48,17 @@ type Service struct {
 	blockProducer    BlockProducer
 
 	// Synchronization channels and variables
-	blockNumIn       <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
-	msgOut           chan<- network.Message               // channel to send BlockRequest messages to network service
-	respIn           <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
+	// blockNumIn       <-chan *big.Int                      // incoming block numbers seen from other nodes that are higher than ours
+	// msgOut           chan<- network.Message               // channel to send BlockRequest messages to network service
+	// respIn           <-chan *network.BlockResponseMessage // channel to receive BlockResponse messages from
 	synced           bool
 	requestStart     int64    // block number from which to begin block requests
 	highestSeenBlock *big.Int // highest block number we have seen
 	runtime          *runtime.Runtime
 
 	// Core service control
-	chanLock *sync.Mutex
-	started  atomic.Value
+	// chanLock *sync.Mutex
+	// started  atomic.Value
 
 	// BABE verification
 	verifier Verifier
@@ -72,13 +72,13 @@ type Service struct {
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	Logger           log.Logger
-	BlockState       BlockState
-	BlockProducer    BlockProducer
-	BlockNumIn       <-chan *big.Int
-	RespIn           <-chan *network.BlockResponseMessage
-	MsgOut           chan<- network.Message
-	ChanLock         *sync.Mutex
+	Logger        log.Logger
+	BlockState    BlockState
+	BlockProducer BlockProducer
+	// BlockNumIn       <-chan *big.Int
+	// RespIn           <-chan *network.BlockResponseMessage
+	// MsgOut           chan<- network.Message
+	//ChanLock         *sync.Mutex
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
 	Verifier         Verifier
@@ -91,13 +91,13 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockState
 	}
 
-	if cfg.BlockNumIn == nil {
-		return nil, ErrNilChannel("BlockNumIn")
-	}
+	// if cfg.BlockNumIn == nil {
+	// 	return nil, ErrNilChannel("BlockNumIn")
+	// }
 
-	if cfg.MsgOut == nil {
-		return nil, ErrNilChannel("MsgOut")
-	}
+	// if cfg.MsgOut == nil {
+	// 	return nil, ErrNilChannel("MsgOut")
+	// }
 
 	if cfg.Verifier == nil {
 		return nil, ErrNilVerifier
@@ -112,13 +112,13 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	return &Service{
-		logger:           cfg.Logger.New("module", "sync"),
-		blockState:       cfg.BlockState,
-		blockProducer:    cfg.BlockProducer,
-		blockNumIn:       cfg.BlockNumIn,
-		respIn:           cfg.RespIn,
-		msgOut:           cfg.MsgOut,
-		chanLock:         cfg.ChanLock,
+		logger:        cfg.Logger.New("module", "sync"),
+		blockState:    cfg.BlockState,
+		blockProducer: cfg.BlockProducer,
+		// blockNumIn:       cfg.BlockNumIn,
+		// respIn:           cfg.RespIn,
+		// msgOut:           cfg.MsgOut,
+		// chanLock:         cfg.ChanLock,
 		synced:           true,
 		requestStart:     1,
 		highestSeenBlock: big.NewInt(0),
@@ -130,91 +130,93 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
-// Start begins the service
-func (s *Service) Start() error {
-	if s == nil {
-		return errors.New("nil service")
+// // Start begins the service
+// func (s *Service) Start() error {
+// 	if s == nil {
+// 		return errors.New("nil service")
+// 	}
+
+// 	s.started.Store(true)
+
+// 	go s.watchForBlocks()
+// 	go s.watchForResponses()
+
+// 	return nil
+// }
+
+// // Stop stops the service
+// func (s *Service) Stop() error {
+// 	s.started.Store(false)
+// 	return nil
+// }
+
+func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessage {
+	// for {
+	// 	if !s.started.Load().(bool) {
+	// 		return
+	// 	}
+
+	// 	blockNum, ok := <-s.blockNumIn
+	// 	if !ok || blockNum == nil {
+	// 		s.logger.Warn("Failed to receive from blockNumIn channel")
+	// 		continue
+	// 	}
+
+	if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
+		// need to sync
+		if s.synced {
+			s.requestStart = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
+			s.synced = false
+
+			err := s.blockProducer.Pause()
+			if err != nil {
+				s.logger.Warn("failed to pause block production")
+			}
+		} else {
+			s.requestStart = s.highestSeenBlock.Int64()
+		}
+
+		s.highestSeenBlock = blockNum
+		s.benchmarker.begin(uint64(s.requestStart))
+		return s.createBlockRequest()
 	}
-
-	s.started.Store(true)
-
-	go s.watchForBlocks()
-	go s.watchForResponses()
+	//}
 
 	return nil
 }
 
-// Stop stops the service
-func (s *Service) Stop() error {
-	s.started.Store(false)
-	return nil
-}
+func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
+	// 	for {
+	// 		if !s.started.Load().(bool) {
+	// 			return
+	// 		}
 
-func (s *Service) watchForBlocks() {
-	for {
-		if !s.started.Load().(bool) {
-			return
-		}
+	// 		var msg *network.BlockResponseMessage
+	// 		var ok bool
 
-		blockNum, ok := <-s.blockNumIn
-		if !ok || blockNum == nil {
-			s.logger.Warn("Failed to receive from blockNumIn channel")
-			continue
-		}
+	// 		select {
+	// 		case msg, ok = <-s.respIn:
+	// 			// handle response
+	// 			if !ok || msg == nil {
+	// 				s.logger.Warn("Failed to receive from respIn channel")
+	// 				continue
+	// 			}
 
-		if blockNum != nil && s.highestSeenBlock.Cmp(blockNum) == -1 {
-			// need to sync
-			if s.synced {
-				s.requestStart = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
-				s.synced = false
+	// 			s.processBlockResponse(msg)
+	// 		case <-time.After(responseTimeout):
+	// 			s.logger.Debug("timeout waiting for BlockResponse")
+	// 			if !s.synced {
+	// 				err := s.blockProducer.Resume()
+	// 				if err != nil {
+	// 					s.logger.Warn("failed to resume block production")
+	// 				}
+	// 				s.synced = true
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-				err := s.blockProducer.Pause()
-				if err != nil {
-					s.logger.Warn("failed to pause block production")
-				}
-			} else {
-				s.requestStart = s.highestSeenBlock.Int64()
-			}
-
-			s.highestSeenBlock = blockNum
-			s.benchmarker.begin(uint64(s.requestStart))
-			go s.sendBlockRequest()
-		}
-	}
-}
-
-func (s *Service) watchForResponses() {
-	for {
-		if !s.started.Load().(bool) {
-			return
-		}
-
-		var msg *network.BlockResponseMessage
-		var ok bool
-
-		select {
-		case msg, ok = <-s.respIn:
-			// handle response
-			if !ok || msg == nil {
-				s.logger.Warn("Failed to receive from respIn channel")
-				continue
-			}
-
-			s.processBlockResponse(msg)
-		case <-time.After(responseTimeout):
-			s.logger.Debug("timeout waiting for BlockResponse")
-			if !s.synced {
-				err := s.blockProducer.Resume()
-				if err != nil {
-					s.logger.Warn("failed to resume block production")
-				}
-				s.synced = true
-			}
-		}
-	}
-}
-
-func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
+	// func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
 	highestInResp, err := s.processBlockResponseData(msg)
@@ -229,7 +231,7 @@ func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
 				s.requestStart = 1
 			}
 			s.logger.Trace("Retrying block request", "start", s.requestStart)
-			go s.sendBlockRequest()
+			return s.createBlockRequest()
 		} else {
 			s.logger.Error("failed to process block response", "error", err)
 		}
@@ -257,25 +259,27 @@ func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
 			} else {
 				// not yet synced, send another block request for the following blocks
 				s.requestStart = highestInResp + 1
-				go s.sendBlockRequest()
+				return s.createBlockRequest()
 			}
 		}
 	}
-}
 
-func (s *Service) safeMsgSend(msg network.Message) error {
-	s.chanLock.Lock()
-	defer s.chanLock.Unlock()
-
-	if !s.started.Load().(bool) {
-		return ErrServiceStopped
-	}
-
-	s.msgOut <- msg
 	return nil
 }
 
-func (s *Service) sendBlockRequest() {
+// func (s *Service) safeMsgSend(msg network.Message) error {
+// 	s.chanLock.Lock()
+// 	defer s.chanLock.Unlock()
+
+// 	if !s.started.Load().(bool) {
+// 		return ErrServiceStopped
+// 	}
+
+// 	s.msgOut <- msg
+// 	return nil
+// }
+
+func (s *Service) createBlockRequest() *network.BlockRequestMessage {
 	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
@@ -284,7 +288,7 @@ func (s *Service) sendBlockRequest() {
 	start, err := variadic.NewUint64OrHash(uint64(s.requestStart))
 	if err != nil {
 		s.logger.Error("failed to create block request start block", "error", err)
-		return
+		return nil
 	}
 
 	s.logger.Trace("sending block request", "start", start)
@@ -298,11 +302,7 @@ func (s *Service) sendBlockRequest() {
 		Max:           optional.NewUint32(false, 0),
 	}
 
-	// send block request message to network service
-	err = s.safeMsgSend(blockRequest)
-	if err != nil {
-		s.logger.Error("Failed to send block request", "error", err)
-	}
+	return blockRequest
 }
 
 func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (int64, error) {

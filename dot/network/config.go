@@ -18,7 +18,7 @@ package network
 
 import (
 	"errors"
-	"math/big"
+	//"math/big"
 	"path"
 	"strconv"
 	"strings"
@@ -66,6 +66,8 @@ type Config struct {
 	// NetworkState the network state's interface
 	NetworkState NetworkState
 
+	Syncer Syncer
+
 	// Port the network port used for listening
 	Port uint32
 	// RandSeed the seed used to generate the network p2p identity (0 = non-deterministic random seed)
@@ -90,7 +92,7 @@ type Config struct {
 	// MsgSend is the message channel from the network service to the core service
 	MsgSend chan<- Message
 	// SyncChan is the channel for syncing
-	SyncChan chan<- *big.Int
+	//SyncChan chan<- *big.Int
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
