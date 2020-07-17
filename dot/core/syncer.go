@@ -26,7 +26,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -37,14 +36,9 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-// Verifier deals with block verification, as well as NextEpochDescriptors.
+// Verifier deals with block verification
 type Verifier interface {
 	VerifyBlock(header *types.Header) (bool, error)
-
-	// IncrementEpoch is called when we have received all the blocks for an epoch.
-	IncrementEpoch() (*babe.NextEpochDescriptor, error)
-
-	EpochNumber() uint64
 }
 
 // Syncer deals with chain syncing by sending block request messages and watching for responses.
@@ -74,6 +68,9 @@ type Syncer struct {
 
 	// Consensus digest handling
 	digestHandler *digestHandler
+
+	// Benchmarker
+	benchmarker *benchmarker
 }
 
 // SyncerConfig is the configuration for the Syncer.
@@ -135,6 +132,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
+		benchmarker:      newBenchmarker(cfg.logger),
 	}, nil
 }
 
@@ -185,6 +183,7 @@ func (s *Syncer) watchForBlocks() {
 			}
 
 			s.highestSeenBlock = blockNum
+			s.benchmarker.begin(uint64(s.requestStart))
 			go s.sendBlockRequest()
 		}
 	}
@@ -252,6 +251,7 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 			// check if we are synced or not
 			if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
 				s.logger.Debug("all synced up!", "number", bestNum)
+				s.benchmarker.end(uint64(bestNum.Int64()))
 
 				if !s.synced {
 					err = s.blockProducer.Resume()

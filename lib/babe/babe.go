@@ -190,7 +190,7 @@ func (b *Service) Start() error {
 		}
 	}
 
-	go b.invokeBlockAuthoring()
+	go b.initiate()
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (b *Service) Pause() error {
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
 	b.started.Store(true)
-	go b.invokeBlockAuthoring()
+	go b.initiate()
 	b.logger.Info("service resumed")
 	return nil
 }
@@ -241,22 +241,13 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 	return b.blockChan
 }
 
-// Descriptor returns the NextEpochDescriptor for the current Service.
-func (b *Service) Descriptor() *NextEpochDescriptor {
-	return &NextEpochDescriptor{
-		Authorities: b.authorityData,
-		Randomness:  b.randomness,
+// Descriptor returns the EpochDescriptor for the current Service.
+func (b *Service) Descriptor() *EpochDescriptor {
+	return &EpochDescriptor{
+		AuthorityData: b.authorityData,
+		Randomness:    b.randomness,
+		Threshold:     b.epochThreshold,
 	}
-}
-
-func (b *Service) safeSend(msg types.Block) error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-	if !b.started.Load().(bool) {
-		return errors.New("Service has been stopped")
-	}
-	b.blockChan <- msg
-	return nil
 }
 
 // Authorities returns the current BABE authorities
@@ -274,6 +265,16 @@ func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 	b.authorityData = data.Authorities
 	b.randomness = data.Randomness
 	return b.setAuthorityIndex()
+}
+
+func (b *Service) safeSend(msg types.Block) error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if !b.started.Load().(bool) {
+		return errors.New("Service has been stopped")
+	}
+	b.blockChan <- msg
+	return nil
 }
 
 func (b *Service) setAuthorityIndex() error {
@@ -295,7 +296,7 @@ func (b *Service) slotDuration() time.Duration {
 	return time.Duration(b.config.SlotDuration * 1000000) // SlotDuration in ms, time.Duration in ns
 }
 
-func (b *Service) invokeBlockAuthoring() {
+func (b *Service) initiate() {
 	if b.config == nil {
 		b.logger.Error("block authoring", "error", "config is nil")
 		return
@@ -339,8 +340,11 @@ func (b *Service) invokeBlockAuthoring() {
 	}
 
 	b.logger.Debug("[babe]", "calculated slot", slotNum)
+	b.invokeBlockAuthoring(slotNum)
+}
 
-	for ; slotNum < b.startSlot+b.config.EpochLength; slotNum++ {
+func (b *Service) invokeBlockAuthoring(startSlot uint64) {
+	for slotNum := startSlot; slotNum < startSlot+b.config.EpochLength; slotNum++ {
 		start := time.Now()
 
 		if time.Since(start) <= b.slotDuration() {
@@ -356,11 +360,28 @@ func (b *Service) invokeBlockAuthoring() {
 		}
 	}
 
-	// loop forever TODO: separate loop into another func
-	b.invokeBlockAuthoring()
+	// loop forever
+	// TODO: signal to verifier that epoch has changed
+	b.invokeBlockAuthoring(startSlot + b.config.EpochLength)
 }
 
 func (b *Service) handleSlot(slotNum uint64) {
+	if b.slotToProof[slotNum] == nil {
+		// if we don't have a proof already set, re-run lottery.
+		proof, err := b.runLottery(slotNum)
+		if err != nil {
+			b.logger.Warn("failed to run lottery", "slot", slotNum)
+			return
+		}
+
+		if proof == nil {
+			b.logger.Debug("not authorized to produce block", "slot", slotNum)
+			return
+		}
+
+		b.slotToProof[slotNum] = proof
+	}
+
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		b.logger.Error("block authoring", "error", "parent header is nil")
@@ -450,7 +471,7 @@ func (b *Service) setEpochThreshold() error {
 		return errors.New("cannot set threshold: no babe config")
 	}
 
-	b.epochThreshold, err = calculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
+	b.epochThreshold, err = CalculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
 	if err != nil {
 		return err
 	}
@@ -459,9 +480,9 @@ func (b *Service) setEpochThreshold() error {
 	return nil
 }
 
-// calculates the slot lottery threshold for the authority at authorityIndex.
+// CalculateThreshold calculates the slot lottery threshold
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
-func calculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
+func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")

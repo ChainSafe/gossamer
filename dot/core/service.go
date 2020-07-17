@@ -97,8 +97,9 @@ type Config struct {
 	IsFinalityAuthority     bool
 	ConsensusMessageHandler ConsensusMessageHandler
 
-	NewBlocks chan types.Block // only used for testing purposes
-	Verifier  Verifier         // only used for testing purposes
+	NewBlocks     chan types.Block // only used for testing purposes
+	Verifier      Verifier         // only used for testing purposes
+	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
 	MsgRec   <-chan network.Message
 	MsgSend  chan<- network.Message
@@ -191,18 +192,31 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	currentDescriptor := &babe.NextEpochDescriptor{
-		Authorities: ad,
-		Randomness:  babeCfg.Randomness,
-	}
-
-	if cfg.Verifier == nil {
-		// TODO: load current epoch from database chain head
-		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 0, currentDescriptor)
+	var threshold *big.Int
+	if cfg.BabeThreshold != nil {
+		threshold = cfg.BabeThreshold
+	} else {
+		threshold, err = babe.CalculateThreshold(babeCfg.C1, babeCfg.C2, len(babeCfg.GenesisAuthorities))
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	descriptor := &babe.EpochDescriptor{
+		AuthorityData: ad,
+		Randomness:    babeCfg.Randomness,
+		Threshold:     threshold,
+	}
+
+	if cfg.Verifier == nil {
+		// TODO: load current epoch from database chain head
+		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 1, descriptor)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	log.Info("verifier", "threshold", threshold)
 
 	srv.started.Store(false)
 
