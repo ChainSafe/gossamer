@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package sync
 
 import (
 	"errors"
@@ -41,8 +41,8 @@ type Verifier interface {
 	VerifyBlock(header *types.Header) (bool, error)
 }
 
-// Syncer deals with chain syncing by sending block request messages and watching for responses.
-type Syncer struct {
+// Service deals with chain syncing by sending block request messages and watching for responses.
+type Service struct {
 	logger log.Logger
 
 	// State interfaces
@@ -67,15 +67,14 @@ type Syncer struct {
 	verifier Verifier
 
 	// Consensus digest handling
-	digestHandler *digestHandler
+	digestHandler DigestHandler
 
 	// Benchmarker
 	benchmarker *benchmarker
 }
 
-// SyncerConfig is the configuration for the Syncer.
-// TODO: unexport these or separate syncer into another package
-type SyncerConfig struct {
+// Config is the configuration for the sync Service.
+type Config struct {
 	logger           log.Logger
 	BlockState       BlockState
 	BlockProducer    BlockProducer
@@ -86,13 +85,13 @@ type SyncerConfig struct {
 	TransactionQueue TransactionQueue
 	Runtime          *runtime.Runtime
 	Verifier         Verifier
-	DigestHandler    *digestHandler
+	DigestHandler    DigestHandler
 }
 
 var responseTimeout = 6 * time.Second
 
-// NewSyncer returns a new Syncer
-func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
+// NewService returns a new *sync.Service
+func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
 		return nil, ErrNilBlockState
 	}
@@ -117,7 +116,7 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 		cfg.BlockProducer = newMockBlockProducer()
 	}
 
-	return &Syncer{
+	return &Service{
 		logger:           cfg.logger.New("module", "sync"),
 		blockState:       cfg.BlockState,
 		blockProducer:    cfg.BlockProducer,
@@ -136,10 +135,10 @@ func NewSyncer(cfg *SyncerConfig) (*Syncer, error) {
 	}, nil
 }
 
-// Start begins the syncer
-func (s *Syncer) Start() error {
+// Start begins the service
+func (s *Service) Start() error {
 	if s == nil {
-		return errors.New("nil syncer")
+		return errors.New("nil service")
 	}
 
 	s.started.Store(true)
@@ -150,13 +149,13 @@ func (s *Syncer) Start() error {
 	return nil
 }
 
-// Stop stops the syncer
-func (s *Syncer) Stop() error {
+// Stop stops the service
+func (s *Service) Stop() error {
 	s.started.Store(false)
 	return nil
 }
 
-func (s *Syncer) watchForBlocks() {
+func (s *Service) watchForBlocks() {
 	for {
 		if !s.started.Load().(bool) {
 			return
@@ -189,7 +188,7 @@ func (s *Syncer) watchForBlocks() {
 	}
 }
 
-func (s *Syncer) watchForResponses() {
+func (s *Service) watchForResponses() {
 	for {
 		if !s.started.Load().(bool) {
 			return
@@ -220,7 +219,7 @@ func (s *Syncer) watchForResponses() {
 	}
 }
 
-func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
+func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
 	highestInResp, err := s.processBlockResponseData(msg)
@@ -269,7 +268,7 @@ func (s *Syncer) processBlockResponse(msg *network.BlockResponseMessage) {
 	}
 }
 
-func (s *Syncer) safeMsgSend(msg network.Message) error {
+func (s *Service) safeMsgSend(msg network.Message) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
@@ -281,7 +280,7 @@ func (s *Syncer) safeMsgSend(msg network.Message) error {
 	return nil
 }
 
-func (s *Syncer) sendBlockRequest() {
+func (s *Service) sendBlockRequest() {
 	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
@@ -311,7 +310,7 @@ func (s *Syncer) sendBlockRequest() {
 	}
 }
 
-func (s *Syncer) processBlockResponseData(msg *network.BlockResponseMessage) (int64, error) {
+func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (int64, error) {
 	blockData := msg.BlockData
 	highestInResp := int64(0)
 
@@ -372,7 +371,7 @@ func (s *Syncer) processBlockResponseData(msg *network.BlockResponseMessage) (in
 }
 
 // handleHeader handles headers included in BlockResponses
-func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
+func (s *Service) handleHeader(header *types.Header) (int64, error) {
 	highestInResp := int64(0)
 
 	// get block header; if exists, return
@@ -407,7 +406,7 @@ func (s *Syncer) handleHeader(header *types.Header) (int64, error) {
 }
 
 // handleHeader handles block bodies included in BlockResponses
-func (s *Syncer) handleBody(body *types.Body) error {
+func (s *Service) handleBody(body *types.Body) error {
 	exts, err := body.AsExtrinsics()
 	if err != nil {
 		s.logger.Error("cannot parse body as extrinsics", "error", err)
@@ -422,7 +421,7 @@ func (s *Syncer) handleBody(body *types.Body) error {
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (s *Syncer) handleBlock(block *types.Block) error {
+func (s *Service) handleBlock(block *types.Block) error {
 	// TODO: needs to be fixed by #941
 	// _, err := s.executeBlock(block)
 	// if err != nil {
@@ -459,7 +458,7 @@ func (s *Syncer) handleBlock(block *types.Block) error {
 // runs the block through runtime function Core_execute_block
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
+func (s *Service) executeBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 
@@ -472,11 +471,11 @@ func (s *Syncer) executeBlock(block *types.Block) ([]byte, error) {
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-func (s *Syncer) executeBlockBytes(bd []byte) ([]byte, error) {
+func (s *Service) executeBlockBytes(bd []byte) ([]byte, error) {
 	return s.runtime.Exec(runtime.CoreExecuteBlock, bd)
 }
 
-func (s *Syncer) handleDigests(header *types.Header) error {
+func (s *Service) handleDigests(header *types.Header) error {
 	for _, d := range header.Digest {
 		dg, err := types.DecodeDigestItem(d)
 		if err != nil {
@@ -489,7 +488,7 @@ func (s *Syncer) handleDigests(header *types.Header) error {
 				return errors.New("cannot cast invalid consensus digest item")
 			}
 
-			err = s.digestHandler.handleConsensusDigest(cd)
+			err = s.digestHandler.HandleConsensusDigest(cd)
 			if err != nil {
 				return err
 			}

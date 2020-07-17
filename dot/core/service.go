@@ -24,21 +24,19 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
+	//"github.com/ChainSafe/gossamer/lib/babe"
+	//"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 
-	database "github.com/ChainSafe/chaindb"
+	//database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
 var _ services.Service = &Service{}
-
-var maxResponseSize int64 = 12 // maximum number of block datas to reply with in a BlockResponse message.
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
@@ -77,10 +75,9 @@ type Service struct {
 	started atomic.Value
 
 	// Block synchronization
-	blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
-	respOut     chan<- *network.BlockResponseMessage // send incoming BlockResponseMessags to Syncer
-	syncLock    *sync.Mutex
-	syncer      *Syncer
+	// blockNumOut chan<- *big.Int                      // send block numbers from peers to Syncer
+	// respOut     chan<- *network.BlockResponseMessage // send incoming BlockResponseMessags to Syncer
+	// syncer      *Syncer
 }
 
 // Config holds the configuration for the core Service.
@@ -97,13 +94,13 @@ type Config struct {
 	IsFinalityAuthority     bool
 	ConsensusMessageHandler ConsensusMessageHandler
 
-	NewBlocks     chan types.Block // only used for testing purposes
-	Verifier      Verifier         // only used for testing purposes
-	BabeThreshold *big.Int         // used by Verifier, for development purposes
+	NewBlocks chan types.Block // only used for testing purposes
+	//Verifier      Verifier         // only used for testing purposes
+	BabeThreshold *big.Int // used by Verifier, for development purposes
 
-	MsgRec   <-chan network.Message
-	MsgSend  chan<- network.Message
-	SyncChan chan *big.Int
+	MsgRec  <-chan network.Message
+	MsgSend chan<- network.Message
+	//SyncChan chan *big.Int
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -146,8 +143,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	syncerLock := &sync.Mutex{}
-	respChan := make(chan *network.BlockResponseMessage, 128)
+	//respChan := make(chan *network.BlockResponseMessage, 128)
 	chanLock := &sync.Mutex{}
 
 	var srv = &Service{}
@@ -169,9 +165,9 @@ func NewService(cfg *Config) (*Service, error) {
 		consensusMessageHandler: cfg.ConsensusMessageHandler,
 		isFinalityAuthority:     cfg.IsFinalityAuthority,
 		lock:                    chanLock,
-		syncLock:                syncerLock,
-		blockNumOut:             cfg.SyncChan,
-		respOut:                 respChan,
+		//syncLock:                syncerLock,
+		// blockNumOut:             cfg.SyncChan,
+		// respOut:                 respChan,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -180,74 +176,78 @@ func NewService(cfg *Config) (*Service, error) {
 		srv.blkRec = cfg.BlockProducer.GetBlockChannel()
 	}
 
-	// load BABE verification data from runtime
-	// TODO: authority data may change, use NextEpochDescriptor if available
-	babeCfg, err := srv.rt.BabeConfiguration()
-	if err != nil {
-		return nil, err
-	}
+	// TODO: move to dot, pass to sync.Config
 
-	ad, err := types.BABEAuthorityDataRawToAuthorityData(babeCfg.GenesisAuthorities)
-	if err != nil {
-		return nil, err
-	}
+	// // load BABE verification data from runtime
+	// // TODO: authority data may change, use NextEpochDescriptor if available
+	// babeCfg, err := srv.rt.BabeConfiguration()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	var threshold *big.Int
-	if cfg.BabeThreshold != nil {
-		threshold = cfg.BabeThreshold
-	} else {
-		threshold, err = babe.CalculateThreshold(babeCfg.C1, babeCfg.C2, len(babeCfg.GenesisAuthorities))
-		if err != nil {
-			return nil, err
-		}
-	}
+	// ad, err := types.BABEAuthorityDataRawToAuthorityData(babeCfg.GenesisAuthorities)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	descriptor := &babe.EpochDescriptor{
-		AuthorityData: ad,
-		Randomness:    babeCfg.Randomness,
-		Threshold:     threshold,
-	}
+	// var threshold *big.Int
+	// if cfg.BabeThreshold != nil {
+	// 	threshold = cfg.BabeThreshold
+	// } else {
+	// 	threshold, err = babe.CalculateThreshold(babeCfg.C1, babeCfg.C2, len(babeCfg.GenesisAuthorities))
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	if cfg.Verifier == nil {
-		// TODO: load current epoch from database chain head
-		cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 1, descriptor)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// descriptor := &babe.EpochDescriptor{
+	// 	AuthorityData: ad,
+	// 	Randomness:    babeCfg.Randomness,
+	// 	Threshold:     threshold,
+	// }
 
-	log.Info("verifier", "threshold", threshold)
+	// if cfg.Verifier == nil {
+	// 	// TODO: load current epoch from database chain head
+	// 	cfg.Verifier, err = babe.NewVerificationManager(cfg.BlockState, 1, descriptor)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+
+	// log.Info("verifier", "threshold", threshold)
 
 	srv.started.Store(false)
 
-	var dh *digestHandler
-	if cfg.IsBlockProducer || cfg.IsFinalityAuthority {
-		dh, err = newDigestHandler(cfg.BlockState, cfg.BlockProducer, cfg.FinalityGadget)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// TODO: move to dot, pass to sync.Config
 
-	syncerCfg := &SyncerConfig{
-		logger:           logger,
-		BlockState:       cfg.BlockState,
-		BlockProducer:    cfg.BlockProducer,
-		BlockNumIn:       cfg.SyncChan,
-		RespIn:           respChan,
-		MsgOut:           cfg.MsgSend,
-		ChanLock:         chanLock,
-		TransactionQueue: cfg.TransactionQueue,
-		Verifier:         cfg.Verifier,
-		Runtime:          cfg.Runtime,
-		DigestHandler:    dh,
-	}
+	// var dh *digestHandler
+	// if cfg.IsBlockProducer || cfg.IsFinalityAuthority {
+	// 	dh, err = newDigestHandler(cfg.BlockState, cfg.BlockProducer, cfg.FinalityGadget)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	syncer, err := NewSyncer(syncerCfg)
-	if err != nil {
-		return nil, err
-	}
+	// syncerCfg := &SyncerConfig{
+	// 	logger:           logger,
+	// 	BlockState:       cfg.BlockState,
+	// 	BlockProducer:    cfg.BlockProducer,
+	// 	BlockNumIn:       cfg.SyncChan,
+	// 	RespIn:           respChan,
+	// 	MsgOut:           cfg.MsgSend,
+	// 	ChanLock:         chanLock,
+	// 	TransactionQueue: cfg.TransactionQueue,
+	// 	Verifier:         cfg.Verifier,
+	// 	Runtime:          cfg.Runtime,
+	// 	DigestHandler:    dh,
+	// }
 
-	srv.syncer = syncer
+	// syncer, err := NewSyncer(syncerCfg)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// srv.syncer = syncer
 
 	// core service
 	return srv, nil
@@ -263,12 +263,12 @@ func (s *Service) Start() error {
 	// start receiving messages from network service
 	go s.receiveMessages()
 
-	// start syncer
-	err := s.syncer.Start()
-	if err != nil {
-		s.logger.Error("could not start syncer", "error", err)
-		return err
-	}
+	// // start syncer
+	// err := s.syncer.Start()
+	// if err != nil {
+	// 	s.logger.Error("could not start syncer", "error", err)
+	// 	return err
+	// }
 
 	if s.isFinalityAuthority && s.finalityGadget != nil {
 		s.logger.Debug("routing finality gadget messages")
@@ -293,10 +293,10 @@ func (s *Service) Stop() error {
 		s.started.Store(false)
 	}
 
-	err := s.syncer.Stop()
-	if err != nil {
-		return err
-	}
+	// err := s.syncer.Stop()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -346,9 +346,7 @@ func (s *Service) receiveMessages() {
 		}
 
 		err := s.handleReceivedMessage(msg)
-		if err == blocktree.ErrDescendantNotFound || err == blocktree.ErrStartNodeNotFound || err == database.ErrKeyNotFound {
-			s.logger.Trace("failed to handle message from network service", "err", err)
-		} else if err != nil {
+		if err != nil {
 			s.logger.Trace("failed to handle message from network service", "err", err)
 		}
 	}
@@ -388,27 +386,27 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.GetType()
 
 	switch msgType {
-	case network.BlockRequestMsgType: // 1
-		msg, ok := msg.(*network.BlockRequestMessage)
-		if !ok {
-			return ErrMessageCast("BlockRequestMessage")
-		}
+	// case network.BlockRequestMsgType: // 1
+	// 	msg, ok := msg.(*network.BlockRequestMessage)
+	// 	if !ok {
+	// 		return ErrMessageCast("BlockRequestMessage")
+	// 	}
 
-		err = s.ProcessBlockRequestMessage(msg)
-	case network.BlockResponseMsgType: // 2
-		msg, ok := msg.(*network.BlockResponseMessage)
-		if !ok {
-			return ErrMessageCast("BlockResponseMessage")
-		}
+	// 	err = s.ProcessBlockRequestMessage(msg)
+	// case network.BlockResponseMsgType: // 2
+	// 	msg, ok := msg.(*network.BlockResponseMessage)
+	// 	if !ok {
+	// 		return ErrMessageCast("BlockResponseMessage")
+	// 	}
 
-		err = s.ProcessBlockResponseMessage(msg)
-	case network.BlockAnnounceMsgType: // 3
-		msg, ok := msg.(*network.BlockAnnounceMessage)
-		if !ok {
-			return ErrMessageCast("BlockAnnounceMessage")
-		}
+	// 	err = s.ProcessBlockResponseMessage(msg)
+	// case network.BlockAnnounceMsgType: // 3
+	// 	msg, ok := msg.(*network.BlockAnnounceMessage)
+	// 	if !ok {
+	// 		return ErrMessageCast("BlockAnnounceMessage")
+	// 	}
 
-		err = s.ProcessBlockAnnounceMessage(msg)
+	// 	err = s.ProcessBlockAnnounceMessage(msg)
 	case network.TransactionMsgType: // 4
 		msg, ok := msg.(*network.TransactionMessage)
 		if !ok {

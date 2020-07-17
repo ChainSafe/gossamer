@@ -242,12 +242,12 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	}
 
 	// Syncer
-	syncChan := make(chan *big.Int, 128)
+	//syncChan := make(chan *big.Int, 128)
 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, rt, ks, stateSrvc, coreMsgs, networkMsgs, syncChan)
+	coreSrvc, err := createCoreService(cfg, bp, fg, rt, ks, stateSrvc, coreMsgs, networkMsgs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
@@ -261,7 +261,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	if enabled := NetworkServiceEnabled(cfg); enabled {
 
 		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, syncChan)
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
@@ -302,7 +302,7 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	node := &Node{
 		Name:     cfg.Global.Name,
 		Services: services.NewServiceRegistry(),
-		syncChan: syncChan,
+		//syncChan: syncChan,
 	}
 
 	for _, srvc := range nodeSrvcs {

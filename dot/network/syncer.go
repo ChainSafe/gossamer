@@ -17,45 +17,34 @@
 package network
 
 import (
-	"math/big"
 	"sync"
 
 	log "github.com/ChainSafe/log15"
 )
 
-// syncer submodule
-type syncer struct {
-	logger            log.Logger
-	host              *host
-	blockState        BlockState
-	requestedBlockIDs *sync.Map // track requested block id messages
-
-	// Chain synchronization channel; send block numbers into this channel when a status message is received with
-	// a higher block number than ours
-	syncChan chan<- *big.Int
+type requestTracker struct {
+	logger   log.Logger
+	blockIDs *sync.Map // track BlockRequest IDs that we have requested
 }
 
-// newSyncer creates a new syncer instance from the host
-func newSyncer(host *host, blockState BlockState, syncChan chan<- *big.Int) *syncer {
-	return &syncer{
-		logger:            host.logger.New("module", "syncer"),
-		host:              host,
-		blockState:        blockState,
-		requestedBlockIDs: &sync.Map{},
-		syncChan:          syncChan,
+// newRequestTracker returns a new requestTracker
+func newRequestTracker(logger log.Logger) *requestTracker {
+	return &requestTracker{
+		logger:   logger.New("module", "syncer"),
+		blockIDs: &sync.Map{},
 	}
 }
 
 // addRequestedBlockID adds a requested block id to non-persistent state
-func (s *syncer) addRequestedBlockID(blockID uint64) {
-	s.logger.Trace("Adding block to network syncer...", "block", blockID)
-	s.requestedBlockIDs.Store(blockID, true)
+func (t *requestTracker) addRequestedBlockID(blockID uint64) {
+	t.logger.Trace("Adding block to network syncer...", "block", blockID)
+	t.blockIDs.Store(blockID, true)
 }
 
 // hasRequestedBlockID returns true if the block id has been requested
-func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
-	if requested, ok := s.requestedBlockIDs.Load(blockID); ok {
-		s.logger.Trace("Checking block in network syncer...", "block", blockID, "requested", requested)
+func (t *requestTracker) hasRequestedBlockID(blockID uint64) bool {
+	if requested, ok := t.blockIDs.Load(blockID); ok {
+		t.logger.Trace("Checking block in network syncer...", "block", blockID, "requested", requested)
 		return requested.(bool)
 	}
 
@@ -63,27 +52,7 @@ func (s *syncer) hasRequestedBlockID(blockID uint64) bool {
 }
 
 // removeRequestedBlockID removes a requested block id from non-persistent state
-func (s *syncer) removeRequestedBlockID(blockID uint64) {
-	s.logger.Trace("Removing block from network syncer...", "block", blockID)
-	s.requestedBlockIDs.Delete(blockID)
-}
-
-// handleStatusMesssage sends a block request message if peer best block
-// number is greater than host best block number
-func (s *syncer) handleStatusMesssage(statusMessage *StatusMessage) {
-
-	// get latest block header from block state
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		s.logger.Error("Failed to get best block header from block state", "error", err)
-		return
-	}
-
-	bestBlockNum := big.NewInt(int64(statusMessage.BestBlockNumber))
-
-	// check if peer block number is greater than host block number
-	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-		s.logger.Debug("sending new block to syncer", "number", statusMessage.BestBlockNumber)
-		s.syncChan <- bestBlockNum
-	}
+func (t *requestTracker) removeRequestedBlockID(blockID uint64) {
+	t.logger.Trace("Removing block from network syncer...", "block", blockID)
+	t.blockIDs.Delete(blockID)
 }
