@@ -19,13 +19,14 @@ package genesis
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
-
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // NewGenesisFromJSON parses a JSON formatted genesis file
@@ -60,11 +61,81 @@ func NewGenesisFromJSONHR(file string) (*Genesis, error) {
 
 	err = json.Unmarshal(data, g)
 	fmt.Printf("raw top %v\n", g.Genesis.Raw["top"])
-	top := g.Genesis.Raw["top"]
-	for k, _ := range top {
-		fmt.Printf("k: %v\n", k)
+	top := g.Genesis.Runtime
+	fmt.Printf("raw %v\n", top)
+
+	res := printMap(top)
+	for k, v := range res {
+		fmt.Printf(    "k: %v vT: %v\n", k, len(fmt.Sprint(v)))
 	}
+	fmt.Printf("grandpa %v\n", res["[grandpa authorities]"])
+	fmt.Printf("sudo key %v\n", res["[sudo key]"])
 	return g, err
+}
+
+type KeyValue struct {
+	key []string
+	value string
+	valueLen *big.Int
+}
+
+func printMap(m map[string]map[string]interface{}) map[string]interface{} {
+	res := make(map[string]interface{})
+	for k, v := range m {
+		kv := new(KeyValue)
+		fmt.Printf("k: %v\n", k)
+		kv.key = append(kv.key, k)
+		printMapInterface(v, kv)
+		fmt.Printf("kvLen %v\n", len(kv.key))
+		fmt.Printf("kv %s\n", kv.key)
+		// todo check and encode key
+		res[fmt.Sprint(kv.key)] = kv.value
+		fmt.Printf("value len %v\n", kv.valueLen)
+	}
+	return res
+}
+
+func printMapInterface(m map[string]interface{}, kv *KeyValue) {
+	for k, v := range m {
+		fmt.Printf("\tk %v\n", k)
+		kv.key = append(kv.key, k)
+		switch v2 := v.(type) {
+		//case map[string]interface{}:
+		//	fmt.Printf("Got as live one %v\n", reflect.TypeOf(v2))
+		//	printMapInterface(v2, kv)
+		case []interface{}:
+			fmt.Printf("Got an array!!!! %v\n", len(v2))
+			kv.valueLen = big.NewInt(int64(len(v2)))
+			printArrayInterface(v2, kv)
+		case string:
+			fmt.Printf("\t\t sVl %v\n", len(v2))
+			kv.value = v2
+		}
+	}
+}
+
+func printArrayInterface(a []interface{}, kv *KeyValue) {
+	for _, v := range a {
+		switch v2 := v.(type) {
+		case []interface{}:
+			printArrayInterface(v2, kv)
+		case string:
+			// todo check to confirm it's an address
+			fmt.Printf("\t\t aSl %v, val: %v\n", len(v2), v2)
+			tba := crypto.PublicAddressToByteArray(common.Address(v2))
+			fmt.Printf("\t\t publictobyte bytes %x len: %v\n", tba, len(tba))
+			kv.value = kv.value + fmt.Sprintf("%x", tba)
+		case float64:
+			//01 00 00 00 00 00 00 00
+			encVal, err := scale.Encode(uint64(v2))
+			if err != nil {
+				fmt.Errorf("error encoding number")
+			}
+			fmt.Printf("\t\t float %v\n", v2)
+			fmt.Printf("\t\t float as enc byte %x\n", encVal)
+			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+		}
+	}
 }
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data

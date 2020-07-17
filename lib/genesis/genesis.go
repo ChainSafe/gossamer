@@ -42,7 +42,8 @@ type Data struct {
 //	Raw [2]map[string]string
 //}
 type Fields struct {
-	Raw map[string]map[string]string
+	Raw map[string]map[string]interface{}
+	Runtime map[string]map[string]interface{}
 }
 
 // GenesisData formats genesis for trie storage

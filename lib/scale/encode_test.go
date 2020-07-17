@@ -79,6 +79,7 @@ var encodeTests = []encodeTest{
 	{val: big.NewInt(0), output: []byte{0x00}, bytesEncoded: 1},
 	{val: big.NewInt(1), output: []byte{0x04}, bytesEncoded: 1},
 	{val: big.NewInt(42), output: []byte{0xa8}, bytesEncoded: 1},
+	{val: big.NewInt(9), output: []byte{0xa8}, bytesEncoded: 1},
 	{val: big.NewInt(69), output: []byte{0x15, 0x01}, bytesEncoded: 2},
 	{val: big.NewInt(1000), output: []byte{0xa1, 0x0f}, bytesEncoded: 2},
 	{val: big.NewInt(16383), output: []byte{0xfd, 0xff}, bytesEncoded: 2},

@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/OneOfOne/xxhash"
+	"github.com/btcsuite/btcutil/base58"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -66,21 +67,24 @@ func TestNewTestGenesis(t *testing.T) {
 }
 
 func TestNewTestGenesisFromJSONHR(t *testing.T) {
-	//gen, err := genesis.NewGenesisFromJSONHR("../gossamer_genesis.json")
-	gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
+	gen, err := genesis.NewGenesisFromJSONHR("../gossamer_genesis.json")
+	//gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
 	require.NoError(t, err)
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 	fmt.Printf("alice address %v\n", kr.Alice.Public().Address())
 	fmt.Printf("alice hex %x\n", kr.Alice.Public().Encode())
-	npk, err := ed25519.NewPublicKey(kr.Alice.Public().Encode())
-	require.NoError(t, err)
-	fmt.Printf("npk %v\n", npk.Address())
+	//npk, err := ed25519.NewPublicKey(kr.Alice.Public().Encode())
+	//require.NoError(t, err)
+	//fmt.Printf("npk %v\n", npk.Address())
 	fmt.Printf("gen %v\n", gen.Name)
 	//pubB1 := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac")
-	pubB1 := common.MustHexToBytes("0x24d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da2")
+	pubB1 := common.MustHexToBytes("0x1206960f920a23f7f4c43cc9081ec2ed0721f31a9bef2c10fd7602e16e08a32c")
 	pk1, err := ed25519.NewPublicKey(pubB1)
 	fmt.Printf("pk1 adderess %v\n", pk1.Address())
+	pk1Check := base58.Decode(string(pk1.Address()))
+	fmt.Printf("pk1check %v\n", pk1Check)
+	fmt.Printf("pk1check %x\n", pk1Check[1:33])
 }
 
 func TestHash(t *testing.T) {
