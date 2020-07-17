@@ -97,6 +97,10 @@ func NewService(cfg *Config) (*Service, error) {
 	// 	return nil, errors.New("SyncChan is nil")
 	// }
 
+	if cfg.Syncer == nil {
+		return nil, errors.New("cannot have nil Syncer")
+	}
+
 	// create a new host instance
 	host, err := newHost(ctx, cfg, logger)
 	if err != nil {
@@ -120,6 +124,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:    cfg.NoBootstrap,
 		noMDNS:         cfg.NoMDNS,
 		noStatus:       cfg.NoStatus,
+		syncer:         cfg.Syncer,
 	}
 
 	return network, err
@@ -375,6 +380,18 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		"peer", peer,
 		"type", msg.GetType(),
 	)
+
+	if s.requestTracker == nil {
+		s.logger.Crit("requestTracker is nil")
+	}
+
+	if s.syncer == nil {
+		s.logger.Crit("syncer is nil")
+	}
+
+	if s.host == nil {
+		s.logger.Crit("host is nil")
+	}
 
 	if msg.GetType() != StatusMsgType {
 
