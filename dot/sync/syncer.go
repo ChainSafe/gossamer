@@ -36,10 +36,7 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-// Verifier deals with block verification
-type Verifier interface {
-	VerifyBlock(header *types.Header) (bool, error)
-}
+var responseTimeout = 6 * time.Second
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
@@ -75,7 +72,7 @@ type Service struct {
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	logger           log.Logger
+	Logger           log.Logger
 	BlockState       BlockState
 	BlockProducer    BlockProducer
 	BlockNumIn       <-chan *big.Int
@@ -87,8 +84,6 @@ type Config struct {
 	Verifier         Verifier
 	DigestHandler    DigestHandler
 }
-
-var responseTimeout = 6 * time.Second
 
 // NewService returns a new *sync.Service
 func NewService(cfg *Config) (*Service, error) {
@@ -117,7 +112,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	return &Service{
-		logger:           cfg.logger.New("module", "sync"),
+		logger:           cfg.Logger.New("module", "sync"),
 		blockState:       cfg.BlockState,
 		blockProducer:    cfg.BlockProducer,
 		blockNumIn:       cfg.BlockNumIn,
@@ -131,7 +126,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		benchmarker:      newBenchmarker(cfg.logger),
+		benchmarker:      newBenchmarker(cfg.Logger),
 	}, nil
 }
 

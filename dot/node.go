@@ -242,7 +242,11 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	}
 
 	// Syncer
-	//syncChan := make(chan *big.Int, 128)
+	syncSrvc, err := createSyncService(cfg, stateSrvc, bp, fg, rt)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, syncSrvc)
 
 	// Core Service
 
@@ -302,7 +306,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	node := &Node{
 		Name:     cfg.Global.Name,
 		Services: services.NewServiceRegistry(),
-		//syncChan: syncChan,
 	}
 
 	for _, srvc := range nodeSrvcs {

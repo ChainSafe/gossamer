@@ -51,5 +51,12 @@ type BlockProducer interface {
 }
 
 type DigestHandler interface {
+	Start()
+	Stop()
 	HandleConsensusDigest(*types.ConsensusDigest) error
+}
+
+// Verifier deals with block verification
+type Verifier interface {
+	VerifyBlock(header *types.Header) (bool, error)
 }
