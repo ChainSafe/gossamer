@@ -38,11 +38,8 @@ type Data struct {
 }
 
 // Fields stores genesis raw data
-//type Fields struct {
-//	Raw [2]map[string]string
-//}
 type Fields struct {
-	Raw map[string]map[string]interface{}
+	Raw     map[string]map[string]interface{}
 	Runtime map[string]map[string]interface{}
 }
 

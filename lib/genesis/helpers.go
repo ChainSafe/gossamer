@@ -20,17 +20,18 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"path/filepath"
+	"reflect"
+	"strings"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/OneOfOne/xxhash"
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
-	"reflect"
-	"strings"
 )
 
 // NewGenesisFromJSON parses a JSON formatted genesis file
@@ -50,6 +51,7 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	return g, err
 }
 
+// NewGenesisFromJSONHR parses Human Readable JSON formatted genesis file
 func NewGenesisFromJSONHR(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
@@ -74,16 +76,17 @@ func NewGenesisFromJSONHR(file string) (*Genesis, error) {
 	return g, err
 }
 
-type KeyValue struct {
-	key []string
-	value string
+// keyValue struct to hold data regarding entry
+type keyValue struct {
+	key      []string
+	value    string
 	valueLen *big.Int
 }
 
 func buildRawMap(m map[string]map[string]interface{}) map[string]interface{} {
 	res := make(map[string]interface{})
 	for k, v := range m {
-		kv := new(KeyValue)
+		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 		buildRawMapInterface(v, kv)
 
@@ -98,7 +101,7 @@ func buildRawMap(m map[string]map[string]interface{}) map[string]interface{} {
 	return res
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *KeyValue) {
+func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
 	for k, v := range m {
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
@@ -111,7 +114,7 @@ func buildRawMapInterface(m map[string]interface{}, kv *KeyValue) {
 	}
 }
 
-func buildRawArrayInterface(a []interface{}, kv *KeyValue) {
+func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 	for _, v := range a {
 		switch v2 := v.(type) {
 		case []interface{}:
@@ -123,7 +126,7 @@ func buildRawArrayInterface(a []interface{}, kv *KeyValue) {
 		case float64:
 			encVal, err := scale.Encode(uint64(v2))
 			if err != nil {
-				fmt.Errorf("error encoding number")
+				//todo determine how to handle this error
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 		}
@@ -150,7 +153,7 @@ func formatKey(key []string) string {
 	}
 }
 
-func formatValue(kv *KeyValue) (string, error) {
+func formatValue(kv *keyValue) (string, error) {
 	switch true {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
@@ -217,7 +220,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 func twoxHash(msg []byte) []byte {
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
 	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err := h0.Write(msg[0 : len(msg)])
+	_, err := h0.Write(msg[0:])
 	if err != nil {
 		return nil
 	}
@@ -226,7 +229,7 @@ func twoxHash(msg []byte) []byte {
 	binary.LittleEndian.PutUint64(hash0, res0)
 
 	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
-	_, err = h1.Write(msg[0 : len(msg)])
+	_, err = h1.Write(msg[0:])
 	if err != nil {
 		return nil
 	}

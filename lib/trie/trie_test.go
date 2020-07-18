@@ -194,7 +194,10 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 }
 
 func TestLoadTrie(t *testing.T) {
-	data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
+	data := make(map[string]interface{})
+	data["0x1234"] = "0x5678"
+	data["0xaabbcc"] = "0xddeeff"
+	//data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
 	testTrie := &Trie{}
 
 	err := testTrie.Load(data)
@@ -209,7 +212,7 @@ func TestLoadTrie(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		valueBytes, err = common.HexToBytes(value)
+		valueBytes, err = common.HexToBytes(fmt.Sprintf("%v", value))
 		if err != nil {
 			t.Fatal(err)
 		}

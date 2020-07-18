@@ -18,9 +18,9 @@ package dot
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -65,8 +65,8 @@ func TestNewTestGenesisFromJSONHR(t *testing.T) {
 	//gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
 	require.NoError(t, err)
 	rawGen := gen.Genesis.Raw["top"]
-fmt.Printf("RAW GEN %v\n", len(rawGen))
-	for k, _ := range rawGen {
+	fmt.Printf("RAW GEN %v\n", len(rawGen))
+	for k := range rawGen {
 		fmt.Printf("key %v\n", k)
 	}
 }

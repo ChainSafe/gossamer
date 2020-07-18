@@ -251,7 +251,7 @@ func (t *Trie) Load(data map[string]interface{}) error {
 		if err != nil {
 			return err
 		}
-		valueBytes, err := common.HexToBytes(value.(string))  // todo consider if this should be a string instead of interface
+		valueBytes, err := common.HexToBytes(value.(string)) // todo consider if this should be a string instead of interface
 		if err != nil {
 			return err
 		}

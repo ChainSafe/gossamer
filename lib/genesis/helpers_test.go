@@ -40,8 +40,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 
 	testHex := hex.EncodeToString(testBytes)
-	testRaw := [2]map[string]string{}
-	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
+	testRaw := make(map[string]map[string]interface{})
+	tm := make(map[string]interface{})
+	tm["0x3a636f6465"] = "0x" + testHex
+	testRaw["top"] = tm
+	//testRaw["top"] = map[string]string{"0x3a636f6465": "0x" + testHex}
 
 	expected := TestGenesis
 	expected.Genesis = Fields{Raw: testRaw}
