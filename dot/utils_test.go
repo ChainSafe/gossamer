@@ -17,14 +17,8 @@
 package dot
 
 import (
-	"encoding/binary"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/OneOfOne/xxhash"
-	"github.com/btcsuite/btcutil/base58"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -70,53 +64,9 @@ func TestNewTestGenesisFromJSONHR(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONHR("../gossamer_genesis.json")
 	//gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
 	require.NoError(t, err)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-	fmt.Printf("alice address %v\n", kr.Alice.Public().Address())
-	fmt.Printf("alice hex %x\n", kr.Alice.Public().Encode())
-	//npk, err := ed25519.NewPublicKey(kr.Alice.Public().Encode())
-	//require.NoError(t, err)
-	//fmt.Printf("npk %v\n", npk.Address())
-	fmt.Printf("gen %v\n", gen.Name)
-	//pubB1 := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac")
-	pubB1 := common.MustHexToBytes("0x9a2d335e656481978c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d23")
-	pk1, err := ed25519.NewPublicKey(pubB1)
-	fmt.Printf("pk1 adderess %v\n", pk1.Address())
-	pk1Check := base58.Decode(string(pk1.Address()))
-	fmt.Printf("pk1check %v\n", pk1Check)
-	fmt.Printf("pk1check %x\n", pk1Check[1:33])
-}
-
-func TestHash(t *testing.T) {
-	//logger.Trace("[ext_twox_128] executing...")
-	//instanceContext := wasm.IntoInstanceContext(context)
-	//memory := instanceContext.Memory().Data()
-	//memory := []byte(`Babe Authorities`)  // 0x886726f904d8372fdabb7707870c2fad
-	memory := []byte(`System Number`)  // 0x8cb577756012d928f17362e0741f9f2c
-	logger.Trace("[ext_twox_128] hashing...", "value", fmt.Sprintf("%s", memory[:]))
-
-	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
-	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err := h0.Write(memory[0 : len(memory)])
-	if err != nil {
-		logger.Error("[ext_twox_128]", "error", err)
-		return
+	rawGen := gen.Genesis.Raw["top"]
+fmt.Printf("RAW GEN %v\n", len(rawGen))
+	for k, _ := range rawGen {
+		fmt.Printf("key %v\n", k)
 	}
-	res0 := h0.Sum64()
-	hash0 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash0, res0)
-
-	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
-	_, err = h1.Write(memory[0 : len(memory)])
-	if err != nil {
-		logger.Error("[ext_twox_128]", "error", err)
-		return
-	}
-	res1 := h1.Sum64()
-	hash1 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash1, res1)
-
-	//concatenated result
-	both := append(hash0, hash1...)
-	fmt.Printf("both: %x\n", both)
 }
