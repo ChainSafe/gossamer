@@ -79,7 +79,7 @@ func TestNewTestGenesisFromJSONHR(t *testing.T) {
 	//fmt.Printf("npk %v\n", npk.Address())
 	fmt.Printf("gen %v\n", gen.Name)
 	//pubB1 := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac")
-	pubB1 := common.MustHexToBytes("0x1206960f920a23f7f4c43cc9081ec2ed0721f31a9bef2c10fd7602e16e08a32c")
+	pubB1 := common.MustHexToBytes("0x9a2d335e656481978c39fb571ed37c3e04ac2c4c44d450aefb2e71205e2e1d23")
 	pk1, err := ed25519.NewPublicKey(pubB1)
 	fmt.Printf("pk1 adderess %v\n", pk1.Address())
 	pk1Check := base58.Decode(string(pk1.Address()))
