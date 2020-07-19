@@ -37,9 +37,9 @@ type Data struct {
 	ProtocolID string
 }
 
-// Fields stores genesis raw data
+// Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
-	Raw     map[string]map[string]interface{}
+	Raw     [2]map[string]string
 	Runtime map[string]map[string]interface{}
 }
 

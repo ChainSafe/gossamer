@@ -40,7 +40,7 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	if err != nil {
 		return nil, err
 	}
-
+fmt.Printf("READ GENESIS FILE %v\n", file)
 	data, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
@@ -69,9 +69,10 @@ func NewGenesisFromJSONHR(file string) (*Genesis, error) {
 
 	grt := g.Genesis.Runtime
 	res := buildRawMap(grt)
-
-	g.Genesis.Raw = make(map[string]map[string]interface{})
-	g.Genesis.Raw["top"] = res
+fmt.Printf("res %v\n", len(res))
+	//g.Genesis.Raw = [2]map[string]string
+	// todo convert interface (res) to string
+	//g.Genesis.Raw[0] = res
 
 	return g, err
 }
@@ -122,6 +123,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 		case string:
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
+			fmt.Printf("KEY VAL %x\n", tba)
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 		case float64:
 			encVal, err := scale.Encode(uint64(v2))
@@ -183,7 +185,7 @@ func formatValue(kv *keyValue) (string, error) {
 func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
 
-	r := g.GenesisFields().Raw["top"]
+	r := g.GenesisFields().Raw[0]
 
 	err := t.Load(r)
 	if err != nil {

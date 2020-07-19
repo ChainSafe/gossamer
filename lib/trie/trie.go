@@ -245,13 +245,13 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 }
 
 // Load data into trie
-func (t *Trie) Load(data map[string]interface{}) error {
+func (t *Trie) Load(data map[string]string) error {
 	for key, value := range data {
 		keyBytes, err := common.HexToBytes(key)
 		if err != nil {
 			return err
 		}
-		valueBytes, err := common.HexToBytes(value.(string)) // todo consider if this should be a string instead of interface
+		valueBytes, err := common.HexToBytes(value)
 		if err != nil {
 			return err
 		}

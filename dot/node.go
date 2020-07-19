@@ -64,11 +64,23 @@ func InitNode(cfg *Config) error {
 	)
 
 	// create genesis from configuration file
-	gen, err := genesis.NewGenesisFromJSON(cfg.Init.Genesis)
-	if err != nil {
-		return fmt.Errorf("failed to load genesis from file: %s", err)
+	var gen *genesis.Genesis
+	var lErr error
+	fmt.Printf("IN INTI USE HR %v\n", cfg.Init.GenesisHR)
+	if cfg.Init.GenesisHR {
+		gen, lErr = genesis.NewGenesisFromJSONHR(cfg.Init.Genesis)
+	} else {
+		gen, lErr = genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	}
 
+	if lErr != nil {
+		return fmt.Errorf("failed to load genesis from file: %s", err)
+	}
+	fmt.Printf("RAW GEN %v\n", len(gen.Genesis.Raw[0]))
+	for k := range gen.Genesis.Raw[0] {
+		fmt.Printf("key %v\n", k)
+	}
+	fmt.Printf("BABe Auths %x\n", gen.Genesis.Raw[0]["0x886726f904d8372fdabb7707870c2fad"])
 	// create trie from genesis
 	t, err := genesis.NewTrieFromGenesis(gen)
 	if err != nil {

@@ -64,7 +64,7 @@ func TestNewTestGenesisFromJSONHR(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONHR("../gossamer_genesis.json")
 	//gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
 	require.NoError(t, err)
-	rawGen := gen.Genesis.Raw["top"]
+	rawGen := gen.Genesis.Raw[0]
 	fmt.Printf("RAW GEN %v\n", len(rawGen))
 	for k := range rawGen {
 		fmt.Printf("key %v\n", k)
