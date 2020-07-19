@@ -145,6 +145,35 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	return file
 }
 
+// NewTestGenesisHRFile returns a human readable test genesis file using "gssmr" human readable data
+func NewTestGenesisHRFile(t *testing.T, cfg *Config) *os.File {
+	dir := utils.NewTestDir(t)
+
+	file, err := ioutil.TempFile(dir, "genesis-")
+	require.Nil(t, err)
+
+	fp := utils.GetGssmrGenesisHRPath()
+
+	gssmrGen, err := genesis.NewGenesisFromJSONHR(fp)
+	require.Nil(t, err)
+
+	gen := &genesis.Genesis{
+		Name:       cfg.Global.Name,
+		ID:         cfg.Global.ID,
+		Bootnodes:  cfg.Network.Bootnodes,
+		ProtocolID: cfg.Network.ProtocolID,
+		Genesis:    gssmrGen.GenesisFields(),
+	}
+
+	b, err := json.Marshal(gen)
+	require.Nil(t, err)
+
+	_, err = file.Write(b)
+	require.Nil(t, err)
+
+	return file
+}
+
 // NewTestGenesisAndRuntime create a new test runtime and a new test genesis
 // file with the test runtime stored in raw data and returns the genesis file
 // nolint

@@ -236,7 +236,6 @@ func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
 
 	// check --genesis_hr flag
 	cfg.GenesisHR = ctx.Bool(GenesisHRFlag.Name)
-fmt.Printf("USE HR %v\n", cfg.GenesisHR)
 	logger.Debug(
 		"init configuration",
 		"genesis", cfg.Genesis,

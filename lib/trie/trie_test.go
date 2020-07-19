@@ -194,10 +194,7 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 }
 
 func TestLoadTrie(t *testing.T) {
-	data := make(map[string]interface{})
-	data["0x1234"] = "0x5678"
-	data["0xaabbcc"] = "0xddeeff"
-	//data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
+	data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
 	testTrie := &Trie{}
 
 	err := testTrie.Load(data)

@@ -18,6 +18,7 @@ package dot
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -60,13 +61,28 @@ func TestNewTestGenesis(t *testing.T) {
 	fmt.Printf("FileName %v\n", genFile.Name())
 }
 
-func TestNewTestGenesisFromJSONHR(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONHR("../gossamer_genesis.json")
-	//gen, err := genesis.NewGenesisFromJSONHR("../myCustomSpec.json")
+func TestNewTestGenesisHRFile(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genHRFile := NewTestGenesisHRFile(t, cfg)
+	require.NotNil(t, genHRFile)
+	defer os.Remove(genHRFile.Name())
+
+	genRawFile := NewTestGenesisFile(t, cfg)
+	require.NotNil(t, genRawFile)
+	defer os.Remove(genRawFile.Name())
+
+	genHR, err := genesis.NewGenesisFromJSONHR(genHRFile.Name())
 	require.NoError(t, err)
-	rawGen := gen.Genesis.Raw[0]
-	fmt.Printf("RAW GEN %v\n", len(rawGen))
-	for k := range rawGen {
-		fmt.Printf("key %v\n", k)
-	}
+	genRaw, err := genesis.NewGenesisFromJSON(genRawFile.Name())
+	require.NoError(t, err)
+
+	// values from raw genesis file should equal values generated from human readable genesis file
+	//  Note, we don't just compare Genesis.Raw because there are entries (balances) in raw genesis that are not yet handled by
+	//  by human readable genesis yet.
+	require.Equal(t, genRaw.Genesis.Raw[0]["0x3a636f6465"], genHR.Genesis.Raw[0]["0x3a636f6465"])                                                             // check system code entry
+	require.Equal(t, genRaw.Genesis.Raw[0]["0x3a6772616e6470615f617574686f726974696573"], genHR.Genesis.Raw[0]["0x3a6772616e6470615f617574686f726974696573"]) // grandpa authority entry
+	require.Equal(t, genRaw.Genesis.Raw[0]["0x886726f904d8372fdabb7707870c2fad"], genHR.Genesis.Raw[0]["0x886726f904d8372fdabb7707870c2fad"])                 // check babe authorities entry
+
 }

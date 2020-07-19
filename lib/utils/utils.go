@@ -161,6 +161,22 @@ func GetGssmrGenesisPath() string {
 	return fp
 }
 
+// GetGssmrGenesisHRPath gets the gssmr human readable genesis path
+func GetGssmrGenesisHRPath() string {
+	path1 := "../chain/gssmr/genesis_hr.json"
+	path2 := "../../chain/gssmr/genesis_hr.json"
+
+	var fp string
+
+	if PathExists(path1) {
+		fp, _ = filepath.Abs(path1)
+	} else if PathExists(path2) {
+		fp, _ = filepath.Abs(path2)
+	}
+
+	return fp
+}
+
 // GetKsmccGenesisPath gets the ksmcc genesis path
 func GetKsmccGenesisPath() string {
 	path1 := "../chain/ksmcc/genesis.json"
