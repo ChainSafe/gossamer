@@ -161,10 +161,10 @@ func GetGssmrGenesisRawPath() string {
 	return fp
 }
 
-// GetGssmrGenesisHRPath gets the gssmr human readable genesis path
-func GetGssmrGenesisHRPath() string {
-	path1 := "../chain/gssmr/genesis_hr.json"
-	path2 := "../../chain/gssmr/genesis_hr.json"
+// GetGssmrGenesisPath gets the gssmr human-readable genesis path
+func GetGssmrGenesisPath() string {
+	path1 := "../chain/gssmr/genesis.json"
+	path2 := "../../chain/gssmr/genesis.json"
 
 	var fp string
 

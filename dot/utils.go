@@ -152,7 +152,7 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	file, err := ioutil.TempFile(dir, "genesis-")
 	require.Nil(t, err)
 
-	fp := utils.GetGssmrGenesisHRPath()
+	fp := utils.GetGssmrGenesisPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
 	require.Nil(t, err)
