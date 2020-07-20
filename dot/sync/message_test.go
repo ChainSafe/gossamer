@@ -1,22 +1,51 @@
 package sync
 
 import (
+	"math/big"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
+	//"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	// "github.com/ChainSafe/gossamer/lib/runtime"
+	// "github.com/ChainSafe/gossamer/lib/trie"
+
+	//log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 )
 
-// BlockRequestMessage 1
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
+	previousHash := blockState.BestBlockHash()
+	previousNum, err := blockState.BestBlockNumber()
+	require.Nil(t, err)
 
-// tests the ProcessBlockRequestMessage method
-func TestService_ProcessBlockRequestMessage(t *testing.T) {
-	msgSend := make(chan network.Message, 10)
+	headers := []*types.Header{}
 
-	cfg := &Config{
-		MsgSend: msgSend,
+	for i := 1; i <= depth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+				Digest:     [][]byte{},
+			},
+			Body: &types.Body{},
+		}
+
+		previousHash = block.Header.Hash()
+
+		err := blockState.AddBlock(block)
+		require.Nil(t, err)
+		headers = append(headers, block.Header)
 	}
 
-	s := NewTestService(t, cfg)
-	s.started.Store(true)
+	return headers
+}
 
+// tests the ProcessBlockRequestMessage method
+func TestService_CreateBlockResponse(t *testing.T) {
+	s := newTestSyncer(t, nil)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
@@ -176,118 +205,104 @@ func TestService_ProcessBlockRequestMessage(t *testing.T) {
 	for _, test := range testsCases {
 		t.Run(test.description, func(t *testing.T) {
 
-			err := s.ProcessBlockRequestMessage(test.value)
-			require.Nil(t, err)
+			resp, err := s.CreateBlockResponse(test.value)
+			require.NoError(t, err)
+			require.Equal(t, test.expectedMsgValue.ID, resp.ID)
+			require.Len(t, resp.BlockData, 2)
+			require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
+			require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.BlockData[0].Header)
+			require.Equal(t, test.expectedMsgValue.BlockData[0].Body, resp.BlockData[0].Body)
 
-			select {
-			case resp := <-msgSend:
-				msgType := resp.GetType()
+			if test.expectedMsgValue.BlockData[0].Receipt != nil {
+				require.Equal(t, test.expectedMsgValue.BlockData[0].Receipt, resp.BlockData[1].Receipt)
+			}
 
-				require.Equal(t, test.expectedMsgType, msgType)
+			if test.expectedMsgValue.BlockData[0].MessageQueue != nil {
+				require.Equal(t, test.expectedMsgValue.BlockData[0].MessageQueue, resp.BlockData[1].MessageQueue)
+			}
 
-				require.Equal(t, test.expectedMsgValue.ID, resp.(*network.BlockResponseMessage).ID)
-
-				require.Len(t, resp.(*network.BlockResponseMessage).BlockData, 2)
-
-				require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
-				require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.(*network.BlockResponseMessage).BlockData[0].Header)
-				require.Equal(t, test.expectedMsgValue.BlockData[0].Body, resp.(*network.BlockResponseMessage).BlockData[0].Body)
-
-				if test.expectedMsgValue.BlockData[0].Receipt != nil {
-					require.Equal(t, test.expectedMsgValue.BlockData[0].Receipt, resp.(*network.BlockResponseMessage).BlockData[1].Receipt)
-				}
-
-				if test.expectedMsgValue.BlockData[0].MessageQueue != nil {
-					require.Equal(t, test.expectedMsgValue.BlockData[0].MessageQueue, resp.(*network.BlockResponseMessage).BlockData[1].MessageQueue)
-				}
-
-				if test.expectedMsgValue.BlockData[0].Justification != nil {
-					require.Equal(t, test.expectedMsgValue.BlockData[0].Justification, resp.(*network.BlockResponseMessage).BlockData[1].Justification)
-				}
-			case <-time.After(testMessageTimeout):
-				t.Error("timeout waiting for message")
+			if test.expectedMsgValue.BlockData[0].Justification != nil {
+				require.Equal(t, test.expectedMsgValue.BlockData[0].Justification, resp.BlockData[1].Justification)
 			}
 		})
 	}
 }
 
-// BlockResponseMessage 2
+// // tests the ProcessBlockResponseMessage method
+// func TestService_HandleBlockResponse(t *testing.T) {
+// 	// tt := trie.NewEmptyTrie()
+// 	// rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 
-// tests the ProcessBlockResponseMessage method
-func TestService_ProcessBlockResponseMessage(t *testing.T) {
-	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+// 	// kp, err := sr25519.GenerateKeypair()
+// 	// require.Nil(t, err)
 
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
+// 	// ks := keystore.NewKeystore()
+// 	// ks.Insert(kp)
+// 	// msgSend := make(chan network.Message, 10)
 
-	ks := keystore.NewKeystore()
-	ks.Insert(kp)
-	msgSend := make(chan network.Message, 10)
+// 	// cfg := &Config{
+// 	// 	Runtime:         rt,
+// 	// 	Keystore:        ks,
+// 	// 	IsBlockProducer: false,
+// 	// 	MsgSend:         msgSend,
+// 	// }
 
-	cfg := &Config{
-		Runtime:         rt,
-		Keystore:        ks,
-		IsBlockProducer: false,
-		MsgSend:         msgSend,
-	}
+// 	s := newTestSyncer(t, nil)
 
-	s := NewTestService(t, cfg)
+// 	hash := common.NewHash([]byte{0})
+// 	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
 
-	hash := common.NewHash([]byte{0})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+// 	parentHash := testGenesisHeader.Hash()
+// 	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+// 	require.Nil(t, err)
 
-	parentHash := testGenesisHeader.Hash()
-	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
-	require.Nil(t, err)
+// 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+// 	require.Nil(t, err)
 
-	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
-	require.Nil(t, err)
+// 	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	preDigest, err := common.HexToBytes("0x014241424538e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	header := &types.Header{
+// 		ParentHash:     parentHash,
+// 		Number:         big.NewInt(1),
+// 		StateRoot:      stateRoot,
+// 		ExtrinsicsRoot: extrinsicsRoot,
+// 		Digest:         [][]byte{preDigest},
+// 	}
 
-	header := &types.Header{
-		ParentHash:     parentHash,
-		Number:         big.NewInt(1),
-		StateRoot:      stateRoot,
-		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{preDigest},
-	}
+// 	bds := []*types.BlockData{{
+// 		Hash:          header.Hash(),
+// 		Header:        header.AsOptional(),
+// 		Body:          types.NewBody([]byte{}).AsOptional(),
+// 		Receipt:       optional.NewBytes(false, nil),
+// 		MessageQueue:  optional.NewBytes(false, nil),
+// 		Justification: optional.NewBytes(false, nil),
+// 	}, {
+// 		Hash:          hash,
+// 		Header:        optional.NewHeader(false, nil),
+// 		Body:          optional.NewBody(true, body),
+// 		Receipt:       optional.NewBytes(true, []byte("asdf")),
+// 		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
+// 		Justification: optional.NewBytes(true, []byte("qwerty")),
+// 	}}
 
-	bds := []*types.BlockData{{
-		Hash:          header.Hash(),
-		Header:        header.AsOptional(),
-		Body:          types.NewBody([]byte{}).AsOptional(),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}, {
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
-	}}
+// 	blockResponse := &network.BlockResponseMessage{
+// 		BlockData: bds,
+// 	}
 
-	blockResponse := &network.BlockResponseMessage{
-		BlockData: bds,
-	}
+// 	err = s.blockState.SetHeader(header)
+// 	require.Nil(t, err)
 
-	err = s.blockState.SetHeader(header)
-	require.Nil(t, err)
+// 	err = s.ProcessBlockResponseMessage(blockResponse)
+// 	require.Nil(t, err)
 
-	err = s.ProcessBlockResponseMessage(blockResponse)
-	require.Nil(t, err)
-
-	select {
-	case resp := <-s.syncer.respIn:
-		msgType := resp.GetType()
-		require.Equal(t, network.BlockResponseMsgType, msgType)
-	case <-time.After(testMessageTimeout):
-		t.Error("timeout waiting for message")
-	}
-}
+// 	select {
+// 	case resp := <-s.syncer.respIn:
+// 		msgType := resp.GetType()
+// 		require.Equal(t, network.BlockResponseMsgType, msgType)
+// 	case <-time.After(testMessageTimeout):
+// 		t.Error("timeout waiting for message")
+// 	}
+// }

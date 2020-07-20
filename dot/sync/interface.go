@@ -21,6 +21,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 type BlockState interface {
@@ -42,6 +43,9 @@ type BlockState interface {
 // TransactionQueue is the interface for transaction queue methods
 type TransactionQueue interface {
 	RemoveExtrinsic(ext types.Extrinsic)
+	Pop() *transaction.ValidTransaction
+	Push(vt *transaction.ValidTransaction) (common.Hash, error)
+	Peek() *transaction.ValidTransaction
 }
 
 // BlockProducer is the interface that a block production service must implement

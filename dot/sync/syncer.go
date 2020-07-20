@@ -186,98 +186,51 @@ func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessa
 }
 
 func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
-	// 	for {
-	// 		if !s.started.Load().(bool) {
-	// 			return
-	// 		}
-
-	// 		var msg *network.BlockResponseMessage
-	// 		var ok bool
-
-	// 		select {
-	// 		case msg, ok = <-s.respIn:
-	// 			// handle response
-	// 			if !ok || msg == nil {
-	// 				s.logger.Warn("Failed to receive from respIn channel")
-	// 				continue
-	// 			}
-
-	// 			s.processBlockResponse(msg)
-	// 		case <-time.After(responseTimeout):
-	// 			s.logger.Debug("timeout waiting for BlockResponse")
-	// 			if !s.synced {
-	// 				err := s.blockProducer.Resume()
-	// 				if err != nil {
-	// 					s.logger.Warn("failed to resume block production")
-	// 				}
-	// 				s.synced = true
-	// 			}
-	// 		}
-	// 	}
-	// }
-
-	// func (s *Service) processBlockResponse(msg *network.BlockResponseMessage) {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
 	highestInResp, err := s.processBlockResponseData(msg)
-	if err != nil {
 
-		// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
-		// blocks from farther back in the chain
-		if err == blocktree.ErrParentNotFound {
-			// set request start
-			s.requestStart = s.requestStart - maxResponseSize
-			if s.requestStart <= 0 {
-				s.requestStart = 1
-			}
-			s.logger.Trace("Retrying block request", "start", s.requestStart)
-			return s.createBlockRequest()
-		} else {
-			s.logger.Error("failed to process block response", "error", err)
+	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
+	// blocks from farther back in the chain
+	if err == blocktree.ErrParentNotFound {
+		// set request start
+		s.requestStart = s.requestStart - maxResponseSize
+		if s.requestStart <= 0 {
+			s.requestStart = 1
 		}
-
-	} else {
-		// TODO: max retries before unlocking, in case no response is received
-
-		bestNum, err := s.blockState.BestBlockNumber()
-		if err != nil {
-			s.logger.Crit("failed to get best block number", "error", err)
-		} else {
-
-			// check if we are synced or not
-			if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-				s.logger.Debug("all synced up!", "number", bestNum)
-				s.benchmarker.end(uint64(bestNum.Int64()))
-
-				if !s.synced {
-					err = s.blockProducer.Resume()
-					if err != nil {
-						s.logger.Warn("failed to resume block production")
-					}
-					s.synced = true
-				}
-			} else {
-				// not yet synced, send another block request for the following blocks
-				s.requestStart = highestInResp + 1
-				return s.createBlockRequest()
-			}
-		}
+		s.logger.Trace("Retrying block request", "start", s.requestStart)
+		return s.createBlockRequest()
+	} else if err != nil {
+		s.logger.Error("failed to process block response", "error", err)
+		return nil
 	}
 
-	return nil
+	// TODO: max retries before unlocking, in case no response is received
+	bestNum, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		s.logger.Crit("failed to get best block number", "error", err)
+		return nil
+	}
+
+	// check if we are synced or not
+	if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
+		s.logger.Debug("all synced up!", "number", bestNum)
+		s.benchmarker.end(uint64(bestNum.Int64()))
+
+		if !s.synced {
+			err = s.blockProducer.Resume()
+			if err != nil {
+				s.logger.Warn("failed to resume block production")
+			}
+			s.synced = true
+		}
+		return nil
+	}
+
+	// not yet synced, send another block request for the following blocks
+	s.requestStart = highestInResp + 1
+	return s.createBlockRequest()
 }
-
-// func (s *Service) safeMsgSend(msg network.Message) error {
-// 	s.chanLock.Lock()
-// 	defer s.chanLock.Unlock()
-
-// 	if !s.started.Load().(bool) {
-// 		return ErrServiceStopped
-// 	}
-
-// 	s.msgOut <- msg
-// 	return nil
-// }
 
 func (s *Service) createBlockRequest() *network.BlockRequestMessage {
 	// generate random ID
