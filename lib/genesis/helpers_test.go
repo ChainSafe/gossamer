@@ -59,7 +59,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	genesis, err := NewGenesisFromJSON(file.Name())
+	genesis, err := NewGenesisFromJSONRaw(file.Name())
 	if err != nil {
 		t.Fatal(err)
 	}

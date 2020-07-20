@@ -60,16 +60,17 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis", cfg.Init.Genesis,
+		"genesis-raw", cfg.Init.GenesisRaw,
 	)
 
 	// create genesis from configuration file
 	var gen *genesis.Genesis
 	var lErr error
 	if cfg.Init.GenesisHR {
-		gen, lErr = genesis.NewGenesisFromJSONHR(cfg.Init.Genesis)
+		// todo fix path name
+		gen, lErr = genesis.NewGenesisFromJSONHR(cfg.Init.GenesisRaw)
 	} else {
-		gen, lErr = genesis.NewGenesisFromJSON(cfg.Init.Genesis)
+		gen, lErr = genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
 	}
 	if lErr != nil {
 		return fmt.Errorf("failed to load genesis from file: %s", err)
@@ -113,7 +114,7 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis", cfg.Init.Genesis,
+		"genesis-raw", cfg.Init.GenesisRaw,
 		"block", header.Number,
 	)
 

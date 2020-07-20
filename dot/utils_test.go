@@ -52,12 +52,12 @@ func TestNewTestGenesis(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 	fmt.Printf("FileName %v\n", genFile.Name())
 }
 
@@ -69,13 +69,13 @@ func TestNewTestGenesisHRFile(t *testing.T) {
 	require.NotNil(t, genHRFile)
 	defer os.Remove(genHRFile.Name())
 
-	genRawFile := NewTestGenesisFile(t, cfg)
+	genRawFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genRawFile)
 	defer os.Remove(genRawFile.Name())
 
 	genHR, err := genesis.NewGenesisFromJSONHR(genHRFile.Name())
 	require.NoError(t, err)
-	genRaw, err := genesis.NewGenesisFromJSON(genRawFile.Name())
+	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
 	require.NoError(t, err)
 
 	// values from raw genesis file should equal values generated from human readable genesis file

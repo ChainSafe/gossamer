@@ -145,10 +145,10 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 	return keys, nil
 }
 
-// GetGssmrGenesisPath gets the gssmr genesis path
-func GetGssmrGenesisPath() string {
-	path1 := "../chain/gssmr/genesis.json"
-	path2 := "../../chain/gssmr/genesis.json"
+// GetGssmrGenesisRawPath gets the gssmr raw genesis path
+func GetGssmrGenesisRawPath() string {
+	path1 := "../chain/gssmr/genesis-raw.json"
+	path2 := "../../chain/gssmr/genesis-raw.json"
 
 	var fp string
 

@@ -34,8 +34,8 @@ import (
 	"github.com/OneOfOne/xxhash"
 )
 
-// NewGenesisFromJSON parses a JSON formatted genesis file
-func NewGenesisFromJSON(file string) (*Genesis, error) {
+// NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
+func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err

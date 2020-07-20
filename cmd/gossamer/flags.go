@@ -77,10 +77,10 @@ var (
 
 // Initialization-only flags
 var (
-	// GenesisFlag Path to genesis JSON file
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
-		Usage: "Path to genesis JSON file",
+	// GenesisRawFlag Path to raw genesis JSON file
+	GenesisRawFlag = cli.StringFlag{
+		Name:  "genesis-raw",
+		Usage: "Path to raw genesis JSON file",
 	}
 	// GenesisHRFlag tells parser genesis.json contains human readable field, and to convert to raw
 	GenesisHRFlag = cli.BoolFlag{
@@ -237,14 +237,14 @@ var (
 	// InitFlags are flags that are valid for use with the init subcommand
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
-		GenesisFlag,
+		GenesisRawFlag,
 		GenesisHRFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
 	ExportFlags = append([]cli.Flag{
 		ForceFlag,
-		GenesisFlag,
+		GenesisRawFlag,
 	}, append(GlobalFlags, StartupFlags...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
