@@ -112,8 +112,8 @@ type ConsensusMessageHandler interface {
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(*runtime.Runtime) error
-	Pause() error
-	Resume() error
+	// Pause() error
+	// Resume() error
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData)
 }

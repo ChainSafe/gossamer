@@ -46,6 +46,55 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
+// mockBlockProducer implements the BlockProducer interface
+type mockBlockProducer struct {
+	auths []*types.BABEAuthorityData
+}
+
+func newMockBlockProducer() *mockBlockProducer {
+	return &mockBlockProducer{
+		auths: []*types.BABEAuthorityData{},
+	}
+}
+
+// Start mocks starting
+func (bp *mockBlockProducer) Start() error {
+	return nil
+}
+
+// Stop mocks stopping
+func (bp *mockBlockProducer) Stop() error {
+	return nil
+}
+
+// // Pause mocks pausing
+// func (bp *mockBlockProducer) Pause() error {
+// 	return nil
+// }
+
+// // Resume mocks resuming
+// func (bp *mockBlockProducer) Resume() error {
+// 	return nil
+// }
+
+func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
+	return bp.auths
+}
+
+func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) {
+	bp.auths = a
+}
+
+// GetBlockChannel returns a new channel
+func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
+	return make(chan types.Block)
+}
+
+// SetRuntime mocks setting runtime
+func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
+	return nil
+}
+
 // mockFinalityGadget implements the FinalityGadget interface
 type mockFinalityGadget struct {
 	in        chan FinalityMessage
