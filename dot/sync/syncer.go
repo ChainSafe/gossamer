@@ -205,11 +205,11 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 		return nil
 	}
 
-	// TODO: max retries before unlocking, in case no response is received
+	// TODO: max retries before unlocking BlockProducer, in case no response is received
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
-		s.logger.Crit("failed to get best block number", "error", err)
-		return nil
+		s.logger.Error("failed to get best block number", "error", err)
+		bestNum = big.NewInt(0)
 	}
 
 	// check if we are synced or not
