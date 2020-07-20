@@ -50,12 +50,6 @@ type mockBlockProducer struct {
 	auths []*types.BABEAuthorityData
 }
 
-// func newMockBlockProducer() *mockBlockProducer {
-// 	return &mockBlockProducer{
-// 		auths: []*types.BABEAuthorityData{},
-// 	}
-// }
-
 // Start mocks starting
 func (bp *mockBlockProducer) Start() error {
 	return nil

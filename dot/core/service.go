@@ -133,12 +133,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	//respChan := make(chan *network.BlockResponseMessage, 128)
-	chanLock := &sync.Mutex{}
-
-	var srv = &Service{}
-
-	srv = &Service{
+	srv := &Service{
 		logger:                  logger,
 		rt:                      cfg.Runtime,
 		codeHash:                codeHash,
@@ -154,10 +149,7 @@ func NewService(cfg *Config) (*Service, error) {
 		finalityGadget:          cfg.FinalityGadget,
 		consensusMessageHandler: cfg.ConsensusMessageHandler,
 		isFinalityAuthority:     cfg.IsFinalityAuthority,
-		lock:                    chanLock,
-		//syncLock:                syncerLock,
-		// blockNumOut:             cfg.SyncChan,
-		// respOut:                 respChan,
+		lock:                    &sync.Mutex{},
 	}
 
 	if cfg.NewBlocks != nil {
