@@ -350,10 +350,23 @@ func (s *Service) readStream(r *bufio.Reader, peer peer.ID, handler func(peer pe
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
+	if msg == nil {
+		return
+	}
+
+	if s.requestTracker == nil {
+		return
+	}
+
+	if s.syncer == nil {
+		return
+	}
+
 	// if it's a BlockResponse with an ID corresponding to a BlockRequest we sent, forward
 	// message to the sync service
 	if resp, ok := msg.(*BlockResponseMessage); ok && s.requestTracker.hasRequestedBlockID(resp.ID) {
 		s.requestTracker.removeRequestedBlockID(resp.ID)
+		log.Info("calling syncer.HandleBlockResponse")
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
@@ -363,9 +376,11 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 
 	// if it's a BlockRequest, call core for processing
 	if req, ok := msg.(*BlockRequestMessage); ok {
+		log.Info("calling syncer.CreateBlockResponse")
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			s.logger.Debug("cannot create response for request", "id", req.ID)
+			return
 		}
 
 		s.host.send(peer, syncID, resp)
