@@ -354,19 +354,10 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 		return
 	}
 
-	if s.requestTracker == nil {
-		return
-	}
-
-	if s.syncer == nil {
-		return
-	}
-
 	// if it's a BlockResponse with an ID corresponding to a BlockRequest we sent, forward
 	// message to the sync service
 	if resp, ok := msg.(*BlockResponseMessage); ok && s.requestTracker.hasRequestedBlockID(resp.ID) {
 		s.requestTracker.removeRequestedBlockID(resp.ID)
-		log.Info("calling syncer.HandleBlockResponse")
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
@@ -376,7 +367,6 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 
 	// if it's a BlockRequest, call core for processing
 	if req, ok := msg.(*BlockRequestMessage); ok {
-		log.Info("calling syncer.CreateBlockResponse")
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			s.logger.Debug("cannot create response for request", "id", req.ID)
@@ -395,18 +385,6 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		"peer", peer,
 		"type", msg.GetType(),
 	)
-
-	if s.requestTracker == nil {
-		s.logger.Crit("requestTracker is nil")
-	}
-
-	if s.syncer == nil {
-		s.logger.Crit("syncer is nil")
-	}
-
-	if s.host == nil {
-		s.logger.Crit("host is nil")
-	}
 
 	if msg.GetType() != StatusMsgType {
 
