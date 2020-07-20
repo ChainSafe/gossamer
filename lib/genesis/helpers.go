@@ -50,8 +50,8 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	return g, err
 }
 
-// NewGenesisFromJSONHR parses Human Readable JSON formatted genesis file
-func NewGenesisFromJSONHR(file string) (*Genesis, error) {
+// NewGenesisFromJSON parses Human Readable JSON formatted genesis file
+func NewGenesisFromJSON(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err

@@ -145,8 +145,8 @@ func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 	return file
 }
 
-// NewTestGenesisHRFile returns a human readable test genesis file using "gssmr" human readable data
-func NewTestGenesisHRFile(t *testing.T, cfg *Config) *os.File {
+// NewTestGenesisFile returns a human-readable test genesis file using "gssmr" human readable data
+func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
 	file, err := ioutil.TempFile(dir, "genesis-")
@@ -154,7 +154,7 @@ func NewTestGenesisHRFile(t *testing.T, cfg *Config) *os.File {
 
 	fp := utils.GetGssmrGenesisHRPath()
 
-	gssmrGen, err := genesis.NewGenesisFromJSONHR(fp)
+	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
 	require.Nil(t, err)
 
 	gen := &genesis.Genesis{

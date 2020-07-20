@@ -60,15 +60,18 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
+		"genesis", cfg.Init.Genesis,
 		"genesis-raw", cfg.Init.GenesisRaw,
 	)
 
 	// create genesis from configuration file
+	if cfg.Init.Genesis != "" && cfg.Init.GenesisRaw != "" {
+		return fmt.Errorf("error can't have both genesis and genesis-raw set")
+	}
 	var gen *genesis.Genesis
 	var lErr error
-	if cfg.Init.GenesisHR {
-		// todo fix path name
-		gen, lErr = genesis.NewGenesisFromJSONHR(cfg.Init.GenesisRaw)
+	if cfg.Init.Genesis != "" {
+		gen, lErr = genesis.NewGenesisFromJSON(cfg.Init.Genesis)
 	} else {
 		gen, lErr = genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
 	}

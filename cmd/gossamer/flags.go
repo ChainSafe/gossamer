@@ -82,10 +82,10 @@ var (
 		Name:  "genesis-raw",
 		Usage: "Path to raw genesis JSON file",
 	}
-	// GenesisHRFlag tells parser genesis.json contains human readable field, and to convert to raw
-	GenesisHRFlag = cli.BoolFlag{
-		Name:  "genesis_hr",
-		Usage: "Tells parser that genesis JSON file is in human readable format",
+	// GenesisFlag path to human-readable genesis.json
+	GenesisFlag = cli.StringFlag{
+		Name:  "genesis",
+		Usage: "Path to human-readable genesis JSON file",
 	}
 )
 
@@ -238,7 +238,7 @@ var (
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
 		GenesisRawFlag,
-		GenesisHRFlag,
+		GenesisFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand

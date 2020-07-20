@@ -234,12 +234,14 @@ func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
 		cfg.GenesisRaw = genesis
 	}
 
-	// check --genesis_hr flag
-	cfg.GenesisHR = ctx.Bool(GenesisHRFlag.Name)
+	// check --genesis flag
+	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+		cfg.Genesis = genesis
+	}
 	logger.Debug(
 		"init configuration",
 		"genesis-raw", cfg.GenesisRaw,
-		"genesis_hr", cfg.GenesisHR,
+		"genesis", cfg.Genesis,
 	)
 }
 

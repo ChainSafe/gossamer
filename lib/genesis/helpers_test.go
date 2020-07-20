@@ -69,7 +69,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 }
 
-func TestNewTestGenesisFromJSONHR(t *testing.T) {
+func TestNewTestGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 
 	expRaw := [2]map[string]string{}
@@ -109,7 +109,7 @@ func TestNewTestGenesisFromJSONHR(t *testing.T) {
 	require.NoError(t, err)
 
 	// create genesis based on file just created, this will fill Raw field of genesis
-	testGenesisProcessed, err := NewGenesisFromJSONHR(file.Name())
+	testGenesisProcessed, err := NewGenesisFromJSON(file.Name())
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)
