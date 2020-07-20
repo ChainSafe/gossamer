@@ -412,7 +412,7 @@ func setDotRPCConfig(ctx *cli.Context, cfg *dot.RPCConfig) {
 	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
 		cfg.Enabled = true
 	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
-		cfg.WSEnabled = false
+		cfg.Enabled = false
 	}
 
 	// check --rpcport flag and update node configuration
