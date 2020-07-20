@@ -73,18 +73,6 @@ func newTestSyncer(t *testing.T, cfg *Config) *Service {
 		cfg.BlockState = stateSrvc.Block
 	}
 
-	// if cfg.BlockNumIn == nil {
-	// 	cfg.BlockNumIn = make(chan *big.Int)
-	// }
-
-	// if cfg.RespIn == nil {
-	// 	cfg.RespIn = make(chan *network.BlockResponseMessage)
-	// }
-
-	// if cfg.MsgOut == nil {
-	// 	cfg.MsgOut = make(chan network.Message)
-	// }
-
 	if cfg.Runtime == nil {
 		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
 	}

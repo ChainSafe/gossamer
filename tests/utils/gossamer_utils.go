@@ -160,7 +160,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 	multiWriter := io.MultiWriter(f, os.Stdout)
 
 	node.Process.Stdout = multiWriter
-	//node.Process.Stderr = multiWriter
+	node.Process.Stderr = multiWriter
 
 	logger.Info("starting gossamer...", "cmd", node.Process)
 	err = node.Process.Start()

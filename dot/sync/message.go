@@ -27,18 +27,6 @@ import (
 
 var maxResponseSize int64 = 12 // maximum number of block datas to reply with in a BlockResponse message.
 
-// // ProcessBlockRequestMessage processes a block request message, returning a block response message
-// func (s *Service) ProcessBlockRequestMessage(msg *network.BlockRequestMessage) error {
-// 	s.logger.Debug("received BlockRequestMessage")
-
-// 	res, err := s.createBlockResponse(msg)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return s.safeMsgSend(res)
-// }
-
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var startHash common.Hash
@@ -136,78 +124,4 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		ID:        blockRequest.ID,
 		BlockData: responseData,
 	}, nil
-}
-
-// // ProcessBlockResponseMessage attempts to validate and add the block to the
-// // chain by calling `core_execute_block`. Valid blocks are stored in the block
-// // database to become part of the canonical chain.
-// func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) error {
-// 	s.logger.Debug("received BlockResponseMessage")
-
-// 	// send block response message to syncer
-// 	s.respOut <- msg
-
-// 	// check if we need to update the runtime
-// 	err := s.checkForRuntimeChanges()
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// HandleBlockAnnounce creates a block request message from the block
-// announce messages (block announce messages include the header but the full
-// block is required to execute `core_execute_block`).
-func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
-	s.logger.Debug("received BlockAnnounceMessage")
-
-	// create header from message
-	header, err := types.NewHeader(
-		msg.ParentHash,
-		msg.Number,
-		msg.StateRoot,
-		msg.ExtrinsicsRoot,
-		msg.Digest,
-	)
-	if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
-		return nil
-	}
-
-	// check if block header is stored in block state
-	has, err := s.blockState.HasHeader(header.Hash())
-	if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
-	}
-
-	// save block header if we don't have it already
-	if !has {
-		err = s.blockState.SetHeader(header)
-		if err != nil {
-			s.logger.Error("failed to handle BlockAnnounce", "error", err)
-		}
-		s.logger.Debug(
-			"saved block header to block state",
-			"number", header.Number,
-			"hash", header.Hash(),
-		)
-	}
-
-	// check if block body is stored in block state (ie. if we have the full block already)
-	_, err = s.blockState.GetBlockBody(header.Hash())
-	if err != nil && err.Error() == "Key not found" {
-		s.logger.Debug(
-			"sending block number to syncer",
-			"number", msg.Number,
-		)
-
-		// create block request to send
-		s.requestStart = header.Number.Int64()
-		return s.createBlockRequest()
-	} else if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
-	}
-
-	return nil
 }

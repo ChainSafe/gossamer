@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+// BlockState is the interface for the block state
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockNumber() (*big.Int, error)
@@ -54,6 +55,7 @@ type BlockProducer interface {
 	Resume() error
 }
 
+// DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
 	Start()
 	Stop()

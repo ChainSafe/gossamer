@@ -93,10 +93,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errors.New("MsgSend is nil")
 	}
 
-	// if cfg.SyncChan == nil {
-	// 	return nil, errors.New("SyncChan is nil")
-	// }
-
 	if cfg.Syncer == nil {
 		return nil, errors.New("cannot have nil Syncer")
 	}
@@ -223,11 +219,6 @@ func (s *Service) receiveCoreMessages() {
 			s.logger.Warn("Received nil message from core service")
 			return // exit
 		}
-
-		// // if block request message, add block id to requestTracker's requestedBlockIds
-		// if msg.GetType() == BlockRequestMsgType {
-		// 	s.requestTracker.addRequestedBlockID(msg.(*BlockRequestMessage).ID)
-		// }
 
 		s.logger.Debug(
 			"Broadcasting message from core service",

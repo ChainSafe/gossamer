@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	//"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -66,16 +65,6 @@ func (bp *mockBlockProducer) Start() error {
 func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
-
-// // Pause mocks pausing
-// func (bp *mockBlockProducer) Pause() error {
-// 	return nil
-// }
-
-// // Resume mocks resuming
-// func (bp *mockBlockProducer) Resume() error {
-// 	return nil
-// }
 
 func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
 	return bp.auths
@@ -192,11 +181,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.MsgSend = make(chan network.Message, 10)
 	}
 
-	// if cfg.SyncChan == nil {
-	// 	cfg.SyncChan = make(chan *big.Int, 10)
-	// }
-
-	//cfg.Verifier = &mockVerifier{}
 	cfg.LogLvl = 3
 
 	stateSrvc := state.NewService("", log.LvlInfo)

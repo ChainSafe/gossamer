@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	//"math/big"
 	"path"
 	"strconv"
 	"strings"
@@ -91,8 +90,6 @@ type Config struct {
 	MsgRec <-chan Message
 	// MsgSend is the message channel from the network service to the core service
 	MsgSend chan<- Message
-	// SyncChan is the channel for syncing
-	//SyncChan chan<- *big.Int
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey

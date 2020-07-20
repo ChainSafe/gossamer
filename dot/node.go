@@ -246,7 +246,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	///nodeSrvcs = append(nodeSrvcs, syncSrvc)
 
 	// Core Service
 

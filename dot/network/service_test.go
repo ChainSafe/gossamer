@@ -190,7 +190,6 @@ func TestBroadcastMessages(t *testing.T) {
 }
 
 func TestHandleMessage_BlockAnnounce(t *testing.T) {
-	t.Skip()
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -212,27 +211,11 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 
 	peerID := peer.ID("noot")
 	msg := &BlockAnnounceMessage{
-		Number: big.NewInt(1),
+		Number: big.NewInt(10),
 	}
 
 	s.handleMessage(peerID, msg)
-
-	expected := &BlockRequestMessage{
-		ID: 99,
-	}
-
-	select {
-	case recv := <-msgSend:
-		if !reflect.DeepEqual(recv, expected) {
-			t.Error(
-				"node B received unexpected message",
-				"\nexpected:", expected,
-				"\nreceived:", recv,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("timeout waiting for message")
-	}
+	require.True(t, s.requestTracker.hasRequestedBlockID(99))
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {

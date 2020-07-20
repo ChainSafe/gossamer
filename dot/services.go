@@ -198,8 +198,6 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, rt
 		MsgSend:                 coreMsgs,    // message channel from core service to network service
 		IsBlockProducer:         cfg.Core.BabeAuthority,
 		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
-		//SyncChan:                syncChan,
-		//BabeThreshold: threshold,
 	}
 
 	// create new core service

@@ -24,8 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	//"github.com/ChainSafe/gossamer/lib/common/optional"
-	//"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -36,9 +34,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// BlockAnnounceMessage 3
-
-// tests the ProcessBlockAnnounceMessage method
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
 	msgSend := make(chan network.Message)
@@ -82,9 +77,6 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	}
 }
 
-// TransactionMessage 4
-
-// tests the ProcessTransactionMessage method
 func TestService_ProcessTransactionMessage(t *testing.T) {
 	// this currently fails due to not being able to call validate_transaction
 
