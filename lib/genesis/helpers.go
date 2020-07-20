@@ -17,7 +17,6 @@
 package genesis
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -31,7 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/OneOfOne/xxhash"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
@@ -146,7 +144,7 @@ func formatKey(key []string) string {
 		}
 		fKey = strings.Trim(fKey, " ")
 		fKey = strings.Title(fKey)
-		kb := twoxHash([]byte(fKey))
+		kb := common.TwoxHash128([]byte(fKey))
 		return common.BytesToHex(kb)
 	}
 }
@@ -213,29 +211,4 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	}
 
 	return header, nil
-}
-
-func twoxHash(msg []byte) []byte {
-	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array
-	h0 := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err := h0.Write(msg[0:])
-	if err != nil {
-		return nil
-	}
-	res0 := h0.Sum64()
-	hash0 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash0, res0)
-
-	h1 := xxhash.NewS64(1) // create xxHash with 1 seed
-	_, err = h1.Write(msg[0:])
-	if err != nil {
-		return nil
-	}
-	res1 := h1.Sum64()
-	hash1 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash1, res1)
-
-	//concatenated result
-	both := append(hash0, hash1...)
-	return both
 }

@@ -209,7 +209,7 @@ func TestLoadTrie(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		valueBytes, err = common.HexToBytes(fmt.Sprintf("%v", value))
+		valueBytes, err = common.HexToBytes(value)
 		if err != nil {
 			t.Fatal(err)
 		}
