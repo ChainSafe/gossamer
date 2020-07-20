@@ -352,7 +352,10 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
-			s.host.send(peer, syncID, req)
+			err := s.host.send(peer, syncID, req)
+			if err != nil {
+				s.logger.Error("failed to send BlockRequest message", "peer", peer)
+			}
 		}
 	}
 
@@ -364,7 +367,10 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 			return
 		}
 
-		s.host.send(peer, syncID, resp)
+		err = s.host.send(peer, syncID, resp)
+		if err != nil {
+			s.logger.Error("failed to send BlockResponse message", "peer", peer)
+		}
 	}
 }
 
@@ -385,7 +391,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 				req := s.syncer.HandleBlockAnnounce(an)
 				if req != nil {
 					s.requestTracker.addRequestedBlockID(req.ID)
-					s.host.send(peer, syncID, req)
+					err := s.host.send(peer, syncID, req)
+					if err != nil {
+						s.logger.Error("failed to send BlockRequest message", "peer", peer)
+					}
 				}
 			} else {
 				err := s.safeMsgSend(msg)
@@ -414,10 +423,13 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			if s.status.confirmed(peer) {
 
 				// send a block request message if peer best block number is greater than host best block number
-				req := s.handleStatusMesssage(peer, msg.(*StatusMessage))
+				req := s.handleStatusMesssage(msg.(*StatusMessage))
 				if req != nil {
 					s.requestTracker.addRequestedBlockID(req.ID)
-					s.host.send(peer, syncID, req)
+					err := s.host.send(peer, syncID, req)
+					if err != nil {
+						s.logger.Error("failed to send BlockRequest message", "peer", peer)
+					}
 				}
 			}
 		}
@@ -426,7 +438,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 
 // handleStatusMesssage returns a block request message if peer best block
 // number is greater than host best block number
-func (s *Service) handleStatusMesssage(peer peer.ID, statusMessage *StatusMessage) *BlockRequestMessage {
+func (s *Service) handleStatusMesssage(statusMessage *StatusMessage) *BlockRequestMessage {
 	// get latest block header from block state
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {

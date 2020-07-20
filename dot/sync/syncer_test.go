@@ -42,7 +42,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var maxRetries = 8
+var maxRetries = 8 //nolint
 
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
@@ -352,7 +352,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.Equal(t, int64(0), res)
 }
 
-func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service {
+func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service { //nolint
 	if cfg.Runtime == nil {
 		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
 	}

@@ -34,7 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var maxRetries = 12
+//var maxRetries = 12
 
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
@@ -50,11 +50,11 @@ type mockBlockProducer struct {
 	auths []*types.BABEAuthorityData
 }
 
-func newMockBlockProducer() *mockBlockProducer {
-	return &mockBlockProducer{
-		auths: []*types.BABEAuthorityData{},
-	}
-}
+// func newMockBlockProducer() *mockBlockProducer {
+// 	return &mockBlockProducer{
+// 		auths: []*types.BABEAuthorityData{},
+// 	}
+// }
 
 // Start mocks starting
 func (bp *mockBlockProducer) Start() error {

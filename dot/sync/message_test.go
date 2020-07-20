@@ -12,12 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.Nil(t, err)
-
-	headers := []*types.Header{}
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
@@ -33,10 +31,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*typ
 
 		err := blockState.AddBlock(block)
 		require.Nil(t, err)
-		headers = append(headers, block.Header)
 	}
-
-	return headers
 }
 
 // tests the ProcessBlockRequestMessage method

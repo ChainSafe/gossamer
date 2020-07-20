@@ -18,7 +18,6 @@ package dot
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -43,7 +42,6 @@ var logger = log.New("pkg", "dot")
 type Node struct {
 	Name     string
 	Services *services.ServiceRegistry // registry of all node services
-	syncChan chan *big.Int
 	wg       sync.WaitGroup
 }
 

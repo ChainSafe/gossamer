@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+// DigestHandler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
 type DigestHandler struct {
 	// interfaces
 	blockState          BlockState
@@ -74,6 +75,7 @@ type resume struct {
 	atBlock *big.Int
 }
 
+// NewDigestHandler returns a new DigestHandler
 func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa FinalityGadget) (*DigestHandler, error) {
 	imported := make(chan *types.Block)
 	finalized := make(chan *types.Header)
@@ -104,12 +106,14 @@ func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa Finalit
 	}, nil
 }
 
+// Start starts the DigestHandler
 func (h *DigestHandler) Start() {
 	go h.handleBlockImport()
 	go h.handleBlockFinalization()
 	h.stopped = false
 }
 
+// Stop stops the DigestHandler
 func (h *DigestHandler) Stop() {
 	h.stopped = true
 	h.blockState.UnregisterImportedChannel(h.importedID)

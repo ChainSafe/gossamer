@@ -34,8 +34,6 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-var responseTimeout = 6 * time.Second
-
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
 	logger log.Logger
@@ -105,6 +103,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
+// HandleSeenBlocks handles a block that is newly "seen" ie. a block that a peer claims to have through a StatusMessage
 func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessage {
 	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
 		return nil
@@ -184,6 +183,8 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 	return nil
 }
 
+// HandleBlockResponse handles a BlockResponseMessage by processing the blocks found in it and adding them to the BlockState if necessary.
+// If the node is still not synced after processing, it creates and returns the next BlockRequestMessage to send.
 func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
