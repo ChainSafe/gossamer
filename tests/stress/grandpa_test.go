@@ -17,7 +17,6 @@
 package stress
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -93,7 +92,6 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	numNodes = 9
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogNone)
 	require.NoError(t, err)
-	nodes = append(nodes, node)
 
 	defer func() {
 		errList := utils.TearDown(t, nodes)
