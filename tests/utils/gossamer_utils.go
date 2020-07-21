@@ -129,7 +129,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
-			"--log", "crit",
+			"--log", "info",
 		)
 	} else {
 		key = keyList[node.Idx]
@@ -144,7 +144,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "crit",
+			"--log", "info",
 		)
 	}
 
@@ -351,4 +351,9 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 	}
 
 	return errorList
+}
+
+// TestDir returns the test directory path <current-directory>/test_data/<test-name>/<name>
+func TestDir(t *testing.T, name string) string {
+	return filepath.Join(currentDir, "../test_data/", t.Name(), name)
 }
