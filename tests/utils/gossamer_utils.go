@@ -165,8 +165,8 @@ func StartGossamer(t *testing.T, node *Node) error {
 	}
 
 	t.Cleanup(func() {
-		outfile.Close()
-		errfile.Close()
+		outfile.Close() //nolint
+		errfile.Close() //nolint
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
@@ -189,9 +189,9 @@ func StartGossamer(t *testing.T, node *Node) error {
 	}
 
 	writer := bufio.NewWriter(outfile)
-	go io.Copy(writer, stdoutPipe)
+	go io.Copy(writer, stdoutPipe) //nolint
 	errWriter := bufio.NewWriter(errfile)
-	go io.Copy(errWriter, stderrPipe)
+	go io.Copy(errWriter, stderrPipe) //nolint
 
 	logger.Debug("wait few secs for node to come up", "cmd.Process.Pid", node.Process.Process.Pid)
 	var started bool
