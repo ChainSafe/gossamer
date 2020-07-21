@@ -380,8 +380,13 @@ func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, fg core
 
 	logger.Info("verifier", "threshold", threshold)
 
+	lvl, err := log.LvlFromString(cfg.Log.SyncLvl)
+	if err != nil {
+		return nil, err
+	}
+
 	syncCfg := &sync.Config{
-		Logger:           logger,
+		LogLvl:           lvl,
 		BlockState:       st.Block,
 		TransactionQueue: st.TransactionQueue,
 		BlockProducer:    bp,

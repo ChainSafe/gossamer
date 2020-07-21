@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
-	"os"
 	"testing"
 	"time"
 
@@ -58,16 +57,13 @@ func newTestSyncer(t *testing.T, cfg *Config) *Service {
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
-
 	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = stateSrvc.Block
@@ -85,18 +81,12 @@ func newTestSyncer(t *testing.T, cfg *Config) *Service {
 		cfg.Verifier = &mockVerifier{}
 	}
 
-	if cfg.Logger == nil {
-		cfg.Logger = log.New("pkg", "sync")
+	if cfg.LogLvl == 0 {
+		cfg.LogLvl = log.LvlInfo
 	}
-
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	cfg.Logger.SetHandler(log.LvlFilterHandler(4, h))
 
 	syncer, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	return syncer
 }
 
@@ -105,18 +95,9 @@ func TestHandleSeenBlocks(t *testing.T) {
 	number := big.NewInt(12)
 	req := syncer.HandleSeenBlocks(number)
 	require.NotNil(t, req)
-
-	if req.StartingBlock.Value().(uint64) != 1 {
-		t.Fatalf("Fail: got %d expected %d", req.StartingBlock.Value(), 1)
-	}
-
-	if syncer.requestStart != 1 {
-		t.Fatalf("Fail: got %d expected %d", syncer.requestStart, 1)
-	}
-
-	if syncer.highestSeenBlock.Cmp(number) != 0 {
-		t.Fatalf("Fail: highestSeenBlock=%d expected %d", syncer.highestSeenBlock, number)
-	}
+	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
+	require.Equal(t, int64(1), syncer.requestStart)
+	require.Equal(t, number, syncer.highestSeenBlock)
 }
 
 func TestHandleSeenBlocks_NotHighestSeen(t *testing.T) {
@@ -210,9 +191,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer.requestStart = int64(startNum)
 
 	start, err := variadic.NewUint64OrHash(startNum)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
 		ID:            1,
@@ -242,9 +221,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 
 	exts := []types.Extrinsic{ext}
 	body, err := types.NewBodyFromExtrinsics(exts)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	bd := &types.BlockData{
 		Body: body.AsOptional(),
@@ -255,15 +232,10 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	}
 
 	_, err = syncer.processBlockResponseData(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	inQueue := syncer.transactionQueue.Pop()
-	if inQueue != nil {
-		t.Log(inQueue)
-		t.Fatal("Fail: queue should be empty")
-	}
+	require.Nil(t, inQueue, "queue should be empty")
 }
 
 func TestCoreExecuteBlockData_bytes(t *testing.T) {

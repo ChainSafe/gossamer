@@ -41,7 +41,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 
 	bestHash := s.blockState.BestBlockHash()
 	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// set some nils and check no error is thrown
 	bds := &types.BlockData{
@@ -52,7 +52,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		Justification: nil,
 	}
 	err = s.blockState.CompareAndSetBlockData(bds)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// set receipt message and justification
 	bds = &types.BlockData{
@@ -64,15 +64,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 
 	endHash := s.blockState.BestBlockHash()
 	start, err := variadic.NewUint64OrHash(uint64(1))
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = s.blockState.CompareAndSetBlockData(bds)
+	require.NoError(t, err)
 
-	require.Nil(t, err)
-
-	testsCases := []struct {
+	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
 		expectedMsgType  int
@@ -193,9 +190,8 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		},
 	}
 
-	for _, test := range testsCases {
+	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-
 			resp, err := s.CreateBlockResponse(test.value)
 			require.NoError(t, err)
 			require.Equal(t, test.expectedMsgValue.ID, resp.ID)

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math/big"
 	mrand "math/rand"
+	"os"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -61,7 +62,7 @@ type Service struct {
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	Logger           log.Logger
+	LogLvl           log.Lvl
 	BlockState       BlockState
 	BlockProducer    BlockProducer
 	TransactionQueue TransactionQueue
@@ -88,8 +89,12 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.BlockProducer = newMockBlockProducer()
 	}
 
+	logger := log.New("pkg", "sync")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+
 	return &Service{
-		logger:           cfg.Logger.New("module", "sync"),
+		logger:           logger,
 		blockState:       cfg.BlockState,
 		blockProducer:    cfg.BlockProducer,
 		synced:           true,
@@ -99,7 +104,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		benchmarker:      newBenchmarker(cfg.Logger),
+		benchmarker:      newBenchmarker(logger),
 	}, nil
 }
 
