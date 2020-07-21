@@ -138,7 +138,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numCmps := 30
+	numCmps := 100
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))

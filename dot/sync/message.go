@@ -53,7 +53,9 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	s.logger.Debug("BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+	startHeader, _ := s.blockState.GetHeader(startHash)
+	endHeader, _ := s.blockState.GetHeader(endHash)
+	s.logger.Debug("BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
 	subchain, err := s.blockState.SubChain(startHash, endHash)
