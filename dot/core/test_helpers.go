@@ -34,8 +34,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//var maxRetries = 12
-
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
 
