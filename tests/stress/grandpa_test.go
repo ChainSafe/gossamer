@@ -90,7 +90,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	}
 
 	numNodes = 9
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogNone)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
 	defer func() {
