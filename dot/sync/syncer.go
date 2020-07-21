@@ -131,7 +131,6 @@ func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessa
 	}
 
 	s.highestSeenBlock = blockNum
-	s.benchmarker.begin(uint64(start))
 	return s.createBlockRequest(start)
 }
 
@@ -176,10 +175,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 	// check if block body is stored in block state (ie. if we have the full block already)
 	_, err = s.blockState.GetBlockBody(header.Hash())
 	if err != nil && err.Error() == "Key not found" {
-		s.logger.Debug(
-			"sending block number to syncer",
-			"number", msg.Number,
-		)
+		s.synced = false
 
 		// create block request to send
 		bestNum, err := s.blockState.BestBlockNumber()
@@ -190,10 +186,10 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 
 		// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
 		start := int64(1)
-		if bestNum.Cmp(header.Number) >= 0 {
+		if bestNum.Cmp(header.Number) > 0 {
 			start = header.Number.Int64()
 		} else {
-			start = bestNum.Int64()
+			start = bestNum.Int64() + 1
 		}
 
 		return s.createBlockRequest(start)
@@ -211,18 +207,20 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	// it's set to 0 if err != nil
 	start := int64(1)
 	low, high, err := s.processBlockResponseData(msg)
-	s.logger.Trace("HandleBlockResponse", "low", low, "high", high)
+	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
 	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 	// blocks from farther back in the chain
 	if err == blocktree.ErrParentNotFound {
+		s.logger.Debug("got ErrParentNotFound; need to request earlier blocks")
 		bestNum, err := s.blockState.BestBlockNumber()
 		if err != nil {
 			s.logger.Error("failed to get best block number", "error", err)
-			bestNum = big.NewInt(0)
+			start = low - maxResponseSize
+		} else {
+			start = bestNum.Int64() + 1
 		}
 
-		start = bestNum.Int64() + 1
 		s.logger.Debug("retrying block request", "start", start)
 		return s.createBlockRequest(start)
 	} else if err != nil {
@@ -269,7 +267,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		return nil
 	}
 
-	s.logger.Trace("sending block request", "start", start)
+	s.logger.Debug("sending block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
@@ -280,6 +278,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		Max:           optional.NewUint32(false, 0),
 	}
 
+	s.benchmarker.begin(uint64(startInt))
 	return blockRequest
 }
 
