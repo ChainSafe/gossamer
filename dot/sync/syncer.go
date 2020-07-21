@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"golang.org/x/exp/rand"
 )
@@ -47,8 +48,7 @@ type Service struct {
 	blockProducer    BlockProducer
 
 	// Synchronization variables
-	synced bool
-	//requestStart     int64    // block number from which to begin block requests
+	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
 	runtime          *runtime.Runtime
 
@@ -96,11 +96,10 @@ func NewService(cfg *Config) (*Service, error) {
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	return &Service{
-		logger:        logger,
-		blockState:    cfg.BlockState,
-		blockProducer: cfg.BlockProducer,
-		synced:        true,
-		//requestStart:     1,
+		logger:           logger,
+		blockState:       cfg.BlockState,
+		blockProducer:    cfg.BlockProducer,
+		synced:           true,
 		highestSeenBlock: big.NewInt(0),
 		transactionQueue: cfg.TransactionQueue,
 		runtime:          cfg.Runtime,
@@ -117,7 +116,7 @@ func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessa
 	}
 
 	// need to sync
-	start := int64(1)
+	var start int64
 	if s.synced {
 		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
 		s.synced = false
@@ -174,18 +173,18 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 
 	// check if block body is stored in block state (ie. if we have the full block already)
 	_, err = s.blockState.GetBlockBody(header.Hash())
-	if err != nil && err.Error() == "Key not found" {
+	if err != nil && err == chaindb.ErrKeyNotFound {
 		s.synced = false
 
 		// create block request to send
-		bestNum, err := s.blockState.BestBlockNumber()
+		bestNum, err := s.blockState.BestBlockNumber() //nolint
 		if err != nil {
 			s.logger.Error("failed to get best block number", "error", err)
 			bestNum = big.NewInt(0)
 		}
 
 		// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
-		start := int64(1)
+		var start int64
 		if bestNum.Cmp(header.Number) > 0 {
 			start = header.Number.Int64()
 		} else {
@@ -205,7 +204,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
-	start := int64(1)
+	var start int64
 	low, high, err := s.processBlockResponseData(msg)
 	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
@@ -213,7 +212,7 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	// blocks from farther back in the chain
 	if err == blocktree.ErrParentNotFound {
 		s.logger.Debug("got ErrParentNotFound; need to request earlier blocks")
-		bestNum, err := s.blockState.BestBlockNumber()
+		bestNum, err := s.blockState.BestBlockNumber() //nolint
 		if err != nil {
 			s.logger.Error("failed to get best block number", "error", err)
 			start = low - maxResponseSize
