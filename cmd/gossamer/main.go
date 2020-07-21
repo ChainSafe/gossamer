@@ -52,8 +52,8 @@ var (
 		ArgsUsage: "",
 		Flags:     InitFlags,
 		Category:  "INIT",
-		Description: "The init command initializes the node databases and loads the genesis data from the genesis configuration file to state.\n" +
-			"\tUsage: gossamer init --genesis genesis.json",
+		Description: "The init command initializes the node databases and loads the genesis data from the raw genesis configuration file to state.\n" +
+			"\tUsage: gossamer init --genesis-raw genesis.json",
 	}
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
 	accountCommand = cli.Command{
@@ -69,6 +69,18 @@ var (
 			"\tTo import a keystore file: gossamer account --import=path/to/file\n" +
 			"\tTo list keys: gossamer account --list",
 	}
+	// initCommand defines the "init" subcommand (ie, `gossamer init`)
+	buildSpecCommand = cli.Command{
+		Action:    FixFlagOrder(buildSpecAction),
+		Name:      "build-spec",
+		Usage:     "Generates genesis JSON data, and can convert to raw genesis data",
+		ArgsUsage: "",
+		Flags:     BuildSpecFlags,
+		Category:  "BUILD-SPEC",
+		Description: "The build-spec command outputs current genesis JSON data.\n" +
+			"\tUsage: gossamer build-spec\n" +
+			"\tTo generate raw genesis file: gossamer build-spec --raw",
+	}
 )
 
 // init initializes the cli application
@@ -83,6 +95,7 @@ func init() {
 		exportCommand,
 		initCommand,
 		accountCommand,
+		buildSpecCommand,
 	}
 	app.Flags = RootFlags
 }
@@ -222,5 +235,30 @@ func initAction(ctx *cli.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func buildSpecAction(ctx *cli.Context) error {
+	lvl, err := setupLogger(ctx)
+	if err != nil {
+		logger.Error("failed to setup logger", "error", err)
+		return err
+	}
+
+	// todo determine if this needs full config
+	cfg, err := createInitConfig(ctx)
+	if err != nil {
+		logger.Error("failed to create node configuration", "error", err)
+		return err
+	}
+
+	cfg.Global.LogLevel = lvl.String()
+
+	// expand data directory and update node configuration (performed separately
+	// from createDotConfig because dot config should not include expanded path)
+	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
+
+	//ni := dot.BuildSpec(cfg.Global.BasePath)
+	fmt.Printf("BUILD SPEC \n")
 	return nil
 }

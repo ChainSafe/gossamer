@@ -82,10 +82,13 @@ var (
 		Name:  "genesis-raw",
 		Usage: "Path to raw genesis JSON file",
 	}
-	// GenesisFlag path to human-readable genesis.json
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
-		Usage: "Path to human-readable genesis JSON file",
+)
+
+// BuildSpec-only flags
+var (
+	RawFlag = cli.BoolFlag{
+		Name:  "raw",
+		Usage: "Output as raw genesis JSON",
 	}
 )
 
@@ -238,7 +241,10 @@ var (
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
 		GenesisRawFlag,
-		GenesisFlag,
+	}, GlobalFlags...)
+
+	BuildSpecFlags = append([]cli.Flag{
+		RawFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand

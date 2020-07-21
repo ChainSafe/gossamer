@@ -130,11 +130,7 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	}
 
 	// set init configuration values
-	err = setDotInitConfig(ctx, &cfg.Init)
-	if err != nil {
-		logger.Error("failed to build configuration for init", "error", err)
-		return nil, err
-	}
+	setDotInitConfig(ctx, &cfg.Init)
 
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
@@ -160,11 +156,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set init configuration values
-	err = setDotInitConfig(ctx, &cfg.Init)
-	if err != nil {
-		logger.Error("failed to build configuration for init", "error", err)
-		return nil, err
-	}
+	setDotInitConfig(ctx, &cfg.Init)
 
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSONRaw(ctx, cfg)
@@ -236,27 +228,24 @@ func setLogConfig(ctx *cli.Context, globalCfg *dot.GlobalConfig, logCfg *dot.Log
 }
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context
-func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) error {
-	if ctx.String(GenesisRawFlag.Name) != "" && ctx.String(GenesisFlag.Name) != "" {
-		return fmt.Errorf("error can't have both genesis and genesis-raw set")
-	}
+func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
+	//if ctx.String(GenesisRawFlag.Name) != "" && ctx.String(GenesisFlag.Name) != "" {
+	//	return fmt.Errorf("error can't have both genesis and genesis-raw set")
+	//}
 	// check --genesis-raw flag and update init configuration
 	if genesis := ctx.String(GenesisRawFlag.Name); genesis != "" {
 		cfg.GenesisRaw = genesis
-		cfg.Genesis = ""
 	}
 
-	// check --genesis flag
-	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-		cfg.Genesis = genesis
-		cfg.GenesisRaw = ""
-	}
+	//// check --genesis flag
+	//if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+	//	cfg.Genesis = genesis
+	//	cfg.GenesisRaw = ""
+	//}
 	logger.Debug(
 		"init configuration",
 		"genesis-raw", cfg.GenesisRaw,
-		"genesis", cfg.Genesis,
 	)
-	return nil
 }
 
 // setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
