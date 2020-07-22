@@ -17,6 +17,7 @@ package dot
 
 import (
 	"encoding/json"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -24,39 +25,40 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// BuildSpec object for working with building genesis JSON files
 type BuildSpec struct {
 	genesis *genesis.Genesis
 }
 
-func MakeBuildSpec() *BuildSpec {
-	return &BuildSpec{}
-}
-
+// ToJSON outputs genesis JSON in human-readable form
 func (b *BuildSpec) ToJSON() ([]byte, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       b.genesis.Name,
 		ID:         b.genesis.ID,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
-		Genesis:    genesis.Fields{
+		Genesis: genesis.Fields{
 			Runtime: b.genesis.GenesisFields().Runtime,
 		},
 	}
 	return json.MarshalIndent(tmpGen, "", "    ")
 }
 
+// ToJSONRaw outputs genesis JSON in raw form
 func (b *BuildSpec) ToJSONRaw() ([]byte, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       b.genesis.Name,
 		ID:         b.genesis.ID,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
-		Genesis:    genesis.Fields{
+		Genesis: genesis.Fields{
 			Raw: b.genesis.GenesisFields().Raw,
 		},
 	}
 	return json.MarshalIndent(tmpGen, "", "    ")
 }
+
+// BuildFromGenesis builds a BuildSpec based on the human-readable genesis file at path
 func BuildFromGenesis(path string) (*BuildSpec, error) {
 	gen, err := genesis.NewGenesisFromJSON(path)
 	if err != nil {
@@ -68,13 +70,14 @@ func BuildFromGenesis(path string) (*BuildSpec, error) {
 	return bs, nil
 }
 
+// BuildFromDB builds a BuildSpec from the DB located at path
 func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       "",
 		ID:         "",
 		Bootnodes:  nil,
 		ProtocolID: "",
-		Genesis:    genesis.Fields{
+		Genesis: genesis.Fields{
 			Runtime: nil,
 		},
 	}
@@ -89,13 +92,18 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		return nil, err
 	}
 
-
+	// set genesis fields data
 	ent := stateSrvc.Storage.Entries()
-	genesis.BuildFromMap(ent, tmpGen)
+	err = genesis.BuildFromMap(ent, tmpGen)
+	if err != nil {
+		return nil, err
+	}
 
 	// set genesisData
 	gd, err := stateSrvc.DB().Get(common.GenesisDataKey)
-
+	if err != nil {
+		return nil, err
+	}
 	gData, err := scale.Decode(gd, &genesis.Data{})
 	if err != nil {
 		return nil, err
@@ -105,10 +113,9 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	// todo figure out how to assign bootnodes
 	//tmpGen.Bootnodes = gData.(*genesis.Data).Bootnodes
 	tmpGen.ProtocolID = gData.(*genesis.Data).ProtocolID
-	
+
 	bs := &BuildSpec{
 		genesis: tmpGen,
 	}
 	return bs, nil
 }
-

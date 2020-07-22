@@ -20,6 +20,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"path/filepath"
+	"reflect"
+	"strings"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -27,11 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
-	"reflect"
-	"strings"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
@@ -215,7 +216,8 @@ func formatValue(kv *keyValue) (string, error) {
 	}
 }
 
-func BuildFromMap(m map[string][]byte, gen *Genesis) {
+// BuildFromMap builds genesis fields data from map
+func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 	for k, v := range m {
 		key := fmt.Sprintf("0x%x", k)
 		switch key {
@@ -227,14 +229,21 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) {
 		case "0x3a6772616e6470615f617574686f726974696573":
 			// handle :grandpa_authorities
 			//  slice value since it was encoded starting with 0x01
-			addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
+			err := addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
+			if err != nil {
+				return err
+			}
 			addRawValue(key, v, gen)
 		case "0x886726f904d8372fdabb7707870c2fad":
 			// handle Babe Authorities
-			addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
+			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
+			if err != nil {
+				return err
+			}
 			addRawValue(key, v, gen)
 		}
 	}
+	return nil
 }
 
 func addRawValue(key string, value []byte, gen *Genesis) {
@@ -266,6 +275,9 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 	}
 
 	alen, err := sd.DecodeInteger()
+	if err != nil {
+		return err
+	}
 	for i := 0; i < int(alen); i++ {
 		auth := []interface{}{}
 		buf := make([]byte, 32)

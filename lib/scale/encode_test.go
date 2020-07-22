@@ -131,12 +131,7 @@ var encodeTests = []encodeTest{
 	{val: []bool{true, false, true}, output: []byte{0x0c, 0x01, 0x00, 0x01}, bytesEncoded: 4},
 	{val: [][]int{{0, 1}, {1, 0}}, output: []byte{0x08, 0x08, 0x00, 0x04, 0x08, 0x04, 0x00}, bytesEncoded: 7},
 	{val: []*big.Int{big.NewInt(0), big.NewInt(1)}, output: []byte{0x08, 0x00, 0x04}, bytesEncoded: 3},
-	{val: []*av{{A: [32]byte{1, 2}, V: 2}, {A: [32]byte{3, 4}, V: 6}}, output: []byte{0x08, 0x00, 0x04}, bytesEncoded: 3},
 	{val: [][]byte{{0x00, 0x01}, {0x01, 0x00}}, output: []byte{0x08, 0x08, 0x00, 0x01, 0x08, 0x01, 0x00}, bytesEncoded: 7},
-}
-type av struct {
-	A [32]byte
-	V uint64
 }
 
 // Test strings for various values of n & mode. Also test strings with special characters

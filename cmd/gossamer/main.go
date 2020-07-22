@@ -240,32 +240,34 @@ func initAction(ctx *cli.Context) error {
 
 func buildSpecAction(ctx *cli.Context) error {
 	// set logger to critical, so output only contains genesis data
-	ctx.Set("log", "crit")
-	_, err := setupLogger(ctx)
+	err := ctx.Set("log", "crit")
 	if err != nil {
-		logger.Error("failed to setup logger", "error", err)
+		return err
+	}
+	_, err = setupLogger(ctx)
+	if err != nil {
 		return err
 	}
 
 	var bs *dot.BuildSpec
 	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-		bspec, err := dot.BuildFromGenesis(genesis)
-		if err != nil {
-			return err
+		bspec, e := dot.BuildFromGenesis(genesis)
+		if e != nil {
+			return e
 		}
 		bs = bspec
 	} else {
-		cfg, err := createBuildSpecConfig(ctx)
-		if err != nil {
-			return err
+		cfg, e := createBuildSpecConfig(ctx)
+		if e != nil {
+			return e
 		}
 		// expand data directory and update node configuration (performed separately
 		// from createDotConfig because dot config should not include expanded path)
 		cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 
-		bspec, err := dot.BuildFromDB(cfg.Global.BasePath)
-		if err != nil {
-			return err
+		bspec, e := dot.BuildFromDB(cfg.Global.BasePath)
+		if e != nil {
+			return e
 		}
 		bs = bspec
 	}
@@ -274,8 +276,7 @@ func buildSpecAction(ctx *cli.Context) error {
 		return fmt.Errorf("error building genesis")
 	}
 
-	res := []byte{}
-	//var err error
+	res := []byte{}  //nolint
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {
