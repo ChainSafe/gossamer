@@ -295,15 +295,11 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-
-	// // create buffer stream for non-blocking read
-	// r := bufio.NewReader(stream)
-
 	s.readStream(stream, peer, s.handleSyncMessage)
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) readStream(stream libp2pnetwork.Stream/*r *bufio.Reader*/, peer peer.ID, handler func(peer peer.ID, msg Message)) {
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
@@ -325,8 +321,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream/*r *bufio.Reader*/, pee
 
 		if uint64(n) != length {
 			s.logger.Error("Failed to read entire message", "length", length, "read", n)
-			// _ = stream.Close()
-			// return
 			continue
 		}
 
@@ -334,8 +328,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream/*r *bufio.Reader*/, pee
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
 			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
-			// _ = stream.Close()
-			// return
 			continue
 		}
 
