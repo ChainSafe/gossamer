@@ -23,6 +23,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"io/ioutil"
@@ -215,20 +217,31 @@ func formatValue(kv *keyValue) (string, error) {
 
 func BuildFromMap(m map[string][]byte, gen *Genesis) {
 	for k, v := range m {
-		fmt.Printf("key %x vL %v\n", k, len(v))
-		switch fmt.Sprintf("%x", k) {
+		key := fmt.Sprintf("0x%x", k)
+		switch key {
 
-		case "3a636f6465":
+		case "0x3a636f6465":
 			// handle :code
 			addCodeValue(v, gen)
-		case "3a6772616e6470615f617574686f726974696573":
-			// handle grandpa  Authorities
-			//addGrandpaAuthoritiesValue(v, gen)
-		case "886726f904d8372fdabb7707870c2fad":
-			// handle babe authorities
-			addBabeAuthoritiesValues(v, gen)
+			addRawValue(key, v, gen)
+		case "0x3a6772616e6470615f617574686f726974696573":
+			// handle :grandpa_authorities
+			//  slice value since it was encoded starting with 0x01
+			addAuthoritiesValues("grandpa", "authorities", crypto.Ed25519Type, v[1:], gen)
+			addRawValue(key, v, gen)
+		case "0x886726f904d8372fdabb7707870c2fad":
+			// handle Babe Authorities
+			addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
+			addRawValue(key, v, gen)
 		}
 	}
+}
+
+func addRawValue(key string, value []byte, gen *Genesis) {
+	if gen.Genesis.Raw[0] == nil {
+		gen.Genesis.Raw[0] = make(map[string]string)
+	}
+	gen.Genesis.Raw[0][key] = common.BytesToHex(value)
 }
 
 func addCodeValue(value []byte, gen *Genesis) {
@@ -236,48 +249,58 @@ func addCodeValue(value []byte, gen *Genesis) {
 		gen.Genesis.Runtime["system"] = make(map[string]interface{})
 	}
 	gen.Genesis.Runtime["system"]["code"] = common.BytesToHex(value)
-	if gen.Genesis.Raw[0] == nil {
-		gen.Genesis.Raw[0] = make(map[string]string)
-	}
-	gen.Genesis.Raw[0]["3a636f6465"] = common.BytesToHex(value)
-
 }
 
-func addGrandpaAuthoritiesValue(value []byte, gen *Genesis) {
-	if gen.Genesis.Runtime["grandpa"] == nil {
-		gen.Genesis.Runtime["grandpa"] = make(map[string]interface{})
-	}
-	gen.Genesis.Runtime["grandpa"]["authorities"] = common.BytesToHex(value)
-}
-
-func addBabeAuthoritiesValues(value []byte, gen *Genesis) {
-	if gen.Genesis.Runtime["babe"] == nil {
-		gen.Genesis.Runtime["babe"] = make(map[string]interface{})
+func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *Genesis) error {
+	if gen.Genesis.Runtime[k1] == nil {
+		gen.Genesis.Runtime[k1] = make(map[string]interface{})
 	}
 
+	// decode authorities values into []interface that will be decoded into json array
+	ava := [][]interface{}{}
 	buf := &bytes.Buffer{}
 	sd := scale.Decoder{Reader: buf}
 	_, err := buf.Write(value)
 	if err != nil {
-		fmt.Printf("errer %v\n", err)
+		return err
 	}
 
-	i, err := sd.DecodeInteger()
-	fmt.Printf("LEn %v\n", i)
-	for x := 0; x < int(i); x++ {
-
-		buf2 := make([]byte, 32)
-		if _, err = sd.Reader.Read(buf2); err == nil {
+	alen, err := sd.DecodeInteger()
+	for i := 0; i < int(alen); i++ {
+		auth := []interface{}{}
+		buf := make([]byte, 32)
+		if _, err = sd.Reader.Read(buf); err == nil {
 			var arr = [32]byte{}
-			copy(arr[:], buf2)
-			fmt.Printf("val 1 %v\n", arr)
+			copy(arr[:], buf)
+			pa, err := bytesToAddress(kt, arr[:])
+			if err != nil {
+				return err
+			}
+			auth = append(auth, pa)
 		}
-		bv1, err := sd.DecodeFixedWidthInt(uint64(0))
+		iv, err := sd.DecodeFixedWidthInt(uint64(0))
 		if err != nil {
-			fmt.Printf("errer %v\n", err)
+			return err
 		}
-		fmt.Printf("bv1 %v\n", bv1)
+		auth = append(auth, iv.(uint64))
+		ava = append(ava, auth)
 	}
-fmt.Printf("TEST VAL %x\n", value[1:41])
-	gen.Genesis.Runtime["babe"]["authorities"] = common.BytesToHex(value)
+
+	gen.Genesis.Runtime[k1][k2] = ava
+	return nil
+}
+
+func bytesToAddress(kt crypto.KeyType, v []byte) (common.Address, error) {
+	var pk crypto.PublicKey
+	var err error
+	switch kt {
+	case crypto.Ed25519Type:
+		pk, err = ed25519.NewPublicKey(v)
+	case crypto.Sr25519Type:
+		pk, err = sr25519.NewPublicKey(v)
+	}
+	if err != nil {
+		return "", err
+	}
+	return crypto.PublicKeyToAddress(pk), nil
 }

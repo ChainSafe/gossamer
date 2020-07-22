@@ -17,7 +17,6 @@ package dot
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -82,9 +81,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw[0] = make(map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
-	fmt.Printf("%v\n", tmpGen)
-
-	stateSrvc := state.NewService(path, log.LvlDebug)
+	stateSrvc := state.NewService(path, log.LvlCrit)
 
 	// start state service (initialize state database)
 	err := stateSrvc.Start()
@@ -96,14 +93,8 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	ent := stateSrvc.Storage.Entries()
 	genesis.BuildFromMap(ent, tmpGen)
 
-	fmt.Printf("built %v\n", tmpGen.Genesis.Raw[0]["3a636f6465"][:100])
-	codStr := fmt.Sprintf("%v", tmpGen.Genesis.Runtime["system"]["code"])
-	fmt.Printf("built runtime %v\n", codStr[:100])
-
-	fmt.Printf("genesesis Data Key %x\n", common.GenesisDataKey)
 	// set genesisData
 	gd, err := stateSrvc.DB().Get(common.GenesisDataKey)
-	fmt.Printf("gd %s\n", gd)
 
 	gData, err := scale.Decode(gd, &genesis.Data{})
 	if err != nil {
@@ -111,7 +102,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	}
 	tmpGen.Name = gData.(*genesis.Data).Name
 	tmpGen.ID = gData.(*genesis.Data).ID
-	// todo bootnodes
+	// todo figure out how to assign bootnodes
 	//tmpGen.Bootnodes = gData.(*genesis.Data).Bootnodes
 	tmpGen.ProtocolID = gData.(*genesis.Data).ProtocolID
 	

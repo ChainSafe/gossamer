@@ -239,6 +239,14 @@ func initAction(ctx *cli.Context) error {
 }
 
 func buildSpecAction(ctx *cli.Context) error {
+	// set logger to critical, so output only contains genesis data
+	ctx.Set("log", "crit")
+	_, err := setupLogger(ctx)
+	if err != nil {
+		logger.Error("failed to setup logger", "error", err)
+		return err
+	}
+
 	var bs *dot.BuildSpec
 	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
 		bspec, err := dot.BuildFromGenesis(genesis)
@@ -251,9 +259,11 @@ func buildSpecAction(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("base dir %v\n", cfg.Global.BasePath)
-		// todo determine if this should be a cfg value
-		bspec, err := dot.BuildFromDB(".")
+		// expand data directory and update node configuration (performed separately
+		// from createDotConfig because dot config should not include expanded path)
+		cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
+
+		bspec, err := dot.BuildFromDB(cfg.Global.BasePath)
 		if err != nil {
 			return err
 		}
@@ -265,7 +275,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	res := []byte{}
-	var err error
+	//var err error
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {
@@ -276,28 +286,6 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 	// todo change to full result
 	fmt.Printf("%s", res[:1200])
-
-	//lvl, err := setupLogger(ctx)
-	//if err != nil {
-	//	logger.Error("failed to setup logger", "error", err)
-	//	return err
-	//}
-	//
-	//// todo determine if this needs full config
-	//cfg, err := createInitConfig(ctx)
-	//if err != nil {
-	//	logger.Error("failed to create node configuration", "error", err)
-	//	return err
-	//}
-	//
-	//cfg.Global.LogLevel = lvl.String()
-	//
-	//// expand data directory and update node configuration (performed separately
-	//// from createDotConfig because dot config should not include expanded path)
-	//cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
-	//
-	////ni := dot.BuildSpec(cfg.Global.BasePath)
-	////fmt.Printf("BUILD SPEC %v\n", ni)
 
 	return nil
 }
