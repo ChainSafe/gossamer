@@ -141,6 +141,18 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	return cfg, nil
 }
 
+func createBuildSpecConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+	cfg, err = loadConfigFile(ctx)
+	if err != nil {
+		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, &cfg.Global)
+	return cfg, nil
+}
+
 // createExportConfig creates a new dot configuration from the provided flag values
 func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	cfg := DefaultCfg // start with default configuration

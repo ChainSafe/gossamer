@@ -239,26 +239,65 @@ func initAction(ctx *cli.Context) error {
 }
 
 func buildSpecAction(ctx *cli.Context) error {
-	lvl, err := setupLogger(ctx)
-	if err != nil {
-		logger.Error("failed to setup logger", "error", err)
-		return err
+	var bs *dot.BuildSpec
+	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+		bspec, err := dot.BuildFromGenesis(genesis)
+		if err != nil {
+			return err
+		}
+		bs = bspec
+	} else {
+		cfg, err := createBuildSpecConfig(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("base dir %v\n", cfg.Global.BasePath)
+		// todo determine if this should be a cfg value
+		bspec, err := dot.BuildFromDB(".")
+		if err != nil {
+			return err
+		}
+		bs = bspec
 	}
 
-	// todo determine if this needs full config
-	cfg, err := createInitConfig(ctx)
-	if err != nil {
-		logger.Error("failed to create node configuration", "error", err)
-		return err
+	if bs == nil {
+		return fmt.Errorf("error building genesis")
 	}
 
-	cfg.Global.LogLevel = lvl.String()
+	res := []byte{}
+	var err error
+	if ctx.Bool(RawFlag.Name) {
+		res, err = bs.ToJSONRaw()
+	} else {
+		res, err = bs.ToJSON()
+	}
+	if err != nil {
+		return err
+	}
+	// todo change to full result
+	fmt.Printf("%s", res[:1200])
 
-	// expand data directory and update node configuration (performed separately
-	// from createDotConfig because dot config should not include expanded path)
-	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
+	//lvl, err := setupLogger(ctx)
+	//if err != nil {
+	//	logger.Error("failed to setup logger", "error", err)
+	//	return err
+	//}
+	//
+	//// todo determine if this needs full config
+	//cfg, err := createInitConfig(ctx)
+	//if err != nil {
+	//	logger.Error("failed to create node configuration", "error", err)
+	//	return err
+	//}
+	//
+	//cfg.Global.LogLevel = lvl.String()
+	//
+	//// expand data directory and update node configuration (performed separately
+	//// from createDotConfig because dot config should not include expanded path)
+	//cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
+	//
+	////ni := dot.BuildSpec(cfg.Global.BasePath)
+	////fmt.Printf("BUILD SPEC %v\n", ni)
 
-	//ni := dot.BuildSpec(cfg.Global.BasePath)
-	fmt.Printf("BUILD SPEC \n")
 	return nil
 }

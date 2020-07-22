@@ -17,19 +17,19 @@
 package genesis
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
-	"reflect"
-	"strings"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"io/ioutil"
+	"math/big"
+	"path/filepath"
+	"reflect"
+	"strings"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
@@ -46,6 +46,44 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	g := new(Genesis)
 	err = json.Unmarshal(data, g)
 	return g, err
+}
+
+// NewTrieFromGenesis creates a new trie from the raw genesis data
+func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie()
+
+	r := g.GenesisFields().Raw[0]
+
+	err := t.Load(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trie from genesis: %s", err)
+	}
+
+	return t, nil
+}
+
+// NewGenesisBlockFromTrie creates a genesis block from the provided trie
+func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
+
+	// create state root from trie hash
+	stateRoot, err := t.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create state root from trie hash: %s", err)
+	}
+
+	// create genesis block header
+	header, err := types.NewHeader(
+		common.NewHash([]byte{0}), // parentHash
+		big.NewInt(0),             // number
+		stateRoot,                 // stateRoot
+		trie.EmptyHash,            // extrinsicsRoot
+		[][]byte{},                // digest
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
+	}
+
+	return header, nil
 }
 
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file
@@ -175,40 +213,71 @@ func formatValue(kv *keyValue) (string, error) {
 	}
 }
 
-// NewTrieFromGenesis creates a new trie from the raw genesis data
-func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
-	t := trie.NewEmptyTrie()
+func BuildFromMap(m map[string][]byte, gen *Genesis) {
+	for k, v := range m {
+		fmt.Printf("key %x vL %v\n", k, len(v))
+		switch fmt.Sprintf("%x", k) {
 
-	r := g.GenesisFields().Raw[0]
-
-	err := t.Load(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create trie from genesis: %s", err)
+		case "3a636f6465":
+			// handle :code
+			addCodeValue(v, gen)
+		case "3a6772616e6470615f617574686f726974696573":
+			// handle grandpa  Authorities
+			//addGrandpaAuthoritiesValue(v, gen)
+		case "886726f904d8372fdabb7707870c2fad":
+			// handle babe authorities
+			addBabeAuthoritiesValues(v, gen)
+		}
 	}
-
-	return t, nil
 }
 
-// NewGenesisBlockFromTrie creates a genesis block from the provided trie
-func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
+func addCodeValue(value []byte, gen *Genesis) {
+	if gen.Genesis.Runtime["system"] == nil {
+		gen.Genesis.Runtime["system"] = make(map[string]interface{})
+	}
+	gen.Genesis.Runtime["system"]["code"] = common.BytesToHex(value)
+	if gen.Genesis.Raw[0] == nil {
+		gen.Genesis.Raw[0] = make(map[string]string)
+	}
+	gen.Genesis.Raw[0]["3a636f6465"] = common.BytesToHex(value)
 
-	// create state root from trie hash
-	stateRoot, err := t.Hash()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create state root from trie hash: %s", err)
+}
+
+func addGrandpaAuthoritiesValue(value []byte, gen *Genesis) {
+	if gen.Genesis.Runtime["grandpa"] == nil {
+		gen.Genesis.Runtime["grandpa"] = make(map[string]interface{})
+	}
+	gen.Genesis.Runtime["grandpa"]["authorities"] = common.BytesToHex(value)
+}
+
+func addBabeAuthoritiesValues(value []byte, gen *Genesis) {
+	if gen.Genesis.Runtime["babe"] == nil {
+		gen.Genesis.Runtime["babe"] = make(map[string]interface{})
 	}
 
-	// create genesis block header
-	header, err := types.NewHeader(
-		common.NewHash([]byte{0}), // parentHash
-		big.NewInt(0),             // number
-		stateRoot,                 // stateRoot
-		trie.EmptyHash,            // extrinsicsRoot
-		[][]byte{},                // digest
-	)
+	buf := &bytes.Buffer{}
+	sd := scale.Decoder{Reader: buf}
+	_, err := buf.Write(value)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
+		fmt.Printf("errer %v\n", err)
 	}
 
-	return header, nil
+	i, err := sd.DecodeInteger()
+	fmt.Printf("LEn %v\n", i)
+	for x := 0; x < int(i); x++ {
+
+		buf2 := make([]byte, 32)
+		if _, err = sd.Reader.Read(buf2); err == nil {
+			var arr = [32]byte{}
+			copy(arr[:], buf2)
+			fmt.Printf("val 1 %v\n", arr)
+		}
+		bv1, err := sd.DecodeFixedWidthInt(uint64(0))
+		if err != nil {
+			fmt.Printf("errer %v\n", err)
+		}
+		fmt.Printf("bv1 %v\n", bv1)
+	}
+fmt.Printf("TEST VAL %x\n", value[1:41])
+	gen.Genesis.Runtime["babe"]["authorities"] = common.BytesToHex(value)
 }

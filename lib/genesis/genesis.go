@@ -22,11 +22,11 @@ import (
 
 // Genesis stores the data parsed from the genesis configuration file
 type Genesis struct {
-	Name       string
-	ID         string
-	Bootnodes  []string
-	ProtocolID string
-	Genesis    Fields
+	Name       string  `json:"name"`
+	ID         string  `json:"id"`
+	Bootnodes  []string  `json:"bootNodes"`
+	ProtocolID string  `json:"protocolId"`
+	Genesis    Fields  `json:"genesis"`
 }
 
 // Data defines the genesis file data formatted for trie storage
@@ -39,8 +39,8 @@ type Data struct {
 
 // Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
-	Raw     [2]map[string]string
-	Runtime map[string]map[string]interface{}
+	Raw     [2]map[string]string  `json:"raw"`
+	Runtime map[string]map[string]interface{}  `json:"runtime"`
 }
 
 // GenesisData formats genesis for trie storage

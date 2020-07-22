@@ -64,14 +64,7 @@ func InitNode(cfg *Config) error {
 	)
 
 	// create genesis from configuration file
-	//var gen *genesis.Genesis
-	//var lErr error
-	//if cfg.Init.Genesis != "" {
-	//todo move this
-	//	gen, lErr = genesis.NewGenesisFromJSON(cfg.Init.Genesis)
-	//} else {
 	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
-	//}
 	if err != nil {
 		return fmt.Errorf("failed to load genesis from file: %s", err)
 	}
