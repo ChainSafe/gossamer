@@ -30,7 +30,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var WithCustom = true
+// withCustom is true is custom encoding is supported. set to true by default.
+// only should be set to false for testing.
+var withCustom = true
 
 // Decoder is a wrapping around io.Reader
 type Decoder struct {
@@ -87,7 +89,7 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		}
 
 		// allow the call to DecodeCustom to proceed if the call comes from inside scale, and isn't a test
-		if !strings.Contains(caller, "Decode") && WithCustom || (strings.Contains(caller, "scale") && !strings.Contains(caller, "test")) && WithCustom {
+		if !strings.Contains(caller, "Decode") && withCustom || (strings.Contains(caller, "scale") && !strings.Contains(caller, "test")) && withCustom {
 			if out, err = sd.DecodeCustom(t); err == nil {
 				return out, nil
 			}
