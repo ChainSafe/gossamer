@@ -129,7 +129,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
-			"--log", "info",
+			"--log", "crit",
 		)
 	} else {
 		key = keyList[node.Idx]
@@ -144,7 +144,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "info",
+			"--log", "crit",
 		)
 	}
 
@@ -158,15 +158,15 @@ func StartGossamer(t *testing.T, node *Node) error {
 	}
 
 	// create error log file
-	// errfile, err := os.Create(filepath.Join(node.basePath, "error.out"))
-	// if err != nil {
-	// 	logger.Error("Error when trying to set a log file for gossamer output", "error", err)
-	// 	return err
-	// }
+	errfile, err := os.Create(filepath.Join(node.basePath, "error.out"))
+	if err != nil {
+		logger.Error("Error when trying to set a log file for gossamer output", "error", err)
+		return err
+	}
 
 	t.Cleanup(func() {
 		outfile.Close() //nolint
-		//errfile.Close() //nolint
+		errfile.Close() //nolint
 	})
 
 	stdoutPipe, err := node.Process.StdoutPipe()
@@ -190,7 +190,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 
 	writer := bufio.NewWriter(outfile)
 	go io.Copy(writer, stdoutPipe) //nolint
-	errWriter := bufio.NewWriter(os.Stdout)
+	errWriter := bufio.NewWriter(errfile)
 	go io.Copy(errWriter, stderrPipe) //nolint
 
 	logger.Debug("wait few secs for node to come up", "cmd.Process.Pid", node.Process.Process.Pid)
