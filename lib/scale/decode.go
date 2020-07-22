@@ -356,7 +356,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 		return arr.Interface(), nil
 	}
 
-	for i := 0; i < int(length); i++ {
+	for i := 0; i < length; i++ {
 		elem := v.Index(i)
 		switch elem.Interface().(type) {
 		case byte:
