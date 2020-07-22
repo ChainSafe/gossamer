@@ -285,8 +285,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	// todo change to full result
-	fmt.Printf("%s", res[:1200])
+	fmt.Printf("%s", res)
 
 	return nil
 }

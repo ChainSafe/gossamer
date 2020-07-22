@@ -83,9 +83,8 @@ func TestNewTestGenesisFromJSON(t *testing.T) {
 
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis_hr-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	defer os.Remove(file.Name())
 
 	// create human readable test genesis
