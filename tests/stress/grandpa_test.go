@@ -17,7 +17,6 @@
 package stress
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -58,7 +57,6 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
-		time.Sleep(time.Second * 5)
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
 		t.Logf("finalized hash in round %d: %s", i, fin)
@@ -71,13 +69,12 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
-		time.Sleep(time.Second * 5)
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
 		t.Logf("finalized hash in round %d: %s", i, fin)
@@ -85,33 +82,21 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_NineAuthorities(t *testing.T) {
-	// short for now, remove when syncing is more stable
 	if testing.Short() {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
 	numNodes = 9
-
-	// only log info from 1 node
-	tmpdir, err := ioutil.TempDir("", "gossamer-stress-8")
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
-	node, err := utils.RunGossamer(t, numNodes-1, tmpdir, utils.GenesisDefault, utils.ConfigLogGrandpa)
-	require.NoError(t, err)
-
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigLogNone)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
-	numRounds := 2
+	numRounds := 3
 	for i := 1; i < numRounds+1; i++ {
-		// TODO: this is a long time for a round to complete; this is because syncing is inefficient
-		// need to improve syncing protocol
-		time.Sleep(time.Second * 10)
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
 		t.Logf("finalized hash in round %d: %s", i, fin)
