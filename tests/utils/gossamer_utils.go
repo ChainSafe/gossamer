@@ -92,7 +92,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
-		"--genesis", genesis,
+		"--genesis-raw", genesis,
 		"--force",
 	)
 
