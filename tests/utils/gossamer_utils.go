@@ -74,6 +74,8 @@ var (
 	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
 	ConfigBABEMaxThreshold string = filepath.Join(currentDir, "../utils/config_babe_max_threshold.toml")
+	// ConfigBABEMaxThresholdBench is a config file with BABE threshold set to maximum (node can produce block every slot) with SlotDuration set to 100ms
+	ConfigBABEMaxThresholdBench string = filepath.Join(currentDir, "../utils/config_babe_max_threshold_bench.toml")
 )
 
 // Node represents a gossamer process
@@ -141,7 +143,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
 			"--ws=false",
-			"--rpcmods", "system,author,chain,state",
+			"--rpcmods", "system,author,chain,state,dev",
 			"--roles", "4", // authority node
 			"--rpc",
 			"--log", "crit",

@@ -3,6 +3,8 @@ package modules
 import (
 	"errors"
 	"net/http"
+
+	log "github.com/ChainSafe/log15"
 )
 
 var blockProducerStoppedMsg = "babe service stopped"
