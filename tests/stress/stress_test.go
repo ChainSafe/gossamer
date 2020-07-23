@@ -18,6 +18,7 @@ package stress
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strconv"
 	"testing"
@@ -94,7 +95,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	numNodes = 6 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
-	// only log info from 1 node
+	// start block producing node first
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
@@ -139,6 +140,72 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	}()
 
 	numCmps := 100
+	for i := 0; i < numCmps; i++ {
+		t.Log("comparing...", i)
+		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		require.NoError(t, err, i)
+		time.Sleep(time.Second)
+	}
+}
+
+func TestSync_ManyProducers(t *testing.T) {
+	// TODO: this fails with runtime: out of memory
+	// this means when each node is connected to 8 other nodes, too much memory is being used.
+	t.Skip()
+
+	numNodes = 9 // 9 block producers
+	utils.SetLogLevel(log.LvlInfo)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
+	require.NoError(t, err)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	numCmps := 100
+	for i := 0; i < numCmps; i++ {
+		t.Log("comparing...", i)
+		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		require.NoError(t, err, i)
+		time.Sleep(time.Second)
+	}
+}
+
+func TestSync_Restart(t *testing.T) {
+	numNodes = 6
+	utils.SetLogLevel(log.LvlInfo)
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigBABEMaxThreshold)
+	require.NoError(t, err)
+
+	// wait and start rest of nodes
+	time.Sleep(time.Second * 5)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	// randomly turn off and on nodes
+	go func() {
+		for {
+			time.Sleep(time.Second * 3)
+			idx := rand.Intn(numNodes)
+
+			errList := utils.StopNodes(t, nodes[idx:idx+1])
+			require.Len(t, errList, 0)
+
+			err = utils.StartNodes(t, nodes[idx:idx+1])
+			require.NoError(t, err)
+		}
+	}()
+
+	numCmps := 25
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))

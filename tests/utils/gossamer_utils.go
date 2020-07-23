@@ -304,7 +304,11 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
-			node, err := RunGossamer(t, i, TestDir(t, keyList[i]), genesis, config)
+			name := strconv.Itoa(i)
+			if i < len(keyList) {
+				name = keyList[i]
+			}
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config)
 			if err != nil {
 				logger.Error("failed to run gossamer", "i", i)
 			}
