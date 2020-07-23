@@ -16,7 +16,9 @@ One important thing distinction is that we are building the Polkadot Runtime Env
 
 ## Contribution Steps
 
-**1. Set up gossamer following the instructions our [README](https://github.com/ChainSafe/gossamer/blob/development/README.md).**
+**1. Set up gossamer following the instructions our [README](https://github.com/ChainSafe/gossamer/blob/development/README.md).
+     Please note you should be in ~/go/src/github.com/ChainSafe/gossamer in order to run the go get -u github.com/ChainSafe/gossamer. 
+     Execute only this line of code**
 
 **2. Fork the gossamer repo.**
 
@@ -25,7 +27,8 @@ One important thing distinction is that we are building the Polkadot Runtime Env
 **4. Link your local clone to the fork on your Github repo.**
 
 ```
-$ git remote add your-gossamer-repo https://github.com/<your_github_user_name>/gossamer.git
+$ git init
+$ git remote add your-gossamer-repo https://github.com/your_github_user_name/gossamer.git
 ```
 
 **5. Link your local clone to the ChainSafe Systems repo so that you can easily fetch future changes to the ChainSafe Systems repo.**
