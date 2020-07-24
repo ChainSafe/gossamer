@@ -37,8 +37,6 @@ func newEmptyLeafMap() *leafMap {
 
 func newLeafMap(n *node) *leafMap {
 	smap := &sync.Map{}
-	smap.Store(n.hash, n)
-
 	for _, child := range n.getLeaves(nil) {
 		smap.Store(child.hash, child)
 	}

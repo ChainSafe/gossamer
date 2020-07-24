@@ -185,6 +185,7 @@ func (n *node) getAllDescendantsExcluding(desc []Hash, excl Hash) []Hash {
 	return desc
 }
 
+// getAllDescendants returns an array of the node's hash and all its descendants's hashes
 func (n *node) getAllDescendants(desc []Hash) []Hash {
 	if n == nil {
 		return desc

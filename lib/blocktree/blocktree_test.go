@@ -61,6 +61,14 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 	return bt, hashes
 }
 
+func nodesToHashes(nodes []*node) []Hash {
+	h := []Hash{}
+	for _, n := range nodes {
+		h = append(h, n.hash)
+	}
+	return h
+}
+
 func TestNewBlockTreeFromNode(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
@@ -72,11 +80,14 @@ func TestNewBlockTreeFromNode(t *testing.T) {
 		}
 	}
 
+	t.Log(bt)
+
 	testNode := bt.getNode(branches[0].hash).children[0]
 	leaves := testNode.getLeaves(nil)
 
+	t.Log(testNode.hash)
 	newBt := newBlockTreeFromNode(testNode, nil)
-	require.ElementsMatch(t, leaves, newBt.leaves.nodes())
+	require.ElementsMatch(t, nodesToHashes(leaves), nodesToHashes(newBt.leaves.nodes()))
 }
 
 func TestBlockTree_GetBlock(t *testing.T) {
@@ -203,11 +214,11 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 		node.arrivalTime = arrivalTime
 		arrivalTime--
 		if node.depth.Cmp(deepest) >= 0 {
+			deepest = node.depth
 			expected = leaf
 		}
 
 		t.Logf("leaf=%s depth=%d arrivalTime=%d", leaf, node.depth, node.arrivalTime)
-		//return true
 	}
 
 	deepestLeaf := bt.deepestLeaf()
@@ -360,4 +371,21 @@ func TestBlockTree_HighestCommonAncestor_SameChain(t *testing.T) {
 	p, err := bt.HighestCommonAncestor(a, b)
 	require.NoError(t, err)
 	require.Equal(t, b, p)
+}
+
+func TestBlockTree_Prune(t *testing.T) {
+	var bt *BlockTree
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+			break
+		}
+	}
+
+	testNode := bt.getNode(branches[0].hash).children[0]
+	expected := bt.head.getAllDescendantsExcluding(nil, testNode.hash)
+	pruned := bt.Prune(testNode.hash)
+	require.ElementsMatch(t, expected, pruned)
 }
