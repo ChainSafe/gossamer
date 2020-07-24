@@ -149,11 +149,15 @@ func (bt *BlockTree) Prune(newRoot Hash) (pruned []Hash) {
 		return pruned
 	}
 
+	n := bt.getNode(newRoot)
+	if n == nil {
+		return pruned
+	}
+
 	// get pruned nodes
 	pruned = bt.head.getAllDescendantsExcluding(nil, newRoot)
 
 	// set blocktree with new root node
-	n := bt.getNode(newRoot)
 	next := newBlockTreeFromNode(n, bt.db)
 	bt = next
 
@@ -280,4 +284,9 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 	}
 
 	return an.highestCommonAncestor(bn).hash, nil
+}
+
+// GetAllBlocks returns all the blocks in the tree
+func (bt *BlockTree) GetAllBlocks() []Hash {
+	return bt.head.getAllDescendants(nil)
 }
