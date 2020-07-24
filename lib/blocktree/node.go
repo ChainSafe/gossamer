@@ -155,12 +155,12 @@ func (n *node) getLeaves(leaves []*node) []*node {
 		leaves = []*node{}
 	}
 
-	if n.children == nil {
+	if n.children == nil || len(n.children) == 0 {
 		leaves = append(leaves, n)
 	}
 
 	for _, child := range n.children {
-		return child.getLeaves(leaves)
+		leaves = child.getLeaves(leaves)
 	}
 
 	return leaves

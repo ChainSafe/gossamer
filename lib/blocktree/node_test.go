@@ -18,11 +18,22 @@ package blocktree
 
 import (
 	"testing"
-	// "github.com/ChainSafe/gossamer/lib/common"
-	// "github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNode_GetLeaves(t *testing.T) {
-	bt, _ := createTestBlockTree(testHeader, 10, nil)
-	t.Log(bt)
+	bt, branches := createTestBlockTree(testHeader, 5, nil)
+
+	testNode := bt.getNode(branches[0].hash).children[0]
+	leaves := testNode.getLeaves(nil)
+
+	expected := []*node{}
+	for _, lf := range bt.leaves.toMap() {
+		if lf.isDescendantOf(testNode) {
+			expected = append(expected, lf)
+		}
+	}
+
+	require.ElementsMatch(t, expected, leaves)
 }
