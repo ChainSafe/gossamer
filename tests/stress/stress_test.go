@@ -192,17 +192,23 @@ func TestSync_Restart(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	done := make(chan struct{})
+
 	// randomly turn off and on nodes
 	go func() {
 		for {
-			time.Sleep(time.Second * 3)
-			idx := rand.Intn(numNodes)
+			select {
+			case <-time.After(time.Second * 3):
+				idx := rand.Intn(numNodes)
 
-			errList := utils.StopNodes(t, nodes[idx:idx+1])
-			require.Len(t, errList, 0)
+				errList := utils.StopNodes(t, nodes[idx:idx+1])
+				require.Len(t, errList, 0)
 
-			err = utils.StartNodes(t, nodes[idx:idx+1])
-			require.NoError(t, err)
+				err = utils.StartNodes(t, nodes[idx:idx+1])
+				require.NoError(t, err)
+			case <-done:
+				return
+			}
 		}
 	}()
 
@@ -213,6 +219,7 @@ func TestSync_Restart(t *testing.T) {
 		require.NoError(t, err, i)
 		time.Sleep(time.Second)
 	}
+	close(done)
 }
 
 func TestSync_Bench(t *testing.T) {
