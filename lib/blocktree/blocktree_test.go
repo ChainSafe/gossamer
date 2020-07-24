@@ -61,14 +61,6 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 	return bt, hashes
 }
 
-func nodesToHashes(nodes []*node) []Hash {
-	h := []Hash{}
-	for _, n := range nodes {
-		h = append(h, n.hash)
-	}
-	return h
-}
-
 func TestNewBlockTreeFromNode(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
@@ -80,14 +72,11 @@ func TestNewBlockTreeFromNode(t *testing.T) {
 		}
 	}
 
-	t.Log(bt)
-
 	testNode := bt.getNode(branches[0].hash).children[0]
 	leaves := testNode.getLeaves(nil)
 
-	t.Log(testNode.hash)
 	newBt := newBlockTreeFromNode(testNode, nil)
-	require.ElementsMatch(t, nodesToHashes(leaves), nodesToHashes(newBt.leaves.nodes()))
+	require.ElementsMatch(t, leaves, newBt.leaves.nodes())
 }
 
 func TestBlockTree_GetBlock(t *testing.T) {
