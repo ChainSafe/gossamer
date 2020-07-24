@@ -206,7 +206,7 @@ func TestSync_Restart(t *testing.T) {
 		}
 	}()
 
-	numCmps := 25
+	numCmps := 12
 	for i := 0; i < numCmps; i++ {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
