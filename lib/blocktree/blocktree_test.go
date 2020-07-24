@@ -377,4 +377,5 @@ func TestBlockTree_Prune(t *testing.T) {
 	expected := bt.head.getAllDescendantsExcluding(nil, testNode.hash)
 	pruned := bt.Prune(testNode.hash)
 	require.ElementsMatch(t, expected, pruned)
+	require.Equal(t, bt.head, testNode)
 }

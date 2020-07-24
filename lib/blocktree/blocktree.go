@@ -159,7 +159,7 @@ func (bt *BlockTree) Prune(newRoot Hash) (pruned []Hash) {
 
 	// set blocktree with new root node
 	next := newBlockTreeFromNode(n, bt.db)
-	bt = next
+	*bt = *next
 
 	return pruned
 }
