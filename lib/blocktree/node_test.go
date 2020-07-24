@@ -23,7 +23,15 @@ import (
 )
 
 func TestNode_GetLeaves(t *testing.T) {
-	bt, branches := createTestBlockTree(testHeader, 5, nil)
+	var bt *BlockTree
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+			break
+		}
+	}
 
 	testNode := bt.getNode(branches[0].hash).children[0]
 	leaves := testNode.getLeaves(nil)
@@ -36,4 +44,29 @@ func TestNode_GetLeaves(t *testing.T) {
 	}
 
 	require.ElementsMatch(t, expected, leaves)
+}
+
+func TestNode_GetAllDescendantsExcluding(t *testing.T) {
+	var bt *BlockTree
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+			break
+		}
+	}
+
+	excl := bt.getNode(branches[0].hash).children[0].hash
+	res := bt.head.getAllDescendantsExcluding(nil, excl)
+
+	// get all nodes of excluded sub-tree
+	exclSubTree := bt.getNode(branches[0].hash).children[0].getAllDescendants(nil)
+
+	// assert that there are no nodes in res that are in excluded sub-tree
+	for _, d := range res {
+		for _, e := range exclSubTree {
+			require.NotEqual(t, d, e)
+		}
+	}
 }

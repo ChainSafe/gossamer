@@ -165,3 +165,39 @@ func (n *node) getLeaves(leaves []*node) []*node {
 
 	return leaves
 }
+
+// getAllDescendantsExcluding returns an array of the node's hash and all its descendants's hashes
+// except for the excluded node and its subtree
+func (n *node) getAllDescendantsExcluding(desc []Hash, excl Hash) []Hash {
+	if n == nil || n.hash == excl {
+		return desc
+	}
+
+	if desc == nil {
+		desc = []Hash{}
+	}
+
+	desc = append(desc, n.hash)
+	for _, child := range n.children {
+		desc = child.getAllDescendantsExcluding(desc, excl)
+	}
+
+	return desc
+}
+
+func (n *node) getAllDescendants(desc []Hash) []Hash {
+	if n == nil {
+		return desc
+	}
+
+	if desc == nil {
+		desc = []Hash{}
+	}
+
+	desc = append(desc, n.hash)
+	for _, child := range n.children {
+		desc = child.getAllDescendants(desc)
+	}
+
+	return desc
+}

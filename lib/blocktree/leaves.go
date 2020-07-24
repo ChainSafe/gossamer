@@ -104,3 +104,15 @@ func (ls *leafMap) toMap() map[common.Hash]*node {
 
 	return mmap
 }
+
+func (ls *leafMap) nodes() []*node {
+	nodes := []*node{}
+
+	ls.smap.Range(func(h, n interface{}) bool {
+		node := n.(*node)
+		nodes = append(nodes, node)
+		return true
+	})
+
+	return nodes
+}

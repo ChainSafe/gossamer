@@ -145,6 +145,10 @@ func (bt *BlockTree) getNode(h Hash) *node {
 // Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
 func (bt *BlockTree) Prune(newRoot Hash) ([]Hash, error) {
+	if newRoot == bt.head.hash {
+		return []Hash{}, nil
+	}
+
 	n := bt.getNode(newRoot)
 	next := newBlockTreeFromNode(n, bt.db)
 	bt = next

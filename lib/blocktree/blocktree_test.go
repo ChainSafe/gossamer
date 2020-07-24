@@ -61,6 +61,24 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 	return bt, hashes
 }
 
+func TestNewBlockTreeFromNode(t *testing.T) {
+	var bt *BlockTree
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+			break
+		}
+	}
+
+	testNode := bt.getNode(branches[0].hash).children[0]
+	leaves := testNode.getLeaves(nil)
+
+	newBt := newBlockTreeFromNode(testNode, nil)
+	require.ElementsMatch(t, leaves, newBt.leaves.nodes())
+}
+
 func TestBlockTree_GetBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 2)
 
@@ -181,9 +199,7 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 
 	deepest := big.NewInt(0)
 
-	bt.leaves.smap.Range(func(h, n interface{}) bool {
-		leaf := h.(Hash)
-		node := n.(*node)
+	for leaf, node := range bt.leaves.toMap() {
 		node.arrivalTime = arrivalTime
 		arrivalTime--
 		if node.depth.Cmp(deepest) >= 0 {
@@ -191,8 +207,8 @@ func TestBlockTree_DeepestLeaf(t *testing.T) {
 		}
 
 		t.Logf("leaf=%s depth=%d arrivalTime=%d", leaf, node.depth, node.arrivalTime)
-		return true
-	})
+		//return true
+	}
 
 	deepestLeaf := bt.deepestLeaf()
 	if deepestLeaf.hash != expected {
