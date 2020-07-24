@@ -144,3 +144,24 @@ func (n *node) highestCommonAncestor(other *node) *node {
 
 	return nil
 }
+
+// getLeaves returns all nodes that are leaf nodes with the current node as its ancestor
+func (n *node) getLeaves(leaves []*node) []*node {
+	if n == nil {
+		return leaves
+	}
+
+	if leaves == nil {
+		leaves = []*node{}
+	}
+
+	if n.children == nil {
+		leaves = append(leaves, n)
+	}
+
+	for _, child := range n.children {
+		return child.getLeaves(leaves)
+	}
+
+	return leaves
+}
