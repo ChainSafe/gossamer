@@ -174,16 +174,16 @@ func TestSync_ManyProducers(t *testing.T) {
 }
 
 func TestSync_Restart(t *testing.T) {
-	numNodes = 6
+	numNodes = 3
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigBABEMaxThreshold)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -220,6 +220,7 @@ func TestSync_Restart(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 	close(done)
+	time.Sleep(time.Second * 3)
 }
 
 func TestSync_Bench(t *testing.T) {
