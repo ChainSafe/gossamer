@@ -16,18 +16,20 @@ One important thing distinction is that we are building the Polkadot Runtime Env
 
 ## Contribution Steps
 
-**1. Set up gossamer following the instructions our [README](https://github.com/ChainSafe/gossamer/blob/development/README.md).
-     Please note you should be in ~/go/src/github.com/ChainSafe/gossamer in order to run the go get -u github.com/ChainSafe/gossamer. 
-     Execute only this line of code**
+**1. Set up gossamer following the instructions our [README](https://github.com/ChainSafe/gossamer/blob/development/README.md)     
 
 **2. Fork the gossamer repo.**
 
 **3. Create a local clone of gossamer.**
 
+```
+go get -u github.com/ChainSafe/gossamer
+cd $GOPATH/src/github.com/ChainSafe/gossamer
+git init
+```
 **4. Link your local clone to the fork on your Github repo.**
 
 ```
-$ git init
 $ git remote add your-gossamer-repo https://github.com/your_github_user_name/gossamer.git
 ```
 
