@@ -267,7 +267,7 @@ func buildSpecAction(ctx *cli.Context) error {
 
 		bspec, e := dot.BuildFromDB(cfg.Global.BasePath)
 		if e != nil {
-			return e
+			return fmt.Errorf("Error building spec from database, INIT must be run before build-spec or run build-spec with --genesis flag.\n Error %s\n", e)
 		}
 		bs = bspec
 	}
