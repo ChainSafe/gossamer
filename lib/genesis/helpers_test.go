@@ -28,7 +28,7 @@ import (
 )
 
 // TestNewGenesisFromJSON
-func TestNewGenesisFromJSON(t *testing.T) {
+func TestNewGenesisRawFromJSON(t *testing.T) {
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")
 	if err != nil {
@@ -69,7 +69,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	}
 }
 
-func TestNewTestGenesisFromJSON(t *testing.T) {
+func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 
 	expRaw := [2]map[string]string{}
