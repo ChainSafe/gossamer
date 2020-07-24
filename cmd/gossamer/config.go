@@ -245,19 +245,11 @@ func setLogConfig(ctx *cli.Context, globalCfg *dot.GlobalConfig, logCfg *dot.Log
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context
 func setDotInitConfig(ctx *cli.Context, cfg *dot.InitConfig) {
-	//if ctx.String(GenesisRawFlag.Name) != "" && ctx.String(GenesisFlag.Name) != "" {
-	//	return fmt.Errorf("error can't have both genesis and genesis-raw set")
-	//}
 	// check --genesis-raw flag and update init configuration
 	if genesis := ctx.String(GenesisRawFlag.Name); genesis != "" {
 		cfg.GenesisRaw = genesis
 	}
 
-	//// check --genesis flag
-	//if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-	//	cfg.Genesis = genesis
-	//	cfg.GenesisRaw = ""
-	//}
 	logger.Debug(
 		"init configuration",
 		"genesis-raw", cfg.GenesisRaw,

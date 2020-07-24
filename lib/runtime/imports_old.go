@@ -472,7 +472,10 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 
 	logger.Trace("[ext_twox_128] hashing...", "value", fmt.Sprintf("%s", memory[data:data+len]))
 
-	res := common.TwoxHash128(memory[data : data+len])
+	res, err := common.Twox128Hash(memory[data : data+len])
+	if err != nil {
+		logger.Trace("error hashing in ext_twox_128", "error", err)
+	}
 
 	copy(memory[out:out+16], res)
 }

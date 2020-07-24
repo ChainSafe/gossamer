@@ -285,6 +285,8 @@ func buildSpecAction(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	// TODO implement --output flag so that user can specify redirecting output a file.
+	//   then this can be removed (See issue #1029)
 	fmt.Printf("%s", res)
 
 	return nil

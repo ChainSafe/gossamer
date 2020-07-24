@@ -40,7 +40,7 @@ type Data struct {
 // Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
 	Raw     [2]map[string]string              `json:"raw"`
-	Runtime map[string]map[string]interface{} `json:"runtime"`
+	Runtime map[string]map[string]interface{} `json:"runtime,omitempty"`
 }
 
 // GenesisData formats genesis for trie storage

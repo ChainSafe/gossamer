@@ -104,9 +104,15 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	g := new(Genesis)
 
 	err = json.Unmarshal(data, g)
+	if err != nil {
+		return nil, err
+	}
 
 	grt := g.Genesis.Runtime
-	res := buildRawMap(grt)
+	res, err := buildRawMap(grt)
+	if err != nil {
+		return nil, err
+	}
 
 	g.Genesis.Raw[0] = res
 
@@ -120,22 +126,25 @@ type keyValue struct {
 	valueLen *big.Int
 }
 
-func buildRawMap(m map[string]map[string]interface{}) map[string]string {
+func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
 	res := make(map[string]string)
 	for k, v := range m {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 		buildRawMapInterface(v, kv)
 
-		key := formatKey(kv.key)
+		key, err := formatKey(kv.key)
+		if err != nil {
+			return nil, err
+		}
 
 		value, err := formatValue(kv)
 		if err != nil {
-			// todo determine how to handle error
+			return nil, err
 		}
 		res[key] = value
 	}
-	return res
+	return res, nil
 }
 
 func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
@@ -170,14 +179,14 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 	}
 }
 
-func formatKey(key []string) string {
+func formatKey(key []string) (string, error) {
 	switch true {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, key):
 		kb := []byte(`:grandpa_authorities`)
-		return common.BytesToHex(kb)
+		return common.BytesToHex(kb), nil
 	case reflect.DeepEqual([]string{"system", "code"}, key):
 		kb := []byte(`:code`)
-		return common.BytesToHex(kb)
+		return common.BytesToHex(kb), nil
 	default:
 		var fKey string
 		for _, v := range key {
@@ -185,8 +194,11 @@ func formatKey(key []string) string {
 		}
 		fKey = strings.Trim(fKey, " ")
 		fKey = strings.Title(fKey)
-		kb := common.TwoxHash128([]byte(fKey))
-		return common.BytesToHex(kb)
+		kb, err := common.Twox128Hash([]byte(fKey))
+		if err != nil {
+			return "", err
+		}
+		return common.BytesToHex(kb), nil
 	}
 }
 
