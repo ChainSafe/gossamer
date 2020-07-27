@@ -59,6 +59,9 @@ type Service struct {
 	isFinalityAuthority     bool
 	consensusMessageHandler ConsensusMessageHandler
 
+	// Block verification
+	verifier Verifier
+
 	// Keystore
 	keys *keystore.Keystore
 
@@ -85,6 +88,7 @@ type Config struct {
 	FinalityGadget          FinalityGadget
 	IsFinalityAuthority     bool
 	ConsensusMessageHandler ConsensusMessageHandler
+	Verifier                Verifier
 
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes

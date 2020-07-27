@@ -105,3 +105,7 @@ type BlockProducer interface {
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData)
 }
+
+type Verifier interface {
+	SetRuntimeChangeAtBlock(block *big.Int, rt *runtime.Runtime)
+}
