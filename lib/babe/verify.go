@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -36,6 +37,7 @@ type Descriptor struct {
 // VerificationManager assists the syncer in keeping track of what epoch is it currently syncing and verifying,
 // as well as keeping track of the NextEpochDesciptor which is required to create a Verifier for an epoch.
 type VerificationManager struct {
+	lock        sync.Mutex
 	descriptors map[common.Hash]*Descriptor
 	branchNums  []int64                 // descending slice of branch numbers, for quicker access
 	branches    map[int64][]common.Hash // a map of block numbers -> block hashes, needed to check what chain a block is on when verifying ie. what descriptor to use
@@ -97,6 +99,9 @@ func (v *VerificationManager) SetRuntimeChangeAtBlock(header *types.Header, rt *
 }
 
 func (v *VerificationManager) setDescriptorChangeAtBlock(header *types.Header, descriptor *Descriptor) {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	num := header.Number.Int64()
 	if v.branches[num] == nil {
 		v.branches[num] = []common.Hash{}
@@ -129,17 +134,23 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	for _, n := range v.branchNums {
 
 		if header.Number.Int64() > n {
-			// get block hashes at most recent branch
-			brs := v.branches[n]
+			// this is a func so that locking can be deferred to whenever it exits
+			func() {
+				v.lock.Lock()
+				defer v.lock.Unlock()
 
-			// check which branch this block is a descendant of
-			for _, hash := range brs {
-				// can only compare ParentHash, since current block isn't in blockState yet
-				if is, _ := v.blockState.IsDescendantOf(hash, header.ParentHash); is {
-					desc = v.descriptors[hash]
-					break
+				// get block hashes at most recent branch
+				brs := v.branches[n]
+
+				// check which branch this block is a descendant of
+				for _, hash := range brs {
+					// can only compare ParentHash, since current block isn't in blockState yet
+					if is, _ := v.blockState.IsDescendantOf(hash, header.ParentHash); is {
+						desc = v.descriptors[hash]
+						break
+					}
 				}
-			}
+			}()
 
 			if desc != nil {
 				break
