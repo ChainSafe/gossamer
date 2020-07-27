@@ -136,7 +136,7 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 
 	nodes := []*utils.Node{alice, bob}
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -171,6 +171,59 @@ func TestSync_ManyProducers(t *testing.T) {
 		require.NoError(t, err, i)
 		time.Sleep(time.Second)
 	}
+}
+
+func TestSync_Bench(t *testing.T) {
+	numNodes = 2
+	utils.SetLogLevel(log.LvlInfo)
+	numBlocks := 256
+
+	// start block producing node
+	// node produces 10 blocks / second
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThresholdBench)
+	require.NoError(t, err)
+	time.Sleep(time.Second*time.Duration(numBlocks/10) + time.Second)
+
+	err = utils.PauseBABE(t, alice)
+	require.NoError(t, err)
+	t.Log("BABE paused")
+
+	// start syncing node
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	start := time.Now()
+
+	nodes := []*utils.Node{alice, bob}
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	// see how long it takes to sync to block 256
+	last := big.NewInt(int64(numBlocks))
+	var end time.Time
+
+	for {
+		head := utils.GetChainHead(t, bob)
+		if head.Number.Cmp(last) >= 0 {
+			end = time.Now()
+			break
+		}
+	}
+
+	maxTime := time.Second * 8
+	minBPS := float64(34)
+	totalTime := end.Sub(start)
+	bps := float64(numBlocks) / end.Sub(start).Seconds()
+	t.Log("total sync time:", totalTime)
+	t.Log("blocks per second:", bps)
+	require.LessOrEqual(t, int64(totalTime), int64(maxTime))
+	require.GreaterOrEqual(t, bps, minBPS)
+
+	// assert block is correct
+	t.Log("comparing block...", numBlocks)
+	err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
+	require.NoError(t, err, numBlocks)
 }
 
 func TestSync_Restart(t *testing.T) {
@@ -221,57 +274,4 @@ func TestSync_Restart(t *testing.T) {
 	}
 	close(done)
 	time.Sleep(time.Second * 3)
-}
-
-func TestSync_Bench(t *testing.T) {
-	numNodes = 2
-	utils.SetLogLevel(log.LvlInfo)
-	numBlocks := 256
-
-	// start block producing node
-	// node produces 10 blocks / second
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThresholdBench)
-	require.NoError(t, err)
-	time.Sleep(time.Second*time.Duration(numBlocks/10) + time.Second)
-
-	err = utils.PauseBABE(t, alice)
-	require.NoError(t, err)
-	t.Log("BABE paused")
-
-	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE)
-	require.NoError(t, err)
-	start := time.Now()
-
-	nodes := []*utils.Node{alice, bob}
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	// see how long it takes to sync to block 256
-	last := big.NewInt(int64(numBlocks))
-	var end time.Time
-
-	for {
-		head := utils.GetChainHead(t, bob)
-		if head.Number.Cmp(last) >= 0 {
-			end = time.Now()
-			break
-		}
-	}
-
-	maxTime := time.Second * 8
-	minBPS := float64(34)
-	totalTime := end.Sub(start)
-	bps := float64(numBlocks) / end.Sub(start).Seconds()
-	t.Log("total sync time:", totalTime)
-	t.Log("blocks per second:", bps)
-	require.LessOrEqual(t, int64(totalTime), int64(maxTime))
-	require.GreaterOrEqual(t, bps, minBPS)
-
-	// assert block is correct
-	t.Log("comparing block...", numBlocks)
-	err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
-	require.NoError(t, err, numBlocks)
 }
