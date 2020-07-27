@@ -47,19 +47,24 @@ type VerificationManager struct {
 	verifier *verifier // current chain head verifier TODO: remove, or keep historical verifiers
 }
 
-// NewVerificationManager returns a new VerificationManager
-func NewVerificationManager(blockState BlockState, rt *runtime.Runtime) (*VerificationManager, error) {
+// NewVerificationManagerFromRuntime returns a new VerificationManager
+func NewVerificationManagerFromRuntime(blockState BlockState, rt *runtime.Runtime) (*VerificationManager, error) {
+	descriptor, err := descriptorFromRuntime(rt)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewVerificationManager(blockState, descriptor)
+}
+
+// NewVerificationManager returns a new NewVerificationManager
+func NewVerificationManager(blockState BlockState, descriptor *Descriptor) (*VerificationManager, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
 
 	descriptors := make(map[common.Hash]*Descriptor)
 	branches := make(map[int64][]common.Hash)
-
-	descriptor, err := descriptorFromRuntime(rt)
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO: save VerificationManager in database when node shuts down, reload upon startup
 	descriptors[blockState.GenesisHash()] = descriptor

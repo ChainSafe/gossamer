@@ -344,7 +344,10 @@ func (s *Service) HandleRuntimeChanges(header *types.Header) error {
 			}
 		}
 
-		s.verifier.SetRuntimeChangeAtBlock(header, s.rt)
+		err = s.verifier.SetRuntimeChangeAtBlock(header, s.rt)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -45,8 +45,8 @@ var testGenesisHeader = &types.Header{
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) {
-	return
+func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error {
+	return nil
 }
 
 // mockBlockProducer implements the BlockProducer interface

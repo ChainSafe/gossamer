@@ -108,5 +108,5 @@ type BlockProducer interface {
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
-	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime)
+	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error
 }

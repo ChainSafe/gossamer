@@ -49,7 +49,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 	err = dbSrv.Start()
 	require.NoError(t, err)
 
-	vm, err := NewVerificationManager(dbSrv.Block, rt)
+	vm, err := NewVerificationManagerFromRuntime(dbSrv.Block, rt)
 	require.NoError(t, err)
 
 	if descriptor != nil {
@@ -129,7 +129,6 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 
 	// create and verify block that's descendant of block B, should verify
 	block, _ := createTestBlock(t, babeService, block1b, [][]byte{})
-	//err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	ok, err := vm.VerifyBlock(block.Header)
@@ -139,7 +138,6 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	// create and verify block that's descendant of block A, should verify
 	babeService.randomness = randomnessA
 	block, _ = createTestBlock(t, babeService, block1a, [][]byte{})
-	//err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	ok, err = vm.VerifyBlock(block.Header)
