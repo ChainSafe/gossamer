@@ -33,7 +33,7 @@ func TestNetwork_MaxPeers(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
