@@ -77,6 +77,6 @@ func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *str
 		ab = append(ab, bd)
 	}
 	m.blockProducerAPI.SetAuthorities(ab)
-	*res = fmt.Sprintf("Set %v block producer authorities", len(ab))
+	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
 	return nil
 }
