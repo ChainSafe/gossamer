@@ -364,7 +364,6 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt *runtime.Runtime) (*
 		Threshold:     threshold,
 	}
 
-	// TODO: load current epoch from database chain head
 	ver, err := babe.NewVerificationManager(st.Block, descriptor)
 	if err != nil {
 		return nil, err
