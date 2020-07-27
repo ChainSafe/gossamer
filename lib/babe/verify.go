@@ -112,7 +112,7 @@ func (v *VerificationManager) setDescriptorChangeAtBlock(header *types.Header, d
 			pre := make([]int64, len(v.branchNums[:i]))
 			copy(pre, v.branchNums[:i])
 			post := make([]int64, len(v.branchNums[i:]))
-			copy(pre, v.branchNums[i:])
+			copy(post, v.branchNums[i:])
 			v.branchNums = append(append(pre, num), post...)
 			break
 		}
