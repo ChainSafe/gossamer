@@ -152,6 +152,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockProducer:           cfg.BlockProducer,
 		finalityGadget:          cfg.FinalityGadget,
 		consensusMessageHandler: cfg.ConsensusMessageHandler,
+		verifier:                cfg.Verifier,
 		isFinalityAuthority:     cfg.IsFinalityAuthority,
 		lock:                    &sync.Mutex{},
 	}
@@ -279,7 +280,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
-	return s.checkForRuntimeChanges()
+	return s.HandleRuntimeChanges(block.Header)
 }
 
 // handleReceivedMessage handles messages from the network service
@@ -308,8 +309,9 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	return err
 }
 
-// checkForRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
-func (s *Service) checkForRuntimeChanges() error {
+// HandleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
+// It also updates the BABE service and block verifier with the new runtime
+func (s *Service) HandleRuntimeChanges(header *types.Header) error {
 	currentCodeHash, err := s.storageState.LoadCodeHash()
 	if err != nil {
 		return err
@@ -341,6 +343,8 @@ func (s *Service) checkForRuntimeChanges() error {
 				return err
 			}
 		}
+
+		s.verifier.SetRuntimeChangeAtBlock(header, s.rt)
 	}
 
 	return nil
