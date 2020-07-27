@@ -54,3 +54,8 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	}
 	return err
 }
+
+func (m *DevModule) SetAuthorities(r *http.Request, req *[]string, res *string) error {
+	m.blockProducerAPI.SetAuthorities(nil)
+	return nil
+}
