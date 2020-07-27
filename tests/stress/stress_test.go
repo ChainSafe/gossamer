@@ -145,7 +145,6 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
 		require.NoError(t, err, i)
-		time.Sleep(time.Second)
 	}
 }
 
@@ -208,6 +207,10 @@ func TestSync_Bench(t *testing.T) {
 		if head.Number.Cmp(last) >= 0 {
 			end = time.Now()
 			break
+		}
+
+		if time.Since(start) >= testTimeout {
+			t.Fatal("did not sync")
 		}
 	}
 
