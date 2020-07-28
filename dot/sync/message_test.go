@@ -199,6 +199,9 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.BlockData[0].Header)
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Body, resp.BlockData[0].Body)
+			t.Log(resp)
+			enc, _ := resp.Encode()
+			t.Log(len(enc))
 
 			if test.expectedMsgValue.BlockData[0].Receipt != nil {
 				require.Equal(t, test.expectedMsgValue.BlockData[0].Receipt, resp.BlockData[1].Receipt)

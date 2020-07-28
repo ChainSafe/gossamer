@@ -50,6 +50,7 @@ type Service struct {
 	status         *status
 	gossip         *gossip
 	requestTracker *requestTracker
+	errCh          <-chan error
 
 	// Service interfaces
 	blockState   BlockState
@@ -120,6 +121,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noMDNS:         cfg.NoMDNS,
 		noStatus:       cfg.NoStatus,
 		syncer:         cfg.Syncer,
+		errCh:          cfg.ErrChan,
 	}
 
 	return network, err

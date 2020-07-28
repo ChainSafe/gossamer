@@ -160,6 +160,56 @@ func (h *host) ping(peer peer.ID) error {
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 
+	// // get outbound stream for given peer
+	// s := h.getStream(p, sub)
+
+	// // check if stream needs to be opened
+	// if s == nil {
+
+	// 	// open outbound stream with host protocol id
+	// 	s, err = h.h.NewStream(h.ctx, p, h.protocolID+sub)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	h.logger.Trace(
+	// 		"Opened stream",
+	// 		"host", h.id(),
+	// 		"peer", p,
+	// 		"protocol", s.Protocol(),
+	// 	)
+	// }
+
+	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}
+
+	err = h.sendBytes(p, sub, encMsg)
+	if err != nil {
+		return err
+	}
+
+	// msgLen := uint64(len(encMsg))
+	// lenBytes := uint64ToLEB128(msgLen)
+	// encMsg = append(lenBytes, encMsg...)
+
+	// _, err = s.Write(encMsg)
+	// if err != nil {
+	// 	return err
+	// }
+
+	h.logger.Trace(
+		"Sent message to peer",
+		"host", h.id(),
+		"peer", p,
+		"type", msg.GetType(),
+	)
+
+	return nil
+}
+
+func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	// get outbound stream for given peer
 	s := h.getStream(p, sub)
 
@@ -180,28 +230,12 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 		)
 	}
 
-	encMsg, err := msg.Encode()
-	if err != nil {
-		return err
-	}
-
-	msgLen := uint64(len(encMsg))
+	msgLen := uint64(len(msg))
 	lenBytes := uint64ToLEB128(msgLen)
-	encMsg = append(lenBytes, encMsg...)
+	msg = append(lenBytes, msg...)
 
-	_, err = s.Write(encMsg)
-	if err != nil {
-		return err
-	}
-
-	h.logger.Trace(
-		"Sent message to peer",
-		"host", h.id(),
-		"peer", p,
-		"type", msg.GetType(),
-	)
-
-	return nil
+	_, err = s.Write(msg)
+	return err
 }
 
 // broadcast sends a message to each connected peer

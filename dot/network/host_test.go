@@ -22,7 +22,51 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
+
+func TestMessageSize(t *testing.T) {
+	size := 2400
+	msg := make([]byte, size)
+
+	nodes := make([]*Service, 2)
+	errs := make([]chan error, 2)
+
+	for i := range nodes {
+		errCh := make(chan error)
+
+		config := &Config{
+			Port:        7000 + uint32(i),
+			RandSeed:    1 + int64(i),
+			NoBootstrap: true,
+			NoMDNS:      true,
+			ErrChan:     errCh,
+		}
+		node := createTestService(t, config)
+		defer node.Stop()
+		nodes[i] = node
+		errs[i] = errCh
+	}
+
+	addrs := nodes[0].host.multiaddrs()
+	ainfo, err := peer.AddrInfoFromP2pAddr(addrs[1])
+	require.NoError(t, err)
+
+	for i, n := range nodes {
+		if i == 0 {
+			// connect other nodes to first node
+			continue
+		}
+
+		err = n.host.connect(*ainfo)
+		require.NoError(t, err, i)
+	}
+
+	err = nodes[0].host.sendBytes(nodes[1].host.id(), "", msg)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 3)
+}
 
 // test host connect method
 func TestConnect(t *testing.T) {
