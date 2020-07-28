@@ -145,7 +145,6 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
 		require.NoError(t, err, i)
-		time.Sleep(time.Second)
 	}
 }
 
@@ -171,55 +170,6 @@ func TestSync_ManyProducers(t *testing.T) {
 		require.NoError(t, err, i)
 		time.Sleep(time.Second)
 	}
-}
-
-func TestSync_Restart(t *testing.T) {
-	numNodes = 6
-	utils.SetLogLevel(log.LvlInfo)
-
-	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigBABEMaxThreshold)
-	require.NoError(t, err)
-
-	// wait and start rest of nodes
-	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigNoBABE)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-
-	defer func() {
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	done := make(chan struct{})
-
-	// randomly turn off and on nodes
-	go func() {
-		for {
-			select {
-			case <-time.After(time.Second * 3):
-				idx := rand.Intn(numNodes)
-
-				errList := utils.StopNodes(t, nodes[idx:idx+1])
-				require.Len(t, errList, 0)
-
-				err = utils.StartNodes(t, nodes[idx:idx+1])
-				require.NoError(t, err)
-			case <-done:
-				return
-			}
-		}
-	}()
-
-	numCmps := 12
-	for i := 0; i < numCmps; i++ {
-		t.Log("comparing...", i)
-		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
-		require.NoError(t, err, i)
-		time.Sleep(time.Second)
-	}
-	close(done)
 }
 
 func TestSync_Bench(t *testing.T) {
@@ -258,6 +208,10 @@ func TestSync_Bench(t *testing.T) {
 			end = time.Now()
 			break
 		}
+
+		if time.Since(start) >= testTimeout {
+			t.Fatal("did not sync")
+		}
 	}
 
 	maxTime := time.Second * 8
@@ -273,4 +227,54 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("comparing block...", numBlocks)
 	err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
 	require.NoError(t, err, numBlocks)
+}
+
+func TestSync_Restart(t *testing.T) {
+	numNodes = 3
+	utils.SetLogLevel(log.LvlInfo)
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	require.NoError(t, err)
+
+	// wait and start rest of nodes
+	time.Sleep(time.Second * 5)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	done := make(chan struct{})
+
+	// randomly turn off and on nodes
+	go func() {
+		for {
+			select {
+			case <-time.After(time.Second * 3):
+				idx := rand.Intn(numNodes)
+
+				errList := utils.StopNodes(t, nodes[idx:idx+1])
+				require.Len(t, errList, 0)
+
+				err = utils.StartNodes(t, nodes[idx:idx+1])
+				require.NoError(t, err)
+			case <-done:
+				return
+			}
+		}
+	}()
+
+	numCmps := 12
+	for i := 0; i < numCmps; i++ {
+		t.Log("comparing...", i)
+		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
+		require.NoError(t, err, i)
+		time.Sleep(time.Second)
+	}
+	close(done)
+	time.Sleep(time.Second * 3)
 }
