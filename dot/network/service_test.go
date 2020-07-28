@@ -22,13 +22,13 @@ import (
 	"strings"
 	"testing"
 	"time"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
+    "gossamer/lib/utils"
 )
 
 var TestProtocolID = "/gossamer/test/0"
@@ -92,7 +92,9 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-t.Cleanup(func){RemoveTestDir()}
+	
+
+t.Cleanup(utils.RemoveTestDir()){RemoveTestDir()}
 	return srvc
 }
 
