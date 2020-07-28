@@ -300,6 +300,8 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
+var maxReads = 16
+
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -312,16 +314,30 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 			return
 		}
 
-		msgBytes := make([]byte, length)
-		n, err := r.Read(msgBytes)
-		if err != nil {
-			s.logger.Error("Failed to read message from stream", "error", err)
-			_ = stream.Close()
-			return
+		if length == 0 {
+			continue
 		}
 
-		if uint64(n) != length {
-			s.logger.Error("Failed to read entire message", "length", length, "read", n)
+		msgBytes := make([]byte, length)
+		tot := uint64(0)
+		for i := 0; i < maxReads; i++ {
+			n, err := r.Read(msgBytes)
+			if err != nil {
+				s.logger.Error("Failed to read message from stream", "error", err)
+				_ = stream.Close()
+				return
+			}
+
+			tot += uint64(n)
+			if tot == length {
+				break
+			}
+		}
+
+		s.logger.Info("got message from peer", "len", length)
+
+		if /*uint64(n)*/ tot != length {
+			s.logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
 			continue
 		}
 

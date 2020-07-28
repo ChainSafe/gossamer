@@ -22,13 +22,15 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMessageSize(t *testing.T) {
-	size := 2400
+	size := 100000
 	msg := make([]byte, size)
+	msg[0] = 77
 
 	nodes := make([]*Service, 2)
 	errs := make([]chan error, 2)
@@ -42,6 +44,7 @@ func TestMessageSize(t *testing.T) {
 			NoBootstrap: true,
 			NoMDNS:      true,
 			ErrChan:     errCh,
+			LogLvl:      log.LvlTrace,
 		}
 		node := createTestService(t, config)
 		defer node.Stop()
