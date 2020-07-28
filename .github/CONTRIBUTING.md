@@ -30,7 +30,7 @@ You may encounter a `package github.com/ChainSafe/gossamer: no Go files in ...` 
 **3. Link your local clone to the fork on your Github repo.**
 
 ```
-$ git remote add your-gossamer-repo https://github.com/your_github_user_name/gossamer.git
+$ git remote add your-gossamer-repo https://github.com/<your_github_user_name>/gossamer.git
 ```
 
 **4. Link your local clone to the ChainSafe Systems repo so that you can easily fetch future changes to the ChainSafe Systems repo.**
