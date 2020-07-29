@@ -64,12 +64,16 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestStress_Grandpa_SixAuthorities")
+	}
+
 	numNodes = 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -91,7 +95,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
