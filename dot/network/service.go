@@ -323,7 +323,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 		msgBytes := make([]byte, length)
 		tot := uint64(0)
 		for i := 0; i < maxReads; i++ {
-			n, err := r.Read(msgBytes[tot:])
+			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
 				s.logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()

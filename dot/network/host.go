@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
@@ -46,7 +45,6 @@ type host struct {
 	dht        *kaddht.IpfsDHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
-	streamMu   sync.Mutex
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -207,9 +205,6 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	msgLen := uint64(len(msg))
 	lenBytes := uint64ToLEB128(msgLen)
 	msg = append(lenBytes, msg...)
-
-	// h.streamMu.Lock()
-	// defer h.streamMu.Unlock()
 
 	_, err = s.Write(msg)
 	return err
