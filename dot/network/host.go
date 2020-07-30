@@ -191,7 +191,7 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	if s == nil {
 
 		// open outbound stream with host protocol id
-		s, err := h.h.NewStream(h.ctx, p, h.protocolID+sub)
+		s, err = h.h.NewStream(h.ctx, p, h.protocolID+sub)
 		if err != nil {
 			return err
 		}
@@ -208,8 +208,8 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	lenBytes := uint64ToLEB128(msgLen)
 	msg = append(lenBytes, msg...)
 
-	h.streamMu.Lock()
-	defer h.streamMu.Unlock()
+	// h.streamMu.Lock()
+	// defer h.streamMu.Unlock()
 
 	_, err = s.Write(msg)
 	return err

@@ -72,6 +72,14 @@ func TestMessageSize(t *testing.T) {
 	err = nodes[1].host.sendBytes(nodes[0].host.id(), "", msg)
 	require.NoError(t, err)
 	time.Sleep(time.Second)
+
+	select {
+	case err := <-errs[0]:
+		t.Fatal("got error", err)
+	case err := <-errs[1]:
+		t.Fatal("got error", err)
+	case <-time.After(time.Millisecond * 100):
+	}
 }
 
 // test host connect method
