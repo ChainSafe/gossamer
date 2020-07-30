@@ -225,7 +225,7 @@ func (s *Service) receiveCoreMessages() {
 		s.logger.Debug(
 			"Broadcasting message from core service",
 			"host", s.host.id(),
-			"type", msg.GetType(),
+			"type", msg.Type(),
 		)
 
 		// broadcast message to connected peers
@@ -327,7 +327,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 		msgBytes := make([]byte, length)
 		tot := uint64(0)
 		for i := 0; i < maxReads; i++ {
-			n, err := r.Read(msgBytes)
+			n, err := r.Read(msgBytes[tot:])
 			if err != nil {
 				s.logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()
@@ -405,10 +405,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 		"Received message from peer",
 		"host", s.host.id(),
 		"peer", peer,
-		"type", msg.GetType(),
+		"type", msg.Type(),
 	)
 
-	if msg.GetType() != StatusMsgType {
+	if msg.Type() != StatusMsgType {
 
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
