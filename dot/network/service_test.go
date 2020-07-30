@@ -17,7 +17,7 @@
 package network
 
 import (
-	"gossamer/lib/utils"
+	//"gossamer/lib/utils"
 	"math/big"
 	"reflect"
 	"strings"
@@ -93,11 +93,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	t.Cleanup(func() {
-		utils.RemoveTestDir()
-	})
-
+	t.Cleanup(func() { utils.RemoveTestDir(t) })
 	return srvc
 }
 
