@@ -29,7 +29,7 @@ func TestConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
-	// defer utils.RemoveTestDir(t)
+	//defer utils.RemoveTestDir(t)
 
 	configA := &Config{
 		BasePath:    basePathA,
