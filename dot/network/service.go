@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -283,7 +284,8 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleMessage)
+	mu := new(sync.Mutex)
+	s.readStream(stream, peer, s.handleMessage, mu)
 	// the stream stays open until closed or reset
 }
 
@@ -296,13 +298,17 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleSyncMessage)
+	mu := new(sync.Mutex)
+	s.readStream(stream, peer, s.handleSyncMessage, mu)
 	// the stream stays open until closed or reset
 }
 
 var maxReads = 16
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message), mu *sync.Mutex) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
@@ -334,7 +340,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 			}
 		}
 
-		s.logger.Info("got message from peer", "len", length)
+		s.logger.Info("got message from peer", "len", length, "msg", fmt.Sprintf("%x", msgBytes))
 
 		if /*uint64(n)*/ tot != length {
 			s.logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
@@ -345,7 +351,12 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
 			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
-			continue
+			msgBytes = append(msgBytes, BlockResponseMsgType)
+			msg, err = decodeMessageBytes(msgBytes)
+			if err != nil {
+				s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
+				continue
+			}
 		}
 
 		// handle message based on peer status and message type
