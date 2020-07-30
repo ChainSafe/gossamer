@@ -5,6 +5,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -45,7 +46,7 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
-	SetAuthorities(a []*types.BABEAuthorityData)
+	SetEpochData(data *babe.NextEpochDescriptor) error
 }
 
 // TransactionQueueAPI ...

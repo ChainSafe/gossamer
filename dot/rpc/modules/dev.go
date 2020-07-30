@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -76,7 +77,10 @@ func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *str
 		}
 		ab = append(ab, bd)
 	}
-	m.blockProducerAPI.SetAuthorities(ab)
+	ned := &babe.NextEpochDescriptor{
+		Authorities: ab,
+	}
+	err := m.blockProducerAPI.SetEpochData(ned)
 	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
-	return nil
+	return err
 }
