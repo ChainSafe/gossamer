@@ -406,6 +406,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 				req := s.syncer.HandleBlockAnnounce(an)
 				if req != nil {
 					s.requestTracker.addRequestedBlockID(req.ID)
+					log.Info("sending", "req", req)
 					err := s.host.send(peer, syncID, req)
 					if err != nil {
 						s.logger.Error("failed to send BlockRequest message", "peer", peer)
