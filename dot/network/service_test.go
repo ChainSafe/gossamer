@@ -17,7 +17,6 @@
 package network
 
 import (
-	//"gossamer/lib/utils"
 	"math/big"
 	"reflect"
 	"strings"
