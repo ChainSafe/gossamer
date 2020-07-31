@@ -70,7 +70,7 @@ type Service struct {
 	msgSend chan<- network.Message // send messages to network service
 	blkRec  <-chan types.Block     // receive blocks from BABE session
 
-	blockAddCh chan *types.Block  // receive blocks added to blocktree
+	blockAddCh   chan *types.Block // receive blocks added to blocktree
 	blockAddChID byte
 
 	// State variables
@@ -164,8 +164,8 @@ func NewService(cfg *Config) (*Service, error) {
 		verifier:                cfg.Verifier,
 		isFinalityAuthority:     cfg.IsFinalityAuthority,
 		lock:                    &sync.Mutex{},
-		blockAddCh:		blockAddCh,
-		blockAddChID: 		id,
+		blockAddCh:              blockAddCh,
+		blockAddChID:            id,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -203,7 +203,7 @@ func (s *Service) Start() error {
 // Stop stops the core service
 func (s *Service) Stop() error {
 	s.lock.Lock()
-	defer s.lock.Unlock()	
+	defer s.lock.Unlock()
 
 	// close channel to network service
 	if s.started.Load().(bool) {
