@@ -28,8 +28,7 @@ import (
 func TestConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	// defer utils.RemoveTestDir(t)
+	
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -40,7 +39,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	// defer nodeA.Stop()
+	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -56,7 +55,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -100,8 +99,7 @@ func TestConnect(t *testing.T) {
 func TestBootstrap(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	//defer utils.RemoveTestDir(t)
+	
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -112,7 +110,7 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	//defer nodeA.Stop()
+	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -130,7 +128,7 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -167,8 +165,7 @@ func TestBootstrap(t *testing.T) {
 func TestPing(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	//defer utils.RemoveTestDir(t)
+	
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -179,7 +176,7 @@ func TestPing(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	//defer nodeA.Stop()
+	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -195,7 +192,7 @@ func TestPing(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -235,8 +232,7 @@ func TestPing(t *testing.T) {
 func TestSend(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	//defer utils.RemoveTestDir(t)
+	
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -247,7 +243,7 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	//defer nodeA.Stop()
+	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -266,7 +262,7 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -309,8 +305,7 @@ func TestSend(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	//defer utils.RemoveTestDir(t)
+	
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -321,7 +316,7 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	//defer nodeA.Stop()
+	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -340,7 +335,7 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -374,7 +369,7 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeC := createTestService(t, configC)
-	//defer nodeC.Stop()
+	
 
 	nodeC.noGossip = true
 	nodeC.noStatus = true
@@ -428,8 +423,7 @@ func TestBroadcast(t *testing.T) {
 func TestExistingStream(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	//defer utils.RemoveTestDir(t)
+	
 
 	msgSendA := make(chan Message)
 
@@ -443,8 +437,7 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	//defer nodeA.Stop()
-
+	
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
@@ -467,7 +460,7 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	//defer nodeB.Stop()
+	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
