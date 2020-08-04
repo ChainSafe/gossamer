@@ -34,12 +34,12 @@ func TestCreateStateService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -56,7 +56,7 @@ func TestCreateCoreService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
@@ -65,7 +65,7 @@ func TestCreateCoreService(t *testing.T) {
 	cfg.Core.Authority = false
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -81,14 +81,14 @@ func TestCreateCoreService(t *testing.T) {
 	coreMsgs := make(chan network.Message)
 	networkMsgs := make(chan network.Message)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
 	require.NotNil(t, coreSrvc)
 }
 
-func TestCreateSyncService(t *testing.T) {
+func TestCreateBlockVerifier(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -97,7 +97,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -111,12 +111,11 @@ func TestCreateSyncService(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
-	_, err = createSyncService(cfg, stateSrvc, nil, nil, rt)
+	_, err = createBlockVerifier(cfg, stateSrvc, rt)
 	require.NoError(t, err)
 }
 
-// TestCreateNetworkService tests the createNetworkService method
-func TestCreateNetworkService(t *testing.T) {
+func TestCreateSyncService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -125,7 +124,38 @@ func TestCreateNetworkService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
+
+	err := InitNode(cfg)
+	require.Nil(t, err)
+
+	stateSrvc, err := createStateService(cfg)
+	require.NoError(t, err)
+
+	ks := keystore.NewKeystore()
+	require.NotNil(t, ks)
+	rt, err := createRuntime(cfg, stateSrvc, ks)
+	require.NoError(t, err)
+
+	cfg.Core.BabeThreshold = nil
+	ver, err := createBlockVerifier(cfg, stateSrvc, rt)
+	require.NoError(t, err)
+
+	_, err = createSyncService(cfg, stateSrvc, nil, nil, ver, rt)
+	require.NoError(t, err)
+}
+
+// TestCreateNetworkService tests the createNetworkService method
+func TestCreateNetworkService(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -148,7 +178,7 @@ func TestCreateRPCService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
@@ -157,7 +187,7 @@ func TestCreateRPCService(t *testing.T) {
 	cfg.Core.Authority = false
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -172,7 +202,7 @@ func TestCreateRPCService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{} // TODO: rpc service without network service
@@ -190,14 +220,14 @@ func TestCreateBABEService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
 	cfg.Core.Authority = true
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -222,14 +252,14 @@ func TestCreateGrandpaService(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
 	cfg.Core.Authority = true
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -266,7 +296,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
-	genFile := NewTestGenesisFile(t, cfg)
+	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
@@ -274,7 +304,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Core.Authority = false
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.Genesis = genFile.Name()
+	cfg.Init.GenesisRaw = genFile.Name()
 	cfg.RPC.WSEnabled = true
 	cfg.System.SystemName = "gossamer"
 
@@ -291,7 +321,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}

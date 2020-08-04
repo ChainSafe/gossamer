@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
-var maxResponseSize int64 = 12 // maximum number of block datas to reply with in a BlockResponse message.
+var maxResponseSize int64 = 128 // maximum number of block datas to reply with in a BlockResponse message.
 
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
@@ -53,7 +53,9 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	s.logger.Debug("BlockRequestMessage", "startHash", startHash, "endHash", endHash)
+	startHeader, _ := s.blockState.GetHeader(startHash)
+	endHeader, _ := s.blockState.GetHeader(endHash)
+	s.logger.Debug("BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
 	subchain, err := s.blockState.SubChain(startHash, endHash)
@@ -120,6 +122,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		responseData = append(responseData, blockData)
 	}
 
+	s.logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
 	return &network.BlockResponseMessage{
 		ID:        blockRequest.ID,
 		BlockData: responseData,

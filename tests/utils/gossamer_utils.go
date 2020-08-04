@@ -59,7 +59,7 @@ var (
 	// GenesisSixAuths is the genesis file that has 6 authorities
 	GenesisSixAuths string = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
-	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis-raw.json")
 
 	// ConfigDefault is the default config file
 	ConfigDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/config.toml")
@@ -74,6 +74,8 @@ var (
 	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
 	ConfigBABEMaxThreshold string = filepath.Join(currentDir, "../utils/config_babe_max_threshold.toml")
+	// ConfigBABEMaxThresholdBench is a config file with BABE threshold set to maximum (node can produce block every slot) with SlotDuration set to 100ms
+	ConfigBABEMaxThresholdBench string = filepath.Join(currentDir, "../utils/config_babe_max_threshold_bench.toml")
 )
 
 // Node represents a gossamer process
@@ -92,7 +94,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	cmdInit := exec.Command(gossamerCMD, "init",
 		"--config", config,
 		"--basepath", basePath,
-		"--genesis", genesis,
+		"--genesis-raw", genesis,
 		"--force",
 	)
 
@@ -100,7 +102,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	logger.Info("initializing gossamer...", "cmd", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
-		fmt.Println(stdOutInit)
+		fmt.Printf("%s", stdOutInit)
 		return nil, err
 	}
 
@@ -129,7 +131,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
-			"--log", "info",
+			"--log", "crit",
 		)
 	} else {
 		key = keyList[node.Idx]
@@ -141,10 +143,10 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpchost", HOSTNAME,
 			"--rpcport", node.RPCPort,
 			"--ws=false",
-			"--rpcmods", "system,author,chain,state",
+			"--rpcmods", "system,author,chain,state,dev",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "info",
+			"--log", "crit",
 		)
 	}
 
@@ -304,7 +306,11 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 
 	for i := 0; i < num; i++ {
 		go func(i int) {
-			node, err := RunGossamer(t, i, TestDir(t, keyList[i]), genesis, config)
+			name := strconv.Itoa(i)
+			if i < len(keyList) {
+				name = keyList[i]
+			}
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config)
 			if err != nil {
 				logger.Error("failed to run gossamer", "i", i)
 			}

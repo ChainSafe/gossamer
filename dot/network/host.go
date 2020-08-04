@@ -22,7 +22,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/sync"
+	dsync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -30,9 +30,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	noise "github.com/libp2p/go-libp2p-noise"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+var defaultMaxPeerCount = 5
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -56,8 +59,8 @@ func newHost(ctx context.Context, cfg *Config, logger log.Logger) (*host, error)
 		return nil, err
 	}
 
-	// set connection manager
-	cm := &ConnManager{}
+	// create connection manager
+	cm := newConnManager(defaultMaxPeerCount)
 
 	// set libp2p host options
 	opts := []libp2p.Option{
@@ -66,6 +69,7 @@ func newHost(ctx context.Context, cfg *Config, logger log.Logger) (*host, error)
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
+		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(noise.ID, noise.New)),
 	}
 
 	// create libp2p host instance
@@ -75,7 +79,7 @@ func newHost(ctx context.Context, cfg *Config, logger log.Logger) (*host, error)
 	}
 
 	// create DHT service
-	dht := kaddht.NewDHT(ctx, h, sync.MutexWrap(ds.NewMapDatastore()))
+	dht := kaddht.NewDHT(ctx, h, dsync.MutexWrap(ds.NewMapDatastore()))
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
@@ -149,15 +153,30 @@ func (h *host) bootstrap() {
 	}
 }
 
-// ping pings a peer using DHT
-func (h *host) ping(peer peer.ID) error {
-	return h.dht.Ping(h.ctx, peer)
-}
-
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
+	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}
 
+	err = h.sendBytes(p, sub, encMsg)
+	if err != nil {
+		return err
+	}
+
+	h.logger.Trace(
+		"Sent message to peer",
+		"host", h.id(),
+		"peer", p,
+		"type", msg.Type(),
+	)
+
+	return nil
+}
+
+func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	// get outbound stream for given peer
 	s := h.getStream(p, sub)
 
@@ -178,28 +197,12 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 		)
 	}
 
-	encMsg, err := msg.Encode()
-	if err != nil {
-		return err
-	}
-
-	msgLen := uint64(len(encMsg))
+	msgLen := uint64(len(msg))
 	lenBytes := uint64ToLEB128(msgLen)
-	encMsg = append(lenBytes, encMsg...)
+	msg = append(lenBytes, msg...)
 
-	_, err = s.Write(encMsg)
-	if err != nil {
-		return err
-	}
-
-	h.logger.Trace(
-		"Sent message to peer",
-		"host", h.id(),
-		"peer", p,
-		"type", msg.GetType(),
-	)
-
-	return nil
+	_, err = s.Write(msg)
+	return err
 }
 
 // broadcast sends a message to each connected peer

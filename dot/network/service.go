@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/services"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/libp2p/go-libp2p-core/network"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -51,6 +50,7 @@ type Service struct {
 	status         *status
 	gossip         *gossip
 	requestTracker *requestTracker
+	errCh          chan<- error
 
 	// Service interfaces
 	blockState   BlockState
@@ -121,6 +121,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noMDNS:         cfg.NoMDNS,
 		noStatus:       cfg.NoStatus,
 		syncer:         cfg.Syncer,
+		errCh:          cfg.ErrChan,
 	}
 
 	return network, err
@@ -223,7 +224,7 @@ func (s *Service) receiveCoreMessages() {
 		s.logger.Debug(
 			"Broadcasting message from core service",
 			"host", s.host.id(),
-			"type", msg.GetType(),
+			"type", msg.Type(),
 		)
 
 		// broadcast message to connected peers
@@ -242,7 +243,7 @@ func (s *Service) safeMsgSend(msg Message) error {
 }
 
 // handleConn starts processes that manage the connection
-func (s *Service) handleConn(conn network.Conn) {
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// check if status is enabled
 	if !s.noStatus {
 
@@ -282,11 +283,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-
-	// create buffer stream for non-blocking read
-	r := bufio.NewReader(stream)
-
-	go s.readStream(r, peer, s.handleMessage)
+	s.readStream(stream, peer, s.handleMessage)
 	// the stream stays open until closed or reset
 }
 
@@ -299,40 +296,65 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
+	s.readStream(stream, peer, s.handleSyncMessage)
+	// the stream stays open until closed or reset
+}
+
+var maxReads = 16
+
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
-	go s.readStream(r, peer, s.handleSyncMessage)
-	// the stream stays open until closed or reset
-}
-
-func (s *Service) readStream(r *bufio.Reader, peer peer.ID, handler func(peer peer.ID, msg Message)) {
 	for {
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
 			s.logger.Error("Failed to read LEB128 encoding", "error", err)
+			_ = stream.Close()
+			s.errCh <- err
 			return
+		}
+
+		if length == 0 {
+			continue
 		}
 
 		msgBytes := make([]byte, length)
-		n, err := r.Read(msgBytes)
-		if err != nil {
-			s.logger.Error("Failed to read message from stream", "error", err)
-			return
+		tot := uint64(0)
+		for i := 0; i < maxReads; i++ {
+			n, err := r.Read(msgBytes[tot:]) //nolint
+			if err != nil {
+				s.logger.Error("Failed to read message from stream", "error", err)
+				_ = stream.Close()
+				s.errCh <- err
+				return
+			}
+
+			tot += uint64(n)
+			if tot == length {
+				break
+			}
 		}
 
-		if uint64(n) != length {
-			s.logger.Error("Failed to read entire message", "length", length, "read", n)
-			return
+		if tot != length {
+			s.logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			continue
 		}
 
 		// decode message based on message type
 		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
 			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
-			return // exit
+			continue
 		}
+
+		s.logger.Trace(
+			"Received message from peer",
+			"host", s.host.id(),
+			"peer", peer,
+			"type", msg.Type(),
+		)
 
 		// handle message based on peer status and message type
 		handler(peer, msg)
@@ -376,14 +398,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 
 // handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
-	s.logger.Trace(
-		"Received message from peer",
-		"host", s.host.id(),
-		"peer", peer,
-		"type", msg.GetType(),
-	)
-
-	if msg.GetType() != StatusMsgType {
+	if msg.Type() != StatusMsgType {
 
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
@@ -391,6 +406,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 				req := s.syncer.HandleBlockAnnounce(an)
 				if req != nil {
 					s.requestTracker.addRequestedBlockID(req.ID)
+					log.Info("sending", "req", req)
 					err := s.host.send(peer, syncID, req)
 					if err != nil {
 						s.logger.Error("failed to send BlockRequest message", "peer", peer)

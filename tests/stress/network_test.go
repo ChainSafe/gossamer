@@ -14,23 +14,35 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package utils
+package stress
 
-//nolint
-var (
-	// CHAIN METHODS
-	ChainGetBlock                = "chain_getBlock"
-	ChainGetHeader               = "chain_getHeader"
-	ChainGetFinalizedHead        = "chain_getFinalizedHead"
-	ChainGetFinalizedHeadByRound = "chain_getFinalizedHeadByRound"
-	ChainGetBlockHash            = "chain_getBlockHash"
+import (
+	"testing"
+	"time"
 
-	// AUTHOR METHODS
-	AuthorSubmitExtrinsic = "author_submitExtrinsic"
+	"github.com/ChainSafe/gossamer/tests/utils"
 
-	// STATE METHODS
-	StateGetStorage = "state_getStorage"
-
-	// DEV METHODS
-	DevControl = "dev_control"
+	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/require"
 )
+
+func TestNetwork_MaxPeers(t *testing.T) {
+	numNodes = 9 // 9 block producers
+	utils.SetLogLevel(log.LvlInfo)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
+	require.NoError(t, err)
+
+	defer func() {
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	// wait for nodes to connect
+	time.Sleep(time.Second * 10)
+
+	for i, node := range nodes {
+		peers := utils.GetPeers(t, node)
+		t.Logf("node %d: peer count=%d", i, len(peers))
+		require.LessOrEqual(t, len(peers), 5)
+	}
+}

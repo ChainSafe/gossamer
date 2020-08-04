@@ -4,8 +4,9 @@ id = "gssmr"
 log = "crit"
 
 [log]
-core = "info"
 babe = "info"
+sync = "debug"
+network = "debug"
 
 [init]
 genesis-raw = "./chain/gssmr/genesis-raw.json"
@@ -19,6 +20,8 @@ authority = true
 roles = 4
 babe-authority = true
 grandpa-authority = true
+babe-threshold = "max"
+slot-duration = 100
 
 [network]
 bootnodes = []

@@ -1,4 +1,4 @@
-// Copyright 2019 ChainSafe Systems (ON) Corp.
+// Copyright 2020 ChainSafe Systems (ON) Corp.
 // This file is part of gossamer.
 //
 // The gossamer library is free software: you can redistribute it and/or modify
@@ -14,19 +14,25 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package genesis
+package utils
 
-const TestProtocolID = "/gossamer/test/0"
+import (
+	"testing"
 
-var TestBootnodes = []string{
-	"/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/QmeCit3Nif4VfNqrEJsdYHZGcKzRCnZvGxg6hha1iNj4mk",
-	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
-}
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
+)
 
-var TestGenesis = &Genesis{
-	Name:       "gossamer",
-	ID:         "gossamer",
-	Bootnodes:  TestBootnodes,
-	ProtocolID: TestProtocolID,
-	Genesis:    Fields{},
+// GetPeers calls the endpoint system_peers
+func GetPeers(t *testing.T, node *Node) []common.PeerInfo {
+	respBody, err := PostRPC("system_peers", NewEndpoint(node.RPCPort), "[]")
+	require.NoError(t, err)
+
+	resp := new(modules.SystemPeersResponse)
+	err = DecodeRPC(t, respBody, resp)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	return resp.Peers
 }

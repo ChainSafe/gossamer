@@ -105,3 +105,9 @@ type BlockProducer interface {
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData)
 }
+
+// Verifier is the interface for the block verifier
+type Verifier interface {
+	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error
+	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.BABEAuthorityData)
+}

@@ -43,6 +43,16 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
+type mockVerifier struct{}
+
+func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error {
+	return nil
+}
+
+func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.BABEAuthorityData) {
+
+}
+
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
 	auths []*types.BABEAuthorityData
@@ -171,6 +181,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.MsgSend == nil {
 		cfg.MsgSend = make(chan network.Message, 10)
+	}
+
+	if cfg.Verifier == nil {
+		cfg.Verifier = new(mockVerifier)
 	}
 
 	cfg.LogLvl = 3

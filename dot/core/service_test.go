@@ -104,14 +104,14 @@ func TestAnnounceBlock(t *testing.T) {
 
 	select {
 	case msg := <-msgSend:
-		msgType := msg.GetType()
+		msgType := msg.Type()
 		require.Equal(t, network.BlockAnnounceMsgType, msgType)
 	case <-time.After(testMessageTimeout):
 		t.Error("timeout waiting for message")
 	}
 }
 
-func TestCheckForRuntimeChanges(t *testing.T) {
+func TestHandleRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 
@@ -140,7 +140,7 @@ func TestCheckForRuntimeChanges(t *testing.T) {
 	err = s.storageState.SetStorage([]byte(":code"), testRuntime)
 	require.Nil(t, err)
 
-	err = s.checkForRuntimeChanges()
+	err = s.handleRuntimeChanges(testGenesisHeader)
 	require.Nil(t, err)
 }
 
