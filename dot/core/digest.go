@@ -183,8 +183,7 @@ func (h *DigestHandler) handleBABEChangesOnImport(header *types.Header) {
 	if resume != nil && num.Cmp(resume.atBlock) == 0 {
 		err := h.babe.SetAuthorities(h.babeAuths)
 		if err != nil {
-			log.Error("error setting authorities", "error", err)
-			return
+			log.Warn("error setting authorities", "error", err)
 		}
 		h.verifier.SetAuthorityChangeAtBlock(header, h.babeAuths)
 		h.babeResume = nil
@@ -194,8 +193,7 @@ func (h *DigestHandler) handleBABEChangesOnImport(header *types.Header) {
 	if fc != nil && num.Cmp(fc.atBlock) == 0 {
 		err := h.babe.SetAuthorities(fc.auths)
 		if err != nil {
-			log.Error("error setting authorities", "error", err)
-			return
+			log.Warn("error setting authorities", "error", err)
 		}
 		h.verifier.SetAuthorityChangeAtBlock(header, fc.auths)
 		h.babeForcedChange = nil
@@ -210,8 +208,7 @@ func (h *DigestHandler) handleBABEChangesOnFinalization(header *types.Header) {
 		h.babeAuths = h.babe.Authorities()
 		err := h.babe.SetAuthorities([]*types.BABEAuthorityData{})
 		if err != nil {
-			log.Error("error setting authorities", "error", err)
-			return
+			log.Warn("error setting authorities", "error", err)
 		}
 		h.verifier.SetAuthorityChangeAtBlock(header, []*types.BABEAuthorityData{})
 		h.babePause = nil
@@ -221,8 +218,7 @@ func (h *DigestHandler) handleBABEChangesOnFinalization(header *types.Header) {
 	if sc != nil && num.Cmp(sc.atBlock) == 0 {
 		err := h.babe.SetAuthorities(sc.auths)
 		if err != nil {
-			log.Error("error setting authorities", "error", err)
-			return
+			log.Warn("error setting authorities", "error", err)
 		}
 		h.verifier.SetAuthorityChangeAtBlock(header, sc.auths)
 		h.babeScheduledChange = nil
