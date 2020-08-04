@@ -45,7 +45,7 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
-	SetBlockProducerAuthorities(data []*types.BABEAuthorityData) error
+	SetAuthorities(data []*types.BABEAuthorityData) error
 }
 
 // TransactionQueueAPI ...

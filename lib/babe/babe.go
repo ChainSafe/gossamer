@@ -261,12 +261,12 @@ func (b *Service) Authorities() []*types.BABEAuthorityData {
 }
 
 // SetAuthorities sets the current BABE authorities
-func (b *Service) SetAuthorities(a []*types.BABEAuthorityData) {
-	b.authorityData = a
-}
+//func (b *Service) SetAuthorities(a []*types.BABEAuthorityData) {
+//	b.authorityData = a
+//}
 
-// SetBlockProducerAuthorities sets the current Block Producer Authorities and sets Authority index
-func (b *Service) SetBlockProducerAuthorities(data []*types.BABEAuthorityData) error {
+// SetAuthorities sets the current Block Producer Authorities and sets Authority index
+func (b *Service) SetAuthorities(data []*types.BABEAuthorityData) error {
 	// check key is in new Authorities list before we update Authorities Data
 	pub := b.keypair.Public()
 	found := false

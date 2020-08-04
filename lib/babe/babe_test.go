@@ -293,7 +293,7 @@ func TestStartAndStop(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_SetBlockProducerAuthorities(t *testing.T) {
+func TestService_SetAuthorities(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	bs := createTestService(t, &ServiceConfig{
@@ -314,13 +314,13 @@ func TestService_SetBlockProducerAuthorities(t *testing.T) {
 	}
 	auths = append(auths, bd2)
 
-	err = bs.SetBlockProducerAuthorities(auths)
+	err = bs.SetAuthorities(auths)
 	require.NoError(t, err)
 	aAfter := bs.authorityData
 	require.NotEqual(t, aBefore, aAfter)
 }
 
-func TestService_SetBlockProducerAuthorities_WrongKey(t *testing.T) {
+func TestService_SetAuthorities_WrongKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	bs := createTestService(t, &ServiceConfig{
@@ -336,7 +336,7 @@ func TestService_SetBlockProducerAuthorities_WrongKey(t *testing.T) {
 	}
 	auths = append(auths, bd1)
 
-	err = bs.SetBlockProducerAuthorities(auths)
+	err = bs.SetAuthorities(auths)
 	require.EqualError(t, err, "key not in BABE authority data")
 	aAfter := bs.authorityData
 	// auths before should equal auths after since there is an error with key, auths should not change

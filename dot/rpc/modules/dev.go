@@ -77,7 +77,7 @@ func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interfac
 		ab = append(ab, bd)
 	}
 
-	err := m.blockProducerAPI.SetBlockProducerAuthorities(ab)
+	err := m.blockProducerAPI.SetAuthorities(ab)
 	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
 	return err
 }
