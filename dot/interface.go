@@ -16,4 +16,5 @@ type BlockProducer interface {
 	Resume() error
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData)
+	SetRandomness(a [32]byte)
 }
