@@ -57,7 +57,7 @@ func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*
 type mockBlockProducer struct {
 	auths          []*types.BABEAuthorityData
 	epochThreshold *big.Int
-	randomness [32]byte
+	randomness     [babe.RandomnessLength]byte
 }
 
 // Start mocks starting

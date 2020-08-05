@@ -342,7 +342,6 @@ func TestService_SetAuthorities_WrongKey(t *testing.T) {
 	require.Equal(t, aBefore, aAfter)
 }
 
-
 func TestService_SetEpochThreshold(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{})
 	etBefore := bs.epochThreshold
