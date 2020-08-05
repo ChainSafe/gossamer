@@ -17,14 +17,20 @@
 package babe
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
+// initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
+// and stores updated EpochInfo in the database
+func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
 	if epoch > 1 {
-		b.randomness = b.epochRandomness(epoch)
+		b.randomness, err = b.epochRandomness(epoch)
 	}
 
 	if epoch > 0 {
@@ -48,9 +54,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		}
 	}
 
-	var err error
-	i := startSlot
-	for ; i < b.startSlot+b.config.EpochLength; i++ {
+	for i := startSlot; i < b.startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
@@ -60,8 +64,46 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	return nil
 }
 
-func (b *Service) epochRandomness(epoch uint64) [types.RandomnessLength]byte {
-	return b.randomness //[types.RandomnessLength]byte{}
+func (b *Service) epochRandomness(epoch uint64) ([types.RandomnessLength]byte, error) {
+	epochMinusTwo, err := b.epochState.GetEpochInfo(epoch - 2)
+	if err != nil {
+		return [types.RandomnessLength]byte{}, err
+	}
+
+	lastNum := epochMinusTwo.FirstBlock + epochMinusTwo.Duration - 1
+	first, err := b.blockState.GetBlockByNumber(big.NewInt(int64(epochMinusTwo.FirstBlock)))
+	if err != nil {
+		return [types.RandomnessLength]byte{}, err
+	}
+
+	last, err := b.blockState.GetBlockByNumber(big.NewInt(int64(lastNum)))
+	if err != nil {
+		return [types.RandomnessLength]byte{}, err
+	}
+
+	sc, err := b.blockState.SubChain(first.Header.Hash(), last.Header.Hash())
+	if err != nil {
+		return [types.RandomnessLength]byte{}, err
+	}
+
+	epochBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(epochBytes, epoch)
+	buf := append(b.randomness[:], epochBytes...)
+	for _, hash := range sc {
+		header, err := b.blockState.GetHeader(hash)
+		if err != nil {
+			return [types.RandomnessLength]byte{}, err
+		}
+
+		output, err := getVRFOutput(header)
+		if err != nil {
+			return [types.RandomnessLength]byte{}, err
+		}
+
+		buf = append(buf, output[:]...)
+	}
+
+	return common.Blake2bHash(buf)
 }
 
 // incrementEpoch increments the current epoch stored in the db and returns the new epoch number
@@ -78,4 +120,8 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	}
 
 	return next, nil
+}
+
+func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
+	return [sr25519.VrfOutputLength]byte{}, nil
 }
