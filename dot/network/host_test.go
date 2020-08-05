@@ -86,8 +86,6 @@ func TestMessageSize(t *testing.T) {
 func TestConnect(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -97,7 +95,6 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -113,7 +110,6 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -157,8 +153,6 @@ func TestConnect(t *testing.T) {
 func TestBootstrap(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -168,7 +162,6 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -186,7 +179,6 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -232,7 +224,6 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -251,7 +242,6 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -294,8 +284,6 @@ func TestSend(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -305,7 +293,6 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	
 
 	nodeA.noGossip = true
 	nodeA.noStatus = true
@@ -324,7 +311,6 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
@@ -358,7 +344,6 @@ func TestBroadcast(t *testing.T) {
 	}
 
 	nodeC := createTestService(t, configC)
-	
 
 	nodeC.noGossip = true
 	nodeC.noStatus = true
@@ -412,8 +397,6 @@ func TestBroadcast(t *testing.T) {
 func TestExistingStream(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	
-
 	msgSendA := make(chan Message)
 
 	configA := &Config{
@@ -426,7 +409,7 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-	
+
 	nodeA.noGossip = true
 	nodeA.noStatus = true
 
@@ -449,7 +432,6 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-	
 
 	nodeB.noGossip = true
 	nodeB.noStatus = true
