@@ -342,3 +342,15 @@ func TestService_SetAuthorities_WrongKey(t *testing.T) {
 	// auths before should equal auths after since there is an error with key, auths should not change
 	require.Equal(t, aBefore, aAfter)
 }
+
+func TestService_SetEpochThreshold(t *testing.T) {
+	bs := createTestService(t, &ServiceConfig{})
+	etBefore := bs.epochThreshold
+	newThreshold := big.NewInt(1000)
+
+	bs.SetEpochThreshold(newThreshold)
+
+	etAfter := bs.epochThreshold
+	require.NotEqual(t, etBefore, etAfter)
+	require.Equal(t, newThreshold, etAfter)
+}
