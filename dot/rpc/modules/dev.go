@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -61,8 +62,8 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	return err
 }
 
-// SetAuthorities dev rpc method that sets authorities for block producer
-func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *string) error {
+// SetBlockProducerAuthorities dev rpc method that sets authorities for block producer
+func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interface{}, res *string) error {
 	ab := []*types.BABEAuthorityData{}
 	for _, v := range *req {
 		kb := crypto.PublicAddressToByteArray(common.Address(v.([]interface{})[0].(string)))
@@ -76,7 +77,30 @@ func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *str
 		}
 		ab = append(ab, bd)
 	}
-	m.blockProducerAPI.SetAuthorities(ab)
+
+	err := m.blockProducerAPI.SetAuthorities(ab)
 	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
+	return err
+}
+
+// SetBABERandomness dev rpc method to set BABE Randomness
+func (m *DevModule) SetBABERandomness(r *http.Request, req *[]string, res *string) error {
+	val := *req
+
+	reqB, err := common.HexToBytes(val[0])
+	if err != nil {
+		return err
+	}
+
+	if len(reqB) != babe.RandomnessLength {
+		return fmt.Errorf("expected randomness value of %v bytes, received %v bytes", babe.RandomnessLength, len(reqB))
+	}
+
+	b := [babe.RandomnessLength]byte{}
+	for i := range b {
+		b[i] = reqB[i]
+	}
+	m.blockProducerAPI.SetRandomness(b)
+	*res = "updated BABE Randomness"
 	return nil
 }
