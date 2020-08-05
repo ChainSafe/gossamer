@@ -104,6 +104,7 @@ type BlockProducer interface {
 	SetRuntime(*runtime.Runtime) error
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData) error
+	SetEpochThreshold(a *big.Int)
 }
 
 // Verifier is the interface for the block verifier

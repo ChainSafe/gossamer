@@ -278,6 +278,11 @@ func (b *Service) SetAuthorities(data []*types.BABEAuthorityData) error {
 	return b.setAuthorityIndex()
 }
 
+// SetEpochThreshold sets Epoch Threshold for BABE producer
+func (b *Service) SetEpochThreshold(a *big.Int) {
+	b.epochThreshold = a
+}
+
 // SetEpochData will set the authorityData and randomness
 func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 	b.authorityData = data.Authorities

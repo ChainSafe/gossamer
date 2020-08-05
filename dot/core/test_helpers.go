@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +54,8 @@ func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	auths []*types.BABEAuthorityData
+	auths          []*types.BABEAuthorityData
+	epochThreshold *big.Int
 }
 
 // Start mocks starting
@@ -75,6 +75,10 @@ func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
 func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) error {
 	bp.auths = a
 	return nil
+}
+
+func (bp *mockBlockProducer) SetEpochThreshold(a *big.Int) {
+	bp.epochThreshold = a
 }
 
 // GetBlockChannel returns a new channel
