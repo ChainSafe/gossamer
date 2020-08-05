@@ -134,7 +134,7 @@ const RandomnessLength = 32
 
 // EpochInfo is internal BABE information for a given epoch
 type EpochInfo struct {
-	Duration int64 // number of slots in the epoch
-	FirstBlock int64 // number of the first block in the epoch
-	Randomness [RandomnessLength]byte 
+	Duration   uint64 // number of slots in the epoch
+	FirstBlock uint64 // number of the first block in the epoch
+	Randomness [RandomnessLength]byte
 }

@@ -49,13 +49,13 @@ func NewSlot(start, duration, number uint64) *Slot {
 // It is broadcast as part of the consensus digest in the first block of the epoch.
 type NextEpochDescriptor struct {
 	Authorities []*types.BABEAuthorityData
-	Randomness  [RandomnessLength]byte // TODO: update to [32]byte when runtime is updated
+	Randomness  [types.RandomnessLength]byte // TODO: update to [32]byte when runtime is updated
 }
 
 // NextEpochDescriptorRaw contains information about the next epoch.
 type NextEpochDescriptorRaw struct {
 	Authorities []*types.BABEAuthorityDataRaw
-	Randomness  [RandomnessLength]byte
+	Randomness  [types.RandomnessLength]byte
 }
 
 // Encode returns the SCALE encoding of the NextEpochDescriptor.

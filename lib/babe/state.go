@@ -58,3 +58,10 @@ type TransactionQueue interface {
 	Pop() *transaction.ValidTransaction
 	Peek() *transaction.ValidTransaction
 }
+
+type EpochState interface {
+	SetCurrentEpoch(epoch uint64) error
+	GetCurrentEpoch() (uint64, error)
+	SetEpochInfo(epoch uint64, info *types.EpochInfo) error
+	GetEpochInfo(epoch uint64) (*types.EpochInfo, error)
+}

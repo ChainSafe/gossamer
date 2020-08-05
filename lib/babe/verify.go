@@ -30,7 +30,7 @@ import (
 // Descriptor contains the information needed to verify blocks
 type Descriptor struct {
 	AuthorityData []*types.BABEAuthorityData
-	Randomness    [RandomnessLength]byte
+	Randomness    [types.RandomnessLength]byte
 	Threshold     *big.Int
 }
 
@@ -230,7 +230,7 @@ func descriptorFromRuntime(rt *runtime.Runtime) (*Descriptor, error) {
 type verifier struct {
 	blockState    BlockState
 	authorityData []*types.BABEAuthorityData
-	randomness    [RandomnessLength]byte
+	randomness    [types.RandomnessLength]byte
 	threshold     *big.Int
 }
 

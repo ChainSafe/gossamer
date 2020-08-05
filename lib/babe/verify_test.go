@@ -62,7 +62,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
 	descriptor := &Descriptor{
 		AuthorityData: []*types.BABEAuthorityData{{Weight: 1}},
-		Randomness:    [RandomnessLength]byte{77},
+		Randomness:    [types.RandomnessLength]byte{77},
 		Threshold:     big.NewInt(99),
 	}
 
@@ -174,7 +174,7 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	require.NoError(t, err)
 
 	// create a branch at block 1 on chain A
-	randomnessA := [RandomnessLength]byte{0x77}
+	randomnessA := [types.RandomnessLength]byte{0x77}
 
 	descriptorA := &Descriptor{
 		AuthorityData: descriptor.AuthorityData,

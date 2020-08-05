@@ -20,12 +20,12 @@ import (
 	"encoding/binary"
 	"sync"
 
- 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/types"
 )
 
 var (
-	epochPrefix = []byte("epoch")
+	epochPrefix     = []byte("epoch")
 	currentEpochKey = []byte("current")
 	epochInfoPrefix = []byte("epochinfo")
 )
@@ -35,7 +35,7 @@ func epochInfoKey(epoch uint64) []byte {
 	binary.LittleEndian.PutUint64(buf, epoch)
 	return append(epochInfoPrefix, buf...)
 }
- 
+
 // EpochDB stores epoch info in an underlying Database
 type EpochDB struct {
 	db chaindb.Database
@@ -72,12 +72,13 @@ func newEpochDB(db chaindb.Database) *EpochDB {
 	}
 }
 
+// EpochState tracks information related to each epoch
 type EpochState struct {
-	db *EpochDB
+	db   *EpochDB
 	lock sync.RWMutex
 }
 
-// NewEpochStateFromGenesis
+// NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
 func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*EpochState, error) {
 	epochDB := newEpochDB(db)
 	err := epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
@@ -97,19 +98,22 @@ func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*Epoc
 	return s, nil
 }
 
-func NewEpochState(db chaindb.Database) (*EpochState) {
+// NewEpochState returns a new EpochState
+func NewEpochState(db chaindb.Database) *EpochState {
 	epochDB := newEpochDB(db)
 	return &EpochState{
 		db: epochDB,
 	}
 }
 
+// SetCurrentEpoch sets the current epoch
 func (s *EpochState) SetCurrentEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
 	return s.db.Put(currentEpochKey, buf)
 }
 
+// GetCurrentEpoch returns the current epoch
 func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 	b, err := s.db.Get(currentEpochKey)
 	if err != nil {
@@ -117,12 +121,14 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 	}
 
 	return binary.LittleEndian.Uint64(b), nil
-} 
+}
 
+// SetEpochInfo sets the epoch info for a given epoch
 func (s *EpochState) SetEpochInfo(epoch uint64, info *types.EpochInfo) error {
 	return nil
 }
 
+// GetEpochInfo returns the epoch info for a given epoch
 func (s *EpochState) GetEpochInfo(epoch uint64) (*types.EpochInfo, error) {
 	return nil, nil
 }

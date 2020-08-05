@@ -79,7 +79,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.TransactionQueue = state.NewTransactionQueue()
 	}
 
-	if cfg.BlockState == nil || cfg.StorageState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		dbSrv := state.NewService("", log.LvlInfo)
 		dbSrv.UseMemDB()
 
@@ -93,6 +93,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		cfg.BlockState = dbSrv.Block
 		cfg.StorageState = dbSrv.Storage
+		cfg.EpochState = dbSrv.Epoch
 	}
 
 	babeService, err := NewService(cfg)
@@ -345,7 +346,7 @@ func TestService_SetAuthorities_WrongKey(t *testing.T) {
 func TestService_SetRandomness(t *testing.T) {
 	bs := createTestService(t, &ServiceConfig{})
 	rBefore := bs.randomness
-	rand := [RandomnessLength]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
+	rand := [types.RandomnessLength]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
 	bs.SetRandomness(rand)
 	rAfter := bs.randomness
 
