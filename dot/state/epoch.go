@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"sync"
 
+ 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/chaindb"
 )
 
@@ -64,7 +65,7 @@ func (db *EpochDB) Has(key []byte) (bool, error) {
 	return db.db.Has(key)
 }
 
-// newEpochDB instantiates a badgerDB instance for storing relevant epoch info
+// newEpochDB instantiates a badgerDB instance for stssoring relevant epoch info
 func newEpochDB(db chaindb.Database) *EpochDB {
 	return &EpochDB{
 		db,
@@ -76,10 +77,52 @@ type EpochState struct {
 	lock sync.RWMutex
 }
 
-func NewEpochStateFromGenesis(db chaindb.Database) *EpochState {
+// NewEpochStateFromGenesis
+func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*EpochState, error) {
 	epochDB := newEpochDB(db)
-	epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
+	err := epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
+	if err != nil {
+		return nil, err
+	}
+
+	s := &EpochState{
+		db: epochDB,
+	}
+
+	err = s.SetEpochInfo(0, info)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
+}
+
+func NewEpochState(db chaindb.Database) (*EpochState) {
+	epochDB := newEpochDB(db)
 	return &EpochState{
 		db: epochDB,
 	}
+}
+
+func (s *EpochState) SetCurrentEpoch(epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return s.db.Put(currentEpochKey, buf)
+}
+
+func (s *EpochState) GetCurrentEpoch() (uint64, error) {
+	b, err := s.db.Get(currentEpochKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(b), nil
+} 
+
+func (s *EpochState) SetEpochInfo(epoch uint64, info *types.EpochInfo) error {
+	return nil
+}
+
+func (s *EpochState) GetEpochInfo(epoch uint64) (*types.EpochInfo, error) {
+	return nil, nil
 }
