@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -85,12 +86,17 @@ func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interfac
 // SetBABERandomness dev rpc method to set BABE Randomness
 func (m *DevModule) SetBABERandomness(r *http.Request, req *[]string, res *string) error {
 	val := *req
+
 	reqB, err := common.HexToBytes(val[0])
 	if err != nil {
 		return err
 	}
 
-	b := [32]byte{}
+	if len(reqB) != babe.RandomnessLength {
+		return fmt.Errorf("expected randomness value of %v bytes, received %v bytes", babe.RandomnessLength, len(reqB))
+	}
+
+	b := [babe.RandomnessLength]byte{}
 	for i := range b {
 		b[i] = reqB[i]
 	}
