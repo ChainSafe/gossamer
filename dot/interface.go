@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 )
@@ -19,4 +20,5 @@ type BlockProducer interface {
 	Authorities() []*types.BABEAuthorityData
 	SetAuthorities(a []*types.BABEAuthorityData) error
 	SetEpochThreshold(a *big.Int)
+	SetRandomness(a [babe.RandomnessLength]byte)
 }

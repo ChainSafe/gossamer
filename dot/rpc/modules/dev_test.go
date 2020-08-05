@@ -3,14 +3,13 @@ package modules
 import (
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -113,4 +112,22 @@ func TestDevModule_SetBABEEpochThreshold(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "set BABE Epoch Threshold to 123", res)
+}
+
+func TestDevModule_SetBABERandomness(t *testing.T) {
+	bs := newBABEService(t)
+	m := NewDevModule(bs, nil)
+	req := &[]string{"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"}
+	var res string
+	err := m.SetBABERandomness(nil, req, &res)
+	require.NoError(t, err)
+}
+
+func TestDevModule_SetBABERandomness_WrongLength(t *testing.T) {
+	bs := newBABEService(t)
+	m := NewDevModule(bs, nil)
+	req := &[]string{"0x0001"}
+	var res string
+	err := m.SetBABERandomness(nil, req, &res)
+	require.EqualError(t, err, "expected randomness value of 32 bytes, received 2 bytes")
 }

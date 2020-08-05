@@ -283,6 +283,11 @@ func (b *Service) SetEpochThreshold(a *big.Int) {
 	b.epochThreshold = a
 }
 
+// SetRandomness sets randomness for BABE service
+func (b *Service) SetRandomness(a [RandomnessLength]byte) {
+	b.randomness = a
+}
+
 // SetEpochData will set the authorityData and randomness
 func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
 	b.authorityData = data.Authorities
