@@ -81,3 +81,20 @@ func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interfac
 	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
 	return err
 }
+
+// SetBABERandomness dev rpc method to set BABE Randomness
+func (m *DevModule) SetBABERandomness(r *http.Request, req *[]string, res *string) error {
+	val := *req
+	reqB, err := common.HexToBytes(val[0])
+	if err != nil {
+		return err
+	}
+
+	b := [32]byte{}
+	for i := range b {
+		b[i] = reqB[i]
+	}
+	m.blockProducerAPI.SetRandomness(b)
+	*res = "updated BABE Randomness"
+	return nil
+}

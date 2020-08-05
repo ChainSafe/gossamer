@@ -278,7 +278,8 @@ func (b *Service) SetAuthorities(data []*types.BABEAuthorityData) error {
 	return b.setAuthorityIndex()
 }
 
-func (b *Service) SetRandomness(a [32]byte) {
+// SetRandomness sets randomness for BABE service
+func (b *Service) SetRandomness(a [RandomnessLength]byte) {
 	b.randomness = a
 }
 
