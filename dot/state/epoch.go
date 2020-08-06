@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 var (
@@ -125,10 +126,30 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 
 // SetEpochInfo sets the epoch info for a given epoch
 func (s *EpochState) SetEpochInfo(epoch uint64, info *types.EpochInfo) error {
-	return nil
+	enc, err := scale.Encode(info)
+	if err != nil {
+		return err
+	}
+
+	return s.db.Put(epochInfoKey(epoch), enc)
 }
 
 // GetEpochInfo returns the epoch info for a given epoch
 func (s *EpochState) GetEpochInfo(epoch uint64) (*types.EpochInfo, error) {
-	return nil, nil
+	enc, err := s.db.Get(epochInfoKey(epoch))
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := scale.Decode(enc, new(types.EpochInfo))
+	if err != nil {
+		return nil, err
+	}
+
+	return info.(*types.EpochInfo), nil
+}
+
+// HasEpochInfo returns whether epoch info exists for a given epoch
+func (s *EpochState) HasEpochInfo(epoch uint64) (bool, error) {
+	return s.db.Has(epochInfoKey(epoch))
 }
