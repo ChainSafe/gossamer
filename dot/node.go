@@ -85,8 +85,14 @@ func InitNode(cfg *Config) error {
 
 	var genEpochInfo *types.EpochInfo
 	if !cfg.Init.TestFirstEpoch {
+		// create in-memeory storage for loading runtime info
+		genStorage, err := state.NewStorageState(database.NewMemDatabase(), t)
+		if err != nil {
+			return fmt.Errorf("failed to create in-memory storage: %w", err)
+		}
+
 		// create genesis runtime
-		r, err := genesis.NewRuntimeFromGenesis(gen, stateSrvc.Storage) //nolint
+		r, err := genesis.NewRuntimeFromGenesis(gen, genStorage) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to create genesis runtime: %w", err)
 		}
@@ -101,6 +107,8 @@ func InitNode(cfg *Config) error {
 			FirstBlock: 0,
 			Randomness: babeCfg.Randomness,
 		}
+
+		r.Stop()
 	} else {
 		genEpochInfo = &types.EpochInfo{
 			Duration: 200,
