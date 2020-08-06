@@ -90,6 +90,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	return header, nil
 }
 
+// NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (*runtime.Runtime, error) {
 	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {

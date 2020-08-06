@@ -1,6 +1,7 @@
 package common
 
 var (
+	// CodeKey is the key where runtime code is stored in the trie
 	CodeKey = []byte(":code")
 )
 

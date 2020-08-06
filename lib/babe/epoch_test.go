@@ -37,7 +37,7 @@ func TestInitiateEpoch(t *testing.T) {
 	parent := genesisHeader
 	for i := 1; i < int(testEpochLength*2+1); i++ {
 		block, _ := createTestBlock(t, bs, parent, nil, uint64(i))
-		err := bs.blockState.AddBlock(block)
+		err = bs.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
 	}

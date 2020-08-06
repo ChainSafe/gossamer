@@ -18,7 +18,6 @@ package state
 
 import (
 	"encoding/binary"
-	"sync"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -75,8 +74,7 @@ func newEpochDB(db chaindb.Database) *EpochDB {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db   *EpochDB
-	lock sync.RWMutex
+	db *EpochDB
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime

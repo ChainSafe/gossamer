@@ -28,8 +28,9 @@ import (
 
 // initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
-func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
+func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	if epoch > 1 {
+		var err error
 		b.randomness, err = b.epochRandomness(epoch)
 		if err != nil {
 			return err
@@ -57,6 +58,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
 		}
 	}
 
+	var err error
 	for i := startSlot; i < startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
 		if err != nil {

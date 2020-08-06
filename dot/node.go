@@ -86,7 +86,7 @@ func InitNode(cfg *Config) error {
 	var genEpochInfo *types.EpochInfo
 	if !cfg.Init.TestFirstEpoch {
 		// create genesis runtime
-		r, err := genesis.NewRuntimeFromGenesis(gen, stateSrvc.Storage)
+		r, err := genesis.NewRuntimeFromGenesis(gen, stateSrvc.Storage) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to create genesis runtime: %w", err)
 		}

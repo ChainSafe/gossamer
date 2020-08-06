@@ -59,6 +59,7 @@ type TransactionQueue interface {
 	Peek() *transaction.ValidTransaction
 }
 
+// EpochState is the interface for epoch methods
 type EpochState interface {
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
