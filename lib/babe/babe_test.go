@@ -45,9 +45,11 @@ var emptyHeader = &types.Header{
 	Number: big.NewInt(0),
 }
 
+var testEpochLength = uint64(10)
+
 var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+	Duration:   testEpochLength,
+	FirstBlock: 1,
 }
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {

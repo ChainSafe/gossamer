@@ -31,6 +31,9 @@ import (
 func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
 	if epoch > 1 {
 		b.randomness, err = b.epochRandomness(epoch)
+		if err != nil {
+			return err
+		}
 	}
 
 	if epoch > 0 {
@@ -54,7 +57,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
 		}
 	}
 
-	for i := startSlot; i < b.startSlot+b.config.EpochLength; i++ {
+	for i := startSlot; i < startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
@@ -65,6 +68,10 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) (err error) {
 }
 
 func (b *Service) epochRandomness(epoch uint64) ([types.RandomnessLength]byte, error) {
+	if epoch < 2 {
+		return b.randomness, nil
+	}
+
 	epochMinusTwo, err := b.epochState.GetEpochInfo(epoch - 2)
 	if err != nil {
 		return [types.RandomnessLength]byte{}, err
@@ -159,5 +166,34 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 }
 
 func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
-	return [sr25519.VrfOutputLength]byte{}, nil
+	var bh *types.BabeHeader
+
+	for _, d := range header.Digest {
+		digest, err := types.DecodeDigestItem(d)
+		if err != nil {
+			continue
+		}
+
+		if digest.Type() == types.PreRuntimeDigestType {
+			prd, ok := digest.(*types.PreRuntimeDigest)
+			if !ok {
+				continue
+			}
+
+			tbh := new(types.BabeHeader)
+			err = tbh.Decode(prd.Data)
+			if err != nil {
+				continue
+			}
+
+			bh = tbh
+			break
+		}
+	}
+
+	if bh == nil {
+		return [sr25519.VrfOutputLength]byte{}, fmt.Errorf("block %d: %w", header.Number, ErrNoBABEHeader)
+	}
+
+	return bh.VrfOutput, nil
 }

@@ -64,4 +64,5 @@ type EpochState interface {
 	GetCurrentEpoch() (uint64, error)
 	SetEpochInfo(epoch uint64, info *types.EpochInfo) error
 	GetEpochInfo(epoch uint64) (*types.EpochInfo, error)
+	HasEpochInfo(epoch uint64) (bool, error)
 }
