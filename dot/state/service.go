@@ -73,7 +73,7 @@ func (s *Service) DB() chaindb.Database {
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie) error {
+func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie, epochInfo *types.EpochInfo) error {
 	var db chaindb.Database
 
 	// check database type
@@ -122,7 +122,7 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
 	}
 
-	epochState, err := NewEpochStateFromGenesis(db, &types.EpochInfo{}) // TODO: pass this as a param
+	epochState, err := NewEpochStateFromGenesis(db, epochInfo)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %s", err)
 	}

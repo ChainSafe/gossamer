@@ -45,6 +45,11 @@ var emptyHeader = &types.Header{
 	Number: big.NewInt(0),
 }
 
+var firstEpochInfo = &types.EpochInfo{
+	Duration:   200,
+	FirstBlock: 0,
+}
+
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
@@ -85,7 +90,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		genesisData := new(genesis.Data)
 
-		err = dbSrv.Initialize(genesisData, genesisHeader, tt)
+		err = dbSrv.Initialize(genesisData, genesisHeader, tt, firstEpochInfo)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()

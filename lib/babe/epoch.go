@@ -122,6 +122,42 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	return next, nil
 }
 
+// runLottery runs the lottery for a specific slot number
+// returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
+// output = return[0:32]; proof = return[32:96]
+func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
+	slotBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(slotBytes, slot)
+	vrfInput := append(slotBytes, b.randomness[:]...)
+
+	output, proof, err := b.vrfSign(vrfInput)
+	if err != nil {
+		return nil, err
+	}
+
+	outputInt := big.NewInt(0).SetBytes(output[:])
+	if b.epochThreshold == nil {
+		err = b.setEpochThreshold()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if outputInt.Cmp(b.epochThreshold) < 0 {
+		outbytes := [sr25519.VrfOutputLength]byte{}
+		copy(outbytes[:], output)
+		proofbytes := [sr25519.VrfProofLength]byte{}
+		copy(proofbytes[:], proof)
+		b.logger.Trace("lottery", "won slot", slot)
+		return &VrfOutputAndProof{
+			output: outbytes,
+			proof:  proofbytes,
+		}, nil
+	}
+
+	return nil, nil
+}
+
 func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
 	return [sr25519.VrfOutputLength]byte{}, nil
 }

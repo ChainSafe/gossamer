@@ -27,13 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
-// Descriptor contains the information needed to verify blocks
-type Descriptor struct {
-	AuthorityData []*types.BABEAuthorityData
-	Randomness    [types.RandomnessLength]byte
-	Threshold     *big.Int
-}
-
 // VerificationManager assists the syncer in keeping track of what epoch is it currently syncing and verifying,
 // as well as keeping track of the NextEpochDesciptor which is required to create a Verifier for an epoch.
 type VerificationManager struct {

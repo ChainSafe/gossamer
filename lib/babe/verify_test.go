@@ -43,7 +43,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 
 	genesisData := new(genesis.Data)
 
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie())
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()

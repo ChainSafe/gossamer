@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -35,27 +34,12 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// RandomnessLength is the length of the epoch randomness (32 bytes)
-//const RandomnessLength = 32
-
 var (
 	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
 	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 	// MinThreshold is the minimum BABE threshold (node never authorized to produce a block)
 	MinThreshold = big.NewInt(0)
 )
-
-// AuthorityData is an alias for []*types.BABEAuthorityData
-type AuthorityData []*types.BABEAuthorityData
-
-// String returns the AuthorityData as a formatted string
-func (d AuthorityData) String() string {
-	str := ""
-	for _, di := range []*types.BABEAuthorityData(d) {
-		str = str + fmt.Sprintf("[key=0x%x idx=%d] ", di.ID.Encode(), di.Weight)
-	}
-	return str
-}
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
@@ -102,7 +86,7 @@ type ServiceConfig struct {
 	AuthData         []*types.BABEAuthorityData
 	EpochThreshold   *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
-	StartSlot        uint64   // slot to start at TODO: move loading from database to NewService, also load starting epoch
+	StartSlot        uint64   // slot to start at
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -166,31 +150,16 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		}
 	}
 
-	logger.Info("created BABE service", "authorities", AuthorityData(babeService.authorityData))
-
-	// TODO: load current epoch from database
-	// epoch, err := getCurrentEpoch(cfg.BlockState, babeService.config.EpochLength)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// babeService.currentEpoch = epoch
-	// babeService.epochInfo[epoch] = &epochInfo{
-	// 	duration:	babeService.config.EpochLength,
-	// 	firstBlock:
-	// }
-	//babeService.randomness = babeService.config.Randomness
-
 	err = babeService.setAuthorityIndex()
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug("created BABE service", "authority index", babeService.authorityIndex, "threshold", babeService.epochThreshold)
+	logger.Debug("created BABE service", "authorities", AuthorityData(babeService.authorityData), "authority index", babeService.authorityIndex, "threshold", babeService.epochThreshold)
 	return babeService, nil
 }
 
-// Start a Service
+// Start starts BABE block authoring
 func (b *Service) Start() error {
 	b.started.Store(true)
 
@@ -200,17 +169,6 @@ func (b *Service) Start() error {
 			return err
 		}
 	}
-
-	b.logger.Debug("[babe]", "epochThreshold", b.epochThreshold)
-
-	//i := b.startSlot
-	// var err error
-	// for ; i < b.startSlot+b.config.EpochLength; i++ {
-	// 	b.slotToProof[i], err = b.runLottery(i)
-	// 	if err != nil {
-	// 		return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
-	// 	}
-	// }
 
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
@@ -252,11 +210,6 @@ func (b *Service) Stop() error {
 	}
 
 	return nil
-}
-
-// IsStopped returns true if the service is stopped (ie not producing blocks)
-func (b *Service) IsStopped() bool {
-	return !b.started.Load().(bool)
 }
 
 // SetRuntime sets the service's runtime
@@ -306,15 +259,14 @@ func (b *Service) SetAuthorities(data []*types.BABEAuthorityData) error {
 }
 
 // SetRandomness sets randomness for BABE service
+// Note that this only takes effect at the end of an epoch, where it is used to calculate the next epoch's randomness
 func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
 	b.randomness = a
 }
 
-// SetEpochData will set the authorityData and randomness
-func (b *Service) SetEpochData(data *NextEpochDescriptor) error {
-	b.authorityData = data.Authorities
-	b.randomness = data.Randomness
-	return b.setAuthorityIndex()
+// stopped returns true if the service is stopped (ie not producing blocks)
+func (b *Service) stopped() bool {
+	return !b.started.Load().(bool)
 }
 
 func (b *Service) safeSend(msg types.Block) error {
@@ -400,7 +352,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		start := time.Now()
 
 		if time.Since(start) <= b.slotDuration() {
-			if b.IsStopped() {
+			if b.stopped() { // TODO: change this to select case between stopped chan and time.After
 				return
 			}
 
@@ -485,42 +437,6 @@ func (b *Service) handleSlot(slotNum uint64) {
 			return
 		}
 	}
-}
-
-// runLottery runs the lottery for a specific slot number
-// returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
-// output = return[0:32]; proof = return[32:96]
-func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
-
-	output, proof, err := b.vrfSign(vrfInput)
-	if err != nil {
-		return nil, err
-	}
-
-	outputInt := big.NewInt(0).SetBytes(output[:])
-	if b.epochThreshold == nil {
-		err = b.setEpochThreshold()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if outputInt.Cmp(b.epochThreshold) < 0 {
-		outbytes := [sr25519.VrfOutputLength]byte{}
-		copy(outbytes[:], output)
-		proofbytes := [sr25519.VrfProofLength]byte{}
-		copy(proofbytes[:], proof)
-		b.logger.Trace("lottery", "won slot", slot)
-		return &VrfOutputAndProof{
-			output: outbytes,
-			proof:  proofbytes,
-		}, nil
-	}
-
-	return nil, nil
 }
 
 func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
