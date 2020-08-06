@@ -100,9 +100,7 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 	fp := utils.GetGssmrGenesisRawPath()
 
 	gssmrGen, err := genesis.NewGenesisFromJSONRaw(fp)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	return &genesis.Genesis{
 		Name:       "test",

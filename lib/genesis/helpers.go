@@ -91,17 +91,18 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 }
 
 func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (*runtime.Runtime, error) {
-	code := g.GenesisFields().Raw[0][string(common.CodeKey)]
-	if code == "" {
+	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
 
+	code := common.MustHexToBytes(codeStr)
 	cfg := &runtime.Config{
 		Storage: storage,
 		Imports: runtime.RegisterImports_NodeRuntime,
 	}
 
-	return runtime.NewRuntime([]byte(code), cfg)
+	return runtime.NewRuntime(code, cfg)
 }
 
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file
