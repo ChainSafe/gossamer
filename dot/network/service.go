@@ -75,7 +75,7 @@ type Service struct {
 func NewService(cfg *Config) (*Service, error) {
 	ctx := context.Background()
 
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h := log.StreamHandler(os.Stdout, common.TerminalFormatWLine())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	cfg.logger = logger
 

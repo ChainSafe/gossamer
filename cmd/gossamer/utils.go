@@ -24,6 +24,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/ssh/terminal"
@@ -31,7 +32,7 @@ import (
 
 // setupLogger sets up the gossamer logger
 func setupLogger(ctx *cli.Context) (log.Lvl, error) {
-	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	handler := log.StreamHandler(os.Stdout, common.TerminalFormatWLine())
 
 	var lvl log.Lvl
 

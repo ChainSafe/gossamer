@@ -85,7 +85,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	logger := log.New("pkg", "grandpa")
-	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h := log.StreamHandler(os.Stdout, common.TerminalFormatWLine())
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
