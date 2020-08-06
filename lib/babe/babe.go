@@ -264,8 +264,8 @@ func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
 	b.randomness = a
 }
 
-// stopped returns true if the service is stopped (ie not producing blocks)
-func (b *Service) stopped() bool {
+// IsStopped returns true if the service is stopped (ie not producing blocks)
+func (b *Service) IsStopped() bool {
 	return !b.started.Load().(bool)
 }
 
@@ -352,7 +352,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		start := time.Now()
 
 		if time.Since(start) <= b.slotDuration() {
-			if b.stopped() { // TODO: change this to select case between stopped chan and time.After
+			if b.IsStopped() { // TODO: change this to select case between stopped chan and time.After
 				return
 			}
 

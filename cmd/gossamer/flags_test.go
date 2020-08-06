@@ -29,6 +29,7 @@ import (
 
 // TestFixFlagOrder tests the FixFlagOrder method
 func TestFixFlagOrder(t *testing.T) {
+	t.Skip()
 	testCfg, testConfig := dot.NewTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 

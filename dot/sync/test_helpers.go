@@ -20,6 +20,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
+var firstEpochInfo = &types.EpochInfo{
+	Duration:   200,
+	FirstBlock: 0,
+}
+
 // mockVerifier implements the Verifier interface
 type mockVerifier struct{}
 
