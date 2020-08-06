@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -79,7 +78,7 @@ func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) error 
 }
 
 // SetBABERandomness mocks SetBABERandomness
-func (bp *mockBlockProducer) SetRandomness(a [babe.RandomnessLength]byte) {
+func (bp *mockBlockProducer) SetRandomness(a [types.RandomnessLength]byte) {
 	bp.randomness = a
 }
 
