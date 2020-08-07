@@ -24,7 +24,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -38,7 +37,7 @@ func setupLogger(cfg *Config) error {
 		cfg.Global.LogLevel = "info"
 	}
 
-	handler := log.StreamHandler(os.Stdout, common.TerminalFormatWLine())
+	handler := log.CallerFileHandler(log.StdoutHandler)
 	lvl, err := log.LvlFromString(cfg.Global.LogLevel)
 	if err != nil {
 		return err
