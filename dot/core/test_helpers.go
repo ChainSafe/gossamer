@@ -59,8 +59,7 @@ func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	auths      []*types.BABEAuthorityData
-	randomness [32]byte
+	auths []*types.BABEAuthorityData
 }
 
 // Start mocks starting
@@ -80,11 +79,6 @@ func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
 func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) error {
 	bp.auths = a
 	return nil
-}
-
-// SetBABERandomness mocks SetBABERandomness
-func (bp *mockBlockProducer) SetRandomness(a [types.RandomnessLength]byte) {
-	bp.randomness = a
 }
 
 // GetBlockChannel returns a new channel

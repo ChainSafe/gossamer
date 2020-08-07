@@ -1,6 +1,8 @@
 package dot
 
 import (
+	"math/big"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
@@ -15,6 +17,7 @@ type BlockProducer interface {
 	Pause() error
 	Resume() error
 	Authorities() []*types.BABEAuthorityData
-	SetAuthorities(a []*types.BABEAuthorityData) error
-	SetRandomness(a [types.RandomnessLength]byte)
+	SetAuthorities([]*types.BABEAuthorityData) error
+	SetRandomness([types.RandomnessLength]byte)
+	SetEpochThreshold(*big.Int)
 }

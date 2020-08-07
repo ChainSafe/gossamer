@@ -258,6 +258,11 @@ func (b *Service) SetAuthorities(data []*types.BABEAuthorityData) error {
 	return b.setAuthorityIndex()
 }
 
+// SetEpochThreshold sets Epoch Threshold for BABE producer
+func (b *Service) SetEpochThreshold(a *big.Int) {
+	b.epochThreshold = a
+}
+
 // SetRandomness sets randomness for BABE service
 // Note that this only takes effect at the end of an epoch, where it is used to calculate the next epoch's randomness
 func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
