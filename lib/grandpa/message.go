@@ -34,9 +34,12 @@ func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
 }
 
 var (
-	// TODO: determine correct prefixes
-	voteType         byte = 0
-	finalizationType byte = 1
+	voteType            byte = 0
+	precommitType       byte = 1
+	neighbourPacketType byte = 2
+	catchUpRequestType  byte = 3
+	catchUpResponseType byte = 4
+	finalizationType    byte = 5 // TODO: is this the correct prefix?
 )
 
 // FullVote represents a vote with additional information about the state
@@ -77,9 +80,10 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 		return nil, err
 	}
 
+	typ := byte(v.Stage)
 	return &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{voteType}, enc...),
+		Data:              append([]byte{typ}, enc...),
 	}, nil
 }
 
