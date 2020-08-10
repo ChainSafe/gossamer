@@ -36,10 +36,9 @@ func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
 var (
 	voteType            byte = 0
 	precommitType       byte = 1
-	neighbourPacketType byte = 2
+	finalizationType    byte = 2
 	catchUpRequestType  byte = 3
 	catchUpResponseType byte = 4
-	finalizationType    byte = 5 // TODO: is this the correct prefix?
 )
 
 // FullVote represents a vote with additional information about the state
@@ -139,4 +138,14 @@ func (s *Service) newFinalizationMessage(header *types.Header, round uint64) *Fi
 		Vote:          NewVoteFromHeader(header),
 		Justification: s.justification[round],
 	}
+}
+
+type FullJustification []*Justification
+
+func newFullJustification(j []*Justification) FullJustification {
+	return FullJustification(j)
+}
+
+func (j FullJustification) Encode() ([]byte, error) {
+	return scale.Encode(j)
 }

@@ -45,6 +45,7 @@ type Service struct {
 	state            *State                             // current state
 	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
 	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
+	pvJustifications map[common.Hash][]*Justification   // pre-vote justifications for the current round
 	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
@@ -53,6 +54,7 @@ type Service struct {
 	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
+	// TODO: store in database
 	preVotedBlock      map[uint64]*Vote            // map of round number -> pre-voted block
 	bestFinalCandidate map[uint64]*Vote            // map of round number -> best final candidate
 	justification      map[uint64][]*Justification // map of round number -> round justification
@@ -104,6 +106,7 @@ func NewService(cfg *Config) (*Service, error) {
 		keypair:            cfg.Keypair,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
+		pvJustifications:   make(map[common.Hash][]*Justification),
 		pcJustifications:   make(map[common.Hash][]*Justification),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
@@ -530,7 +533,10 @@ func (s *Service) finalize() error {
 	if err != nil {
 		return err
 	}
+
 	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
 	s.preVotedBlock[s.state.round] = &pv
 
 	// set best final candidate
@@ -538,7 +544,16 @@ func (s *Service) finalize() error {
 
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
-	s.mapLock.Unlock()
+
+	j, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	if err != nil {
+		return err
+	}
+
+	err = s.blockState.SetJustification(bfc.hash, j)
+	if err != nil {
+		return err
+	}
 
 	s.head, err = s.blockState.GetHeader(bfc.hash)
 	if err != nil {
