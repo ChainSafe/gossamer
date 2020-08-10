@@ -37,8 +37,8 @@ var (
 	voteType            byte = 0
 	precommitType       byte = 1
 	finalizationType    byte = 2
-	catchUpRequestType  byte = 3
-	catchUpResponseType byte = 4
+	catchUpRequestType  byte = 3 //nolint
+	catchUpResponseType byte = 4 //nolint
 )
 
 // FullVote represents a vote with additional information about the state
@@ -114,12 +114,12 @@ func (s *Service) newFinalizationMessage(header *types.Header, round uint64) *Fi
 	}
 }
 
-type catchUpRequest struct {
+type catchUpRequest struct { //nolint
 	Round uint64
 	SetID uint64
 }
 
-func newCatchUpRequest(round, setID uint64) *catchUpRequest {
+func newCatchUpRequest(round, setID uint64) *catchUpRequest { //nolint
 	return &catchUpRequest{
 		Round: round,
 		SetID: setID,

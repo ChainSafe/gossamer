@@ -247,16 +247,19 @@ func (j *Justification) Decode(r io.Reader) (*Justification, error) {
 	return i.(*Justification), err
 }
 
+// FullJustification represents an array of Justifications, used to respond to catch up requests
 type FullJustification []*Justification
 
 func newFullJustification(j []*Justification) FullJustification {
 	return FullJustification(j)
 }
 
+// Encode returns the SCALE encoding of a FullJustification
 func (j FullJustification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
+// Decode returns a SCALE decoded FullJustification
 func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode([]*Justification{})
