@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 type subround byte
@@ -218,4 +219,48 @@ func (v *Vote) Decode(r io.Reader) (*Vote, error) {
 // String returns the Vote as a string
 func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
+}
+
+// Justification represents a justification for a finalized block
+type Justification struct {
+	Vote        *Vote
+	Signature   [64]byte
+	AuthorityID ed25519.PublicKeyBytes
+}
+
+// Encode returns the SCALE encoded Justification
+func (j *Justification) Encode() ([]byte, error) {
+	enc, err := j.Vote.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	enc = append(enc, j.Signature[:]...)
+	enc = append(enc, j.AuthorityID[:]...)
+	return enc, nil
+}
+
+// Decode returns the SCALE decoded Justification
+func (j *Justification) Decode(r io.Reader) (*Justification, error) {
+	sd := &scale.Decoder{Reader: r}
+	i, err := sd.Decode(j)
+	return i.(*Justification), err
+}
+
+type FullJustification []*Justification
+
+func newFullJustification(j []*Justification) FullJustification {
+	return FullJustification(j)
+}
+
+func (j FullJustification) Encode() ([]byte, error) {
+	return scale.Encode(j)
+}
+
+func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
+	sd := &scale.Decoder{Reader: r}
+	i, err := sd.Decode(&j)
+	fj := i.(*FullJustification)
+	j = *fj
+	return *fj, err
 }

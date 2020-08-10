@@ -54,10 +54,9 @@ type Service struct {
 	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
-	// TODO: store in database
 	preVotedBlock      map[uint64]*Vote            // map of round number -> pre-voted block
 	bestFinalCandidate map[uint64]*Vote            // map of round number -> best final candidate
-	justification      map[uint64][]*Justification // map of round number -> round justification
+	justification      map[uint64][]*Justification // map of round number -> precommit round justification
 
 	// channels for communication with other services
 	in        chan FinalityMessage // only used to receive *VoteMessage
@@ -545,12 +544,17 @@ func (s *Service) finalize() error {
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 
-	j, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	pvj, err := newFullJustification(s.pvJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
 
-	err = s.blockState.SetJustification(bfc.hash, j)
+	pcj, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	if err != nil {
+		return err
+	}
+
+	err = s.blockState.SetJustification(bfc.hash, append(pvj, pcj...))
 	if err != nil {
 		return err
 	}
