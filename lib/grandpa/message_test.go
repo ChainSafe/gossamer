@@ -1,7 +1,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -15,6 +14,11 @@ import (
 var testVote = &Vote{
 	hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
 	number: 999,
+}
+
+var testVote2 = &Vote{
+	hash:   common.Hash{0xa, 0xb, 0xc, 0xd},
+	number: 333,
 }
 
 var testSignature = [64]byte{1, 2, 3, 4}
@@ -106,25 +110,32 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	require.Equal(t, expected, cm)
 }
 
-func TestJustificationEncoding(t *testing.T) {
-	just := &Justification{
-		Vote:        testVote,
-		Signature:   testSignature,
-		AuthorityID: testAuthorityID,
+func TestNewCatchUpResponse(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState: st.Block,
+		Voters:     voters,
+		Keypair:    kr.Alice,
 	}
 
-	enc, err := just.Encode()
+	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	rw := &bytes.Buffer{}
-	rw.Write(enc)
-	dec, err := new(Justification).Decode(rw)
-	require.NoError(t, err)
-	require.Equal(t, just, dec)
-}
+	round := uint64(1)
+	setID := uint64(1)
 
-func TestJustificationArrayEncoding(t *testing.T) {
-	just := []*Justification{
+	v := &Vote{
+		hash:   common.Hash{0x77},
+		number: 1,
+	}
+
+	gs.bestFinalCandidate[round] = v
+
+	pvj := []*Justification{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -132,10 +143,34 @@ func TestJustificationArrayEncoding(t *testing.T) {
 		},
 	}
 
-	enc, err := scale.Encode(just)
+	pvjEnc, err := scale.Encode(pvj)
 	require.NoError(t, err)
 
-	dec, err := scale.Decode(enc, make([]*Justification, 1))
+	pcj := []*Justification{
+		{
+			Vote:        testVote2,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
+		},
+	}
+
+	pcjEnc, err := scale.Encode(pcj)
 	require.NoError(t, err)
-	require.Equal(t, just, dec.([]*Justification))
+
+	err = gs.blockState.SetJustification(v.hash, append(pvjEnc, pcjEnc...))
+	require.NoError(t, err)
+
+	resp, err := gs.newCatchUpResponse(round, setID)
+	require.NoError(t, err)
+
+	expected := &catchUpResponse{
+		Round:                  round,
+		SetID:                  setID,
+		PreVoteJustification:   FullJustification(pvj),
+		PreCommitJustification: FullJustification(pcj),
+		Hash:                   v.hash,
+		Number:                 v.number,
+	}
+
+	require.Equal(t, expected, resp)
 }

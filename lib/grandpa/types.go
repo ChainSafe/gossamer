@@ -259,8 +259,11 @@ func (j FullJustification) Encode() ([]byte, error) {
 
 func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
 	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(&j)
-	fj := i.(*FullJustification)
-	j = *fj
-	return *fj, err
+	i, err := sd.Decode([]*Justification{})
+	if err != nil {
+		return FullJustification{}, err
+	}
+
+	j = FullJustification(i.([]*Justification))
+	return j, nil
 }
