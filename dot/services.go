@@ -325,6 +325,7 @@ func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, k
 	gsCfg := &grandpa.Config{
 		LogLvl:     lvl,
 		BlockState: st.Block,
+		SetID:      1,
 		Voters:     voters,
 		Keypair:    keys[0].(*ed25519.Keypair),
 	}

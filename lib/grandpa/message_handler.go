@@ -46,13 +46,13 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
 	fm, ok := m.(*FinalizationMessage)
 	if ok {
 		// set finalized head for round in db
-		err = h.blockState.SetFinalizedHash(fm.Vote.hash, fm.Round)
+		err = h.blockState.SetFinalizedHash(fm.Vote.hash, fm.Round, h.grandpa.state.setID)
 		if err != nil {
 			return err
 		}
 
 		// set latest finalized head in db
-		err = h.blockState.SetFinalizedHash(fm.Vote.hash, 0)
+		err = h.blockState.SetFinalizedHash(fm.Vote.hash, 0, 0)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ func decodeMessage(msg *ConsensusMessage) (m FinalityMessage, err error) {
 	var mi interface{}
 
 	switch msg.Data[0] {
-	case voteType:
+	case voteType, precommitType:
 		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
 		m = mi.(*VoteMessage)
 	case finalizationType:

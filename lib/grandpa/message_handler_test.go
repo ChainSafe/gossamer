@@ -62,7 +62,7 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 
 	cm := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x014d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0000000000000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000000000000102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data:              common.MustHexToBytes("0x024d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0000000000000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000000000000102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
 	msg, err := decodeMessage(cm)
@@ -152,15 +152,15 @@ func TestMessageHandler_FinalizationMessage(t *testing.T) {
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 
-	h := NewMessageHandler(nil, st.Block)
+	h := NewMessageHandler(gs, st.Block)
 	err = h.HandleMessage(cm)
 	require.NoError(t, err)
 
-	hash, err := st.Block.GetFinalizedHash(0)
+	hash, err := st.Block.GetFinalizedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.hash, hash)
 
-	hash, err = st.Block.GetFinalizedHash(fm.Round)
+	hash, err = st.Block.GetFinalizedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.hash, hash)
 }
