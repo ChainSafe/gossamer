@@ -426,7 +426,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		s.logger.Debug("finalized block!!!", "round", s.state.round, "hash", s.head.Hash())
+		s.logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash())
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety
