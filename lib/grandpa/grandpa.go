@@ -34,12 +34,13 @@ var interval = time.Second
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger     log.Logger
-	blockState BlockState
-	keypair    *ed25519.Keypair
-	mapLock    sync.Mutex
-	chanLock   sync.Mutex
-	stopped    bool
+	logger        log.Logger
+	blockState    BlockState
+	digestHandler DigestHandler
+	keypair       *ed25519.Keypair
+	mapLock       sync.Mutex
+	chanLock      sync.Mutex
+	stopped       bool
 
 	// current state information
 	state            *State                             // current state
@@ -66,11 +67,12 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
-	LogLvl     log.Lvl
-	BlockState BlockState
-	Voters     []*Voter
-	SetID      uint64
-	Keypair    *ed25519.Keypair
+	LogLvl        log.Lvl
+	BlockState    BlockState
+	DigestHandler DigestHandler
+	Voters        []*Voter
+	SetID         uint64
+	Keypair       *ed25519.Keypair
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -78,6 +80,10 @@ type Config struct {
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
 		return nil, ErrNilBlockState
+	}
+
+	if cfg.DigestHandler == nil {
+		return nil, ErrNilDigestHandler
 	}
 
 	if cfg.Keypair == nil {
@@ -102,6 +108,7 @@ func NewService(cfg *Config) (*Service, error) {
 		logger:             logger,
 		state:              NewState(cfg.Voters, cfg.SetID, 0),
 		blockState:         cfg.BlockState,
+		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),

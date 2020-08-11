@@ -125,6 +125,30 @@ func (h *DigestHandler) Stop() {
 	close(h.finalized)
 }
 
+// NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
+// It returns 0 if no change is scheduled.
+func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
+	next := uint64(0)
+
+	if h.grandpaScheduledChange != nil {
+		next = h.grandpaScheduledChange.atBlock.Uint64()
+	}
+
+	if h.grandpaForcedChange != nil && h.grandpaForcedChange.atBlock.Uint64() > next {
+		next = h.grandpaForcedChange.atBlock.Uint64()
+	}
+
+	if h.grandpaPause != nil && h.grandpaPause.atBlock.Uint64() > next {
+		next = h.grandpaPause.atBlock.Uint64()
+	}
+
+	if h.grandpaResume != nil && h.grandpaResume.atBlock.Uint64() > next {
+		next = h.grandpaResume.atBlock.Uint64()
+	}
+
+	return next
+}
+
 // HandleConsensusDigest is the function used by the syncer to handle a consensus digest
 func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest) error {
 	t := d.DataType()
