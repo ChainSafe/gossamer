@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -41,6 +40,11 @@ var testMessageTimeout = time.Second
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
+}
+
+var firstEpochInfo = &types.EpochInfo{
+	Duration:   200,
+	FirstBlock: 0,
 }
 
 type mockVerifier struct{}
@@ -72,8 +76,9 @@ func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
 	return bp.auths
 }
 
-func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) {
+func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) error {
 	bp.auths = a
+	return nil
 }
 
 // GetBlockChannel returns a new channel
@@ -194,7 +199,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie())
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()

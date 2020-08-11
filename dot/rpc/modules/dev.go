@@ -3,6 +3,7 @@ package modules
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -61,8 +62,8 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 	return err
 }
 
-// SetAuthorities dev rpc method that sets authorities for block producer
-func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *string) error {
+// SetBlockProducerAuthorities dev rpc method that sets authorities for block producer
+func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interface{}, res *string) error {
 	ab := []*types.BABEAuthorityData{}
 	for _, v := range *req {
 		kb := crypto.PublicAddressToByteArray(common.Address(v.([]interface{})[0].(string)))
@@ -76,7 +77,44 @@ func (m *DevModule) SetAuthorities(r *http.Request, req *[]interface{}, res *str
 		}
 		ab = append(ab, bd)
 	}
-	m.blockProducerAPI.SetAuthorities(ab)
+
+	err := m.blockProducerAPI.SetAuthorities(ab)
 	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
+	return err
+}
+
+// SetBABEEpochThreshold dev rpc method that sets BABE Epoch Threshold of the BABE Producer
+func (m *DevModule) SetBABEEpochThreshold(r *http.Request, req *string, res *string) error {
+	n := new(big.Int)
+	n, ok := n.SetString(*req, 10)
+	if !ok {
+		return fmt.Errorf("error setting threshold")
+	}
+	m.blockProducerAPI.SetEpochThreshold(n)
+	*res = fmt.Sprintf("set BABE Epoch Threshold to %v", n)
+
+	return nil
+}
+
+// SetBABERandomness dev rpc method to set BABE Randomness
+func (m *DevModule) SetBABERandomness(r *http.Request, req *[]string, res *string) error {
+	val := *req
+
+	reqB, err := common.HexToBytes(val[0])
+	if err != nil {
+		return err
+	}
+
+	if len(reqB) != types.RandomnessLength {
+		return fmt.Errorf("expected randomness value of %v bytes, received %v bytes", types.RandomnessLength, len(reqB))
+	}
+
+	b := [types.RandomnessLength]byte{}
+	for i := range b {
+		b[i] = reqB[i]
+	}
+	m.blockProducerAPI.SetRandomness(b)
+	*res = "updated BABE Randomness"
+
 	return nil
 }
