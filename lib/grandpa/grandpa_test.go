@@ -49,7 +49,7 @@ var firstEpochInfo = &types.EpochInfo{
 type mockDigestHandler struct{}
 
 func (h *mockDigestHandler) NextGrandpaAuthorityChange() uint64 {
-	return 0
+	return 2 ^ 64 - 1
 }
 
 func newTestState(t *testing.T) *state.Service {

@@ -25,6 +25,8 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+var maxUint64 = uint64(2^64) - 1
+
 // DigestHandler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
 type DigestHandler struct {
 	// interfaces
@@ -128,7 +130,7 @@ func (h *DigestHandler) Stop() {
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
 func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
-	next := uint64(0)
+	next := maxUint64
 
 	if h.grandpaScheduledChange != nil {
 		next = h.grandpaScheduledChange.atBlock.Uint64()

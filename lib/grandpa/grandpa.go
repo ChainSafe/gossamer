@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"math/big"
 	"sync"
 	"time"
 
@@ -467,6 +468,17 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		vote = NewVoteFromHeader(header)
 	}
 
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	s.logger.Info("determinePreVote", "nextChange", nextChange, "vote.number", vote.number)
+	if vote.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		vote = NewVoteFromHeader(header)
+	}
+
 	return vote, nil
 }
 
@@ -476,6 +488,18 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
+	}
+
+	s.logger.Info("determinePreCommit", "pvb", pvb)
+
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	if pvb.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		pvb = *NewVoteFromHeader(header)
 	}
 
 	return &pvb, nil
