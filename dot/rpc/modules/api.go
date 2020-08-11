@@ -45,7 +45,9 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
-	SetAuthorities(a []*types.BABEAuthorityData)
+	SetAuthorities(data []*types.BABEAuthorityData) error
+	SetRandomness([types.RandomnessLength]byte)
+	SetEpochThreshold(*big.Int)
 }
 
 // TransactionQueueAPI ...
