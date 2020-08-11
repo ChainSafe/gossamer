@@ -112,6 +112,15 @@ func (bh *Header) Decode(r io.Reader) (*Header, error) {
 	return bh, err
 }
 
+// MustEncode verifies that header is encoded
+func (bh *Header) MustEncode() ([]byte, error) {
+	enc, err := Encode(bh)
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
 // AsOptional returns the Header as an optional.Header
 func (bh *Header) AsOptional() *optional.Header {
 	return optional.NewHeader(true, &optional.CoreHeader{
