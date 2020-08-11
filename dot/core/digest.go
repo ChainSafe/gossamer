@@ -127,6 +127,11 @@ func (h *DigestHandler) Stop() {
 	close(h.finalized)
 }
 
+// SetFinalityGadget sets the digest handler's grandpa instance
+func (h *DigestHandler) SetFinalityGadget(grandpa FinalityGadget) {
+	h.grandpa = grandpa
+}
+
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
 func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
