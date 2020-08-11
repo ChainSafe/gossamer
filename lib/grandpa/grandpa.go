@@ -469,7 +469,6 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	s.logger.Info("determinePreVote", "nextChange", nextChange, "vote.number", vote.number)
 	if vote.number > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
@@ -489,8 +488,6 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	s.logger.Info("determinePreCommit", "pvb", pvb)
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
 	if pvb.number > nextChange {
