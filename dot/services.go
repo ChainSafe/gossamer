@@ -304,7 +304,7 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, dh *core.DigestHandler, ks *keystore.Keystore) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -323,11 +323,12 @@ func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, k
 	}
 
 	gsCfg := &grandpa.Config{
-		LogLvl:     lvl,
-		BlockState: st.Block,
-		SetID:      1,
-		Voters:     voters,
-		Keypair:    keys[0].(*ed25519.Keypair),
+		LogLvl:        lvl,
+		BlockState:    st.Block,
+		DigestHandler: dh,
+		SetID:         1,
+		Voters:        voters,
+		Keypair:       keys[0].(*ed25519.Keypair),
 	}
 
 	return grandpa.NewService(gsCfg)
@@ -375,16 +376,7 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt *runtime.Runtime) (*
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime) (*sync.Service, error) {
-	var dh *core.DigestHandler
-	var err error
-	if cfg.Core.BabeAuthority || cfg.Core.GrandpaAuthority {
-		dh, err = core.NewDigestHandler(st.Block, bp, fg, verifier)
-		if err != nil {
-			return nil, err
-		}
-	}
-
+func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt *runtime.Runtime) (*sync.Service, error) {
 	lvl, err := log.LvlFromString(cfg.Log.SyncLvl)
 	if err != nil {
 		return nil, err
@@ -401,4 +393,8 @@ func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, fg core
 	}
 
 	return sync.NewService(syncCfg)
+}
+
+func createDigestHandler(st *state.Service, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
+	return core.NewDigestHandler(st.Block, bp, fg, verifier)
 }

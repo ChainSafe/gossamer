@@ -194,7 +194,7 @@ func arrivalTimeKey(hash common.Hash) []byte {
 	return append(arrivalTimePrefix, hash.ToBytes()...)
 }
 
-// finalizedHashKey = hashkey + round (LE encoded)
+// finalizedHashKey = hashkey + round + setID (LE encoded)
 func finalizedHashKey(round, setID uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)

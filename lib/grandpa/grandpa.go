@@ -18,6 +18,8 @@ package grandpa
 
 import (
 	"bytes"
+	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -34,12 +36,13 @@ var interval = time.Second
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger     log.Logger
-	blockState BlockState
-	keypair    *ed25519.Keypair
-	mapLock    sync.Mutex
-	chanLock   sync.Mutex
-	stopped    bool
+	logger        log.Logger
+	blockState    BlockState
+	digestHandler DigestHandler
+	keypair       *ed25519.Keypair
+	mapLock       sync.Mutex
+	chanLock      sync.Mutex
+	stopped       bool
 
 	// current state information
 	state            *State                             // current state
@@ -66,11 +69,12 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
-	LogLvl     log.Lvl
-	BlockState BlockState
-	Voters     []*Voter
-	SetID      uint64
-	Keypair    *ed25519.Keypair
+	LogLvl        log.Lvl
+	BlockState    BlockState
+	DigestHandler DigestHandler
+	Voters        []*Voter
+	SetID         uint64
+	Keypair       *ed25519.Keypair
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -80,12 +84,17 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockState
 	}
 
+	if cfg.DigestHandler == nil {
+		return nil, ErrNilDigestHandler
+	}
+
 	if cfg.Keypair == nil {
 		return nil, ErrNilKeypair
 	}
 
 	logger := log.New("pkg", "grandpa")
-	h := log.CallerFileHandler(log.StdoutHandler)
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
@@ -102,6 +111,7 @@ func NewService(cfg *Config) (*Service, error) {
 		logger:             logger,
 		state:              NewState(cfg.Voters, cfg.SetID, 0),
 		blockState:         cfg.BlockState,
+		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
@@ -460,6 +470,16 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		vote = NewVoteFromHeader(header)
 	}
 
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	if vote.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		vote = NewVoteFromHeader(header)
+	}
+
 	return vote, nil
 }
 
@@ -469,6 +489,16 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
+	}
+
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	if pvb.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		pvb = *NewVoteFromHeader(header)
 	}
 
 	return &pvb, nil

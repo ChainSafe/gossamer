@@ -33,9 +33,10 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -84,9 +85,10 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -119,9 +121,10 @@ func TestNewCatchUpResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
