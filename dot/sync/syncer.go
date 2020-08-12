@@ -270,7 +270,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 
 	blockRequest := &network.BlockRequestMessage{
 		ID:            randomID, // random
-		RequestedData: 3,        // block header + body
+		RequestedData: 19,       // block header + body + justification
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     1,
