@@ -269,8 +269,8 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	s.logger.Debug("sending block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
-		ID:            randomID, // random
-		RequestedData: 19,       // block header + body + justification
+		ID:            randomID,                                                                                     // random
+		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification, // block header + body + justification
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     1,
