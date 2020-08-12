@@ -141,15 +141,15 @@ func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
 		next = h.grandpaScheduledChange.atBlock.Uint64()
 	}
 
-	if h.grandpaForcedChange != nil && h.grandpaForcedChange.atBlock.Uint64() > next {
+	if h.grandpaForcedChange != nil && h.grandpaForcedChange.atBlock.Uint64() < next {
 		next = h.grandpaForcedChange.atBlock.Uint64()
 	}
 
-	if h.grandpaPause != nil && h.grandpaPause.atBlock.Uint64() > next {
+	if h.grandpaPause != nil && h.grandpaPause.atBlock.Uint64() < next {
 		next = h.grandpaPause.atBlock.Uint64()
 	}
 
-	if h.grandpaResume != nil && h.grandpaResume.atBlock.Uint64() > next {
+	if h.grandpaResume != nil && h.grandpaResume.atBlock.Uint64() < next {
 		next = h.grandpaResume.atBlock.Uint64()
 	}
 
