@@ -118,7 +118,7 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	// begin profiling, if set
-	stopFunc, err := cpuProfile(ctx)
+	stopFunc, err := beginProfile(ctx)
 	if err != nil {
 		return err
 	}

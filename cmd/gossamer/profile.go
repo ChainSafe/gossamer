@@ -18,28 +18,72 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"runtime/pprof"
 
 	"github.com/urfave/cli"
 )
 
-func cpuProfile(ctx *cli.Context) (func(), error) {
-	proffile := ctx.GlobalString(CPUProfFlag.Name)
-	if proffile == "" {
-		return nil, nil
-	}
-
-	f, err := os.Create(proffile)
+func beginProfile(ctx *cli.Context) (func(), error) {
+	cpuStopFunc, err := cpuProfile(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := pprof.StartCPUProfile(f); err != nil {
+	memStopFunc, err := memProfile(ctx)
+	if err != nil {
 		return nil, err
 	}
 
 	return func() {
-		f.Close()
+		if cpuStopFunc != nil {
+			cpuStopFunc()
+		}
+
+		if memStopFunc != nil {
+			memStopFunc()
+		}
+	}, nil
+}
+
+func cpuProfile(ctx *cli.Context) (func(), error) {
+	cpuProfFile := ctx.GlobalString(CPUProfFlag.Name)
+	if cpuProfFile == "" {
+		return nil, nil
+	}
+
+	cpuFile, err := os.Create(cpuProfFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pprof.StartCPUProfile(cpuFile); err != nil {
+		return nil, err
+	}
+
+	return func() {
 		pprof.StopCPUProfile()
+		cpuFile.Close()
+	}, nil
+}
+
+func memProfile(ctx *cli.Context) (func(), error) {
+	memProfFile := ctx.GlobalString(MemProfFlag.Name)
+	if memProfFile == "" {
+		return nil, nil
+	}
+
+	memFile, err := os.Create(memProfFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return func() {
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(memFile); err != nil {
+			logger.Error("could not write memory profile", "error", err)
+		}
+
+		memFile.Close()
 	}, nil
 }
