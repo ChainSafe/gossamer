@@ -19,6 +19,7 @@ package grandpa
 import (
 	"bytes"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -92,7 +93,8 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	logger := log.New("pkg", "grandpa")
-	h := log.CallerFileHandler(log.StdoutHandler)
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
