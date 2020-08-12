@@ -105,6 +105,15 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
+// MustEncode verifies that header is encoded
+func (bh *Header) MustEncode() ([]byte, error) {
+	enc, err := Encode(bh)
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(r io.Reader) (*Header, error) {
 	sd := scale.Decoder{Reader: r}
