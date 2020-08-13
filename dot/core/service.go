@@ -233,7 +233,7 @@ func (s *Service) safeMsgSend(msg network.Message) {
 	defer s.lock.Unlock()
 
 	if s.ctx.Err() != nil {
-		// context was cancelled
+		// context was canceled
 		return
 	}
 

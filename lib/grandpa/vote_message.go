@@ -73,7 +73,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
-	// context was cancelled
+	// context was canceled
 	if s.ctx.Err() != nil {
 		return nil
 	}
