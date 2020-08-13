@@ -17,6 +17,8 @@
 package grandpa
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -45,6 +47,39 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
 
 	fm, ok := m.(*FinalizationMessage)
 	if ok {
+		// validate justification
+		just := fm.Justification
+		for i, v := range just {
+			// check signature
+			msg, err := scale.Encode(&FullVote{
+				Stage: precommit,
+				Vote:  NewVote(v.Vote.hash, v.Vote.number),
+				Round: fm.Round,
+				SetID: h.grandpa.state.setID,
+			})
+			if err != nil {
+				return err
+			}
+
+			pk, err := ed25519.NewPublicKey(v.AuthorityID[:])
+			if err != nil {
+				return err
+			}
+			
+			fmt.Printf("SIG %v\n", v.Signature)
+			ok, err := pk.Verify(msg, v.Signature[:])
+			if err != nil {
+				return err
+			}
+
+			if !ok {
+				return ErrInvalidSignature
+			}
+
+			fmt.Printf("Just %v value %v\n",i, v)
+		}
+
+
 		// set finalized head for round in db
 		err = h.blockState.SetFinalizedHash(fm.Vote.hash, fm.Round, h.grandpa.state.setID)
 		if err != nil {
