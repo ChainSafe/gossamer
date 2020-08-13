@@ -138,8 +138,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	//s.stopped = false
-
 	go func() {
 		err := s.initiate()
 		if err != nil {
