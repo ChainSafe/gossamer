@@ -231,6 +231,12 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 func (s *Service) safeMsgSend(msg network.Message) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	if s.ctx.Err() != nil {
+		// context was cancelled
+		return
+	}
+
 	s.msgSend <- msg
 }
 
