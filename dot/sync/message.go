@@ -90,6 +90,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 				blockData.Header = retData.AsOptional()
 			}
 		}
+
 		// body
 		if (blockRequest.RequestedData&network.RequestedDataBody)>>1 == 1 {
 			retData, err := s.blockState.GetBlockBody(hash)
@@ -97,6 +98,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 				blockData.Body = retData.AsOptional()
 			}
 		}
+
 		// receipt
 		if (blockRequest.RequestedData&network.RequestedDataReceipt)>>2 == 1 {
 			retData, err := s.blockState.GetReceipt(hash)
@@ -104,6 +106,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 				blockData.Receipt = optional.NewBytes(true, retData)
 			}
 		}
+
 		// message queue
 		if (blockRequest.RequestedData&network.RequestedDataMessageQueue)>>3 == 1 {
 			retData, err := s.blockState.GetMessageQueue(hash)
@@ -111,6 +114,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 				blockData.MessageQueue = optional.NewBytes(true, retData)
 			}
 		}
+
 		// justification
 		if (blockRequest.RequestedData&network.RequestedDataJustification)>>4 == 1 {
 			retData, err := s.blockState.GetJustification(hash)
