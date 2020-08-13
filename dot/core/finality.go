@@ -27,7 +27,11 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 		return err
 	}
 
-	return s.safeMsgSend(out)
+	if out != nil {
+		return s.safeMsgSend(out)
+	}
+
+	return nil
 }
 
 // sendVoteMessages routes a VoteMessage from the finality gadget to the network
