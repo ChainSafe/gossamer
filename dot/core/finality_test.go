@@ -52,7 +52,7 @@ func TestSendVoteMessages(t *testing.T) {
 		MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
-	s.started.Store(true)
+	//s.started.Store(true)
 
 	go s.sendVoteMessages()
 	fg.out <- &mockFinalityMessage{}
@@ -78,7 +78,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 		MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
-	s.started.Store(true)
+	//s.started.Store(true)
 
 	go s.sendFinalizationMessages()
 	fg.finalized <- &mockFinalityMessage{}
