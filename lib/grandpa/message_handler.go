@@ -47,38 +47,11 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
 
 	fm, ok := m.(*FinalizationMessage)
 	if ok {
-		// validate justification
-		just := fm.Justification
-		for i, v := range just {
-			// check signature
-			msg, err := scale.Encode(&FullVote{
-				Stage: precommit,
-				Vote:  NewVote(v.Vote.hash, v.Vote.number),
-				Round: fm.Round,
-				SetID: h.grandpa.state.setID,
-			})
-			if err != nil {
-				return err
-			}
-
-			pk, err := ed25519.NewPublicKey(v.AuthorityID[:])
-			if err != nil {
-				return err
-			}
-			
-			fmt.Printf("SIG %v\n", v.Signature)
-			ok, err := pk.Verify(msg, v.Signature[:])
-			if err != nil {
-				return err
-			}
-
-			if !ok {
-				return ErrInvalidSignature
-			}
-
-			fmt.Printf("Just %v value %v\n",i, v)
+		// verify justification
+		err = h.verifyJustification(fm)
+		if err != nil {
+			return err
 		}
-
 
 		// set finalized head for round in db
 		err = h.blockState.SetFinalizedHash(fm.Vote.hash, fm.Round, h.grandpa.state.setID)
@@ -99,6 +72,41 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
 		h.grandpa.in <- vm
 	}
 
+	return nil
+}
+
+func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
+	// validate justification
+	just := fm.Justification
+	for i, v := range just {
+		// check signature
+		msg, err := scale.Encode(&FullVote{
+			Stage: precommit,
+			Vote:  NewVote(v.Vote.hash, v.Vote.number),
+			Round: fm.Round,
+			SetID: h.grandpa.state.setID,
+		})
+		if err != nil {
+			return err
+		}
+
+		pk, err := ed25519.NewPublicKey(v.AuthorityID[:])
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("SIG %v\n", v.Signature)
+		ok, err := pk.Verify(msg, v.Signature[:])
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return ErrInvalidSignature
+		}
+
+		fmt.Printf("Just %v value %v\n", i, v)
+	}
 	return nil
 }
 
