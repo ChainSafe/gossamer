@@ -43,6 +43,10 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 			return err
 		}
 
+		if first.Uint64() == 0 {
+			first = big.NewInt(1) // first epoch starts at block 1, not block 0
+		}
+
 		// Duration may only change when the runtime is updated. This call happens in SetRuntime()
 		// FirstBlock is used to calculate the randomness (blocks in an epoch used to calculate epoch randomness for 2 epochs ahead)
 		// Randomness changes every epoch, as calculated by epochRandomness()

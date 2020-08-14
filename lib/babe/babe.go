@@ -18,13 +18,14 @@ package babe
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"os"
 	"sync"
-	"sync/atomic"
+	//"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -43,6 +44,8 @@ var (
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
 	logger log.Logger
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	// Storage interfaces
 	blockState       BlockState
@@ -69,8 +72,9 @@ type Service struct {
 	blockChan chan types.Block // send blocks to core service
 
 	// State variables
-	lock    sync.Mutex
-	started atomic.Value
+	lock  sync.Mutex
+	pause chan struct{}
+	//started atomic.Value
 }
 
 // ServiceConfig represents a BABE configuration
@@ -111,8 +115,12 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	babeService := &Service{
 		logger:           logger,
+		ctx:              ctx,
+		cancel:           cancel,
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		epochState:       cfg.EpochState,
@@ -124,9 +132,10 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		authorityData:    cfg.AuthData,
 		epochThreshold:   cfg.EpochThreshold,
 		startSlot:        cfg.StartSlot,
+		pause:            make(chan struct{}),
 	}
 
-	babeService.started.Store(false)
+	//babeService.started.Store(false)
 
 	var err error
 	babeService.config, err = babeService.rt.BabeConfiguration()
@@ -161,7 +170,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
-	b.started.Store(true)
+	//b.started.Store(true)
 
 	if b.epochThreshold == nil {
 		err := b.setEpochThreshold()
@@ -186,14 +195,14 @@ func (b *Service) Start() error {
 
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
-	b.started.Store(false)
+	//b.started.Store(false)
+	b.pause <- struct{}{}
 	b.logger.Info("service paused")
 	return nil
 }
 
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
-	b.started.Store(true)
 	go b.initiate()
 	b.logger.Info("service resumed")
 	return nil
@@ -204,11 +213,12 @@ func (b *Service) Stop() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if b.started.Load().(bool) {
-		b.started.Store(false)
-		close(b.blockChan)
+	if b.ctx.Err() != nil {
+		return errors.New("service already stopped")
 	}
 
+	b.cancel()
+	close(b.blockChan)
 	return nil
 }
 
@@ -271,13 +281,14 @@ func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
-	return !b.started.Load().(bool)
+	//return !b.started.Load().(bool)
+	return b.ctx.Err() != nil
 }
 
 func (b *Service) safeSend(msg types.Block) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
-	if !b.started.Load().(bool) {
+	if b.IsStopped() {
 		return errors.New("Service has been stopped")
 	}
 	b.blockChan <- msg
@@ -352,20 +363,35 @@ func (b *Service) initiate() {
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	nextStartSlot := startSlot + b.config.EpochLength
+	epochDone := time.After(time.Duration(b.config.EpochLength) * b.slotDuration())
 
-	for slotNum := startSlot; slotNum < nextStartSlot; slotNum++ {
-		start := time.Now()
+	slotDone := make([]<-chan time.Time, b.config.EpochLength)
+	for i := 0; i < int(b.config.EpochLength); i++ {
+		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
+	}
 
-		if time.Since(start) <= b.slotDuration() {
-			if b.IsStopped() { // TODO: change this to select case between stopped chan and time.After
-				return
-			}
+	// handle initial slot
+	//b.handleSlot(startSlot)
 
+	i := 0
+	slotNum := startSlot + 1
+
+	for {
+		if i >= int(b.config.EpochLength) {
+			break
+		}
+
+		select {
+		case <-b.ctx.Done():
+			return
+		case <-b.pause:
+			return
+		case <-epochDone:
+			break
+		case <-slotDone[i]:
 			b.handleSlot(slotNum)
-
-			// sleep until the slot ends
-			until := time.Until(start.Add(b.slotDuration()))
-			time.Sleep(until)
+			slotNum++
+			i++
 		}
 	}
 

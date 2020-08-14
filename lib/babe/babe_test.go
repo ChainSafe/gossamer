@@ -106,7 +106,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 
-	babeService.started.Store(true)
+	//babeService.started.Store(true)
 	babeService.config = babeCfg
 	if cfg.EpochThreshold == nil {
 		babeService.epochThreshold = maxThreshold
