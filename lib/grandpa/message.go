@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -11,11 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// FinalityMessage is the interface a finality message must implement
-type FinalityMessage interface {
-	ToConsensusMessage() (*network.ConsensusMessage, error)
-	Type() byte
-}
+// FinalityMessage is an alias for the core.FinalityMessage interface
+type FinalityMessage = core.FinalityMessage
 
 // ConsensusMessage is an alias for network.ConsensusMessage
 type ConsensusMessage = network.ConsensusMessage
