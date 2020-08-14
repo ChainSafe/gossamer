@@ -77,12 +77,13 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
 
 func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 	// validate justification
-	just := fm.Justification
-	for i, v := range just {
-		// check signature
+	justList := fm.Justification
+	sigCount := 0
+	for i, j := range justList {
+		// verify signature
 		msg, err := scale.Encode(&FullVote{
 			Stage: precommit,
-			Vote:  NewVote(v.Vote.hash, v.Vote.number),
+			Vote:  NewVote(j.Vote.hash, j.Vote.number),
 			Round: fm.Round,
 			SetID: h.grandpa.state.setID,
 		})
@@ -90,13 +91,13 @@ func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 			return err
 		}
 
-		pk, err := ed25519.NewPublicKey(v.AuthorityID[:])
+		pk, err := ed25519.NewPublicKey(j.AuthorityID[:])
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("SIG %v\n", v.Signature)
-		ok, err := pk.Verify(msg, v.Signature[:])
+		fmt.Printf("SIG %v\n", j.Signature)
+		ok, err := pk.Verify(msg, j.Signature[:])
 		if err != nil {
 			return err
 		}
@@ -104,8 +105,13 @@ func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 		if !ok {
 			return ErrInvalidSignature
 		}
+		sigCount++
+		fmt.Printf("Just %v value %v\n", i, j)
+	}
 
-		fmt.Printf("Just %v value %v\n", i, v)
+	// confirm total # signatures >= 2/3 of number of voters
+	if ! (sigCount >= (2/3)* len(h.grandpa.state.voters)) {
+		return ErrMinVotesNotMet
 	}
 	return nil
 }

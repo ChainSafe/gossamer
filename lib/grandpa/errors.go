@@ -71,3 +71,6 @@ var ErrNotFinalizationMessage = errors.New("cannot get finalized hash from VoteM
 
 // ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalized
 var ErrNoJustification = errors.New("no justification found for block")
+
+// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum
+var ErrMinVotesNotMet = errors.New("minimum number of votes not met")
