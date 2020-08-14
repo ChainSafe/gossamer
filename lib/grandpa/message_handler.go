@@ -17,9 +17,9 @@
 package grandpa
 
 import (
-	"fmt"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"reflect"
 )
 
 // MessageHandler handles GRANDPA consensus messages
@@ -79,7 +79,7 @@ func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 	// validate justification
 	justList := fm.Justification
 	sigCount := 0
-	for i, j := range justList {
+	for _, j := range justList {
 		// verify signature
 		msg, err := scale.Encode(&FullVote{
 			Stage: precommit,
@@ -96,7 +96,6 @@ func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 			return err
 		}
 
-		fmt.Printf("SIG %v\n", j.Signature)
 		ok, err := pk.Verify(msg, j.Signature[:])
 		if err != nil {
 			return err
@@ -105,8 +104,19 @@ func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
 		if !ok {
 			return ErrInvalidSignature
 		}
+
+		// verify authority in justification set
+		authFound := false
+		for _, auth := range h.grandpa.Authorities() {
+			if reflect.DeepEqual(auth.Key.AsBytes(), j.AuthorityID) {
+				authFound = true
+				break
+			}
+		}
+		if !authFound {
+			return ErrVoterNotFound
+		}
 		sigCount++
-		fmt.Printf("Just %v value %v\n", i, j)
 	}
 
 	// confirm total # signatures >= 2/3 of number of voters
