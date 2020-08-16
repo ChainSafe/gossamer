@@ -28,7 +28,8 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 	}
 
 	if out != nil {
-		return s.safeMsgSend(out)
+		s.safeMsgSend(out)
+		return nil
 	}
 
 	return nil

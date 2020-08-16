@@ -131,6 +131,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start starts the network service
 func (s *Service) Start() error {
+	if s.IsStopped() {
+		s.ctx, s.cancel = context.WithCancel(context.Background())
+	}
+
 	// update network state
 	go s.updateNetworkState()
 
