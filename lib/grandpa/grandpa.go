@@ -239,28 +239,7 @@ func (s *Service) initiate() error {
 	}
 
 	if h == nil || h.Number.Int64() == 0 {
-		// wrap in func for easy defer
-		err := func() error {
-			ch := make(chan *types.Block)
-			id, err := s.blockState.RegisterImportedChannel(ch)
-			if err != nil {
-				return err
-			}
-
-			defer s.blockState.UnregisterImportedChannel(id)
-
-			// loop until block 1
-			for {
-				select {
-				case block := <-ch:
-					if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
-						break
-					}
-				case <-s.ctx.Done():
-					return nil
-				}
-			}
-		}()
+		err := s.waitForFirstBlock()
 		if err != nil {
 			return err
 		}
@@ -281,6 +260,30 @@ func (s *Service) initiate() error {
 			return err
 		}
 	}
+}
+
+func (s *Service) waitForFirstBlock() error {
+	ch := make(chan *types.Block)
+	id, err := s.blockState.RegisterImportedChannel(ch)
+	if err != nil {
+		return err
+	}
+
+	defer s.blockState.UnregisterImportedChannel(id)
+
+	// loop until block 1
+	for {
+		select {
+		case block := <-ch:
+			if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
+				break
+			}
+		case <-s.ctx.Done():
+			return nil
+		}
+	}
+
+	return nil
 }
 
 // playGrandpaRound executes a round of GRANDPA

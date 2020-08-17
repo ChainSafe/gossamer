@@ -23,7 +23,6 @@ import (
 	"path"
 	"sync"
 	"syscall"
-	//"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -368,9 +367,6 @@ func (n *Node) Start() error {
 	n.Services.StartAll()
 
 	go func() {
-		// time.Sleep(time.Second * 10)
-		// n.Stop()
-
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
