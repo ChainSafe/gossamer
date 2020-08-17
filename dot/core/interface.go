@@ -91,11 +91,12 @@ type FinalityGadget interface {
 // FinalityMessage is the interface a finality message must implement
 type FinalityMessage interface {
 	ToConsensusMessage() (*network.ConsensusMessage, error)
+	Type() byte
 }
 
 // ConsensusMessageHandler is the interface a consensus message handler must implement
 type ConsensusMessageHandler interface {
-	HandleMessage(*network.ConsensusMessage) error
+	HandleMessage(*network.ConsensusMessage) (*network.ConsensusMessage, error)
 }
 
 // BlockProducer is the interface that a block production service must implement

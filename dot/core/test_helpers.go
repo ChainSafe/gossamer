@@ -149,10 +149,14 @@ func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, 
 	return testConsensusMessage, nil
 }
 
+func (fm *mockFinalityMessage) Type() byte {
+	return 0
+}
+
 type mockConsensusMessageHandler struct{}
 
-func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessage) error {
-	return nil
+func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessage) (*network.ConsensusMessage, error) {
+	return nil, nil
 }
 
 // NewTestService creates a new test core service

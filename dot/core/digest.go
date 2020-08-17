@@ -117,8 +117,10 @@ func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa Finalit
 
 // Start starts the DigestHandler
 func (h *DigestHandler) Start() {
-	go h.handleBlockImport()
-	go h.handleBlockFinalization()
+	ctx, _ := context.WithCancel(h.ctx)
+	go h.handleBlockImport(ctx)
+	ctx, _ = context.WithCancel(h.ctx)
+	go h.handleBlockFinalization(ctx)
 }
 
 // Stop stops the DigestHandler
@@ -179,7 +181,7 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest) error {
 	}
 }
 
-func (h *DigestHandler) handleBlockImport() {
+func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 	for {
 		select {
 		case block := <-h.imported:
@@ -194,13 +196,13 @@ func (h *DigestHandler) handleBlockImport() {
 			if h.isBlockProducer {
 				h.handleBABEChangesOnImport(block.Header)
 			}
-		case <-h.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (h *DigestHandler) handleBlockFinalization() {
+func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 	for {
 		select {
 		case header := <-h.finalized:
@@ -215,7 +217,7 @@ func (h *DigestHandler) handleBlockFinalization() {
 			if h.isBlockProducer {
 				h.handleBABEChangesOnFinalization(header)
 			}
-		case <-h.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
