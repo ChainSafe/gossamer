@@ -142,8 +142,8 @@ func (h *MessageHandler) verifyJustification(fm *FinalizationMessage) error {
 		sigCount++
 	}
 
-	// confirm total # signatures >= 2/3 of number of voters
-	if !(sigCount >= (2/3)*len(h.grandpa.state.voters)) {
+	// confirm total # signatures >= grandpa threshold
+	if !(uint64(sigCount) >= h.grandpa.state.threshold()) {
 		return ErrMinVotesNotMet
 	}
 	return nil

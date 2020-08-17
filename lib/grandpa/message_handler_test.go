@@ -179,7 +179,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_InvalidSig(t *testi
 
 	h := NewMessageHandler(gs, st.Block)
 	out, err := h.HandleMessage(cm)
-	require.EqualError(t, err, "signature is not valid")
+	require.EqualError(t, err, ErrInvalidSignature.Error())
 	require.Nil(t, out)
 
 }
@@ -217,6 +217,36 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 	copy(sMsgArray[:], sMsg)
 
 	gs.justification[77] = []*Justification{
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
+			AuthorityID: gs.publicKeyBytes(),
+		},
 		{
 			Vote:        testVote,
 			Signature:   sMsgArray,
