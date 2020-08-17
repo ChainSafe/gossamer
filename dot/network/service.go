@@ -74,7 +74,7 @@ type Service struct {
 
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background()) //nolint
 
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -84,7 +84,7 @@ func NewService(cfg *Config) (*Service, error) {
 	// build configuration
 	err := cfg.build()
 	if err != nil {
-		return nil, err
+		return nil, err //nolint
 	}
 
 	if cfg.MsgRec == nil {

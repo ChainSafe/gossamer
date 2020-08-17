@@ -185,24 +185,27 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start starts the core service
 func (s *Service) Start() error {
+	// we can ignore the `cancel` function returned by `context.WithCancel` since Stop() cancels the parent context,
+	// so all the child contexts should also be canceled. potentially update if there is a better way to do this
+
 	// start receiving blocks from BABE session
-	ctx, _ := context.WithCancel(s.ctx)
+	ctx, _ := context.WithCancel(s.ctx) //nolint
 	go s.receiveBlocks(ctx)
 
 	// start receiving messages from network service
-	ctx, _ = context.WithCancel(s.ctx)
+	ctx, _ = context.WithCancel(s.ctx) //nolint
 	go s.receiveMessages(ctx)
 
 	// start handling imported blocks
-	ctx, _ = context.WithCancel(s.ctx)
+	ctx, _ = context.WithCancel(s.ctx) //nolint
 	go s.handleBlocks(ctx)
 
 	if s.isFinalityAuthority && s.finalityGadget != nil {
 		s.logger.Debug("routing finality gadget messages")
-		ctx, _ = context.WithCancel(s.ctx)
+		ctx, _ = context.WithCancel(s.ctx) //nolint
 		go s.sendVoteMessages(ctx)
 
-		ctx, _ = context.WithCancel(s.ctx)
+		ctx, _ = context.WithCancel(s.ctx) //nolint
 		go s.sendFinalizationMessages(ctx)
 	}
 
