@@ -420,6 +420,97 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	require.Equal(t, expected, out)
 }
 
+func TestVerifyJustification(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote:        vote,
+		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice),
+		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.NoError(t, err)
+}
+
+func TestVerifyJustification_InvalidSignature(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote: vote,
+		// create signed vote with mismatched vote number
+		Signature:   createSignedVoteMsg(t, vote.number+1, 77, gs.state.setID, kr.Alice),
+		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.EqualError(t, err, ErrInvalidSignature.Error())
+}
+
+func TestVerifyJustification_InvalidAuthority(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	// sign vote with key not in authority set
+	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
+	require.NoError(t, err)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote:        vote,
+		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, fakeKey),
+		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.EqualError(t, err, ErrVoterNotFound.Error())
+}
+
 func buildTestJustifications(t *testing.T, qty, round, setID uint64, kr *keystore.Ed25519Keyring) []*Justification {
 	just := []*Justification{}
 	for i := uint64(0); i < qty; i++ {
