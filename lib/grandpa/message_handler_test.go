@@ -200,61 +200,12 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	gs.state.round = 77
+	round := uint64(77)
+	gs.state.round = round
 
-	// create vote message
-	msg, err := scale.Encode(&FullVote{
-		Stage: precommit,
-		Vote:  testVote,
-		Round: 77,
-		SetID: gs.state.setID,
-	})
-	require.NoError(t, err)
+	gs.justification[round] = buildTestJustifications(t, 6, round, gs.state.setID, kr)
 
-	var sMsgArray [64]byte
-	sMsg, err := kr.Alice.Sign(msg)
-	require.NoError(t, err)
-	copy(sMsgArray[:], sMsg)
-
-	gs.justification[77] = []*Justification{
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-		{
-			Vote:        testVote,
-			Signature:   sMsgArray,
-			AuthorityID: gs.publicKeyBytes(),
-		},
-	}
-
-	fm := gs.newFinalizationMessage(gs.head, 77)
+	fm := gs.newFinalizationMessage(gs.head, round)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -270,6 +221,37 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 	hash, err = st.Block.GetFinalizedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.hash, hash)
+}
+
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	round := uint64(77)
+	gs.state.round = round
+
+	gs.justification[round] = buildTestJustifications(t, gs.state.threshold()-1, round, gs.state.setID, kr)
+
+	fm := gs.newFinalizationMessage(gs.head, round)
+	cm, err := fm.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.EqualError(t, err, ErrMinVotesNotMet.Error())
+	require.Nil(t, out)
 }
 
 func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
@@ -436,4 +418,35 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	out, err := h.HandleMessage(cm)
 	require.NoError(t, err)
 	require.Equal(t, expected, out)
+}
+
+func buildTestJustifications(t *testing.T, qty, round, setID uint64, kr *keystore.Ed25519Keyring) []*Justification {
+	just := []*Justification{}
+	for i := uint64(0); i < qty; i++ {
+		j := &Justification{
+			Vote:        NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, i),
+			Signature:   createSignedVoteMsg(t, i, round, setID, kr.Keys[i%uint64(len(kr.Keys))]),
+			AuthorityID: kr.Keys[i%uint64(len(kr.Keys))].Public().(*ed25519.PublicKey).AsBytes(),
+		}
+		just = append(just, j)
+	}
+	return just
+
+}
+
+func createSignedVoteMsg(t *testing.T, voteNumber, round, setID uint64, pk *ed25519.Keypair) [64]byte {
+	// create vote message
+	msg, err := scale.Encode(&FullVote{
+		Stage: precommit,
+		Vote:  NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, voteNumber),
+		Round: round,
+		SetID: setID,
+	})
+	require.NoError(t, err)
+
+	var sMsgArray [64]byte
+	sMsg, err := pk.Sign(msg)
+	require.NoError(t, err)
+	copy(sMsgArray[:], sMsg)
+	return sMsgArray
 }
