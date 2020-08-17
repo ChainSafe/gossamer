@@ -233,18 +233,36 @@ func (s *Service) initiate() error {
 	s.logger.Trace("[grandpa] started message tracker")
 
 	// don't begin grandpa until we are at block 1
-	for {
-		if s.ctx.Err() != nil {
-			return nil
-		}
+	h, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
 
-		h, err := s.blockState.BestBlockHeader()
+	if h == nil || h.Number.Int64() == 0 {
+		// wrap in func for easy defer
+		err := func() error {
+			ch := make(chan *types.Block)
+			id, err := s.blockState.RegisterImportedChannel(ch)
+			if err != nil {
+				return err
+			}
+
+			defer s.blockState.UnregisterImportedChannel(id)
+
+			// loop until block 1
+			for {
+				select {
+				case block := <-ch:
+					if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
+						break
+					}
+				case <-s.ctx.Done():
+					return nil
+				}
+			}
+		}()
 		if err != nil {
-			continue
-		}
-
-		if h != nil && h.Number.Int64() > 0 {
-			break
+			return err
 		}
 	}
 

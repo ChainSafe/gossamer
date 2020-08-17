@@ -186,18 +186,24 @@ func NewService(cfg *Config) (*Service, error) {
 // Start starts the core service
 func (s *Service) Start() error {
 	// start receiving blocks from BABE session
-	go s.receiveBlocks()
+	ctx, _ := context.WithCancel(s.ctx)
+	go s.receiveBlocks(ctx)
 
 	// start receiving messages from network service
-	go s.receiveMessages()
+	ctx, _ = context.WithCancel(s.ctx)
+	go s.receiveMessages(ctx)
 
 	// start handling imported blocks
-	go s.handleBlocks()
+	ctx, _ = context.WithCancel(s.ctx)
+	go s.handleBlocks(ctx)
 
 	if s.isFinalityAuthority && s.finalityGadget != nil {
 		s.logger.Debug("routing finality gadget messages")
-		go s.sendVoteMessages()
-		go s.sendFinalizationMessages()
+		ctx, _ = context.WithCancel(s.ctx)
+		go s.sendVoteMessages(ctx)
+
+		ctx, _ = context.WithCancel(s.ctx)
+		go s.sendFinalizationMessages(ctx)
 	}
 
 	return nil
@@ -240,7 +246,7 @@ func (s *Service) safeMsgSend(msg network.Message) {
 	s.msgSend <- msg
 }
 
-func (s *Service) handleBlocks() {
+func (s *Service) handleBlocks(ctx context.Context) {
 	for {
 		select {
 		case block := <-s.blockAddCh:
@@ -252,14 +258,14 @@ func (s *Service) handleBlocks() {
 			if err != nil {
 				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash())
 			}
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
 // receiveBlocks starts receiving blocks from the BABE session
-func (s *Service) receiveBlocks() {
+func (s *Service) receiveBlocks(ctx context.Context) {
 	for {
 		select {
 		case block := <-s.blkRec:
@@ -271,14 +277,14 @@ func (s *Service) receiveBlocks() {
 			if err != nil {
 				s.logger.Warn("failed to handle block from BABE session", "err", err)
 			}
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
 // receiveMessages starts receiving messages from the network service
-func (s *Service) receiveMessages() {
+func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
 		case msg := <-s.msgRec:
@@ -290,7 +296,7 @@ func (s *Service) receiveMessages() {
 			if err != nil {
 				s.logger.Trace("failed to handle message from network service", "err", err)
 			}
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}

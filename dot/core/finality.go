@@ -17,6 +17,8 @@
 package core
 
 import (
+	"context"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 )
 
@@ -36,12 +38,16 @@ func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
 }
 
 // sendVoteMessages routes a VoteMessage from the finality gadget to the network
-func (s *Service) sendVoteMessages() {
+func (s *Service) sendVoteMessages(ctx context.Context) {
 	out := s.finalityGadget.GetVoteOutChannel()
 
 	for {
 		select {
 		case v := <-out:
+			if v == nil {
+				continue
+			}
+
 			msg, err := v.ToConsensusMessage()
 			if err != nil {
 				s.logger.Error("failed to convert VoteMessage to ConsensusMessage", "msg", msg)
@@ -50,14 +56,14 @@ func (s *Service) sendVoteMessages() {
 
 			s.logger.Debug("sending VoteMessage to network", "msg", msg)
 			s.safeMsgSend(msg)
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
 }
 
 // sendFinalityMessages routes a FinalizationMessage from the finality gadget to the network
-func (s *Service) sendFinalizationMessages() {
+func (s *Service) sendFinalizationMessages(ctx context.Context) {
 	out := s.finalityGadget.GetFinalizedChannel()
 
 	for {
@@ -76,7 +82,7 @@ func (s *Service) sendFinalizationMessages() {
 
 			s.logger.Debug("sending FinalityMessage to network", "msg", v)
 			s.safeMsgSend(msg)
-		case <-s.ctx.Done():
+		case <-ctx.Done():
 			return
 		}
 	}
