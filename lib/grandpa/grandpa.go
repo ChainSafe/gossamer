@@ -238,7 +238,7 @@ func (s *Service) initiate() error {
 		return err
 	}
 
-	if h == nil || h.Number.Int64() == 0 {
+	if h != nil && h.Number.Int64() == 0 {
 		err := s.waitForFirstBlock()
 		if err != nil {
 			return err
@@ -273,13 +273,19 @@ func (s *Service) waitForFirstBlock() error {
 
 	// loop until block 1
 	for {
+		done := false
+
 		select {
 		case block := <-ch:
 			if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
-				break
+				done = true
 			}
 		case <-s.ctx.Done():
 			return nil
+		}
+
+		if done {
+			break
 		}
 	}
 

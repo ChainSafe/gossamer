@@ -117,9 +117,9 @@ func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa Finalit
 
 // Start starts the DigestHandler
 func (h *DigestHandler) Start() {
-	ctx, _ := context.WithCancel(h.ctx)
+	ctx, _ := context.WithCancel(h.ctx) //nolint
 	go h.handleBlockImport(ctx)
-	ctx, _ = context.WithCancel(h.ctx)
+	ctx, _ = context.WithCancel(h.ctx) //nolint
 	go h.handleBlockFinalization(ctx)
 }
 
