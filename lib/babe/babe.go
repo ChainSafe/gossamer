@@ -170,8 +170,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
-	//b.started.Store(true)
-
 	if b.epochThreshold == nil {
 		err := b.setEpochThreshold()
 		if err != nil {
@@ -362,6 +360,9 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
+	// TODO: this calculates the epoch as starting when the node starts up, when the node may actually start up at any time.
+	// need to calculate place in current epoch given historical epoch lengths
+
 	nextStartSlot := startSlot + b.config.EpochLength
 	epochDone := time.After(time.Duration(b.config.EpochLength) * b.slotDuration())
 
@@ -370,11 +371,8 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
 	}
 
-	// handle initial slot
-	//b.handleSlot(startSlot)
-
-	i := 0
-	slotNum := startSlot + 1
+	i := 0 // increments each slot
+	slotNum := startSlot
 
 	for {
 		if i >= int(b.config.EpochLength) {
@@ -389,7 +387,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		case <-epochDone:
 			break
 		case <-slotDone[i]:
-			b.handleSlot(slotNum)
+			err := b.handleSlot(slotNum)
+			if err != nil {
+				return
+			}
 			slotNum++
 			i++
 		}
@@ -402,6 +403,8 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		return
 	}
 
+	b.logger.Info("initiating epoch", "number", next, "start slot", nextStartSlot)
+
 	err = b.initiateEpoch(next, nextStartSlot)
 	if err != nil {
 		b.logger.Error("failed to initiate epoch", "epoch", next, "error", err)
@@ -411,18 +414,18 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	b.invokeBlockAuthoring(nextStartSlot)
 }
 
-func (b *Service) handleSlot(slotNum uint64) {
+func (b *Service) handleSlot(slotNum uint64) error {
 	if b.slotToProof[slotNum] == nil {
 		// if we don't have a proof already set, re-run lottery.
 		proof, err := b.runLottery(slotNum)
 		if err != nil {
 			b.logger.Warn("failed to run lottery", "slot", slotNum)
-			return
+			return errors.New("failed to run lottery")
 		}
 
 		if proof == nil {
 			b.logger.Debug("not authorized to produce block", "slot", slotNum)
-			return
+			return ErrNotAuthorized
 		}
 
 		b.slotToProof[slotNum] = proof
@@ -430,13 +433,13 @@ func (b *Service) handleSlot(slotNum uint64) {
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		b.logger.Error("block authoring", "error", "parent header is nil")
-		return
+		b.logger.Error("block authoring", "error", err)
+		return err
 	}
 
 	if parentHeader == nil {
 		b.logger.Error("block authoring", "error", "parent header is nil")
-		return
+		return err
 	}
 
 	// there is a chance that the best block header may change in the course of building the block,
@@ -449,7 +452,6 @@ func (b *Service) handleSlot(slotNum uint64) {
 		number:   slotNum,
 	}
 
-	// TODO: move block authorization check here
 	b.logger.Debug("going to build block", "parent", parent)
 
 	block, err := b.buildBlock(parent, currentSlot)
@@ -459,15 +461,17 @@ func (b *Service) handleSlot(slotNum uint64) {
 		// TODO: loop until slot is done, attempt to produce multiple blocks
 
 		hash := block.Header.Hash()
-		b.logger.Info("[babe]", "built block", hash.String(), "number", block.Header.Number, "slot", slotNum)
-		b.logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent)
+		b.logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
+		b.logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
 		err = b.safeSend(*block)
 		if err != nil {
-			b.logger.Error("Failed to send block to core", "error", err)
-			return
+			b.logger.Error("failed to send block to core", "error", err)
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
