@@ -17,9 +17,10 @@
 package grandpa
 
 import (
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"reflect"
 )
 
 // MessageHandler handles GRANDPA consensus messages
@@ -76,11 +77,14 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 		return req.ToConsensusMessage()
 	}
 
-	// TODO: check justification here
-	h.verifyJustification(msg)
+	// check justification here
+	err := h.verifyJustification(msg)
+	if err != nil {
+		return nil, err
+	}
 
 	// set finalized head for round in db
-	err := h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
+	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +98,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 	return nil, nil
 }
 
-func (h *MessageHandler) verifyJustification (fm *FinalizationMessage) error {
+func (h *MessageHandler) verifyJustification(fm *FinalizationMessage) error {
 	// validate justification
 	justList := fm.Justification
 	sigCount := 0

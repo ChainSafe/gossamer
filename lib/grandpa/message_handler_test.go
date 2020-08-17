@@ -147,7 +147,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	}
 }
 
-func TestMessageHandler_FinalizationMessage_NoCatchUpRequest(t *testing.T) {
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_InvalidSig(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 	kr, err := keystore.NewEd25519Keyring()
@@ -169,6 +169,57 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest(t *testing.T) {
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+
+	fm := gs.newFinalizationMessage(gs.head, 77)
+	cm, err := fm.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.EqualError(t, err, "signature is not valid")
+	require.Nil(t, out)
+
+}
+
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	gs.state.round = 77
+
+	// create vote message
+	msg, err := scale.Encode(&FullVote{
+		Stage: precommit,
+		Vote:  testVote,
+		Round: 77,
+		SetID: gs.state.setID,
+	})
+	require.NoError(t, err)
+
+	var sMsgArray [64]byte
+	sMsg, err := kr.Alice.Sign(msg)
+	require.NoError(t, err)
+	copy(sMsgArray[:], sMsg)
+
+	gs.justification[77] = []*Justification{
+		{
+			Vote:        testVote,
+			Signature:   sMsgArray,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
