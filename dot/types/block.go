@@ -66,8 +66,8 @@ func (b *Block) Encode() ([]byte, error) {
 }
 
 // MustEncode verifies that block is encoded
-func (b *Block) MustEncode() ([]byte, error) {
-	enc, err := Encode(b)
+func (b *Block) MustEncode() []byte {
+	enc, err := b.Encode()
 	if err != nil {
 		panic(err)
 	}

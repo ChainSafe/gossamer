@@ -106,8 +106,8 @@ func (bh *Header) Encode() ([]byte, error) {
 }
 
 // MustEncode verifies that header is encoded
-func (bh *Header) MustEncode() ([]byte, error) {
-	enc, err := Encode(bh)
+func (bh *Header) MustEncode() []byte {
+	enc, err := bh.Encode()
 	if err != nil {
 		panic(err)
 	}
