@@ -18,6 +18,9 @@ package grandpa
 
 import (
 	"bytes"
+	"context"
+	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -34,12 +37,14 @@ var interval = time.Second
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger     log.Logger
-	blockState BlockState
-	keypair    *ed25519.Keypair
-	mapLock    sync.Mutex
-	chanLock   sync.Mutex
-	stopped    bool
+	logger        log.Logger
+	ctx           context.Context
+	cancel        context.CancelFunc
+	blockState    BlockState
+	digestHandler DigestHandler
+	keypair       *ed25519.Keypair
+	mapLock       sync.Mutex
+	chanLock      sync.Mutex
 
 	// current state information
 	state            *State                             // current state
@@ -66,11 +71,12 @@ type Service struct {
 
 // Config represents a GRANDPA service configuration
 type Config struct {
-	LogLvl     log.Lvl
-	BlockState BlockState
-	Voters     []*Voter
-	SetID      uint64
-	Keypair    *ed25519.Keypair
+	LogLvl        log.Lvl
+	BlockState    BlockState
+	DigestHandler DigestHandler
+	Voters        []*Voter
+	SetID         uint64
+	Keypair       *ed25519.Keypair
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -80,28 +86,37 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockState
 	}
 
+	if cfg.DigestHandler == nil {
+		return nil, ErrNilDigestHandler
+	}
+
 	if cfg.Keypair == nil {
 		return nil, ErrNilKeypair
 	}
 
 	logger := log.New("pkg", "grandpa")
-	h := log.CallerFileHandler(log.StdoutHandler)
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
 	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
 
 	// get latest finalized header
-	head, err := cfg.BlockState.GetFinalizedHeader(0)
+	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return nil, err
 	}
 
 	in := make(chan FinalityMessage, 128)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &Service{
 		logger:             logger,
+		ctx:                ctx,
+		cancel:             cancel,
 		state:              NewState(cfg.Voters, cfg.SetID, 0),
 		blockState:         cfg.BlockState,
+		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
@@ -116,7 +131,6 @@ func NewService(cfg *Config) (*Service, error) {
 		in:                 in,
 		out:                make(chan FinalityMessage, 128),
 		finalized:          make(chan FinalityMessage, 128),
-		stopped:            true,
 	}
 
 	return s, nil
@@ -124,8 +138,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	s.stopped = false
-
 	go func() {
 		err := s.initiate()
 		if err != nil {
@@ -141,7 +153,7 @@ func (s *Service) Stop() error {
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
-	s.stopped = true
+	s.cancel()
 	close(s.out)
 	s.tracker.stop()
 	return nil
@@ -221,18 +233,15 @@ func (s *Service) initiate() error {
 	s.logger.Trace("[grandpa] started message tracker")
 
 	// don't begin grandpa until we are at block 1
-	for {
-		if s.stopped {
-			return nil
-		}
+	h, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
 
-		h, err := s.blockState.BestBlockHeader()
+	if h != nil && h.Number.Int64() == 0 {
+		err := s.waitForFirstBlock()
 		if err != nil {
-			continue
-		}
-
-		if h != nil && h.Number.Int64() > 0 {
-			break
+			return err
 		}
 	}
 
@@ -242,7 +251,7 @@ func (s *Service) initiate() error {
 			return err
 		}
 
-		if s.stopped {
+		if s.ctx.Err() != nil {
 			return nil
 		}
 
@@ -251,6 +260,36 @@ func (s *Service) initiate() error {
 			return err
 		}
 	}
+}
+
+func (s *Service) waitForFirstBlock() error {
+	ch := make(chan *types.Block)
+	id, err := s.blockState.RegisterImportedChannel(ch)
+	if err != nil {
+		return err
+	}
+
+	defer s.blockState.UnregisterImportedChannel(id)
+
+	// loop until block 1
+	for {
+		done := false
+
+		select {
+		case block := <-ch:
+			if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
+				done = true
+			}
+		case <-s.ctx.Done():
+			return nil
+		}
+
+		if done {
+			break
+		}
+	}
+
+	return nil
 }
 
 // playGrandpaRound executes a round of GRANDPA
@@ -426,7 +465,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
-		s.logger.Debug("finalized block!!!", "round", s.state.round, "hash", s.head.Hash())
+		s.logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash())
 		msg := s.newFinalizationMessage(s.head, s.state.round)
 
 		// TODO: safety
@@ -460,6 +499,16 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		vote = NewVoteFromHeader(header)
 	}
 
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	if vote.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		vote = NewVoteFromHeader(header)
+	}
+
 	return vote, nil
 }
 
@@ -469,6 +518,16 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	pvb, err := s.getPreVotedBlock()
 	if err != nil {
 		return nil, err
+	}
+
+	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
+	if pvb.number > nextChange {
+		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		if err != nil {
+			return nil, err
+		}
+
+		pvb = *NewVoteFromHeader(header)
 	}
 
 	return &pvb, nil
@@ -565,13 +624,13 @@ func (s *Service) finalize() error {
 	}
 
 	// set finalized head for round in db
-	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round)
+	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID)
 	if err != nil {
 		return err
 	}
 
 	// set latest finalized head in db
-	return s.blockState.SetFinalizedHash(bfc.hash, 0)
+	return s.blockState.SetFinalizedHash(bfc.hash, 0, 0)
 }
 
 // derivePrimary returns the primary for the current round

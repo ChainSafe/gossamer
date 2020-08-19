@@ -1,8 +1,10 @@
 package grandpa
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -31,9 +33,10 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -82,9 +85,10 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -117,9 +121,10 @@ func TestNewCatchUpResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -128,12 +133,19 @@ func TestNewCatchUpResponse(t *testing.T) {
 	round := uint64(1)
 	setID := uint64(1)
 
+	testHeader := &types.Header{
+		Number: big.NewInt(1),
+	}
+
 	v := &Vote{
-		hash:   common.Hash{0x77},
+		hash:   testHeader.Hash(),
 		number: 1,
 	}
 
-	gs.bestFinalCandidate[round] = v
+	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	require.NoError(t, err)
+	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	require.NoError(t, err)
 
 	pvj := []*Justification{
 		{

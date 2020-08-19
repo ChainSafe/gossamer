@@ -131,7 +131,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state",
 			"--roles", "1", // no key provided, non-authority node
 			"--rpc",
-			"--log", "crit",
+			"--log", "info",
 		)
 	} else {
 		key = keyList[node.Idx]
@@ -146,7 +146,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state,dev",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "crit",
+			"--log", "info",
 		)
 	}
 
@@ -195,23 +195,19 @@ func StartGossamer(t *testing.T, node *Node) error {
 	errWriter := bufio.NewWriter(errfile)
 	go io.Copy(errWriter, stderrPipe) //nolint
 
-	logger.Debug("wait few secs for node to come up", "cmd.Process.Pid", node.Process.Process.Pid)
 	var started bool
-
 	for i := 0; i < maxRetries; i++ {
 		time.Sleep(time.Second)
 		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
 			started = true
 			break
-		} else {
-			logger.Debug("Waiting for Gossamer to start", "err", err)
 		}
 	}
 
 	if started {
-		logger.Debug("Gossamer started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
+		logger.Info("node started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
 	} else {
-		logger.Crit("Gossamer didn't start!", "err", err)
+		logger.Crit("node didn't start!", "err", err)
 		return err
 	}
 

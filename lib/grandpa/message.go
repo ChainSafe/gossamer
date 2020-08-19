@@ -37,8 +37,8 @@ var (
 	voteType            byte = 0
 	precommitType       byte = 1
 	finalizationType    byte = 2
-	catchUpRequestType  byte = 3 //nolint
-	catchUpResponseType byte = 4 //nolint
+	catchUpRequestType  byte = 3
+	catchUpResponseType byte = 4
 )
 
 // FullVote represents a vote with additional information about the state
@@ -72,6 +72,11 @@ type VoteMessage struct {
 	Message *SignedMessage
 }
 
+// Type returns voteType or precommitType
+func (v *VoteMessage) Type() byte {
+	return byte(v.Stage)
+}
+
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	enc, err := scale.Encode(v)
@@ -91,6 +96,11 @@ type FinalizationMessage struct {
 	Round         uint64
 	Vote          *Vote
 	Justification []*Justification
+}
+
+// Type returns finalizationType
+func (f *FinalizationMessage) Type() byte {
+	return finalizationType
 }
 
 // ToConsensusMessage converts the FinalizationMessage into a network-level consensus message
@@ -114,16 +124,34 @@ func (s *Service) newFinalizationMessage(header *types.Header, round uint64) *Fi
 	}
 }
 
-type catchUpRequest struct { //nolint
+type catchUpRequest struct {
 	Round uint64
 	SetID uint64
 }
 
-func newCatchUpRequest(round, setID uint64) *catchUpRequest { //nolint
+func newCatchUpRequest(round, setID uint64) *catchUpRequest {
 	return &catchUpRequest{
 		Round: round,
 		SetID: setID,
 	}
+}
+
+// Type returns catchUpRequestType
+func (r *catchUpRequest) Type() byte {
+	return catchUpRequestType
+}
+
+// ToConsensusMessage converts the catchUpRequest into a network-level consensus message
+func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
+	enc, err := scale.Encode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConsensusMessage{
+		ConsensusEngineID: types.GrandpaEngineID,
+		Data:              append([]byte{catchUpRequestType}, enc...),
+	}, nil
 }
 
 type catchUpResponse struct {
@@ -136,10 +164,12 @@ type catchUpResponse struct {
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
-	// TODO: update blockState.GetFinalizedHeader to accept setID, use that instead, since mapping only stores from current setID
-	b := s.bestFinalCandidate[round]
+	header, err := s.blockState.GetFinalizedHeader(round, setID)
+	if err != nil {
+		return nil, err
+	}
 
-	has, err := s.blockState.HasJustification(b.hash)
+	has, err := s.blockState.HasJustification(header.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +178,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		return nil, ErrNoJustification
 	}
 
-	just, err := s.blockState.GetJustification(b.hash)
+	just, err := s.blockState.GetJustification(header.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +204,17 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		SetID:                  setID,
 		PreVoteJustification:   pvj,
 		PreCommitJustification: pcj,
-		Hash:                   b.hash,
-		Number:                 b.number,
+		Hash:                   header.Hash(),
+		Number:                 header.Number.Uint64(),
 	}, nil
+}
+
+// Type returns catchUpResponseType
+func (r *catchUpResponse) Type() byte {
+	return catchUpResponseType
+}
+
+// ToConsensusMessage converts the catchUpResponse into a network-level consensus message
+func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
+	return nil, nil
 }

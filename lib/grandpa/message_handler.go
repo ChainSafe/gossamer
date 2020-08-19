@@ -17,6 +17,9 @@
 package grandpa
 
 import (
+	"reflect"
+
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -37,47 +40,165 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) error {
+func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
 	m, err := decodeMessage(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	switch m.Type() {
+	case voteType, precommitType:
+		vm, ok := m.(*VoteMessage)
+		if h.grandpa != nil && ok {
+			// send vote message to grandpa service
+			h.grandpa.in <- vm
+		}
+	case finalizationType:
+		if fm, ok := m.(*FinalizationMessage); ok {
+			return h.handleFinalizationMessage(fm)
+		}
+	case catchUpRequestType:
+		if r, ok := m.(*catchUpRequest); ok {
+			return h.handleCatchUpRequest(r)
+		}
+	case catchUpResponseType:
+		return nil, nil
+	default:
+		return nil, ErrInvalidMessageType
+	}
+
+	return nil, nil
+}
+
+func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*ConsensusMessage, error) {
+	// check if msg has same setID but is 2 or more rounds ahead of us, if so, return catch-up request to send
+	if msg.Round > h.grandpa.state.round+1 { // TODO: FinalizationMessage does not have setID, confirm this is correct
+		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
+		return req.ToConsensusMessage()
+	}
+
+	// check justification here
+	err := h.verifyFinalizationMessageJustification(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	// set finalized head for round in db
+	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
+	if err != nil {
+		return nil, err
+	}
+
+	// set latest finalized head in db
+	err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+func (h *MessageHandler) verifyFinalizationMessageJustification(fm *FinalizationMessage) error {
+	// verify justifications
+	sigCount := 0
+	for _, just := range fm.Justification {
+		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
+		if err != nil {
+			return err
+		}
+		sigCount++
+	}
+
+	// confirm total # signatures >= grandpa threshold
+	if !(uint64(sigCount) >= h.grandpa.state.threshold()) {
+		return ErrMinVotesNotMet
+	}
+	return nil
+}
+func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, round, setID uint64, stage subround) error {
+	// verify signature
+	msg, err := scale.Encode(&FullVote{
+		Stage: stage,
+		Vote:  vote,
+		Round: round,
+		SetID: setID,
+	})
 	if err != nil {
 		return err
 	}
 
-	fm, ok := m.(*FinalizationMessage)
-	if ok {
-		// set finalized head for round in db
-		err = h.blockState.SetFinalizedHash(fm.Vote.hash, fm.Round)
-		if err != nil {
-			return err
-		}
-
-		// set latest finalized head in db
-		err = h.blockState.SetFinalizedHash(fm.Vote.hash, 0)
-		if err != nil {
-			return err
-		}
+	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+	if err != nil {
+		return err
 	}
 
-	vm, ok := m.(*VoteMessage)
-	if h.grandpa != nil && ok {
-		// send vote message to grandpa service
-		h.grandpa.in <- vm
+	ok, err := pk.Verify(msg, just.Signature[:])
+	if err != nil {
+		return err
 	}
 
+	if !ok {
+		return ErrInvalidSignature
+	}
+
+	// verify authority in justification set
+	authFound := false
+	for _, auth := range h.grandpa.Authorities() {
+		if reflect.DeepEqual(auth.Key.AsBytes(), just.AuthorityID) {
+			authFound = true
+			break
+		}
+	}
+	if !authFound {
+		return ErrVoterNotFound
+	}
 	return nil
+}
+
+func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
+	if msg.SetID != h.grandpa.state.setID {
+		return nil, ErrSetIDMismatch
+	}
+
+	if msg.Round >= h.grandpa.state.round {
+		return nil, ErrInvalidCatchUpRound
+	}
+
+	resp, err := h.grandpa.newCatchUpResponse(msg.Round, msg.SetID)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.ToConsensusMessage()
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
 func decodeMessage(msg *ConsensusMessage) (m FinalityMessage, err error) {
-	var mi interface{}
+	var (
+		mi interface{}
+		ok bool
+	)
 
 	switch msg.Data[0] {
 	case voteType, precommitType:
 		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
-		m = mi.(*VoteMessage)
+		if m, ok = mi.(*VoteMessage); !ok {
+			return nil, ErrInvalidMessageType
+		}
 	case finalizationType:
 		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{})
-		m = mi.(*FinalizationMessage)
+		if m, ok = mi.(*FinalizationMessage); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpRequestType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
+		if m, ok = mi.(*catchUpRequest); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpResponseType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
+		if m, ok = mi.(*catchUpResponse); !ok {
+			return nil, ErrInvalidMessageType
+		}
 	default:
 		return nil, ErrInvalidMessageType
 	}

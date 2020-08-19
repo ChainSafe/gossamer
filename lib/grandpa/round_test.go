@@ -55,16 +55,15 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan FinalityMes
 	voters := newTestVoters(t)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kp,
-		LogLvl:     log.LvlTrace,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kp,
+		LogLvl:        log.LvlTrace,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	gs.stopped = false
-
 	return gs, gs.in, gs.out, gs.finalized
 }
 
@@ -173,17 +172,10 @@ func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, done
 func cleanup(gs *Service, in, out chan FinalityMessage, done *bool) { //nolint
 	*done = true
 	close(in)
-
-	gs.chanLock.Lock()
-	gs.stopped = true
-	gs.chanLock.Unlock()
+	gs.cancel()
 }
 
 func TestPlayGrandpaRound_BaseCase(t *testing.T) {
-	if testing.Short() {
-		t.Skip()
-	}
-
 	// this asserts that all validators finalize the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 	kr, err := keystore.NewEd25519Keyring()

@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
+
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -262,20 +263,23 @@ func TestCreateGrandpaService(t *testing.T) {
 	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateSrvc, err := createStateService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ks := keystore.NewKeystore()
 	kr, err := keystore.NewEd25519Keyring()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	ks.Insert(kr.Alice)
 
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, ks)
+	dh, err := createDigestHandler(stateSrvc, nil, nil, nil)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }

@@ -17,13 +17,16 @@
 package grandpa
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -86,6 +89,23 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 	require.Equal(t, expected, msg)
 }
 
+func TestDecodeMessage_CatchUpRequest(t *testing.T) {
+	cm := &ConsensusMessage{
+		ConsensusEngineID: types.GrandpaEngineID,
+		Data:              common.MustHexToBytes("0x0311000000000000002200000000000000"),
+	}
+
+	msg, err := decodeMessage(cm)
+	require.NoError(t, err)
+
+	expected := &catchUpRequest{
+		Round: 0x11,
+		SetID: 0x22,
+	}
+
+	require.Equal(t, expected, msg)
+}
+
 func TestMessageHandler_VoteMessage(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
@@ -93,9 +113,10 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -114,8 +135,9 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	err = h.HandleMessage(cm)
+	out, err := h.HandleMessage(cm)
 	require.NoError(t, err)
+	require.Nil(t, out)
 
 	select {
 	case vote := <-gs.in:
@@ -125,16 +147,124 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	}
 }
 
-func TestMessageHandler_FinalizationMessage(t *testing.T) {
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_InvalidSig(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
 	cfg := &Config{
-		BlockState: st.Block,
-		Voters:     voters,
-		Keypair:    kr.Alice,
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	gs.state.round = 77
+
+	gs.justification[77] = []*Justification{
+		{
+			Vote:        testVote,
+			Signature:   testSignature,
+			AuthorityID: gs.publicKeyBytes(),
+		},
+	}
+
+	fm := gs.newFinalizationMessage(gs.head, 77)
+	cm, err := fm.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.EqualError(t, err, ErrInvalidSignature.Error())
+	require.Nil(t, out)
+
+}
+
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	round := uint64(77)
+	gs.state.round = round
+
+	gs.justification[round] = buildTestJustifications(t, 6, round, gs.state.setID, kr)
+
+	fm := gs.newFinalizationMessage(gs.head, round)
+	cm, err := fm.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.NoError(t, err)
+	require.Nil(t, out)
+
+	hash, err := st.Block.GetFinalizedHash(0, 0)
+	require.NoError(t, err)
+	require.Equal(t, fm.Vote.hash, hash)
+
+	hash, err = st.Block.GetFinalizedHash(fm.Round, gs.state.setID)
+	require.NoError(t, err)
+	require.Equal(t, fm.Vote.hash, hash)
+}
+
+func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	round := uint64(77)
+	gs.state.round = round
+
+	gs.justification[round] = buildTestJustifications(t, gs.state.threshold()-1, round, gs.state.setID, kr)
+
+	fm := gs.newFinalizationMessage(gs.head, round)
+	cm, err := fm.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.EqualError(t, err, ErrMinVotesNotMet.Error())
+	require.Nil(t, out)
+}
+
+func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
 	}
 
 	gs, err := NewService(cfg)
@@ -152,15 +282,262 @@ func TestMessageHandler_FinalizationMessage(t *testing.T) {
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 
-	h := NewMessageHandler(nil, st.Block)
-	err = h.HandleMessage(cm)
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.NoError(t, err)
+	require.NotNil(t, out)
+
+	req := newCatchUpRequest(77, gs.state.setID)
+	expected, err := req.ToConsensusMessage()
+	require.NoError(t, err)
+	require.Equal(t, expected, out)
+}
+
+func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	hash, err := st.Block.GetFinalizedHash(0)
-	require.NoError(t, err)
-	require.Equal(t, fm.Vote.hash, hash)
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
 
-	hash, err = st.Block.GetFinalizedHash(fm.Round)
+	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	require.Equal(t, fm.Vote.hash, hash)
+
+	req := newCatchUpRequest(77, 0)
+	cm, err := req.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	_, err = h.HandleMessage(cm)
+	require.Equal(t, ErrInvalidCatchUpRound, err)
+}
+
+func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	req := newCatchUpRequest(1, 77)
+	cm, err := req.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	_, err = h.HandleMessage(cm)
+	require.Equal(t, ErrSetIDMismatch, err)
+}
+
+func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	// set up needed info for response
+	round := uint64(1)
+	setID := uint64(0)
+	gs.state.round = round + 1
+
+	testHeader := &types.Header{
+		Number: big.NewInt(1),
+	}
+
+	v := &Vote{
+		hash:   testHeader.Hash(),
+		number: 1,
+	}
+
+	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	require.NoError(t, err)
+	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	require.NoError(t, err)
+
+	pvj := []*Justification{
+		{
+			Vote:        testVote,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
+		},
+	}
+
+	pvjEnc, err := scale.Encode(pvj)
+	require.NoError(t, err)
+
+	pcj := []*Justification{
+		{
+			Vote:        testVote2,
+			Signature:   testSignature,
+			AuthorityID: testAuthorityID,
+		},
+	}
+
+	pcjEnc, err := scale.Encode(pcj)
+	require.NoError(t, err)
+
+	err = gs.blockState.SetJustification(v.hash, append(pvjEnc, pcjEnc...))
+	require.NoError(t, err)
+
+	resp, err := gs.newCatchUpResponse(round, setID)
+	require.NoError(t, err)
+
+	expected, err := resp.ToConsensusMessage()
+	require.NoError(t, err)
+
+	// create and handle request
+	req := newCatchUpRequest(round, setID)
+	cm, err := req.ToConsensusMessage()
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	out, err := h.HandleMessage(cm)
+	require.NoError(t, err)
+	require.Equal(t, expected, out)
+}
+
+func TestVerifyJustification(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote:        vote,
+		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice),
+		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.NoError(t, err)
+}
+
+func TestVerifyJustification_InvalidSignature(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote: vote,
+		// create signed vote with mismatched vote number
+		Signature:   createSignedVoteMsg(t, vote.number+1, 77, gs.state.setID, kr.Alice),
+		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.EqualError(t, err, ErrInvalidSignature.Error())
+}
+
+func TestVerifyJustification_InvalidAuthority(t *testing.T) {
+	st := newTestState(t)
+	voters := newTestVoters(t)
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	cfg := &Config{
+		BlockState:    st.Block,
+		DigestHandler: &mockDigestHandler{},
+		Voters:        voters,
+		Keypair:       kr.Alice,
+	}
+
+	gs, err := NewService(cfg)
+	require.NoError(t, err)
+
+	h := NewMessageHandler(gs, st.Block)
+	// sign vote with key not in authority set
+	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
+	require.NoError(t, err)
+
+	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	just := &Justification{
+		Vote:        vote,
+		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, fakeKey),
+		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
+	}
+
+	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	require.EqualError(t, err, ErrVoterNotFound.Error())
+}
+
+func buildTestJustifications(t *testing.T, qty, round, setID uint64, kr *keystore.Ed25519Keyring) []*Justification {
+	just := []*Justification{}
+	for i := uint64(0); i < qty; i++ {
+		j := &Justification{
+			Vote:        NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, i),
+			Signature:   createSignedVoteMsg(t, i, round, setID, kr.Keys[i%uint64(len(kr.Keys))]),
+			AuthorityID: kr.Keys[i%uint64(len(kr.Keys))].Public().(*ed25519.PublicKey).AsBytes(),
+		}
+		just = append(just, j)
+	}
+	return just
+
+}
+
+func createSignedVoteMsg(t *testing.T, voteNumber, round, setID uint64, pk *ed25519.Keypair) [64]byte {
+	// create vote message
+	msg, err := scale.Encode(&FullVote{
+		Stage: precommit,
+		Vote:  NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, voteNumber),
+		Round: round,
+		SetID: setID,
+	})
+	require.NoError(t, err)
+
+	var sMsgArray [64]byte
+	sMsg, err := pk.Sign(msg)
+	require.NoError(t, err)
+	copy(sMsgArray[:], sMsg)
+	return sMsgArray
 }
