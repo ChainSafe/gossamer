@@ -220,7 +220,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.ConsensusMessageHandler == nil {
 		cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
 	}
-
+if cfg.MessageSender == nil {
+	cfg.MessageSender = stateSrvc.Network
+}
 	s, err := NewService(cfg)
 	require.Nil(t, err)
 

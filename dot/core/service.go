@@ -69,6 +69,7 @@ type Service struct {
 
 	// Channels for inter-process communication
 	msgRec  <-chan network.Message // receive messages from network service
+	// todo channel
 	msgSend chan<- network.Message // send messages to network service
 	blkRec  <-chan types.Block     // receive blocks from BABE session
 
@@ -77,6 +78,7 @@ type Service struct {
 
 	// State variables
 	lock *sync.Mutex // channel lock
+	messageSender network.NetworkMessageSender
 }
 
 // Config holds the configuration for the core Service.
@@ -99,6 +101,7 @@ type Config struct {
 
 	MsgRec  <-chan network.Message
 	MsgSend chan<- network.Message
+	MessageSender network.NetworkMessageSender
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -172,6 +175,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
+		messageSender: cfg.MessageSender,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -250,6 +254,7 @@ func (s *Service) safeMsgSend(msg network.Message) {
 }
 
 func (s *Service) handleBlocks(ctx context.Context) {
+	s.messageSender.SendNetworkMessage("hello")
 	for {
 		select {
 		case block := <-s.blockAddCh:

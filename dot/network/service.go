@@ -246,6 +246,7 @@ func (s *Service) safeMsgSend(msg Message) error {
 	return nil
 }
 
+
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// check if status is enabled

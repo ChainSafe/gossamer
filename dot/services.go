@@ -200,6 +200,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		IsBlockProducer:         cfg.Core.BabeAuthority,
 		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
 		Verifier:                verifier,
+		MessageSender: stateSrvc.Network,
 	}
 
 	// create new core service
