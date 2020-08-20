@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -62,7 +61,8 @@ type Service struct {
 
 	// Channels for inter-process communication
 	// as well as a lock for safe channel closures
-	msgRec  <-chan Message
+	// todo ed channel interface
+	//msgRec  <-chan Message
 	msgSend chan<- Message
 	lock    sync.Mutex
 
@@ -88,9 +88,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
-	if cfg.MsgRec == nil {
-		return nil, errors.New("MsgRec is nil")
-	}
+	// todo ed channel interface
+	//if cfg.MsgRec == nil {
+	//	return nil, errors.New("MsgRec is nil")
+	//}
 
 	if cfg.MsgSend == nil {
 		return nil, errors.New("MsgSend is nil")
@@ -118,7 +119,8 @@ func NewService(cfg *Config) (*Service, error) {
 		requestTracker: newRequestTracker(host.logger),
 		blockState:     cfg.BlockState,
 		networkState:   cfg.NetworkState,
-		msgRec:         cfg.MsgRec,
+		// todo ed channel interface
+		//msgRec:         cfg.MsgRec,
 		msgSend:        cfg.MsgSend,
 		noBootstrap:    cfg.NoBootstrap,
 		noMDNS:         cfg.NoMDNS,
@@ -215,12 +217,11 @@ func (s *Service) updateNetworkState() {
 }
 
 func (s *Service) ReceiveCoreMessage(msg Message) {
-	fmt.Printf("Receive Core MESSAGE %v\n", msg)
 	if msg == nil {
 		s.logger.Debug("Received nil message from core service")
 		return
 	}
-
+	// todo ed add check for s.host not nil since this may be called without network setup
 	s.logger.Debug(
 		"Broadcasting message from core service",
 		"host", s.host.id(),

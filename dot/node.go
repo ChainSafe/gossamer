@@ -295,15 +295,6 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 
 	networkSrvc := &network.Service{} // TODO: rpc service without network service
 
-	// Core Service
-
-	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc, networkMsgs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, coreSrvc)
-
 	// check if network service is enabled
 	if enabled := NetworkServiceEnabled(cfg); enabled {
 
@@ -320,6 +311,15 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
 
 	}
+
+	// Core Service
+
+	// create core service and append core service to node services
+	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc, networkMsgs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create core service: %s", err)
+	}
+	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
 	// System Service
 
