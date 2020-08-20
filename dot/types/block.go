@@ -65,7 +65,7 @@ func (b *Block) Encode() ([]byte, error) {
 	return append(enc, encBody...), nil
 }
 
-// MustEncode verifies that block is encoded
+// MustEncode returns the SCALE encoded block and panics if it fails to encode
 func (b *Block) MustEncode() []byte {
 	enc, err := b.Encode()
 	if err != nil {
