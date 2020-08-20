@@ -40,7 +40,8 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		MsgSend:         msgSend,
+		// todo ed channel refactor replace channel with interface
+		//MsgSend:         msgSend,
 		Keystore:        keystore.NewKeystore(),
 		NewBlocks:       newBlocks,
 		IsBlockProducer: false,

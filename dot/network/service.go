@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -138,8 +139,9 @@ func (s *Service) Start() error {
 	// update network state
 	go s.updateNetworkState()
 
-	// receive messages from core service
-	go s.receiveCoreMessages()
+	//// receive messages from core service
+	// todo ed channel refactor
+	//go s.receiveCoreMessages()
 
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
@@ -212,29 +214,48 @@ func (s *Service) updateNetworkState() {
 	}
 }
 
-// receiveCoreMessages broadcasts messages from the core service
-func (s *Service) receiveCoreMessages() {
-	for {
-		select {
-		case msg, ok := <-s.msgRec:
-			if !ok || msg == nil {
-				s.logger.Debug("Received nil message from core service")
-				continue
-			}
-
-			s.logger.Debug(
-				"Broadcasting message from core service",
-				"host", s.host.id(),
-				"type", msg.Type(),
-			)
-
-			// broadcast message to connected peers
-			s.host.broadcast(msg)
-		case <-s.ctx.Done():
-			return
-		}
+func (s *Service) ReceiveCoreMessage(msg Message) {
+	fmt.Printf("Receive Core MESSAGE %v\n", msg)
+	if msg == nil {
+		s.logger.Debug("Received nil message from core service")
+		return
 	}
+
+	s.logger.Debug(
+		"Broadcasting message from core service",
+		"host", s.host.id(),
+		"type", msg.Type(),
+	)
+
+	// broadcast message to connected peers
+	s.host.broadcast(msg)
 }
+
+// receiveCoreMessages broadcasts messages from the core service
+// todo ed channel refactor
+//func (s *Service) receiveCoreMessages() {
+//	for {
+//		select {
+//		case msg, ok := <-s.msgRec:
+//			fmt.Printf("IN receiveCoreMessages channel\n")
+//			if !ok || msg == nil {
+//				s.logger.Debug("Received nil message from core service")
+//				continue
+//			}
+//
+//			s.logger.Debug(
+//				"Broadcasting message from core service",
+//				"host", s.host.id(),
+//				"type", msg.Type(),
+//			)
+//
+//			// broadcast message to connected peers
+//			s.host.broadcast(msg)
+//		case <-s.ctx.Done():
+//			return
+//		}
+//	}
+//}
 
 func (s *Service) safeMsgSend(msg Message) error {
 	s.lock.Lock()

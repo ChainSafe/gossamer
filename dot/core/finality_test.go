@@ -50,7 +50,8 @@ func TestSendVoteMessages(t *testing.T) {
 	msgSend := make(chan network.Message, 2)
 
 	s := NewTestService(t, &Config{
-		MsgSend:        msgSend,
+		// todo ed channel refactor, replace channel with interface
+		//MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
 
@@ -75,7 +76,8 @@ func TestSendFinalizationMessages(t *testing.T) {
 	msgSend := make(chan network.Message, 2)
 
 	s := NewTestService(t, &Config{
-		MsgSend:        msgSend,
+		// todo ed channel refactor replace channel with interface
+		//MsgSend:        msgSend,
 		FinalityGadget: fg,
 	})
 

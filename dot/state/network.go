@@ -17,7 +17,6 @@
 package state
 
 import (
-	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -35,9 +34,6 @@ func NewNetworkState() *NetworkState {
 		NetworkState: common.NetworkState{},
 		Peers:        []common.PeerInfo{},
 	}
-}
-func (s *NetworkState)SendNetworkMessage(msg string) {
-	fmt.Printf("SEND MESSAGE %v\n", msg)
 }
 
 // GetHealth retrieves network health from the database

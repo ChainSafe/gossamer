@@ -69,8 +69,8 @@ type Service struct {
 
 	// Channels for inter-process communication
 	msgRec  <-chan network.Message // receive messages from network service
-	// todo channel
-	msgSend chan<- network.Message // send messages to network service
+	// todo ed channel refactor
+	//msgSend chan<- network.Message // send messages to network service
 	blkRec  <-chan types.Block     // receive blocks from BABE session
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
@@ -100,7 +100,9 @@ type Config struct {
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
 	MsgRec  <-chan network.Message
-	MsgSend chan<- network.Message
+
+	// todo ed channel refactor
+	//MsgSend chan<- network.Message
 	MessageSender network.NetworkMessageSender
 }
 
@@ -161,7 +163,8 @@ func NewService(cfg *Config) (*Service, error) {
 		codeHash:                codeHash,
 		keys:                    cfg.Keystore,
 		msgRec:                  cfg.MsgRec,
-		msgSend:                 cfg.MsgSend,
+// todo ed channel refactor
+		//msgSend:                 cfg.MsgSend,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
@@ -226,9 +229,10 @@ func (s *Service) Stop() error {
 	close(s.blockAddCh)
 
 	// close channel to network service
-	if s.msgSend != nil {
-		close(s.msgSend)
-	}
+	// todo ed channel refactor
+	//if s.msgSend != nil {
+	//	close(s.msgSend)
+	//}
 
 	return nil
 }
@@ -242,19 +246,20 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 }
 
 func (s *Service) safeMsgSend(msg network.Message) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	if s.ctx.Err() != nil {
-		// context was canceled
-		return
-	}
-
-	s.msgSend <- msg
+	// todo ed channel refactor
+	//s.lock.Lock()
+	//defer s.lock.Unlock()
+	//
+	//if s.ctx.Err() != nil {
+	//	// context was canceled
+	//	return
+	//}
+	//
+	//s.msgSend <- msg
+	s.messageSender.ReceiveCoreMessage(msg)
 }
 
 func (s *Service) handleBlocks(ctx context.Context) {
-	s.messageSender.SendNetworkMessage("hello")
 	for {
 		select {
 		case block := <-s.blockAddCh:

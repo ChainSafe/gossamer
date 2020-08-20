@@ -38,7 +38,26 @@ type NetworkState interface {
 }
 
 type NetworkMessageSender interface {
-	SendNetworkMessage(string)
+	ReceiveCoreMessage(Message)
+}
+
+// MockNetworkState for testing purposes
+type MockNetworkState struct {
+	Health       common.Health
+	NetworkState common.NetworkState
+	Peers        []common.PeerInfo
+}
+// SetHealth sets network health in the database
+func (ns *MockNetworkState) SetHealth(health common.Health) {
+	ns.Health = health
+}
+// SetMockNetworkState sets network state in the database
+func (ns *MockNetworkState) SetNetworkState(networkState common.NetworkState) {
+	ns.NetworkState = networkState
+}
+// SetPeers sets network state in the database
+func (ns *MockNetworkState) SetPeers(peers []common.PeerInfo) {
+	ns.Peers = peers
 }
 
 // Syncer is implemented by the syncing service
