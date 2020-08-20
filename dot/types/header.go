@@ -105,7 +105,7 @@ func (bh *Header) Encode() ([]byte, error) {
 	return scale.Encode(bh)
 }
 
-// MustEncode verifies that header is encoded
+// MustEncode returns the SCALE encoded header and panics if it fails to encode
 func (bh *Header) MustEncode() []byte {
 	enc, err := bh.Encode()
 	if err != nil {
