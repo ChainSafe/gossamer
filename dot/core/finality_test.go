@@ -46,11 +46,9 @@ func TestSendVoteMessages(t *testing.T) {
 	}
 
 	// create mock message handler service
-	mmh  := new(mockMessageHandler)
+	mmh := new(mockMessageHandler)
 
 	s := NewTestService(t, &Config{
-		// todo ed channel refactor, replace channel with interface
-		//MsgSend:        msgSend,
 		MessageHandler: mmh,
 		FinalityGadget: fg,
 	})
@@ -58,7 +56,7 @@ func TestSendVoteMessages(t *testing.T) {
 	go s.sendVoteMessages(context.Background())
 	fg.out <- &mockFinalityMessage{}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, testConsensusMessage, mmh.Message)
 }
@@ -71,11 +69,9 @@ func TestSendFinalizationMessages(t *testing.T) {
 	}
 
 	// create mock message handler service
-	mmh  := new(mockMessageHandler)
+	mmh := new(mockMessageHandler)
 
 	s := NewTestService(t, &Config{
-		// todo ed channel refactor replace channel with interface
-		//MsgSend:        msgSend,
 		FinalityGadget: fg,
 		MessageHandler: mmh,
 	})
@@ -83,7 +79,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 	go s.sendFinalizationMessages(context.Background())
 	fg.finalized <- &mockFinalityMessage{}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, testConsensusMessage, mmh.Message)
 }

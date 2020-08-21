@@ -74,16 +74,12 @@ func TestStartService(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// ed todo channel refactor, consider removing this
 func TestAnnounceBlock(t *testing.T) {
-	//msgSend := make(chan network.Message)
 	mmh := new(mockMessageHandler)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		NewBlocks: newBlocks,
-		// todo ed channel refactor replace channel with interface
-		//MsgSend:   msgSend,
+		NewBlocks:      newBlocks,
 		MessageHandler: mmh,
 	}
 
@@ -106,28 +102,17 @@ func TestAnnounceBlock(t *testing.T) {
 		Body: &types.Body{},
 	}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, network.BlockAnnounceMsgType, mmh.Message.Type())
-
-	//select {
-	//case msg := <-msgSend:
-	//	msgType := msg.Type()
-	//	require.Equal(t, network.BlockAnnounceMsgType, msgType)
-	//case <-time.After(testMessageTimeout):
-	//	t.Error("timeout waiting for message")
-	//}
 }
 
 func TestAnnounceBlockInterface(t *testing.T) {
-	//msgSend := make(chan network.Message)
 	mmh := new(mockMessageHandler)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		NewBlocks: newBlocks,
-		// todo ed channel refactor replace channel with interface
-		//MsgSend:   msgSend,
+		NewBlocks:      newBlocks,
 		MessageHandler: mmh,
 	}
 
@@ -150,7 +135,7 @@ func TestAnnounceBlockInterface(t *testing.T) {
 		Body: &types.Body{},
 	}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, network.BlockAnnounceMsgType, mmh.Message.Type())
 }

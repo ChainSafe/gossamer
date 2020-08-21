@@ -95,6 +95,7 @@ func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 type mockMessageHandler struct {
 	Message network.Message
 }
+
 func (mh *mockMessageHandler) ReceiveMessage(m network.Message) {
 	mh.Message = m
 }

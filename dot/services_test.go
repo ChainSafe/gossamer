@@ -79,8 +79,6 @@ func TestCreateCoreService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	// todo ed channel refacter
-	//coreMsgs := make(chan network.Message)
 	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
@@ -166,8 +164,6 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// todo ed channel refacter
-	//coreMsgs := make(chan network.Message)
 	networkMsgs := make(chan network.Message)
 
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, networkMsgs, nil)
@@ -199,8 +195,6 @@ func TestCreateRPCService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// todo ed channel refacter
-	//coreMsgs := make(chan network.Message)
 	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
@@ -321,8 +315,6 @@ func TestNewWebSocketServer(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// todo ed channel refacter
-	//coreMsgs := make(chan network.Message)
 	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
