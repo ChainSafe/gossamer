@@ -79,10 +79,12 @@ func TestCreateCoreService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreMsgs := make(chan network.Message)
+	// todo ed channel refacter
+	//coreMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -164,10 +166,11 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
+	// todo ed channel refacter
+	//coreMsgs := make(chan network.Message)
 	networkMsgs := make(chan network.Message)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, nil)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, networkMsgs, nil)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -196,17 +199,17 @@ func TestCreateRPCService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
+	// todo ed channel refacter
+	//coreMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewKeystore()
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
 	require.Nil(t, err)
-
-	networkSrvc := &network.Service{} // TODO: rpc service without network service
 
 	sysSrvc := createSystemService(&cfg.System)
 
@@ -318,17 +321,17 @@ func TestNewWebSocketServer(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
+	// todo ed channel refacter
+	//coreMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewKeystore()
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
 	require.Nil(t, err)
-
-	networkSrvc := &network.Service{}
 
 	sysSrvc := createSystemService(&cfg.System)
 

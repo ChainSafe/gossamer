@@ -121,12 +121,12 @@ func NewService(cfg *Config) (*Service, error) {
 		networkState:   cfg.NetworkState,
 		// todo ed channel interface
 		//msgRec:         cfg.MsgRec,
-		msgSend:        cfg.MsgSend,
-		noBootstrap:    cfg.NoBootstrap,
-		noMDNS:         cfg.NoMDNS,
-		noStatus:       cfg.NoStatus,
-		syncer:         cfg.Syncer,
-		errCh:          cfg.ErrChan,
+		msgSend:     cfg.MsgSend,
+		noBootstrap: cfg.NoBootstrap,
+		noMDNS:      cfg.NoMDNS,
+		noStatus:    cfg.NoStatus,
+		syncer:      cfg.Syncer,
+		errCh:       cfg.ErrChan,
 	}
 
 	return network, err
@@ -216,7 +216,8 @@ func (s *Service) updateNetworkState() {
 	}
 }
 
-func (s *Service) ReceiveCoreMessage(msg Message) {
+// ReceiveMessage implementation of interface to handle receiving messages
+func (s *Service) ReceiveMessage(msg Message) {
 	if msg == nil {
 		s.logger.Debug("Received nil message from core service")
 		return
@@ -267,7 +268,6 @@ func (s *Service) safeMsgSend(msg Message) error {
 	s.msgSend <- msg
 	return nil
 }
-
 
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {

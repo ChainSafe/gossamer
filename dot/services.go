@@ -167,7 +167,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 
 // createCoreService creates the core service from the provided core configuration
 //func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.NetworkMessageSender, networkMsgs chan network.Message) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.MessageReceiver, networkMsgs chan network.Message) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Authority,
@@ -199,10 +199,10 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		MsgRec:                  networkMsgs, // message channel from network service to core service
 		// todo ed channel interface
 		//MsgSend:                 coreMsgs,    // message channel from core service to network service
-		IsBlockProducer:         cfg.Core.BabeAuthority,
-		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
-		Verifier:                verifier,
-		MessageSender: msgSender,
+		IsBlockProducer:     cfg.Core.BabeAuthority,
+		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
+		Verifier:            verifier,
+		MessageSender:       msgSender,
 	}
 
 	// create new core service
@@ -248,8 +248,8 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, networkMsgs cha
 		NoMDNS:       cfg.Network.NoMDNS,
 		// todo ed channel interface
 		//MsgRec:       coreMsgs,    // message channel from core service to network service
-		MsgSend:      networkMsgs, // message channel from network service to core service
-		Syncer:       syncer,
+		MsgSend: networkMsgs, // message channel from network service to core service
+		Syncer:  syncer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

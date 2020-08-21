@@ -17,7 +17,6 @@
 package core
 
 import (
-	"github.com/ChainSafe/gossamer/lib/utils"
 	"math/big"
 	"testing"
 	"time"
@@ -30,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -225,23 +225,23 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	////////////////////////
 	// todo ed channel refactor, consider if this is the best way to handle message sender
-if cfg.MessageSender == nil {
-	basePath := utils.NewTestBasePath(t, "node")
+	if cfg.MessageSender == nil {
+		basePath := utils.NewTestBasePath(t, "node")
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
+		// removes all data directories created within test directory
+		defer utils.RemoveTestDir(t)
 
-	config := &network.Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		BlockState: stateSrvc.Block,
+		config := &network.Config{
+			BasePath:    basePath,
+			Port:        7001,
+			RandSeed:    1,
+			NoBootstrap: true,
+			NoMDNS:      true,
+			BlockState:  stateSrvc.Block,
+		}
+		cfg.MessageSender = createTestService(t, config)
+		require.NoError(t, err)
 	}
-	cfg.MessageSender = createTestService(t, config)
-	require.NoError(t, err)
-}
 	//////////////////
 	s, err := NewService(cfg)
 	require.Nil(t, err)
@@ -288,7 +288,8 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 	}
 	t.Cleanup(func() {
 		utils.RemoveTestDir(t)
-		srvc.Stop()
+		err := srvc.Stop()
+		require.NoError(t, err)
 	})
 	return srvc
 }

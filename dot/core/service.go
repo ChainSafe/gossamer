@@ -68,17 +68,17 @@ type Service struct {
 	keys *keystore.Keystore
 
 	// Channels for inter-process communication
-	msgRec  <-chan network.Message // receive messages from network service
+	msgRec <-chan network.Message // receive messages from network service
 	// todo ed channel refactor
 	//msgSend chan<- network.Message // send messages to network service
-	blkRec  <-chan types.Block     // receive blocks from BABE session
+	blkRec <-chan types.Block // receive blocks from BABE session
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
 	blockAddChID byte
 
 	// State variables
-	lock *sync.Mutex // channel lock
-	messageSender network.NetworkMessageSender
+	lock          *sync.Mutex // channel lock
+	messageSender network.MessageReceiver
 }
 
 // Config holds the configuration for the core Service.
@@ -99,11 +99,11 @@ type Config struct {
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
-	MsgRec  <-chan network.Message
+	MsgRec <-chan network.Message
 
 	// todo ed channel refactor
 	//MsgSend chan<- network.Message
-	MessageSender network.NetworkMessageSender
+	MessageSender network.MessageReceiver
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -156,14 +156,14 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		logger:                  logger,
-		ctx:                     ctx,
-		cancel:                  cancel,
-		rt:                      cfg.Runtime,
-		codeHash:                codeHash,
-		keys:                    cfg.Keystore,
-		msgRec:                  cfg.MsgRec,
-// todo ed channel refactor
+		logger:   logger,
+		ctx:      ctx,
+		cancel:   cancel,
+		rt:       cfg.Runtime,
+		codeHash: codeHash,
+		keys:     cfg.Keystore,
+		msgRec:   cfg.MsgRec,
+		// todo ed channel refactor
 		//msgSend:                 cfg.MsgSend,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
@@ -178,7 +178,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
-		messageSender: cfg.MessageSender,
+		messageSender:           cfg.MessageSender,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -256,7 +256,7 @@ func (s *Service) safeMsgSend(msg network.Message) {
 	//}
 	//
 	//s.msgSend <- msg
-	s.messageSender.ReceiveCoreMessage(msg)
+	s.messageSender.ReceiveMessage(msg)
 }
 
 func (s *Service) handleBlocks(ctx context.Context) {
