@@ -92,6 +92,13 @@ func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }
 
+type mockMessageHandler struct {
+	Message network.Message
+}
+func (mh *mockMessageHandler) ReceiveMessage(m network.Message) {
+	mh.Message = m
+}
+
 // mockFinalityGadget implements the FinalityGadget interface
 type mockFinalityGadget struct {
 	in        chan FinalityMessage
@@ -225,7 +232,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	////////////////////////
 	// todo ed channel refactor, consider if this is the best way to handle message sender
-	if cfg.MessageSender == nil {
+	if cfg.MessageHandler == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
 		// removes all data directories created within test directory
@@ -239,7 +246,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoMDNS:      true,
 			BlockState:  stateSrvc.Block,
 		}
-		cfg.MessageSender = createTestService(t, config)
+		cfg.MessageHandler = createTestService(t, config)
 		require.NoError(t, err)
 	}
 	//////////////////

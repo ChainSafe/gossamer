@@ -78,7 +78,7 @@ type Service struct {
 
 	// State variables
 	lock          *sync.Mutex // channel lock
-	messageSender network.MessageReceiver
+	messageSender network.MessageHandler
 }
 
 // Config holds the configuration for the core Service.
@@ -103,7 +103,7 @@ type Config struct {
 
 	// todo ed channel refactor
 	//MsgSend chan<- network.Message
-	MessageSender network.MessageReceiver
+	MessageHandler network.MessageHandler
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -178,7 +178,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
-		messageSender:           cfg.MessageSender,
+		messageSender:           cfg.MessageHandler,
 	}
 
 	if cfg.NewBlocks != nil {

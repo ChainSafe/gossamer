@@ -76,51 +76,15 @@ func TestStartService(t *testing.T) {
 
 // ed todo channel refactor, consider removing this
 func TestAnnounceBlock(t *testing.T) {
-	msgSend := make(chan network.Message)
-	newBlocks := make(chan types.Block)
-
-	cfg := &Config{
-		NewBlocks: newBlocks,
-		// todo ed channel refactor replace channel with interface
-		//MsgSend:   msgSend,
-	}
-
-	s := NewTestService(t, cfg)
-	err := s.Start()
-	require.Nil(t, err)
-	defer s.Stop()
-
-	parent := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}
-
-	// simulate block sent from BABE session
-	newBlocks <- types.Block{
-		Header: &types.Header{
-			ParentHash: parent.Hash(),
-			Number:     big.NewInt(1),
-		},
-		Body: &types.Body{},
-	}
-
-	select {
-	case msg := <-msgSend:
-		msgType := msg.Type()
-		require.Equal(t, network.BlockAnnounceMsgType, msgType)
-	case <-time.After(testMessageTimeout):
-		t.Error("timeout waiting for message")
-	}
-}
-
-func TestAnnounceBlockInterface(t *testing.T) {
 	//msgSend := make(chan network.Message)
+	mmh := new(mockMessageHandler)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
 		NewBlocks: newBlocks,
 		// todo ed channel refactor replace channel with interface
 		//MsgSend:   msgSend,
+		MessageHandler: mmh,
 	}
 
 	s := NewTestService(t, cfg)
@@ -142,7 +106,10 @@ func TestAnnounceBlockInterface(t *testing.T) {
 		Body: &types.Body{},
 	}
 
-	// todo ed figure out how to confirm msg send without channel
+	time.Sleep(time.Millisecond)
+
+	require.Equal(t, network.BlockAnnounceMsgType, mmh.Message.Type())
+
 	//select {
 	//case msg := <-msgSend:
 	//	msgType := msg.Type()
@@ -150,6 +117,42 @@ func TestAnnounceBlockInterface(t *testing.T) {
 	//case <-time.After(testMessageTimeout):
 	//	t.Error("timeout waiting for message")
 	//}
+}
+
+func TestAnnounceBlockInterface(t *testing.T) {
+	//msgSend := make(chan network.Message)
+	mmh := new(mockMessageHandler)
+	newBlocks := make(chan types.Block)
+
+	cfg := &Config{
+		NewBlocks: newBlocks,
+		// todo ed channel refactor replace channel with interface
+		//MsgSend:   msgSend,
+		MessageHandler: mmh,
+	}
+
+	s := NewTestService(t, cfg)
+	err := s.Start()
+	require.Nil(t, err)
+	defer s.Stop()
+
+	parent := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	// simulate block sent from BABE session
+	newBlocks <- types.Block{
+		Header: &types.Header{
+			ParentHash: parent.Hash(),
+			Number:     big.NewInt(1),
+		},
+		Body: &types.Body{},
+	}
+
+	time.Sleep(time.Millisecond)
+
+	require.Equal(t, network.BlockAnnounceMsgType, mmh.Message.Type())
 }
 
 func TestHandleRuntimeChanges(t *testing.T) {

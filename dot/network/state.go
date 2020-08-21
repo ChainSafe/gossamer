@@ -37,8 +37,8 @@ type NetworkState interface {
 	SetPeers([]common.PeerInfo)
 }
 
-// MessageReceiver interface for handling message passing
-type MessageReceiver interface {
+// MessageHandler interface for handling message passing
+type MessageHandler interface {
 	ReceiveMessage(Message)
 }
 

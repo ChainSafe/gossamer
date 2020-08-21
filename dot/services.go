@@ -167,7 +167,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 
 // createCoreService creates the core service from the provided core configuration
 //func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.MessageReceiver, networkMsgs chan network.Message) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.MessageHandler, networkMsgs chan network.Message) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Authority,
@@ -202,7 +202,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		IsBlockProducer:     cfg.Core.BabeAuthority,
 		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
 		Verifier:            verifier,
-		MessageSender:       msgSender,
+		MessageHandler:      msgSender,
 	}
 
 	// create new core service

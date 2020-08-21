@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -218,6 +219,7 @@ func (s *Service) updateNetworkState() {
 
 // ReceiveMessage implementation of interface to handle receiving messages
 func (s *Service) ReceiveMessage(msg Message) {
+	fmt.Printf("Receive Message %v\n", msg)
 	if msg == nil {
 		s.logger.Debug("Received nil message from core service")
 		return
