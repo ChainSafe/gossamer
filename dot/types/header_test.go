@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"log"
 	"math/big"
 	"testing"
 
@@ -39,4 +40,64 @@ func TestDecodeHeader(t *testing.T) {
 	require.NoError(t, err)
 	dec.Hash()
 	require.Equal(t, header, dec)
+}
+
+func TestMustEncodeHeader(t *testing.T) {
+	//correct
+	bh1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	require.NoError(t, err)
+	enc, err := bh1.Encode()
+	require.NoError(t, err)
+
+	//correct2
+	bh2, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
+	require.NoError(t, err)
+	enc2, err := bh2.Encode()
+	require.NoError(t, err)
+
+	//panic
+	bh3, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
+	require.NoError(t, err)
+	enc3, err := bh3.Encode()
+	require.NoError(t, err)
+
+	tests := []struct {
+		name string
+		take *Header
+		want []byte
+	}{
+		{
+			name: "correct",
+			take: bh1,
+			want: enc,
+		},
+		{
+			name: "correct2",
+			take: bh2,
+			want: enc2,
+		},
+		{
+			name: "non-correct",
+			take: bh2,
+			want: enc,
+		},
+		{
+			name: "panic",
+			take: bh3,
+			want: enc3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := take.MustEncode(); got != tt.want {
+				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("it's panic!!!:", err)
+		}
+	}()
 }
