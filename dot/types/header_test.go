@@ -77,7 +77,7 @@ func TestMustEncodeHeader(t *testing.T) {
 			want: enc2,
 		},
 		{
-			name: "non-correct",
+			name: "not correct",
 			take: bh2,
 			want: enc,
 		},
