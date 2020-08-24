@@ -127,60 +127,61 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 func TestMustEncodeBlock(t *testing.T) {
 	//correct
-	b1, err := NewBlock(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	b1, err  := NewBlock(header, NewBody([]byte{}))
 	require.NoError(t, err)
 	enc, err := b1.Encode()
-	require.NoError(t, err)
-
+	  require.NoError(t, err)
+	
 	//correct2
-	b2, err := NewBlock(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
+	b2, err := NewBlock(header, NewBody([]byte{})),[]byte{34,56,45,78,90,107})
 	require.NoError(t, err)
-	enc2, err := b2.Encode()
-	require.NoError(t, err)
-
+	enc, err := b2.Encode()
+	  require.NoError(t, err)
+	
+	
 	//panic
-	bh3, err := NewBlock(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
+	b3, err := NewBlock(header, NewBody([]byte{})), []byte{34,56,45,78,90,107})
 	require.NoError(t, err)
-	enc3, err := b3.Encode()
-	require.NoError(t, err)
-
+	enc, err := b3.Encode()
+	  require.NoError(t, err)
+	
 	tests := []struct {
-		name string
-		take *Block
-		want []byte
+	  name string
+	  take *Block
+	  want []byte
 	}{
-		{
-			name: "correct",
-			take: b1,
-			want: enc,
-		},
-		{
-			name: "correct2",
-			take: b2,
-			want: enc2,
-		},
-		{
-			name: "not correct",
-			take: b2,
-			want: enc,
-		},
-		{
-			name: "panic",
-			take: b3,
-			want: enc3,
-		},
+	  {
+	  name: "correct",
+	  take: b1,
+	  want: enc,
+	  },
+	  {
+	  name: "correct2",
+	  take: b2,
+	  want: enc2,
+	  },
+	  {
+	  name: "not correct",
+	  take: b2,
+	  want: enc,
+	  },
+	  {
+	  name: "panic",
+	  take: b3,
+	  want: enc3,
+	  },
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := take.MustEncode(); got != tt.want {
-				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
-			}
-		})
+	  t.Run(tt.name, func(t *testing.T) {
+	  if got := take.MustEncode(); got != tt.want {
+		t.Errorf("MustEncode() = %v, want %v", got, tt.want)
+	  }
+	  })
 	}
-
+	
 	defer func() {
-		if err := recover(); err != nil {
-			log.Println("it's panic!!!:", err)
-		}
+	  if err := recover(); err != nil {
+	  log.Println("it's panic!!!:", err)
+	  }
 	}()
-}
+	}
