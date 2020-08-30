@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-	"log"
 	"math/big"
 	"reflect"
 	"testing"
@@ -125,63 +124,3 @@ func TestDeepCopyBlock(t *testing.T) {
 	bc.Header.ParentHash = common.Hash{}
 	require.NotEqual(t, block.Header.ParentHash, bc.Header.ParentHash)
 }
-func TestMustEncodeBlock(t *testing.T) {
-	//correct
-	b1, err  := NewBlock(header, NewBody([]byte{}))
-	require.NoError(t, err)
-	enc, err := b1.Encode()
-	  require.NoError(t, err)
-	
-	//correct2
-	b2, err := NewBlock(header, NewBody([]byte{})),[]byte{34,56,45,78,90,107})
-	require.NoError(t, err)
-	enc, err := b2.Encode()
-	  require.NoError(t, err)
-	
-	
-	//panic
-	b3, err := NewBlock(header, NewBody([]byte{})), []byte{34,56,45,78,90,107})
-	require.NoError(t, err)
-	enc, err := b3.Encode()
-	  require.NoError(t, err)
-	
-	tests := []struct {
-	  name string
-	  take *Block
-	  want []byte
-	}{
-	  {
-	  name: "correct",
-	  take: b1,
-	  want: enc,
-	  },
-	  {
-	  name: "correct2",
-	  take: b2,
-	  want: enc2,
-	  },
-	  {
-	  name: "not correct",
-	  take: b2,
-	  want: enc,
-	  },
-	  {
-	  name: "panic",
-	  take: b3,
-	  want: enc3,
-	  },
-	}
-	for _, tt := range tests {
-	  t.Run(tt.name, func(t *testing.T) {
-	  if got := take.MustEncode(); got != tt.want {
-		t.Errorf("MustEncode() = %v, want %v", got, tt.want)
-	  }
-	  })
-	}
-	
-	defer func() {
-	  if err := recover(); err != nil {
-	  log.Println("it's panic!!!:", err)
-	  }
-	}()
-	}
