@@ -77,11 +77,6 @@ func TestMustEncodeHeader(t *testing.T) {
 			want: enc2,
 		},
 		{
-			name: "not correct",
-			take: bh2,
-			want: enc,
-		},
-		{
 			name: "panic",
 			take: bh3,
 			want: enc3,
@@ -89,7 +84,7 @@ func TestMustEncodeHeader(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := take.MustEncode(); got != tt.want {
+			if got := tt.take.MustEncode(); !bytes.Equal(got, tt.want) {
 				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
 			}
 		})
