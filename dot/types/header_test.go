@@ -56,10 +56,13 @@ func TestMustEncodeHeader(t *testing.T) {
 	require.NoError(t, err)
 
 	//panic
-	bh3, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
-	require.NoError(t, err)
-	enc3, err := bh3.Encode()
-	require.NoError(t, err)
+	bh3 := &Header{
+		ParentHash: common.Hash{}, 
+		Number: nil, 
+		StateRoot: common.Hash{}, 
+		ExtrinsicsRoot: common.Hash{}, 
+		Digest: [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}},
+	}
 
 	tests := []struct {
 		name string
@@ -79,15 +82,7 @@ func TestMustEncodeHeader(t *testing.T) {
 		{
 			name: "panic",
 			take: bh3,
-			want: enc3,
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.take.MustEncode(); !bytes.Equal(got, tt.want) {
-				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 
 	defer func() {
@@ -95,4 +90,12 @@ func TestMustEncodeHeader(t *testing.T) {
 			log.Println("it's panic!!!:", err)
 		}
 	}()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.take.MustEncode(); !bytes.Equal(got, tt.want) {
+				t.Errorf("MustEncode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
