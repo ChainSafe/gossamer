@@ -160,12 +160,13 @@ func (s *Service) Stop() error {
 }
 
 // Authorities returns the current grandpa authorities
-func (s *Service) Authorities() []*types.GrandpaAuthorityData {
-	ad := make([]*types.GrandpaAuthorityData, len(s.state.voters))
+// todo ed authorities
+func (s *Service) Authorities() []*types.Authority {
+	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
-		ad[i] = &types.GrandpaAuthorityData{
+		ad[i] = &types.Authority{
 			Key: v.key,
-			ID:  v.id,
+			Weight:  v.id,
 		}
 	}
 
@@ -173,12 +174,17 @@ func (s *Service) Authorities() []*types.GrandpaAuthorityData {
 }
 
 // UpdateAuthorities schedules an update to the grandpa voter set and increments the setID at the end of the current round
-func (s *Service) UpdateAuthorities(ad []*types.GrandpaAuthorityData) {
+// todo ed authorities
+func (s *Service) UpdateAuthorities(ad []*types.Authority) {
 	v := make([]*Voter, len(ad))
 	for i, a := range ad {
+		ed25519PK, err := ed25519.NewPublicKey(a.Key.Encode())
+		if err != nil {
+			// todo determine how to handle this error
+		}
 		v[i] = &Voter{
-			key: a.Key,
-			id:  a.ID,
+			key: ed25519PK,
+			id:  a.Weight,
 		}
 	}
 

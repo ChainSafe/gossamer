@@ -60,7 +60,8 @@ type DigestHandler struct {
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
-	grandpaAuths           []*types.GrandpaAuthorityData // saved in case of pause
+	// todo ed authorities
+	grandpaAuths           []*types.Authority // saved in case of pause
 }
 
 type babeChange struct {
@@ -70,7 +71,8 @@ type babeChange struct {
 }
 
 type grandpaChange struct {
-	auths   []*types.GrandpaAuthorityData
+	// todo ed authorities
+	auths   []*types.Authority
 	atBlock *big.Int
 }
 
@@ -298,7 +300,8 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
 		// save authority data for Resume
 		h.grandpaAuths = h.grandpa.Authorities()
-		h.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{})
+		// todo ed authorities
+		h.grandpa.UpdateAuthorities([]*types.Authority{})
 		h.grandpaPause = nil
 	}
 
@@ -431,10 +434,13 @@ func (h *DigestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
 		}
 	} else {
 		curr := h.grandpa.Authorities()
-		next := []*types.GrandpaAuthorityData{}
+		// todo ed authorities
+		next := []*types.Authority{}
 
 		for _, auth := range curr {
-			if auth.ID != od.ID {
+			// todo ed authorities
+			// todo figure out how to deal with ID (doesn't seem to be weight)
+			if auth.Weight != od.ID {
 				next = append(next, auth)
 			}
 		}

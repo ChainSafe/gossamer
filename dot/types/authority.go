@@ -22,9 +22,9 @@ type Authority struct {
 	Weight uint64
 }
 
-func NewAuthority(pub crypto.PublicKey, weight uint64) *Authority {
-	return &Authority{
-		Key:     pub,
-		Weight: weight,
-	}
-}
+//func NewAuthority(pub crypto.PublicKey, weight uint64) *Authority {
+//	return &Authority{
+//		Key:     pub,
+//		Weight: weight,
+//	}
+//}

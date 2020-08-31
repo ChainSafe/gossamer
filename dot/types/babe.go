@@ -72,7 +72,7 @@ func (a *BABEAuthorityDataRaw) Decode(r io.Reader) (*BABEAuthorityDataRaw, error
 // FromRaw sets the BABEAuthorityData given BABEAuthorityDataRaw. It converts the byte representations of
 // the authority public keys into a sr25519.PublicKey.
 // todo ed authorities
-func (a *Authority) FromRaw(raw *BABEAuthorityDataRaw) error {
+func (a *Authority) FromRawSr25519(raw *BABEAuthorityDataRaw) error {
 	id, err := sr25519.NewPublicKey(raw.ID[:])
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func BABEAuthorityDataRawToAuthorityData(adr []*BABEAuthorityDataRaw) ([]*Author
 	for i, r := range adr {
 		// todo ed authorities
 		ad[i] = new(Authority)
-		err := ad[i].FromRaw(r)
+		err := ad[i].FromRawSr25519(r)
 		if err != nil {
 			return nil, err
 		}

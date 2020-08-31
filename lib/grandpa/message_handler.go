@@ -143,7 +143,8 @@ func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, ro
 	// verify authority in justification set
 	authFound := false
 	for _, auth := range h.grandpa.Authorities() {
-		if reflect.DeepEqual(auth.Key.AsBytes(), just.AuthorityID) {
+		// todo ed is Key.Encode same as Key.AsBytes?
+		if reflect.DeepEqual(auth.Key.Encode(), just.AuthorityID) {
 			authFound = true
 			break
 		}

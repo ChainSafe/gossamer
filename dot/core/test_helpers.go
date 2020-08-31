@@ -100,7 +100,8 @@ type mockFinalityGadget struct {
 	in        chan FinalityMessage
 	out       chan FinalityMessage
 	finalized chan FinalityMessage
-	auths     []*types.GrandpaAuthorityData
+	// todo ed authorities
+	auths     []*types.Authority
 }
 
 // Start mocks starting
@@ -133,11 +134,13 @@ func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (Finality
 	return &mockFinalityMessage{}, nil
 }
 
-func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.GrandpaAuthorityData) {
+// todo ed authorities
+func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
 	fg.auths = ad
 }
 
-func (fg *mockFinalityGadget) Authorities() []*types.GrandpaAuthorityData {
+// todo ed authorities
+func (fg *mockFinalityGadget) Authorities() []*types.Authority {
 	return fg.auths
 }
 

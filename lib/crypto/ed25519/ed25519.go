@@ -22,8 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
@@ -56,15 +54,15 @@ type PublicKey ed25519.PublicKey
 type PublicKeyBytes [PublicKeyLength]byte
 
 // Encode returns the SCALE encoding of PublicKeyBytes
-func (b PublicKeyBytes) Encode() ([]byte, error) {
-	return b[:], nil
-}
-
-// Decode returns the SCALE decoded PublicKeyBytes
-func (b PublicKeyBytes) Decode(r io.Reader) ([PublicKeyLength]byte, error) {
-	_, err := r.Read(b[:])
-	return b, err
-}
+//func (b PublicKeyBytes) Encode() ([]byte, error) {
+//	return b[:], nil
+//}
+//
+//// Decode returns the SCALE decoded PublicKeyBytes
+//func (b PublicKeyBytes) Decode(r io.Reader) ([PublicKeyLength]byte, error) {
+//	_, err := r.Read(b[:])
+//	return b, err
+//}
 
 // SignatureBytes is a ed25519 signature
 type SignatureBytes [SignatureLength]byte

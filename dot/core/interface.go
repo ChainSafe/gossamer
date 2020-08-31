@@ -84,8 +84,9 @@ type FinalityGadget interface {
 	GetVoteOutChannel() <-chan FinalityMessage
 	GetVoteInChannel() chan<- FinalityMessage
 	GetFinalizedChannel() <-chan FinalityMessage
-	UpdateAuthorities(ad []*types.GrandpaAuthorityData)
-	Authorities() []*types.GrandpaAuthorityData
+	// todo ed authorities
+	UpdateAuthorities(ad []*types.Authority)
+	Authorities() []*types.Authority
 }
 
 // FinalityMessage is the interface a finality message must implement

@@ -32,48 +32,53 @@ func (a *GrandpaAuthorityDataRaw) Decode(r io.Reader) (*GrandpaAuthorityDataRaw,
 	return a, nil
 }
 
+// todo ed authorities
 // GrandpaAuthorityData represents a GRANDPA authority
-type GrandpaAuthorityData struct {
-	Key *ed25519.PublicKey
-	ID  uint64
-}
+//type GrandpaAuthorityData struct {
+//	Key *ed25519.PublicKey
+//	ID  uint64
+//}
 
-// NewGrandpaAuthorityData returns AuthorityData with the given key and ID
-func NewGrandpaAuthorityData(pub *ed25519.PublicKey, id uint64) *GrandpaAuthorityData {
-	return &GrandpaAuthorityData{
-		Key: pub,
-		ID:  id,
-	}
-}
-
-// ToRaw returns the GrandpaAuthorityData as GrandpaAuthorityDataRaw. It encodes the authority public keys.
-func (a *GrandpaAuthorityData) ToRaw() *GrandpaAuthorityDataRaw {
-	raw := new(GrandpaAuthorityDataRaw)
-
-	raw.Key = a.Key.AsBytes()
-	raw.ID = a.ID
-	return raw
-}
-
+//// NewGrandpaAuthorityData returns AuthorityData with the given key and ID
+//func NewGrandpaAuthorityData(pub *ed25519.PublicKey, id uint64) *GrandpaAuthorityData {
+//	return &GrandpaAuthorityData{
+//		Key: pub,
+//		ID:  id,
+//	}
+//}
+//
+//// ToRaw returns the GrandpaAuthorityData as GrandpaAuthorityDataRaw. It encodes the authority public keys.
+//func (a *GrandpaAuthorityData) ToRaw() *GrandpaAuthorityDataRaw {
+//	raw := new(GrandpaAuthorityDataRaw)
+//
+//	raw.Key = a.Key.AsBytes()
+//	raw.ID = a.ID
+//	return raw
+//}
+//
 // FromRaw sets the GrandpaAuthorityData given GrandpaAuthorityDataRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
-func (a *GrandpaAuthorityData) FromRaw(raw *GrandpaAuthorityDataRaw) error {
+// todo ed authorities
+func (a *Authority) FromRawEd25519(raw *GrandpaAuthorityDataRaw) error {
 	key, err := ed25519.NewPublicKey(raw.Key[:])
 	if err != nil {
 		return err
 	}
 
 	a.Key = key
-	a.ID = raw.ID
+	// todo ed authorities
+	a.Weight = raw.ID
 	return nil
 }
 
 // GrandpaAuthorityDataRawToAuthorityData turns a slice of AuthorityDataRaw into a slice of AuthorityData
-func GrandpaAuthorityDataRawToAuthorityData(adr []*GrandpaAuthorityDataRaw) ([]*GrandpaAuthorityData, error) {
-	ad := make([]*GrandpaAuthorityData, len(adr))
+// todo ed authorities
+// todo ed figure out if this is repeated by authorities
+func GrandpaAuthorityDataRawToAuthorityData(adr []*GrandpaAuthorityDataRaw) ([]*Authority, error) {
+	ad := make([]*Authority, len(adr))
 	for i, r := range adr {
-		ad[i] = new(GrandpaAuthorityData)
-		err := ad[i].FromRaw(r)
+		ad[i] = new(Authority)
+		err := ad[i].FromRawEd25519(r)
 		if err != nil {
 			return nil, err
 		}
