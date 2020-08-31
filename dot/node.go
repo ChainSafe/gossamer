@@ -105,7 +105,7 @@ func InitNode(cfg *Config) error {
 
 		genEpochInfo = &types.EpochInfo{
 			Duration:   babeCfg.EpochLength,
-			FirstBlock: 0,
+			FirstBlock: 1,
 			Randomness: babeCfg.Randomness,
 		}
 

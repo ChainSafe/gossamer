@@ -81,7 +81,7 @@ type EpochState struct {
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
 func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*EpochState, error) {
 	epochDB := newEpochDB(db)
-	err := epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
+	err := epochDB.Put(currentEpochKey, []byte{1, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*Epoc
 		db: epochDB,
 	}
 
-	err = s.SetEpochInfo(0, info)
+	err = s.SetEpochInfo(1, info)
 	if err != nil {
 		return nil, err
 	}
@@ -159,13 +159,23 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 		return 0, nil
 	}
 
+	if epoch == 0 {
+		// epoch 0 doesn't exist, use 0 for latest epoch
+		epoch = curr
+	}
+
+	if epoch == 1 {
+		return 1, nil
+	}
+
 	if epoch > curr {
 		return 0, errors.New("epoch in future")
 	}
 
 	slot := uint64(0)
 
-	for i := uint64(0); i < epoch; i++ {
+	// start at epoch 1
+	for i := uint64(1); i < epoch; i++ {
 		info, err := s.GetEpochInfo(i)
 		if err != nil {
 			return 0, err
@@ -174,5 +184,5 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 		slot += info.Duration
 	}
 
-	return slot, nil
+	return slot + 1, nil
 }

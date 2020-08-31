@@ -354,28 +354,27 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
-	// TODO: this calculates the epoch as starting when the node starts up, when the node may actually start up at any time.
-	// need to calculate place in current epoch given historical epoch lengths
-
 	currEpoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		b.logger.Error("failed to get current epoch", "error", err)
 		return
 	}
 
-	epochStart, err := b.epochState.GetStartSlotForEpoch(currEpoch)
+	// get start slot for current epoch
+	epochStart, err := b.epochState.GetStartSlotForEpoch(0)
 	if err != nil {
 		b.logger.Error("failed to get start slot for current epoch", "epoch", currEpoch, "error", err)
 		return
 	}
 
 	intoEpoch := startSlot - epochStart
+	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
 
-	nextStartSlot := startSlot + b.config.EpochLength
-	epochDone := time.After(time.Duration(b.config.EpochLength-intoEpoch) * b.slotDuration())
+	// starting slot for next epoch
+	nextStartSlot := startSlot + b.config.EpochLength - intoEpoch
 
-	slotDone := make([]<-chan time.Time, b.config.EpochLength)
-	for i := 0; i < int(b.config.EpochLength); i++ {
+	slotDone := make([]<-chan time.Time, b.config.EpochLength-intoEpoch)
+	for i := 0; i < int(b.config.EpochLength-intoEpoch); i++ {
 		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
 	}
 
@@ -383,7 +382,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	slotNum := startSlot
 
 	for {
-		if i >= int(b.config.EpochLength) {
+		if i >= int(b.config.EpochLength-intoEpoch) {
 			break
 		}
 
@@ -392,10 +391,8 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 			return
 		case <-b.pause:
 			return
-		case <-epochDone:
-			break
 		case <-slotDone[i]:
-			err := b.handleSlot(slotNum)
+			err = b.handleSlot(slotNum)
 			if err != nil {
 				return
 			}
