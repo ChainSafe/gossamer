@@ -192,7 +192,7 @@ func TestSync_Bench(t *testing.T) {
 
 	nodes := []*utils.Node{alice, bob}
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
