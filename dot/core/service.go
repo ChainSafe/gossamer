@@ -142,7 +142,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	blockAddCh := make(chan *types.Block, 128)
+	blockAddCh := make(chan *types.Block, 16)
 	id, err := cfg.BlockState.RegisterImportedChannel(blockAddCh)
 	if err != nil {
 		return nil, err

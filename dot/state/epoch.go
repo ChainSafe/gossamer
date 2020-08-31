@@ -18,6 +18,7 @@ package state
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -150,4 +151,28 @@ func (s *EpochState) GetEpochInfo(epoch uint64) (*types.EpochInfo, error) {
 // HasEpochInfo returns whether epoch info exists for a given epoch
 func (s *EpochState) HasEpochInfo(epoch uint64) (bool, error) {
 	return s.db.Has(epochInfoKey(epoch))
+}
+
+func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
+	curr, err := s.GetCurrentEpoch()
+	if err != nil {
+		return 0, nil
+	}
+
+	if epoch > curr {
+		return 0, errors.New("epoch in future")
+	}
+
+	slot := uint64(0)
+
+	for i := uint64(0); i < epoch; i++ {
+		info, err := s.GetEpochInfo(i)
+		if err != nil {
+			return 0, err
+		}
+
+		slot += info.Duration
+	}
+
+	return slot, nil
 }

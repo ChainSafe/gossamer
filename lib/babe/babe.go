@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"os"
 	"sync"
-	//"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -74,7 +73,6 @@ type Service struct {
 	// State variables
 	lock  sync.Mutex
 	pause chan struct{}
-	//started atomic.Value
 }
 
 // ServiceConfig represents a BABE configuration
@@ -135,8 +133,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		pause:            make(chan struct{}),
 	}
 
-	//babeService.started.Store(false)
-
 	var err error
 	babeService.config, err = babeService.rt.BabeConfiguration()
 	if err != nil {
@@ -193,7 +189,6 @@ func (b *Service) Start() error {
 
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
-	//b.started.Store(false)
 	b.pause <- struct{}{}
 	b.logger.Info("service paused")
 	return nil
@@ -279,7 +274,6 @@ func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
-	//return !b.started.Load().(bool)
 	return b.ctx.Err() != nil
 }
 
@@ -363,8 +357,22 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	// TODO: this calculates the epoch as starting when the node starts up, when the node may actually start up at any time.
 	// need to calculate place in current epoch given historical epoch lengths
 
+	currEpoch, err := b.epochState.GetCurrentEpoch()
+	if err != nil {
+		b.logger.Error("failed to get current epoch", "error", err)
+		return
+	}
+
+	epochStart, err := b.epochState.GetStartSlotForEpoch(currEpoch)
+	if err != nil {
+		b.logger.Error("failed to get start slot for current epoch", "epoch", currEpoch, "error", err)
+		return
+	}
+
+	intoEpoch := startSlot - epochStart
+
 	nextStartSlot := startSlot + b.config.EpochLength
-	epochDone := time.After(time.Duration(b.config.EpochLength) * b.slotDuration())
+	epochDone := time.After(time.Duration(b.config.EpochLength-intoEpoch) * b.slotDuration())
 
 	slotDone := make([]<-chan time.Time, b.config.EpochLength)
 	for i := 0; i < int(b.config.EpochLength); i++ {
