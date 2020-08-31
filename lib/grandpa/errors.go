@@ -78,6 +78,9 @@ var ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justifi
 // ErrInvalidCatchUpRound is returned when a catch-up message is received with an invalid round
 var ErrInvalidCatchUpRound = errors.New("catch up request is for future round")
 
+// ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
+var ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
+
 // ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalized block)
 var ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
 

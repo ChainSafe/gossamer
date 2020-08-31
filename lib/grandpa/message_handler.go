@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -125,7 +124,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	}
 
 	if msg.Round != h.grandpa.state.round-1 {
-		return ErrInvalidCatchUpRound
+		return ErrInvalidCatchUpResponseRound
 	}
 
 	prevote, err := h.verifyPreVoteJustification(msg)
@@ -141,7 +140,17 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return ErrGHOSTlessCatchUp
 	}
 
-	return h.verifyCatchUpResponseCompletability(prevote, msg.Hash)
+	if err := h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
+		return err
+	}
+
+	// TODO: signal to grandpa we are ready to initiate
+	h.grandpa.head, err = h.grandpa.blockState.GetHeader(msg.Hash)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
@@ -208,12 +217,9 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 	for _, just := range fm.Justification {
 		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
-			fmt.Println("failed to verify justification", "vote", just.Vote)
 			continue
 		}
 
-		fmt.Println(just.Vote.hash, just.Vote.number)
-		fmt.Println(fm.Vote.hash, fm.Vote.number)
 		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
 			count++
 		}
