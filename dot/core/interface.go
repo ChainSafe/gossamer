@@ -103,12 +103,15 @@ type ConsensusMessageHandler interface {
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(*runtime.Runtime) error
-	Authorities() []*types.BABEAuthorityData
-	SetAuthorities([]*types.BABEAuthorityData) error
+	// todo ed authorities
+	Authorities() []*types.Authority
+	// todo ed authorities
+	SetAuthorities([]*types.Authority) error
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
 	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error
-	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.BABEAuthorityData)
+	// todo ed authorities
+	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority)
 }

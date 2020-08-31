@@ -52,7 +52,8 @@ type DigestHandler struct {
 	babeForcedChange    *babeChange
 	babePause           *pause
 	babeResume          *resume
-	babeAuths           []*types.BABEAuthorityData // saved in case of pause
+	// todo ed authority
+	babeAuths           []*types.Authority // saved in case of pause
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -63,7 +64,8 @@ type DigestHandler struct {
 }
 
 type babeChange struct {
-	auths   []*types.BABEAuthorityData
+	// todo ed authority
+	auths   []*types.Authority
 	atBlock *big.Int
 }
 
@@ -253,11 +255,13 @@ func (h *DigestHandler) handleBABEChangesOnFinalization(header *types.Header) {
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
 		// save authority data for Resume
 		h.babeAuths = h.babe.Authorities()
-		err := h.babe.SetAuthorities([]*types.BABEAuthorityData{})
+		// todo ed authorities
+		err := h.babe.SetAuthorities([]*types.Authority{})
 		if err != nil {
 			log.Warn("error setting authorities", "error", err)
 		}
-		h.verifier.SetAuthorityChangeAtBlock(header, []*types.BABEAuthorityData{})
+		// todo ed authorities
+		h.verifier.SetAuthorityChangeAtBlock(header, []*types.Authority{})
 		h.babePause = nil
 	}
 
@@ -412,7 +416,8 @@ func (h *DigestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
 
 	if d.ConsensusEngineID == types.BabeEngineID {
 		curr := h.babe.Authorities()
-		next := []*types.BABEAuthorityData{}
+		// todo ed authorities
+		next := []*types.Authority{}
 
 		for i, auth := range curr {
 			if uint64(i) != od.ID {

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/binary"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -45,81 +44,85 @@ func (a *BABEAuthorityDataRaw) Decode(r io.Reader) (*BABEAuthorityDataRaw, error
 	return a, nil
 }
 
-// BABEAuthorityData represents a BABE authority
-type BABEAuthorityData struct {
-	ID     *sr25519.PublicKey
-	Weight uint64
-}
+//// BABEAuthorityData represents a BABE authority
+//type BABEAuthorityData struct {
+//	ID     *sr25519.PublicKey
+//	Weight uint64
+//}
 
-// NewBABEAuthorityData returns BABEAuthorityData with the given id and weight
-func NewBABEAuthorityData(pub *sr25519.PublicKey, weight uint64) *BABEAuthorityData {
-	return &BABEAuthorityData{
-		ID:     pub,
-		Weight: weight,
-	}
-}
+////NewBABEAuthorityData returns BABEAuthorityData with the given id and weight
+//func NewBABEAuthorityData(pub *sr25519.PublicKey, weight uint64) *BABEAuthorityData {
+//	return &BABEAuthorityData{
+//		ID:     pub,
+//		Weight: weight,
+//	}
+//}
 
-// ToRaw returns the BABEAuthorityData as BABEAuthorityDataRaw. It encodes the authority public keys.
-func (a *BABEAuthorityData) ToRaw() *BABEAuthorityDataRaw {
-	raw := new(BABEAuthorityDataRaw)
-
-	id := a.ID.Encode()
-	copy(raw.ID[:], id)
-
-	raw.Weight = a.Weight
-	return raw
-}
+//// ToRaw returns the BABEAuthorityData as BABEAuthorityDataRaw. It encodes the authority public keys.
+//func (a *BABEAuthorityData) ToRaw() *BABEAuthorityDataRaw {
+//	raw := new(BABEAuthorityDataRaw)
+//
+//	id := a.ID.Encode()
+//	copy(raw.ID[:], id)
+//
+//	raw.Weight = a.Weight
+//	return raw
+//}
 
 // FromRaw sets the BABEAuthorityData given BABEAuthorityDataRaw. It converts the byte representations of
 // the authority public keys into a sr25519.PublicKey.
-func (a *BABEAuthorityData) FromRaw(raw *BABEAuthorityDataRaw) error {
+// todo ed authorities
+func (a *Authority) FromRaw(raw *BABEAuthorityDataRaw) error {
 	id, err := sr25519.NewPublicKey(raw.ID[:])
 	if err != nil {
 		return err
 	}
 
-	a.ID = id
+	a.Key = id
 	a.Weight = raw.Weight
 	return nil
 }
 
-// Encode returns the SCALE encoding of the BABEAuthorityData.
-func (a *BABEAuthorityData) Encode() []byte {
-	raw := a.ToRaw()
+//// Encode returns the SCALE encoding of the BABEAuthorityData.
+//func (a *BABEAuthorityData) Encode() []byte {
+//	raw := a.ToRaw()
+//
+//	enc := raw.ID[:]
+//
+//	weightBytes := make([]byte, 8)
+//	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
+//
+//	return append(enc, weightBytes...)
+//}
 
-	enc := raw.ID[:]
-
-	weightBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
-
-	return append(enc, weightBytes...)
-}
-
-// Decode sets the BABEAuthorityData to the SCALE decoded input.
-func (a *BABEAuthorityData) Decode(r io.Reader) error {
-	id, err := common.Read32Bytes(r)
-	if err != nil {
-		return err
-	}
-
-	weight, err := common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
-	raw := &BABEAuthorityDataRaw{
-		ID:     id,
-		Weight: weight,
-	}
-
-	return a.FromRaw(raw)
-}
+//// Decode sets the BABEAuthorityData to the SCALE decoded input.
+//func (a *BABEAuthorityData) Decode(r io.Reader) error {
+//	id, err := common.Read32Bytes(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	weight, err := common.ReadUint64(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	raw := &BABEAuthorityDataRaw{
+//		ID:     id,
+//		Weight: weight,
+//	}
+//
+//	return a.FromRaw(raw)
+//}
 
 // BABEAuthorityDataRawToAuthorityData turns a slice of BABEAuthorityDataRaw into a slice of BABEAuthorityData
-func BABEAuthorityDataRawToAuthorityData(adr []*BABEAuthorityDataRaw) ([]*BABEAuthorityData, error) {
-	ad := make([]*BABEAuthorityData, len(adr))
+// todo ed authorities
+func BABEAuthorityDataRawToAuthorityData(adr []*BABEAuthorityDataRaw) ([]*Authority, error) {
+	// todo ed authorities
+	ad := make([]*Authority, len(adr))
 	for i, r := range adr {
-		ad[i] = new(BABEAuthorityData)
+		// todo ed authorities
+		ad[i] = new(Authority)
 		err := ad[i].FromRaw(r)
 		if err != nil {
 			return nil, err

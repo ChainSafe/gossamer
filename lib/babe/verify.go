@@ -19,6 +19,7 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 	"sync"
 
@@ -92,7 +93,8 @@ func (v *VerificationManager) SetRuntimeChangeAtBlock(header *types.Header, rt *
 }
 
 // SetAuthorityChangeAtBlock sets an authority change at the given block and all descendants of that block
-func (v *VerificationManager) SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.BABEAuthorityData) {
+// todo ed authorities
+func (v *VerificationManager) SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority) {
 	v.lock.Lock()
 
 	num := header.Number.Int64()
@@ -222,7 +224,8 @@ func descriptorFromRuntime(rt *runtime.Runtime) (*Descriptor, error) {
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState    BlockState
-	authorityData []*types.BABEAuthorityData
+	// todo ed authities
+	authorityData []*types.Authority
 	randomness    [types.RandomnessLength]byte
 	threshold     *big.Int
 }
@@ -254,13 +257,20 @@ func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 		return false, fmt.Errorf("vrf output over threshold")
 	}
 
-	pub := b.authorityData[header.BlockProducerIndex].ID
+	// todo ed authorities
+	pub := b.authorityData[header.BlockProducerIndex].Key
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.randomness[:]...)
 
-	return pub.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
+	// todo ed authorities
+	sr25519PK, err := sr25519.NewPublicKey(pub.Encode())
+	if err != nil {
+		return false, err
+	}
+
+	return sr25519PK.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
@@ -307,7 +317,8 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 
 	slot := babeHeader.SlotNumber
 
-	authorPub := b.authorityData[babeHeader.BlockProducerIndex].ID
+	// todo ed authorities
+	authorPub := b.authorityData[babeHeader.BlockProducerIndex].Key
 	// remove seal before verifying
 	header.Digest = header.Digest[:len(header.Digest)-1]
 	encHeader, err := header.Encode()

@@ -53,13 +53,15 @@ func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt *runtime
 	return nil
 }
 
-func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.BABEAuthorityData) {
+// todo ed authorities
+func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.Authority) {
 
 }
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	auths []*types.BABEAuthorityData
+	// todo ed authorities
+	auths []*types.Authority
 }
 
 // Start mocks starting
@@ -72,11 +74,13 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-func (bp *mockBlockProducer) Authorities() []*types.BABEAuthorityData {
+// todo ed authorities
+func (bp *mockBlockProducer) Authorities() []*types.Authority {
 	return bp.auths
 }
 
-func (bp *mockBlockProducer) SetAuthorities(a []*types.BABEAuthorityData) error {
+// todo ed authorities
+func (bp *mockBlockProducer) SetAuthorities(a []*types.Authority) error {
 	bp.auths = a
 	return nil
 }
