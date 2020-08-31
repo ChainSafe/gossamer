@@ -147,7 +147,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	}
 }
 
-func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_InvalidSig(t *testing.T) {
+func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	st := newTestState(t)
 	voters := newTestVoters(t)
 	kr, err := keystore.NewEd25519Keyring()
@@ -165,23 +165,15 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_InvalidSig(t *testi
 
 	gs.state.round = 77
 
-	gs.justification[77] = []*Justification{
-		{
-			Vote:        testVote,
-			Signature:   testSignature,
-			AuthorityID: gs.publicKeyBytes(),
-		},
+	just := &Justification{
+		Vote:        testVote,
+		Signature:   [64]byte{0x1},
+		AuthorityID: gs.publicKeyBytes(),
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
-	cm, err := fm.ToConsensusMessage()
-	require.NoError(t, err)
-
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
-	require.EqualError(t, err, ErrInvalidSignature.Error())
-	require.Nil(t, out)
-
+	err = h.verifyJustification(just, just.Vote, gs.state.round, gs.state.setID, precommit)
+	require.Equal(t, err, ErrInvalidSignature)
 }
 
 func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {

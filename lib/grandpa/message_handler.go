@@ -19,6 +19,7 @@ package grandpa
 import (
 	"reflect"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
@@ -62,7 +63,9 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) (*ConsensusMessage
 			return h.handleCatchUpRequest(r)
 		}
 	case catchUpResponseType:
-		return nil, nil
+		if r, ok := m.(*catchUpResponse); ok {
+			return nil, h.handleCatchUpResponse(r)
+		}
 	default:
 		return nil, ErrInvalidMessageType
 	}
@@ -97,62 +100,6 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 
 	return nil, nil
 }
-func (h *MessageHandler) verifyFinalizationMessageJustification(fm *FinalizationMessage) error {
-	// verify justifications
-	sigCount := 0
-	for _, just := range fm.Justification {
-		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
-		if err != nil {
-			return err
-		}
-		sigCount++
-	}
-
-	// confirm total # signatures >= grandpa threshold
-	if !(uint64(sigCount) >= h.grandpa.state.threshold()) {
-		return ErrMinVotesNotMet
-	}
-	return nil
-}
-func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, round, setID uint64, stage subround) error {
-	// verify signature
-	msg, err := scale.Encode(&FullVote{
-		Stage: stage,
-		Vote:  vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return err
-	}
-
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-	if err != nil {
-		return err
-	}
-
-	ok, err := pk.Verify(msg, just.Signature[:])
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidSignature
-	}
-
-	// verify authority in justification set
-	authFound := false
-	for _, auth := range h.grandpa.Authorities() {
-		if reflect.DeepEqual(auth.Key.AsBytes(), just.AuthorityID) {
-			authFound = true
-			break
-		}
-	}
-	if !authFound {
-		return ErrVoterNotFound
-	}
-	return nil
-}
 
 func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
 	if msg.SetID != h.grandpa.state.setID {
@@ -169,6 +116,31 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 	}
 
 	return resp.ToConsensusMessage()
+}
+
+func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
+	if msg.SetID != h.grandpa.state.setID {
+		return ErrSetIDMismatch
+	}
+
+	if msg.Round != h.grandpa.state.round-1 {
+		return ErrInvalidCatchUpRound
+	}
+
+	if err := h.verifyCatchUpResponseJustification(msg); err != nil {
+		return err
+	}
+
+	if (msg.Hash == common.Hash{}) || msg.Number == 0 {
+		return ErrGHOSTlessCatchUp
+	}
+
+	return nil
+}
+
+// verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
+func verifyCatchUpResponseCompletability(msg *catchUpResponse) error {
+
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
@@ -208,4 +180,94 @@ func decodeMessage(msg *ConsensusMessage) (m FinalityMessage, err error) {
 	}
 
 	return m, nil
+}
+
+func (h *MessageHandler) verifyFinalizationMessageJustification(fm *FinalizationMessage) error {
+	// verify justifications
+	count := 0
+	for _, just := range fm.Justification {
+		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
+		if err != nil {
+			continue
+		}
+		count++
+	}
+
+	// confirm total # signatures >= grandpa threshold
+	if uint64(count) < h.grandpa.state.threshold() {
+		return ErrMinVotesNotMet
+	}
+	return nil
+}
+
+func (h *MessageHandler) verifyCatchUpResponseJustification(msg *catchUpResponse) error {
+	// verify pre-vote justification
+	count := 0
+	for _, just := range msg.PreVoteJustification {
+		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, prevote)
+		if err != nil {
+			continue
+		}
+		count++
+	}
+
+	if uint64(count) < h.grandpa.state.threshold() {
+		return ErrMinVotesNotMet
+	}
+
+	// verify pre-commit justification
+	count = 0
+	for _, just := range msg.PreCommitJustification {
+		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, precommit)
+		if err != nil {
+			continue
+		}
+		count++
+	}
+
+	if uint64(count) < h.grandpa.state.threshold() {
+		return ErrMinVotesNotMet
+	}
+
+	return nil
+}
+
+func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, round, setID uint64, stage subround) error {
+	// verify signature
+	msg, err := scale.Encode(&FullVote{
+		Stage: stage,
+		Vote:  vote,
+		Round: round,
+		SetID: setID,
+	})
+	if err != nil {
+		return err
+	}
+
+	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+	if err != nil {
+		return err
+	}
+
+	ok, err := pk.Verify(msg, just.Signature[:])
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return ErrInvalidSignature
+	}
+
+	// verify authority in justification set
+	authFound := false
+	for _, auth := range h.grandpa.Authorities() {
+		if reflect.DeepEqual(auth.Key.AsBytes(), just.AuthorityID) {
+			authFound = true
+			break
+		}
+	}
+	if !authFound {
+		return ErrVoterNotFound
+	}
+	return nil
 }
