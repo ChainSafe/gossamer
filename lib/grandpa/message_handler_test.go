@@ -31,6 +31,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var testHash = common.Hash{0xa, 0xb, 0xc, 0xd}
+
 func TestDecodeMessage_VoteMessage(t *testing.T) {
 	cm := &ConsensusMessage{
 		ConsensusEngineID: types.GrandpaEngineID,
@@ -194,10 +196,10 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 
 	round := uint64(77)
 	gs.state.round = round
-
-	gs.justification[round] = buildTestJustifications(t, 6, round, gs.state.setID, kr)
+	gs.justification[round] = buildTestJustifications(t, int(gs.state.threshold()), round, gs.state.setID, kr)
 
 	fm := gs.newFinalizationMessage(gs.head, round)
+	fm.Vote = NewVote(testHash, round)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -234,7 +236,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 	round := uint64(77)
 	gs.state.round = round
 
-	gs.justification[round] = buildTestJustifications(t, gs.state.threshold()-1, round, gs.state.setID, kr)
+	gs.justification[round] = buildTestJustifications(t, int(gs.state.threshold()), round, gs.state.setID, kr)
 
 	fm := gs.newFinalizationMessage(gs.head, round)
 	cm, err := fm.ToConsensusMessage()
@@ -430,7 +432,7 @@ func TestVerifyJustification(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block)
 
-	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	vote := NewVote(testHash, 123)
 	just := &Justification{
 		Vote:        vote,
 		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice),
@@ -459,7 +461,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block)
 
-	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	vote := NewVote(testHash, 123)
 	just := &Justification{
 		Vote: vote,
 		// create signed vote with mismatched vote number
@@ -492,7 +494,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
 	require.NoError(t, err)
 
-	vote := NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, 123)
+	vote := NewVote(testHash, 123)
 	just := &Justification{
 		Vote:        vote,
 		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, fakeKey),
@@ -503,13 +505,13 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	require.EqualError(t, err, ErrVoterNotFound.Error())
 }
 
-func buildTestJustifications(t *testing.T, qty, round, setID uint64, kr *keystore.Ed25519Keyring) []*Justification {
+func buildTestJustifications(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring) []*Justification {
 	just := []*Justification{}
-	for i := uint64(0); i < qty; i++ {
+	for i := 0; i < qty; i++ {
 		j := &Justification{
-			Vote:        NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, i),
-			Signature:   createSignedVoteMsg(t, i, round, setID, kr.Keys[i%uint64(len(kr.Keys))]),
-			AuthorityID: kr.Keys[i%uint64(len(kr.Keys))].Public().(*ed25519.PublicKey).AsBytes(),
+			Vote:        NewVote(testHash, round),
+			Signature:   createSignedVoteMsg(t, round, round, setID, kr.Keys[i%len(kr.Keys)]),
+			AuthorityID: kr.Keys[i%len(kr.Keys)].Public().(*ed25519.PublicKey).AsBytes(),
 		}
 		just = append(just, j)
 	}
@@ -517,11 +519,11 @@ func buildTestJustifications(t *testing.T, qty, round, setID uint64, kr *keystor
 
 }
 
-func createSignedVoteMsg(t *testing.T, voteNumber, round, setID uint64, pk *ed25519.Keypair) [64]byte {
+func createSignedVoteMsg(t *testing.T, number, round, setID uint64, pk *ed25519.Keypair) [64]byte {
 	// create vote message
 	msg, err := scale.Encode(&FullVote{
 		Stage: precommit,
-		Vote:  NewVote(common.Hash{0xa, 0xb, 0xc, 0xd}, voteNumber),
+		Vote:  NewVote(testHash, number),
 		Round: round,
 		SetID: setID,
 	})

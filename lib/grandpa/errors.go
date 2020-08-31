@@ -80,3 +80,6 @@ var ErrInvalidCatchUpRound = errors.New("catch up request is for future round")
 
 // ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalized block)
 var ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
+
+// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
+var ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")

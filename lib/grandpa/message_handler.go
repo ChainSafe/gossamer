@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -127,7 +128,12 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return ErrInvalidCatchUpRound
 	}
 
-	if err := h.verifyCatchUpResponseJustification(msg); err != nil {
+	prevote, err := h.verifyPreVoteJustification(msg)
+	if err != nil {
+		return err
+	}
+
+	if err := h.verifyPreCommitJustification(msg); err != nil {
 		return err
 	}
 
@@ -135,12 +141,26 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return ErrGHOSTlessCatchUp
 	}
 
-	return nil
+	return h.verifyCatchUpResponseCompletability(prevote, msg.Hash)
 }
 
 // verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
-func verifyCatchUpResponseCompletability(msg *catchUpResponse) error {
+func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error {
+	if prevote == precommit {
+		return nil
+	}
 
+	// check if the current block is a descendant of prevoted block
+	isDescendant, err := h.grandpa.blockState.IsDescendantOf(prevote, precommit)
+	if err != nil {
+		return err
+	}
+
+	if !isDescendant {
+		return ErrCatchUpResponseNotCompletable
+	}
+
+	return nil
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
@@ -188,9 +208,15 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 	for _, just := range fm.Justification {
 		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
+			fmt.Println("failed to verify justification", "vote", just.Vote)
 			continue
 		}
-		count++
+
+		fmt.Println(just.Vote.hash, just.Vote.number)
+		fmt.Println(fm.Vote.hash, fm.Vote.number)
+		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
+			count++
+		}
 	}
 
 	// confirm total # signatures >= grandpa threshold
@@ -200,29 +226,46 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 	return nil
 }
 
-func (h *MessageHandler) verifyCatchUpResponseJustification(msg *catchUpResponse) error {
-	// verify pre-vote justification
-	count := 0
+func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash, error) {
+	// verify pre-vote justification, returning the pre-voted block if there is one
+	votes := make(map[common.Hash]uint64)
+
 	for _, just := range msg.PreVoteJustification {
 		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
-		count++
+
+		votes[just.Vote.hash]++
 	}
 
-	if uint64(count) < h.grandpa.state.threshold() {
-		return ErrMinVotesNotMet
+	var prevote common.Hash
+	for hash, count := range votes {
+		if count >= h.grandpa.state.threshold() {
+			prevote = hash
+			break
+		}
 	}
 
+	if (prevote == common.Hash{}) {
+		return prevote, ErrMinVotesNotMet
+	}
+
+	return prevote, nil
+}
+
+func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) error {
 	// verify pre-commit justification
-	count = 0
+	count := 0
 	for _, just := range msg.PreCommitJustification {
 		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
-		count++
+
+		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
+			count++
+		}
 	}
 
 	if uint64(count) < h.grandpa.state.threshold() {
