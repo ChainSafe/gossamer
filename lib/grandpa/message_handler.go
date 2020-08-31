@@ -132,7 +132,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return err
 	}
 
-	if err := h.verifyPreCommitJustification(msg); err != nil {
+	if err = h.verifyPreCommitJustification(msg); err != nil {
 		return err
 	}
 
@@ -140,7 +140,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return ErrGHOSTlessCatchUp
 	}
 
-	if err := h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
+	if err = h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
 		return err
 	}
 

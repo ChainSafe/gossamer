@@ -394,10 +394,6 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	testHeader := &types.Header{
-		Number: big.NewInt(1),
-	}
-
 	v := &Vote{
 		hash:   testHeader.Hash(),
 		number: 1,
