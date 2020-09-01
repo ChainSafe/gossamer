@@ -521,7 +521,8 @@ func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBl
 	}, nil
 }
 
-func newBABEChange(raw []*types.BABEAuthorityDataRaw, delay uint32, currBlock *big.Int) (*babeChange, error) {
+// todo ed authorities
+func newBABEChange(raw []*types.AuthorityRaw, delay uint32, currBlock *big.Int) (*babeChange, error) {
 	auths, err := types.BABEAuthorityDataRawToAuthorityData(raw)
 	if err != nil {
 		return nil, err

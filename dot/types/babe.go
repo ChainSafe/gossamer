@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 // BabeConfiguration contains the genesis data for BABE
@@ -14,19 +13,21 @@ type BabeConfiguration struct {
 	EpochLength        uint64 // duration of epoch in slots
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
-	GenesisAuthorities []*BABEAuthorityDataRaw
+	// todo ed authorities
+	GenesisAuthorities []*AuthorityRaw
 	Randomness         [32]byte
 	SecondarySlots     bool
 }
 
 // BABEAuthorityDataRaw represents a BABE authority where their key is a byte array
-type BABEAuthorityDataRaw struct {
-	ID     [sr25519.PublicKeyLength]byte
-	Weight uint64
-}
+//type BABEAuthorityDataRaw struct {
+//	ID     [sr25519.PublicKeyLength]byte
+//	Weight uint64
+//}
 
 // Decode will decode the Reader into a BABEAuthorityDataRaw
-func (a *BABEAuthorityDataRaw) Decode(r io.Reader) (*BABEAuthorityDataRaw, error) {
+// todo ed authorities
+func (a *AuthorityRaw) Decode(r io.Reader) (*AuthorityRaw, error) {
 	id, err := common.Read32Bytes(r)
 	if err != nil {
 		return nil, err
@@ -37,8 +38,8 @@ func (a *BABEAuthorityDataRaw) Decode(r io.Reader) (*BABEAuthorityDataRaw, error
 		return nil, err
 	}
 
-	a = new(BABEAuthorityDataRaw)
-	a.ID = id
+	a = new(AuthorityRaw)
+	a.Key = id
 	a.Weight = weight
 
 	return a, nil
@@ -68,20 +69,6 @@ func (a *BABEAuthorityDataRaw) Decode(r io.Reader) (*BABEAuthorityDataRaw, error
 //	raw.Weight = a.Weight
 //	return raw
 //}
-
-// FromRaw sets the BABEAuthorityData given BABEAuthorityDataRaw. It converts the byte representations of
-// the authority public keys into a sr25519.PublicKey.
-// todo ed authorities
-func (a *Authority) FromRawSr25519(raw *BABEAuthorityDataRaw) error {
-	id, err := sr25519.NewPublicKey(raw.ID[:])
-	if err != nil {
-		return err
-	}
-
-	a.Key = id
-	a.Weight = raw.Weight
-	return nil
-}
 
 //// Encode returns the SCALE encoding of the BABEAuthorityData.
 //func (a *BABEAuthorityData) Encode() []byte {
@@ -117,7 +104,7 @@ func (a *Authority) FromRawSr25519(raw *BABEAuthorityDataRaw) error {
 
 // BABEAuthorityDataRawToAuthorityData turns a slice of BABEAuthorityDataRaw into a slice of BABEAuthorityData
 // todo ed authorities
-func BABEAuthorityDataRawToAuthorityData(adr []*BABEAuthorityDataRaw) ([]*Authority, error) {
+func BABEAuthorityDataRawToAuthorityData(adr []*AuthorityRaw) ([]*Authority, error) {
 	// todo ed authorities
 	ad := make([]*Authority, len(adr))
 	for i, r := range adr {

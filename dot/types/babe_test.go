@@ -10,7 +10,8 @@ import (
 )
 
 func TestBABEAuthorityDataRaw(t *testing.T) {
-	ad := new(BABEAuthorityDataRaw)
+	// todo ed authorities
+	ad := new(AuthorityRaw)
 	buf := &bytes.Buffer{}
 	data := []byte{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28, 1, 0, 0, 0, 0, 0, 0, 0}
 	buf.Write(data)
@@ -27,13 +28,15 @@ func TestBABEAuthorityData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ad := NewBABEAuthorityData(kr.Alice.Public().(*sr25519.PublicKey), 77)
+	// todo ed authorities
+	ad := NewAuthority(kr.Alice.Public().(*sr25519.PublicKey), 77)
 	enc := ad.Encode()
 
 	buf := &bytes.Buffer{}
 	buf.Write(enc)
 
-	res := new(BABEAuthorityData)
+	// todo ed authirities
+	res := new(Authority)
 	err = res.Decode(buf)
 	if err != nil {
 		t.Fatal(err)
