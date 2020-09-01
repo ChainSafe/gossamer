@@ -153,6 +153,8 @@ func (s *EpochState) HasEpochInfo(epoch uint64) (bool, error) {
 	return s.db.Has(epochInfoKey(epoch))
 }
 
+// GetStartSlotForEpoch returns the first slot in the given epoch.
+// If 0 is passed as the epoch, it returns the start slot for the current epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 	curr, err := s.GetCurrentEpoch()
 	if err != nil {

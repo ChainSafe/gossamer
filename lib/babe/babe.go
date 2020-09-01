@@ -307,6 +307,12 @@ func (b *Service) slotDuration() time.Duration {
 }
 
 func (b *Service) initiate() {
+	defer func() {
+		if err := recover(); err != nil {
+			b.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	if b.config == nil {
 		b.logger.Error("block authoring", "error", "config is nil")
 		return
@@ -349,11 +355,17 @@ func (b *Service) initiate() {
 		}
 	}
 
-	b.logger.Debug("[babe]", "calculated slot", slotNum)
+	b.logger.Debug("calculated slot", "number", slotNum)
 	b.invokeBlockAuthoring(slotNum)
 }
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
+	defer func() {
+		if err := recover(); err != nil {
+			b.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	currEpoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		b.logger.Error("failed to get current epoch", "error", err)
@@ -420,6 +432,12 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
+	defer func() {
+		if err := recover(); err != nil {
+			b.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	if b.slotToProof[slotNum] == nil {
 		// if we don't have a proof already set, re-run lottery.
 		proof, err := b.runLottery(slotNum)
