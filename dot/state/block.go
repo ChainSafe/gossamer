@@ -294,12 +294,6 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 
 // GetHeaderByNumber returns a block header given a number
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
@@ -406,12 +400,6 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 
 // GetFinalizedHeader returns the latest finalized block header
 func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	h, err := bs.GetFinalizedHash(round, setID)
 	if err != nil {
 		return nil, err
@@ -631,12 +619,6 @@ func (bs *BlockState) HighestBlockNumber() *big.Int {
 
 // BestBlockHash returns the hash of the head of the current chain
 func (bs *BlockState) BestBlockHash() common.Hash {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	if bs.bt == nil {
 		return common.Hash{}
 	}
@@ -646,12 +628,6 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 
 // BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	return bs.GetHeader(bs.BestBlockHash())
 }
 

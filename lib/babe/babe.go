@@ -278,11 +278,19 @@ func (b *Service) IsStopped() bool {
 }
 
 func (b *Service) safeSend(msg types.Block) error {
+	defer func() {
+		if err := recover(); err != nil {
+			b.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	b.lock.Lock()
 	defer b.lock.Unlock()
+
 	if b.IsStopped() {
 		return errors.New("Service has been stopped")
 	}
+
 	b.blockChan <- msg
 	return nil
 }
@@ -307,12 +315,6 @@ func (b *Service) slotDuration() time.Duration {
 }
 
 func (b *Service) initiate() {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	if b.config == nil {
 		b.logger.Error("block authoring", "error", "config is nil")
 		return
@@ -432,12 +434,6 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	if b.slotToProof[slotNum] == nil {
 		// if we don't have a proof already set, re-run lottery.
 		proof, err := b.runLottery(slotNum)
@@ -480,20 +476,18 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
 		b.logger.Debug("block authoring", "error", err)
-	} else {
-		// TODO: loop until slot is done, attempt to produce multiple blocks
-
-		hash := block.Header.Hash()
-		b.logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
-		b.logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
-
-		err = b.safeSend(*block)
-		if err != nil {
-			b.logger.Error("failed to send block to core", "error", err)
-			return err
-		}
+		return nil
 	}
 
+	hash := block.Header.Hash()
+	b.logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
+	b.logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
+
+	err = b.safeSend(*block)
+	if err != nil {
+		b.logger.Error("failed to send block to core", "error", err)
+		return err
+	}
 	return nil
 }
 

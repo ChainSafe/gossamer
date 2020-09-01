@@ -39,12 +39,6 @@ func (b *Service) BuildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	b.logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -127,12 +121,6 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *Service) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	encHeader, err := header.Encode()
 	if err != nil {
 		return nil, err
@@ -152,12 +140,6 @@ func (b *Service) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *Service) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	babeHeader, err := b.buildBlockBabeHeader(slot)
 	if err != nil {
 		return nil, err
@@ -230,12 +212,6 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 
 // buildBlockInherents applies the inherents for a block
 func (b *Service) buildBlockInherents(slot Slot) error {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	// Setup inherents: add timstap0
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
