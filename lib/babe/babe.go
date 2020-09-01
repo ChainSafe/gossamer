@@ -175,11 +175,13 @@ func (b *Service) Start() error {
 
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
+		b.logger.Error("failed to get current epoch", "error", err)
 		return err
 	}
 
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
+		b.logger.Error("failed to initiate epoch", "error", err)
 		return err
 	}
 

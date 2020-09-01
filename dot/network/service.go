@@ -307,6 +307,11 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 var maxReads = 16
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
+	defer func() {
+		if err := recover(); err != nil {
+			s.logger.Error("recovered from panic", "error", err)
+		}
+	}()
 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -367,6 +372,12 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
+	defer func() {
+		if err := recover(); err != nil {
+			s.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	if msg == nil {
 		return
 	}
@@ -402,6 +413,12 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 
 // handleMessage handles the message based on peer status and message type
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
+	defer func() {
+		if err := recover(); err != nil {
+			s.logger.Error("recovered from panic", "error", err)
+		}
+	}()
+
 	if msg.Type() != StatusMsgType {
 
 		// check if status is disabled or peer status is confirmed

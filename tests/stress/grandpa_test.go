@@ -46,6 +46,10 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 }
 
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestStress_Grandpa_ThreeAuthorities")
+	}
+
 	numNodes = 3
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
@@ -54,6 +58,8 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
+
+	time.Sleep(time.Second * 30)
 
 	numRounds := 10
 	for i := 1; i < numRounds+1; i++ {
@@ -64,10 +70,6 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping TestStress_Grandpa_SixAuthorities")
-	}
-
 	numNodes = 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
