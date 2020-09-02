@@ -364,12 +364,6 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
-	defer func() {
-		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
 	currEpoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		b.logger.Error("failed to get current epoch", "error", err)
@@ -394,13 +388,13 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
 	}
 
-	i := 0 // increments each slot
-	slotNum := startSlot
+	//i := 0 // increments each slot
+	//slotNum := startSlot
 
-	for {
-		if i >= int(b.config.EpochLength-intoEpoch) {
-			break
-		}
+	for i := 0; i < int(b.config.EpochLength-intoEpoch); i++ {
+		// if i >= int(b.config.EpochLength-intoEpoch) {
+		// 	break
+		// }
 
 		select {
 		case <-b.ctx.Done():
@@ -408,12 +402,12 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		case <-b.pause:
 			return
 		case <-slotDone[i]:
+			slotNum := startSlot + uint64(i)
 			err = b.handleSlot(slotNum)
 			if err != nil {
-				return
+				b.logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
+				continue
 			}
-			slotNum++
-			i++
 		}
 	}
 
@@ -446,7 +440,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 		if proof == nil {
 			b.logger.Debug("not authorized to produce block", "slot", slotNum)
-			return nil//ErrNotAuthorized
+			return ErrNotAuthorized
 		}
 
 		b.slotToProof[slotNum] = proof
