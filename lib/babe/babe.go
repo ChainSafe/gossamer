@@ -446,7 +446,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 		if proof == nil {
 			b.logger.Debug("not authorized to produce block", "slot", slotNum)
-			return ErrNotAuthorized
+			return nil//ErrNotAuthorized
 		}
 
 		b.slotToProof[slotNum] = proof
