@@ -28,7 +28,7 @@ func TestGossip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGossip")
 	}
-
+// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -42,7 +42,6 @@ func TestGossip(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -60,7 +59,6 @@ func TestGossip(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -93,7 +91,6 @@ func TestGossip(t *testing.T) {
 		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendC,
 	}
 
 	nodeC := createTestService(t, configC)

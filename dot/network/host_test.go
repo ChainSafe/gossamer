@@ -214,7 +214,7 @@ func TestBootstrap(t *testing.T) {
 // test host send method
 func TestSend(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-
+// todo ed determine why this is faling
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -238,7 +238,8 @@ func TestSend(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		// todo ed msg_channel
+		//MsgSend:     msgSendB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -282,6 +283,7 @@ func TestSend(t *testing.T) {
 
 // test host broadcast method
 func TestBroadcast(t *testing.T) {
+	// todo ed determine why this is faling
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	configA := &Config{
@@ -307,7 +309,8 @@ func TestBroadcast(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		// todo ed msg_channel
+		//MsgSend:     msgSendB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -340,7 +343,8 @@ func TestBroadcast(t *testing.T) {
 		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendC,
+		// todo ed msg_channel
+		//MsgSend:     msgSendC,
 	}
 
 	nodeC := createTestService(t, configC)
@@ -395,6 +399,7 @@ func TestBroadcast(t *testing.T) {
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
+	// todo ed determine why this is faling
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	msgSendA := make(chan Message)
@@ -405,7 +410,8 @@ func TestExistingStream(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendA,
+		// todo ed msg_channel
+		//MsgSend:     msgSendA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -428,7 +434,8 @@ func TestExistingStream(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		// todo ed msg_channel
+		//MsgSend:     msgSendB,
 	}
 
 	nodeB := createTestService(t, configB)

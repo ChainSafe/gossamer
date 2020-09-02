@@ -18,7 +18,6 @@ package network
 
 import (
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -67,14 +66,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan Message, 10)
-	}
-
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan Message, 10)
-	}
-
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
 	}
@@ -117,6 +108,14 @@ func TestStartService(t *testing.T) {
 	node.Stop()
 }
 
+type MockMessageHandler struct {
+	Message Message
+}
+
+func (m *MockMessageHandler) SendMessage(msg Message) {
+	m.Message = msg
+}
+
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -124,15 +123,12 @@ func TestBroadcastMessages(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	msgRecA := make(chan Message)
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -143,15 +139,14 @@ func TestBroadcastMessages(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	msgSendB := make(chan Message)
-
+	mmhB := new(MockMessageHandler)
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		BasePath:       basePathB,
+		Port:           7002,
+		RandSeed:       2,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -176,20 +171,10 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 
 	// simulate message sent from core service
-	msgRecA <- TestMessage
+	nodeA.SendMessage(TestMessage)
+	time.Sleep(time.Second)
 
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, TestMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", TestMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
-	}
+	require.Equal(t, TestMessage, mmhB.Message)
 }
 
 func TestHandleMessage_BlockAnnounce(t *testing.T) {
@@ -198,8 +183,6 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	msgSend := make(chan Message, 4)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -207,7 +190,6 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 		NoStatus:    true,
-		MsgSend:     msgSend,
 	}
 
 	s := createTestService(t, config)
@@ -225,8 +207,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
 
-	msgSend := make(chan Message, 4)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -234,7 +214,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 		NoStatus:    true,
-		MsgSend:     msgSend,
 	}
 
 	s := createTestService(t, config)

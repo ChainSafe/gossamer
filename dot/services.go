@@ -167,7 +167,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 
 // createCoreService creates the core service from the provided core configuration
 //func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.MessageHandler, networkMsgs chan network.Message) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, msgSender network.MessageHandler) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Authority,
@@ -196,11 +196,12 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		ConsensusMessageHandler: handler,
 		Keystore:                ks,
 		Runtime:                 rt,
-		MsgRec:                  networkMsgs, // message channel from network service to core service
-		IsBlockProducer:         cfg.Core.BabeAuthority,
-		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
-		Verifier:                verifier,
-		MessageHandler:          msgSender,
+		// todo ed msg_channel
+		//MsgRec:                  networkMsgs, // message channel from network service to core service
+		IsBlockProducer:     cfg.Core.BabeAuthority,
+		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
+		Verifier:            verifier,
+		MessageHandler:      msgSender,
 	}
 
 	// create new core service
@@ -216,7 +217,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, networkMsgs chan network.Message, syncer *sync.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -244,8 +245,10 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, networkMsgs cha
 		ProtocolID:   cfg.Network.ProtocolID,
 		NoBootstrap:  cfg.Network.NoBootstrap,
 		NoMDNS:       cfg.Network.NoMDNS,
-		MsgSend:      networkMsgs, // message channel from network service to core service
-		Syncer:       syncer,
+		// todo ed msg_channel
+		//MsgSend:      networkMsgs, // message channel from network service to core service
+		//MessageHandler: messageHandler,
+		Syncer: syncer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

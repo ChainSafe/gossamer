@@ -61,8 +61,10 @@ type Service struct {
 
 	// Channels for inter-process communication
 	// as well as a lock for safe channel closures
-	msgSend chan<- Message
-	lock    sync.Mutex
+	//msgSend chan<- Message
+	// todo ed remove lock?
+	messageHandler MessageHandler
+	lock           sync.Mutex
 
 	// Configuration options
 	noBootstrap bool
@@ -84,10 +86,6 @@ func NewService(cfg *Config) (*Service, error) {
 	err := cfg.build()
 	if err != nil {
 		return nil, err //nolint
-	}
-
-	if cfg.MsgSend == nil {
-		return nil, errors.New("MsgSend is nil")
 	}
 
 	if cfg.Syncer == nil {
@@ -112,7 +110,9 @@ func NewService(cfg *Config) (*Service, error) {
 		requestTracker: newRequestTracker(host.logger),
 		blockState:     cfg.BlockState,
 		networkState:   cfg.NetworkState,
-		msgSend:        cfg.MsgSend,
+		// todo ed msg_channel
+		//msgSend:        cfg.MsgSend,
+		messageHandler: cfg.MessageHandler,
 		noBootstrap:    cfg.NoBootstrap,
 		noMDNS:         cfg.NoMDNS,
 		noStatus:       cfg.NoStatus,
@@ -161,11 +161,6 @@ func (s *Service) Start() error {
 func (s *Service) Stop() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
-	// close channel to core service
-	if s.msgSend != nil && !s.IsStopped() {
-		close(s.msgSend)
-	}
 
 	s.cancel()
 
@@ -225,13 +220,16 @@ func (s *Service) SendMessage(msg Message) {
 	s.host.broadcast(msg)
 }
 
+// todo ed refactor to remove this
 func (s *Service) safeMsgSend(msg Message) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.IsStopped() {
 		return errors.New("service has been stopped")
 	}
-	s.msgSend <- msg
+	// todo ed msg_channel
+	//s.msgSend <- msg
+	s.messageHandler.SendMessage(msg)
 	return nil
 }
 
@@ -510,4 +508,9 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+//SetMessageHandler sets the given MessageHandler for this service
+func (s *Service) SetMessageHandler(handler MessageHandler) {
+	s.messageHandler = handler
 }

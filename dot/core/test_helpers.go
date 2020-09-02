@@ -193,14 +193,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan network.Message, 10)
-	}
-
-	// todo ed channel refactor
-	//if cfg.MsgSend == nil {
-	//	cfg.MsgSend = make(chan network.Message, 10)
-	//}
 
 	if cfg.Verifier == nil {
 		cfg.Verifier = new(mockVerifier)
@@ -231,8 +223,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
 	}
 
-	////////////////////////
-	// todo ed channel refactor, consider if this is the best way to handle message sender
 	if cfg.MessageHandler == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
@@ -250,7 +240,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.MessageHandler = createTestService(t, config)
 		require.NoError(t, err)
 	}
-	//////////////////
+
 	s, err := NewService(cfg)
 	require.Nil(t, err)
 
@@ -268,14 +258,6 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 	}
 
 	//cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
-
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan network.Message, 10)
-	}
-
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan network.Message, 10)
-	}
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3

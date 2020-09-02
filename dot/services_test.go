@@ -80,9 +80,10 @@ func TestCreateCoreService(t *testing.T) {
 	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -164,9 +165,10 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	networkMsgs := make(chan network.Message)
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc, networkMsgs, nil)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -196,13 +198,14 @@ func TestCreateRPCService(t *testing.T) {
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewKeystore()
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc := createSystemService(&cfg.System)
@@ -316,13 +319,14 @@ func TestNewWebSocketServer(t *testing.T) {
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewKeystore()
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc := createSystemService(&cfg.System)

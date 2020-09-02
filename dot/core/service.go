@@ -68,8 +68,8 @@ type Service struct {
 	keys *keystore.Keystore
 
 	// Channels for inter-process communication
-	msgRec         <-chan network.Message // receive messages from network service
-	blkRec         <-chan types.Block     // receive blocks from BABE session
+	//msgRec         <-chan network.Message // receive messages from network service
+	blkRec         <-chan types.Block // receive blocks from BABE session
 	messageHandler network.MessageHandler
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
@@ -97,7 +97,7 @@ type Config struct {
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
-	MsgRec <-chan network.Message
+	//MsgRec <-chan network.Message
 
 	MessageHandler network.MessageHandler
 }
@@ -152,13 +152,12 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		logger:                  logger,
-		ctx:                     ctx,
-		cancel:                  cancel,
-		rt:                      cfg.Runtime,
-		codeHash:                codeHash,
-		keys:                    cfg.Keystore,
-		msgRec:                  cfg.MsgRec,
+		logger:   logger,
+		ctx:      ctx,
+		cancel:   cancel,
+		rt:       cfg.Runtime,
+		codeHash: codeHash,
+		keys:     cfg.Keystore,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
@@ -195,7 +194,6 @@ func (s *Service) Start() error {
 
 	// start receiving messages from network service
 	ctx, _ = context.WithCancel(s.ctx) //nolint
-	go s.receiveMessages(ctx)
 
 	// start handling imported blocks
 	ctx, _ = context.WithCancel(s.ctx) //nolint
@@ -275,21 +273,33 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 }
 
 // receiveMessages starts receiving messages from the network service
-func (s *Service) receiveMessages(ctx context.Context) {
-	for {
-		select {
-		case msg := <-s.msgRec:
-			if msg == nil {
-				continue
-			}
+//func (s *Service) receiveMessages(ctx context.Context) {
+//	for {
+//		select {
+//		case msg := <-s.msgRec:
+//			if msg == nil {
+//				continue
+//			}
+//
+//			err := s.handleReceivedMessage(msg)
+//			if err != nil {
+//				s.logger.Trace("failed to handle message from network service", "err", err)
+//			}
+//		case <-ctx.Done():
+//			return
+//		}
+//	}
+//}
 
-			err := s.handleReceivedMessage(msg)
-			if err != nil {
-				s.logger.Trace("failed to handle message from network service", "err", err)
-			}
-		case <-ctx.Done():
-			return
-		}
+// SendMessage implements interface to handle messages that are passed to it
+func (s *Service) SendMessage(message network.Message) {
+	if message == nil {
+		return
+	}
+	// todo add check to confirm service is still running
+	err := s.handleReceivedMessage(message)
+	if err != nil {
+		s.logger.Trace("failed to handle message from network service", "err", err)
 	}
 }
 

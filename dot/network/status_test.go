@@ -29,6 +29,7 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
+	// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -42,7 +43,8 @@ func TestStatus(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecA,
+		// todo ed msg_channel
+		//MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -83,7 +85,8 @@ func TestStatus(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecB,
+		// todo ed msg_channel
+		//MsgRec:      msgRecB,
 	}
 
 	nodeB := createTestService(t, configB)
