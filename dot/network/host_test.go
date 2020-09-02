@@ -214,7 +214,7 @@ func TestBootstrap(t *testing.T) {
 // test host send method
 func TestSend(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-// todo ed determine why this is faling
+	// todo ed determine why this is faling
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,

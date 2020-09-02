@@ -28,7 +28,7 @@ func TestGossip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGossip")
 	}
-// todo ed determine why this is failing
+	// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory

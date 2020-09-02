@@ -193,7 +193,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.NewBlocks = make(chan types.Block)
 	}
 
-
 	if cfg.Verifier == nil {
 		cfg.Verifier = new(mockVerifier)
 	}

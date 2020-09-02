@@ -152,12 +152,12 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		logger:   logger,
-		ctx:      ctx,
-		cancel:   cancel,
-		rt:       cfg.Runtime,
-		codeHash: codeHash,
-		keys:     cfg.Keystore,
+		logger:                  logger,
+		ctx:                     ctx,
+		cancel:                  cancel,
+		rt:                      cfg.Runtime,
+		codeHash:                codeHash,
+		keys:                    cfg.Keystore,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
