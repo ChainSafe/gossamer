@@ -203,9 +203,12 @@ func (s *Service) updateNetworkState() {
 	}
 }
 
-// ReceiveMessage implementation of interface to handle receiving messages
-func (s *Service) ReceiveMessage(msg Message) {
+// SendMessage implementation of interface to handle receiving messages
+func (s *Service) SendMessage(msg Message) {
 	if s.host == nil {
+		return
+	}
+	if s.IsStopped() {
 		return
 	}
 	if msg == nil {

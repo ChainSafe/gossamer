@@ -96,7 +96,7 @@ type mockMessageHandler struct {
 	Message network.Message
 }
 
-func (mh *mockMessageHandler) ReceiveMessage(m network.Message) {
+func (mh *mockMessageHandler) SendMessage(m network.Message) {
 	mh.Message = m
 }
 

@@ -234,7 +234,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 }
 
 func (s *Service) safeMsgSend(msg network.Message) {
-	s.messageHandler.ReceiveMessage(msg)
+	s.messageHandler.SendMessage(msg)
 }
 
 func (s *Service) handleBlocks(ctx context.Context) {
