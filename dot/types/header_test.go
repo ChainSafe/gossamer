@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-	"log"
 	"math/big"
 	"testing"
 
@@ -43,26 +42,15 @@ func TestDecodeHeader(t *testing.T) {
 }
 
 func TestMustEncodeHeader(t *testing.T) {
-	//correct
 	bh1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
 	require.NoError(t, err)
 	enc, err := bh1.Encode()
 	require.NoError(t, err)
 
-	//correct2
 	bh2, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
 	require.NoError(t, err)
 	enc2, err := bh2.Encode()
 	require.NoError(t, err)
-
-	//panic
-	bh3 := &Header{
-		ParentHash: common.Hash{}, 
-		Number: nil, 
-		StateRoot: common.Hash{}, 
-		ExtrinsicsRoot: common.Hash{}, 
-		Digest: [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}},
-	}
 
 	tests := []struct {
 		name string
@@ -79,17 +67,7 @@ func TestMustEncodeHeader(t *testing.T) {
 			take: bh2,
 			want: enc2,
 		},
-		{
-			name: "panic",
-			take: bh3,
-		},
 	}
-
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println("it's panic!!!:", err)
-		}
-	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
