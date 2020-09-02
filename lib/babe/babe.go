@@ -388,14 +388,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
 	}
 
-	//i := 0 // increments each slot
-	//slotNum := startSlot
-
 	for i := 0; i < int(b.config.EpochLength-intoEpoch); i++ {
-		// if i >= int(b.config.EpochLength-intoEpoch) {
-		// 	break
-		// }
-
 		select {
 		case <-b.ctx.Done():
 			return
