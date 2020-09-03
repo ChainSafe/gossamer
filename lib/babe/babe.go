@@ -45,6 +45,7 @@ type Service struct {
 	logger log.Logger
 	ctx    context.Context
 	cancel context.CancelFunc
+	paused bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -191,14 +192,28 @@ func (b *Service) Start() error {
 
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
-	b.pause <- struct{}{}
-	b.logger.Info("service paused")
+	if b.paused {
+		return errors.New("service already paused")
+	}
+
+	select {
+	case b.pause <- struct{}{}:
+		b.logger.Info("service paused")
+	default:
+	}
+
+	b.paused = true
 	return nil
 }
 
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
+	if !b.paused {
+		return errors.New("service not paused")
+	}
+
 	go b.initiate()
+	b.paused = false
 	b.logger.Info("service resumed")
 	return nil
 }
@@ -277,6 +292,11 @@ func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
+}
+
+// IsPaused returns if the service is paused or not (ie. producing blocks)
+func (b *Service) IsPaused() bool {
+	return b.paused
 }
 
 func (b *Service) safeSend(msg types.Block) error {
