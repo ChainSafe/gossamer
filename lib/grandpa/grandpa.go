@@ -45,6 +45,7 @@ type Service struct {
 	keypair       *ed25519.Keypair
 	mapLock       sync.Mutex
 	chanLock      sync.Mutex
+	authority     bool // run the service as an authority (ie participate in voting)
 
 	// current state information
 	state            *State                             // current state
@@ -77,6 +78,7 @@ type Config struct {
 	Voters        []*Voter
 	SetID         uint64
 	Keypair       *ed25519.Keypair
+	Authority     bool
 }
 
 // NewService returns a new GRANDPA Service instance.
@@ -90,7 +92,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilDigestHandler
 	}
 
-	if cfg.Keypair == nil {
+	if cfg.Keypair == nil && cfg.Authority {
 		return nil, ErrNilKeypair
 	}
 
@@ -118,6 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:         cfg.BlockState,
 		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
+		authority:          cfg.Authority,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
 		pvJustifications:   make(map[common.Hash][]*Justification),
@@ -138,6 +141,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
+	if !s.authority {
+		return nil
+	}
+
 	// TODO: determine if we need to send a catch-up request
 
 	go func() {
@@ -157,6 +164,11 @@ func (s *Service) Stop() error {
 
 	s.cancel()
 	close(s.out)
+
+	if !s.authority {
+		return nil
+	}
+
 	s.tracker.stop()
 	return nil
 }
