@@ -53,7 +53,7 @@ var testKeyTypes = []struct {
 	{testType: "imon", expectedType: crypto.Sr25519Type},
 	{testType: "audi", expectedType: crypto.Sr25519Type},
 	{testType: "dumy", expectedType: crypto.Sr25519Type},
-	{testType: "xxxx", expectedType: "unknown keytype"},
+	{testType: "xxxx", expectedType: crypto.UnknownType},
 }
 
 func TestDetermineKeyType(t *testing.T) {

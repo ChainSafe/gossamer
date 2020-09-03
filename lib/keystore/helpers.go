@@ -316,7 +316,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 	case "dumy":
 		return crypto.Sr25519Type
 	}
-	return "unknown keytype"
+	return crypto.UnknownType
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
