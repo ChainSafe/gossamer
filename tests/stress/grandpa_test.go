@@ -67,7 +67,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestStress_Grandpa_SixAuthorities")
 	}
-	
+
 	numNodes = 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
