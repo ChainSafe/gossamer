@@ -146,7 +146,7 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 
 func TestMessageHandler_VoteMessage(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -187,7 +187,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -216,7 +216,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 
 func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -255,7 +255,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 
 func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -286,7 +286,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 
 func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -325,7 +325,7 @@ func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -350,7 +350,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -375,7 +375,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -448,7 +448,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 func TestVerifyJustification(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -477,7 +477,7 @@ func TestVerifyJustification(t *testing.T) {
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -507,7 +507,7 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -539,7 +539,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -569,7 +569,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -601,7 +601,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 

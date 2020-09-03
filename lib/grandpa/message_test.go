@@ -28,7 +28,7 @@ var testAuthorityID = [32]byte{5, 6, 7, 8}
 
 func TestVoteMessageToConsensusMessage(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -80,7 +80,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -116,7 +116,7 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 
 func TestNewCatchUpResponse(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 

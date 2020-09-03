@@ -29,7 +29,7 @@ import (
 
 func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	}
 
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 func TestValidateMessage_Valid(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -248,7 +248,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 func TestValidateMessage_Equivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -290,7 +290,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -321,7 +321,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)

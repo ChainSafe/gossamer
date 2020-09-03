@@ -69,7 +69,7 @@ func newTestState(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func newTestVoters(t *testing.T) []*Voter {
+func newTestVoters() []*Voter {
 	voters := []*Voter{}
 	for i, k := range kr.Keys {
 		voters = append(voters, &Voter{
@@ -83,7 +83,7 @@ func newTestVoters(t *testing.T) []*Voter {
 
 func newTestService(t *testing.T) (*Service, *state.Service) {
 	st := newTestState(t)
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 
 	cfg := &Config{
 		BlockState:    st.Block,
