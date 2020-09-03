@@ -54,8 +54,8 @@ type Service struct {
 	epochState       EpochState
 
 	// BABE authority keypair
-	keypair *sr25519.Keypair
-
+	keypair *sr25519.Keypair // TODO: change to BABE keystore
+ 
 	// Current runtime
 	rt *runtime.Runtime
 

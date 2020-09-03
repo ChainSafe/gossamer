@@ -44,6 +44,15 @@ type GlobalKeystore struct {
 	Dumy Keystore
 }
 
+// NewGlobalKeystore returns a new GlobalKeystore
 func NewGlobalKeystore() *GlobalKeystore {
-	return &GlobalKeystore{}
+	return &GlobalKeystore{
+		Babe: NewBasicKeystore("babe", crypto.Sr25519Type),
+		Gran: NewBasicKeystore("gran", crypto.Ed25519Type),
+		Acco: NewGenericKeystore("acco"), // TODO: which type is used? can an account be either type?
+		Aura: NewBasicKeystore("aura", crypto.Sr25519Type),
+		Imon: NewBasicKeystore("imon", crypto.Sr25519Type),
+		Audi: NewBasicKeystore("audi", crypto.Sr25519Type),
+		Dumy: NewGenericKeystore("dumy"),
+	}
 }
