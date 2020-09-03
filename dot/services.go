@@ -196,7 +196,8 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		Keystore:                ks,
 		Runtime:                 rt,
 		MsgRec:                  networkMsgs, // message channel from network service to core service
-		MsgSend:                 coreMsgs,    // message channel from core service to network service
+		// todo ed channel_refactor
+		//MsgSend:                 coreMsgs,    // message channel from core service to network service
 		IsBlockProducer:         cfg.Core.BabeAuthority,
 		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
 		Verifier:                verifier,

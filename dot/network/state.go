@@ -37,6 +37,10 @@ type NetworkState interface {
 	SetPeers([]common.PeerInfo)
 }
 
+type MessageSender interface {
+	SendMessage(Message)
+}
+
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response

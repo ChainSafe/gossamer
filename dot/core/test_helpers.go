@@ -188,9 +188,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.MsgRec = make(chan network.Message, 10)
 	}
 
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan network.Message, 10)
-	}
+	// todo ed channel_refactor
+	// todo ed determine if messageSender is needed here
+	//if cfg.MsgSend == nil {
+	//	cfg.MsgSend = make(chan network.Message, 10)
+	//}
 
 	if cfg.Verifier == nil {
 		cfg.Verifier = new(mockVerifier)
