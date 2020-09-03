@@ -55,7 +55,7 @@ type Service struct {
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
- 
+
 	// Current runtime
 	rt *runtime.Runtime
 

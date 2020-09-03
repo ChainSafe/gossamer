@@ -119,7 +119,7 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 			{
 				Vote:        testVote,
 				Signature:   testSignature,
-				AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+				AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 			},
 		},
 	}
@@ -145,20 +145,7 @@ func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_VoteMessage(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	v, err := NewVoteFromHash(st.Block.BestBlockHash(), st.Block)
 	require.NoError(t, err)
@@ -186,21 +173,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	gs.state.round = 77
 
 	just := &Justification{
@@ -210,25 +183,12 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	}
 
 	h := NewMessageHandler(gs, st.Block)
-	err = h.verifyJustification(just, just.Vote, gs.state.round, gs.state.setID, precommit)
+	err := h.verifyJustification(just, just.Vote, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
 func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	round := uint64(77)
 	gs.state.round = round
@@ -254,20 +214,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 }
 
 func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	round := uint64(77)
 	gs.state.round = round
@@ -285,20 +232,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 }
 
 func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	gs.justification[77] = []*Justification{
 		{
@@ -324,20 +258,7 @@ func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	req := newCatchUpRequest(77, 0)
 	cm, err := req.ToConsensusMessage()
@@ -349,20 +270,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	req := newCatchUpRequest(1, 77)
 	cm, err := req.ToConsensusMessage()
@@ -374,20 +282,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 }
 
 func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
 	// set up needed info for response
 	round := uint64(1)
@@ -399,7 +294,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		number: 1,
 	}
 
-	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	err := gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
@@ -447,80 +342,38 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 }
 
 func TestVerifyJustification(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
 	vote := NewVote(testHash, 123)
 	just := &Justification{
 		Vote:        vote,
-		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice, precommit),
-		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
 	require.NoError(t, err)
 }
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
 	vote := NewVote(testHash, 123)
 	just := &Justification{
 		Vote: vote,
 		// create signed vote with mismatched vote number
-		Signature:   createSignedVoteMsg(t, vote.number+1, 77, gs.state.setID, kr.Alice, precommit),
-		AuthorityID: kr.Alice.Public().(*ed25519.PublicKey).AsBytes(),
+		Signature:   createSignedVoteMsg(t, vote.number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
+	err := h.verifyJustification(just, vote, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 	// sign vote with key not in authority set
 	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
@@ -538,21 +391,7 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
 	just := buildTestJustifications(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
@@ -568,21 +407,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
+	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
 	round := uint64(1)
@@ -595,27 +420,14 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 		Number:                 round,
 	}
 
-	err = h.verifyPreCommitJustification(msg)
+	err := h.verifyPreCommitJustification(msg)
 	require.NoError(t, err)
 }
 
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
-	st := newTestState(t)
-	voters := newTestVoters(t)
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
+	gs, st := newTestService(t)
 
-	cfg := &Config{
-		BlockState:    st.Block,
-		DigestHandler: &mockDigestHandler{},
-		Voters:        voters,
-		Keypair:       kr.Alice,
-	}
-
-	gs, err := NewService(cfg)
-	require.NoError(t, err)
-
-	err = st.Block.SetHeader(testHeader)
+	err := st.Block.SetHeader(testHeader)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
