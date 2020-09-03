@@ -1098,7 +1098,7 @@ func TestGrandpa_NonAuthority(t *testing.T) {
 	err = st.Block.SetFinalizedHash(head, gs.state.round, gs.state.setID)
 	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond * 10)
+	time.Sleep(time.Millisecond * 100)
 
 	require.Equal(t, uint64(2), gs.state.round)
 	require.Equal(t, uint64(0), gs.state.setID)
