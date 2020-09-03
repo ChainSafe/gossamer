@@ -39,9 +39,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-// ErrNoKeysProvided is returned when no keys are given for an authority node
-var ErrNoKeysProvided = errors.New("no keys provided for authority node")
-
 // State Service
 
 // createStateService creates the state service and initialize state database
@@ -111,10 +108,11 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks k
 	)
 
 	if ks.Name() != "babe" || ks.Type() != crypto.Sr25519Type {
-		return nil, errors.New("invalid keystore type")
+		return nil, ErrInvalidKeystoreType
 	}
 
 	kps := ks.Keypairs()
+	logger.Info("keystore", "keys", kps)
 	if len(kps) == 0 {
 		return nil, ErrNoKeysProvided
 	}
@@ -316,7 +314,7 @@ func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, d
 	}
 
 	if ks.Name() != "gran" || ks.Type() != crypto.Ed25519Type {
-		return nil, errors.New("invalid keystore type")
+		return nil, ErrInvalidKeystoreType
 	}
 
 	voters := grandpa.NewVotersFromAuthorityData(ad)

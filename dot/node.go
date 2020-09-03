@@ -216,8 +216,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Authority && ks.Acco.(*keystore.GenericKeystore).NumSr25519Keys() == 0 {
-		return nil, fmt.Errorf("no keys provided for authority node")
+	if cfg.Core.Authority && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+		return nil, ErrNoKeysProvided
 	}
 
 	// Node Services

@@ -136,6 +136,7 @@ func TestNewNode_Authority(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	err = keystore.LoadKeystore("alice", ks.Gran)
 	require.Nil(t, err)
+	require.Equal(t, 1, ks.Gran.Size())
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.Nil(t, err)
 	require.Equal(t, 1, ks.Babe.Size())
