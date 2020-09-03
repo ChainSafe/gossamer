@@ -141,10 +141,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	if !s.authority {
-		return nil
-	}
-
 	// TODO: determine if we need to send a catch-up request
 
 	go func() {
@@ -232,19 +228,22 @@ func (s *Service) initiate() error {
 		s.tracker.stop()
 	}
 
-	var err error
-	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
-	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-	s.pcJustifications = make(map[common.Hash][]*Justification)
-	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-	s.justification = make(map[uint64][]*Justification)
-	s.tracker, err = newTracker(s.blockState, s.in)
-	if err != nil {
-		return err
+	if s.authority {
+		var err error
+		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
+		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
+		s.pcJustifications = make(map[common.Hash][]*Justification)
+		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+		s.justification = make(map[uint64][]*Justification)
+
+		s.tracker, err = newTracker(s.blockState, s.in)
+		if err != nil {
+			return err
+		}
+		s.tracker.start()
+		s.logger.Trace("[grandpa] started message tracker")
 	}
-	s.tracker.start()
-	s.logger.Trace("[grandpa] started message tracker")
 
 	// don't begin grandpa until we are at block 1
 	h, err := s.blockState.BestBlockHeader()
@@ -260,9 +259,17 @@ func (s *Service) initiate() error {
 	}
 
 	for {
-		err := s.playGrandpaRound()
-		if err != nil {
-			return err
+		if s.authority {
+			err := s.playGrandpaRound()
+			if err != nil {
+				return err
+			}
+		} else {
+			// if not a grandpa authority, wait for a block to be finalized in the current round
+			err = s.waitForFinalizedBlock()
+			if err != nil {
+				return err
+			}
 		}
 
 		if s.ctx.Err() != nil {
@@ -274,6 +281,36 @@ func (s *Service) initiate() error {
 			return err
 		}
 	}
+}
+
+func (s *Service) waitForFinalizedBlock() error {
+	ch := make(chan *types.Header)
+	id, err := s.blockState.RegisterFinalizedChannel(ch)
+	if err != nil {
+		return err
+	}
+
+	defer s.blockState.UnregisterFinalizedChannel(id)
+
+	for {
+		done := false
+
+		select {
+		case header := <-ch:
+			if header != nil && header.Number.Int64() >= s.head.Number.Int64() {
+				s.head = header
+				done = true
+			}
+		case <-s.ctx.Done():
+			return nil
+		}
+
+		if done {
+			break
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) waitForFirstBlock() error {
