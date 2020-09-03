@@ -109,6 +109,16 @@ func (ks *GenericKeystore) Keypairs() []crypto.Keypair {
 	return srkeys
 }
 
+// NumSr25519Keys returns the number of sr25519 keys in the keystore
+func (ks *GenericKeystore) NumSr25519Keys() int {
+	return len(ks.Sr25519Keypairs())
+}
+
+// NumEd25519Keys returns the number of ed25519 keys in the keystore
+func (ks *GenericKeystore) NumEd25519Keys() int {
+	return len(ks.Ed25519Keypairs())
+}
+
 // Ed25519PublicKeys keys
 func (ks *GenericKeystore) Ed25519PublicKeys() []crypto.PublicKey {
 	edkeys := []crypto.PublicKey{}

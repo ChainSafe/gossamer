@@ -122,27 +122,25 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 }
 
 // LoadKeystore loads a new keystore and inserts the test key into the keystore
-func LoadKeystore(key string, name string, typ crypto.KeyType) (Keystore, error) {
-	ks := NewBasicKeystore(name, typ)
-
+func LoadKeystore(key string, ks Keystore) error {
 	if key != "" {
 
 		var kr Keyring
 		var err error
 
-		switch typ {
+		switch ks.Type() {
 		case crypto.Sr25519Type:
 			kr, err = NewSr25519Keyring()
 			if err != nil {
-				return nil, fmt.Errorf("failed to create keyring: %s", err)
+				return fmt.Errorf("failed to create keyring: %s", err)
 			}
 		case crypto.Ed25519Type:
 			kr, err = NewEd25519Keyring()
 			if err != nil {
-				return nil, fmt.Errorf("failed to create keyring: %s", err)
+				return fmt.Errorf("failed to create keyring: %s", err)
 			}
 		default:
-			return nil, errors.New("unsupported key type")
+			return errors.New("unsupported key type")
 		}
 
 		switch strings.ToLower(key) {
@@ -165,11 +163,11 @@ func LoadKeystore(key string, name string, typ crypto.KeyType) (Keystore, error)
 		case "ian":
 			ks.Insert(kr.Ian())
 		default:
-			return nil, fmt.Errorf("invalid test key provided")
+			return fmt.Errorf("invalid test key provided")
 		}
 	}
 
-	return ks, nil
+	return nil
 }
 
 // ImportKeypair imports a key specified by its filename into a subdirectory

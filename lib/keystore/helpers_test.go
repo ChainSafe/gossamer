@@ -33,11 +33,13 @@ import (
 )
 
 func TestLoadKeystore(t *testing.T) {
-	ks, err := LoadKeystore("alice", "test", crypto.Sr25519Type)
+	ks := NewBasicKeystore("test", crypto.Sr25519Type)
+	err := LoadKeystore("alice", ks)
 	require.Nil(t, err)
 	require.Equal(t, 1, ks.Size())
 
-	ks, err = LoadKeystore("bob", "test", crypto.Ed25519Type)
+	ks = NewBasicKeystore("test", crypto.Ed25519Type)
+	err = LoadKeystore("bob", ks)
 	require.Nil(t, err)
 	require.Equal(t, 1, ks.Size())
 }
