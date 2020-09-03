@@ -252,7 +252,7 @@ func (s *Service) initiate() error {
 	}
 
 	if h != nil && h.Number.Int64() == 0 {
-		err := s.waitForFirstBlock()
+		err = s.waitForFirstBlock()
 		if err != nil {
 			return err
 		}
@@ -260,7 +260,7 @@ func (s *Service) initiate() error {
 
 	for {
 		if s.authority {
-			err := s.playGrandpaRound()
+			err = s.playGrandpaRound()
 			if err != nil {
 				return err
 			}

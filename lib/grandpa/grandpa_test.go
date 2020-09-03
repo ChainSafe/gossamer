@@ -70,9 +70,6 @@ func newTestState(t *testing.T) *state.Service {
 }
 
 func newTestVoters(t *testing.T) []*Voter {
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
 	voters := []*Voter{}
 	for i, k := range kr.Keys {
 		voters = append(voters, &Voter{

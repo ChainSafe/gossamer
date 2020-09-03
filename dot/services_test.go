@@ -85,7 +85,7 @@ func TestCreateCoreService(t *testing.T) {
 	coreMsgs := make(chan network.Message)
 	networkMsgs := make(chan network.Message)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil, nil)
+	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
@@ -215,7 +215,7 @@ func TestCreateRPCService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil, nil)
+	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
@@ -294,7 +294,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil, nil)
+	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
@@ -346,7 +346,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil, nil)
+	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
