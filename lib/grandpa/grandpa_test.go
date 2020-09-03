@@ -1089,3 +1089,20 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, block, pv)
 }
+
+func TestGrandpa_NonAuthority(t *testing.T) {
+	gs, st := newTestService(t)
+	gs.authority = false
+	err := gs.Start()
+	require.NoError(t, err)
+
+	state.AddBlocksToState(t, st.Block, 8)
+	head := st.Block.BestBlockHash()
+	err = st.Block.SetFinalizedHash(head, gs.state.round, gs.state.setID)
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 10)
+
+	require.Equal(t, uint64(2), gs.state.round)
+	require.Equal(t, uint64(0), gs.state.setID)
+}
