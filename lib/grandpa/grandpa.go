@@ -224,6 +224,7 @@ func (s *Service) initiate() error {
 	}
 
 	s.state.round++
+	s.logger.Trace("incrementing grandpa round", "next round", s.state.round)
 	if s.tracker != nil {
 		s.tracker.stop()
 	}
@@ -242,7 +243,7 @@ func (s *Service) initiate() error {
 			return err
 		}
 		s.tracker.start()
-		s.logger.Trace("[grandpa] started message tracker")
+		s.logger.Trace("started message tracker")
 	}
 
 	// don't begin grandpa until we are at block 1
