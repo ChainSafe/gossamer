@@ -33,11 +33,13 @@ import (
 )
 
 func TestLoadKeystore(t *testing.T) {
-	ks, err := LoadKeystore("alice")
+	ks, err := LoadKeystore("alice", "test", crypto.Sr25519Type)
 	require.Nil(t, err)
+	require.Equal(t, 1, ks.Size())
 
-	require.Equal(t, 1, ks.NumSr25519Keys())
-	require.Equal(t, 1, ks.NumEd25519Keys())
+	ks, err = LoadKeystore("bob", "test", crypto.Ed25519Type)
+	require.Nil(t, err)
+	require.Equal(t, 1, ks.Size())
 }
 
 var testKeyTypes = []struct {
@@ -278,7 +280,7 @@ func TestUnlockKeys(t *testing.T) {
 
 	t.Log(keyfile)
 
-	ks := NewKeystore()
+	ks := NewBasicKeystore("test", crypto.Sr25519Type)
 
 	err = UnlockKeys(ks, testdir, "0", string(testPassword))
 	require.Nil(t, err)
@@ -292,7 +294,7 @@ func TestUnlockKeys(t *testing.T) {
 	kp, err := PrivateKeyToKeypair(priv)
 	require.Nil(t, err)
 
-	expected := ks.Get(pub.Address())
+	expected := ks.GetKeypair(pub)
 	if !reflect.DeepEqual(expected, kp) {
 		t.Fatalf("Fail: got %v expected %v", expected, kp)
 	}
