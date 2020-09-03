@@ -177,12 +177,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		return nil, err
 	}
 
-	var handler core.ConsensusMessageHandler
-	if gs, ok := fg.(*grandpa.Service); ok {
-		handler = grandpa.NewMessageHandler(gs, stateSrvc.Block)
-	} else {
-		handler = grandpa.NewMessageHandler(nil, stateSrvc.Block)
-	}
+	handler := grandpa.NewMessageHandler(fg.(*grandpa.Service), stateSrvc.Block)
 
 	// set core configuration
 	coreConfig := &core.Config{
@@ -329,6 +324,7 @@ func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, d
 		SetID:         1,
 		Voters:        voters,
 		Keypair:       keys[0].(*ed25519.Keypair),
+		Authority:     cfg.Core.GrandpaAuthority,
 	}
 
 	return grandpa.NewService(gsCfg)
