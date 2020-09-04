@@ -29,13 +29,13 @@ import (
 
 // GenericKeystore holds keys of any type
 type GenericKeystore struct {
-	name string
+	name Name
 	keys map[common.Address]crypto.Keypair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
 // NewGenericKeystore creates a new GenericKeystore
-func NewGenericKeystore(name string) *GenericKeystore {
+func NewGenericKeystore(name Name) *GenericKeystore {
 	return &GenericKeystore{
 		name: name,
 		keys: make(map[common.Address]crypto.Keypair),
@@ -43,7 +43,7 @@ func NewGenericKeystore(name string) *GenericKeystore {
 }
 
 // Name returns the keystore's name
-func (ks *GenericKeystore) Name() string {
+func (ks *GenericKeystore) Name() Name {
 	return ks.name
 }
 

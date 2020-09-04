@@ -26,14 +26,14 @@ import (
 
 // BasicKeystore holds keys of a certain type
 type BasicKeystore struct {
-	name string
+	name Name
 	typ  crypto.KeyType
 	keys map[common.Address]crypto.Keypair // map of public key encodings to keypairs
 	lock sync.RWMutex
 }
 
 // NewBasicKeystore creates a new BasicKeystore with the given key type
-func NewBasicKeystore(name string, typ crypto.KeyType) *BasicKeystore {
+func NewBasicKeystore(name Name, typ crypto.KeyType) *BasicKeystore {
 	return &BasicKeystore{
 		name: name,
 		typ:  typ,
@@ -42,7 +42,7 @@ func NewBasicKeystore(name string, typ crypto.KeyType) *BasicKeystore {
 }
 
 // Name returns the keystore's name
-func (ks *BasicKeystore) Name() string {
+func (ks *BasicKeystore) Name() Name {
 	return ks.name
 }
 

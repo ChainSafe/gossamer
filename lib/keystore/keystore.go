@@ -21,9 +21,23 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
 
+// Name represents a defined keystore name
+type Name string
+
+//nolint
+var (
+	BabeName Name = "babe"
+	GranName Name = "gran"
+	AccoName Name = "acco"
+	AuraName Name = "aura"
+	ImonName Name = "imon"
+	AudiName Name = "audi"
+	DumyName Name = "dumy"
+)
+
 // Keystore provides key management functionality
 type Keystore interface {
-	Name() string // TODO: change to typed vars
+	Name() Name
 	Type() crypto.KeyType
 	Insert(kp crypto.Keypair)
 	GetKeypairFromAddress(pub common.Address) crypto.Keypair
@@ -47,12 +61,12 @@ type GlobalKeystore struct {
 // NewGlobalKeystore returns a new GlobalKeystore
 func NewGlobalKeystore() *GlobalKeystore {
 	return &GlobalKeystore{
-		Babe: NewBasicKeystore("babe", crypto.Sr25519Type),
-		Gran: NewBasicKeystore("gran", crypto.Ed25519Type),
-		Acco: NewGenericKeystore("acco"), // TODO: which type is used? can an account be either type?
-		Aura: NewBasicKeystore("aura", crypto.Sr25519Type),
-		Imon: NewBasicKeystore("imon", crypto.Sr25519Type),
-		Audi: NewBasicKeystore("audi", crypto.Sr25519Type),
-		Dumy: NewGenericKeystore("dumy"),
+		Babe: NewBasicKeystore(BabeName, crypto.Sr25519Type),
+		Gran: NewBasicKeystore(GranName, crypto.Ed25519Type),
+		Acco: NewGenericKeystore(AccoName), // TODO: which type is used? can an account be either type?
+		Aura: NewBasicKeystore(AuraName, crypto.Sr25519Type),
+		Imon: NewBasicKeystore(ImonName, crypto.Sr25519Type),
+		Audi: NewBasicKeystore(AudiName, crypto.Sr25519Type),
+		Dumy: NewGenericKeystore(DumyName),
 	}
 }
