@@ -129,18 +129,16 @@ func LoadKeystore(key string, ks Keystore) error {
 		var err error
 
 		switch ks.Type() {
-		case crypto.Sr25519Type:
-			kr, err = NewSr25519Keyring()
-			if err != nil {
-				return fmt.Errorf("failed to create keyring: %s", err)
-			}
 		case crypto.Ed25519Type:
 			kr, err = NewEd25519Keyring()
 			if err != nil {
 				return fmt.Errorf("failed to create keyring: %s", err)
 			}
 		default:
-			return errors.New("unsupported key type")
+			kr, err = NewSr25519Keyring()
+			if err != nil {
+				return fmt.Errorf("failed to create keyring: %s", err)
+			}
 		}
 
 		switch strings.ToLower(key) {
