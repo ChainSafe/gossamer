@@ -88,38 +88,47 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 	return kr, nil
 }
 
+// Alice returns Alice's key
 func (kr *Sr25519Keyring) Alice() crypto.Keypair {
 	return kr.KeyAlice
 }
 
+// Bob returns Bob's key
 func (kr *Sr25519Keyring) Bob() crypto.Keypair {
 	return kr.KeyBob
 }
 
+// Charlie returns Charlie's key
 func (kr *Sr25519Keyring) Charlie() crypto.Keypair {
 	return kr.KeyCharlie
 }
 
+// Dave returns Dave's key
 func (kr *Sr25519Keyring) Dave() crypto.Keypair {
 	return kr.KeyDave
 }
 
+// Eve returns Eve's key
 func (kr *Sr25519Keyring) Eve() crypto.Keypair {
 	return kr.KeyEve
 }
 
+// Ferdie returns Ferdie's key
 func (kr *Sr25519Keyring) Ferdie() crypto.Keypair {
 	return kr.KeyFerdie
 }
 
+// George returns George's key
 func (kr *Sr25519Keyring) George() crypto.Keypair {
 	return kr.KeyGeorge
 }
 
+// Heather returns Heather's key
 func (kr *Sr25519Keyring) Heather() crypto.Keypair {
 	return kr.KeyHeather
 }
 
+// Ian returns Ian's key
 func (kr *Sr25519Keyring) Ian() crypto.Keypair {
 	return kr.KeyIan
 }
@@ -160,38 +169,47 @@ func NewEd25519Keyring() (*Ed25519Keyring, error) {
 	return kr, nil
 }
 
+// Alice returns Alice's key
 func (kr *Ed25519Keyring) Alice() crypto.Keypair {
 	return kr.KeyAlice
 }
 
+// Bob returns Bob's key
 func (kr *Ed25519Keyring) Bob() crypto.Keypair {
 	return kr.KeyBob
 }
 
+// Charlie returns Charlie's key
 func (kr *Ed25519Keyring) Charlie() crypto.Keypair {
 	return kr.KeyCharlie
 }
 
+// Dave returns Dave's key
 func (kr *Ed25519Keyring) Dave() crypto.Keypair {
 	return kr.KeyDave
 }
 
+// Eve returns Eve's key
 func (kr *Ed25519Keyring) Eve() crypto.Keypair {
 	return kr.KeyEve
 }
 
+// Ferdie returns Ferdie's key
 func (kr *Ed25519Keyring) Ferdie() crypto.Keypair {
 	return kr.KeyFerdie
 }
 
+// George returns George's key
 func (kr *Ed25519Keyring) George() crypto.Keypair {
 	return kr.KeyGeorge
 }
 
+// Heather returns Heather's key
 func (kr *Ed25519Keyring) Heather() crypto.Keypair {
 	return kr.KeyHeather
 }
 
+// Ian returns Ian's key
 func (kr *Ed25519Keyring) Ian() crypto.Keypair {
 	return kr.KeyIan
 }

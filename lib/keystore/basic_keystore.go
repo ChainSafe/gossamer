@@ -41,10 +41,12 @@ func NewBasicKeystore(name string, typ crypto.KeyType) *BasicKeystore {
 	}
 }
 
+// Name returns the keystore's name
 func (ks *BasicKeystore) Name() string {
 	return ks.name
 }
 
+// Type returns the keystore's key type
 func (ks *BasicKeystore) Type() crypto.KeyType {
 	return ks.typ
 }

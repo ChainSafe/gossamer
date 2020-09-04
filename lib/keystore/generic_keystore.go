@@ -42,10 +42,12 @@ func NewGenericKeystore(name string) *GenericKeystore {
 	}
 }
 
+// Name returns the keystore's name
 func (ks *GenericKeystore) Name() string {
 	return ks.name
 }
 
+// Type returns UnknownType since the keystore may contain keys of any type
 func (ks *GenericKeystore) Type() crypto.KeyType {
 	return crypto.UnknownType
 }

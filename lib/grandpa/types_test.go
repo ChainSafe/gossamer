@@ -28,7 +28,7 @@ import (
 )
 
 func TestPubkeyToVoter(t *testing.T) {
-	voters := newTestVoters(t)
+	voters := newTestVoters()
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
