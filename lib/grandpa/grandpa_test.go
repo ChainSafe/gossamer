@@ -1093,12 +1093,14 @@ func TestGrandpa_NonAuthority(t *testing.T) {
 	err := gs.Start()
 	require.NoError(t, err)
 
+	time.Sleep(time.Millisecond * 100)
+
 	state.AddBlocksToState(t, st.Block, 8)
 	head := st.Block.BestBlockHash()
 	err = st.Block.SetFinalizedHash(head, gs.state.round, gs.state.setID)
 	require.NoError(t, err)
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 100)
 
 	require.Equal(t, uint64(2), gs.state.round)
 	require.Equal(t, uint64(0), gs.state.setID)
