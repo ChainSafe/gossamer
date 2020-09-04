@@ -89,7 +89,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		BlockState:    st.Block,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
-		Keypair:       kr.Alice,
+		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
 	}
 
@@ -102,7 +102,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 func TestUpdateAuthorities(t *testing.T) {
 	gs, _ := newTestService(t)
 	gs.UpdateAuthorities([]*types.GrandpaAuthorityData{
-		{Key: kr.Alice.Public().(*ed25519.PublicKey), ID: 0},
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	})
 
 	err := gs.Start()
@@ -111,11 +111,11 @@ func TestUpdateAuthorities(t *testing.T) {
 	time.Sleep(time.Second)
 	require.Equal(t, uint64(1), gs.state.setID)
 	require.Equal(t, []*Voter{
-		{key: kr.Alice.Public().(*ed25519.PublicKey), id: 0},
+		{key: kr.Alice().Public().(*ed25519.PublicKey), id: 0},
 	}, gs.state.voters)
 
 	gs.UpdateAuthorities([]*types.GrandpaAuthorityData{
-		{Key: kr.Alice.Public().(*ed25519.PublicKey), ID: 0},
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
 	})
 
 	err = gs.Stop()
@@ -1088,6 +1088,10 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 }
 
 func TestGrandpa_NonAuthority(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
 	gs, st := newTestService(t)
 	gs.authority = false
 	err := gs.Start()
