@@ -397,6 +397,11 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
+	t, err := s.storageState.LoadTrie(block.Header.ParentHash)
+	if err != nil {
+		return err
+	}
+
 	// TODO: needs to be fixed by #941
 	// _, err := s.executeBlock(block)
 	// if err != nil {

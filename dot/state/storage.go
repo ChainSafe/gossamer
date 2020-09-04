@@ -49,7 +49,10 @@ func (storageDB *StorageDB) Get(key []byte) ([]byte, error) {
 
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
-	trie *trie.Trie
+	//trie *trie.Trie
+	head  common.Hash
+	tries map[common.Hash]*trie.Trie
+
 	db   *StorageDB
 	lock sync.RWMutex
 
@@ -66,7 +69,7 @@ func NewStorageDB(db chaindb.Database) *StorageDB {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, head common.Hash, t *trie.Trie) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -75,8 +78,13 @@ func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 		return nil, fmt.Errorf("cannot have nil trie")
 	}
 
+	tries := make(map[common.Hash]*trie.Trie)
+	tries[t.Hash()] = t
+
 	return &StorageState{
-		trie:    t,
+		//trie:    t,
+		head:    head,
+		tries:   t,
 		db:      NewStorageDB(db),
 		changed: make(map[byte]chan<- *KeyValue),
 	}, nil
@@ -84,13 +92,15 @@ func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
-func (s *StorageState) StoreInDB() error {
+func (s *StorageState) StoreInDB(root common.Hash) error {
 	return StoreTrie(s.db.db, s.trie)
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *StorageState) LoadFromDB(root common.Hash) error {
-	return LoadTrie(s.db.db, s.trie, root)
+func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
+	t := trie.NewEmptyTrie()
+	err := LoadTrie(s.db.db, t, root)
+	return t, err
 }
 
 // ExistsStorage check if the key exists in the storage trie
