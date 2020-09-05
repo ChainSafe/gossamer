@@ -30,6 +30,10 @@ import (
 var storagePrefix = []byte("storage")
 var codeKey = common.CodeKey
 
+func ErrTrieDoesNotExist(hash common.Hash) error {
+	return fmt.Errorf("trie with given root does not exist: %s", hash)
+}
+
 // StorageDB stores trie structure in an underlying database
 type StorageDB struct {
 	db chaindb.Database
@@ -69,7 +73,7 @@ func NewStorageDB(db chaindb.Database) *StorageDB {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, head common.Hash, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -79,50 +83,86 @@ func NewStorageState(db chaindb.Database, head common.Hash, t *trie.Trie) (*Stor
 	}
 
 	tries := make(map[common.Hash]*trie.Trie)
-	tries[t.Hash()] = t
+	tries[t.MustHash()] = t
 
 	return &StorageState{
 		//trie:    t,
-		head:    head,
-		tries:   t,
+		head:    t.MustHash(),
+		tries:   tries,
 		db:      NewStorageDB(db),
 		changed: make(map[byte]chan<- *KeyValue),
 	}, nil
 }
 
+func (s *StorageState) updateHead() {
+	// called when there is a new chain head
+}
+
+func (s *StorageState) pruneStorage() {
+	// when a block is finalized, delete non-finalized tries from DB and mapping
+	// as well as all states before finalized block
+	// TODO: pruning options?
+}
+
+func (s *StorageState) TrieState(root common.Hash) (*TrieState, error) {
+	if s.tries[root] == nil {
+		return nil, ErrTrieDoesNotExist(root)
+	}
+
+	return NewTrieState(s.tries[root]), nil
+}
+
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
 func (s *StorageState) StoreInDB(root common.Hash) error {
-	return StoreTrie(s.db.db, s.trie)
+	if s.tries[root] == nil {
+
+	}
+	return StoreTrie(s.db.db, s.tries[root])
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
 	err := LoadTrie(s.db.db, t, root)
-	return t, err
+	if err != nil {
+		return nil, err
+	}
+
+	s.tries[t.MustHash()] = t
+	return t, nil
 }
 
-// ExistsStorage check if the key exists in the storage trie
-func (s *StorageState) ExistsStorage(key []byte) (bool, error) {
+// ExistsStorage check if the key exists in the storage trie with the given storage hash
+// If no hash is provided, the current chain head is used
+func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error) {
+	if hash == nil {
+		*hash = s.head
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	val, err := s.trie.Get(key)
+	val, err := s.tries[*hash].Get(key)
 	return val != nil, err
 }
 
-// GetStorage gets the object from the trie using key
-func (s *StorageState) GetStorage(key []byte) ([]byte, error) {
+// GetStorage gets the object from the trie using the given key and storage hash
+// If no hash is provided, the current chain head is used
+func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error) {
+	if hash == nil {
+		*hash = s.head
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.trie.Get(key)
+	return s.tries[*hash].Get(key)
 }
 
-// StorageRoot returns the trie hash
+// StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.trie.Hash()
+	return s.tries[s.head].Hash()
 }
 
 // EnumeratedTrieRoot not implemented
@@ -131,87 +171,99 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	panic("not implemented")
 }
 
-// SetStorage set the storage value for a given key in the trie
-func (s *StorageState) SetStorage(key []byte, value []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	kv := &KeyValue{
-		Key:   key,
-		Value: value,
-	}
-	err := s.trie.Put(key, value)
-	if err != nil {
-		return err
-	}
-	s.notifyChanged(kv)
-	return nil
-}
+// // SetStorage set the storage value for a given key in the trie
+// func (s *StorageState) SetStorage(key []byte, value []byte) error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
+// 	kv := &KeyValue{
+// 		Key:   key,
+// 		Value: value,
+// 	}
+// 	err := s.trie.Put(key, value)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	s.notifyChanged(kv) // TODO: what is this used for? will
+// 	return nil
+// }
 
-// ClearPrefix not implemented
-func (s *StorageState) ClearPrefix(prefix []byte) {
-	// Implemented in ext_clear_prefix
-	panic("not implemented")
-}
+// // ClearPrefix not implemented
+// func (s *StorageState) ClearPrefix(prefix []byte) {
+// 	// Implemented in ext_clear_prefix
+// 	panic("not implemented")
+// }
 
-// ClearStorage will delete a key/value from the trie for a given @key
-func (s *StorageState) ClearStorage(key []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	kv := &KeyValue{
-		Key:   key,
-		Value: nil,
-	}
-	err := s.trie.Delete(key)
-	if err != nil {
-		return err
-	}
-	s.notifyChanged(kv)
-	return nil
-}
+// // ClearStorage will delete a key/value from the trie for a given @key
+// func (s *StorageState) ClearStorage(key []byte) error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
+// 	kv := &KeyValue{
+// 		Key:   key,
+// 		Value: nil,
+// 	}
+// 	err := s.trie.Delete(key)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	s.notifyChanged(kv)
+// 	return nil
+// }
 
 // Entries returns Entries from the trie
-func (s *StorageState) Entries() map[string][]byte {
+func (s *StorageState) Entries(hash *common.Hash) map[string][]byte {
+	if hash == nil {
+		*hash = s.head
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.trie.Entries()
+	return s.tries[*hash].Entries()
 }
 
-// SetStorageChild return PutChild from the trie
-func (s *StorageState) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	return s.trie.PutChild(keyToChild, child)
-}
+// // SetStorageChild return PutChild from the trie
+// func (s *StorageState) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
+// 	return s.trie.PutChild(keyToChild, child)
+// }
 
 // GetStorageChild return GetChild from the trie
-func (s *StorageState) GetStorageChild(keyToChild []byte) (*trie.Trie, error) {
+func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
+	if hash == nil {
+		*hash = s.head
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.trie.GetChild(keyToChild)
+	return s.tries[*hash].GetChild(keyToChild)
 }
 
-// SetStorageIntoChild return PutIntoChild from the trie
-func (s *StorageState) SetStorageIntoChild(keyToChild, key, value []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	return s.trie.PutIntoChild(keyToChild, key, value)
-}
+// // SetStorageIntoChild return PutIntoChild from the trie
+// func (s *StorageState) SetStorageIntoChild(keyToChild, key, value []byte) error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
+// 	return s.trie.PutIntoChild(keyToChild, key, value)
+// }
 
 // GetStorageFromChild return GetFromChild from the trie
-func (s *StorageState) GetStorageFromChild(keyToChild, key []byte) ([]byte, error) {
+func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []byte) ([]byte, error) {
+	if hash == nil {
+		*hash = s.head
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.trie.GetFromChild(keyToChild, key)
+	return s.tries[*hash].GetFromChild(keyToChild, key)
 }
 
 // LoadCode returns the runtime code (located at :code)
-func (s *StorageState) LoadCode() ([]byte, error) {
-	return s.GetStorage(codeKey)
+func (s *StorageState) LoadCode(hash *common.Hash) ([]byte, error) {
+	return s.GetStorage(hash, codeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime code (located at :code)
-func (s *StorageState) LoadCodeHash() (common.Hash, error) {
-	code, err := s.LoadCode()
+func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
+	code, err := s.LoadCode(hash)
 	if err != nil {
 		return common.NewHash([]byte{}), err
 	}
@@ -219,27 +271,27 @@ func (s *StorageState) LoadCodeHash() (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
-// SetBalance sets the balance for an account with the given public key
-func (s *StorageState) SetBalance(key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
+// // SetBalance sets the balance for an account with the given public key
+// func (s *StorageState) SetBalance(key [32]byte, balance uint64) error {
+// 	skey, err := common.BalanceKey(key)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
+// 	bb := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(bb, balance)
 
-	return s.SetStorage(skey, bb)
-}
+// 	return s.SetStorage(skey, bb)
+// }
 
 // GetBalance gets the balance for an account with the given public key
-func (s *StorageState) GetBalance(key [32]byte) (uint64, error) {
+func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
 	skey, err := common.BalanceKey(key)
 	if err != nil {
 		return 0, err
 	}
 
-	bal, err := s.GetStorage(skey)
+	bal, err := s.GetStorage(hash, skey)
 	if err != nil {
 		return 0, err
 	}

@@ -238,7 +238,7 @@ func (s *Service) Start() error {
 	logger.Debug("start", "latest state root", stateRoot)
 
 	// load current storage state
-	err = s.Storage.LoadFromDB(stateRoot)
+	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
 		return fmt.Errorf("failed to get state root from database: %s", err)
 	}
@@ -256,12 +256,12 @@ func (s *Service) Start() error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	err := StoreLatestStorageHash(s.db, s.Storage.trie)
+	err := StoreLatestStorageHash(s.db, s.Storage.tries[s.Storage.head])
 	if err != nil {
 		return err
 	}
 
-	err = s.Storage.StoreInDB()
+	err = s.Storage.StoreInDB(s.Storage.head)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	thash, err := s.Storage.trie.Hash()
+	thash, err := s.Storage.tries[s.Storage.head].Hash()
 	if err != nil {
 		return err
 	}
