@@ -101,7 +101,7 @@ func (s *StorageState) updateHead() {
 func (s *StorageState) pruneStorage() {
 	// when a block is finalized, delete non-finalized tries from DB and mapping
 	// as well as all states before finalized block
-	// TODO: pruning options?
+	// TODO: pruning options? eg archive, full, etc
 }
 
 func (s *StorageState) TrieState(root common.Hash) (*TrieState, error) {
@@ -137,7 +137,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 // If no hash is provided, the current chain head is used
 func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error) {
 	if hash == nil {
-		*hash = s.head
+		hash = &s.head
 	}
 
 	s.lock.RLock()
@@ -150,7 +150,7 @@ func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error
 // If no hash is provided, the current chain head is used
 func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error) {
 	if hash == nil {
-		*hash = s.head
+		hash = &s.head
 	}
 
 	s.lock.RLock()
@@ -170,22 +170,6 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	//TODO
 	panic("not implemented")
 }
-
-// // SetStorage set the storage value for a given key in the trie
-// func (s *StorageState) SetStorage(key []byte, value []byte) error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	kv := &KeyValue{
-// 		Key:   key,
-// 		Value: value,
-// 	}
-// 	err := s.trie.Put(key, value)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	s.notifyChanged(kv) // TODO: what is this used for? will
-// 	return nil
-// }
 
 // // ClearPrefix not implemented
 // func (s *StorageState) ClearPrefix(prefix []byte) {
@@ -212,7 +196,7 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 // Entries returns Entries from the trie
 func (s *StorageState) Entries(hash *common.Hash) map[string][]byte {
 	if hash == nil {
-		*hash = s.head
+		hash = &s.head
 	}
 
 	s.lock.RLock()
@@ -230,7 +214,7 @@ func (s *StorageState) Entries(hash *common.Hash) map[string][]byte {
 // GetStorageChild return GetChild from the trie
 func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
 	if hash == nil {
-		*hash = s.head
+		hash = &s.head
 	}
 
 	s.lock.RLock()
@@ -248,7 +232,7 @@ func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*t
 // GetStorageFromChild return GetFromChild from the trie
 func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []byte) ([]byte, error) {
 	if hash == nil {
-		*hash = s.head
+		hash = &s.head
 	}
 
 	s.lock.RLock()
@@ -271,19 +255,6 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
-// // SetBalance sets the balance for an account with the given public key
-// func (s *StorageState) SetBalance(key [32]byte, balance uint64) error {
-// 	skey, err := common.BalanceKey(key)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	bb := make([]byte, 8)
-// 	binary.LittleEndian.PutUint64(bb, balance)
-
-// 	return s.SetStorage(skey, bb)
-// }
-
 // GetBalance gets the balance for an account with the given public key
 func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, error) {
 	skey, err := common.BalanceKey(key)
@@ -301,4 +272,37 @@ func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, erro
 	}
 
 	return binary.LittleEndian.Uint64(bal), nil
+}
+
+// setStorage set the storage value for a given key in the trie. only for testing
+func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) error {
+	if hash == nil {
+		hash = &s.head
+	}
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	kv := &KeyValue{
+		Key:   key,
+		Value: value,
+	}
+	err := s.tries[*hash].Put(key, value)
+	if err != nil {
+		return err
+	}
+	s.notifyChanged(kv) // TODO: what is this used for?
+	return nil
+}
+
+// setBalance sets the balance for an account with the given public key. only for testing
+func (s *StorageState) setBalance(hash *common.Hash, key [32]byte, balance uint64) error {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return err
+	}
+
+	bb := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bb, balance)
+
+	return s.setStorage(hash, skey, bb)
 }

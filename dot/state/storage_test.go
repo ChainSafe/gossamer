@@ -25,12 +25,12 @@ func TestLoadCodeHash(t *testing.T) {
 	storage := newTestStorageState(t)
 	testCode := []byte("asdf")
 
-	err := storage.SetStorage(codeKey, testCode)
+	err := storage.setStorage(nil, codeKey, testCode)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resCode, err := storage.LoadCode()
+	resCode, err := storage.LoadCode(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestLoadCodeHash(t *testing.T) {
 		t.Fatalf("Fail: got %s expected %s", resCode, testCode)
 	}
 
-	resHash, err := storage.LoadCodeHash()
+	resHash, err := storage.LoadCodeHash(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +60,12 @@ func TestSetAndGetBalance(t *testing.T) {
 	key := [32]byte{1, 2, 3, 4, 5, 6, 7}
 	bal := uint64(99)
 
-	err := storage.SetBalance(key, bal)
+	err := storage.setBalance(nil, key, bal)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := storage.GetBalance(key)
+	res, err := storage.GetBalance(nil, key)
 	if err != nil {
 		t.Fatal(err)
 	}
