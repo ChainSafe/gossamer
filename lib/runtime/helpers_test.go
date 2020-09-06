@@ -388,7 +388,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.ctx.storage.GetStorage([]byte("testkey"))
+	val, err := rt.ctx.storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("testvalue"), val)
 
@@ -400,7 +400,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	val, err = rt.ctx.storage.GetStorage([]byte("testkey"))
+	val, err = rt.ctx.storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	// TODO: why does calling finalize_block modify the storage?
 	require.NotEqual(t, []byte("testvalue"), val)
@@ -425,7 +425,7 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.ctx.storage.GetStorage([]byte("testkey"))
+	val, err := rt.ctx.storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte(nil), val)
 }

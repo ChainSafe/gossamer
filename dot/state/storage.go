@@ -116,8 +116,9 @@ func (s *StorageState) TrieState(root common.Hash) (*TrieState, error) {
 // The key to the DB entry is the root hash of the trie
 func (s *StorageState) StoreInDB(root common.Hash) error {
 	if s.tries[root] == nil {
-
+		return ErrTrieDoesNotExist(root)
 	}
+
 	return StoreTrie(s.db.db, s.tries[root])
 }
 

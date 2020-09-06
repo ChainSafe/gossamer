@@ -137,7 +137,8 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	codeHash, err := cfg.StorageState.LoadCodeHash()
+	head := cfg.BlockState.BestBlockHash()
+	codeHash, err := cfg.StorageState.LoadCodeHash(&head)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,13 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	if s.storageState == nil {
 		return common.Hash{}, ErrNilStorageState
 	}
-	return s.storageState.StorageRoot()
+
+	ts, err := s.storageState.TrieState(s.blockState.BestBlockHash())
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return ts.Root()
 }
 
 func (s *Service) safeMsgSend(msg network.Message) {
@@ -262,7 +269,7 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash())
 			}
 
-			err = s.storageState.StoreInDB()
+			err = s.storageState.StoreInDB(s.blockState.BestBlockHash())
 			if err != nil {
 				log.Warn("failed to storage storage root in database", "error", err)
 			}
@@ -364,21 +371,27 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 // It also updates the BABE service and block verifier with the new runtime
 func (s *Service) handleRuntimeChanges(header *types.Header) error {
-	currentCodeHash, err := s.storageState.LoadCodeHash()
+	head := s.blockState.BestBlockHash()
+	currentCodeHash, err := s.storageState.LoadCodeHash(&head)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		code, err := s.storageState.LoadCode()
+		code, err := s.storageState.LoadCode(&head)
 		if err != nil {
 			return err
 		}
 
 		s.rt.Stop()
 
+		ts, err := s.storageState.TrieState(s.blockState.BestBlockHash())
+		if err != nil {
+			return err
+		}
+
 		cfg := &runtime.Config{
-			Storage:  s.storageState,
+			Storage:  ts,
 			Keystore: s.keys,
 			Imports:  runtime.RegisterImports_NodeRuntime,
 			LogLvl:   -1, // don't change runtime package log level

@@ -39,7 +39,7 @@ type Ctx struct {
 
 // Config represents a runtime configuration
 type Config struct {
-	//Storage  Storage
+	Storage  Storage
 	Keystore *keystore.Keystore
 	Imports  func() (*wasm.Imports, error)
 	LogLvl   log.Lvl
@@ -101,7 +101,7 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 	memAllocator := NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := &Ctx{
-		//storage:   cfg.Storage,
+		storage:   cfg.Storage,
 		allocator: memAllocator,
 		keystore:  cfg.Keystore,
 	}
