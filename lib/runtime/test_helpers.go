@@ -50,13 +50,13 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
-	rs := NewTestRuntimeStorage(tt)
+	s := NewTestRuntimeStorage(tt)
 
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	cfg := &Config{
-		Storage:  rs,
+		//Storage:  rs,
 		Keystore: keystore.NewKeystore(),
 		Imports:  importsFunc,
 		LogLvl:   lvl,
@@ -66,6 +66,7 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 
+	r.SetContext(s)
 	return r
 }
 
