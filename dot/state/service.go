@@ -111,16 +111,16 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		return fmt.Errorf("failed to write blocktree to database: %s", err)
 	}
 
-	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, t)
-	if err != nil {
-		return fmt.Errorf("failed to create storage state from trie: %s", err)
-	}
-
 	// create block state from genesis block
 	blockState, err := NewBlockStateFromGenesis(db, header)
 	if err != nil {
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
+	}
+
+	// create storage state from genesis trie
+	storageState, err := NewStorageState(db, blockState, t)
+	if err != nil {
+		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
 
 	epochState, err := NewEpochStateFromGenesis(db, epochInfo)
@@ -211,12 +211,6 @@ func (s *Service) Start() error {
 
 	logger.Trace("start", "best block hash", fmt.Sprintf("0x%x", bestHash))
 
-	// create storage state
-	s.Storage, err = NewStorageState(db, trie.NewEmptyTrie())
-	if err != nil {
-		return fmt.Errorf("failed to create storage state: %s", err)
-	}
-
 	// load blocktree
 	bt := blocktree.NewEmptyBlockTree(db)
 	err = bt.Load()
@@ -228,6 +222,12 @@ func (s *Service) Start() error {
 	s.Block, err = NewBlockState(db, bt)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %s", err)
+	}
+
+	// create storage state
+	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie())
+	if err != nil {
+		return fmt.Errorf("failed to create storage state: %s", err)
 	}
 
 	stateRoot, err := LoadLatestStorageHash(s.db)
@@ -256,12 +256,13 @@ func (s *Service) Start() error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	err := StoreLatestStorageHash(s.db, s.Storage.tries[s.Storage.head])
+	head := s.Block.BestBlockHash()
+	err := StoreLatestStorageHash(s.db, s.Storage.tries[head])
 	if err != nil {
 		return err
 	}
 
-	err = s.Storage.StoreInDB(s.Storage.head)
+	err = s.Storage.StoreInDB(head)
 	if err != nil {
 		return err
 	}
@@ -277,7 +278,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	thash, err := s.Storage.tries[s.Storage.head].Hash()
+	thash, err := s.Storage.tries[head].Hash()
 	if err != nil {
 		return err
 	}

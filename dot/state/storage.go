@@ -54,8 +54,9 @@ func (storageDB *StorageDB) Get(key []byte) ([]byte, error) {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	//trie *trie.Trie
-	head  common.Hash
-	tries map[common.Hash]*trie.Trie
+	//head  common.Hash
+	blockState *BlockState
+	tries      map[common.Hash]*trie.Trie
 
 	db   *StorageDB
 	lock sync.RWMutex
@@ -73,7 +74,7 @@ func NewStorageDB(db chaindb.Database) *StorageDB {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -88,15 +89,11 @@ func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 	logger.Crit("created storage state", "tries", tries)
 	return &StorageState{
 		//trie:    t,
-		head:    t.MustHash(),
-		tries:   tries,
-		db:      NewStorageDB(db),
-		changed: make(map[byte]chan<- *KeyValue),
+		blockState: blockState,
+		tries:      tries,
+		db:         NewStorageDB(db),
+		changed:    make(map[byte]chan<- *KeyValue),
 	}, nil
-}
-
-func (s *StorageState) updateHead() {
-	// called when there is a new chain head
 }
 
 func (s *StorageState) pruneStorage() {
@@ -151,7 +148,11 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 // If no hash is provided, the current chain head is used
 func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error) {
 	if hash == nil {
-		hash = &s.head
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return false, err
+		}
+		hash = &sr
 	}
 
 	s.lock.RLock()
@@ -164,7 +165,11 @@ func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error
 // If no hash is provided, the current chain head is used
 func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error) {
 	if hash == nil {
-		hash = &s.head
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
 	}
 
 	s.lock.RLock()
@@ -177,11 +182,30 @@ func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error)
 	return s.tries[*hash].Get(key)
 }
 
+func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
+	header, err := s.blockState.GetHeader(bhash)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetStorage(&header.StateRoot, key)
+}
+
 // StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
+	sr, err := s.blockState.BestBlockStateRoot()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.tries[s.head].Hash()
+
+	if s.tries[sr] == nil {
+		return common.Hash{}, ErrTrieDoesNotExist(sr)
+	}
+
+	return s.tries[sr].Hash()
 }
 
 // EnumeratedTrieRoot not implemented
@@ -213,14 +237,23 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 // }
 
 // Entries returns Entries from the trie
-func (s *StorageState) Entries(hash *common.Hash) map[string][]byte {
+func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	if hash == nil {
-		hash = &s.head
+		head, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &head
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.tries[*hash].Entries()
+
+	if s.tries[*hash] == nil {
+		return nil, ErrTrieDoesNotExist(*hash)
+	}
+
+	return s.tries[*hash].Entries(), nil
 }
 
 // // SetStorageChild return PutChild from the trie
@@ -233,11 +266,20 @@ func (s *StorageState) Entries(hash *common.Hash) map[string][]byte {
 // GetStorageChild return GetChild from the trie
 func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
 	if hash == nil {
-		hash = &s.head
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
+
+	if s.tries[*hash] == nil {
+		return nil, ErrTrieDoesNotExist(*hash)
+	}
+
 	return s.tries[*hash].GetChild(keyToChild)
 }
 
@@ -251,11 +293,19 @@ func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*t
 // GetStorageFromChild return GetFromChild from the trie
 func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []byte) ([]byte, error) {
 	if hash == nil {
-		hash = &s.head
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
+
+	if s.tries[*hash] == nil {
+		return nil, ErrTrieDoesNotExist(*hash)
+	}
 	return s.tries[*hash].GetFromChild(keyToChild, key)
 }
 
@@ -296,7 +346,11 @@ func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, erro
 // setStorage set the storage value for a given key in the trie. only for testing
 func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) error {
 	if hash == nil {
-		hash = &s.head
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return err
+		}
+		hash = &sr
 	}
 
 	s.lock.Lock()
@@ -305,6 +359,11 @@ func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) e
 		Key:   key,
 		Value: value,
 	}
+
+	if s.tries[*hash] == nil {
+		return ErrTrieDoesNotExist(*hash)
+	}
+
 	err := s.tries[*hash].Put(key, value)
 	if err != nil {
 		return err

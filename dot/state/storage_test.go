@@ -12,8 +12,9 @@ import (
 
 func newTestStorageState(t *testing.T) *StorageState {
 	db := database.NewMemDatabase()
+	bs := newTestBlockState(t, testGenesisHeader)
 
-	s, err := NewStorageState(db, trie.NewEmptyTrie())
+	s, err := NewStorageState(db, bs, trie.NewEmptyTrie())
 	if err != nil {
 		t.Fatal(err)
 	}
