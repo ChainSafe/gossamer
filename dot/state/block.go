@@ -638,8 +638,6 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	logger.Crit("best block header", "header", header)
-
 	return header.StateRoot, nil
 }
 

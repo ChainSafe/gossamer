@@ -268,14 +268,14 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
-			err := s.handleRuntimeChanges(block.Header)
+			err := s.storageState.StoreInDB(block.Header.StateRoot)
 			if err != nil {
-				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash())
+				log.Warn("failed to store storage trie in database", "error", err)
 			}
 
-			err = s.storageState.StoreInDB(s.blockState.BestBlockHash())
+			err = s.handleRuntimeChanges(block.Header)
 			if err != nil {
-				log.Warn("failed to storage storage root in database", "error", err)
+				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
 			}
 		case <-ctx.Done():
 			return

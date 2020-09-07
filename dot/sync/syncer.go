@@ -81,6 +81,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockState
 	}
 
+	if cfg.StorageState == nil {
+		return nil, ErrNilStorageState
+	}
+
 	if cfg.Verifier == nil {
 		return nil, ErrNilVerifier
 	}
@@ -287,6 +291,10 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 
 // processBlockResponseData processes the BlockResponse and returns the start and end blocks in the response
 func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (int64, int64, error) {
+	if msg == nil {
+		return 0, 0, errors.New("got nil BlockResponseMessage")
+	}
+
 	blockData := msg.BlockData
 	start := maxInt64
 	end := int64(0)
@@ -401,6 +409,10 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
+	if block == nil || block.Header == nil {
+		return errors.New("nil block or header")
+	}
+
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return err
@@ -411,6 +423,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
+	//s.logger.Info("handleBlock", "parent", parent, "trie state", ts)
+
 	s.runtime.SetContext(ts)
 
 	// TODO: needs to be fixed by #941
@@ -418,6 +432,11 @@ func (s *Service) handleBlock(block *types.Block) error {
 	// if err != nil {
 	// 	return err
 	// }
+
+	err = s.storageState.StoreTrie(block.Header.StateRoot, ts)
+	if err != nil {
+		return err
+	}
 
 	err = s.blockState.AddBlock(block)
 	if err != nil {

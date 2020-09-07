@@ -86,7 +86,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.TransactionQueue = state.NewTransactionQueue()
 	}
 
-	if cfg.BlockState == nil || cfg.EpochState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		dbSrv := state.NewService("", log.LvlInfo)
 		dbSrv.UseMemDB()
 
@@ -99,7 +99,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		require.NoError(t, err)
 
 		cfg.BlockState = dbSrv.Block
-		//cfg.StorageState = dbSrv.Storage
+		cfg.StorageState = dbSrv.Storage
 		cfg.EpochState = dbSrv.Epoch
 	}
 

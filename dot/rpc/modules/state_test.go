@@ -184,10 +184,10 @@ func setupStateModule(t *testing.T) *StateModule {
 	require.NoError(t, err)
 	err = ts.Set([]byte(`:key2`), []byte(`value2`))
 	require.NoError(t, err)
-	err = chain.Storage.StoreTrie(ts)
-	require.NoError(t, err)
 
 	sr1, err := ts.Root()
+	require.NoError(t, err)
+	err = chain.Storage.StoreTrie(sr1, ts)
 	require.NoError(t, err)
 
 	err = chain.Block.AddBlock(&types.Block{

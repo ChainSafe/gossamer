@@ -56,7 +56,7 @@ type BlockState interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	StoreTrie(*state.TrieState) error
+	StoreTrie(common.Hash, *state.TrieState) error
 	StoreInDB(root common.Hash) error
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)

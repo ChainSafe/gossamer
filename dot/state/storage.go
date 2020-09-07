@@ -86,7 +86,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
-	logger.Crit("created storage state", "tries", tries)
+	logger.Trace("created storage state", "tries", tries)
 	return &StorageState{
 		//trie:    t,
 		blockState: blockState,
@@ -102,14 +102,17 @@ func (s *StorageState) pruneStorage() {
 	// TODO: pruning options? eg archive, full, etc
 }
 
-func (s *StorageState) StoreTrie(ts *TrieState) error {
-	root, err := ts.Root()
-	if err != nil {
-		return err
-	}
+func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
+	// root, err := ts.Root()
+	// if err != nil {
+	// 	return err
+	// }
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.tries[root] = ts.t
-	logger.Crit("stored trie in storage state", "root", root)
+	logger.Debug("stored trie in storage state", "root", root)
 	// TODO: store in db?
 	return nil
 }
@@ -125,6 +128,9 @@ func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
 		hash = &sr
 	}
 
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	if s.tries[*hash] == nil {
 		return nil, ErrTrieDoesNotExist(*hash)
 	}
@@ -135,6 +141,9 @@ func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
 func (s *StorageState) StoreInDB(root common.Hash) error {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	if s.tries[root] == nil {
 		return ErrTrieDoesNotExist(root)
 	}
@@ -149,6 +158,9 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	s.tries[t.MustHash()] = t
 	return t, nil

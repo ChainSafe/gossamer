@@ -145,7 +145,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	s.storageState.StoreTrie(ts)
+	s.storageState.StoreTrie(root, ts)
 	head := &types.Header{
 		ParentHash: s.blockState.BestBlockHash(),
 		Number:     big.NewInt(1),
