@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
@@ -37,9 +38,6 @@ import (
 
 	log "github.com/ChainSafe/log15"
 )
-
-// ErrNoKeysProvided is returned when no keys are given for an authority node
-var ErrNoKeysProvided = errors.New("no keys provided for authority node")
 
 // State Service
 
@@ -75,7 +73,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.Keystore) (*runtime.Runtime, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore) (*runtime.Runtime, error) {
 	// load runtime code from trie
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
@@ -108,13 +106,18 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.Keystore) (*runt
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *keystore.Keystore) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.Authority,
 	)
 
-	kps := ks.Sr25519Keypairs()
+	if ks.Name() != "babe" || ks.Type() != crypto.Sr25519Type {
+		return nil, ErrInvalidKeystoreType
+	}
+
+	kps := ks.Keypairs()
+	logger.Info("keystore", "keys", kps)
 	if len(kps) == 0 {
 		return nil, ErrNoKeysProvided
 	}
@@ -171,7 +174,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks *
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.Keystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.GlobalKeystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Authority,
@@ -182,12 +185,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		return nil, err
 	}
 
-	var handler core.ConsensusMessageHandler
-	if gs, ok := fg.(*grandpa.Service); ok {
-		handler = grandpa.NewMessageHandler(gs, stateSrvc.Block)
-	} else {
-		handler = grandpa.NewMessageHandler(nil, stateSrvc.Block)
-	}
+	handler := grandpa.NewMessageHandler(fg.(*grandpa.Service), stateSrvc.Block)
 
 	// set core configuration
 	coreConfig := &core.Config{
@@ -309,15 +307,19 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, dh *core.DigestHandler, ks *keystore.Keystore) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
 	}
 
+	if ks.Name() != "gran" || ks.Type() != crypto.Ed25519Type {
+		return nil, ErrInvalidKeystoreType
+	}
+
 	voters := grandpa.NewVotersFromAuthorityData(ad)
 
-	keys := ks.Ed25519Keypairs()
+	keys := ks.Keypairs()
 	if len(keys) == 0 {
 		return nil, errors.New("no ed25519 keys provided for GRANDPA")
 	}
@@ -334,6 +336,7 @@ func createGRANDPAService(cfg *Config, rt *runtime.Runtime, st *state.Service, d
 		SetID:         1,
 		Voters:        voters,
 		Keypair:       keys[0].(*ed25519.Keypair),
+		Authority:     cfg.Core.GrandpaAuthority,
 	}
 
 	return grandpa.NewService(gsCfg)
@@ -401,6 +404,6 @@ func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, dh *cor
 	return sync.NewService(syncCfg)
 }
 
-func createDigestHandler(st *state.Service, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, bp, fg, verifier)
+func createDigestHandler(st *state.Service, bp BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
+	return core.NewDigestHandler(st.Block, bp, nil, verifier)
 }
