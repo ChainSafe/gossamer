@@ -256,8 +256,16 @@ func (s *Service) Start() error {
 
 // Stop closes each state database
 func (s *Service) Stop() error {
-	head := s.Block.BestBlockHash()
-	err := StoreLatestStorageHash(s.db, s.Storage.tries[head])
+	head, err := s.Block.BestBlockStateRoot()
+	if err != nil {
+		return err
+	}
+
+	if s.Storage.tries[head] == nil {
+		return ErrTrieDoesNotExist(head)
+	}
+
+	err = StoreLatestStorageHash(s.db, s.Storage.tries[head])
 	if err != nil {
 		return err
 	}
