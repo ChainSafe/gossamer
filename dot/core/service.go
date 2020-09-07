@@ -137,8 +137,12 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	head := cfg.BlockState.BestBlockHash()
-	codeHash, err := cfg.StorageState.LoadCodeHash(&head)
+	sr, err := cfg.BlockState.BestBlockStateRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	codeHash, err := cfg.StorageState.LoadCodeHash(&sr)
 	if err != nil {
 		return nil, err
 	}
@@ -371,21 +375,25 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 // It also updates the BABE service and block verifier with the new runtime
 func (s *Service) handleRuntimeChanges(header *types.Header) error {
-	head := s.blockState.BestBlockHash()
-	currentCodeHash, err := s.storageState.LoadCodeHash(&head)
+	sr, err := s.blockState.BestBlockStateRoot()
+	if err != nil {
+		return err
+	}
+
+	currentCodeHash, err := s.storageState.LoadCodeHash(&sr)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		code, err := s.storageState.LoadCode(&head)
+		code, err := s.storageState.LoadCode(&sr)
 		if err != nil {
 			return err
 		}
 
 		s.rt.Stop()
 
-		ts, err := s.storageState.TrieState(s.blockState.BestBlockHash())
+		ts, err := s.storageState.TrieState(sr)
 		if err != nil {
 			return err
 		}

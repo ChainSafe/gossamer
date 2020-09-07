@@ -85,6 +85,7 @@ func NewStorageState(db chaindb.Database, t *trie.Trie) (*StorageState, error) {
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
+	logger.Crit("created storage state", "tries", tries)
 	return &StorageState{
 		//trie:    t,
 		head:    t.MustHash(),
@@ -102,6 +103,18 @@ func (s *StorageState) pruneStorage() {
 	// when a block is finalized, delete non-finalized tries from DB and mapping
 	// as well as all states before finalized block
 	// TODO: pruning options? eg archive, full, etc
+}
+
+func (s *StorageState) StoreTrie(ts *TrieState) error {
+	root, err := ts.Root()
+	if err != nil {
+		return err
+	}
+
+	s.tries[root] = ts.t
+	logger.Crit("stored trie in storage state", "root", root)
+	// TODO: store in db?
+	return nil
 }
 
 func (s *StorageState) TrieState(root common.Hash) (*TrieState, error) {
@@ -156,6 +169,11 @@ func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error)
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
+
+	if s.tries[*hash] == nil {
+		return nil, ErrTrieDoesNotExist(*hash)
+	}
+
 	return s.tries[*hash].Get(key)
 }
 
