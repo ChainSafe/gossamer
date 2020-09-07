@@ -221,23 +221,26 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
 
 	var (
-		item []byte
-		err  error
+		item  []byte
+		bhash common.Hash
+		err   error
 	)
 
 	if len(pReq) > 1 {
-		bhash, err := common.HexToHash(pReq[1])
+		bhash, err = common.HexToHash(pReq[1])
 		if err != nil {
 			return err
 		}
 
 		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+		if err != nil {
+			return err
+		}
 	} else {
 		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
-	}
-
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(item) > 0 {
@@ -257,23 +260,26 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *inter
 	reqBytes, _ := common.HexToBytes(pReq[0])
 
 	var (
-		item []byte
-		err  error
+		item  []byte
+		bhash common.Hash
+		err   error
 	)
 
 	if len(pReq) > 1 {
-		bhash, err := common.HexToHash(pReq[1])
+		bhash, err = common.HexToHash(pReq[1])
 		if err != nil {
 			return err
 		}
 
 		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+		if err != nil {
+			return err
+		}
 	} else {
 		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
-	}
-
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(item) > 0 {
@@ -293,24 +299,28 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *inter
 	reqBytes, _ := common.HexToBytes(pReq[0])
 
 	var (
-		item []byte
-		err  error
+		item  []byte
+		bhash common.Hash
+		err   error
 	)
 
 	if len(pReq) > 1 {
-		bhash, err := common.HexToHash(pReq[1])
+		bhash, err = common.HexToHash(pReq[1])
 		if err != nil {
 			return err
 		}
 
 		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+		if err != nil {
+			return err
+		}
 	} else {
 		item, err = sm.storageAPI.GetStorage(nil, reqBytes)
+		if err != nil {
+			return err
+		}
 	}
 
-	if err != nil {
-		return err
-	}
 	if len(item) > 0 {
 		*res = len(item)
 	} else {

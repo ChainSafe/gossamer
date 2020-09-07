@@ -261,11 +261,15 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	if s.Storage.tries[head] == nil {
-		return ErrTrieDoesNotExist(head)
+	s.Storage.lock.RLock()
+	t := s.Storage.tries[head]
+	s.Storage.lock.RUnlock()
+
+	if t == nil {
+		return errTrieDoesNotExist(head)
 	}
 
-	err = StoreLatestStorageHash(s.db, s.Storage.tries[head])
+	err = StoreLatestStorageHash(s.db, t)
 	if err != nil {
 		return err
 	}
@@ -286,7 +290,7 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	thash, err := s.Storage.tries[head].Hash()
+	thash, err := t.Hash()
 	if err != nil {
 		return err
 	}

@@ -42,6 +42,7 @@ type BlockState interface {
 	GetJustification(common.Hash) ([]byte, error)
 }
 
+// StorageState is the interface for the storage state
 type StorageState interface {
 	TrieState(root *common.Hash) (*state.TrieState, error)
 	StoreTrie(root common.Hash, ts *state.TrieState) error

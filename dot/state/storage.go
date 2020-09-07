@@ -18,6 +18,7 @@ package state
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -30,8 +31,11 @@ import (
 var storagePrefix = []byte("storage")
 var codeKey = common.CodeKey
 
-func ErrTrieDoesNotExist(hash common.Hash) error {
-	return fmt.Errorf("trie with given root does not exist: %s", hash)
+// ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
+var ErrTrieDoesNotExist = errors.New("trie with given root does not exist")
+
+func errTrieDoesNotExist(hash common.Hash) error {
+	return fmt.Errorf("%w: %s", ErrTrieDoesNotExist, hash)
 }
 
 // StorageDB stores trie structure in an underlying database
@@ -53,8 +57,6 @@ func (storageDB *StorageDB) Get(key []byte) ([]byte, error) {
 
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
-	//trie *trie.Trie
-	//head  common.Hash
 	blockState *BlockState
 	tries      map[common.Hash]*trie.Trie
 
@@ -96,25 +98,20 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
-func (s *StorageState) pruneStorage() {
-	// when a block is finalized, delete non-finalized tries from DB and mapping
+func (s *StorageState) pruneStorage() { //nolint
+	// TODO: when a block is finalized, delete non-finalized tries from DB and mapping
 	// as well as all states before finalized block
 	// TODO: pruning options? eg archive, full, etc
 }
 
+// StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
-	// root, err := ts.Root()
-	// if err != nil {
-	// 	return err
-	// }
-
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	s.tries[root] = ts.t
 	logger.Debug("stored trie in storage state", "root", root)
-	// TODO: store in db?
-	return nil
+	return s.StoreInDB(root)
 }
 
 // TrieState returns the TrieState for a given state root.
@@ -132,7 +129,7 @@ func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
 	defer s.lock.RUnlock()
 
 	if s.tries[*hash] == nil {
-		return nil, ErrTrieDoesNotExist(*hash)
+		return nil, errTrieDoesNotExist(*hash)
 	}
 
 	return NewTrieState(s.tries[*hash]), nil
@@ -145,7 +142,7 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 	defer s.lock.RUnlock()
 
 	if s.tries[root] == nil {
-		return ErrTrieDoesNotExist(root)
+		return errTrieDoesNotExist(root)
 	}
 
 	return StoreTrie(s.db.db, s.tries[root])
@@ -198,12 +195,13 @@ func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error)
 	defer s.lock.RUnlock()
 
 	if s.tries[*hash] == nil {
-		return nil, ErrTrieDoesNotExist(*hash)
+		return nil, errTrieDoesNotExist(*hash)
 	}
 
 	return s.tries[*hash].Get(key)
 }
 
+// GetStorageByBlockHash returns the value at the given key at the given block hash
 func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
 	header, err := s.blockState.GetHeader(bhash)
 	if err != nil {
@@ -224,7 +222,7 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 	defer s.lock.RUnlock()
 
 	if s.tries[sr] == nil {
-		return common.Hash{}, ErrTrieDoesNotExist(sr)
+		return common.Hash{}, errTrieDoesNotExist(sr)
 	}
 
 	return s.tries[sr].Hash()
@@ -235,28 +233,6 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	//TODO
 	panic("not implemented")
 }
-
-// // ClearPrefix not implemented
-// func (s *StorageState) ClearPrefix(prefix []byte) {
-// 	// Implemented in ext_clear_prefix
-// 	panic("not implemented")
-// }
-
-// // ClearStorage will delete a key/value from the trie for a given @key
-// func (s *StorageState) ClearStorage(key []byte) error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	kv := &KeyValue{
-// 		Key:   key,
-// 		Value: nil,
-// 	}
-// 	err := s.trie.Delete(key)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	s.notifyChanged(kv)
-// 	return nil
-// }
 
 // Entries returns Entries from the trie
 func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
@@ -272,18 +248,11 @@ func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	defer s.lock.RUnlock()
 
 	if s.tries[*hash] == nil {
-		return nil, ErrTrieDoesNotExist(*hash)
+		return nil, errTrieDoesNotExist(*hash)
 	}
 
 	return s.tries[*hash].Entries(), nil
 }
-
-// // SetStorageChild return PutChild from the trie
-// func (s *StorageState) SetStorageChild(keyToChild []byte, child *trie.Trie) error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	return s.trie.PutChild(keyToChild, child)
-// }
 
 // GetStorageChild return GetChild from the trie
 func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
@@ -299,18 +268,11 @@ func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*t
 	defer s.lock.RUnlock()
 
 	if s.tries[*hash] == nil {
-		return nil, ErrTrieDoesNotExist(*hash)
+		return nil, errTrieDoesNotExist(*hash)
 	}
 
 	return s.tries[*hash].GetChild(keyToChild)
 }
-
-// // SetStorageIntoChild return PutIntoChild from the trie
-// func (s *StorageState) SetStorageIntoChild(keyToChild, key, value []byte) error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	return s.trie.PutIntoChild(keyToChild, key, value)
-// }
 
 // GetStorageFromChild return GetFromChild from the trie
 func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []byte) ([]byte, error) {
@@ -326,7 +288,7 @@ func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []
 	defer s.lock.RUnlock()
 
 	if s.tries[*hash] == nil {
-		return nil, ErrTrieDoesNotExist(*hash)
+		return nil, errTrieDoesNotExist(*hash)
 	}
 	return s.tries[*hash].GetFromChild(keyToChild, key)
 }
@@ -383,14 +345,14 @@ func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) e
 	}
 
 	if s.tries[*hash] == nil {
-		return ErrTrieDoesNotExist(*hash)
+		return errTrieDoesNotExist(*hash)
 	}
 
 	err := s.tries[*hash].Put(key, value)
 	if err != nil {
 		return err
 	}
-	s.notifyChanged(kv) // TODO: what is this used for?
+	s.notifyChanged(kv) // TODO: what is this used for? needs to be updated to work with new StorageState/TrieState API
 	return nil
 }
 

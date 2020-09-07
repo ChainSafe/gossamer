@@ -347,10 +347,10 @@ func (b *Service) initiate() {
 		return
 	}
 
-	// if b.storageState == nil {
-	// 	b.logger.Error("block authoring", "error", "storageState is nil")
-	// 	return
-	// }
+	if b.storageState == nil {
+		b.logger.Error("block authoring", "error", "storageState is nil")
+		return
+	}
 
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()
@@ -498,7 +498,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return nil
 	}
 
-	// block built sucessfully, store resulting trie in storage state
+	// block built successfully, store resulting trie in storage state
 	// TODO: why does StateRoot not match the root of the trie after building a block?
 	err = b.storageState.StoreTrie(block.Header.StateRoot, ts)
 	if err != nil {

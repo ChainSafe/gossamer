@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	//"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // BlockState interface for block state methods
@@ -61,16 +60,6 @@ type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*state.TrieState, error)
-	// Set(key []byte, value []byte) error
-	// Get(key []byte) ([]byte, error)
-	// Root() (common.Hash, error)
-	// SetChild(keyToChild []byte, child *trie.Trie) error
-	// SetChildStorage(keyToChild, key, value []byte) error
-	// GetChildStorage(keyToChild, key []byte) ([]byte, error)
-	// Delete(key []byte) error
-	// Entries() map[string][]byte
-	// SetBalance(key [32]byte, balance uint64) error
-	// GetBalance(key [32]byte) (uint64, error)
 }
 
 // TransactionQueue is the interface for transaction queue methods

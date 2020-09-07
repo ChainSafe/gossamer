@@ -423,8 +423,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	//s.logger.Info("handleBlock", "parent", parent, "trie state", ts)
-
 	s.runtime.SetContext(ts)
 
 	// TODO: needs to be fixed by #941
