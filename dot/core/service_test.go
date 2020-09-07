@@ -136,10 +136,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	testRuntime, err := ioutil.ReadFile(runtime.TESTS_FP)
 	require.Nil(t, err)
 
-	sr, err := s.blockState.BestBlockStateRoot()
-	require.NoError(t, err)
-
-	ts, err := s.storageState.TrieState(sr)
+	ts, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
 	err = ts.Set([]byte(":code"), testRuntime)

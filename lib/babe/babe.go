@@ -48,8 +48,8 @@ type Service struct {
 	paused bool
 
 	// Storage interfaces
-	blockState       BlockState
-	storageState     StorageState
+	blockState BlockState
+	//storageState     StorageState
 	transactionQueue TransactionQueue
 	epochState       EpochState
 
@@ -78,9 +78,9 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
+	LogLvl     log.Lvl
+	BlockState BlockState
+	//StorageState     StorageState
 	TransactionQueue TransactionQueue
 	EpochState       EpochState
 	Keypair          *sr25519.Keypair
@@ -117,11 +117,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
-		logger:           logger,
-		ctx:              ctx,
-		cancel:           cancel,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
+		logger:     logger,
+		ctx:        ctx,
+		cancel:     cancel,
+		blockState: cfg.BlockState,
+		//storageState:     cfg.StorageState,
 		epochState:       cfg.EpochState,
 		keypair:          cfg.Keypair,
 		rt:               cfg.Runtime,
@@ -347,10 +347,10 @@ func (b *Service) initiate() {
 		return
 	}
 
-	if b.storageState == nil {
-		b.logger.Error("block authoring", "error", "storageState is nil")
-		return
-	}
+	// if b.storageState == nil {
+	// 	b.logger.Error("block authoring", "error", "storageState is nil")
+	// 	return
+	// }
 
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()

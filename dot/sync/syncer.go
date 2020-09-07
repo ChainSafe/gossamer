@@ -406,7 +406,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	ts, err := s.storageState.TrieState(parent.StateRoot)
+	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}

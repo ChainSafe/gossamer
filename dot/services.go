@@ -67,7 +67,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	// load most recent state from database
-	err = stateSrvc.Storage.LoadFromDB(latestState)
+	_, err = stateSrvc.Storage.LoadFromDB(latestState)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load latest state from database: %s", err)
 	}
@@ -77,7 +77,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 
 func createRuntime(cfg *Config, st *state.Service, ks *keystore.Keystore) (*runtime.Runtime, error) {
 	// load runtime code from trie
-	code, err := st.Storage.GetStorage([]byte(":code"))
+	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
 	}
@@ -87,8 +87,13 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.Keystore) (*runt
 		return nil, err
 	}
 
+	ts, err := st.Storage.TrieState(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	rtCfg := &runtime.Config{
-		Storage:  st.Storage,
+		Storage:  ts,
 		Keystore: ks,
 		Imports:  runtime.RegisterImports_NodeRuntime,
 		LogLvl:   lvl,

@@ -60,7 +60,7 @@ type StorageState interface {
 	StoreInDB(root common.Hash) error
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
-	TrieState(root common.Hash) (*state.TrieState, error)
+	TrieState(root *common.Hash) (*state.TrieState, error)
 	// Set(key []byte, value []byte) error
 	// Get(key []byte) ([]byte, error)
 	// Root() (common.Hash, error)

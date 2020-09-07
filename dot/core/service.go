@@ -240,7 +240,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 		return common.Hash{}, ErrNilStorageState
 	}
 
-	ts, err := s.storageState.TrieState(s.blockState.BestBlockHash())
+	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -393,7 +393,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 
 		s.rt.Stop()
 
-		ts, err := s.storageState.TrieState(sr)
+		ts, err := s.storageState.TrieState(&sr)
 		if err != nil {
 			return err
 		}

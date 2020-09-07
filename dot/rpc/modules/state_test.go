@@ -177,10 +177,7 @@ func setupStateModule(t *testing.T) *StateModule {
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
 	// init storage with test data
-	sr, err := chain.Block.BestBlockStateRoot()
-	require.NoError(t, err)
-
-	ts, err := chain.Storage.TrieState(sr)
+	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
 	err = ts.Set([]byte(`:key1`), []byte(`value1`))

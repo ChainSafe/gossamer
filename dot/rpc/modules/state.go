@@ -222,8 +222,8 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 
 	var (
 		item []byte
-		err error
-	) 
+		err  error
+	)
 
 	if len(pReq) > 1 {
 		bhash, err := common.HexToHash(pReq[1])
@@ -258,8 +258,8 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *inter
 
 	var (
 		item []byte
-		err error
-	) 
+		err  error
+	)
 
 	if len(pReq) > 1 {
 		bhash, err := common.HexToHash(pReq[1])
@@ -294,8 +294,8 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *inter
 
 	var (
 		item []byte
-		err error
-	) 
+		err  error
+	)
 
 	if len(pReq) > 1 {
 		bhash, err := common.HexToHash(pReq[1])

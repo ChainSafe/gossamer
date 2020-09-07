@@ -114,12 +114,22 @@ func (s *StorageState) StoreTrie(ts *TrieState) error {
 	return nil
 }
 
-func (s *StorageState) TrieState(root common.Hash) (*TrieState, error) {
-	if s.tries[root] == nil {
-		return nil, ErrTrieDoesNotExist(root)
+// TrieState returns the TrieState for a given state root.
+// If no state root is provided, it returns the TrieState for the current chain head.
+func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
+	if hash == nil {
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
 	}
 
-	return NewTrieState(s.tries[root]), nil
+	if s.tries[*hash] == nil {
+		return nil, ErrTrieDoesNotExist(*hash)
+	}
+
+	return NewTrieState(s.tries[*hash]), nil
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

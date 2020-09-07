@@ -46,11 +46,11 @@ type BlockState interface {
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
 
-// StorageState interface for storage state methods
-type StorageState interface {
-	StorageRoot() (common.Hash, error)
-	SetStorage([]byte, []byte) error
-}
+// // StorageState interface for storage state methods
+// type StorageState interface {
+// 	StorageRoot() (common.Hash, error)
+// 	SetStorage([]byte, []byte) error
+// }
 
 // TransactionQueue is the interface for transaction queue methods
 type TransactionQueue interface {
