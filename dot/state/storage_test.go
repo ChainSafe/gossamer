@@ -88,8 +88,8 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: testGenesisHeader.Hash(),
-			Number: big.NewInt(1),
-			StateRoot: root,
+			Number:     big.NewInt(1),
+			StateRoot:  root,
 		},
 		Body: types.NewBody([]byte{}),
 	}
