@@ -1,13 +1,13 @@
 package state
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	database "github.com/ChainSafe/chaindb"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestStorageState(t *testing.T) *StorageState {
@@ -15,63 +15,55 @@ func newTestStorageState(t *testing.T) *StorageState {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	s, err := NewStorageState(db, bs, trie.NewEmptyTrie())
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
 	return s
 }
 
-func TestLoadCodeHash(t *testing.T) {
+func TestStorage_LoadCodeHash(t *testing.T) {
 	storage := newTestStorageState(t)
 	testCode := []byte("asdf")
 
 	err := storage.setStorage(nil, codeKey, testCode)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	resCode, err := storage.LoadCode(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(resCode, testCode) {
-		t.Fatalf("Fail: got %s expected %s", resCode, testCode)
-	}
+	require.NoError(t, err)
+	require.Equal(t, testCode, resCode)
 
 	resHash, err := storage.LoadCodeHash(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	expectedHash, err := common.HexToHash("0xb91349ff7c99c3ae3379dd49c2f3208e202c95c0aac5f97bb24ded899e9a2e83")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(resHash[:], expectedHash[:]) {
-		t.Fatalf("Fail: got %s expected %s", resHash, expectedHash)
-	}
+	require.NoError(t, err)
+	require.Equal(t, expectedHash, resHash)
 }
 
-func TestSetAndGetBalance(t *testing.T) {
+func TestStorage_SetAndGetBalance(t *testing.T) {
 	storage := newTestStorageState(t)
 
 	key := [32]byte{1, 2, 3, 4, 5, 6, 7}
 	bal := uint64(99)
 
 	err := storage.setBalance(nil, key, bal)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	res, err := storage.GetBalance(nil, key)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	require.Equal(t, bal, res)
+}
 
-	if res != bal {
-		t.Fatalf("Fail: got %d expected %d", res, bal)
-	}
+func TestStorage_StoreAndLoadTrie(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+	err = storage.StoreTrie(root, ts)
+	require.NoError(t, err)
+
+	trie, err := storage.LoadFromDB(root)
+	require.NoError(t, err)
+	ts2 := NewTrieState(trie)
+	require.Equal(t, ts, ts2)
 }
