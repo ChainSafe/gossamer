@@ -1,8 +1,10 @@
 package state
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -66,4 +68,35 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2 := NewTrieState(trie)
 	require.Equal(t, ts, ts2)
+}
+
+func TestStorage_GetStorageByBlockHash(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+
+	key := []byte("testkey")
+	value := []byte("testvalue")
+	err = ts.Set(key, value)
+	require.NoError(t, err)
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+	err = storage.StoreTrie(root, ts)
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number: big.NewInt(1),
+			StateRoot: root,
+		},
+		Body: types.NewBody([]byte{}),
+	}
+	err = storage.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	res, err := storage.GetStorageByBlockHash(block.Header.Hash(), key)
+	require.NoError(t, err)
+	require.Equal(t, value, res)
 }
