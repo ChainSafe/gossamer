@@ -91,6 +91,14 @@ func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }
 
+type mockMessageSender struct {
+	Message network.Message
+}
+
+func (mms *mockMessageSender) SendMessage(m network.Message) {
+	mms.Message = m
+}
+
 // mockFinalityGadget implements the FinalityGadget interface
 type mockFinalityGadget struct {
 	in        chan FinalityMessage

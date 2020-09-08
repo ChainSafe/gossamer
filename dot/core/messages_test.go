@@ -36,11 +36,14 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	msgSend := make(chan network.Message)
+	// todo ed channel refactor
+	//msgSend := make(chan network.Message)
 	newBlocks := make(chan types.Block)
+	mms := new (mockMessageSender)
 
 	cfg := &Config{
-		MsgSend:         msgSend,
+		//MsgSend:         msgSend,
+		MessageSender: mms,
 		Keystore:        keystore.NewGlobalKeystore(),
 		NewBlocks:       newBlocks,
 		IsBlockProducer: false,
@@ -67,14 +70,18 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		Body: types.NewBody([]byte{}),
 	}
 
-	select {
-	case msg := <-msgSend:
-		msgType := msg.Type()
-		require.Equal(t, network.BlockAnnounceMsgType, msgType)
-		require.Equal(t, expected, msg)
-	case <-time.After(testMessageTimeout):
-		t.Error("timeout waiting for message")
-	}
+	time.Sleep(testMessageTimeout)
+
+	require.Equal(t, network.BlockAnnounceMsgType, mms.Message.Type())
+	require.Equal(t, expected, mms.Message)
+	//select {
+	//case msg := <-msgSend:
+	//	msgType := msg.Type()
+	//	require.Equal(t, network.BlockAnnounceMsgType, msgType)
+	//	require.Equal(t, expected, msg)
+	//case <-time.After(testMessageTimeout):
+	//	t.Error("timeout waiting for message")
+	//}
 }
 
 func TestService_ProcessTransactionMessage(t *testing.T) {
