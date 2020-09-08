@@ -144,12 +144,14 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return err
 	}
 
-	// TODO: signal to grandpa we are ready to initiate
+	// update state and signal to grandpa we are ready to initiate
 	h.grandpa.head, err = h.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		return err
 	}
 
+	h.grandpa.state.round = msg.Round + 1
+	close(h.resumed)
 	return nil
 }
 

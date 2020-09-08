@@ -42,7 +42,11 @@ func (s *Service) receiveMessages(cond func() bool) {
 				}
 
 				v, err := s.validateMessage(vm)
-				if err != nil {
+				if err == ErrRoundMismatch {
+					// send catch-up request
+					s.sendCatchUpRequest(vm)
+					return
+				} else if err != nil {
 					s.logger.Trace("failed to validate vote message", "message", vm, "error", err)
 					continue
 				}
@@ -61,6 +65,12 @@ func (s *Service) receiveMessages(cond func() bool) {
 			return
 		}
 	}
+}
+
+func (s *Service) sendCatchUpRequest(vm *VoteMessage) {
+	s.paused.Store(true)
+	req := newCatchUpRequest(vm.Round-1, vm.SetID)
+	s.out <- req
 }
 
 // sendMessage sends a message through the out channel

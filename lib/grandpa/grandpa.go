@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -45,7 +46,9 @@ type Service struct {
 	keypair       *ed25519.Keypair // TODO: change to grandpa keystore
 	mapLock       sync.Mutex
 	chanLock      sync.Mutex
-	authority     bool // run the service as an authority (ie participate in voting)
+	authority     bool          // run the service as an authority (ie participate in voting)
+	paused        atomic.Value  // the service will be paused if it is waiting for catch up responses
+	resumed       chan struct{} // this channel will be closed when the service resumes
 
 	// current state information
 	state            *State                             // current state
@@ -134,8 +137,10 @@ func NewService(cfg *Config) (*Service, error) {
 		in:                 in,
 		out:                make(chan FinalityMessage, 128),
 		finalized:          make(chan FinalityMessage, 128),
+		resumed:            make(chan struct{}),
 	}
 
+	s.paused.Store(false)
 	return s, nil
 }
 
@@ -262,6 +267,12 @@ func (s *Service) initiate() error {
 	for {
 		if s.authority {
 			err = s.playGrandpaRound()
+			if err == ErrServicePaused {
+				// wait for service to un-pause
+				<-s.resumed
+				err = s.playGrandpaRound()
+			}
+
 			if err != nil {
 				return err
 			}
@@ -380,6 +391,10 @@ func (s *Service) playGrandpaRound() error {
 
 	time.Sleep(interval * 2)
 
+	if s.paused.Load().(bool) {
+		return ErrServicePaused
+	}
+
 	// broadcast pre-vote
 	pv, err := s.determinePreVote()
 	if err != nil {
@@ -490,7 +505,7 @@ func (s *Service) playGrandpaRound() error {
 
 	err = s.attemptToFinalize()
 	if err != nil {
-		log.Error("[grandpa] failed to finalize", "error", err)
+		log.Error("failed to finalize", "error", err)
 		return err
 	}
 
