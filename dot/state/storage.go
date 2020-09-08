@@ -107,9 +107,9 @@ func (s *StorageState) pruneStorage() { //nolint
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	s.tries[root] = ts.t
+	s.lock.Unlock()
+
 	logger.Debug("stored trie in storage state", "root", root)
 	return s.StoreInDB(root)
 }

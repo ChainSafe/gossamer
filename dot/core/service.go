@@ -446,6 +446,12 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 		API:            nil,
 	}
 
+	ts, err := s.storageState.TrieState(nil)
+	if err != nil {
+		return nil, err
+	}
+	s.rt.SetContext(ts)
+
 	ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
