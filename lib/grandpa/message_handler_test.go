@@ -242,6 +242,7 @@ func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 	fm := gs.newFinalizationMessage(gs.head, 77)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
+	gs.state.voters = gs.state.voters[:1]
 
 	h := NewMessageHandler(gs, st.Block)
 	out, err := h.HandleMessage(cm)
