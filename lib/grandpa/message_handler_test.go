@@ -429,7 +429,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 
 	h := NewMessageHandler(gs, st.Block)
 
-	round := uint64(1)
+	round := uint64(77)
 	gs.state.round = round + 1
 
 	pvJust := buildTestJustifications(t, int(gs.state.threshold()), round, gs.state.setID, kr, prevote)
@@ -449,4 +449,5 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	out, err := h.HandleMessage(cm)
 	require.NoError(t, err)
 	require.Nil(t, out)
+	require.Equal(t, round+1, gs.state.round)
 }

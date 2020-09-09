@@ -44,6 +44,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 				v, err := s.validateMessage(vm)
 				if err == ErrRoundMismatch && vm.Round > s.state.round {
 					// send catch-up request
+					s.state.round = vm.Round
 					s.sendCatchUpRequest(vm)
 					return
 				} else if err != nil {
