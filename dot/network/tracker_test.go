@@ -76,7 +76,8 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecA,
+		// todo ed channel refactor
+		//MsgRec:      msgRecA,
 		Syncer:      newMockSyncer(),
 	}
 
@@ -116,7 +117,8 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecB,
+		// todo ed channel refactor
+		//MsgRec:      msgRecB,
 		Syncer:      newMockSyncer(),
 	}
 

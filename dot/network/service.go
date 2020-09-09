@@ -61,8 +61,10 @@ type Service struct {
 
 	// Channels for inter-process communication
 	// as well as a lock for safe channel closures
-	msgRec  <-chan Message
-	msgSend chan<- Message
+	// todo ed channel refactor
+	//msgRec  <-chan Message
+	//msgSend chan<- Message
+	messageHandler MessageSender
 	lock    sync.Mutex
 
 	// Configuration options
@@ -87,13 +89,14 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
-	if cfg.MsgRec == nil {
-		return nil, errors.New("MsgRec is nil")
-	}
+	// todo ed channel interface
+	//if cfg.MsgRec == nil {
+	//	return nil, errors.New("MsgRec is nil")
+	//}
 
-	if cfg.MsgSend == nil {
-		return nil, errors.New("MsgSend is nil")
-	}
+	//if cfg.MsgSend == nil {
+	//	return nil, errors.New("MsgSend is nil")
+	//}
 
 	if cfg.Syncer == nil {
 		return nil, errors.New("cannot have nil Syncer")
@@ -117,8 +120,9 @@ func NewService(cfg *Config) (*Service, error) {
 		requestTracker: newRequestTracker(host.logger),
 		blockState:     cfg.BlockState,
 		networkState:   cfg.NetworkState,
-		msgRec:         cfg.MsgRec,
-		msgSend:        cfg.MsgSend,
+		//msgRec:         cfg.MsgRec,
+		//msgSend:        cfg.MsgSend,
+		messageHandler:  cfg.MsgRecInterface,
 		noBootstrap:    cfg.NoBootstrap,
 		noMDNS:         cfg.NoMDNS,
 		noStatus:       cfg.NoStatus,
@@ -138,8 +142,9 @@ func (s *Service) Start() error {
 	// update network state
 	go s.updateNetworkState()
 
+	// todo ed channel refactor
 	// receive messages from core service
-	go s.receiveCoreMessages()
+	//go s.receiveCoreMessages()
 
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
@@ -172,9 +177,9 @@ func (s *Service) Stop() error {
 	defer s.lock.Unlock()
 
 	// close channel to core service
-	if s.msgSend != nil && !s.IsStopped() {
-		close(s.msgSend)
-	}
+	//if s.msgSend != nil && !s.IsStopped() {
+	//	close(s.msgSend)
+	//}
 
 	s.cancel()
 
@@ -212,29 +217,49 @@ func (s *Service) updateNetworkState() {
 	}
 }
 
-// receiveCoreMessages broadcasts messages from the core service
-func (s *Service) receiveCoreMessages() {
-	for {
-		select {
-		case msg, ok := <-s.msgRec:
-			if !ok || msg == nil {
-				s.logger.Debug("Received nil message from core service")
-				continue
-			}
-
-			s.logger.Debug(
-				"Broadcasting message from core service",
-				"host", s.host.id(),
-				"type", msg.Type(),
-			)
-
-			// broadcast message to connected peers
-			s.host.broadcast(msg)
-		case <-s.ctx.Done():
-			return
-		}
+func (s *Service) SendMessage(msg Message) {
+	if s.host == nil {
+		return
 	}
+	if s.IsStopped() {
+		return
+	}
+	if msg == nil {
+		s.logger.Debug("Received nil message from core service")
+		return
+	}
+	s.logger.Debug(
+		"Broadcasting message from core service",
+		"host", s.host.id(),
+		"type", msg.Type(),
+	)
+	// broadcast message to connected peers
+	s.host.broadcast(msg)
 }
+// todo ed channel refactor
+// receiveCoreMessages broadcasts messages from the core service
+//func (s *Service) receiveCoreMessages() {
+//	for {
+//		select {
+//		case msg, ok := <-s.msgRec:
+//			if !ok || msg == nil {
+//				s.logger.Debug("Received nil message from core service")
+//				continue
+//			}
+//
+//			s.logger.Debug(
+//				"Broadcasting message from core service",
+//				"host", s.host.id(),
+//				"type", msg.Type(),
+//			)
+//
+//			// broadcast message to connected peers
+//			s.host.broadcast(msg)
+//		case <-s.ctx.Done():
+//			return
+//		}
+//	}
+//}
 
 func (s *Service) safeMsgSend(msg Message) error {
 	s.lock.Lock()
@@ -242,7 +267,8 @@ func (s *Service) safeMsgSend(msg Message) error {
 	if s.IsStopped() {
 		return errors.New("service has been stopped")
 	}
-	s.msgSend <- msg
+	//s.msgSend <- msg
+	s.messageHandler.SendMessage(msg)
 	return nil
 }
 

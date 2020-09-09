@@ -169,7 +169,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.GlobalKeystore, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message) (*core.Service, error) {
+func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.GlobalKeystore, stateSrvc *state.Service, coreMsgs network.MessageSender, networkMsgs chan network.Message) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Authority,
@@ -196,6 +196,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		MsgRec:                  networkMsgs, // message channel from network service to core service
 		// todo ed channel_refactor
 		//MsgSend:                 coreMsgs,    // message channel from core service to network service
+		MessageSender: coreMsgs,
 		IsBlockProducer:         cfg.Core.BabeAuthority,
 		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
 		Verifier:                verifier,
@@ -242,7 +243,8 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 		ProtocolID:   cfg.Network.ProtocolID,
 		NoBootstrap:  cfg.Network.NoBootstrap,
 		NoMDNS:       cfg.Network.NoMDNS,
-		MsgRec:       coreMsgs,    // message channel from core service to network service
+		// todo ed channel interface
+		//MsgRec:       coreMsgs,    // message channel from core service to network service
 		MsgSend:      networkMsgs, // message channel from network service to core service
 		Syncer:       syncer,
 	}

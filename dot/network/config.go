@@ -88,8 +88,10 @@ type Config struct {
 	NoStatus bool
 
 	// MsgRec is the message channel from the core service to the network service
-	MsgRec <-chan Message
+	// todo ed channel interface
+	//MsgRec <-chan Message
 	// MsgSend is the message channel from the network service to the core service
+	MsgRecInterface MessageSender
 	MsgSend chan<- Message
 
 	// privateKey the private key for the network p2p identity

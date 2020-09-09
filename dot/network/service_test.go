@@ -67,13 +67,14 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
-	if cfg.MsgRec == nil {
-		cfg.MsgRec = make(chan Message, 10)
-	}
-
-	if cfg.MsgSend == nil {
-		cfg.MsgSend = make(chan Message, 10)
-	}
+	// todo ed channel refactor
+	//if cfg.MsgRec == nil {
+	//	cfg.MsgRec = make(chan Message, 10)
+	//}
+	//
+	//if cfg.MsgSend == nil {
+	//	cfg.MsgSend = make(chan Message, 10)
+	//}
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
@@ -117,6 +118,14 @@ func TestStartService(t *testing.T) {
 	node.Stop()
 }
 
+type MockMessageHandler struct {
+	Message Message
+}
+
+func (m *MockMessageHandler) SendMessage(msg Message) {
+	m.Message = msg
+}
+
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -124,7 +133,8 @@ func TestBroadcastMessages(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	msgRecA := make(chan Message)
+	// todo ed channel refactor
+	//msgRecA := make(chan Message)
 
 	configA := &Config{
 		BasePath:    basePathA,
@@ -132,7 +142,8 @@ func TestBroadcastMessages(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgRec:      msgRecA,
+		// todo ed channel refactor
+		//MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -143,7 +154,9 @@ func TestBroadcastMessages(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	msgSendB := make(chan Message)
+	// todo ed channel refactor
+	//msgSendB := make(chan Message)
+	mmhB := new (MockMessageHandler)
 
 	configB := &Config{
 		BasePath:    basePathB,
@@ -151,7 +164,8 @@ func TestBroadcastMessages(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		//MsgSend:     msgSendB,
+		MsgRecInterface: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -176,20 +190,28 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 
 	// simulate message sent from core service
-	msgRecA <- TestMessage
-
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, TestMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", TestMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
+	//msgRecA <- TestMessage
+	nodeA.SendMessage(TestMessage)
+	time.Sleep(TestMessageTimeout)
+	if !reflect.DeepEqual(mmhB.Message, TestMessage) {
+		t.Error(
+					"node B received unexpected message from node A",
+					"\nexpected:", TestMessage,
+					"\nreceived:", mmhB.Message,
+				)
 	}
+	//select {
+	//case msg := <-msgSendB:
+	//	if !reflect.DeepEqual(msg, TestMessage) {
+	//		t.Error(
+	//			"node B received unexpected message from node A",
+	//			"\nexpected:", TestMessage,
+	//			"\nreceived:", msg,
+	//		)
+	//	}
+	//case <-time.After(TestMessageTimeout):
+	//	t.Error("node B timeout waiting for message")
+	//}
 }
 
 func TestHandleMessage_BlockAnnounce(t *testing.T) {

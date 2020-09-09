@@ -82,7 +82,7 @@ func TestCreateCoreService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
 	require.NoError(t, err)
 
-	coreMsgs := make(chan network.Message)
+	coreMsgs := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
@@ -205,7 +205,7 @@ func TestCreateRPCService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
+	coreMsgs := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
@@ -336,7 +336,8 @@ func TestNewWebSocketServer(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
+	//coreMsgs := make(chan network.Message)
+	coreMsgs := &network.Service{}
 	networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
