@@ -112,7 +112,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	in := make(chan FinalityMessage, 128)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &Service{
@@ -134,7 +133,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
 		head:               head,
-		in:                 in,
+		in:                 make(chan FinalityMessage, 128),
 		out:                make(chan FinalityMessage, 128),
 		finalized:          make(chan FinalityMessage, 128),
 		resumed:            make(chan struct{}),

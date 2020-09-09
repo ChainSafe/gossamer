@@ -151,7 +151,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	}
 
 	h.grandpa.state.round = msg.Round + 1
-	close(h.resumed)
+	close(h.grandpa.resumed)
 	return nil
 }
 
