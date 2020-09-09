@@ -514,6 +514,10 @@ func (s *Service) playGrandpaRound() error {
 
 // attemptToFinalize loops until the round is finalizable
 func (s *Service) attemptToFinalize() error {
+	if s.paused.Load().(bool) {
+		return ErrServicePaused
+	}
+
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
 		return err
