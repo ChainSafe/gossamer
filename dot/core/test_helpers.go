@@ -91,6 +91,7 @@ func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }
 
+// mockMessageSender implements MessageSender interface
 type mockMessageSender struct {
 	Message network.Message
 }
@@ -195,12 +196,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.MsgRec == nil {
 		cfg.MsgRec = make(chan network.Message, 10)
 	}
-
-	// todo ed channel_refactor
-	// todo ed determine if messageSender is needed here
-	//if cfg.MsgSend == nil {
-	//	cfg.MsgSend = make(chan network.Message, 10)
-	//}
 
 	if cfg.Verifier == nil {
 		cfg.Verifier = new(mockVerifier)

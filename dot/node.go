@@ -228,8 +228,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	var nodeSrvcs []services.Service
 
 	// Message Channels (send and receive messages between services)
-
-	coreMsgs := make(chan network.Message, 128)    // message channel from core service to network service
 	networkMsgs := make(chan network.Message, 128) // message channel from network service to core service
 
 	// State Service
@@ -290,7 +288,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if enabled := NetworkServiceEnabled(cfg); enabled {
 
 		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, syncer)
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, networkMsgs, syncer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
@@ -311,7 +309,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
-
 
 	// System Service
 

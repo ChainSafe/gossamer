@@ -45,12 +45,10 @@ func TestSendVoteMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	mms := new (mockMessageSender)
-	//msgSend := make(chan network.Message, 2)
+	mms := new(mockMessageSender)
 
 	s := NewTestService(t, &Config{
-		//MsgSend:        msgSend,
-		MessageSender: mms, // todo ed channel refactor
+		MessageSender:  mms,
 		FinalityGadget: fg,
 	})
 
@@ -60,13 +58,6 @@ func TestSendVoteMessages(t *testing.T) {
 	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, testConsensusMessage, mms.Message)
-	// todo ed channel refactor
-	//select {
-	//case msg := <-msgSend:
-	//	require.Equal(t, testConsensusMessage, msg)
-	//case <-time.After(testMessageTimeout):
-	//	t.Fatal("did not receive finality message")
-	//}
 }
 
 func TestSendFinalizationMessages(t *testing.T) {
@@ -76,13 +67,10 @@ func TestSendFinalizationMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	// todo ed channel refactor
-	//msgSend := make(chan network.Message, 2)
-	mms := new (mockMessageSender)
+	mms := new(mockMessageSender)
 
 	s := NewTestService(t, &Config{
-		//MsgSend:        msgSend,
-		MessageSender: mms,
+		MessageSender:  mms,
 		FinalityGadget: fg,
 	})
 
@@ -92,10 +80,4 @@ func TestSendFinalizationMessages(t *testing.T) {
 	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, testConsensusMessage, mms.Message)
-	//select {
-	//case msg := <-msgSend:
-	//	require.Equal(t, testConsensusMessage, msg)
-	//case <-time.After(testMessageTimeout):
-	//	t.Fatal("did not receive finality message")
-	//}
 }

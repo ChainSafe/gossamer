@@ -173,10 +173,9 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := make(chan network.Message)
 	networkMsgs := make(chan network.Message)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc, coreMsgs, networkMsgs, nil)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, networkMsgs, nil)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687

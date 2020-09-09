@@ -37,6 +37,7 @@ type NetworkState interface {
 	SetPeers([]common.PeerInfo)
 }
 
+// MessageSender interface for handling sending messages
 type MessageSender interface {
 	SendMessage(Message)
 }

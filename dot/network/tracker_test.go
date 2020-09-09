@@ -67,18 +67,16 @@ func TestHandleStatusMessage(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	heightA := big.NewInt(3)
-	msgRecA := make(chan Message)
-
+	mmhA := new(MockMessageHandler)
 	configA := &Config{
-		BasePath:    basePathA,
-		BlockState:  newMockBlockState(heightA),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		// todo ed channel refactor
-		//MsgRec:      msgRecA,
-		Syncer:      newMockSyncer(),
+		BasePath:        basePathA,
+		BlockState:      newMockBlockState(heightA),
+		Port:            7001,
+		RandSeed:        1,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhA,
+		Syncer:          newMockSyncer(),
 	}
 
 	nodeA := createTestService(t, configA)
@@ -103,23 +101,22 @@ func TestHandleStatusMessage(t *testing.T) {
 	}
 
 	// simulate host status message sent from core service on startup
-	msgRecA <- testStatusMessage
+	mmhA.SendMessage(testStatusMessage)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
 	heightB := big.NewInt(1)
-	msgRecB := make(chan Message)
+	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		BlockState:  newMockBlockState(heightB),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		// todo ed channel refactor
-		//MsgRec:      msgRecB,
-		Syncer:      newMockSyncer(),
+		BasePath:        basePathB,
+		BlockState:      newMockBlockState(heightB),
+		Port:            7002,
+		RandSeed:        2,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhB,
+		Syncer:          newMockSyncer(),
 	}
 
 	nodeB := createTestService(t, configB)
@@ -128,7 +125,7 @@ func TestHandleStatusMessage(t *testing.T) {
 	nodeB.noGossip = true
 
 	// simulate host status message sent from core service on startup
-	msgRecB <- testStatusMessage
+	mmhB.SendMessage(testStatusMessage)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.Nil(t, err)

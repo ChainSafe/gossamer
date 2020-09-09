@@ -199,9 +199,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		Keystore:                ks,
 		Runtime:                 rt,
 		MsgRec:                  networkMsgs, // message channel from network service to core service
-		// todo ed channel_refactor
-		//MsgSend:                 coreMsgs,    // message channel from core service to network service
-		MessageSender: coreMsgs,
+		MessageSender:           coreMsgs,    // message interface from core service to network service
 		IsBlockProducer:         cfg.Core.BabeAuthority,
 		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
 		Verifier:                verifier,
@@ -220,7 +218,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan network.Message, networkMsgs chan network.Message, syncer *sync.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service, networkMsgs chan network.Message, syncer *sync.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -248,8 +246,6 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, coreMsgs chan n
 		ProtocolID:   cfg.Network.ProtocolID,
 		NoBootstrap:  cfg.Network.NoBootstrap,
 		NoMDNS:       cfg.Network.NoMDNS,
-		// todo ed channel interface
-		//MsgRec:       coreMsgs,    // message channel from core service to network service
 		MsgSend:      networkMsgs, // message channel from network service to core service
 		Syncer:       syncer,
 	}

@@ -17,6 +17,11 @@
 package core
 
 import (
+	"io/ioutil"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -24,11 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"io/ioutil"
-	"math/big"
-	"testing"
-	"time"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -74,14 +74,11 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	// todo ed channel refactor
-	//msgSend := make(chan network.Message)
-	mms := new (mockMessageSender)
+	mms := new(mockMessageSender)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		NewBlocks: newBlocks,
-		//MsgSend:   msgSend,
+		NewBlocks:     newBlocks,
 		MessageSender: mms,
 	}
 
@@ -107,13 +104,6 @@ func TestAnnounceBlock(t *testing.T) {
 	time.Sleep(testMessageTimeout)
 
 	require.Equal(t, network.BlockAnnounceMsgType, mms.Message.Type())
-	//select {
-	//case msg := <-msgSend:
-	//	msgType := msg.Type()
-	//	require.Equal(t, network.BlockAnnounceMsgType, msgType)
-	//case <-time.After(testMessageTimeout):
-	//	t.Error("timeout waiting for message")
-	//}
 }
 
 func TestHandleRuntimeChanges(t *testing.T) {

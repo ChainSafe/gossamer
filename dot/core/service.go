@@ -68,11 +68,9 @@ type Service struct {
 	keys *keystore.GlobalKeystore
 
 	// Channels for inter-process communication
-	msgRec  <-chan network.Message // receive messages from network service
-	// todo ed channel_refactor
-	//msgSend chan<- network.Message // send messages to network service
+	msgRec        <-chan network.Message // receive messages from network service
 	messageSender network.MessageSender
-	blkRec  <-chan types.Block     // receive blocks from BABE session
+	blkRec        <-chan types.Block // receive blocks from BABE session
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
 	blockAddChID byte
@@ -99,9 +97,7 @@ type Config struct {
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
-	MsgRec  <-chan network.Message
-	// todo ed channel_refactor
-	//MsgSend chan<- network.Message
+	MsgRec        <-chan network.Message
 	MessageSender network.MessageSender
 }
 
@@ -167,9 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeHash:                codeHash,
 		keys:                    cfg.Keystore,
 		msgRec:                  cfg.MsgRec,
-		// todo ed channel_refactor
-		//msgSend:                 cfg.MsgSend,
-		messageSender: cfg.MessageSender,
+		messageSender:           cfg.MessageSender,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
@@ -232,12 +226,6 @@ func (s *Service) Stop() error {
 	s.blockState.UnregisterImportedChannel(s.blockAddChID)
 	close(s.blockAddCh)
 
-	// todo ed channel_refactor
-	// close channel to network service
-	//if s.msgSend != nil {
-	//	close(s.msgSend)
-	//}
-
 	return nil
 }
 
@@ -263,8 +251,6 @@ func (s *Service) safeMsgSend(msg network.Message) {
 		// context was canceled
 		return
 	}
-	// todo ed channel_refactor
-	//s.msgSend <- msg
 	s.messageSender.SendMessage(msg)
 }
 

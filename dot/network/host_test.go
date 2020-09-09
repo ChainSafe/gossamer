@@ -230,15 +230,15 @@ func TestSend(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	msgSendB := make(chan Message)
+	mmh := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		BasePath:        basePathB,
+		Port:            7002,
+		RandSeed:        2,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmh,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -266,17 +266,13 @@ func TestSend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, TestMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", TestMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message from node A")
+	time.Sleep(TestMessageTimeout)
+	if !reflect.DeepEqual(TestMessage, mmh.Message) {
+		t.Error(
+			"node B received unexpected message from node A",
+			"\nexpected:", TestMessage,
+			"\nreceived:", mmh.Message,
+		)
 	}
 }
 
@@ -299,15 +295,15 @@ func TestBroadcast(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	msgSendB := make(chan Message)
+	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		BasePath:        basePathB,
+		Port:            7002,
+		RandSeed:        2,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -332,15 +328,15 @@ func TestBroadcast(t *testing.T) {
 
 	basePathC := utils.NewTestBasePath(t, "")
 
-	msgSendC := make(chan Message)
+	mmhC := new(MockMessageHandler)
 
 	configC := &Config{
-		BasePath:    basePathC,
-		Port:        7003,
-		RandSeed:    3,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendC,
+		BasePath:        basePathC,
+		Port:            7003,
+		RandSeed:        3,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhC,
 	}
 
 	nodeC := createTestService(t, configC)
@@ -365,47 +361,37 @@ func TestBroadcast(t *testing.T) {
 
 	nodeA.host.broadcast(TestMessage)
 
-	select {
-	case msg := <-msgSendB:
-		if !reflect.DeepEqual(msg, TestMessage) {
-			t.Error(
-				"node B received unexpected message from node A",
-				"\nexpected:", TestMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node B timeout waiting for message")
+	time.Sleep(TestMessageTimeout)
+	if !reflect.DeepEqual(TestMessage, mmhB.Message) {
+		t.Error(
+			"node B received unexpected message from node A",
+			"\nexpected:", TestMessage,
+			"\nreceived:", mmhB.Message,
+		)
 	}
 
-	select {
-	case msg := <-msgSendC:
-		if !reflect.DeepEqual(msg, TestMessage) {
-			t.Error(
-				"node C received unexpected message from node A",
-				"\nexpected:", TestMessage,
-				"\nreceived:", msg,
-			)
-		}
-	case <-time.After(TestMessageTimeout):
-		t.Error("node C timeout waiting for message")
+	if !reflect.DeepEqual(TestMessage, mmhC.Message) {
+		t.Error(
+			"node C received unexpected message from node A",
+			"\nexpected:", TestMessage,
+			"\nreceived:", mmhC.Message,
+		)
 	}
-
 }
 
 // test host send method with existing stream
 func TestExistingStream(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	msgSendA := make(chan Message)
+	mmhA := new(MockMessageHandler)
 
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendA,
+		BasePath:        basePathA,
+		Port:            7001,
+		RandSeed:        1,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -420,15 +406,15 @@ func TestExistingStream(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	msgSendB := make(chan Message)
+	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		MsgSend:     msgSendB,
+		BasePath:        basePathB,
+		Port:            7002,
+		RandSeed:        2,
+		NoBootstrap:     true,
+		NoMDNS:          true,
+		MsgRecInterface: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -462,9 +448,8 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case <-msgSendB:
-	case <-time.After(TestMessageTimeout):
+	time.Sleep(TestMessageTimeout)
+	if mmhB.Message == nil {
 		t.Error("node B timeout waiting for message from node A")
 	}
 
@@ -479,9 +464,7 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case <-msgSendB:
-	case <-time.After(TestMessageTimeout):
+	if mmhB.Message == nil {
 		t.Error("node B timeout waiting for message from node A")
 	}
 
@@ -501,9 +484,9 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case <-msgSendA:
-	case <-time.After(TestMessageTimeout):
+	time.Sleep(TestMessageTimeout)
+
+	if mmhA == nil {
 		t.Error("node A timeout waiting for message from node B")
 	}
 
@@ -518,9 +501,7 @@ func TestExistingStream(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	select {
-	case <-msgSendA:
-	case <-time.After(TestMessageTimeout):
+	if mmhA.Message == nil {
 		t.Error("node A timeout waiting for message from node B")
 	}
 

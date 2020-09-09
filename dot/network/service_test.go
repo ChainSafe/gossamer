@@ -67,15 +67,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
-	// todo ed channel refactor
-	//if cfg.MsgRec == nil {
-	//	cfg.MsgRec = make(chan Message, 10)
-	//}
-	//
-	//if cfg.MsgSend == nil {
-	//	cfg.MsgSend = make(chan Message, 10)
-	//}
-
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
 	}
@@ -133,17 +124,12 @@ func TestBroadcastMessages(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	// todo ed channel refactor
-	//msgRecA := make(chan Message)
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		// todo ed channel refactor
-		//MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -154,17 +140,14 @@ func TestBroadcastMessages(t *testing.T) {
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
-	// todo ed channel refactor
-	//msgSendB := make(chan Message)
-	mmhB := new (MockMessageHandler)
+	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		//MsgSend:     msgSendB,
+		BasePath:        basePathB,
+		Port:            7002,
+		RandSeed:        2,
+		NoBootstrap:     true,
+		NoMDNS:          true,
 		MsgRecInterface: mmhB,
 	}
 
@@ -190,28 +173,15 @@ func TestBroadcastMessages(t *testing.T) {
 	}
 
 	// simulate message sent from core service
-	//msgRecA <- TestMessage
 	nodeA.SendMessage(TestMessage)
 	time.Sleep(TestMessageTimeout)
 	if !reflect.DeepEqual(mmhB.Message, TestMessage) {
 		t.Error(
-					"node B received unexpected message from node A",
-					"\nexpected:", TestMessage,
-					"\nreceived:", mmhB.Message,
-				)
+			"node B received unexpected message from node A",
+			"\nexpected:", TestMessage,
+			"\nreceived:", mmhB.Message,
+		)
 	}
-	//select {
-	//case msg := <-msgSendB:
-	//	if !reflect.DeepEqual(msg, TestMessage) {
-	//		t.Error(
-	//			"node B received unexpected message from node A",
-	//			"\nexpected:", TestMessage,
-	//			"\nreceived:", msg,
-	//		)
-	//	}
-	//case <-time.After(TestMessageTimeout):
-	//	t.Error("node B timeout waiting for message")
-	//}
 }
 
 func TestHandleMessage_BlockAnnounce(t *testing.T) {
