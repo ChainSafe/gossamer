@@ -167,7 +167,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 	}
 
 	t.Cleanup(func() {
-		time.Sleep(time.Second) // wait to goroutine to finish writing
+		time.Sleep(time.Second) // wait for goroutine to finish writing
 		outfile.Close()         //nolint
 		errfile.Close()         //nolint
 	})

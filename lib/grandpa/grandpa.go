@@ -491,24 +491,20 @@ func (s *Service) playGrandpaRound() error {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
-			s.logger.Debug("checking if paused....")
 			if s.paused.Load().(bool) {
 				return true
 			}
 
-			s.logger.Debug("checking if completable...")
 			completable, err := s.isCompletable() //nolint
 			if err != nil {
 				return false
 			}
 
-			s.logger.Debug("checking if finalizable...")
 			finalizable, err := s.isFinalizable(s.state.round)
 			if err != nil {
 				return false
 			}
 
-			s.logger.Debug("checking for bfc...")
 			s.mapLock.Lock()
 			prevBfc := s.bestFinalCandidate[s.state.round-1]
 			s.mapLock.Unlock()
@@ -518,7 +514,6 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			s.logger.Debug("checking final if case...")
 			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
