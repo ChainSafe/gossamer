@@ -74,6 +74,8 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) (*ConsensusMessage
 }
 
 func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*ConsensusMessage, error) {
+	h.grandpa.logger.Debug("received finalization message", "round", msg.Round, "hash", msg.Vote.hash)
+
 	// check justification here
 	err := h.verifyFinalizationMessageJustification(msg)
 	if err != nil {
@@ -97,6 +99,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 		h.grandpa.paused.Store(true)
 		h.grandpa.state.round = msg.Round + 1
 		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
+		h.grandpa.logger.Debug("sending catch-up request; paused service", "round", msg.Round)
 		return req.ToConsensusMessage()
 	}
 
@@ -104,6 +107,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
+	h.grandpa.logger.Debug("received catch up request", "round", msg.Round, "setID", msg.SetID)
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
 	}
@@ -117,10 +121,19 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 		return nil, err
 	}
 
+	h.grandpa.logger.Debug("sending catch up response", "round", msg.Round, "setID", msg.SetID, "hash", resp.Hash)
 	return resp.ToConsensusMessage()
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
+	h.grandpa.logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+
+	// if we aren't currently expecting a catch up response, return
+	if !h.grandpa.paused.Load().(bool) {
+		h.grandpa.logger.Debug("not currently paused, ignoring catch up response")
+		return nil
+	}
+
 	if msg.SetID != h.grandpa.state.setID {
 		return ErrSetIDMismatch
 	}
@@ -147,13 +160,17 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	}
 
 	// update state and signal to grandpa we are ready to initiate
-	h.grandpa.head, err = h.grandpa.blockState.GetHeader(msg.Hash)
+	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		return err
 	}
 
-	h.grandpa.state.round = msg.Round + 1
+	h.grandpa.head = head
+	h.grandpa.state.round = msg.Round
 	close(h.grandpa.resumed)
+	h.grandpa.resumed = make(chan struct{})
+	h.grandpa.paused.Store(false)
+	h.grandpa.logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
 	return nil
 }
 

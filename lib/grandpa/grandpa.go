@@ -269,7 +269,7 @@ func (s *Service) initiate() error {
 			if err == ErrServicePaused {
 				// wait for service to un-pause
 				<-s.resumed
-				err = s.playGrandpaRound()
+				err = s.initiate()
 			}
 
 			if err != nil {
@@ -374,6 +374,10 @@ func (s *Service) playGrandpaRound() error {
 	s.logger.Debug("receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
+		if s.paused.Load().(bool) {
+			return true
+		}
+
 		end := start.Add(interval * 2)
 
 		completable, err := s.isCompletable()
@@ -410,6 +414,10 @@ func (s *Service) playGrandpaRound() error {
 	// continue to send prevote messages until round is done
 	go func(finalized *bool) {
 		for {
+			if s.paused.Load().(bool) {
+				return
+			}
+
 			if *finalized {
 				return
 			}
@@ -443,6 +451,10 @@ func (s *Service) playGrandpaRound() error {
 
 	time.Sleep(interval * 2)
 
+	if s.paused.Load().(bool) {
+		return ErrServicePaused
+	}
+
 	// broadcast pre-commit
 	pc, err := s.determinePreCommit()
 	if err != nil {
@@ -457,6 +469,10 @@ func (s *Service) playGrandpaRound() error {
 	// continue to send precommit messages until round is done
 	go func(finalized *bool) {
 		for {
+			if s.paused.Load().(bool) {
+				return
+			}
+
 			if *finalized {
 				return
 			}
@@ -475,16 +491,24 @@ func (s *Service) playGrandpaRound() error {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
+			s.logger.Debug("checking if paused....")
+			if s.paused.Load().(bool) {
+				return true
+			}
+
+			s.logger.Debug("checking if completable...")
 			completable, err := s.isCompletable() //nolint
 			if err != nil {
 				return false
 			}
 
+			s.logger.Debug("checking if finalizable...")
 			finalizable, err := s.isFinalizable(s.state.round)
 			if err != nil {
 				return false
 			}
 
+			s.logger.Debug("checking for bfc...")
 			s.mapLock.Lock()
 			prevBfc := s.bestFinalCandidate[s.state.round-1]
 			s.mapLock.Unlock()
@@ -494,6 +518,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
+			s.logger.Debug("checking final if case...")
 			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
