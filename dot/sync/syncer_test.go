@@ -340,7 +340,6 @@ func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service { //no
 		cfg.Keypair = kp
 	}
 
-	// todo ed authorities
 	cfg.AuthData = []*types.Authority{
 		{
 			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),

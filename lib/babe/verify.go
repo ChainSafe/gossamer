@@ -19,9 +19,10 @@ package babe
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -93,7 +94,6 @@ func (v *VerificationManager) SetRuntimeChangeAtBlock(header *types.Header, rt *
 }
 
 // SetAuthorityChangeAtBlock sets an authority change at the given block and all descendants of that block
-// todo ed authorities
 func (v *VerificationManager) SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority) {
 	v.lock.Lock()
 
@@ -204,7 +204,7 @@ func descriptorFromRuntime(rt *runtime.Runtime) (*Descriptor, error) {
 		return nil, err
 	}
 
-	auths, err := types.BABEAuthorityDataRawToAuthorityData(cfg.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(cfg.GenesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +224,6 @@ func descriptorFromRuntime(rt *runtime.Runtime) (*Descriptor, error) {
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState    BlockState
-	// todo ed authities
 	authorityData []*types.Authority
 	randomness    [types.RandomnessLength]byte
 	threshold     *big.Int
@@ -257,14 +256,12 @@ func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 		return false, fmt.Errorf("vrf output over threshold")
 	}
 
-	// todo ed authorities
 	pub := b.authorityData[header.BlockProducerIndex].Key
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
 	vrfInput := append(slotBytes, b.randomness[:]...)
 
-	// todo ed authorities
 	sr25519PK, err := sr25519.NewPublicKey(pub.Encode())
 	if err != nil {
 		return false, err
@@ -317,7 +314,6 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 
 	slot := babeHeader.SlotNumber
 
-	// todo ed authorities
 	authorPub := b.authorityData[babeHeader.BlockProducerIndex].Key
 	// remove seal before verifying
 	header.Digest = header.Digest[:len(header.Digest)-1]

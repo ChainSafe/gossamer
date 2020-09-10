@@ -79,7 +79,6 @@ func (v *Voter) String() string {
 }
 
 // NewVotersFromAuthorityData returns an array of Voters given an array of GrandpaAuthorityData
-// todo ed authorities
 func NewVotersFromAuthorityData(ad []*types.Authority) []*Voter {
 	v := make([]*Voter, len(ad))
 

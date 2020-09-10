@@ -21,21 +21,6 @@ func TestGrandpaAuthorityDataRaw(t *testing.T) {
 	require.Equal(t, "eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364", fmt.Sprintf("%x", ad.Key))
 }
 
-// todo ed authority
-//func TestGrandpaAuthorityData_ToRaw(t *testing.T) {
-//	kr, err := keystore.NewEd25519Keyring()
-//	require.NoError(t, err)
-//
-//	ad := NewGrandpaAuthorityData(kr.Alice().Public().(*ed25519.PublicKey), 77)
-//	raw := ad.ToRaw()
-//
-//	res := new(GrandpaAuthorityData)
-//	err = res.FromRaw(raw)
-//	require.NoError(t, err)
-//	require.Equal(t, ad.Key.Encode(), res.Key.Encode())
-//	require.Equal(t, ad.ID, res.ID)
-//}
-
 func TestGrandpaAuthorityDataRawToAuthorityData(t *testing.T) {
 	ad := make([]*GrandpaAuthorityDataRaw, 2)
 	buf := &bytes.Buffer{}

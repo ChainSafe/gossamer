@@ -83,7 +83,6 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-// todo ed authorities
 func (r *Runtime) GrandpaAuthorities() ([]*types.Authority, error) {
 	ret, err := r.Exec(GrandpaAuthorities, []byte{})
 	if err != nil {

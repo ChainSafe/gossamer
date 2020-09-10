@@ -34,12 +34,10 @@ func (v *mockVerifier) VerifyBlock(header *types.Header) (bool, error) {
 }
 
 // mockBlockProducer implements the BlockProducer interface
-// todo ed authorities
 type mockBlockProducer struct {
 	auths []*types.Authority
 }
 
-// todo ed authorities
 func newMockBlockProducer() *mockBlockProducer {
 	return &mockBlockProducer{
 		auths: []*types.Authority{},

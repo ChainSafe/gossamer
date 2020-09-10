@@ -50,7 +50,6 @@ func TestGrandpaAuthorities(t *testing.T) {
 	authA, _ := ed25519.NewPublicKey(authABytes)
 	authB, _ := ed25519.NewPublicKey(authBBytes)
 
-	// todo ed authority
 	expected := []*types.Authority{
 		{Key: authA, Weight: 0},
 		{Key: authB, Weight: 1},
@@ -128,7 +127,6 @@ func TestConfigurationFromRuntime_withAuthorities(t *testing.T) {
 	authA, _ := common.HexToHash("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authB, _ := common.HexToHash("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
 
-	// todo ed authority
 	expectedAuthData := []*types.AuthorityRaw{
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},

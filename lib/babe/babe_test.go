@@ -75,9 +75,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.AuthData == nil {
-		// todo ed authority
 		auth := &types.Authority{
-			Key:     cfg.Keypair.Public().(*sr25519.PublicKey),
+			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
 		cfg.AuthData = []*types.Authority{auth}
@@ -213,7 +212,6 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		EpochLength:        6,
 		C1:                 1,
 		C2:                 10,
-		// todo ed authority
 		GenesisAuthorities: []*types.AuthorityRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     false,
@@ -312,12 +310,12 @@ func TestService_SetAuthorities(t *testing.T) {
 
 	auths := []*types.Authority{}
 	bd1 := &types.Authority{
-		Key:     kr.Alice().Public().(*sr25519.PublicKey),
+		Key:    kr.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd1)
 	bd2 := &types.Authority{
-		Key:     kr.Bob().Public().(*sr25519.PublicKey),
+		Key:    kr.Bob().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd2)
@@ -339,7 +337,7 @@ func TestService_SetAuthorities_WrongKey(t *testing.T) {
 
 	auths := []*types.Authority{}
 	bd1 := &types.Authority{
-		Key:     kr.Bob().Public().(*sr25519.PublicKey),
+		Key:    kr.Bob().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd1)

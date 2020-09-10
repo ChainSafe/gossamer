@@ -52,7 +52,6 @@ type DigestHandler struct {
 	babeForcedChange    *babeChange
 	babePause           *pause
 	babeResume          *resume
-	// todo ed authority
 	babeAuths           []*types.Authority // saved in case of pause
 
 	// GRANDPA changes
@@ -60,18 +59,15 @@ type DigestHandler struct {
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
-	// todo ed authorities
 	grandpaAuths           []*types.Authority // saved in case of pause
 }
 
 type babeChange struct {
-	// todo ed authority
 	auths   []*types.Authority
 	atBlock *big.Int
 }
 
 type grandpaChange struct {
-	// todo ed authorities
 	auths   []*types.Authority
 	atBlock *big.Int
 }
@@ -257,12 +253,10 @@ func (h *DigestHandler) handleBABEChangesOnFinalization(header *types.Header) {
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
 		// save authority data for Resume
 		h.babeAuths = h.babe.Authorities()
-		// todo ed authorities
 		err := h.babe.SetAuthorities([]*types.Authority{})
 		if err != nil {
 			log.Warn("error setting authorities", "error", err)
 		}
-		// todo ed authorities
 		h.verifier.SetAuthorityChangeAtBlock(header, []*types.Authority{})
 		h.babePause = nil
 	}
@@ -300,7 +294,6 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
 		// save authority data for Resume
 		h.grandpaAuths = h.grandpa.Authorities()
-		// todo ed authorities
 		h.grandpa.UpdateAuthorities([]*types.Authority{})
 		h.grandpaPause = nil
 	}
@@ -419,7 +412,6 @@ func (h *DigestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
 
 	if d.ConsensusEngineID == types.BabeEngineID {
 		curr := h.babe.Authorities()
-		// todo ed authorities
 		next := []*types.Authority{}
 
 		for i, auth := range curr {
@@ -434,12 +426,9 @@ func (h *DigestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
 		}
 	} else {
 		curr := h.grandpa.Authorities()
-		// todo ed authorities
 		next := []*types.Authority{}
 
 		for _, auth := range curr {
-			// todo ed authorities
-			// todo figure out how to deal with ID (doesn't seem to be weight)
 			if auth.Weight != od.ID {
 				next = append(next, auth)
 			}
@@ -521,9 +510,8 @@ func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBl
 	}, nil
 }
 
-// todo ed authorities
 func newBABEChange(raw []*types.AuthorityRaw, delay uint32, currBlock *big.Int) (*babeChange, error) {
-	auths, err := types.BABEAuthorityDataRawToAuthorityData(raw)
+	auths, err := types.BABEAuthorityRawToAuthority(raw)
 	if err != nil {
 		return nil, err
 	}

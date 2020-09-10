@@ -16,7 +16,6 @@ type BlockProducer interface {
 	SetRuntime(*runtime.Runtime) error
 	Pause() error
 	Resume() error
-	// todo ed authorities
 	Authorities() []*types.Authority
 	SetAuthorities([]*types.Authority) error
 	SetRandomness([types.RandomnessLength]byte)

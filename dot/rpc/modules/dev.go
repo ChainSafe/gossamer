@@ -64,7 +64,6 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 
 // SetBlockProducerAuthorities dev rpc method that sets authorities for block producer
 func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interface{}, res *string) error {
-	//  todo ed authorities
 	ab := []*types.Authority{}
 	for _, v := range *req {
 		kb := crypto.PublicAddressToByteArray(common.Address(v.([]interface{})[0].(string)))
@@ -72,9 +71,8 @@ func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interfac
 		if err != nil {
 			return err
 		}
-		// todo ed authorities
 		bd := &types.Authority{
-			Key:     pk,
+			Key:    pk,
 			Weight: uint64(v.([]interface{})[1].(float64)),
 		}
 		ab = append(ab, bd)

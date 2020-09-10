@@ -53,14 +53,12 @@ func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt *runtime
 	return nil
 }
 
-// todo ed authorities
 func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.Authority) {
 
 }
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	// todo ed authorities
 	auths []*types.Authority
 }
 
@@ -74,12 +72,10 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-// todo ed authorities
 func (bp *mockBlockProducer) Authorities() []*types.Authority {
 	return bp.auths
 }
 
-// todo ed authorities
 func (bp *mockBlockProducer) SetAuthorities(a []*types.Authority) error {
 	bp.auths = a
 	return nil
@@ -100,7 +96,6 @@ type mockFinalityGadget struct {
 	in        chan FinalityMessage
 	out       chan FinalityMessage
 	finalized chan FinalityMessage
-	// todo ed authorities
 	auths     []*types.Authority
 }
 
@@ -134,12 +129,10 @@ func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (Finality
 	return &mockFinalityMessage{}, nil
 }
 
-// todo ed authorities
 func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
 	fg.auths = ad
 }
 
-// todo ed authorities
 func (fg *mockFinalityGadget) Authorities() []*types.Authority {
 	return fg.auths
 }

@@ -77,7 +77,6 @@ type FinalityGadget interface {
 	GetVoteOutChannel() <-chan FinalityMessage
 	GetVoteInChannel() chan<- FinalityMessage
 	GetFinalizedChannel() <-chan FinalityMessage
-	// todo ed authorities
 	UpdateAuthorities(ad []*types.Authority)
 	Authorities() []*types.Authority
 }
@@ -97,15 +96,12 @@ type ConsensusMessageHandler interface {
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(*runtime.Runtime) error
-	// todo ed authorities
 	Authorities() []*types.Authority
-	// todo ed authorities
 	SetAuthorities([]*types.Authority) error
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
 	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error
-	// todo ed authorities
 	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority)
 }

@@ -46,7 +46,6 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
-	// todo ed authorities
 	SetAuthorities(data []*types.Authority) error
 	SetRandomness([types.RandomnessLength]byte)
 	SetEpochThreshold(*big.Int)

@@ -17,20 +17,23 @@ package types
 
 import (
 	"encoding/binary"
+	"io"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"io"
 )
 
+// Authority struct to hold authority data
 type Authority struct {
-	Key     crypto.PublicKey
+	Key    crypto.PublicKey
 	Weight uint64
 }
 
+// NewAuthority function to create Authority object
 func NewAuthority(pub crypto.PublicKey, weight uint64) *Authority {
 	return &Authority{
-		Key:     pub,
+		Key:    pub,
 		Weight: weight,
 	}
 }
@@ -47,8 +50,7 @@ func (a *Authority) Encode() []byte {
 	return append(enc, weightBytes...)
 }
 
-// todo ed figure out how to decode from unknown keytypes
-// Decode sets the BABEAuthorityData to the SCALE decoded input.
+// DecodeSr25519 sets the Authority to the SCALE decoded input for Authority containing SR25519 Keys.
 func (a *Authority) DecodeSr25519(r io.Reader) error {
 	id, err := common.Read32Bytes(r)
 	if err != nil {
@@ -61,16 +63,16 @@ func (a *Authority) DecodeSr25519(r io.Reader) error {
 	}
 
 	raw := &AuthorityRaw{
-		Key:     id,
+		Key:    id,
 		Weight: weight,
 	}
 
-	return a.FromRawSr25519(raw)//  FromRawEd25519()FromRaw(raw)
+	return a.FromRawSr25519(raw)
 }
 
-
+// AuthorityRaw struct to hold raw authority data
 type AuthorityRaw struct {
-	Key     [sr25519.PublicKeyLength]byte
+	Key    [sr25519.PublicKeyLength]byte
 	Weight uint64
 }
 
@@ -85,9 +87,8 @@ func (a *Authority) ToRaw() *AuthorityRaw {
 	return raw
 }
 
-// FromRaw sets the BABEAuthorityData given BABEAuthorityDataRaw. It converts the byte representations of
+// FromRawSr25519 sets the Authority given AuthorityRaw. It converts the byte representations of
 // the authority public keys into a sr25519.PublicKey.
-// todo ed authorities
 func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 	id, err := sr25519.NewPublicKey(raw.Key[:])
 	if err != nil {

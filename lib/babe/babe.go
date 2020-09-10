@@ -63,7 +63,6 @@ type Service struct {
 	config         *types.BabeConfiguration
 	randomness     [types.RandomnessLength]byte
 	authorityIndex uint64
-// todo ed authority
 	authorityData  []*types.Authority
 	epochThreshold *big.Int // validator threshold
 	startSlot      uint64
@@ -86,7 +85,6 @@ type ServiceConfig struct {
 	EpochState       EpochState
 	Keypair          *sr25519.Keypair
 	Runtime          *runtime.Runtime
-	// todo ed authority
 	AuthData         []*types.Authority
 	EpochThreshold   *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
@@ -152,7 +150,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if babeService.authorityData == nil {
 		logger.Info("setting authority data to genesis authorities", "authorities", babeService.config.GenesisAuthorities)
 
-		babeService.authorityData, err = types.BABEAuthorityDataRawToAuthorityData(babeService.config.GenesisAuthorities)
+		babeService.authorityData, err = types.BABEAuthorityRawToAuthority(babeService.config.GenesisAuthorities)
 		if err != nil {
 			return nil, err
 		}
@@ -258,13 +256,11 @@ func (b *Service) Descriptor() *Descriptor {
 }
 
 // Authorities returns the current BABE authorities
-// todo ed authority
 func (b *Service) Authorities() []*types.Authority {
 	return b.authorityData
 }
 
 // SetAuthorities sets the current Block Producer Authorities and sets Authority index
-// todo ed authority
 func (b *Service) SetAuthorities(data []*types.Authority) error {
 	// check key is in new Authorities list before we update Authorities Data
 	pub := b.keypair.Public()
@@ -327,7 +323,6 @@ func (b *Service) setAuthorityIndex() error {
 	b.logger.Debug("set authority index", "authority key", pub.Hex(), "authorities", AuthorityData(b.authorityData))
 
 	for i, auth := range b.authorityData {
-		// todo ed authorities
 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
 			b.authorityIndex = uint64(i)
 			return nil
