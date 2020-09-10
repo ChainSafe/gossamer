@@ -69,13 +69,9 @@ func TestDigestHandler_BABEScheduledChange(t *testing.T) {
 	require.NoError(t, err)
 
 	sc := &types.BABEScheduledChange{
-//<<<<<<< HEAD
-//		// todo ed authorities
-//		Auths: []*types.AuthorityRaw{
-//			{Key: kr.Alice.Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
-//=======
-		Auths: []*types.BABEAuthorityDataRaw{
-			{ID: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
+		// todo ed authorities
+		Auths: []*types.AuthorityRaw{
+			{Key: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
 		},
 		Delay: 3,
 	}
@@ -119,14 +115,14 @@ func TestDigestHandler_BABEForcedChange(t *testing.T) {
 	require.NoError(t, err)
 
 	fc := &types.BABEForcedChange{
-<<<<<<< HEAD
+
 		// todo ed authorities
 		Auths: []*types.AuthorityRaw{
-			{Key: kr.Alice.Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
-=======
-		Auths: []*types.BABEAuthorityDataRaw{
-			{ID: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
->>>>>>> development
+			{Key: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
+//=======
+//		Auths: []*types.BABEAuthorityDataRaw{
+//			{ID: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
+//>>>>>>> development
 		},
 		Delay: 3,
 	}
@@ -161,14 +157,13 @@ func TestDigestHandler_BABEOnDisabled(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-<<<<<<< HEAD
 	// todo ed authorities
 	handler.babe.SetAuthorities([]*types.Authority{
-		{Key: kr.Alice.Public().(*sr25519.PublicKey), Weight: 0},
-=======
-	handler.babe.SetAuthorities([]*types.BABEAuthorityData{
-		{ID: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
->>>>>>> development
+		{Key: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
+//=======
+//	handler.babe.SetAuthorities([]*types.BABEAuthorityData{
+//		{ID: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
+//>>>>>>> development
 	})
 
 	// try with ID that doesn't exist
@@ -218,14 +213,13 @@ func TestDigestHandler_BABEPauseAndResume(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-<<<<<<< HEAD
 	// todo ed authorities
 	handler.babe.SetAuthorities([]*types.Authority{
-		{Key: kr.Alice.Public().(*sr25519.PublicKey), Weight: 0},
-=======
-	handler.babe.SetAuthorities([]*types.BABEAuthorityData{
-		{ID: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
->>>>>>> development
+		{Key: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
+//=======
+//	handler.babe.SetAuthorities([]*types.BABEAuthorityData{
+//		{ID: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
+//>>>>>>> development
 	})
 
 	p := &types.Pause{
@@ -364,14 +358,13 @@ func TestDigestHandler_GrandpaOnDisabled(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-<<<<<<< HEAD
 	// todo ed authorities
 	handler.grandpa.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice.Public().(*ed25519.PublicKey), Weight: 0},
-=======
-	handler.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
->>>>>>> development
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
+//=======
+//	handler.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{
+//		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+//>>>>>>> development
 	})
 
 	// try with ID that doesn't exist
@@ -421,14 +414,13 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-<<<<<<< HEAD
 	// todo ed authorities
 	handler.grandpa.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice.Public().(*ed25519.PublicKey), Weight: 0},
-=======
-	handler.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
->>>>>>> development
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
+//=======
+//	handler.grandpa.UpdateAuthorities([]*types.GrandpaAuthorityData{
+//		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+//>>>>>>> development
 	})
 
 	p := &types.Pause{

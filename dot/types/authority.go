@@ -17,8 +17,10 @@ package types
 
 import (
 	"encoding/binary"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"io"
 )
 
 type Authority struct {
@@ -47,24 +49,24 @@ func (a *Authority) Encode() []byte {
 
 // todo ed figure out how to decode from unknown keytypes
 // Decode sets the BABEAuthorityData to the SCALE decoded input.
-//func (a *Authority) Decode(r io.Reader) error {
-//	id, err := common.Read32Bytes(r)
-//	if err != nil {
-//		return err
-//	}
-//
-//	weight, err := common.ReadUint64(r)
-//	if err != nil {
-//		return err
-//	}
-//
-//	raw := &AuthorityRaw{
-//		Key:     id,
-//		Weight: weight,
-//	}
-//
-//	return a.FromRawSr25519(raw)//  FromRawEd25519()FromRaw(raw)
-//}
+func (a *Authority) DecodeSr25519(r io.Reader) error {
+	id, err := common.Read32Bytes(r)
+	if err != nil {
+		return err
+	}
+
+	weight, err := common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	raw := &AuthorityRaw{
+		Key:     id,
+		Weight: weight,
+	}
+
+	return a.FromRawSr25519(raw)//  FromRawEd25519()FromRaw(raw)
+}
 
 
 type AuthorityRaw struct {
