@@ -65,7 +65,7 @@ type Service struct {
 	verifier Verifier
 
 	// Keystore
-	keys *keystore.Keystore
+	keys *keystore.GlobalKeystore
 
 	// Channels for inter-process communication
 	msgRec  <-chan network.Message // receive messages from network service
@@ -85,7 +85,7 @@ type Config struct {
 	BlockState              BlockState
 	StorageState            StorageState
 	TransactionQueue        TransactionQueue
-	Keystore                *keystore.Keystore
+	Keystore                *keystore.GlobalKeystore
 	Runtime                 *runtime.Runtime
 	BlockProducer           BlockProducer
 	IsBlockProducer         bool
@@ -137,7 +137,12 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	codeHash, err := cfg.StorageState.LoadCodeHash()
+	sr, err := cfg.BlockState.BestBlockStateRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	codeHash, err := cfg.StorageState.LoadCodeHash(&sr)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +239,13 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	if s.storageState == nil {
 		return common.Hash{}, ErrNilStorageState
 	}
-	return s.storageState.StorageRoot()
+
+	ts, err := s.storageState.TrieState(nil)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return ts.Root()
 }
 
 func (s *Service) safeMsgSend(msg network.Message) {
@@ -257,9 +268,14 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
-			err := s.handleRuntimeChanges(block.Header)
+			err := s.storageState.StoreInDB(block.Header.StateRoot)
 			if err != nil {
-				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash())
+				log.Warn("failed to store storage trie in database", "error", err)
+			}
+
+			err = s.handleRuntimeChanges(block.Header)
+			if err != nil {
+				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -359,22 +375,32 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 // It also updates the BABE service and block verifier with the new runtime
 func (s *Service) handleRuntimeChanges(header *types.Header) error {
-	currentCodeHash, err := s.storageState.LoadCodeHash()
+	sr, err := s.blockState.BestBlockStateRoot()
+	if err != nil {
+		return err
+	}
+
+	currentCodeHash, err := s.storageState.LoadCodeHash(&sr)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		code, err := s.storageState.LoadCode()
+		code, err := s.storageState.LoadCode(&sr)
 		if err != nil {
 			return err
 		}
 
 		s.rt.Stop()
 
+		ts, err := s.storageState.TrieState(&sr)
+		if err != nil {
+			return err
+		}
+
 		cfg := &runtime.Config{
-			Storage:  s.storageState,
-			Keystore: s.keys,
+			Storage:  ts,
+			Keystore: s.keys.Acco.(*keystore.GenericKeystore),
 			Imports:  runtime.RegisterImports_NodeRuntime,
 			LogLvl:   -1, // don't change runtime package log level
 		}
@@ -400,15 +426,16 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 	return nil
 }
 
-// InsertKey inserts keypair into keystore
+// InsertKey inserts keypair into the account keystore
+// TODO: define which keystores need to be updated and create separate insert funcs for each
 func (s *Service) InsertKey(kp crypto.Keypair) {
-	s.keys.Insert(kp)
+	s.keys.Acco.Insert(kp)
 }
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 //  are issues decoding string
 func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
-	return keystore.HasKey(pubKeyStr, keyType, s.keys)
+	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
@@ -418,6 +445,12 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 		RuntimeVersion: &runtime.Version{},
 		API:            nil,
 	}
+
+	ts, err := s.storageState.TrieState(nil)
+	if err != nil {
+		return nil, err
+	}
+	s.rt.SetContext(ts)
 
 	ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {

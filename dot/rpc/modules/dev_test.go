@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -40,7 +41,7 @@ func newBABEService(t *testing.T) *babe.Service {
 	cfg := &babe.ServiceConfig{
 		BlockState: bs,
 		EpochState: es,
-		Keypair:    kr.Alice,
+		Keypair:    kr.Alice().(*sr25519.Keypair),
 		Runtime:    rt,
 	}
 
@@ -57,12 +58,12 @@ func TestDevControl_Babe(t *testing.T) {
 	err := m.Control(nil, &[]string{"babe", "stop"}, &res)
 	require.NoError(t, err)
 	require.Equal(t, blockProducerStoppedMsg, res)
-	require.True(t, bs.IsStopped())
+	require.True(t, bs.IsPaused())
 
 	err = m.Control(nil, &[]string{"babe", "start"}, &res)
 	require.NoError(t, err)
 	require.Equal(t, blockProducerStartedMsg, res)
-	require.False(t, bs.IsStopped())
+	require.False(t, bs.IsPaused())
 }
 
 func TestDevControl_Network(t *testing.T) {

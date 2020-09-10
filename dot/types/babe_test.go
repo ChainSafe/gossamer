@@ -30,6 +30,9 @@ func TestBABEAuthorityData(t *testing.T) {
 
 	// todo ed authorities
 	ad := NewAuthority(kr.Alice.Public().(*sr25519.PublicKey), 77)
+//=======
+//	ad := NewBABEAuthorityData(kr.Alice().Public().(*sr25519.PublicKey), 77)
+//>>>>>>> development
 	enc := ad.Encode()
 
 	buf := &bytes.Buffer{}
@@ -57,7 +60,7 @@ func TestBABEAuthorityData_ToRaw(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ad := NewBABEAuthorityData(kr.Alice.Public().(*sr25519.PublicKey), 77)
+	ad := NewBABEAuthorityData(kr.Alice().Public().(*sr25519.PublicKey), 77)
 	raw := ad.ToRaw()
 
 	res := new(BABEAuthorityData)

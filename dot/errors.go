@@ -14,23 +14,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package dot
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"errors"
 )
 
-// Storage interface
-type Storage interface {
-	Set(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Root() (common.Hash, error)
-	SetChild(keyToChild []byte, child *trie.Trie) error
-	SetChildStorage(keyToChild, key, value []byte) error
-	GetChildStorage(keyToChild, key []byte) ([]byte, error)
-	Delete(key []byte) error
-	Entries() map[string][]byte
-	SetBalance(key [32]byte, balance uint64) error
-	GetBalance(key [32]byte) (uint64, error)
-}
+// ErrNoKeysProvided is returned when no keys are given for an authority node
+var ErrNoKeysProvided = errors.New("no keys provided for authority node")
+
+// ErrInvalidKeystoreType when trying to create a service with the wrong keystore type
+var ErrInvalidKeystoreType = errors.New("invalid keystore type")

@@ -24,7 +24,6 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -86,14 +85,11 @@ func InitNode(cfg *Config) error {
 
 	var genEpochInfo *types.EpochInfo
 	if !cfg.Init.TestFirstEpoch {
-		// create in-memeory storage for loading runtime info
-		genStorage, err := state.NewStorageState(database.NewMemDatabase(), t) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to create in-memory storage: %w", err)
-		}
+		// load genesis trie state for loading runtime info
+		genTrie := state.NewTrieState(t) //nolint
 
 		// create genesis runtime
-		r, err := genesis.NewRuntimeFromGenesis(gen, genStorage) //nolint
+		r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to create genesis runtime: %w", err)
 		}
@@ -105,7 +101,7 @@ func InitNode(cfg *Config) error {
 
 		genEpochInfo = &types.EpochInfo{
 			Duration:   babeCfg.EpochLength,
-			FirstBlock: 0,
+			FirstBlock: 1,
 			Randomness: babeCfg.Randomness,
 		}
 
@@ -209,15 +205,15 @@ func NodeInitialized(basepath string, expected bool) bool {
 }
 
 // NewNode creates a new dot node from a dot node configuration
-func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error) {
+func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
 	err := setupLogger(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Authority && ks.NumSr25519Keys() == 0 {
-		return nil, fmt.Errorf("no keys provided for authority node")
+	if cfg.Core.Authority && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+		return nil, ErrNoKeysProvided
 	}
 
 	// Node Services
@@ -243,10 +239,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
-	nodeSrvcs = append(nodeSrvcs, stateSrvc)
 
 	// create runtime
-	rt, err := createRuntime(cfg, stateSrvc, ks)
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
 	if err != nil {
 		return nil, err
 	}
@@ -257,11 +252,10 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 	}
 
 	var bp BlockProducer
-	var fg core.FinalityGadget
 
 	if cfg.Core.BabeAuthority {
 		// create BABE service
-		bp, err = createBABEService(cfg, rt, stateSrvc, ks)
+		bp, err = createBABEService(cfg, rt, stateSrvc, ks.Babe)
 		if err != nil {
 			return nil, err
 		}
@@ -269,20 +263,17 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 		nodeSrvcs = append(nodeSrvcs, bp)
 	}
 
-	dh, err := createDigestHandler(stateSrvc, bp, fg, ver)
+	dh, err := createDigestHandler(stateSrvc, bp, ver)
 	if err != nil {
 		return nil, err
 	}
 
-	if cfg.Core.GrandpaAuthority {
-		// create GRANDPA service
-		fg, err = createGRANDPAService(cfg, rt, stateSrvc, dh, ks)
-		if err != nil {
-			return nil, err
-		}
-		nodeSrvcs = append(nodeSrvcs, fg)
+	// create GRANDPA service
+	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	if err != nil {
+		return nil, err
 	}
-
+	nodeSrvcs = append(nodeSrvcs, fg)
 	dh.SetFinalityGadget(fg)
 
 	// Syncer
@@ -345,6 +336,9 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
 
 	}
+
+	// close state service last
+	nodeSrvcs = append(nodeSrvcs, stateSrvc)
 
 	node := &Node{
 		Name:     cfg.Global.Name,

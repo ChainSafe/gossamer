@@ -106,7 +106,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 
-	babeService.started.Store(true)
 	babeService.config = babeCfg
 	if cfg.EpochThreshold == nil {
 		babeService.epochThreshold = maxThreshold
@@ -304,19 +303,19 @@ func TestService_SetAuthorities(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	bs := createTestService(t, &ServiceConfig{
-		Keypair: kr.Alice,
+		Keypair: kr.Alice().(*sr25519.Keypair),
 	})
 
 	aBefore := bs.authorityData
 
 	auths := []*types.BABEAuthorityData{}
 	bd1 := &types.BABEAuthorityData{
-		ID:     kr.Alice.Public().(*sr25519.PublicKey),
+		ID:     kr.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd1)
 	bd2 := &types.BABEAuthorityData{
-		ID:     kr.Bob.Public().(*sr25519.PublicKey),
+		ID:     kr.Bob().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd2)
@@ -331,14 +330,14 @@ func TestService_SetAuthorities_WrongKey(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 	bs := createTestService(t, &ServiceConfig{
-		Keypair: kr.Alice,
+		Keypair: kr.Alice().(*sr25519.Keypair),
 	})
 
 	aBefore := bs.authorityData
 
 	auths := []*types.BABEAuthorityData{}
 	bd1 := &types.BABEAuthorityData{
-		ID:     kr.Bob.Public().(*sr25519.PublicKey),
+		ID:     kr.Bob().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 	auths = append(auths, bd1)

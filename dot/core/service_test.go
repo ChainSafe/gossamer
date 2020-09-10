@@ -118,8 +118,8 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	ks := keystore.NewKeystore()
-	ks.Insert(kp)
+	ks := keystore.NewGlobalKeystore()
+	ks.Acco.Insert(kp)
 
 	cfg := &Config{
 		Runtime:          rt,
@@ -136,41 +136,65 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	testRuntime, err := ioutil.ReadFile(runtime.TESTS_FP)
 	require.Nil(t, err)
 
-	err = s.storageState.SetStorage([]byte(":code"), testRuntime)
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	err = ts.Set([]byte(":code"), testRuntime)
 	require.Nil(t, err)
 
+	root, err := ts.Root()
+	require.NoError(t, err)
+
+	s.storageState.StoreTrie(root, ts)
+	head := &types.Header{
+		ParentHash: s.blockState.BestBlockHash(),
+		Number:     big.NewInt(1),
+		StateRoot:  root,
+		Digest:     [][]byte{},
+	}
+
+	err = s.blockState.AddBlock(&types.Block{
+		Header: head,
+		Body:   types.NewBody([]byte{}),
+	})
+	require.NoError(t, err)
+
+	bestHeader, err := s.blockState.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, head, bestHeader)
+
 	err = s.handleRuntimeChanges(testGenesisHeader)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestService_HasKey(t *testing.T) {
-	ks := keystore.NewKeystore()
+	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
-	ks.Insert(kr.Alice)
+	ks.Acco.Insert(kr.Alice())
 
 	cfg := &Config{
 		Keystore: ks,
 	}
 	svc := NewTestService(t, cfg)
 
-	res, err := svc.HasKey(kr.Alice.Public().Hex(), "babe")
+	res, err := svc.HasKey(kr.Alice().Public().Hex(), "babe")
 	require.NoError(t, err)
 	require.True(t, res)
 }
 
 func TestService_HasKey_UnknownType(t *testing.T) {
-	ks := keystore.NewKeystore()
+	ks := keystore.NewGlobalKeystore()
 	kr, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
-	ks.Insert(kr.Alice)
+	ks.Acco.Insert(kr.Alice())
 
 	cfg := &Config{
 		Keystore: ks,
 	}
 	svc := NewTestService(t, cfg)
 
-	res, err := svc.HasKey(kr.Alice.Public().Hex(), "xxxx")
+	res, err := svc.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "unknown key type: xxxx")
 	require.False(t, res)
 }
