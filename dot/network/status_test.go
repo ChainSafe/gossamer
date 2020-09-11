@@ -43,8 +43,6 @@ func TestStatus(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		// todo ed msg_channel
-		//MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -85,8 +83,6 @@ func TestStatus(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		// todo ed msg_channel
-		//MsgRec:      msgRecB,
 	}
 
 	nodeB := createTestService(t, configB)
