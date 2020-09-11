@@ -36,11 +36,11 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	mmh := new(mockMessageHandler)
+	net := new(mockNetwork)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		MessageHandler:  mmh,
+		Network:         net,
 		Keystore:        keystore.NewKeystore(),
 		NewBlocks:       newBlocks,
 		IsBlockProducer: false,
@@ -68,8 +68,8 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	}
 
 	time.Sleep(testMessageTimeout)
-	require.Equal(t, network.BlockAnnounceMsgType, mmh.Message.Type())
-	require.Equal(t, expected, mmh.Message)
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+	require.Equal(t, expected, net.Message)
 }
 
 func TestService_ProcessTransactionMessage(t *testing.T) {

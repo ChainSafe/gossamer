@@ -39,7 +39,7 @@ type NetworkState interface {
 
 // MessageHandler interface for handling message passing
 type MessageHandler interface {
-	SendMessage(Message)
+	HandleMessage(Message)
 }
 
 // MockNetworkState for testing purposes

@@ -92,12 +92,12 @@ func (bp *mockBlockProducer) SetRuntime(rt *runtime.Runtime) error {
 	return nil
 }
 
-type mockMessageHandler struct {
+type mockNetwork struct {
 	Message network.Message
 }
 
-func (mh *mockMessageHandler) SendMessage(m network.Message) {
-	mh.Message = m
+func (n *mockNetwork) SendMessage(m network.Message) {
+	n.Message = m
 }
 
 // mockFinalityGadget implements the FinalityGadget interface
@@ -222,7 +222,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
 	}
 
-	if cfg.MessageHandler == nil {
+	if cfg.Network == nil {
 		basePath := utils.NewTestBasePath(t, "node")
 
 		// removes all data directories created within test directory
@@ -236,7 +236,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoMDNS:      true,
 			BlockState:  stateSrvc.Block,
 		}
-		cfg.MessageHandler = createTestService(t, config)
+		cfg.Network = createTestNetworkService(t, config)
 		require.NoError(t, err)
 	}
 
@@ -247,7 +247,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 }
 
 // helper method to create and start a new network service
-func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
+func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
 	//if cfg.BlockState == nil {
 	//	cfg.BlockState = &MockBlockState{}
 	//}

@@ -69,8 +69,8 @@ type Service struct {
 
 	// Channels for inter-process communication
 	//msgRec         <-chan network.Message // receive messages from network service
-	blkRec         <-chan types.Block // receive blocks from BABE session
-	messageHandler network.MessageHandler
+	blkRec <-chan types.Block // receive blocks from BABE session
+	net    Network
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
 	blockAddChID byte
@@ -99,7 +99,7 @@ type Config struct {
 
 	//MsgRec <-chan network.Message
 
-	MessageHandler network.MessageHandler
+	Network Network
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -171,7 +171,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
-		messageHandler:          cfg.MessageHandler,
+		net:                     cfg.Network,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -231,9 +231,9 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return s.storageState.StorageRoot()
 }
 
-func (s *Service) safeMsgSend(msg network.Message) {
-	s.messageHandler.SendMessage(msg)
-}
+// func (s *Service) safeMsgSend(msg network.Message) {
+// 	s.net.SendMessage(msg)
+// }
 
 func (s *Service) handleBlocks(ctx context.Context) {
 	for {
@@ -291,8 +291,8 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 //	}
 //}
 
-// SendMessage implements interface to handle messages that are passed to it
-func (s *Service) SendMessage(message network.Message) {
+// HandleMessage handles network messages that are passed to it
+func (s *Service) HandleMessage(message network.Message) {
 	if message == nil {
 		return
 	}
@@ -324,7 +324,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		Digest:         block.Header.Digest,
 	}
 
-	s.safeMsgSend(msg)
+	s.net.SendMessage(msg)
 	return nil
 }
 
@@ -437,7 +437,7 @@ func (s *Service) IsBlockProducer() bool {
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
-	s.safeMsgSend(msg)
+	s.net.SendMessage(msg)
 	return nil
 }
 

@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
-	"sync"
+	//"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -64,7 +64,7 @@ type Service struct {
 	//msgSend chan<- Message
 	// todo ed remove lock?
 	messageHandler MessageHandler
-	lock           sync.Mutex
+	//lock           sync.Mutex
 
 	// Configuration options
 	noBootstrap bool
@@ -159,8 +159,8 @@ func (s *Service) Start() error {
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	// s.lock.Lock()
+	// defer s.lock.Unlock()
 
 	s.cancel()
 
@@ -220,18 +220,18 @@ func (s *Service) SendMessage(msg Message) {
 	s.host.broadcast(msg)
 }
 
-// todo ed refactor to remove this
-func (s *Service) safeMsgSend(msg Message) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if s.IsStopped() {
-		return errors.New("service has been stopped")
-	}
-	// todo ed msg_channel
-	//s.msgSend <- msg
-	s.messageHandler.SendMessage(msg)
-	return nil
-}
+// // todo ed refactor to remove this
+// func (s *Service) safeMsgSend(msg Message) error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
+// 	if s.IsStopped() {
+// 		return errors.New("service has been stopped")
+// 	}
+// 	// todo ed msg_channel
+// 	s.msgSend <- msg
+// 	//s.messageHandler.SendMessage(msg)
+// 	return nil
+// }
 
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
@@ -404,10 +404,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 					}
 				}
 			} else {
-				err := s.safeMsgSend(msg)
-				if err != nil {
-					s.logger.Error("Failed to send message", "error", err)
-				}
+				s.messageHandler.HandleMessage(msg)
+				// if err != nil {
+				// 	s.logger.Error("Failed to send message", "error", err)
+				// }
 			}
 		}
 

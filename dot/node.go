@@ -293,25 +293,19 @@ func NewNode(cfg *Config, ks *keystore.Keystore, stopFunc func()) (*Node, error)
 	}
 
 	// Network Service
-
-	networkSrvc := &network.Service{} // TODO: rpc service without network service
+	var networkSrvc *network.Service
 
 	// check if network service is enabled
-	if enabled := NetworkServiceEnabled(cfg); enabled {
-
+	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
-		// todo ed msg_channel
 		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create network service: %s", err)
 		}
 		nodeSrvcs = append(nodeSrvcs, networkSrvc)
-
 	} else {
-
 		// do not create or append network service if network service is not enabled
 		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
-
 	}
 
 	// Core Service

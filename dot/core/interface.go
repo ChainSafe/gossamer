@@ -112,3 +112,7 @@ type Verifier interface {
 	SetRuntimeChangeAtBlock(header *types.Header, rt *runtime.Runtime) error
 	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.BABEAuthorityData)
 }
+
+type Network interface {
+	SendMessage(network.Message)
+}
