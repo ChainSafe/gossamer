@@ -19,6 +19,7 @@ package grandpa
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math/big"
 	"os"
 	"sync"
@@ -491,6 +492,7 @@ func (s *Service) playGrandpaRound() error {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
+			//return false
 			if s.paused.Load().(bool) {
 				return true
 			}
@@ -500,7 +502,8 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			finalizable, err := s.isFinalizable(s.state.round)
+			round := s.state.round
+			finalizable, err := s.isFinalizable(round)
 			if err != nil {
 				return false
 			}
@@ -610,6 +613,10 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 		return nil, err
 	}
 
+	s.mapLock.Lock()
+	s.preVotedBlock[s.state.round] = &pvb
+	s.mapLock.Unlock()
+
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
 	if pvb.number > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
@@ -632,25 +639,22 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 		return true, nil
 	}
 
-	if round == s.state.round {
-		pvb, err = s.getPreVotedBlock()
-		if err != nil {
-			return false, err
-		}
-	} else {
-		s.mapLock.Lock()
-		v, has := s.preVotedBlock[round]
-		s.mapLock.Unlock()
+	s.mapLock.Lock()
+	v, has := s.preVotedBlock[round]
+	s.mapLock.Unlock()
 
-		if !has {
-			return false, ErrNoPreVotedBlock
-		}
-		pvb = *v
+	if !has {
+		return false, ErrNoPreVotedBlock
 	}
+	pvb = *v
 
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
 		return false, err
+	}
+
+	if bfc == nil {
+		return false, errors.New("cannot find best final candidate for round")
 	}
 
 	pc, err := s.getTotalVotesForBlock(bfc.hash, precommit)
@@ -661,6 +665,10 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 	s.mapLock.Lock()
 	prevBfc := s.bestFinalCandidate[s.state.round-1]
 	s.mapLock.Unlock()
+
+	if prevBfc == nil {
+		return false, errors.New("cannot find best final candidate for previous round")
+	}
 
 	if bfc.number <= pvb.number && (s.state.round == 0 || prevBfc.number <= bfc.number) && pc >= s.state.threshold() {
 		return true, nil

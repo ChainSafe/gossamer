@@ -76,6 +76,10 @@ func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) (*ConsensusMessage
 func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*ConsensusMessage, error) {
 	h.grandpa.logger.Debug("received finalization message", "round", msg.Round, "hash", msg.Vote.hash)
 
+	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
+		return nil, nil
+	}
+
 	// check justification here
 	err := h.verifyFinalizationMessageJustification(msg)
 	if err != nil {
@@ -95,7 +99,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 	}
 
 	// check if msg has same setID but is 2 or more rounds ahead of us, if so, return catch-up request to send
-	if msg.Round > h.grandpa.state.round+1 { // TODO: FinalizationMessage does not have setID, confirm this is correct
+	if msg.Round > h.grandpa.state.round+1 && !h.grandpa.paused.Load().(bool) { // TODO: FinalizationMessage does not have setID, confirm this is correct
 		h.grandpa.paused.Store(true)
 		h.grandpa.state.round = msg.Round + 1
 		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
