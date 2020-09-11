@@ -71,7 +71,7 @@ func TestStatus(t *testing.T) {
 	}
 
 	// simulate host status message sent from core service on startup
-	mmhA.SendMessage(testStatusMessage)
+	mmhA.HandleMessage(testStatusMessage)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
@@ -91,7 +91,7 @@ func TestStatus(t *testing.T) {
 	nodeB.noGossip = true
 
 	// simulate host status message sent from core service on startup
-	mmhB.SendMessage(testStatusMessage)
+	mmhB.HandleMessage(testStatusMessage)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {

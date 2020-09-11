@@ -311,12 +311,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// Core Service
 
-	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc, networkMsgs)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+	// // create core service and append core service to node services
+	// coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc, networkMsgs)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to create core service: %s", err)
+	// }
+	// nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
 	// System Service
 

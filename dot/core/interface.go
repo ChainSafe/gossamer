@@ -106,6 +106,7 @@ type Verifier interface {
 	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.BABEAuthorityData)
 }
 
+// Network is the interface for the network service
 type Network interface {
 	SendMessage(network.Message)
 }

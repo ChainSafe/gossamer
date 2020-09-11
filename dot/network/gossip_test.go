@@ -37,11 +37,12 @@ func TestGossip(t *testing.T) {
 	mmhA := new(MockMessageHandler)
 
 	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
+		BasePath:       basePathA,
+		Port:           7001,
+		RandSeed:       1,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -54,11 +55,12 @@ func TestGossip(t *testing.T) {
 	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
+		BasePath:       basePathB,
+		Port:           7002,
+		RandSeed:       2,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -86,11 +88,12 @@ func TestGossip(t *testing.T) {
 	mmhC := new(MockMessageHandler)
 
 	configC := &Config{
-		BasePath:    basePathC,
-		Port:        7003,
-		RandSeed:    3,
-		NoBootstrap: true,
-		NoMDNS:      true,
+		BasePath:       basePathC,
+		Port:           7003,
+		RandSeed:       3,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhC,
 	}
 
 	nodeC := createTestService(t, configC)

@@ -38,11 +38,10 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
 	net := new(mockNetwork)
 	newBlocks := make(chan types.Block)
-	mms := new(mockMessageSender)
 
 	cfg := &Config{
 		Network:         net,
-		Keystore:        keystore.NewKeystore(),
+		Keystore:        keystore.NewGlobalKeystore(),
 		NewBlocks:       newBlocks,
 		IsBlockProducer: false,
 	}

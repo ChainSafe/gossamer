@@ -112,7 +112,7 @@ type MockMessageHandler struct {
 	Message Message
 }
 
-func (m *MockMessageHandler) SendMessage(msg Message) {
+func (m *MockMessageHandler) HandleMessage(msg Message) {
 	m.Message = msg
 }
 

@@ -45,9 +45,7 @@ func TestSendVoteMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	// create mock message handler service
 	net := new(mockNetwork)
-
 	s := NewTestService(t, &Config{
 		Network:        net,
 		FinalityGadget: fg,
@@ -67,9 +65,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	// create mock message handler service
 	net := new(mockNetwork)
-
 	s := NewTestService(t, &Config{
 		FinalityGadget: fg,
 		Network:        net,

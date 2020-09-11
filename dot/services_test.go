@@ -83,10 +83,14 @@ func TestCreateCoreService(t *testing.T) {
 	require.NoError(t, err)
 
 	networkSrvc := &network.Service{}
-	// todo ed msg_channel
-	//networkMsgs := make(chan network.Message)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
+	dh, err := createDigestHandler(stateSrvc, nil, nil)
+	require.NoError(t, err)
+
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	require.NoError(t, err)
+
+	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -217,7 +221,7 @@ func TestCreateRPCService(t *testing.T) {
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc := createSystemService(&cfg.System)
@@ -346,7 +350,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc := createSystemService(&cfg.System)

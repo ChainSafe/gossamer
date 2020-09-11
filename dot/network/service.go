@@ -404,9 +404,12 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 					}
 				}
 			} else {
+				if s.messageHandler == nil {
+					s.logger.Crit("Failed to send message", "error", "message handler is nil")
+					return
+				}
 				s.messageHandler.HandleMessage(msg)
 				// if err != nil {
-				// 	s.logger.Error("Failed to send message", "error", err)
 				// }
 			}
 		}
