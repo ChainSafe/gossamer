@@ -11,7 +11,7 @@ rpc = ""
 state = ""
 runtime = ""
 babe = ""
-grandpa = ""
+grandpa = "trace"
 
 [init]
 genesis-raw = "./chain/gssmr/genesis-raw.json"

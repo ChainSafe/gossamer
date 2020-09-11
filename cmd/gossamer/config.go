@@ -18,8 +18,10 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
 
 	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
@@ -37,7 +39,7 @@ var DefaultCfg = dot.GssmrConfig() // TODO: investigate default node other than 
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
-func loadConfigFile(ctx *cli.Context) (cfg *dot.Config, err error) {
+func loadConfigFile(ctx *cli.Context) (cfg *Config, err error) {
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {

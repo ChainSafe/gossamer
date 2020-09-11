@@ -81,7 +81,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.lvl)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
 	var genEpochInfo *types.EpochInfo
 	if !cfg.Init.TestFirstEpoch {
