@@ -75,14 +75,11 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	srvc, err := NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = srvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		utils.RemoveTestDir(t)
 		srvc.Stop()
@@ -166,9 +163,7 @@ func TestBroadcastMessages(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeA.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	// simulate message sent from core service
 	nodeA.SendMessage(TestMessage)

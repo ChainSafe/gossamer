@@ -411,64 +411,34 @@ func TestExistingStream(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-	if mmhB.Message == nil {
-		t.Error("node B timeout waiting for message from node A")
-	}
+	require.NotNil(t, mmhB.Message, "node B timeout waiting for message from node A")
 
 	stream = nodeA.host.getStream(nodeB.host.id(), "")
-	if stream == nil {
-		t.Error("node A should have an outbound stream")
-	}
+	require.NotNil(t, stream, "node A should have an outbound stream")
 
 	// node A uses the stream to send a second message
 	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if mmhB.Message == nil {
-		t.Error("node B timeout waiting for message from node A")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, mmhB.Message, "node B timeout waiting for message from node A")
 
 	stream = nodeA.host.getStream(nodeB.host.id(), "")
-	if stream == nil {
-		t.Error("node A should have an outbound stream")
-	}
-
-	stream = nodeB.host.getStream(nodeA.host.id(), "")
-	if stream != nil {
-		t.Error("node B should not have an outbound stream")
-	}
+	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B opens the stream to send the first message
 	err = nodeB.host.send(addrInfosA[0].ID, "", TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-
-	if mmhA == nil {
-		t.Error("node A timeout waiting for message from node B")
-	}
+	require.NotNil(t, mmhA.Message, "node A timeout waiting for message from node B")
 
 	stream = nodeB.host.getStream(nodeA.host.id(), "")
-	if stream == nil {
-		t.Error("node B should have an outbound stream")
-	}
+	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B uses the stream to send a second message
 	err = nodeB.host.send(addrInfosA[0].ID, "", TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if mmhA.Message == nil {
-		t.Error("node A timeout waiting for message from node B")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, mmhA.Message, "node A timeout waiting for message from node B")
 
 	stream = nodeB.host.getStream(nodeA.host.id(), "")
-	if stream == nil {
-		t.Error("node B should have an outbound stream")
-	}
+	require.NotNil(t, stream, "node B should have an outbound stream")
 }
