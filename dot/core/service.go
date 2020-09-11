@@ -67,8 +67,7 @@ type Service struct {
 	// Keystore
 	keys *keystore.GlobalKeystore
 
-	// Channels for inter-process communication
-	//msgRec         <-chan network.Message // receive messages from network service
+	// Channels and interfaces for inter-process communication
 	blkRec <-chan types.Block // receive blocks from BABE session
 	net    Network
 
@@ -85,6 +84,7 @@ type Config struct {
 	BlockState              BlockState
 	StorageState            StorageState
 	TransactionQueue        TransactionQueue
+	Network                 Network
 	Keystore                *keystore.GlobalKeystore
 	Runtime                 *runtime.Runtime
 	BlockProducer           BlockProducer
@@ -96,10 +96,6 @@ type Config struct {
 
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
-
-	//MsgRec <-chan network.Message
-
-	Network Network
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -167,6 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
 		transactionQueue:        cfg.TransactionQueue,
+		net:                     cfg.Network,
 		isBlockProducer:         cfg.IsBlockProducer,
 		blockProducer:           cfg.BlockProducer,
 		finalityGadget:          cfg.FinalityGadget,
@@ -176,7 +173,6 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
-		net:                     cfg.Network,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -242,10 +238,6 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return ts.Root()
 }
 
-// func (s *Service) safeMsgSend(msg network.Message) {
-// 	s.net.SendMessage(msg)
-// }
-
 func (s *Service) handleBlocks(ctx context.Context) {
 	for {
 		select {
@@ -288,31 +280,16 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 	}
 }
 
-// receiveMessages starts receiving messages from the network service
-//func (s *Service) receiveMessages(ctx context.Context) {
-//	for {
-//		select {
-//		case msg := <-s.msgRec:
-//			if msg == nil {
-//				continue
-//			}
-//
-//			err := s.handleReceivedMessage(msg)
-//			if err != nil {
-//				s.logger.Trace("failed to handle message from network service", "err", err)
-//			}
-//		case <-ctx.Done():
-//			return
-//		}
-//	}
-//}
-
 // HandleMessage handles network messages that are passed to it
 func (s *Service) HandleMessage(message network.Message) {
 	if message == nil {
 		return
 	}
-	// todo add check to confirm service is still running
+
+	if s.ctx.Err() != nil {
+		return
+	}
+
 	err := s.handleReceivedMessage(message)
 	if err != nil {
 		s.logger.Trace("failed to handle message from network service", "err", err)

@@ -61,7 +61,6 @@ func TestRequestedBlockIDs(t *testing.T) {
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestHandleStatusMessage(t *testing.T) {
-	// todo ed determine why this is faling
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -76,9 +75,7 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		// todo ed msg_channel
-		//MsgRec:      msgRecA,
-		Syncer: newMockSyncer(),
+		Syncer:      newMockSyncer(),
 	}
 
 	nodeA := createTestService(t, configA)
@@ -117,9 +114,7 @@ func TestHandleStatusMessage(t *testing.T) {
 		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		// todo ed msg_channel
-		//MsgRec:      msgRecB,
-		Syncer: newMockSyncer(),
+		Syncer:      newMockSyncer(),
 	}
 
 	nodeB := createTestService(t, configB)

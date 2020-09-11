@@ -227,12 +227,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	var nodeSrvcs []services.Service
 
-	// Message Channels (send and receive messages between services)
-
-	//coreMsgs := make(chan network.Message, 128)    // message channel from core service to network service
-	// todo ed msg_channel
-	//networkMsgs := make(chan network.Message, 128) // message channel from network service to core service
-
 	// State Service
 
 	// create state service and append state service to node services
@@ -306,17 +300,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
-	networkSrvc.SetMessageHandler(coreSrvc) // todo ed msg_channel
+	networkSrvc.SetMessageHandler(coreSrvc)
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
-
-	// Core Service
-
-	// // create core service and append core service to node services
-	// coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc, networkMsgs)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to create core service: %s", err)
-	// }
-	// nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
 	// System Service
 

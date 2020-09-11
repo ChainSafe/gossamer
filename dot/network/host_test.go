@@ -210,7 +210,6 @@ func TestBootstrap(t *testing.T) {
 // test host send method
 func TestSend(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-	// todo ed determine why this is faling
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -229,13 +228,11 @@ func TestSend(t *testing.T) {
 	mmh := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		// todo ed msg_channel
-		//MsgSend:     msgSendB,
+		BasePath:       basePathB,
+		Port:           7002,
+		RandSeed:       2,
+		NoBootstrap:    true,
+		NoMDNS:         true,
 		MessageHandler: mmh,
 	}
 

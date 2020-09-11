@@ -60,11 +60,7 @@ type Service struct {
 	syncer       Syncer
 
 	// Interface for inter-process communication
-	// as well as a lock for safe channel closures
-	//msgSend chan<- Message
-	// todo ed remove lock?
 	messageHandler MessageHandler
-	//lock           sync.Mutex
 
 	// Configuration options
 	noBootstrap bool
@@ -110,8 +106,6 @@ func NewService(cfg *Config) (*Service, error) {
 		requestTracker: newRequestTracker(host.logger),
 		blockState:     cfg.BlockState,
 		networkState:   cfg.NetworkState,
-		// todo ed msg_channel
-		//msgSend:        cfg.MsgSend,
 		messageHandler: cfg.MessageHandler,
 		noBootstrap:    cfg.NoBootstrap,
 		noMDNS:         cfg.NoMDNS,
@@ -159,9 +153,6 @@ func (s *Service) Start() error {
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
-	// s.lock.Lock()
-	// defer s.lock.Unlock()
-
 	s.cancel()
 
 	// close mDNS discovery service
@@ -219,19 +210,6 @@ func (s *Service) SendMessage(msg Message) {
 	// broadcast message to connected peers
 	s.host.broadcast(msg)
 }
-
-// // todo ed refactor to remove this
-// func (s *Service) safeMsgSend(msg Message) error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-// 	if s.IsStopped() {
-// 		return errors.New("service has been stopped")
-// 	}
-// 	// todo ed msg_channel
-// 	s.msgSend <- msg
-// 	//s.messageHandler.SendMessage(msg)
-// 	return nil
-// }
 
 // handleConn starts processes that manage the connection
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
@@ -409,8 +387,6 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 					return
 				}
 				s.messageHandler.HandleMessage(msg)
-				// if err != nil {
-				// }
 			}
 		}
 

@@ -30,10 +30,7 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 		s.highestSeen = msg.Number
 	}
 
-	startBlock, err := variadic.NewUint64OrHash(1)
-	if err != nil {
-		// todo decide how to handle this error
-	}
+	startBlock, _ := variadic.NewUint64OrHash(1)
 	return &BlockRequestMessage{
 		ID:            99,
 		StartingBlock: startBlock,

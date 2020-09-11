@@ -199,12 +199,10 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		ConsensusMessageHandler: handler,
 		Keystore:                ks,
 		Runtime:                 rt,
-		// todo ed msg_channel
-		//MsgRec:                  networkMsgs, // message channel from network service to core service
-		IsBlockProducer:     cfg.Core.BabeAuthority,
-		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
-		Verifier:            verifier,
-		Network:             net,
+		IsBlockProducer:         cfg.Core.BabeAuthority,
+		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
+		Verifier:                verifier,
+		Network:                 net,
 	}
 
 	// create new core service
@@ -248,10 +246,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 		ProtocolID:   cfg.Network.ProtocolID,
 		NoBootstrap:  cfg.Network.NoBootstrap,
 		NoMDNS:       cfg.Network.NoMDNS,
-		// todo ed msg_channel
-		//MsgSend:      networkMsgs, // message channel from network service to core service
-		//MessageHandler: messageHandler,
-		Syncer: syncer,
+		Syncer:       syncer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

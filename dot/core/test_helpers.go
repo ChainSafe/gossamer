@@ -249,15 +249,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 // helper method to create and start a new network service
 func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	//if cfg.BlockState == nil {
-	//	cfg.BlockState = &MockBlockState{}
-	//}
-
 	if cfg.NetworkState == nil {
 		cfg.NetworkState = &network.MockNetworkState{}
 	}
-
-	//cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
@@ -268,14 +262,11 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	srvc, err := network.NewService(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = srvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		utils.RemoveTestDir(t)
 		err := srvc.Stop()

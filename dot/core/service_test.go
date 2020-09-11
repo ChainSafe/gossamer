@@ -105,39 +105,6 @@ func TestAnnounceBlock(t *testing.T) {
 	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
 }
 
-func TestAnnounceBlockInterface(t *testing.T) {
-	net := new(mockNetwork)
-	newBlocks := make(chan types.Block)
-
-	cfg := &Config{
-		NewBlocks: newBlocks,
-		Network:   net,
-	}
-
-	s := NewTestService(t, cfg)
-	err := s.Start()
-	require.Nil(t, err)
-	defer s.Stop()
-
-	parent := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}
-
-	// simulate block sent from BABE session
-	newBlocks <- types.Block{
-		Header: &types.Header{
-			ParentHash: parent.Hash(),
-			Number:     big.NewInt(1),
-		},
-		Body: &types.Body{},
-	}
-
-	time.Sleep(testMessageTimeout)
-
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
-}
-
 func TestHandleRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)

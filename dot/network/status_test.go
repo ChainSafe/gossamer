@@ -29,7 +29,6 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
-	// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory

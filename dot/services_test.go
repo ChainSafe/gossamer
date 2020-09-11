@@ -172,9 +172,6 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	// todo ed msg_channel
-	//networkMsgs := make(chan network.Message)
-
 	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.Nil(t, err)
 
@@ -205,8 +202,6 @@ func TestCreateRPCService(t *testing.T) {
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}
-	// todo ed msg_channel
-	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
@@ -335,8 +330,6 @@ func TestNewWebSocketServer(t *testing.T) {
 	require.Nil(t, err)
 
 	networkSrvc := &network.Service{}
-	// todo ed msg_channel
-	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
