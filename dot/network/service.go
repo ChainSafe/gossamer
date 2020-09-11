@@ -22,7 +22,6 @@ import (
 	"errors"
 	"math/big"
 	"os"
-	//"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
