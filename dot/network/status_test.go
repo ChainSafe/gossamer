@@ -29,6 +29,7 @@ var TestStatusTimeout = time.Second
 
 // test exchange status messages after peer connected
 func TestStatus(t *testing.T) {
+	// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -37,12 +38,13 @@ func TestStatus(t *testing.T) {
 	mmhA := new(MockMessageHandler)
 
 	configA := &Config{
-		BasePath:        basePathA,
-		Port:            7001,
-		RandSeed:        1,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhA,
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		// todo ed msg_channel
+		//MsgRec:      msgRecA,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -78,12 +80,13 @@ func TestStatus(t *testing.T) {
 	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:        basePathB,
-		Port:            7002,
-		RandSeed:        2,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		// todo ed msg_channel
+		//MsgRec:      msgRecB,
 	}
 
 	nodeB := createTestService(t, configB)

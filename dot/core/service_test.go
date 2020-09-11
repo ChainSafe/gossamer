@@ -74,12 +74,44 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	mms := new(mockMessageSender)
+	net := new(mockNetwork)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		NewBlocks:     newBlocks,
-		MessageSender: mms,
+		NewBlocks: newBlocks,
+		Network:   net,
+	}
+
+	s := NewTestService(t, cfg)
+	err := s.Start()
+	require.Nil(t, err)
+	defer s.Stop()
+
+	parent := &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	// simulate block sent from BABE session
+	newBlocks <- types.Block{
+		Header: &types.Header{
+			ParentHash: parent.Hash(),
+			Number:     big.NewInt(1),
+		},
+		Body: &types.Body{},
+	}
+
+	time.Sleep(testMessageTimeout)
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+}
+
+func TestAnnounceBlockInterface(t *testing.T) {
+	net := new(mockNetwork)
+	newBlocks := make(chan types.Block)
+
+	cfg := &Config{
+		NewBlocks: newBlocks,
+		Network:   net,
 	}
 
 	s := NewTestService(t, cfg)
@@ -103,7 +135,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 	time.Sleep(testMessageTimeout)
 
-	require.Equal(t, network.BlockAnnounceMsgType, mms.Message.Type())
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
 }
 
 func TestHandleRuntimeChanges(t *testing.T) {

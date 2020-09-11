@@ -68,9 +68,9 @@ type Service struct {
 	keys *keystore.GlobalKeystore
 
 	// Channels for inter-process communication
-	msgRec        <-chan network.Message // receive messages from network service
-	messageSender network.MessageSender
-	blkRec        <-chan types.Block // receive blocks from BABE session
+	//msgRec         <-chan network.Message // receive messages from network service
+	blkRec <-chan types.Block // receive blocks from BABE session
+	net    Network
 
 	blockAddCh   chan *types.Block // receive blocks added to blocktree
 	blockAddChID byte
@@ -97,8 +97,9 @@ type Config struct {
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
 
-	MsgRec        <-chan network.Message
-	MessageSender network.MessageSender
+	//MsgRec <-chan network.Message
+
+	Network Network
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -162,8 +163,6 @@ func NewService(cfg *Config) (*Service, error) {
 		rt:                      cfg.Runtime,
 		codeHash:                codeHash,
 		keys:                    cfg.Keystore,
-		msgRec:                  cfg.MsgRec,
-		messageSender:           cfg.MessageSender,
 		blkRec:                  cfg.NewBlocks,
 		blockState:              cfg.BlockState,
 		storageState:            cfg.StorageState,
@@ -177,6 +176,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lock:                    &sync.Mutex{},
 		blockAddCh:              blockAddCh,
 		blockAddChID:            id,
+		net:                     cfg.Network,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -199,7 +199,6 @@ func (s *Service) Start() error {
 
 	// start receiving messages from network service
 	ctx, _ = context.WithCancel(s.ctx) //nolint
-	go s.receiveMessages(ctx)
 
 	// start handling imported blocks
 	ctx, _ = context.WithCancel(s.ctx) //nolint
@@ -243,16 +242,9 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return ts.Root()
 }
 
-func (s *Service) safeMsgSend(msg network.Message) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	if s.ctx.Err() != nil {
-		// context was canceled
-		return
-	}
-	s.messageSender.SendMessage(msg)
-}
+// func (s *Service) safeMsgSend(msg network.Message) {
+// 	s.net.SendMessage(msg)
+// }
 
 func (s *Service) handleBlocks(ctx context.Context) {
 	for {
@@ -297,21 +289,33 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 }
 
 // receiveMessages starts receiving messages from the network service
-func (s *Service) receiveMessages(ctx context.Context) {
-	for {
-		select {
-		case msg := <-s.msgRec:
-			if msg == nil {
-				continue
-			}
+//func (s *Service) receiveMessages(ctx context.Context) {
+//	for {
+//		select {
+//		case msg := <-s.msgRec:
+//			if msg == nil {
+//				continue
+//			}
+//
+//			err := s.handleReceivedMessage(msg)
+//			if err != nil {
+//				s.logger.Trace("failed to handle message from network service", "err", err)
+//			}
+//		case <-ctx.Done():
+//			return
+//		}
+//	}
+//}
 
-			err := s.handleReceivedMessage(msg)
-			if err != nil {
-				s.logger.Trace("failed to handle message from network service", "err", err)
-			}
-		case <-ctx.Done():
-			return
-		}
+// HandleMessage handles network messages that are passed to it
+func (s *Service) HandleMessage(message network.Message) {
+	if message == nil {
+		return
+	}
+	// todo add check to confirm service is still running
+	err := s.handleReceivedMessage(message)
+	if err != nil {
+		s.logger.Trace("failed to handle message from network service", "err", err)
 	}
 }
 
@@ -336,7 +340,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		Digest:         block.Header.Digest,
 	}
 
-	s.safeMsgSend(msg)
+	s.net.SendMessage(msg)
 	return nil
 }
 
@@ -466,7 +470,7 @@ func (s *Service) IsBlockProducer() bool {
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
-	s.safeMsgSend(msg)
+	s.net.SendMessage(msg)
 	return nil
 }
 

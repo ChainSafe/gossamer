@@ -18,7 +18,6 @@ package network
 
 import (
 	"math/big"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -141,14 +140,13 @@ func TestBroadcastMessages(t *testing.T) {
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
 	mmhB := new(MockMessageHandler)
-
 	configB := &Config{
-		BasePath:        basePathB,
-		Port:            7002,
-		RandSeed:        2,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhB,
+		BasePath:       basePathB,
+		Port:           7002,
+		RandSeed:       2,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhB,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -174,14 +172,9 @@ func TestBroadcastMessages(t *testing.T) {
 
 	// simulate message sent from core service
 	nodeA.SendMessage(TestMessage)
-	time.Sleep(TestMessageTimeout)
-	if !reflect.DeepEqual(mmhB.Message, TestMessage) {
-		t.Error(
-			"node B received unexpected message from node A",
-			"\nexpected:", TestMessage,
-			"\nreceived:", mmhB.Message,
-		)
-	}
+	time.Sleep(time.Second)
+
+	require.Equal(t, TestMessage, mmhB.Message)
 }
 
 func TestHandleMessage_BlockAnnounce(t *testing.T) {
@@ -190,8 +183,6 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	msgSend := make(chan Message, 4)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -199,7 +190,6 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 		NoStatus:    true,
-		MsgSend:     msgSend,
 	}
 
 	s := createTestService(t, config)
@@ -217,8 +207,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
 
-	msgSend := make(chan Message, 4)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -226,7 +214,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 		NoStatus:    true,
-		MsgSend:     msgSend,
 	}
 
 	s := createTestService(t, config)

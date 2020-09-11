@@ -61,6 +61,7 @@ func TestRequestedBlockIDs(t *testing.T) {
 // have a peer send a message status with a block ahead
 // test exchanged messages after peer connected are correct
 func TestHandleStatusMessage(t *testing.T) {
+	// todo ed determine why this is faling
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -69,14 +70,15 @@ func TestHandleStatusMessage(t *testing.T) {
 	heightA := big.NewInt(3)
 	mmhA := new(MockMessageHandler)
 	configA := &Config{
-		BasePath:        basePathA,
-		BlockState:      newMockBlockState(heightA),
-		Port:            7001,
-		RandSeed:        1,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhA,
-		Syncer:          newMockSyncer(),
+		BasePath:    basePathA,
+		BlockState:  newMockBlockState(heightA),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		// todo ed msg_channel
+		//MsgRec:      msgRecA,
+		Syncer: newMockSyncer(),
 	}
 
 	nodeA := createTestService(t, configA)
@@ -109,14 +111,15 @@ func TestHandleStatusMessage(t *testing.T) {
 	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:        basePathB,
-		BlockState:      newMockBlockState(heightB),
-		Port:            7002,
-		RandSeed:        2,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhB,
-		Syncer:          newMockSyncer(),
+		BasePath:    basePathB,
+		BlockState:  newMockBlockState(heightB),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		// todo ed msg_channel
+		//MsgRec:      msgRecB,
+		Syncer: newMockSyncer(),
 	}
 
 	nodeB := createTestService(t, configB)

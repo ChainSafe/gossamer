@@ -28,7 +28,7 @@ func TestGossip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGossip")
 	}
-
+	// todo ed determine why this is failing
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
 	// removes all data directories created within test directory
@@ -37,12 +37,11 @@ func TestGossip(t *testing.T) {
 	mmhA := new(MockMessageHandler)
 
 	configA := &Config{
-		BasePath:        basePathA,
-		Port:            7001,
-		RandSeed:        1,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhA,
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
@@ -55,12 +54,11 @@ func TestGossip(t *testing.T) {
 	mmhB := new(MockMessageHandler)
 
 	configB := &Config{
-		BasePath:        basePathB,
-		Port:            7002,
-		RandSeed:        2,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
@@ -88,12 +86,11 @@ func TestGossip(t *testing.T) {
 	mmhC := new(MockMessageHandler)
 
 	configC := &Config{
-		BasePath:        basePathC,
-		Port:            7003,
-		RandSeed:        3,
-		NoBootstrap:     true,
-		NoMDNS:          true,
-		MsgRecInterface: mmhC,
+		BasePath:    basePathC,
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeC := createTestService(t, configC)

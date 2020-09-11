@@ -62,7 +62,6 @@ func newNetworkService(t *testing.T) *network.Service {
 		NoStatus:     true,
 		NetworkState: &state.NetworkState{},
 		BasePath:     testDir,
-		MsgSend:      make(chan network.Message),
 		Syncer:       &mockSyncer{},
 	}
 

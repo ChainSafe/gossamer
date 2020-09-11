@@ -45,10 +45,11 @@ func TestSendVoteMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	mms := new(mockMessageSender)
+	// create mock message handler service
+	net := new(mockNetwork)
 
 	s := NewTestService(t, &Config{
-		MessageSender:  mms,
+		Network:        net,
 		FinalityGadget: fg,
 	})
 
@@ -56,8 +57,7 @@ func TestSendVoteMessages(t *testing.T) {
 	fg.out <- &mockFinalityMessage{}
 
 	time.Sleep(testMessageTimeout)
-
-	require.Equal(t, testConsensusMessage, mms.Message)
+	require.Equal(t, testConsensusMessage, net.Message)
 }
 
 func TestSendFinalizationMessages(t *testing.T) {
@@ -67,17 +67,17 @@ func TestSendFinalizationMessages(t *testing.T) {
 		finalized: make(chan FinalityMessage, 2),
 	}
 
-	mms := new(mockMessageSender)
+	// create mock message handler service
+	net := new(mockNetwork)
 
 	s := NewTestService(t, &Config{
-		MessageSender:  mms,
 		FinalityGadget: fg,
+		Network:        net,
 	})
 
 	go s.sendFinalizationMessages(context.Background())
 	fg.finalized <- &mockFinalityMessage{}
 
 	time.Sleep(testMessageTimeout)
-
-	require.Equal(t, testConsensusMessage, mms.Message)
+	require.Equal(t, testConsensusMessage, net.Message)
 }

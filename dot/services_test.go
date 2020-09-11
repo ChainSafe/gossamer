@@ -82,16 +82,11 @@ func TestCreateCoreService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
 	require.NoError(t, err)
 
-	coreMsgs := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil)
-	require.NoError(t, err)
-
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -173,9 +168,10 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	networkMsgs := make(chan network.Message)
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc, networkMsgs, nil)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687
@@ -204,8 +200,9 @@ func TestCreateRPCService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	coreMsgs := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
@@ -220,10 +217,8 @@ func TestCreateRPCService(t *testing.T) {
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
-
-	networkSrvc := &network.Service{} // TODO: rpc service without network service
 
 	sysSrvc := createSystemService(&cfg.System)
 
@@ -335,9 +330,9 @@ func TestNewWebSocketServer(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	//coreMsgs := make(chan network.Message)
-	coreMsgs := &network.Service{}
-	networkMsgs := make(chan network.Message)
+	networkSrvc := &network.Service{}
+	// todo ed msg_channel
+	//networkMsgs := make(chan network.Message)
 
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
@@ -351,10 +346,8 @@ func TestNewWebSocketServer(t *testing.T) {
 	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, coreMsgs, networkMsgs)
+	coreSrvc, err := createCoreService(cfg, nil, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
-
-	networkSrvc := &network.Service{}
 
 	sysSrvc := createSystemService(&cfg.System)
 
