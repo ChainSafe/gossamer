@@ -91,10 +91,11 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore)
 	}
 
 	rtCfg := &runtime.Config{
-		Storage:  ts,
-		Keystore: ks,
-		Imports:  runtime.RegisterImports_NodeRuntime,
-		LogLvl:   lvl,
+		Storage:   ts,
+		Keystore:  ks,
+		Imports:   runtime.RegisterImports_NodeRuntime,
+		LogLvl:    lvl,
+		Validator: cfg.Core.Authority, // todo ed confirm what is validator?  Core.Authority, Core.BabeAuthority or Core.GrandpaAuthority
 	}
 
 	// create runtime executor

@@ -68,6 +68,32 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	return r
 }
 
+// NewTestRuntimeValidator returns a test runtime with given validator value
+func NewTestRuntimeValidator(t *testing.T, targetRuntime string, validator bool) *Runtime {
+	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
+
+	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
+
+	s := newTestRuntimeStorage(nil)
+
+	fp, err := filepath.Abs(testRuntimeFilePath)
+	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
+
+	cfg := &Config{
+		Storage:   s,
+		Keystore:  keystore.NewGenericKeystore("test"),
+		Imports:   importsFunc,
+		LogLvl:    log.LvlInfo,
+		Validator: validator,
+	}
+
+	r, err := NewRuntimeFromFile(fp, cfg)
+	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
+	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	return r
+}
+
 // exportRuntime writes the runtime to a file as a hex string.
 func exportRuntime(t *testing.T, targetRuntime string, outFp string) {
 	testRuntimeFilePath, testRuntimeURL, _ := GetRuntimeVars(targetRuntime)
