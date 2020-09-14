@@ -83,13 +83,11 @@ func NewVotersFromAuthorityData(ad []*types.Authority) []*Voter {
 	v := make([]*Voter, len(ad))
 
 	for i, d := range ad {
-		ed25519PK, err := ed25519.NewPublicKey(d.Key.Encode())
-		if err != nil {
-			// todo determine how to handle this error
-		}
-		v[i] = &Voter{
-			key: ed25519PK,
-			id:  d.Weight,
+		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
+			v[i] = &Voter{
+				key: pk,
+				id:  d.Weight,
+			}
 		}
 	}
 

@@ -70,12 +70,6 @@ func (a *Authority) DecodeSr25519(r io.Reader) error {
 	return a.FromRawSr25519(raw)
 }
 
-// AuthorityRaw struct to hold raw authority data
-type AuthorityRaw struct {
-	Key    [sr25519.PublicKeyLength]byte
-	Weight uint64
-}
-
 // ToRaw returns the BABEAuthorityData as BABEAuthorityDataRaw. It encodes the authority public keys.
 func (a *Authority) ToRaw() *AuthorityRaw {
 	raw := new(AuthorityRaw)
@@ -98,4 +92,29 @@ func (a *Authority) FromRawSr25519(raw *AuthorityRaw) error {
 	a.Key = id
 	a.Weight = raw.Weight
 	return nil
+}
+
+// AuthorityRaw struct to hold raw authority data
+type AuthorityRaw struct {
+	Key    [sr25519.PublicKeyLength]byte
+	Weight uint64
+}
+
+// Decode will decode the Reader into a AuthorityRaw
+func (a *AuthorityRaw) Decode(r io.Reader) (*AuthorityRaw, error) {
+	id, err := common.Read32Bytes(r)
+	if err != nil {
+		return nil, err
+	}
+
+	weight, err := common.ReadUint64(r)
+	if err != nil {
+		return nil, err
+	}
+
+	a = new(AuthorityRaw)
+	a.Key = id
+	a.Weight = weight
+
+	return a, nil
 }

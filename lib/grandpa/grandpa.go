@@ -186,13 +186,11 @@ func (s *Service) Authorities() []*types.Authority {
 func (s *Service) UpdateAuthorities(ad []*types.Authority) {
 	v := make([]*Voter, len(ad))
 	for i, a := range ad {
-		ed25519PK, err := ed25519.NewPublicKey(a.Key.Encode())
-		if err != nil {
-			// todo determine how to handle this error
-		}
-		v[i] = &Voter{
-			key: ed25519PK,
-			id:  a.Weight,
+		if pk, ok := a.Key.(*ed25519.PublicKey); ok {
+			v[i] = &Voter{
+				key: pk,
+				id:  a.Weight,
+			}
 		}
 	}
 

@@ -1,11 +1,5 @@
 package types
 
-import (
-	"io"
-
-	"github.com/ChainSafe/gossamer/lib/common"
-)
-
 // BabeConfiguration contains the genesis data for BABE
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
 type BabeConfiguration struct {
@@ -16,31 +10,6 @@ type BabeConfiguration struct {
 	GenesisAuthorities []*AuthorityRaw
 	Randomness         [32]byte
 	SecondarySlots     bool
-}
-
-// BABEAuthorityDataRaw represents a BABE authority where their key is a byte array
-//type BABEAuthorityDataRaw struct {
-//	ID     [sr25519.PublicKeyLength]byte
-//	Weight uint64
-//}
-
-// Decode will decode the Reader into a AuthorityRaw
-func (a *AuthorityRaw) Decode(r io.Reader) (*AuthorityRaw, error) {
-	id, err := common.Read32Bytes(r)
-	if err != nil {
-		return nil, err
-	}
-
-	weight, err := common.ReadUint64(r)
-	if err != nil {
-		return nil, err
-	}
-
-	a = new(AuthorityRaw)
-	a.Key = id
-	a.Weight = weight
-
-	return a, nil
 }
 
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
