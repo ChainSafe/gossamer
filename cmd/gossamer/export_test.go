@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -54,23 +55,23 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis-raw --basepath --name --log",
 			[]string{"config", "genesis-raw", "basepath", "name", "log"},
-			[]interface{}{testConfig, genFile.Name(), testDir, testName, "info"},
+			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:     testName,
 					ID:       testCfg.Global.ID,
 					BasePath: testCfg.Global.BasePath,
-					LogLevel: "info",
+					LogLvl:   log.LvlInfo,
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           "info",
-					SyncLvl:           "info",
-					NetworkLvl:        "info",
-					RPCLvl:            "info",
-					StateLvl:          "info",
-					RuntimeLvl:        "info",
-					BlockProducerLvl:  "info",
-					FinalityGadgetLvl: "info",
+					CoreLvl:           log.LvlInfo,
+					SyncLvl:           log.LvlInfo,
+					NetworkLvl:        log.LvlInfo,
+					RPCLvl:            log.LvlInfo,
+					StateLvl:          log.LvlInfo,
+					RuntimeLvl:        log.LvlInfo,
+					BlockProducerLvl:  log.LvlInfo,
+					FinalityGadgetLvl: log.LvlInfo,
 				},
 				Init: dot.InitConfig{
 					GenesisRaw: genFile.Name(),
@@ -90,21 +91,21 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis-raw --bootnodes --log --force",
 			[]string{"config", "genesis-raw", "bootnodes", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testBootnode, "info", "true"},
+			[]interface{}{testConfig, genFile.Name(), testBootnode, log.LvlInfo, "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
 					GenesisRaw: genFile.Name(),
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           "info",
-					SyncLvl:           "info",
-					NetworkLvl:        "info",
-					RPCLvl:            "info",
-					StateLvl:          "info",
-					RuntimeLvl:        "info",
-					BlockProducerLvl:  "info",
-					FinalityGadgetLvl: "info",
+					CoreLvl:           log.LvlInfo,
+					SyncLvl:           log.LvlInfo,
+					NetworkLvl:        log.LvlInfo,
+					RPCLvl:            log.LvlInfo,
+					StateLvl:          log.LvlInfo,
+					RuntimeLvl:        log.LvlInfo,
+					BlockProducerLvl:  log.LvlInfo,
+					FinalityGadgetLvl: log.LvlInfo,
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
@@ -121,21 +122,21 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis-raw --protocol --log --force",
 			[]string{"config", "genesis-raw", "protocol", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, "info", "true"},
+			[]interface{}{testConfig, genFile.Name(), testProtocol, log.LvlInfo, "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
 					GenesisRaw: genFile.Name(),
 				},
 				Log: dot.LogConfig{
-					CoreLvl:           "info",
-					SyncLvl:           "info",
-					NetworkLvl:        "info",
-					RPCLvl:            "info",
-					StateLvl:          "info",
-					RuntimeLvl:        "info",
-					BlockProducerLvl:  "info",
-					FinalityGadgetLvl: "info",
+					CoreLvl:           log.LvlInfo,
+					SyncLvl:           log.LvlInfo,
+					NetworkLvl:        log.LvlInfo,
+					RPCLvl:            log.LvlInfo,
+					StateLvl:          log.LvlInfo,
+					RuntimeLvl:        log.LvlInfo,
+					BlockProducerLvl:  log.LvlInfo,
+					FinalityGadgetLvl: log.LvlInfo,
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
@@ -162,8 +163,8 @@ func TestExportCommand(t *testing.T) {
 
 			config := ctx.GlobalString(ConfigFlag.Name)
 
-			cfg := new(dot.Config)
-			err = dot.LoadConfig(cfg, config)
+			cfg := new(Config)
+			err = loadConfig(cfg, config)
 			require.Nil(t, err)
 
 			require.Equal(t, c.expected, cfg)

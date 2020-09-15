@@ -54,14 +54,14 @@ type GlobalConfig struct {
 
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
-	CoreLvl           *log.Lvl
-	SyncLvl           *log.Lvl
-	NetworkLvl        *log.Lvl
-	RPCLvl            *log.Lvl
-	StateLvl          *log.Lvl
-	RuntimeLvl        *log.Lvl
-	BlockProducerLvl  *log.Lvl
-	FinalityGadgetLvl *log.Lvl
+	CoreLvl           log.Lvl
+	SyncLvl           log.Lvl
+	NetworkLvl        log.Lvl
+	RPCLvl            log.Lvl
+	StateLvl          log.Lvl
+	RuntimeLvl        log.Lvl
+	BlockProducerLvl  log.Lvl
+	FinalityGadgetLvl log.Lvl
 }
 
 // InitConfig is the configuration for the node initialization

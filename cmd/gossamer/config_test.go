@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	database "github.com/ChainSafe/chaindb"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
 )
@@ -155,7 +156,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
-				LogLevel: "info",
+				LogLvl:   log.LvlInfo,
 			},
 		},
 		{
@@ -166,7 +167,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       "ksmcc",
 				BasePath: testCfg.Global.BasePath,
-				LogLevel: "info",
+				LogLvl:   log.LvlInfo,
 			},
 		},
 		{
@@ -177,7 +178,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     "test_name",
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
-				LogLevel: "info",
+				LogLvl:   log.LvlInfo,
 			},
 		},
 		{
@@ -188,7 +189,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: "test_basepath",
-				LogLevel: "info",
+				LogLvl:   log.LvlInfo,
 			},
 		},
 		{
@@ -199,7 +200,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				Name:     testCfg.Global.Name,
 				ID:       testCfg.Global.ID,
 				BasePath: testCfg.Global.BasePath,
-				LogLevel: "info",
+				LogLvl:   log.LvlInfo,
 			},
 		},
 	}
@@ -288,7 +289,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 			[]string{"config", "roles"},
 			[]interface{}{testCfgFile.Name(), "4"},
 			dot.CoreConfig{
-				Authority:        true,
 				Roles:            4,
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
@@ -299,7 +299,6 @@ func TestCoreConfigFromFlags(t *testing.T) {
 			[]string{"config", "roles"},
 			[]interface{}{testCfgFile.Name(), "0"},
 			dot.CoreConfig{
-				Authority:        false,
 				Roles:            0,
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
@@ -559,17 +558,17 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
-			LogLevel: testCfg.Global.LogLevel,
+			LogLvl:   testCfg.Global.LogLvl,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           "info",
-			SyncLvl:           "info",
-			NetworkLvl:        "info",
-			RPCLvl:            "info",
-			StateLvl:          "info",
-			RuntimeLvl:        "info",
-			BlockProducerLvl:  "info",
-			FinalityGadgetLvl: "info",
+			CoreLvl:           log.LvlInfo,
+			SyncLvl:           log.LvlInfo,
+			NetworkLvl:        log.LvlInfo,
+			RPCLvl:            log.LvlInfo,
+			StateLvl:          log.LvlInfo,
+			RuntimeLvl:        log.LvlInfo,
+			BlockProducerLvl:  log.LvlInfo,
+			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
 			GenesisRaw:     genFile.Name(),
@@ -613,17 +612,17 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
-			LogLevel: testCfg.Global.LogLevel,
+			LogLvl:   testCfg.Global.LogLvl,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           "info",
-			SyncLvl:           "info",
-			NetworkLvl:        "info",
-			RPCLvl:            "info",
-			StateLvl:          "info",
-			RuntimeLvl:        "info",
-			BlockProducerLvl:  "info",
-			FinalityGadgetLvl: "info",
+			CoreLvl:           log.LvlInfo,
+			SyncLvl:           log.LvlInfo,
+			NetworkLvl:        log.LvlInfo,
+			RPCLvl:            log.LvlInfo,
+			StateLvl:          log.LvlInfo,
+			RuntimeLvl:        log.LvlInfo,
+			BlockProducerLvl:  log.LvlInfo,
+			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
 			GenesisRaw:     DefaultCfg.Init.GenesisRaw,
@@ -664,17 +663,17 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			Name:     testCfg.Global.Name,
 			ID:       testCfg.Global.ID,
 			BasePath: testCfg.Global.BasePath,
-			LogLevel: testCfg.Global.LogLevel,
+			LogLvl:   testCfg.Global.LogLvl,
 		},
 		Log: dot.LogConfig{
-			CoreLvl:           "info",
-			SyncLvl:           "info",
-			NetworkLvl:        "info",
-			RPCLvl:            "info",
-			StateLvl:          "info",
-			RuntimeLvl:        "info",
-			BlockProducerLvl:  "info",
-			FinalityGadgetLvl: "info",
+			CoreLvl:           log.LvlInfo,
+			SyncLvl:           log.LvlInfo,
+			NetworkLvl:        log.LvlInfo,
+			RPCLvl:            log.LvlInfo,
+			StateLvl:          log.LvlInfo,
+			RuntimeLvl:        log.LvlInfo,
+			BlockProducerLvl:  log.LvlInfo,
+			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
 			GenesisRaw:     genFile.Name(),

@@ -49,11 +49,7 @@ type Node struct {
 // InitNode initializes a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	err := setupLogger(cfg)
-	if err != nil {
-		return err
-	}
-
+	setupLogger(cfg)
 	logger.Info(
 		"initializing node...",
 		"name", cfg.Global.Name,
@@ -206,13 +202,10 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
-	err := setupLogger(cfg)
-	if err != nil {
-		return nil, err
-	}
+	setupLogger(cfg)
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Authority && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+	if cfg.Core.Roles == 4 && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
 		return nil, ErrNoKeysProvided
 	}
 

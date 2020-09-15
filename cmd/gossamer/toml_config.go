@@ -17,7 +17,13 @@
 package main
 
 import (
-	"math/big"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"unicode"
+
+	"github.com/naoina/toml"
 )
 
 // Config is a collection of configurations throughout the system
@@ -36,7 +42,7 @@ type GlobalConfig struct {
 	Name     string `toml:"name"`
 	ID       string `toml:"id"`
 	BasePath string `toml:"basepath"`
-	LogLevel string `toml:"log"`
+	LogLvl   string `toml:"log"`
 }
 
 // LogConfig represents the log levels for individual packages
@@ -90,8 +96,8 @@ type RPCConfig struct {
 	WSEnabled bool     `toml:"ws-enabled"`
 }
 
-// LoadConfig loads the values from the toml configuration file into the provided configuration
-func LoadConfig(cfg *Config, fp string) error {
+// loadConfig loads the values from the toml configuration file into the provided configuration
+func loadConfig(cfg *Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
 		logger.Error("failed to create absolute path for toml configuration file", "error", err)

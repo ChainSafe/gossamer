@@ -31,21 +31,10 @@ import (
 )
 
 // setupLogger sets up the gossamer logger
-func setupLogger(cfg *Config) error {
-	if cfg.Global.LogLevel == "" {
-		cfg.Global.LogLevel = "info"
-	}
-
+func setupLogger(cfg *Config) {
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	handler = log.CallerFileHandler(handler)
-	lvl, err := log.LvlFromString(cfg.Global.LogLevel)
-	if err != nil {
-		return err
-	}
-
-	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
-	cfg.Global.lvl = lvl
-	return nil
+	logger.SetHandler(log.LvlFilterHandler(cfg.Global.LogLvl, handler))
 }
 
 // NewTestConfig returns a new test configuration using the provided basepath
@@ -59,17 +48,17 @@ func NewTestConfig(t *testing.T) *Config {
 			Name:     GssmrConfig().Global.Name,
 			ID:       GssmrConfig().Global.ID,
 			BasePath: dir,
-			LogLevel: "info",
+			LogLvl:   log.LvlInfo,
 		},
 		Log: LogConfig{
-			CoreLvl:           "info",
-			SyncLvl:           "info",
-			NetworkLvl:        "info",
-			RPCLvl:            "info",
-			StateLvl:          "info",
-			RuntimeLvl:        "info",
-			BlockProducerLvl:  "info",
-			FinalityGadgetLvl: "info",
+			CoreLvl:           log.LvlInfo,
+			SyncLvl:           log.LvlInfo,
+			NetworkLvl:        log.LvlInfo,
+			RPCLvl:            log.LvlInfo,
+			StateLvl:          log.LvlInfo,
+			RuntimeLvl:        log.LvlInfo,
+			BlockProducerLvl:  log.LvlInfo,
+			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init:    GssmrConfig().Init,
 		Account: GssmrConfig().Account,
@@ -79,7 +68,6 @@ func NewTestConfig(t *testing.T) *Config {
 		System:  GssmrConfig().System,
 	}
 
-	cfg.Core.BabeThreshold = ""
 	cfg.Init.TestFirstEpoch = true
 	return cfg
 }

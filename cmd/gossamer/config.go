@@ -18,10 +18,8 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
-	"unicode"
 
 	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
@@ -39,7 +37,37 @@ var DefaultCfg = dot.GssmrConfig() // TODO: investigate default node other than 
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
-func loadConfigFile(ctx *cli.Context) (cfg *Config, err error) {
+func loadConfigFile(ctx *cli.Context, cfg *Config) (err error) {
+	// check --config flag and load toml configuration from config.toml
+	if cfgPath := ctx.GlobalString(ConfigFlag.Name); cfgPath != "" {
+		logger.Info("loading toml configuration...", "config path", cfgPath)
+		if cfg == nil {
+			cfg = &Config{} // if configuration not set, create empty dot configuration
+		} else {
+			logger.Warn(
+				"overwriting default configuration with toml configuration values",
+				"id", cfg.Global.ID,
+				"config path", cfgPath,
+			)
+		}
+		err = loadConfig(cfg, cfgPath) // load toml values into dot configuration
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createDotConfig creates a new dot configuration from the provided flag values
+func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+	tomlCfg := new(Config)
+	err = loadConfigFile(ctx, tomlCfg)
+	if err != nil {
+		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
@@ -54,43 +82,13 @@ func loadConfigFile(ctx *cli.Context) (cfg *Config, err error) {
 		}
 	}
 
-	// check --config flag and load toml configuration from config.toml
-	if config := ctx.GlobalString(ConfigFlag.Name); config != "" {
-		logger.Info("loading toml configuration...", "config", config)
-		if cfg == nil {
-			cfg = &dot.Config{} // if configuration not set, create empty dot configuration
-		} else {
-			logger.Warn(
-				"overwriting default configuration with toml configuration values",
-				"id", cfg.Global.ID,
-				"config", config,
-			)
-		}
-		err = dot.LoadConfig(cfg, config) // load toml values into dot configuration
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// if default configuration not set, load "gssmr" default configuration
 	if cfg == nil {
-		logger.Info("loading default configuration...", "id", "gssmr")
 		cfg = DefaultCfg
 	}
 
-	return cfg, nil
-}
-
-// createDotConfig creates a new dot configuration from the provided flag values
-func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
-	cfg, err = loadConfigFile(ctx)
-	if err != nil {
-		logger.Error("failed to load toml configuration", "error", err)
-		return nil, err
-	}
-
 	// set log config
-	err = setLogConfig(ctx, &cfg.Global, &cfg.Log)
+	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
 	if err != nil {
 		logger.Error("failed to set log configuration", "error", err)
 		return nil, err
@@ -103,7 +101,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// set remaining cli configuration values
 	setDotAccountConfig(ctx, &cfg.Account)
-	setDotCoreConfig(ctx, &cfg.Core)
+	setDotCoreConfig(ctx, &tomlCfg.Core, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
 
@@ -115,7 +113,9 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 // createInitConfig creates the configuration required to initialize a dot node
 func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
-	cfg, err = loadConfigFile(ctx)
+	var tomlCfg *Config
+
+	err = loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
 		return nil, err
@@ -125,7 +125,7 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotGlobalConfig(ctx, &cfg.Global)
 
 	// set log config
-	err = setLogConfig(ctx, &cfg.Global, &cfg.Log)
+	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
 	if err != nil {
 		logger.Error("failed to set log configuration", "error", err)
 		return nil, err
@@ -144,12 +144,13 @@ func createInitConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 }
 
 func createBuildSpecConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
-	cfg, err = loadConfigFile(ctx)
+	var tomlCfg *Config
+
+	err = loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
 		return nil, err
 	}
-
 	// set global configuration values
 	setDotGlobalConfig(ctx, &cfg.Global)
 	return cfg, nil
@@ -163,7 +164,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotGlobalConfig(ctx, &cfg.Global)
 
 	// set log config
-	err := setLogConfig(ctx, &cfg.Global, &cfg.Log)
+	err := setLogConfig(ctx, &Config{}, &cfg.Global, &cfg.Log)
 	if err != nil {
 		logger.Error("failed to set log configuration", "error", err)
 		return nil, err
@@ -177,71 +178,120 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 
 	// set cli configuration values
 	setDotAccountConfig(ctx, &cfg.Account)
-	setDotCoreConfig(ctx, &cfg.Core)
+	setDotCoreConfig(ctx, &CoreConfig{}, &cfg.Core)
 	setDotNetworkConfig(ctx, &cfg.Network)
 	setDotRPCConfig(ctx, &cfg.RPC)
-
-	if cfg.Core.BabeThreshold == nil {
-		cfg.Core.BabeThreshold = ""
-	}
 
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
 
-	// set log config
-	cfg.Global.LogLevel = ctx.String(LogFlag.Name)
-
 	return cfg, nil
 }
 
-func setLogConfig(ctx *cli.Context, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) error {
-	var lvl log.Lvl
-	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
-		if lvlToInt, err := strconv.Atoi(lvlStr); err == nil {
-			lvl = log.Lvl(lvlToInt)
-		} else if lvl, err = log.LvlFromString(lvlStr); err != nil {
-			return err
-		}
+func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+	if cfg == nil {
+		cfg = new(Config)
 	}
 
 	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
-		globalCfg.LogLevel = lvl.String()
+		cfg.Global.LogLvl = lvlStr
+	}
+
+	globalCfg.LogLvl, err = log.LvlFromString(cfg.Global.LogLvl)
+	if err != nil {
+		return err
 	}
 
 	// check and set log levels for each pkg
-	if logCfg.CoreLvl == "" {
-		logCfg.CoreLvl = globalCfg.LogLevel
+	if cfg.Log.CoreLvl == "" {
+		logCfg.CoreLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.CoreLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.CoreLvl = lvl
 	}
 
-	if logCfg.SyncLvl == "" {
-		logCfg.SyncLvl = globalCfg.LogLevel
+	if cfg.Log.SyncLvl == "" {
+		logCfg.SyncLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.SyncLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.SyncLvl = lvl
 	}
 
-	if logCfg.NetworkLvl == "" {
-		logCfg.NetworkLvl = globalCfg.LogLevel
+	if cfg.Log.NetworkLvl == "" {
+		logCfg.NetworkLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.NetworkLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.NetworkLvl = lvl
 	}
 
-	if logCfg.RPCLvl == "" {
-		logCfg.RPCLvl = globalCfg.LogLevel
+	if cfg.Log.RPCLvl == "" {
+		logCfg.RPCLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.RPCLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.RPCLvl = lvl
 	}
 
-	if logCfg.StateLvl == "" {
-		logCfg.StateLvl = globalCfg.LogLevel
+	if cfg.Log.StateLvl == "" {
+		logCfg.StateLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.StateLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.StateLvl = lvl
 	}
 
-	if logCfg.RuntimeLvl == "" {
-		logCfg.RuntimeLvl = globalCfg.LogLevel
+	if cfg.Log.RuntimeLvl == "" {
+		logCfg.RuntimeLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.RuntimeLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.RuntimeLvl = lvl
 	}
 
-	if logCfg.BlockProducerLvl == "" {
-		logCfg.BlockProducerLvl = globalCfg.LogLevel
+	if cfg.Log.BlockProducerLvl == "" {
+		logCfg.BlockProducerLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.BlockProducerLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.BlockProducerLvl = lvl
 	}
 
-	if logCfg.FinalityGadgetLvl == "" {
-		logCfg.FinalityGadgetLvl = globalCfg.LogLevel
+	if cfg.Log.FinalityGadgetLvl == "" {
+		logCfg.FinalityGadgetLvl = globalCfg.LogLvl
+	} else {
+		lvl, err := log.LvlFromString(cfg.Log.FinalityGadgetLvl)
+		if err != nil {
+			return err
+		}
+
+		logCfg.FinalityGadgetLvl = lvl
 	}
 
-	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLevel)
+	logger.Debug("set log configuration", "--log", ctx.String(LogFlag.Name), "global", globalCfg.LogLvl)
 	return nil
 }
 
@@ -277,10 +327,9 @@ func setDotGlobalConfig(ctx *cli.Context, cfg *dot.GlobalConfig) {
 
 	// check --log flag
 	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
-		lvl := log.Lvl(lvlToInt)
-		cfg.LogLevel = lvl.String()
+		cfg.LogLvl = log.Lvl(lvlToInt)
 	} else if lvl, err := log.LvlFromString(ctx.String(LogFlag.Name)); err == nil {
-		cfg.LogLevel = lvl.String()
+		cfg.LogLvl = lvl
 	}
 
 	logger.Debug(
@@ -311,25 +360,22 @@ func setDotAccountConfig(ctx *cli.Context, cfg *dot.AccountConfig) {
 }
 
 // setDotCoreConfig sets dot.CoreConfig using flag values from the cli context
-func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
+func setDotCoreConfig(ctx *cli.Context, tomlCfg *CoreConfig, cfg *dot.CoreConfig) {
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
 		// convert string to byte
 		b, err := strconv.Atoi(roles)
 		if err != nil {
 			logger.Error("failed to convert Roles to byte", "error", err)
-		} else if byte(b) == 4 {
+		} else if byte(b) == AuthorityRole {
 			// if roles byte is 4, act as an authority (see Table D.2)
 			logger.Debug("authority enabled", "roles", 4)
-			cfg.Authority = true
-		} else if byte(b) > 4 {
+		} else if byte(b) > AuthorityRole {
 			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
 			logger.Error("invalid roles option provided, authority disabled", "roles", byte(b))
-			cfg.Authority = false
 		} else {
 			// if roles byte is less than 4, do not act as an authority (see Table D.2)
 			logger.Debug("authority disabled", "roles", byte(b))
-			cfg.Authority = false
 		}
 	}
 
@@ -338,7 +384,7 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 		b, err := strconv.Atoi(roles)
 		if err != nil {
 			logger.Error("failed to convert Roles to byte", "error", err)
-		} else if byte(b) > 4 {
+		} else if byte(b) > AuthorityRole {
 			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
 			logger.Error("invalid roles option provided", "roles", byte(b))
 		} else {
@@ -348,29 +394,25 @@ func setDotCoreConfig(ctx *cli.Context, cfg *dot.CoreConfig) {
 
 	// to turn on BABE but not grandpa, cfg.Authority must be set to true
 	// and cfg.GrandpaAuthority must be set to false
-	if cfg.Authority && !cfg.BabeAuthority {
+	if cfg.Roles == AuthorityRole && !cfg.BabeAuthority {
 		cfg.BabeAuthority = false
 	}
 
-	if cfg.Authority && !cfg.GrandpaAuthority {
+	if cfg.Roles == AuthorityRole && !cfg.GrandpaAuthority {
 		cfg.GrandpaAuthority = false
 	}
 
-	if !cfg.Authority {
+	if cfg.Roles != AuthorityRole {
 		cfg.BabeAuthority = false
 		cfg.GrandpaAuthority = false
 	}
 
-	if thresholdStr, ok := cfg.BabeThreshold.(string); ok {
-		switch thresholdStr {
-		case "max":
-			cfg.BabeThreshold = babe.MaxThreshold
-		case "min":
-			cfg.BabeThreshold = babe.MinThreshold
-		default:
-			cfg.BabeThreshold = nil
-		}
-	} else {
+	switch tomlCfg.BabeThreshold {
+	case "max":
+		cfg.BabeThreshold = babe.MaxThreshold
+	case "min":
+		cfg.BabeThreshold = babe.MinThreshold
+	default:
 		cfg.BabeThreshold = nil
 	}
 
