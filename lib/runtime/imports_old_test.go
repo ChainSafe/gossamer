@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1131,4 +1132,18 @@ func TestExt_set_child_storage(t *testing.T) {
 	if !bytes.Equal(res, value) {
 		t.Fatalf("Fail: got %x expected %x", res, value)
 	}
+}
+
+func TestExt_local_storage_set(t *testing.T) {
+	runtime := NewTestRuntime(t, TEST_RUNTIME)
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_local_storage_set"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	res, err := testFunc(0, 0, 0, 0, 0)
+	require.Nil(t, err)
+	fmt.Printf("res %v\n", res)
+
 }

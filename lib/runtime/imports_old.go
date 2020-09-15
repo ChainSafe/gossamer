@@ -723,7 +723,18 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 //export ext_local_storage_get
 func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
 	logger.Trace("[ext_local_storage_get] executing...")
-	logger.Warn("[ext_local_storage_get] Not yet implemented.")
+	// todo ed add switch to check for kind of storage
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	keyM := memory[key : key+keyLen]
+	runtimeCtx := instanceContext.Data().(*Ctx)
+	res, err := runtimeCtx.localStorage.Get(keyM)
+	fmt.Printf("Res %v\n", res)
+	// todo determine how to store this as a pointer for caller to find
+	if err != nil {
+		return 0 // todo ed determine how to deal with this error
+	}
 	return 0
 }
 
@@ -751,7 +762,15 @@ func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 //export ext_local_storage_set
 func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
 	logger.Trace("[ext_local_storage_set] executing...")
-	logger.Warn("[ext_local_storage_set] Not yet implemented.")
+	// todo ed add switch to check for kind of storage
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	keyM := memory[key : key+keyLen]
+	valueM := memory[value : value+valueLen]
+
+	runtimeCtx := instanceContext.Data().(*Ctx)
+	runtimeCtx.localStorage.Set(keyM, valueM)
 }
 
 // RegisterImports_TestRuntime registers the wasm imports for the v0.6.x substrate test runtime
