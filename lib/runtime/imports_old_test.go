@@ -1134,7 +1134,7 @@ func TestExt_set_child_storage(t *testing.T) {
 
 func TestExt_is_validator(t *testing.T) {
 	// test with validator
-	runtime := NewTestRuntimeValidator(t, TEST_RUNTIME, true)
+	runtime := NewTestRuntimeWithRole(t, TEST_RUNTIME, byte(4))
 	// call wasm function
 	testFunc, ok := runtime.vm.Exports["test_ext_is_validator"]
 	if !ok {
@@ -1145,7 +1145,7 @@ func TestExt_is_validator(t *testing.T) {
 	require.Equal(t, int32(1), res.ToI32())
 
 	// test with non-validator
-	runtime = NewTestRuntimeValidator(t, TEST_RUNTIME, false)
+	runtime = NewTestRuntimeWithRole(t, TEST_RUNTIME, byte(1))
 	// call wasm function
 	testFunc, ok = runtime.vm.Exports["test_ext_is_validator"]
 	if !ok {

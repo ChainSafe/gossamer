@@ -719,10 +719,7 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	runtimeCtx := instanceContext.Data().(*Ctx)
-	if runtimeCtx.validator {
-		return 1
-	}
-	return 0
+	return runtimeCtx.validator
 }
 
 //export ext_local_storage_get

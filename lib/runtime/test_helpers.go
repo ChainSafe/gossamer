@@ -68,8 +68,8 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	return r
 }
 
-// NewTestRuntimeValidator returns a test runtime with given validator value
-func NewTestRuntimeValidator(t *testing.T, targetRuntime string, validator bool) *Runtime {
+// NewTestRuntimeWithRole returns a test runtime with given role value
+func NewTestRuntimeWithRole(t *testing.T, targetRuntime string, role byte) *Runtime {
 	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
@@ -81,11 +81,11 @@ func NewTestRuntimeValidator(t *testing.T, targetRuntime string, validator bool)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	cfg := &Config{
-		Storage:   s,
-		Keystore:  keystore.NewGenericKeystore("test"),
-		Imports:   importsFunc,
-		LogLvl:    log.LvlInfo,
-		Validator: validator,
+		Storage:  s,
+		Keystore: keystore.NewGenericKeystore("test"),
+		Imports:  importsFunc,
+		LogLvl:   log.LvlInfo,
+		Role:     role,
 	}
 
 	r, err := NewRuntimeFromFile(fp, cfg)
