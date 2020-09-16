@@ -31,19 +31,19 @@ var logger = log.New("pkg", "runtime")
 
 // Ctx struct
 type Ctx struct {
-	storage   Storage
-	allocator *FreeingBumpHeapAllocator
-	keystore  *keystore.GenericKeystore
-	localStorage LocalStorage
+	storage     Storage
+	allocator   *FreeingBumpHeapAllocator
+	keystore    *keystore.GenericKeystore
+	nodeStorage NodeStorage
 }
 
 // Config represents a runtime configuration
 type Config struct {
-	Storage  Storage
-	Keystore *keystore.GenericKeystore
-	Imports  func() (*wasm.Imports, error)
-	LogLvl   log.Lvl
-	LocalStorage LocalStorage
+	Storage     Storage
+	Keystore    *keystore.GenericKeystore
+	Imports     func() (*wasm.Imports, error)
+	LogLvl      log.Lvl
+	NodeStorage NodeStorage
 }
 
 // Runtime struct
@@ -95,10 +95,10 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 	memAllocator := NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := &Ctx{
-		storage:   cfg.Storage,
-		allocator: memAllocator,
-		keystore:  cfg.Keystore,
-		localStorage: cfg.LocalStorage,
+		storage:     cfg.Storage,
+		allocator:   memAllocator,
+		keystore:    cfg.Keystore,
+		nodeStorage: cfg.NodeStorage,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)

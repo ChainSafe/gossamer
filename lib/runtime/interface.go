@@ -35,7 +35,8 @@ type Storage interface {
 	GetBalance(key [32]byte) (uint64, error)
 }
 
-type LocalStorage interface {
-	Set(key []byte, value []byte) error
+// BasicStorage interface for functions used by runtime offchain workers
+type BasicStorage interface {
+	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
 }

@@ -723,19 +723,32 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 //export ext_local_storage_get
 func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
 	logger.Trace("[ext_local_storage_get] executing...")
-	// todo ed add switch to check for kind of storage
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
 	keyM := memory[key : key+keyLen]
 	runtimeCtx := instanceContext.Data().(*Ctx)
-	res, err := runtimeCtx.localStorage.Get(keyM)
-	fmt.Printf("Res %v\n", res)
-	// todo determine how to store this as a pointer for caller to find
-	if err != nil {
-		return 0 // todo ed determine how to deal with this error
+	var res []byte
+	var err error
+	switch kind {
+	case NodeStorageTypePersistent:
+		res, err = runtimeCtx.nodeStorage.PersistentStorage.Get(keyM)
+	case NodeStorageTypeLocal:
+		res, err = runtimeCtx.nodeStorage.LocalStorage.Get(keyM)
 	}
-	return 0
+
+	if err != nil {
+		logger.Error("[ext_local_storage_get]", "error", err)
+		return 0
+	}
+	// allocate memory for value and copy value to memory
+	ptr, err := runtimeCtx.allocator.Allocate(uint32(valueLen))
+	if err != nil {
+		logger.Error("[ext_local_storage_get]", "error", err)
+		return 0
+	}
+	copy(memory[ptr:ptr+uint32(valueLen)], res[:])
+	return int32(ptr)
 }
 
 //export ext_local_storage_compare_and_set
@@ -762,7 +775,6 @@ func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 //export ext_local_storage_set
 func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
 	logger.Trace("[ext_local_storage_set] executing...")
-	// todo ed add switch to check for kind of storage
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
@@ -770,7 +782,17 @@ func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, val
 	valueM := memory[value : value+valueLen]
 
 	runtimeCtx := instanceContext.Data().(*Ctx)
-	runtimeCtx.localStorage.Set(keyM, valueM)
+
+	var err error
+	switch kind {
+	case NodeStorageTypePersistent:
+		err = runtimeCtx.nodeStorage.PersistentStorage.Put(keyM, valueM)
+	case NodeStorageTypeLocal:
+		err = runtimeCtx.nodeStorage.LocalStorage.Put(keyM, valueM)
+	}
+	if err != nil {
+		// todo determine how to deal with this error
+	}
 }
 
 // RegisterImports_TestRuntime registers the wasm imports for the v0.6.x substrate test runtime
