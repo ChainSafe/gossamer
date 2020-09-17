@@ -34,7 +34,7 @@ type Ctx struct {
 	storage   Storage
 	allocator *FreeingBumpHeapAllocator
 	keystore  *keystore.GenericKeystore
-	validator int32
+	validator bool
 }
 
 // Config represents a runtime configuration
@@ -94,9 +94,9 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 
 	memAllocator := NewAllocator(instance.Memory, 0)
 
-	validator := int32(0)
-	if (cfg.Role&byte(4))>>2 == 1 {
-		validator = int32(1)
+	validator := false
+	if cfg.Role == byte(4) {
+		validator = true
 	}
 
 	runtimeCtx := &Ctx{
