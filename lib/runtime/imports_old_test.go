@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1155,4 +1156,19 @@ func TestExt_is_validator(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int32(0), res.ToI32())
 
+}
+
+func TestExt_network_state(t *testing.T) {
+	runtime := NewTestRuntime(t, TEST_RUNTIME)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_network_state"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	res, err := testFunc(0)
+
+	require.NoError(t, err)
+fmt.Printf("res %v\n", res)
 }

@@ -55,14 +55,15 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
-	cfg := &Config{
+	cfgNet := &Config{
 		Storage:  s,
 		Keystore: keystore.NewGenericKeystore("test"),
 		Imports:  importsFunc,
 		LogLvl:   lvl,
+		Network: new(testRuntimeNetwork),
 	}
 
-	r, err := NewRuntimeFromFile(fp, cfg)
+	r, err := NewRuntimeFromFile(fp, cfgNet)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r
@@ -273,4 +274,11 @@ func (trs testRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
 	}
 
 	return binary.LittleEndian.Uint64(bal), nil
+}
+
+type testRuntimeNetwork struct {
+}
+
+func (trn testRuntimeNetwork) NetworkState() []byte {
+	return []byte{1, 2}
 }

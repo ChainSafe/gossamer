@@ -34,3 +34,7 @@ type Storage interface {
 	SetBalance(key [32]byte, balance uint64) error
 	GetBalance(key [32]byte) (uint64, error)
 }
+
+type BasicNetwork interface {
+	NetworkState() []byte
+}

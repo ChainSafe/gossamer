@@ -742,8 +742,13 @@ func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, key, keyLen
 //export ext_network_state
 func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
 	logger.Trace("[ext_network_state] executing...")
-	logger.Warn("[ext_network_state] Not yet implemented.")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*Ctx)
+	if runtimeCtx.network == nil {
+		return 0
+	}
+	fmt.Printf("runtime %v\n", runtimeCtx.network.NetworkState())
+	return 1
 }
 
 //export ext_submit_transaction
