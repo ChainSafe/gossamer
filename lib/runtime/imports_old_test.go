@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -1243,4 +1242,28 @@ func TestExt_local_storage_get_persistent(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
+}
+
+func TestExt_is_validator(t *testing.T) {
+	// test with validator
+	runtime := NewTestRuntimeWithRole(t, TEST_RUNTIME, byte(4))
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_is_validator"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+	res, err := testFunc()
+	require.NoError(t, err)
+	require.Equal(t, int32(1), res.ToI32())
+
+	// test with non-validator
+	runtime = NewTestRuntimeWithRole(t, TEST_RUNTIME, byte(1))
+	// call wasm function
+	testFunc, ok = runtime.vm.Exports["test_ext_is_validator"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+	res, err = testFunc()
+	require.NoError(t, err)
+	require.Equal(t, int32(0), res.ToI32())
 }
