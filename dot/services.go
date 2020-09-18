@@ -102,7 +102,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore)
 		Imports:     runtime.RegisterImports_NodeRuntime,
 		LogLvl:      lvl,
 		NodeStorage: ns,
-		Role:     cfg.Core.Roles,
+		Role:        cfg.Core.Roles,
 	}
 
 	// create runtime executor
