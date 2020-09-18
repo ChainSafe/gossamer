@@ -796,7 +796,7 @@ func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, val
 		err = runtimeCtx.nodeStorage.LocalStorage.Put(keyM, valueM)
 	}
 	if err != nil {
-		// todo determine how to deal with this error
+		logger.Error("[ext_local_storage_set]", "error", err)
 	}
 }
 

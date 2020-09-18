@@ -92,17 +92,16 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore)
 		return nil, err
 	}
 
-	// todo ed init storage
 	ns := runtime.NodeStorage{
 		LocalStorage:      database.NewMemDatabase(),
-		PersistentStorage: runtime.NewNodeStorageDB(st.DB()),
+		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
 	rtCfg := &runtime.Config{
 		Storage:     ts,
 		Keystore:    ks,
 		Imports:     runtime.RegisterImports_NodeRuntime,
 		LogLvl:      lvl,
-		NodeStorage: ns, // todo ed determine how to setup storage
+		NodeStorage: ns,
 		Role:     cfg.Core.Roles,
 	}
 
