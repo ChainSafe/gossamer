@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -47,18 +46,6 @@ func TestConfigFromChainFlag(t *testing.T) {
 	testApp := cli.NewApp()
 	testApp.Writer = ioutil.Discard
 
-	gssmrCfg := dot.GssmrConfig()
-	gssmrCfg.Log = dot.LogConfig{
-		CoreLvl:           gssmr.DefaultLvl,
-		SyncLvl:           gssmr.DefaultLvl,
-		NetworkLvl:        gssmr.DefaultLvl,
-		RPCLvl:            gssmr.DefaultLvl,
-		StateLvl:          gssmr.DefaultLvl,
-		RuntimeLvl:        gssmr.DefaultLvl,
-		BlockProducerLvl:  gssmr.DefaultLvl,
-		FinalityGadgetLvl: gssmr.DefaultLvl,
-	}
-
 	testcases := []struct {
 		description string
 		flags       []string
@@ -69,7 +56,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 			"Test gossamer --chain gssmr",
 			[]string{"chain"},
 			[]interface{}{"gssmr"},
-			gssmrCfg,
+			dot.GssmrConfig(),
 		},
 		{
 			"Test gossamer --chain ksmcc",
@@ -93,7 +80,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 
 // TestInitConfigFromFlags tests createDotInitConfig using relevant init flags
 func TestInitConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -113,8 +100,8 @@ func TestInitConfigFromFlags(t *testing.T) {
 			[]string{"config", "genesis-raw"},
 			[]interface{}{testCfgFile.Name(), "test_genesis"},
 			dot.InitConfig{
-				GenesisRaw:     "test_genesis",
-				TestFirstEpoch: true,
+				GenesisRaw: "test_genesis",
+				//TestFirstEpoch: true,
 			},
 		},
 	}
@@ -133,7 +120,7 @@ func TestInitConfigFromFlags(t *testing.T) {
 
 // TestGlobalConfigFromFlags tests createDotGlobalConfig using relevant global flags
 func TestGlobalConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -220,7 +207,7 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 
 // TestAccountConfigFromFlags tests createDotAccountConfig using relevant account flags
 func TestAccountConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -269,7 +256,7 @@ func TestAccountConfigFromFlags(t *testing.T) {
 
 // TestCoreConfigFromFlags tests createDotCoreConfig using relevant core flags
 func TestCoreConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -320,7 +307,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 
 // TestNetworkConfigFromFlags tests createDotNetworkConfig using relevant network flags
 func TestNetworkConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -411,7 +398,7 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 
 // TestRPCConfigFromFlags tests createDotRPCConfig using relevant rpc flags
 func TestRPCConfigFromFlags(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	require.NotNil(t, testCfg)
 	require.NotNil(t, testCfgFile)
 
@@ -541,7 +528,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 
 // TestUpdateConfigFromGenesisJSON tests updateDotConfigFromGenesisJSON
 func TestUpdateConfigFromGenesisJSON(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	defer utils.RemoveTestDir(t)
@@ -596,7 +583,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 // using the default genesis path if no genesis path is provided (ie, an empty
 // genesis value provided in the toml configuration file or with --genesis "")
 func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 
 	defer utils.RemoveTestDir(t)
 
@@ -646,7 +633,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 }
 
 func TestUpdateConfigFromGenesisData(t *testing.T) {
-	testCfg, testCfgFile := dot.NewTestConfigWithFile(t)
+	testCfg, testCfgFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	defer utils.RemoveTestDir(t)

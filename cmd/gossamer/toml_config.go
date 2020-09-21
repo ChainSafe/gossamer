@@ -133,3 +133,36 @@ func loadConfig(cfg *Config, fp string) error {
 
 	return nil
 }
+
+// exportConfig exports a dot configuration to a toml configuration file
+func exportConfig(cfg *Config, fp string) *os.File {
+	var (
+		newFile *os.File
+		err     error
+		raw     []byte
+	)
+
+	if raw, err = toml.Marshal(*cfg); err != nil {
+		logger.Error("failed to marshal configuration", "error", err)
+		os.Exit(1)
+	}
+
+	newFile, err = os.Create(filepath.Clean(fp))
+	if err != nil {
+		logger.Error("failed to create configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	_, err = newFile.Write(raw)
+	if err != nil {
+		logger.Error("failed to write to configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	if err := newFile.Close(); err != nil {
+		logger.Error("failed to close configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	return newFile
+}

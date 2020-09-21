@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -195,6 +196,10 @@ func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, lo
 
 	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
 		cfg.Global.LogLvl = lvlStr
+	}
+
+	if cfg.Global.LogLvl == "" {
+		cfg.Global.LogLvl = gssmr.DefaultLvl.String()
 	}
 
 	globalCfg.LogLvl, err = log.LvlFromString(cfg.Global.LogLvl)

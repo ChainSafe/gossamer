@@ -37,52 +37,6 @@ func setupLogger(cfg *Config) {
 	logger.SetHandler(log.LvlFilterHandler(cfg.Global.LogLvl, handler))
 }
 
-// NewTestConfig returns a new test configuration using the provided basepath
-func NewTestConfig(t *testing.T) *Config {
-	dir := utils.NewTestDir(t)
-
-	// TODO: use default config instead of gssmr config for test config #776
-
-	cfg := &Config{
-		Global: GlobalConfig{
-			Name:     GssmrConfig().Global.Name,
-			ID:       GssmrConfig().Global.ID,
-			BasePath: dir,
-			LogLvl:   log.LvlInfo,
-		},
-		Log: LogConfig{
-			CoreLvl:           log.LvlInfo,
-			SyncLvl:           log.LvlInfo,
-			NetworkLvl:        log.LvlInfo,
-			RPCLvl:            log.LvlInfo,
-			StateLvl:          log.LvlInfo,
-			RuntimeLvl:        log.LvlInfo,
-			BlockProducerLvl:  log.LvlInfo,
-			FinalityGadgetLvl: log.LvlInfo,
-		},
-		Init:    GssmrConfig().Init,
-		Account: GssmrConfig().Account,
-		Core:    GssmrConfig().Core,
-		Network: GssmrConfig().Network,
-		RPC:     GssmrConfig().RPC,
-		System:  GssmrConfig().System,
-	}
-
-	cfg.Init.TestFirstEpoch = true
-	return cfg
-}
-
-// NewTestConfigWithFile returns a new test configuration and a temporary configuration file
-func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
-	cfg := NewTestConfig(t)
-
-	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
-	require.NoError(t, err)
-
-	cfgFile := ExportConfig(cfg, file.Name())
-	return cfg, cfgFile
-}
-
 // NewTestGenesis returns a test genesis instance using "gssmr" raw data
 func NewTestGenesis(t *testing.T) *genesis.Genesis {
 	fp := utils.GetGssmrGenesisRawPath()

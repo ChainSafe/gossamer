@@ -32,7 +32,7 @@ import (
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
 	testDir := utils.NewTestDir(t)
-	testCfg := dot.NewTestConfig(t)
+	testCfg := newTestConfig(t)
 
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 

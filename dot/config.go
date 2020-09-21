@@ -19,14 +19,11 @@ package dot
 import (
 	"encoding/json"
 	"math/big"
-	"os"
-	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
-	"github.com/naoina/toml"
 )
 
 // TODO: create separate types for toml config and internal config, needed since we don't want to expose all
@@ -131,6 +128,16 @@ func GssmrConfig() *Config {
 			BasePath: gssmr.DefaultBasePath,
 			LogLvl:   gssmr.DefaultLvl,
 		},
+		Log: LogConfig{
+			CoreLvl:           gssmr.DefaultLvl,
+			SyncLvl:           gssmr.DefaultLvl,
+			NetworkLvl:        gssmr.DefaultLvl,
+			RPCLvl:            gssmr.DefaultLvl,
+			StateLvl:          gssmr.DefaultLvl,
+			RuntimeLvl:        gssmr.DefaultLvl,
+			BlockProducerLvl:  gssmr.DefaultLvl,
+			FinalityGadgetLvl: gssmr.DefaultLvl,
+		},
 		Init: InitConfig{
 			GenesisRaw: gssmr.DefaultGenesisRaw,
 		},
@@ -170,6 +177,17 @@ func KsmccConfig() *Config {
 			Name:     ksmcc.DefaultName,
 			ID:       ksmcc.DefaultID,
 			BasePath: ksmcc.DefaultBasePath,
+			LogLvl:   ksmcc.DefaultLvl,
+		},
+		Log: LogConfig{
+			CoreLvl:           ksmcc.DefaultLvl,
+			SyncLvl:           ksmcc.DefaultLvl,
+			NetworkLvl:        ksmcc.DefaultLvl,
+			RPCLvl:            ksmcc.DefaultLvl,
+			StateLvl:          ksmcc.DefaultLvl,
+			RuntimeLvl:        ksmcc.DefaultLvl,
+			BlockProducerLvl:  ksmcc.DefaultLvl,
+			FinalityGadgetLvl: ksmcc.DefaultLvl,
 		},
 		Init: InitConfig{
 			GenesisRaw: ksmcc.DefaultGenesisRaw,
@@ -199,37 +217,4 @@ func KsmccConfig() *Config {
 			SystemProperties: make(map[string]interface{}),
 		},
 	}
-}
-
-// ExportConfig exports a dot configuration to a toml configuration file
-func ExportConfig(cfg *Config, fp string) *os.File {
-	var (
-		newFile *os.File
-		err     error
-		raw     []byte
-	)
-
-	if raw, err = toml.Marshal(*cfg); err != nil {
-		logger.Error("failed to marshal configuration", "error", err)
-		os.Exit(1)
-	}
-
-	newFile, err = os.Create(filepath.Clean(fp))
-	if err != nil {
-		logger.Error("failed to create configuration file", "error", err)
-		os.Exit(1)
-	}
-
-	_, err = newFile.Write(raw)
-	if err != nil {
-		logger.Error("failed to write to configuration file", "error", err)
-		os.Exit(1)
-	}
-
-	if err := newFile.Close(); err != nil {
-		logger.Error("failed to close configuration file", "error", err)
-		os.Exit(1)
-	}
-
-	return newFile
 }

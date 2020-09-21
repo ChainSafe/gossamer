@@ -65,10 +65,15 @@ func exportAction(ctx *cli.Context) error {
 		return err
 	}
 
-	file := dot.ExportConfig(cfg, config)
+	tomlCfg := dotConfigToToml(cfg)
+	file := exportConfig(tomlCfg, config)
 	// export config will exit and log error on error
 
 	logger.Info("exported toml configuration file", "path", file.Name())
 
 	return nil
+}
+
+func dotConfigToToml(dcfg *dot.Config) *Config {
+	return &Config{}
 }
