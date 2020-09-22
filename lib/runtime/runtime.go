@@ -29,7 +29,7 @@ import (
 var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime")
 
-// NodeStorageTypePersistent flog to identify offchain storage as persistent (db)
+// NodeStorageTypePersistent flag to identify offchain storage as persistent (db)
 const NodeStorageTypePersistent int32 = 1
 
 // NodeStorageTypeLocal flog to identify offchain storage as local (memory)
