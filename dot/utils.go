@@ -19,13 +19,13 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
+	//"reflect"
 	"testing"
-	"unicode"
+	//"unicode"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -218,42 +218,4 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 	}
 
 	return newFile
-}
-
-// LoadConfig loads the values from the toml configuration file into the provided configuration
-func LoadConfig(cfg *Config, fp string) error {
-	fp, err := filepath.Abs(fp)
-	if err != nil {
-		logger.Error("failed to create absolute path for toml configuration file", "error", err)
-		return err
-	}
-
-	file, err := os.Open(filepath.Clean(fp))
-	if err != nil {
-		logger.Error("failed to open toml configuration file", "error", err)
-		return err
-	}
-
-	var tomlSettings = toml.Config{
-		NormFieldName: func(rt reflect.Type, key string) string {
-			return key
-		},
-		FieldToKey: func(rt reflect.Type, field string) string {
-			return field
-		},
-		MissingField: func(rt reflect.Type, field string) error {
-			link := ""
-			if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
-				link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
-			}
-			return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
-		},
-	}
-
-	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
-		logger.Error("failed to decode configuration", "error", err)
-		return err
-	}
-
-	return nil
 }

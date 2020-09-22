@@ -79,7 +79,7 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles            byte   `toml:"authority"`
+	Roles            byte   `toml:"roles"`
 	BabeAuthority    bool   `toml:"babe-authority"`
 	GrandpaAuthority bool   `toml:"grandpa-authority"`
 	BabeThreshold    string `toml:"babe-threshold"`
