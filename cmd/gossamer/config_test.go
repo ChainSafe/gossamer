@@ -233,10 +233,10 @@ func TestAccountConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --unlock",
-			[]string{"config", "unlock"},
-			[]interface{}{testCfgFile.Name(), "0"},
+			[]string{"config", "key", "unlock"},
+			[]interface{}{testCfgFile.Name(), "alice", "0"},
 			dot.AccountConfig{
-				Key:    testCfg.Account.Key,
+				Key:    "alice",
 				Unlock: "0",
 			},
 		},
@@ -558,8 +558,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
-			GenesisRaw:     genFile.Name(),
-			TestFirstEpoch: true,
+			GenesisRaw: genFile.Name(),
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -572,10 +571,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.GenesisRaw = genFile.Name()
-	expected.Core.BabeThreshold = nil
-
-	updateDotConfigFromGenesisJSONRaw(ctx, cfg)
-
+	updateDotConfigFromGenesisJSONRaw(ctx, *dotConfigToToml(testCfg), cfg)
 	require.Equal(t, expected, cfg)
 }
 
@@ -612,8 +608,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
-			GenesisRaw:     DefaultCfg.Init.GenesisRaw,
-			TestFirstEpoch: true,
+			GenesisRaw: DefaultCfg.Init.GenesisRaw,
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
@@ -626,9 +621,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
-
-	updateDotConfigFromGenesisJSONRaw(ctx, cfg)
-
+	updateDotConfigFromGenesisJSONRaw(ctx, *dotConfigToToml(testCfg), cfg)
 	require.Equal(t, expected, cfg)
 }
 
@@ -663,8 +656,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
-			GenesisRaw:     genFile.Name(),
-			TestFirstEpoch: true,
+			GenesisRaw: genFile.Name(),
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,

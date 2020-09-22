@@ -18,7 +18,6 @@ package main
 
 import (
 	"io/ioutil"
-	"path"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -32,8 +31,7 @@ import (
 // TestExportCommand test "gossamer export --config"
 func TestExportCommand(t *testing.T) {
 	testDir := utils.NewTestDir(t)
-	testCfg := newTestConfig(t)
-
+	testCfg, testConfigFile := newTestConfigWithFile(t)
 	genFile := dot.NewTestGenesisRawFile(t, testCfg)
 
 	defer utils.RemoveTestDir(t)
@@ -44,7 +42,7 @@ func TestExportCommand(t *testing.T) {
 	testName := "testnode"
 	testBootnode := "bootnode"
 	testProtocol := "/protocol/test/0"
-	testConfig := path.Join(testDir, "config.toml")
+	testConfig := testConfigFile.Name()
 
 	testcases := []struct {
 		description string
@@ -53,9 +51,9 @@ func TestExportCommand(t *testing.T) {
 		expected    *dot.Config
 	}{
 		{
-			"Test gossamer export --config --genesis-raw --basepath --name --log",
-			[]string{"config", "genesis-raw", "basepath", "name", "log"},
-			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo},
+			"Test gossamer export --config --genesis-raw --basepath --name --log --force",
+			[]string{"config", "genesis-raw", "basepath", "name", "log", "force"},
+			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
 					Name:     testName,
@@ -90,8 +88,8 @@ func TestExportCommand(t *testing.T) {
 		},
 		{
 			"Test gossamer export --config --genesis-raw --bootnodes --log --force",
-			[]string{"config", "genesis-raw", "bootnodes", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testBootnode, log.LvlInfo, "true"},
+			[]string{"config", "genesis-raw", "bootnodes", "name", "force"},
+			[]interface{}{testConfig, genFile.Name(), testBootnode, "gssmr", "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -121,8 +119,8 @@ func TestExportCommand(t *testing.T) {
 		},
 		{
 			"Test gossamer export --config --genesis-raw --protocol --log --force",
-			[]string{"config", "genesis-raw", "protocol", "log", "force"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, log.LvlInfo, "true"},
+			[]string{"config", "genesis-raw", "protocol", "force"},
+			[]interface{}{testConfig, genFile.Name(), testProtocol, "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -142,7 +140,7 @@ func TestExportCommand(t *testing.T) {
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
 					Port:        testCfg.Network.Port,
-					Bootnodes:   []string{}, // TODO: improve cmd tests #687
+					Bootnodes:   []string{testBootnode}, // TODO: improve cmd tests #687
 					ProtocolID:  testProtocol,
 					NoBootstrap: testCfg.Network.NoBootstrap,
 					NoMDNS:      testCfg.Network.NoMDNS,
@@ -167,7 +165,7 @@ func TestExportCommand(t *testing.T) {
 			err = loadConfig(cfg, config)
 			require.Nil(t, err)
 
-			require.Equal(t, c.expected, cfg)
+			require.Equal(t, dotConfigToToml(c.expected), cfg)
 		})
 	}
 }

@@ -71,8 +71,8 @@ type InitConfig struct {
 
 // AccountConfig is to marshal/unmarshal account config vars
 type AccountConfig struct {
-	Key    string
-	Unlock string
+	Key    string // TODO: change to array
+	Unlock string // TODO: change to array
 }
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
