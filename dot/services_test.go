@@ -63,7 +63,7 @@ func TestCreateCoreService(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
-	cfg.Core.Authority = false
+	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()
@@ -190,7 +190,7 @@ func TestCreateRPCService(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
-	cfg.Core.Authority = false
+	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()
@@ -238,7 +238,7 @@ func TestCreateBABEService(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
-	cfg.Core.Authority = true
+	cfg.Core.Roles = 1
 	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
@@ -270,7 +270,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	// TODO: improve dot tests #687
-	cfg.Core.Authority = true
+	cfg.Core.Roles = 4
 	cfg.Init.GenesisRaw = genFile.Name()
 
 	err := InitNode(cfg)
@@ -316,7 +316,7 @@ func TestNewWebSocketServer(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Core.Authority = false
+	cfg.Core.Roles = 1
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()

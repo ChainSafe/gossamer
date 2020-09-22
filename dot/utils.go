@@ -19,14 +19,19 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
+	"unicode"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
+	"github.com/naoina/toml"
 	"github.com/stretchr/testify/require"
 )
 
@@ -143,4 +148,112 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	require.Nil(t, err)
 
 	return genFile.Name()
+}
+
+// NewTestConfig returns a new test configuration using the provided basepath
+func NewTestConfig(t *testing.T) *Config {
+	dir := utils.NewTestDir(t)
+
+	// TODO: use default config instead of gssmr config for test config #776
+
+	cfg := &Config{
+		Global: GlobalConfig{
+			Name:     GssmrConfig().Global.Name,
+			ID:       GssmrConfig().Global.ID,
+			BasePath: dir,
+			LogLvl:   log.LvlInfo,
+		},
+		Log:     GssmrConfig().Log,
+		Init:    GssmrConfig().Init,
+		Account: GssmrConfig().Account,
+		Core:    GssmrConfig().Core,
+		Network: GssmrConfig().Network,
+		RPC:     GssmrConfig().RPC,
+		System:  GssmrConfig().System,
+	}
+
+	cfg.Init.TestFirstEpoch = true
+	return cfg
+}
+
+// NewTestConfigWithFile returns a new test configuration and a temporary configuration file
+func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
+	cfg := NewTestConfig(t)
+
+	file, err := ioutil.TempFile(cfg.Global.BasePath, "config-")
+	require.NoError(t, err)
+
+	cfgFile := ExportConfig(cfg, file.Name())
+	return cfg, cfgFile
+}
+
+// ExportConfig exports a dot configuration to a toml configuration file
+func ExportConfig(cfg *Config, fp string) *os.File {
+	var (
+		newFile *os.File
+		err     error
+		raw     []byte
+	)
+
+	if raw, err = toml.Marshal(*cfg); err != nil {
+		logger.Error("failed to marshal configuration", "error", err)
+		os.Exit(1)
+	}
+
+	newFile, err = os.Create(filepath.Clean(fp))
+	if err != nil {
+		logger.Error("failed to create configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	_, err = newFile.Write(raw)
+	if err != nil {
+		logger.Error("failed to write to configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	if err := newFile.Close(); err != nil {
+		logger.Error("failed to close configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	return newFile
+}
+
+// LoadConfig loads the values from the toml configuration file into the provided configuration
+func LoadConfig(cfg *Config, fp string) error {
+	fp, err := filepath.Abs(fp)
+	if err != nil {
+		logger.Error("failed to create absolute path for toml configuration file", "error", err)
+		return err
+	}
+
+	file, err := os.Open(filepath.Clean(fp))
+	if err != nil {
+		logger.Error("failed to open toml configuration file", "error", err)
+		return err
+	}
+
+	var tomlSettings = toml.Config{
+		NormFieldName: func(rt reflect.Type, key string) string {
+			return key
+		},
+		FieldToKey: func(rt reflect.Type, field string) string {
+			return field
+		},
+		MissingField: func(rt reflect.Type, field string) error {
+			link := ""
+			if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
+				link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
+			}
+			return fmt.Errorf("field '%s' is not defined in %s%s", field, rt.String(), link)
+		},
+	}
+
+	if err = tomlSettings.NewDecoder(file).Decode(&cfg); err != nil {
+		logger.Error("failed to decode configuration", "error", err)
+		return err
+	}
+
+	return nil
 }
