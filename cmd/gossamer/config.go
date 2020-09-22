@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -149,9 +150,10 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-func createBuildSpecConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 	var tomlCfg *Config
-	err = loadConfigFile(ctx, tomlCfg)
+	cfg := &dot.Config{}
+	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
 		return nil, err
@@ -201,7 +203,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) (err error) {
+func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, logCfg *dot.LogConfig) error {
 	if cfg == nil {
 		cfg = new(Config)
 	}
@@ -217,6 +219,7 @@ func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, lo
 		cfg.Global.LogLvl = gssmr.DefaultLvl.String()
 	}
 
+	var err error
 	globalCfg.LogLvl, err = log.LvlFromString(cfg.Global.LogLvl)
 	if err != nil {
 		return err
@@ -413,8 +416,8 @@ func setDotAccountConfig(ctx *cli.Context, tomlCfg AccountConfig, cfg *dot.Accou
 
 // setDotCoreConfig sets dot.CoreConfig using flag values from the cli context
 func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig) {
-	cfg.BabeAuthority = tomlCfg.Roles == AuthorityRole
-	cfg.GrandpaAuthority = tomlCfg.Roles == AuthorityRole
+	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
+	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -422,11 +425,11 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig)
 		b, err := strconv.Atoi(roles)
 		if err != nil {
 			logger.Error("failed to convert Roles to byte", "error", err)
-		} else if byte(b) == AuthorityRole {
+		} else if byte(b) == types.AuthorityRole {
 			// if roles byte is 4, act as an authority (see Table D.2)
 			logger.Debug("authority enabled", "roles", 4)
 			cfg.Roles = byte(b)
-		} else if byte(b) > AuthorityRole {
+		} else if byte(b) > types.AuthorityRole {
 			// if roles byte is greater than 4, invalid roles byte (see Table D.2)
 			logger.Error("invalid roles option provided, authority disabled", "roles", byte(b))
 		} else {
@@ -438,15 +441,15 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig)
 
 	// to turn on BABE but not grandpa, cfg.Roles must be set to 4
 	// and cfg.GrandpaAuthority must be set to false
-	if cfg.Roles == AuthorityRole && !cfg.BabeAuthority {
+	if cfg.Roles == types.AuthorityRole && !cfg.BabeAuthority {
 		cfg.BabeAuthority = false
 	}
 
-	if cfg.Roles == AuthorityRole && !cfg.GrandpaAuthority {
+	if cfg.Roles == types.AuthorityRole && !cfg.GrandpaAuthority {
 		cfg.GrandpaAuthority = false
 	}
 
-	if cfg.Roles != AuthorityRole {
+	if cfg.Roles != types.AuthorityRole {
 		cfg.BabeAuthority = false
 		cfg.GrandpaAuthority = false
 	}
@@ -591,8 +594,8 @@ func updateDotConfigFromGenesisJSONRaw(ctx *cli.Context, tomlCfg Config, cfg *do
 	cfg.Account.Key = tomlCfg.Account.Key
 	cfg.Account.Unlock = tomlCfg.Account.Unlock
 	cfg.Core.Roles = tomlCfg.Core.Roles
-	cfg.Core.BabeAuthority = tomlCfg.Core.Roles == AuthorityRole
-	cfg.Core.GrandpaAuthority = tomlCfg.Core.Roles == AuthorityRole
+	cfg.Core.BabeAuthority = tomlCfg.Core.Roles == types.AuthorityRole
+	cfg.Core.GrandpaAuthority = tomlCfg.Core.Roles == types.AuthorityRole
 
 	// use default genesis-raw file if genesis configuration not provided, for example,
 	// if we load a toml configuration file without a defined genesis-raw init value or
