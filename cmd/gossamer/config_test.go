@@ -101,7 +101,6 @@ func TestInitConfigFromFlags(t *testing.T) {
 			[]interface{}{testCfgFile.Name(), "test_genesis"},
 			dot.InitConfig{
 				GenesisRaw: "test_genesis",
-				//TestFirstEpoch: true,
 			},
 		},
 	}

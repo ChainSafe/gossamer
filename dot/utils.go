@@ -19,13 +19,10 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
-	//"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	//"reflect"
 	"testing"
-	//"unicode"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"

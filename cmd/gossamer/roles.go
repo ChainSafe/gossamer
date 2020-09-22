@@ -17,8 +17,12 @@
 package main
 
 const (
-	NoNetworkRole   = byte(0)
-	FullNodeRole    = byte(1)
+	// NoNetworkRole runs a node without networking
+	NoNetworkRole = byte(0)
+	// FullNodeRole runs a full node
+	FullNodeRole = byte(1)
+	// LightClientRole runs a light client
 	LightClientRole = byte(2)
-	AuthorityRole   = byte(4)
+	// AuthorityRole runs the node as a block-producing and finalizing node
+	AuthorityRole = byte(4)
 )

@@ -151,14 +151,14 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 
 func createBuildSpecConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	var tomlCfg *Config
-
 	err = loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
 		return nil, err
 	}
+
 	// set global configuration values
-	setDotGlobalConfig(ctx, nil, &cfg.Global)
+	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
 	return cfg, nil
 }
 
@@ -207,6 +207,9 @@ func setLogConfig(ctx *cli.Context, cfg *Config, globalCfg *dot.GlobalConfig, lo
 	}
 
 	if lvlStr := ctx.String(LogFlag.Name); lvlStr != "" {
+		if lvlToInt, err := strconv.Atoi(lvlStr); err == nil {
+			lvlStr = log.Lvl(lvlToInt).String()
+		}
 		cfg.Global.LogLvl = lvlStr
 	}
 
