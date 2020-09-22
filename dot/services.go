@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"math/big"
 
+	database "github.com/ChainSafe/chaindb"
+
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -77,11 +79,17 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore)
 		return nil, err
 	}
 
+	ns := runtime.NodeStorage{
+		LocalStorage:      database.NewMemDatabase(),
+		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
+	}
 	rtCfg := &runtime.Config{
-		Storage:  ts,
-		Keystore: ks,
-		Imports:  runtime.RegisterImports_NodeRuntime,
-		LogLvl:   cfg.Log.RuntimeLvl,
+		Storage:     ts,
+		Keystore:    ks,
+		Imports:     runtime.RegisterImports_NodeRuntime,
+		LogLvl:      cfg.Log.RuntimeLvl,
+		NodeStorage: ns,
+		Role:        cfg.Core.Roles,
 	}
 
 	// create runtime executor
@@ -304,7 +312,7 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt *runtime.Runtime) (*
 		return nil, err
 	}
 
-	ad, err := types.BABEAuthorityDataRawToAuthorityData(babeCfg.GenesisAuthorities)
+	ad, err := types.BABEAuthorityRawToAuthority(babeCfg.GenesisAuthorities)
 	if err != nil {
 		return nil, err
 	}

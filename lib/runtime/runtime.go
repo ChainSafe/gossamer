@@ -29,19 +29,35 @@ import (
 var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime")
 
+// NodeStorageTypePersistent flag to identify offchain storage as persistent (db)
+const NodeStorageTypePersistent int32 = 1
+
+// NodeStorageTypeLocal flog to identify offchain storage as local (memory)
+const NodeStorageTypeLocal int32 = 2
+
+// NodeStorage struct for storage of runtime offchain worker data
+type NodeStorage struct {
+	LocalStorage      BasicStorage
+	PersistentStorage BasicStorage
+}
+
 // Ctx struct
 type Ctx struct {
-	storage   Storage
-	allocator *FreeingBumpHeapAllocator
-	keystore  *keystore.GenericKeystore
+	storage     Storage
+	allocator   *FreeingBumpHeapAllocator
+	keystore    *keystore.GenericKeystore
+	nodeStorage NodeStorage
+	validator   bool
 }
 
 // Config represents a runtime configuration
 type Config struct {
-	Storage  Storage
-	Keystore *keystore.GenericKeystore
-	Imports  func() (*wasm.Imports, error)
-	LogLvl   log.Lvl
+	Storage     Storage
+	Keystore    *keystore.GenericKeystore
+	Imports     func() (*wasm.Imports, error)
+	LogLvl      log.Lvl
+	NodeStorage NodeStorage
+	Role        byte
 }
 
 // Runtime struct
@@ -92,10 +108,17 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 
 	memAllocator := NewAllocator(instance.Memory, 0)
 
+	validator := false
+	if cfg.Role == byte(4) {
+		validator = true
+	}
+
 	runtimeCtx := &Ctx{
-		storage:   cfg.Storage,
-		allocator: memAllocator,
-		keystore:  cfg.Keystore,
+		storage:     cfg.Storage,
+		allocator:   memAllocator,
+		keystore:    cfg.Keystore,
+		nodeStorage: cfg.NodeStorage,
+		validator:   validator,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)

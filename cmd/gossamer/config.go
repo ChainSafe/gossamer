@@ -43,7 +43,7 @@ func loadConfigFile(ctx *cli.Context, cfg *Config) (err error) {
 	if cfgPath := ctx.GlobalString(ConfigFlag.Name); cfgPath != "" {
 		logger.Info("loading toml configuration...", "config path", cfgPath)
 		if cfg == nil {
-			cfg = &Config{} // if configuration not set, create empty dot configuration
+			cfg = &Config{} // if configuration not set, create empty configuration
 		} else {
 			logger.Warn(
 				"overwriting default configuration with toml configuration values",
@@ -51,7 +51,7 @@ func loadConfigFile(ctx *cli.Context, cfg *Config) (err error) {
 				"config path", cfgPath,
 			)
 		}
-		err = loadConfig(cfg, cfgPath) // load toml values into dot configuration
+		err = loadConfig(cfg, cfgPath) // load toml values into configuration
 		if err != nil {
 			return err
 		}
@@ -88,6 +88,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 	// if default configuration not set, load "gssmr" default configuration
 	if cfg == nil {
+		logger.Info("loading default configuration...", "id", "gssmr")
 		cfg = DefaultCfg
 	}
 
@@ -361,6 +362,10 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *Config, cfg *dot.GlobalConfig
 		cfg.BasePath = basepath
 	}
 
+	// check if cfg.BasePath his been set, if not set to default
+	if cfg.BasePath == "" {
+		cfg.BasePath = dot.GssmrConfig().Global.BasePath
+	}
 	// check --log flag
 	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
 		cfg.LogLvl = log.Lvl(lvlToInt)

@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -55,11 +56,42 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
+	ns := NodeStorage{
+		LocalStorage:      database.NewMemDatabase(),
+		PersistentStorage: database.NewMemDatabase(), // we're using a local storage here since this is a test runtime
+	}
+	cfg := &Config{
+		Storage:     s,
+		Keystore:    keystore.NewGenericKeystore("test"),
+		Imports:     importsFunc,
+		LogLvl:      lvl,
+		NodeStorage: ns,
+	}
+
+	r, err := NewRuntimeFromFile(fp, cfg)
+	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
+	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
+	return r
+}
+
+// NewTestRuntimeWithRole returns a test runtime with given role value
+func NewTestRuntimeWithRole(t *testing.T, targetRuntime string, role byte) *Runtime {
+	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
+
+	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
+
+	s := newTestRuntimeStorage(nil)
+
+	fp, err := filepath.Abs(testRuntimeFilePath)
+	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
+
 	cfg := &Config{
 		Storage:  s,
 		Keystore: keystore.NewGenericKeystore("test"),
 		Imports:  importsFunc,
-		LogLvl:   lvl,
+		LogLvl:   log.LvlInfo,
+		Role:     role,
 	}
 
 	r, err := NewRuntimeFromFile(fp, cfg)
@@ -69,6 +101,7 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 }
 
 // exportRuntime writes the runtime to a file as a hex string.
+// nolint  (without this the linter complains that exportRuntime is unused (used in helper.test.go 28)
 func exportRuntime(t *testing.T, targetRuntime string, outFp string) {
 	testRuntimeFilePath, testRuntimeURL, _ := GetRuntimeVars(targetRuntime)
 
