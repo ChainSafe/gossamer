@@ -419,6 +419,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig)
 	cfg.Roles = tomlCfg.Roles
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
+	cfg.SlotDuration = tomlCfg.SlotDuration
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
