@@ -226,6 +226,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	)
 
 	var nodeSrvcs []services.Service
+	var networkSrvc *network.Service
 
 	// State Service
 
@@ -236,7 +237,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +279,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// Network Service
-	var networkSrvc *network.Service
 
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {

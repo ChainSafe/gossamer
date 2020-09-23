@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1271,15 +1270,25 @@ func TestExt_is_validator(t *testing.T) {
 
 func TestExt_network_state(t *testing.T) {
 	runtime := NewTestRuntime(t, TEST_RUNTIME)
+	memory := runtime.vm.Memory.Data()
 
-	// call wasm function
 	testFunc, ok := runtime.vm.Exports["test_ext_network_state"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
 
-	res, err := testFunc(0)
-
+	writtenOutPtr, err := runtime.ctx.allocator.Allocate(4)
 	require.NoError(t, err)
-fmt.Printf("res %v\n", res)
+
+	resPtr, err := testFunc(int32(writtenOutPtr))
+	require.NoError(t, err)
+
+	writtenOutValue := binary.LittleEndian.Uint32(memory[writtenOutPtr : writtenOutPtr+4])
+
+	resData := memory[resPtr.ToI32() : resPtr.ToI32()+int32(writtenOutValue)]
+
+	expected := runtime.ctx.network.NetworkState()
+	expectedEnc, err := scale.Encode(expected)
+	require.NoError(t, err)
+	require.Equal(t, expectedEnc, resData)
 }

@@ -35,8 +35,9 @@ type Storage interface {
 	GetBalance(key [32]byte) (uint64, error)
 }
 
+// BasicNetwork interface for functions used by runtime network state function
 type BasicNetwork interface {
-	NetworkState() []byte
+	NetworkState() common.NetworkState
 }
 
 // BasicStorage interface for functions used by runtime offchain workers

@@ -43,23 +43,23 @@ type NodeStorage struct {
 
 // Ctx struct
 type Ctx struct {
-	storage   Storage
-	allocator *FreeingBumpHeapAllocator
-	keystore  *keystore.GenericKeystore
-	validator bool
+	storage     Storage
+	allocator   *FreeingBumpHeapAllocator
+	keystore    *keystore.GenericKeystore
+	validator   bool
 	nodeStorage NodeStorage
-	network BasicNetwork
+	network     BasicNetwork
 }
 
 // Config represents a runtime configuration
 type Config struct {
-	Storage  Storage
-	Keystore *keystore.GenericKeystore
-	Imports  func() (*wasm.Imports, error)
-	LogLvl   log.Lvl
-	Role     byte
+	Storage     Storage
+	Keystore    *keystore.GenericKeystore
+	Imports     func() (*wasm.Imports, error)
+	LogLvl      log.Lvl
+	Role        byte
 	NodeStorage NodeStorage
-	Network BasicNetwork
+	Network     BasicNetwork
 }
 
 // Runtime struct
@@ -116,12 +116,12 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 	}
 
 	runtimeCtx := &Ctx{
-		storage:   cfg.Storage,
-		allocator: memAllocator,
-		keystore:  cfg.Keystore,
-		validator: validator,
+		storage:     cfg.Storage,
+		allocator:   memAllocator,
+		keystore:    cfg.Keystore,
+		validator:   validator,
 		nodeStorage: cfg.NodeStorage,
-		network: cfg.Network,
+		network:     cfg.Network,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)
@@ -201,4 +201,14 @@ func (r *Runtime) malloc(size uint32) (uint32, error) {
 
 func (r *Runtime) free(ptr uint32) error {
 	return r.ctx.allocator.Deallocate(ptr)
+}
+
+// NodeStorage to get reference to runtime node service
+func (r *Runtime) NodeStorage() NodeStorage {
+	return r.ctx.nodeStorage
+}
+
+// NetworkService to get referernce to runtime network service
+func (r *Runtime) NetworkService() BasicNetwork {
+	return r.ctx.network
 }

@@ -79,10 +79,10 @@ func TestCreateCoreService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
-	require.NoError(t, err)
-
 	networkSrvc := &network.Service{}
+
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), networkSrvc)
+	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
@@ -143,7 +143,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
@@ -207,7 +207,7 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), networkSrvc)
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
@@ -252,7 +252,7 @@ func TestCreateBABEService(t *testing.T) {
 	require.Nil(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
 	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
@@ -284,7 +284,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
@@ -334,7 +334,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore))
+	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), networkSrvc)
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
