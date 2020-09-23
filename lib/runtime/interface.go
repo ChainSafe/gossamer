@@ -38,3 +38,9 @@ type Storage interface {
 type BasicNetwork interface {
 	NetworkState() []byte
 }
+
+// BasicStorage interface for functions used by runtime offchain workers
+type BasicStorage interface {
+	Put(key []byte, value []byte) error
+	Get(key []byte) ([]byte, error)
+}

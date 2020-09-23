@@ -29,12 +29,25 @@ import (
 var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime")
 
+// NodeStorageTypePersistent flag to identify offchain storage as persistent (db)
+const NodeStorageTypePersistent int32 = 1
+
+// NodeStorageTypeLocal flog to identify offchain storage as local (memory)
+const NodeStorageTypeLocal int32 = 2
+
+// NodeStorage struct for storage of runtime offchain worker data
+type NodeStorage struct {
+	LocalStorage      BasicStorage
+	PersistentStorage BasicStorage
+}
+
 // Ctx struct
 type Ctx struct {
 	storage   Storage
 	allocator *FreeingBumpHeapAllocator
 	keystore  *keystore.GenericKeystore
 	validator bool
+	nodeStorage NodeStorage
 	network BasicNetwork
 }
 
@@ -45,6 +58,7 @@ type Config struct {
 	Imports  func() (*wasm.Imports, error)
 	LogLvl   log.Lvl
 	Role     byte
+	NodeStorage NodeStorage
 	Network BasicNetwork
 }
 
@@ -106,6 +120,7 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 		allocator: memAllocator,
 		keystore:  cfg.Keystore,
 		validator: validator,
+		nodeStorage: cfg.NodeStorage,
 		network: cfg.Network,
 	}
 
