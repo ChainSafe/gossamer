@@ -416,6 +416,7 @@ func setDotAccountConfig(ctx *cli.Context, tomlCfg AccountConfig, cfg *dot.Accou
 
 // setDotCoreConfig sets dot.CoreConfig using flag values from the cli context
 func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig) {
+	cfg.Roles = tomlCfg.Roles
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
 
@@ -441,11 +442,11 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg CoreConfig, cfg *dot.CoreConfig)
 
 	// to turn on BABE but not grandpa, cfg.Roles must be set to 4
 	// and cfg.GrandpaAuthority must be set to false
-	if cfg.Roles == types.AuthorityRole && !cfg.BabeAuthority {
+	if cfg.Roles == types.AuthorityRole && !tomlCfg.BabeAuthority {
 		cfg.BabeAuthority = false
 	}
 
-	if cfg.Roles == types.AuthorityRole && !cfg.GrandpaAuthority {
+	if cfg.Roles == types.AuthorityRole && !tomlCfg.GrandpaAuthority {
 		cfg.GrandpaAuthority = false
 	}
 
