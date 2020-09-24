@@ -65,9 +65,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
-	logger.Trace("created storage state", "tries", tries)
 	return &StorageState{
-		//trie:    t,
 		blockState: blockState,
 		tries:      tries,
 		baseDB:     db,
