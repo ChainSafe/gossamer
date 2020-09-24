@@ -205,7 +205,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	setupLogger(cfg)
 
 	// if authority node, should have at least 1 key in keystore
-	if cfg.Core.Roles == 4 && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
+	if cfg.Core.Roles == types.AuthorityRole && (ks.Babe.Size() == 0 || ks.Gran.Size() == 0) {
 		return nil, ErrNoKeysProvided
 	}
 

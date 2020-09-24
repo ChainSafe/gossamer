@@ -163,7 +163,7 @@ func createBABEService(cfg *Config, rt *runtime.Runtime, st *state.Service, ks k
 func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt *runtime.Runtime, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
-		"authority", cfg.Core.Roles == 4,
+		"authority", cfg.Core.Roles == types.AuthorityRole,
 	)
 
 	handler := grandpa.NewMessageHandler(fg.(*grandpa.Service), stateSrvc.Block)
