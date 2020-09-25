@@ -31,7 +31,7 @@ var ErrTransactionExists = errors.New("transaction is already in pool")
 type PriorityQueue struct {
 	head  *node
 	mutex sync.Mutex
-	pool  Pool
+	pool  map[common.Hash]*ValidTransaction // TODO: rename, this is just the txs in the queue
 }
 
 type node struct {
