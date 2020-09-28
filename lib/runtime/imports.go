@@ -85,6 +85,7 @@ import (
 func ext_kill_child_storage(context unsafe.Pointer, a, b C.int32_t) {
 	logger.Trace("[ext_kill_child_storage] executing...")
 	logger.Warn("[ext_kill_child_storage] not yet implemented")
+
 }
 
 //export ext_sandbox_memory_new

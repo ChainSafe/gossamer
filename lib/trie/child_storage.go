@@ -98,3 +98,9 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 
 	return child.Get(key)
 }
+
+// DeleteFromChild deletes from child storage
+func (t *Trie) DeleteFromChild(keyToChild []byte) error {
+	key := append(ChildStorageKeyPrefix, keyToChild...)
+	return t.Delete(key)
+}

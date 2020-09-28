@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,4 +36,20 @@ func Test_ext_twox_256(t *testing.T) {
 	if !bytes.Equal(expected[:], mem[out:out+32]) {
 		t.Fatalf("fail: got %x expected %x", mem[out:out+32], expected[:])
 	}
+}
+
+func Test_ext_kill_child_storage(t *testing.T) {
+	runtime := NewTestRuntime(t, TEST_RUNTIME)
+
+	//mem := runtime.vm.Memory.Data()
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_kill_child_storage"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	res, err := testFunc(1, 2)
+	require.NoError(t, err)
+	fmt.Printf("RES %v\n", res)
 }
