@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -38,10 +39,14 @@ type StringResponse string
 type SystemHealthResponse struct {
 	Health common.Health `json:"health"`
 }
+type NetworkStateString struct {
+	PeerID string
+	Multiaddrs []string
+}
 
 // SystemNetworkStateResponse struct to marshal json
 type SystemNetworkStateResponse struct {
-	NetworkState common.NetworkState `json:"networkState"`
+	NetworkState NetworkStateString `json:"networkState"`
 }
 
 // SystemPeersResponse struct to marshal json
@@ -91,7 +96,10 @@ func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHe
 // NetworkState returns the network state (basic information about the host)
 func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *SystemNetworkStateResponse) error {
 	networkState := sm.networkAPI.NetworkState()
-	res.NetworkState = networkState
+	res.NetworkState.PeerID = networkState.PeerID
+	for _, v := range networkState.Multiaddrs {
+		fmt.Printf("addr %v\n", v)
+	}
 	return nil
 }
 

@@ -290,11 +290,7 @@ func (trn testRuntimeNetwork) NetworkState() common.NetworkState {
 	testAddrs := []ma.Multiaddr(nil)
 
 	// create mock multiaddress
-	addr, err := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWDcCNBqAemRvguPa7rtmsbn2hpgLqAz8KsMMFsF2rdCUP")
-	if err != nil {
-		// todo ed handle error
-		fmt.Printf("ERROR %v\n", err)
-	}
+	addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWDcCNBqAemRvguPa7rtmsbn2hpgLqAz8KsMMFsF2rdCUP")
 
 	testAddrs = append(testAddrs, addr)
 
