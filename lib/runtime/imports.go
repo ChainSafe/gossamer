@@ -82,10 +82,20 @@ import (
 )
 
 //export ext_kill_child_storage
-func ext_kill_child_storage(context unsafe.Pointer, a, b C.int32_t) {
+func ext_kill_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen C.int32_t) {
 	logger.Trace("[ext_kill_child_storage] executing...")
-	logger.Warn("[ext_kill_child_storage] not yet implemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
 
+	runtimeCtx := instanceContext.Data().(*Ctx)
+	s := runtimeCtx.storage
+
+	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
+
+	err := s.DeleteChildStorage(keyToChild)
+	if err != nil {
+		logger.Error("[ext_kill_child_storage]", "error", err)
+	}
 }
 
 //export ext_sandbox_memory_new

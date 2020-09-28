@@ -23,7 +23,7 @@ import (
 )
 
 // ChildStorageKeyPrefix is the prefix for all child storage keys
-var ChildStorageKeyPrefix = []byte(":child_storage:")
+var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
 // PutChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
