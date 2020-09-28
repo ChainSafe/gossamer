@@ -377,7 +377,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 			Storage:     ts,
 			Keystore:    s.keys.Acco.(*keystore.GenericKeystore),
 			Imports:     runtime.RegisterImports_NodeRuntime,
-			LogLvl:      -1,                 // don't change runtime package log level
+			LogLvl:      -1, // don't change runtime package log level
 			NodeStorage: s.rt.NodeStorage(),
 			Network:     s.rt.NetworkService(),
 		}

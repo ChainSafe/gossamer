@@ -39,8 +39,10 @@ type StringResponse string
 type SystemHealthResponse struct {
 	Health common.Health `json:"health"`
 }
+
+// NetworkStateString Network State represented as string so JSON encode/decoding works
 type NetworkStateString struct {
-	PeerID string
+	PeerID     string
 	Multiaddrs []string
 }
 
