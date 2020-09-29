@@ -56,10 +56,11 @@ func (s *TransactionState) MaintainPool() error {
 	// TODO: define and implement algorithm
 	txs := s.pool.Transactions()
 	for _, tx := range txs {
-		_, err := s.Push(tx)
+		h, err := s.Push(tx)
 		if err != nil {
 			return err
 		}
+		s.pool.Remove(h)
 	}
 
 	return nil
