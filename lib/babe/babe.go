@@ -490,6 +490,8 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
+	// TODO: if transaction queue is empty, call MaintainPool
+
 	b.rt.SetContext(ts)
 
 	block, err := b.buildBlock(parent, currentSlot)
