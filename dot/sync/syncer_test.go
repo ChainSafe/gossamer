@@ -376,7 +376,7 @@ func TestExecuteBlock(t *testing.T) {
 
 	bcfg := &babe.ServiceConfig{
 		Runtime:          syncer.runtime,
-		TransactionQueue: syncer.transactionState.(*state.TransactionState),
+		TransactionState: syncer.transactionState.(*state.TransactionState),
 		Keypair:          kp,
 		BlockState:       syncer.blockState.(*state.BlockState),
 		EpochThreshold:   babe.MaxThreshold,
@@ -424,7 +424,7 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 
 	bcfg := &babe.ServiceConfig{
 		Runtime:          syncer.runtime,
-		TransactionQueue: syncer.transactionState.(*state.TransactionState),
+		TransactionState: syncer.transactionState.(*state.TransactionState),
 		Keypair:          kp,
 		BlockState:       syncer.blockState.(*state.BlockState),
 		EpochThreshold:   babe.MaxThreshold,
