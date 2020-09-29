@@ -46,6 +46,11 @@ func (s *TransactionState) RemoveExtrinsic(ext types.Extrinsic) {
 	s.queue.RemoveExtrinsic(ext)
 }
 
+// AddToPool adds a transaction to the pool
+func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
+	return s.pool.Insert(vt)
+}
+
 // MaintainPool moves transactions from the pool to the queue
 func (s *TransactionState) MaintainPool() error {
 	// TODO: define and implement algorithm
