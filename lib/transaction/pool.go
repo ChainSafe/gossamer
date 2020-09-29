@@ -1,8 +1,9 @@
 package transaction
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // Pool represents the transaction pool
