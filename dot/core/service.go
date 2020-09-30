@@ -428,9 +428,10 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 
 	subchain, err := s.blockState.SubChain(ancestor, prev)
 	if err != nil {
-		return nil
+		return err
 	}
 
+	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
 		if err != nil {
@@ -443,10 +444,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range exts {
-			// validate the transaction
+			s.logger.Crit("validating transaction on re-org chain", "extrinsic", ext)
+
 			txv, err := s.rt.ValidateTransaction(ext)
 			if err != nil {
-				return err
+				s.logger.Crit("failed to validate")
+				continue
 			}
 
 			vtx := transaction.NewValidTransaction(ext, txv)
