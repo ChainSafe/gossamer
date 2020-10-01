@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1245,37 +1244,103 @@ func TestExt_local_storage_get_persistent(t *testing.T) {
 	require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
 }
 
+type CompareSetTest struct {
+	storageType  NodeStorageType
+	key          []byte
+	value        []byte
+	oldValue     []byte
+	newValue     []byte
+	result       int32
+	storageValue []byte
+}
+
+var CompareSetTests = []CompareSetTest{
+	{ // persistent, condition match
+		storageType:  NodeStorageTypePersistent,
+		key:          []byte("mykey"),
+		value:        []byte("value"),
+		oldValue:     []byte("value"),
+		newValue:     []byte("newValue"),
+		result:       0,
+		storageValue: []byte("newValue"),
+	},
+	{ // persistent, condition don't match
+		storageType:  NodeStorageTypePersistent,
+		key:          []byte("mykey"),
+		value:        []byte("value"),
+		oldValue:     []byte("oldValue"),
+		newValue:     []byte("newValue"),
+		result:       1,
+		storageValue: []byte("value"),
+	},
+	{ // local, condition match
+		storageType:  NodeStorageTypeLocal,
+		key:          []byte("mykey"),
+		value:        []byte("value"),
+		oldValue:     []byte("value"),
+		newValue:     []byte("newValue"),
+		result:       0,
+		storageValue: []byte("newValue"),
+	},
+	{ // local, condition don't match
+		storageType:  NodeStorageTypeLocal,
+		key:          []byte("mykey"),
+		value:        []byte("value"),
+		oldValue:     []byte("oldValue"),
+		newValue:     []byte("newValue"),
+		result:       1,
+		storageValue: []byte("value"),
+	},
+}
+
 func TestExt_local_storage_compare_and_set(t *testing.T) {
-	runtime := NewTestRuntime(t, TEST_RUNTIME)
-	mem := runtime.vm.Memory.Data()
+	for _, v := range CompareSetTests {
+		runtime := NewTestRuntime(t, TEST_RUNTIME)
+		mem := runtime.vm.Memory.Data()
+		// setup and init storage
+		var nodeStorage BasicStorage
+		switch v.storageType {
+		case NodeStorageTypePersistent:
+			nodeStorage = runtime.ctx.nodeStorage.PersistentStorage
+		case NodeStorageTypeLocal:
+			nodeStorage = runtime.ctx.nodeStorage.LocalStorage
+		}
+		nodeStorage.Put(v.key, v.value)
+		keyLen := uint32(len(v.key))
+		keyPtr, err := runtime.malloc(keyLen)
+		require.NoError(t, err)
+		copy(mem[keyPtr:keyPtr+keyLen], v.key)
 
-	key := []byte("mykey")
-	value := []byte("myvalue")
-	runtime.ctx.nodeStorage.PersistentStorage.Put(key, value)
+		oldValueLen := uint32(len(v.oldValue))
+		oldValuePtr, err := runtime.malloc(oldValueLen)
+		require.NoError(t, err)
+		copy(mem[oldValuePtr:oldValuePtr+oldValueLen], v.oldValue)
 
-	keyPtr := 0 // todo get pointer from malloc
-	keyLen := len(key)
-	copy(mem[keyPtr:keyPtr+keyLen], key)
+		newValueLen := uint32(len(v.newValue))
+		newValuePtr, err := runtime.malloc(newValueLen)
+		require.NoError(t, err)
+		copy(mem[newValuePtr:newValuePtr+newValueLen], v.newValue)
 
-	oldValuePtr := 1
-	oldValue := []byte("oldValue")
-	oldValueLen := len(oldValue)
+		// call wasm function
+		testFunc, ok := runtime.vm.Exports["test_ext_local_storage_compare_and_set"]
+		if !ok {
+			t.Fatal("could not find exported function")
+		}
 
-	newValuePtr := 2
-	newValue := []byte("newValue")
-	newValueLen := len(newValue)
+		res, err := testFunc(int32(v.storageType), int32(keyPtr), int32(keyLen), int32(oldValuePtr), int32(oldValueLen),
+			int32(newValuePtr), int32(newValueLen))
+		require.NoError(t, err)
 
-	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_local_storage_compare_and_set"]
-	if !ok {
-		t.Fatal("could not find exported function")
+		// confirm results
+		require.Equal(t, v.result, res.ToI32())
+		checkFunc, ok := runtime.vm.Exports["test_ext_local_storage_get"]
+		if !ok {
+			t.Fatal("could not find exported function")
+		}
+		checkRes, err := checkFunc(int32(v.storageType), int32(keyPtr), int32(keyLen), int32(newValueLen))
+		require.NoError(t, err)
+		require.Equal(t, v.storageValue, mem[checkRes.ToI32():checkRes.ToI32()+int32(len(v.storageValue))])
 	}
-
-	res, err := testFunc(NodeStorageTypePersistent, keyPtr, keyLen, oldValuePtr, oldValueLen,
-		newValuePtr, newValueLen)
-	require.Nil(t, err)
-	fmt.Printf("res %v\n", res)
-	//require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
 }
 
 func TestExt_is_validator(t *testing.T) {
