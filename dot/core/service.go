@@ -256,7 +256,7 @@ func (s *Service) handleBlocks(ctx context.Context) {
 
 			err = s.handleChainReorg(prev, block.Header.Hash())
 			if err != nil {
-				log.Warn("failed to readd transactions to chain upon re-org", "error", err)
+				log.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
 			err = s.handleRuntimeChanges(block.Header)
