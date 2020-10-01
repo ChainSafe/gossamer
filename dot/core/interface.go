@@ -51,6 +51,9 @@ type BlockState interface {
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
 	UnregisterFinalizedChannel(id byte)
+	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
+	SubChain(start, end common.Hash) ([]common.Hash, error)
+	GetBlockBody(hash common.Hash) (*types.Body, error)
 }
 
 // StorageState interface for storage state methods
@@ -62,12 +65,9 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*state.TrieState, error)
 }
 
-// TransactionQueue is the interface for transaction queue methods
-type TransactionQueue interface {
-	Push(vt *transaction.ValidTransaction) (common.Hash, error)
-	Pop() *transaction.ValidTransaction
-	Peek() *transaction.ValidTransaction
-	RemoveExtrinsic(ext types.Extrinsic)
+// TransactionState is the interface for transaction state methods
+type TransactionState interface {
+	AddToPool(vt *transaction.ValidTransaction) common.Hash
 }
 
 // FinalityGadget is the interface that a finality gadget must implement
