@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1242,6 +1243,39 @@ func TestExt_local_storage_get_persistent(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
+}
+
+func TestExt_local_storage_compare_and_set(t *testing.T) {
+	runtime := NewTestRuntime(t, TEST_RUNTIME)
+	mem := runtime.vm.Memory.Data()
+
+	key := []byte("mykey")
+	value := []byte("myvalue")
+	runtime.ctx.nodeStorage.PersistentStorage.Put(key, value)
+
+	keyPtr := 0 // todo get pointer from malloc
+	keyLen := len(key)
+	copy(mem[keyPtr:keyPtr+keyLen], key)
+
+	oldValuePtr := 1
+	oldValue := []byte("oldValue")
+	oldValueLen := len(oldValue)
+
+	newValuePtr := 2
+	newValue := []byte("newValue")
+	newValueLen := len(newValue)
+
+	// call wasm function
+	testFunc, ok := runtime.vm.Exports["test_ext_local_storage_compare_and_set"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	res, err := testFunc(NodeStorageTypePersistent, keyPtr, keyLen, oldValuePtr, oldValueLen,
+		newValuePtr, newValueLen)
+	require.Nil(t, err)
+	fmt.Printf("res %v\n", res)
+	//require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
 }
 
 func TestExt_is_validator(t *testing.T) {
