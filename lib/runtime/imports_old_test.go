@@ -1154,7 +1154,7 @@ func TestExt_local_storage_set_local(t *testing.T) {
 		t.Fatal("could not find exported function")
 	}
 
-	_, err := testFunc(NodeStorageTypeLocal, keyPtr, keyLen, valuePtr, valueLen)
+	_, err := testFunc(int32(NodeStorageTypeLocal), keyPtr, keyLen, valuePtr, valueLen)
 	require.NoError(t, err)
 
 	resValue, err := runtime.ctx.nodeStorage.LocalStorage.Get(key)
@@ -1184,7 +1184,7 @@ func TestExt_local_storage_set_persistent(t *testing.T) {
 		t.Fatal("could not find exported function")
 	}
 
-	_, err := testFunc(NodeStorageTypePersistent, keyPtr, keyLen, valuePtr, valueLen)
+	_, err := testFunc(int32(NodeStorageTypePersistent), keyPtr, keyLen, valuePtr, valueLen)
 	require.NoError(t, err)
 
 	resValue, err := runtime.ctx.nodeStorage.PersistentStorage.Get(key)
@@ -1212,7 +1212,7 @@ func TestExt_local_storage_get_local(t *testing.T) {
 		t.Fatal("could not find exported function")
 	}
 
-	res, err := testFunc(NodeStorageTypeLocal, keyPtr, keyLen, valueLen)
+	res, err := testFunc(int32(NodeStorageTypeLocal), keyPtr, keyLen, valueLen)
 	require.Nil(t, err)
 
 	require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
@@ -1238,7 +1238,7 @@ func TestExt_local_storage_get_persistent(t *testing.T) {
 		t.Fatal("could not find exported function")
 	}
 
-	res, err := testFunc(NodeStorageTypePersistent, keyPtr, keyLen, valueLen)
+	res, err := testFunc(int32(NodeStorageTypePersistent), keyPtr, keyLen, valueLen)
 	require.Nil(t, err)
 
 	require.Equal(t, value, mem[res.ToI32():res.ToI32()+int32(valueLen)])
