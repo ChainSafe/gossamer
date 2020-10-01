@@ -242,6 +242,16 @@ func (b *Service) SetRuntime(rt *runtime.Runtime) error {
 		return err
 	}
 
+	b.authorityData, err = types.BABEAuthorityRawToAuthority(b.config.GenesisAuthorities)
+	if err != nil {
+		return err
+	}
+
+	err = b.setAuthorityIndex()
+	if err != nil {
+		return err
+	}
+
 	return b.setThreshold()
 }
 
