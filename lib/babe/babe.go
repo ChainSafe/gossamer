@@ -238,7 +238,11 @@ func (b *Service) SetRuntime(rt *runtime.Runtime) error {
 
 	var err error
 	b.config, err = b.rt.BabeConfiguration()
-	return err
+	if err != nil {
+		return err
+	}
+
+	return b.setThreshold()
 }
 
 // GetBlockChannel returns the channel where new blocks are passed
