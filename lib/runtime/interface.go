@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -46,4 +47,9 @@ type BasicNetwork interface {
 type BasicStorage interface {
 	Put(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
+}
+
+// TransactionState interface for adding transactions to pool
+type TransactionState interface {
+	AddToPool(vt *transaction.ValidTransaction) common.Hash
 }

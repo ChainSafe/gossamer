@@ -60,7 +60,7 @@ func TestAuthorModule_Pending(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	// setup auth module
 	txQueue := state.NewTransactionState()
 

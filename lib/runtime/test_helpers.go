@@ -29,6 +29,7 @@ import (
 	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
@@ -68,6 +69,7 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(testRuntimeNetwork),
+		Transaction: new(mockTransaction),
 	}
 
 	r, err := NewRuntimeFromFile(fp, cfg)
@@ -306,4 +308,12 @@ func (trn testRuntimeNetwork) NetworkState() common.NetworkState {
 		PeerID:     "12D3KooWDcCNBqAemRvguPa7rtmsbn2hpgLqAz8KsMMFsF2rdCUP",
 		Multiaddrs: testAddrs,
 	}
+}
+
+type mockTransaction struct {
+}
+
+// AddToPool adds a transaction to the pool
+func (mt *mockTransaction) AddToPool(vt *transaction.ValidTransaction) common.Hash {
+	return common.BytesToHash([]byte("test"))
 }

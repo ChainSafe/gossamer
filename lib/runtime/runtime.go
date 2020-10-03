@@ -49,6 +49,7 @@ type Ctx struct {
 	validator   bool
 	nodeStorage NodeStorage
 	network     BasicNetwork
+	transaction TransactionState
 }
 
 // Config represents a runtime configuration
@@ -60,6 +61,7 @@ type Config struct {
 	Role        byte
 	NodeStorage NodeStorage
 	Network     BasicNetwork
+	Transaction TransactionState
 }
 
 // Runtime struct
@@ -122,6 +124,7 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 		validator:   validator,
 		nodeStorage: cfg.NodeStorage,
 		network:     cfg.Network,
+		transaction: cfg.Transaction,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)

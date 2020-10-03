@@ -91,6 +91,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		NodeStorage: ns,
 		Role:        cfg.Core.Roles,
 		Network:     net,
+		Transaction: st.Transaction,
 	}
 
 	// create runtime executor

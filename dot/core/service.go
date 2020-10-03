@@ -388,6 +388,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 			LogLvl:      -1, // don't change runtime package log level
 			NodeStorage: s.rt.NodeStorage(),
 			Network:     s.rt.NetworkService(),
+			Transaction: s.transactionState,
 		}
 
 		s.rt, err = runtime.NewRuntime(code, cfg)
