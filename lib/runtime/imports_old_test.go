@@ -1311,5 +1311,5 @@ func TestExt_submit_transaction(t *testing.T) {
 
 	res, err := testFunc(int32(dataPtr), int32(dataLen))
 	require.NoError(t, err)
-	require.Equal(t, 0, res)
+	require.Equal(t, int32(0), res.ToI32())
 }
