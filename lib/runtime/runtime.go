@@ -30,7 +30,7 @@ var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime")
 
 // NodeStorageType type to identify offchain storage type
-type NodeStorageType int32
+type NodeStorageType byte
 
 // NodeStorageTypePersistent flag to identify offchain storage as persistent (db)
 const NodeStorageTypePersistent NodeStorageType = 1
