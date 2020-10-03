@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -1291,4 +1292,21 @@ func TestExt_network_state(t *testing.T) {
 	expectedEnc, err := scale.Encode(expected)
 	require.NoError(t, err)
 	require.Equal(t, expectedEnc, resData)
+}
+
+func TestExt_submit_transaction(t *testing.T) {
+	runtime := NewTestRuntime(t, TEST_RUNTIME)
+	//memory := runtime.vm.Memory.Data()
+
+	testFunc, ok := runtime.vm.Exports["test_ext_submit_transaction"]
+	if !ok {
+		t.Fatal("could not find exported function")
+	}
+
+	writtenOutPtr, err := runtime.ctx.allocator.Allocate(4)
+	require.NoError(t, err)
+
+	res, err := testFunc(int32(writtenOutPtr), int32(0))
+	require.NoError(t, err)
+	fmt.Printf("result %v\n", res)
 }
