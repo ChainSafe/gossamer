@@ -32,8 +32,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -74,7 +74,7 @@ func newTestSyncer(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
+		cfg.Runtime = wasmer.NewTestInstance(t, wasmer.SUBSTRATE_TEST_RUNTIME)
 	}
 
 	if cfg.TransactionState == nil {
@@ -331,7 +331,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 func newBlockBuilder(t *testing.T, cfg *babe.ServiceConfig) *babe.Service { //nolint
 	if cfg.Runtime == nil {
-		cfg.Runtime = runtime.NewTestRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME)
+		cfg.Runtime = wasmer.NewTestInstance(t, wasmer.SUBSTRATE_TEST_RUNTIME)
 	}
 
 	if cfg.Keypair == nil {
@@ -358,14 +358,14 @@ func TestExecuteBlock(t *testing.T) {
 	// skip until block builder is separate from BABE
 
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.SUBSTRATE_TEST_RUNTIME, tt, log.LvlTrace)
+	rt := wasmer.NewTestInstanceWithTrie(t, wasmer.SUBSTRATE_TEST_RUNTIME, tt, log.LvlTrace)
 
 	// load authority into runtime
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(wasmer.TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.NoError(t, err)
 
 	cfg := &Config{
@@ -406,14 +406,14 @@ func TestExecuteBlock_WithExtrinsic(t *testing.T) {
 	// skip until block builder is separate from BABE
 
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.SUBSTRATE_TEST_RUNTIME, tt, log.LvlTrace)
+	rt := wasmer.NewTestInstanceWithTrie(t, wasmer.SUBSTRATE_TEST_RUNTIME, tt, log.LvlTrace)
 
 	// load authority into runtime
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
 	pubkey := kp.Public().Encode()
-	err = tt.Put(runtime.TestAuthorityDataKey, append([]byte{4}, pubkey...))
+	err = tt.Put(wasmer.TestAuthorityDataKey, append([]byte{4}, pubkey...))
 	require.NoError(t, err)
 
 	cfg := &Config{

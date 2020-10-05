@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -50,7 +51,7 @@ type Service struct {
 	transactionState TransactionState
 
 	// Current runtime and hash of the current runtime code
-	rt       *runtime.Runtime
+	rt       runtime.Instance
 	codeHash common.Hash
 
 	// Block production variables
@@ -87,7 +88,7 @@ type Config struct {
 	TransactionState        TransactionState
 	Network                 Network
 	Keystore                *keystore.GlobalKeystore
-	Runtime                 *runtime.Runtime
+	Runtime                 runtime.Instance
 	BlockProducer           BlockProducer
 	IsBlockProducer         bool
 	FinalityGadget          FinalityGadget
@@ -381,16 +382,16 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 			return err
 		}
 
-		cfg := &runtime.Config{
+		cfg := &wasmer.Config{
 			Storage:     ts,
 			Keystore:    s.keys.Acco.(*keystore.GenericKeystore),
-			Imports:     runtime.RegisterImports_NodeRuntime,
+			Imports:     wasmer.RegisterImports_NodeRuntime,
 			LogLvl:      -1, // don't change runtime package log level
 			NodeStorage: s.rt.NodeStorage(),
 			Network:     s.rt.NetworkService(),
 		}
 
-		s.rt, err = runtime.NewRuntime(code, cfg)
+		s.rt, err = wasmer.NewInstance(code, cfg)
 		if err != nil {
 			return err
 		}

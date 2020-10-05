@@ -51,7 +51,7 @@ type Service struct {
 	// Synchronization variables
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
-	runtime          *runtime.Runtime
+	runtime          runtime.Instance
 
 	// BABE verification
 	verifier Verifier
@@ -70,7 +70,7 @@ type Config struct {
 	StorageState     StorageState
 	BlockProducer    BlockProducer
 	TransactionState TransactionState
-	Runtime          *runtime.Runtime
+	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
 }
