@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package runtime
+package wasmer
 
 import (
 	"fmt"
@@ -22,6 +22,8 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -29,46 +31,21 @@ import (
 var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime")
 
-// NodeStorageType type to identify offchain storage type
-type NodeStorageType byte
-
-// NodeStorageTypePersistent flag to identify offchain storage as persistent (db)
-const NodeStorageTypePersistent NodeStorageType = 1
-
-// NodeStorageTypeLocal flog to identify offchain storage as local (memory)
-const NodeStorageTypeLocal NodeStorageType = 2
-
-// NodeStorage struct for storage of runtime offchain worker data
-type NodeStorage struct {
-	LocalStorage      BasicStorage
-	PersistentStorage BasicStorage
-}
-
-// Ctx struct
-type Ctx struct {
-	storage     Storage
-	allocator   *FreeingBumpHeapAllocator
-	keystore    *keystore.GenericKeystore
-	validator   bool
-	nodeStorage NodeStorage
-	network     BasicNetwork
-}
-
-// Config represents a runtime configuration
+// Config represents a wasmer configuration
 type Config struct {
-	Storage     Storage
+	Storage     runtime.Storage
 	Keystore    *keystore.GenericKeystore
 	Imports     func() (*wasm.Imports, error)
 	LogLvl      log.Lvl
 	Role        byte
-	NodeStorage NodeStorage
-	Network     BasicNetwork
+	NodeStorage runtime.NodeStorage
+	Network     runtime.BasicNetwork
 }
 
 // Runtime struct
 type Runtime struct {
 	vm    wasm.Instance
-	ctx   *Ctx
+	ctx   *runtime.Context
 	mutex sync.Mutex
 }
 
@@ -111,20 +88,20 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 		instance.Memory = memory
 	}
 
-	memAllocator := NewAllocator(instance.Memory.Data(), 0)
+	memAllocator := runtime.NewAllocator(instance.Memory.Data(), 0)
 
 	validator := false
 	if cfg.Role == byte(4) {
 		validator = true
 	}
 
-	runtimeCtx := &Ctx{
-		storage:     cfg.Storage,
-		allocator:   memAllocator,
-		keystore:    cfg.Keystore,
-		validator:   validator,
-		nodeStorage: cfg.NodeStorage,
-		network:     cfg.Network,
+	runtimeCtx := &runtime.Context{
+		Storage:     cfg.Storage,
+		Allocator:   memAllocator,
+		Keystore:    cfg.Keystore,
+		Validator:   validator,
+		NodeStorage: cfg.NodeStorage,
+		Network:     cfg.Network,
 	}
 
 	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)
@@ -138,27 +115,32 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 	return &r, nil
 }
 
+// SetContext sets the runtime's storage. It should be set before calls to the below functions.
+func (r *Runtime) SetContext(s runtime.Storage) {
+	r.ctx.Storage = s
+}
+
 // Stop func
 func (r *Runtime) Stop() {
 	r.vm.Close()
 }
 
 // Store func
-func (r *Runtime) Store(data []byte, location int32) {
+func (r *Runtime) store(data []byte, location int32) {
 	mem := r.vm.Memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
 }
 
 // Load load
-func (r *Runtime) Load(location, length int32) []byte {
+func (r *Runtime) load(location, length int32) []byte {
 	mem := r.vm.Memory.Data()
 	return mem[location : location+length]
 }
 
 // Exec func
-func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
-	if r.ctx.storage == nil {
-		return nil, ErrNilStorage
+func (r *Runtime) exec(function string, data []byte) ([]byte, error) {
+	if r.ctx.Storage == nil {
+		return nil, runtime.ErrNilStorage
 	}
 
 	ptr, err := r.malloc(uint32(len(data)))
@@ -177,7 +159,7 @@ func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
 	defer r.mutex.Unlock()
 
 	// Store the data into memory
-	r.Store(data, int32(ptr))
+	r.store(data, int32(ptr))
 	datalen := int32(len(data))
 
 	runtimeFunc, ok := r.vm.Exports[function]
@@ -193,25 +175,25 @@ func (r *Runtime) Exec(function string, data []byte) ([]byte, error) {
 	length := int32(resi >> 32)
 	offset := int32(resi)
 
-	rawdata := r.Load(offset, length)
+	rawdata := r.load(offset, length)
 
 	return rawdata, err
 }
 
 func (r *Runtime) malloc(size uint32) (uint32, error) {
-	return r.ctx.allocator.Allocate(size)
+	return r.ctx.Allocator.Allocate(size)
 }
 
 func (r *Runtime) free(ptr uint32) error {
-	return r.ctx.allocator.Deallocate(ptr)
+	return r.ctx.Allocator.Deallocate(ptr)
 }
 
 // NodeStorage to get reference to runtime node service
-func (r *Runtime) NodeStorage() NodeStorage {
-	return r.ctx.nodeStorage
+func (r *Runtime) NodeStorage() runtime.NodeStorage {
+	return r.ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (r *Runtime) NetworkService() BasicNetwork {
-	return r.ctx.network
+func (r *Runtime) NetworkService() runtime.BasicNetwork {
+	return r.ctx.Network
 }

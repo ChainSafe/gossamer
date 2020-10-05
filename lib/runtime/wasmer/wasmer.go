@@ -1,33 +1,17 @@
-package runtime
+package wasmer
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
-	"github.com/gorilla/rpc/v2/json2"
 )
-
-// ErrCannotValidateTx is returned if the call to runtime function TaggedTransactionQueueValidateTransaction fails
-var ErrCannotValidateTx = errors.New("could not validate transaction")
-
-// ErrInvalidTransaction is returned if the call to runtime function TaggedTransactionQueueValidateTransaction fails with
-//  value of [1, 0, x]
-var ErrInvalidTransaction = &json2.Error{Code: 1010, Message: "Invalid Transaction"}
-
-// ErrUnknownTransaction is returned if the call to runtime function TaggedTransactionQueueValidateTransaction fails with
-//  value of [1, 1, x]
-var ErrUnknownTransaction = &json2.Error{Code: 1011, Message: "Unknown Transaction Validity"}
-
-// ErrNilStorage is returned when the runtime context storage isn't set
-var ErrNilStorage = errors.New("runtime context storage is nil")
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (r *Runtime) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	ret, err := r.Exec(TaggedTransactionQueueValidateTransaction, e)
+	ret, err := r.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
 	}
@@ -50,25 +34,43 @@ func determineError(res []byte) error {
 
 	if res[1] == 0 {
 		// transaction is invalid
-		return ErrInvalidTransaction
+		return runtime.ErrInvalidTransaction
 	}
 
 	if res[1] == 1 {
 		// transaction validity can't be determined
-		return ErrUnknownTransaction
+		return runtime.ErrUnknownTransaction
 	}
 
-	return ErrCannotValidateTx
+	return runtime.ErrCannotValidateTx
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
-func (r *Runtime) SetContext(s Storage) {
-	r.ctx.storage = s
+func (r *Runtime) Version() (*runtime.VersionAPI, error) {
+	//TODO ed, change this so that it can lookup runtime by block hash
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+
+	ret, err := r.exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
+	err = version.Decode(ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
+}
+
+func (r *Runtime) Metadata() ([]byte, error) {
+	return r.exec(runtime.Metadata, []byte{})
 }
 
 // BabeConfiguration gets the configuration data for BABE from the runtime
 func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
-	data, err := r.Exec(BabeAPIConfiguration, []byte{})
+	data, err := r.exec(runtime.BabeAPIConfiguration, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +86,7 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
 func (r *Runtime) GrandpaAuthorities() ([]*types.Authority, error) {
-	ret, err := r.Exec(GrandpaAuthorities, []byte{})
+	ret, err := r.exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -106,23 +108,23 @@ func (r *Runtime) InitializeBlock(header *types.Header) error {
 
 	encodedHeader = append(encodedHeader, 0)
 
-	_, err = r.Exec(CoreInitializeBlock, encodedHeader)
+	_, err = r.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }
 
 // InherentExtrinsics calls runtime API function BlockBuilder_inherent_extrinsics
 func (r *Runtime) InherentExtrinsics(data []byte) ([]byte, error) {
-	return r.Exec(BlockBuilderInherentExtrinsics, data)
+	return r.exec(runtime.BlockBuilderInherentExtrinsics, data)
 }
 
 // ApplyExtrinsic calls runtime API function BlockBuilder_apply_extrinsic
 func (r *Runtime) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
-	return r.Exec(BlockBuilderApplyExtrinsic, data)
+	return r.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (r *Runtime) FinalizeBlock() (*types.Header, error) {
-	data, err := r.Exec(BlockBuilderFinalizeBlock, []byte{})
+	data, err := r.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -134,4 +136,17 @@ func (r *Runtime) FinalizeBlock() (*types.Header, error) {
 	}
 
 	return bh, nil
+}
+
+func (r *Runtime) ExecuteBlock(block *types.Block) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+
+	b.Header.Digest = [][]byte{}
+	bdEnc, err := b.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return r.exec(runtime.CoreExecuteBlock, bdEnc)
 }
