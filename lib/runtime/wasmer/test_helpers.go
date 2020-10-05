@@ -41,13 +41,13 @@ import (
 // TestAuthorityDataKey is the location of authority data in the storage trie
 var TestAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
-// NewTestRuntime will create a new runtime (polkadot/test)
-func NewTestRuntime(t *testing.T, targetRuntime string) *Runtime {
-	return NewTestRuntimeWithTrie(t, targetRuntime, nil, log.LvlInfo)
+// newTestInstance will create a new runtime (polkadot/test)
+func newTestInstance(t *testing.T, targetRuntime string) *Instance {
+	return newTestInstanceWithTrie(t, targetRuntime, nil, log.LvlInfo)
 }
 
-// NewTestRuntimeWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
-func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Runtime {
+// newTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
+func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
 	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
@@ -71,14 +71,14 @@ func NewTestRuntimeWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, l
 		Network:     new(testRuntimeNetwork),
 	}
 
-	r, err := NewRuntimeFromFile(fp, cfg)
+	r, err := NewInstanceFromFile(fp, cfg)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r
 }
 
-// NewTestRuntimeWithRole returns a test runtime with given role value
-func NewTestRuntimeWithRole(t *testing.T, targetRuntime string, role byte) *Runtime {
+// newTestInstanceWithRole returns a test runtime with given role value
+func newTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Instance {
 	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
@@ -97,7 +97,7 @@ func NewTestRuntimeWithRole(t *testing.T, targetRuntime string, role byte) *Runt
 		Role:     role,
 	}
 
-	r, err := NewRuntimeFromFile(fp, cfg)
+	r, err := NewInstanceFromFile(fp, cfg)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r

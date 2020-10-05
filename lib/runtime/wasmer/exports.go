@@ -10,7 +10,7 @@ import (
 )
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
-func (r *Runtime) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
+func (r *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := r.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func determineError(res []byte) error {
 	return runtime.ErrCannotValidateTx
 }
 
-func (r *Runtime) Version() (*runtime.VersionAPI, error) {
+func (r *Instance) Version() (*runtime.VersionAPI, error) {
 	//TODO ed, change this so that it can lookup runtime by block hash
 	version := &runtime.VersionAPI{
 		RuntimeVersion: &runtime.Version{},
@@ -64,12 +64,12 @@ func (r *Runtime) Version() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
-func (r *Runtime) Metadata() ([]byte, error) {
+func (r *Instance) Metadata() ([]byte, error) {
 	return r.exec(runtime.Metadata, []byte{})
 }
 
 // BabeConfiguration gets the configuration data for BABE from the runtime
-func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
+func (r *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	data, err := r.exec(runtime.BabeAPIConfiguration, []byte{})
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (r *Runtime) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-func (r *Runtime) GrandpaAuthorities() ([]*types.Authority, error) {
+func (r *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 	ret, err := r.exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (r *Runtime) GrandpaAuthorities() ([]*types.Authority, error) {
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
-func (r *Runtime) InitializeBlock(header *types.Header) error {
+func (r *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %s", err)
@@ -113,17 +113,17 @@ func (r *Runtime) InitializeBlock(header *types.Header) error {
 }
 
 // InherentExtrinsics calls runtime API function BlockBuilder_inherent_extrinsics
-func (r *Runtime) InherentExtrinsics(data []byte) ([]byte, error) {
+func (r *Instance) InherentExtrinsics(data []byte) ([]byte, error) {
 	return r.exec(runtime.BlockBuilderInherentExtrinsics, data)
 }
 
 // ApplyExtrinsic calls runtime API function BlockBuilder_apply_extrinsic
-func (r *Runtime) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
+func (r *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return r.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
-func (r *Runtime) FinalizeBlock() (*types.Header, error) {
+func (r *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := r.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (r *Runtime) FinalizeBlock() (*types.Header, error) {
 	return bh, nil
 }
 
-func (r *Runtime) ExecuteBlock(block *types.Block) ([]byte, error) {
+func (r *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 

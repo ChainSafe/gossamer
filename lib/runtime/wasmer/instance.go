@@ -42,26 +42,26 @@ type Config struct {
 	Network     runtime.BasicNetwork
 }
 
-// Runtime struct
-type Runtime struct {
+// Instance represents a go-wasmer instance
+type Instance struct {
 	vm    wasm.Instance
 	ctx   *runtime.Context
 	mutex sync.Mutex
 }
 
-// NewRuntimeFromFile instantiates a runtime from a .wasm file
-func NewRuntimeFromFile(fp string, cfg *Config) (*Runtime, error) {
+// NewInstanceFromFile instantiates a runtime from a .wasm file
+func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
 	bytes, err := wasm.ReadBytes(fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewRuntime(bytes, cfg)
+	return NewInstance(bytes, cfg)
 }
 
-// NewRuntime instantiates a runtime from raw wasm bytecode
-func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
+// NewInstance instantiates a runtime from raw wasm bytecode
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {
 		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
@@ -104,10 +104,10 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 		Network:     cfg.Network,
 	}
 
-	logger.Debug("NewRuntime", "runtimeCtx", runtimeCtx)
+	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
-	r := Runtime{
+	r := Instance{
 		vm:  instance,
 		ctx: runtimeCtx,
 	}
@@ -116,29 +116,29 @@ func NewRuntime(code []byte, cfg *Config) (*Runtime, error) {
 }
 
 // SetContext sets the runtime's storage. It should be set before calls to the below functions.
-func (r *Runtime) SetContext(s runtime.Storage) {
+func (r *Instance) SetContext(s runtime.Storage) {
 	r.ctx.Storage = s
 }
 
 // Stop func
-func (r *Runtime) Stop() {
+func (r *Instance) Stop() {
 	r.vm.Close()
 }
 
 // Store func
-func (r *Runtime) store(data []byte, location int32) {
+func (r *Instance) store(data []byte, location int32) {
 	mem := r.vm.Memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
 }
 
 // Load load
-func (r *Runtime) load(location, length int32) []byte {
+func (r *Instance) load(location, length int32) []byte {
 	mem := r.vm.Memory.Data()
 	return mem[location : location+length]
 }
 
 // Exec func
-func (r *Runtime) exec(function string, data []byte) ([]byte, error) {
+func (r *Instance) exec(function string, data []byte) ([]byte, error) {
 	if r.ctx.Storage == nil {
 		return nil, runtime.ErrNilStorage
 	}
@@ -180,20 +180,20 @@ func (r *Runtime) exec(function string, data []byte) ([]byte, error) {
 	return rawdata, err
 }
 
-func (r *Runtime) malloc(size uint32) (uint32, error) {
+func (r *Instance) malloc(size uint32) (uint32, error) {
 	return r.ctx.Allocator.Allocate(size)
 }
 
-func (r *Runtime) free(ptr uint32) error {
+func (r *Instance) free(ptr uint32) error {
 	return r.ctx.Allocator.Deallocate(ptr)
 }
 
 // NodeStorage to get reference to runtime node service
-func (r *Runtime) NodeStorage() runtime.NodeStorage {
+func (r *Instance) NodeStorage() runtime.NodeStorage {
 	return r.ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (r *Runtime) NetworkService() runtime.BasicNetwork {
+func (r *Instance) NetworkService() runtime.BasicNetwork {
 	return r.ctx.Network
 }
