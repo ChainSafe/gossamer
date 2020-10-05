@@ -8,6 +8,7 @@ require (
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
+	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6

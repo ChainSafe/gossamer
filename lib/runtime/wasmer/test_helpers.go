@@ -63,13 +63,13 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 		PersistentStorage: database.NewMemDatabase(), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{
-		Storage:     s,
-		Keystore:    keystore.NewGenericKeystore("test"),
-		Imports:     importsFunc,
-		LogLvl:      lvl,
-		NodeStorage: ns,
-		Network:     new(testRuntimeNetwork),
+		Imports: importsFunc,
 	}
+	cfg.Storage = s
+	cfg.Keystore = keystore.NewGenericKeystore("test")
+	cfg.LogLvl = lvl
+	cfg.NodeStorage = ns
+	cfg.Network = new(testRuntimeNetwork)
 
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
@@ -90,12 +90,12 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	cfg := &Config{
-		Storage:  s,
-		Keystore: keystore.NewGenericKeystore("test"),
-		Imports:  importsFunc,
-		LogLvl:   log.LvlInfo,
-		Role:     role,
+		Imports: importsFunc,
 	}
+	cfg.Storage = s
+	cfg.Keystore = keystore.NewGenericKeystore("test")
+	cfg.LogLvl = log.LvlInfo
+	cfg.Role = role
 
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
