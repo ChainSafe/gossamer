@@ -474,28 +474,22 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 
 // GetRuntimeVersion gets the current RuntimeVersion
 func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
-	//TODO ed, change this so that it can lookup runtime by block hash
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-
 	ts, err := s.storageState.TrieState(nil)
 	if err != nil {
 		return nil, err
 	}
 	s.rt.SetContext(ts)
 
-	ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
-	if err != nil {
-		return nil, err
-	}
-	err = version.Decode(ret)
-	if err != nil {
-		return nil, err
-	}
+	// ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// err = version.Decode(ret)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return version, nil
+	return s.rt.Version()
 }
 
 // IsBlockProducer returns true if node is a block producer
@@ -512,5 +506,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 //GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata() ([]byte, error) {
-	return s.rt.Exec(runtime.Metadata_metadata, []byte{})
+	//return s.rt.Exec(runtime.Metadata_metadata, []byte{})]
+	return s.rt.Metadata()
 }

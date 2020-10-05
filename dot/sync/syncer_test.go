@@ -242,22 +242,22 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	require.Nil(t, inQueue, "queue should be empty")
 }
 
-func TestCoreExecuteBlockData_bytes(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+// func TestCoreExecuteBlockData_bytes(t *testing.T) {
+// 	syncer := newTestSyncer(t, nil)
 
-	// from bob test
-	data, err := hex.DecodeString("ac558d2fa7ea8924147de3ede2ab0ff83ba4ad50b388ef14cfee21887e87185ff00812e3eb9ccf2955b647062349e0e33cbb0d9e936f8185f11a545236d2b41aaf03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
+// 	// from bob test
+// 	data, err := hex.DecodeString("ac558d2fa7ea8924147de3ede2ab0ff83ba4ad50b388ef14cfee21887e87185ff00812e3eb9ccf2955b647062349e0e33cbb0d9e936f8185f11a545236d2b41aaf03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
 
-	// from TestWatchForResponses
-	//data, err := hex.DecodeString("a0bc81cac20fbff59e86f0bf373782757db7016a9b3b07c343a81841facc4f82017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000")
-	require.Nil(t, err)
+// 	// from TestWatchForResponses
+// 	//data, err := hex.DecodeString("a0bc81cac20fbff59e86f0bf373782757db7016a9b3b07c343a81841facc4f82017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000")
+// 	require.Nil(t, err)
 
-	res, err := syncer.executeBlockBytes(data)
-	require.Nil(t, err) // expect error since header.ParentHash is empty
+// 	res, err := syncer.executeBlockBytes(data)
+// 	require.Nil(t, err) // expect error since header.ParentHash is empty
 
-	// if execute block return a non-empty byte array, something when wrong
-	require.Equal(t, []byte{}, res)
-}
+// 	// if execute block return a non-empty byte array, something when wrong
+// 	require.Equal(t, []byte{}, res)
+// }
 
 func TestCoreExecuteBlock(t *testing.T) {
 	syncer := newTestSyncer(t, nil)

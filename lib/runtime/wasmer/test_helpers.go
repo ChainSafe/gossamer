@@ -41,13 +41,13 @@ import (
 // TestAuthorityDataKey is the location of authority data in the storage trie
 var TestAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
-// newTestInstance will create a new runtime (polkadot/test)
-func newTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return newTestInstanceWithTrie(t, targetRuntime, nil, log.LvlInfo)
+// NewTestInstance will create a new runtime (polkadot/test)
+func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
+	return NewTestInstanceWithTrie(t, targetRuntime, nil, log.LvlInfo)
 }
 
-// newTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
-func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
+// NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
+func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
 	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
@@ -77,8 +77,8 @@ func newTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	return r
 }
 
-// newTestInstanceWithRole returns a test runtime with given role value
-func newTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Instance {
+// NewTestInstanceWithRole returns a test runtime with given role value
+func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Instance {
 	testRuntimeFilePath, testRuntimeURL, importsFunc := GetRuntimeVars(targetRuntime)
 
 	_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
