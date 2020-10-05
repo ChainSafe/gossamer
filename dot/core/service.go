@@ -479,17 +479,8 @@ func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	s.rt.SetContext(ts)
-
-	// ret, err := s.rt.Exec(runtime.CoreVersion, []byte{})
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err = version.Decode(ret)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return s.rt.Version()
 }
 
@@ -507,6 +498,5 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 //GetMetadata calls runtime Metadata_metadata function
 func (s *Service) GetMetadata() ([]byte, error) {
-	//return s.rt.Exec(runtime.Metadata_metadata, []byte{})]
 	return s.rt.Metadata()
 }

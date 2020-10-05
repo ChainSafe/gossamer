@@ -467,22 +467,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
 func (s *Service) executeBlock(block *types.Block) ([]byte, error) {
-	// // copy block since we're going to modify it
-	// b := block.DeepCopy()
-
-	// b.Header.Digest = [][]byte{}
-	// bdEnc, err := b.Encode()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return s.runtime.Exec(runtime.CoreExecuteBlock, bdEnc)
 	return s.runtime.ExecuteBlock(block)
 }
-
-// func (s *Service) executeBlockBytes(bd []byte) ([]byte, error) {
-// 	return s.runtime.Exec(runtime.CoreExecuteBlock, bd)
-// }
 
 func (s *Service) handleDigests(header *types.Header) error {
 	for _, d := range header.Digest {
