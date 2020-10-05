@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestexecVersion_NodeRuntime(t *testing.T) {
+func TestInstance_Version_NodeRuntime(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
 	expected := &runtime.Version{
 		Spec_name:         []byte("node"),
@@ -55,7 +55,7 @@ func TestexecVersion_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected, version.RuntimeVersion)
 }
 
-func TestexecVersion_Old(t *testing.T) {
+func TestInstance_Version_TestRuntime(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
 	expected := &runtime.Version{
 		Spec_name:         []byte("test"),

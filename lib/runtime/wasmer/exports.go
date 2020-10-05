@@ -45,6 +45,7 @@ func determineError(res []byte) error {
 	return runtime.ErrCannotValidateTx
 }
 
+// Version calls runtime function Core_Version
 func (r *Instance) Version() (*runtime.VersionAPI, error) {
 	//TODO ed, change this so that it can lookup runtime by block hash
 	version := &runtime.VersionAPI{
@@ -64,6 +65,7 @@ func (r *Instance) Version() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
+// Metadata calls runtime function Metadata_metadata
 func (r *Instance) Metadata() ([]byte, error) {
 	return r.exec(runtime.Metadata, []byte{})
 }
@@ -138,6 +140,7 @@ func (r *Instance) FinalizeBlock() (*types.Header, error) {
 	return bh, nil
 }
 
+// ExecuteBlock calls runtime function Core_execute_block
 func (r *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
