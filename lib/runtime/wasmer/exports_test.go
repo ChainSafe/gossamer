@@ -23,13 +23,6 @@ import (
 var kr, _ = keystore.NewSr25519Keyring()
 var maxRetries = 10
 
-// func TestExportRuntime(t *testing.T) {
-// 	fp := "runtime.out"
-// 	exportRuntime(t, runtime.SUBSTRATE_TEST_RUNTIME, fp)
-// 	err := os.Remove(fp)
-// 	require.NoError(t, err)
-// }
-
 func TestGrandpaAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
@@ -402,8 +395,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 
 	val, err = rt.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
-	// TODO: why does calling finalize_block modify the storage?
-	require.NotEqual(t, []byte("testvalue"), val)
+	require.Equal(t, []byte("testvalue"), val)
 }
 
 func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {

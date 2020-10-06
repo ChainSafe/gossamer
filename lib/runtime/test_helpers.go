@@ -18,12 +18,11 @@ package runtime
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -90,8 +89,6 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err er
 	return n, err
 }
 
-var testDatadirPath, _ = filepath.Abs("test_datadir")
-
 // TestRuntimeStorage implements the Storage interface
 type TestRuntimeStorage struct {
 	db   chaindb.Database
@@ -104,10 +101,10 @@ func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
 		tr = trie.NewEmptyTrie()
 	}
 
+	testDatadirPath, _ := ioutil.TempDir(".", "test-datadir-*")
 	db, err := chaindb.NewBadgerDB(testDatadirPath)
 	if err != nil {
-		fmt.Println("error creating TestMapRuntimeStorage")
-		return nil
+		t.Fatal("failed to create TestRuntimeStorage database")
 	}
 
 	t.Cleanup(func() {

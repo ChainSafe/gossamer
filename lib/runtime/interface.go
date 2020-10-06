@@ -44,7 +44,7 @@ type Instance interface {
 
 // Storage interface
 type Storage interface {
-	Trie() *trie.Trie
+	//Trie() *trie.Trie
 
 	Set(key []byte, value []byte) error
 	Get(key []byte) ([]byte, error)
