@@ -19,9 +19,13 @@ package wasmtime
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/stretchr/testify/require"
@@ -73,6 +77,7 @@ func TestInstance_BabeConfiguration_NodeRuntime(t *testing.T) {
 	}
 
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	t.Log(ctx.Storage)
 	babeCfg, err := instance.BabeConfiguration()
 	require.NoError(t, err)
 	require.Equal(t, expected, babeCfg)
@@ -99,6 +104,49 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestInstance_InherentExtrinsics_NodeRuntime(t *testing.T) {
+	header := &types.Header{
+		ParentHash: trie.EmptyHash,
+		Number:     big.NewInt(1),
+		Digest:     [][]byte{},
+	}
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := babe.NewInherentsData()
+	err = idata.SetInt64Inherent(babe.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(babe.Babeslot, 1)
+	require.NoError(t, err)
+
+	err = idata.SetBigIntInherent(babe.Finalnum, big.NewInt(0))
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+}
+
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	// TODO: need to add inherents before calling finalize_block (see babe/inherents_test.go)
 	// need to move inherents to a different package for use with BABE and runtime
@@ -116,20 +164,51 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
+	idata := babe.NewInherentsData()
+	err = idata.SetInt64Inherent(babe.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(babe.Babeslot, 1)
+	require.NoError(t, err)
+
+	err = idata.SetBigIntInherent(babe.Finalnum, big.NewInt(0))
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 
 	res.Number = header.Number
 
 	expected := &types.Header{
-		StateRoot:      trie.EmptyHash,
-		ExtrinsicsRoot: trie.EmptyHash,
+		ParentHash:     header.ParentHash,
+		StateRoot:      common.Hash{0xf9, 0x10, 0xf6, 0x1c, 0xc7, 0xa7, 0xf5, 0x12, 0x45, 0xd8, 0xd4, 0x29, 0x23, 0x20, 0x94, 0xbf, 0x4b, 0x6d, 0xa6, 0xd3, 0xe8, 0x35, 0x98, 0x33, 0x8f, 0xa2, 0x75, 0x81, 0x36, 0xfc, 0xb5, 0xd9},
+		ExtrinsicsRoot: common.Hash{},
 		Number:         big.NewInt(77),
 		Digest:         [][]byte{},
 	}
 
 	res.Hash()
 	expected.Hash()
-
 	require.Equal(t, expected, res)
 }

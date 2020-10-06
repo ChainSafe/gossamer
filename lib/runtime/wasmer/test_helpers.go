@@ -43,7 +43,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
-	s := runtime.NewTestRuntimeStorage(tt)
+	s := runtime.NewTestRuntimeStorage(t, tt)
 
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
@@ -75,7 +75,7 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
-	s := runtime.NewTestRuntimeStorage(nil)
+	s := runtime.NewTestRuntimeStorage(t, nil)
 
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)

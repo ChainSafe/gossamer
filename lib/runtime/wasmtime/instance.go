@@ -75,8 +75,6 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 		Network:     cfg.Network,
 	}
 
-	cfg.Storage.KeepAlive()
-
 	return &Instance{
 		vm: instance,
 	}, nil

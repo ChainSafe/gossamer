@@ -43,8 +43,6 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
-	s := runtime.NewTestRuntimeStorage(tt)
-
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
@@ -55,7 +53,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	cfg := &Config{
 		Imports: importsFunc,
 	}
-	cfg.Storage = s
+	cfg.Storage = runtime.NewTestRuntimeStorage(t, tt)
 	cfg.Keystore = keystore.NewGenericKeystore("test")
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns

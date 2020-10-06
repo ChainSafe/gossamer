@@ -44,7 +44,6 @@ type Instance interface {
 
 // Storage interface
 type Storage interface {
-	KeepAlive()
 	Trie() *trie.Trie
 
 	Set(key []byte, value []byte) error

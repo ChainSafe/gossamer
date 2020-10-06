@@ -105,6 +105,18 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	})
 	ext_storage_root := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, resultPtr int32) {
 		logger.Trace("[ext_storage_root] executing...")
+		m := c.GetExport("memory").Memory()
+		memory := m.UnsafeData()
+
+		root, err := ctx.Storage.Root()
+		if err != nil {
+			logger.Error("[ext_storage_root]", "error", err)
+			return
+		}
+
+		copy(memory[resultPtr:resultPtr+32], root[:])
+		runtime.KeepAlive(m)
+		return
 	})
 	ext_storage_changes_root := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, a, b, d int32) int32 {
 		logger.Trace("[ext_storage_changes_root] executing...")
@@ -112,7 +124,7 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	})
 	ext_get_allocated_storage := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, keyData, keyLen, writtenOut int32) int32 {
 		logger.Trace("[ext_get_allocated_storage] executing...")
-		fmt.Printf(ctx.Storage.Trie().String())
+		//fmt.Printf(ctx.Storage.Trie().String())
 		m := c.GetExport("memory").Memory()
 		memory := m.UnsafeData()
 
@@ -212,20 +224,17 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	ext_twox_128 := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, data, len, out int32) {
 		logger.Trace("[ext_twox_128] executing...")
 		m := c.GetExport("memory").Memory()
-		mem := m.UnsafeData()
-		logger.Info("[ext_twox_128]", "hashing", fmt.Sprintf("%s", mem[data:data+len]))
+		memory := m.UnsafeData()
+		logger.Info("[ext_twox_128]", "hashing", fmt.Sprintf("%s", memory[data:data+len]))
 
-		// res, err := common.Twox128Hash(mem[data : data+len])
-		// if err != nil {
-		// 	logger.Trace("error hashing in ext_twox_128", "error", err)
-		// }
-		res, err := common.Blake2bHash(mem[data : data+len])
+		res, err := common.Twox128Hash(memory[data : data+len])
 		if err != nil {
 			logger.Trace("error hashing in ext_twox_128", "error", err)
 		}
-		copy(mem[out:out+16], res[0:16])
+
+		copy(memory[out:out+16], res[0:16])
 		runtime.KeepAlive(m)
-		fmt.Printf(ctx.Storage.Trie().String())
+		//fmt.Printf(ctx.Storage.Trie().String())
 	})
 	ext_sr25519_generate := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
 		logger.Trace("[ext_sr25519_generate] executing...")

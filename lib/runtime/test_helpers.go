@@ -18,11 +18,15 @@ package runtime
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
+	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -86,15 +90,32 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err er
 	return n, err
 }
 
+var testDatadirPath, _ = filepath.Abs("test_datadir")
+
+// TestRuntimeStorage implements the Storage interface
 type TestRuntimeStorage struct {
+	db   chaindb.Database
 	trie *trie.Trie
 }
 
-func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
+// NewTestRuntimeStorage returns an empty, initialized TestRuntimeStorage
+func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
 	if tr == nil {
 		tr = trie.NewEmptyTrie()
 	}
+
+	db, err := chaindb.NewBadgerDB(testDatadirPath)
+	if err != nil {
+		fmt.Println("error creating TestMapRuntimeStorage")
+		return nil
+	}
+
+	t.Cleanup(func() {
+		os.RemoveAll(testDatadirPath)
+	})
+
 	return &TestRuntimeStorage{
+		db:   db,
 		trie: tr,
 	}
 }
@@ -104,10 +125,19 @@ func (trs *TestRuntimeStorage) Trie() *trie.Trie {
 }
 
 func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
+	err := trs.db.Put(key, value)
+	if err != nil {
+		return err
+	}
+
 	return trs.trie.Put(key, value)
 }
 
 func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
+	if has, _ := trs.db.Has(key); has {
+		return trs.db.Get(key)
+	}
+
 	return trs.trie.Get(key)
 }
 
@@ -128,6 +158,11 @@ func (trs *TestRuntimeStorage) GetChildStorage(keyToChild, key []byte) ([]byte, 
 }
 
 func (trs *TestRuntimeStorage) Delete(key []byte) error {
+	err := trs.db.Del(key)
+	if err != nil {
+		return err
+	}
+
 	return trs.trie.Delete(key)
 }
 
@@ -167,14 +202,6 @@ func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
 
 func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
 	return trs.trie.ClearFromChild(keyToChild, key)
-}
-
-func (trs *TestRuntimeStorage) KeepAlive() {
-	go func() {
-		for {
-			trs.trie = trs.trie
-		}
-	}()
 }
 
 type TestRuntimeNetwork struct {
