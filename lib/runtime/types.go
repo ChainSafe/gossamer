@@ -137,3 +137,23 @@ func (v *VersionAPI) Decode(in []byte) error {
 
 	return nil
 }
+
+// NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
+func NewValidateTransactionError(res []byte) error {
+	// confirm we have an error
+	if res[0] == 0 {
+		return nil
+	}
+
+	if res[1] == 0 {
+		// transaction is invalid
+		return ErrInvalidTransaction
+	}
+
+	if res[1] == 1 {
+		// transaction validity can't be determined
+		return ErrUnknownTransaction
+	}
+
+	return ErrCannotValidateTx
+}

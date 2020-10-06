@@ -17,6 +17,7 @@
 package wasmtime
 
 import (
+	"os"
 	"runtime"
 	"sync"
 
@@ -42,6 +43,13 @@ type Instance struct {
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+	// if cfg.LogLvl set to < 0, then don't change package log level
+	if cfg.LogLvl >= 0 {
+		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+		h = log.CallerFileHandler(h)
+		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
+	}
+
 	engine := wasmtime.NewEngine()
 	store := wasmtime.NewStore(engine)
 	module, err := wasmtime.NewModuleFromFile(engine, fp)
@@ -66,6 +74,8 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 	}
+
+	cfg.Storage.KeepAlive()
 
 	return &Instance{
 		vm: instance,

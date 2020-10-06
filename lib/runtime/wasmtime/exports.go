@@ -20,19 +20,19 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-func (in *Instance) Version() (*gssmrruntime.VersionAPI, error) {
-	res, err := in.exec(gssmrruntime.CoreVersion, []byte{})
+func (in *Instance) Version() (*runtime.VersionAPI, error) {
+	res, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	version := &gssmrruntime.VersionAPI{
-		RuntimeVersion: &gssmrruntime.Version{},
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
 		API:            nil,
 	}
 
@@ -45,7 +45,7 @@ func (in *Instance) Version() (*gssmrruntime.VersionAPI, error) {
 }
 
 func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
-	ret, err := in.exec(gssmrruntime.BabeAPIConfiguration, []byte{})
+	ret, err := in.exec(runtime.BabeAPIConfiguration, []byte{})
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +59,33 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
-	return nil, nil
+	ret, err := in.exec(runtime.GrandpaAuthorities, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	adr, err := scale.Decode(ret, []*types.GrandpaAuthorityDataRaw{})
+	if err != nil {
+		return nil, err
+	}
+
+	return types.GrandpaAuthorityDataRawToAuthorityData(adr.([]*types.GrandpaAuthorityDataRaw))
 }
 
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	return nil, nil
+	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
+	if err != nil {
+		return nil, err
+	}
+
+	if ret[0] != 0 {
+		return nil, runtime.NewValidateTransactionError(ret)
+	}
+
+	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	_, err = scale.Decode(ret[1:], v)
+
+	return v, err
 }
 
 func (in *Instance) InitializeBlock(header *types.Header) error {
@@ -72,22 +94,41 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %s", err)
 	}
 
-	_, err = in.exec(gssmrruntime.CoreInitializeBlock, encodedHeader)
+	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }
 
 func (in *Instance) InherentExtrinsics(data []byte) ([]byte, error) {
-	return nil, nil
+	return in.exec(runtime.BlockBuilderInherentExtrinsics, data)
 }
 
 func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
-	return nil, nil
+	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
-	return nil, nil
+	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	bh := new(types.Header)
+	_, err = scale.Decode(data, bh)
+	if err != nil {
+		return nil, err
+	}
+
+	return bh, nil
 }
 
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	return nil, nil
+	b := block.DeepCopy()
+
+	b.Header.Digest = [][]byte{}
+	bdEnc, err := b.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }

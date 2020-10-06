@@ -17,6 +17,7 @@
 package wasmtime
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"runtime"
@@ -61,7 +62,29 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	})
 	ext_get_storage_into := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 		logger.Trace("[ext_get_storage_into] executing...")
-		return 0
+		m := c.GetExport("memory").Memory()
+		memory := m.UnsafeData()
+
+		key := memory[keyData : keyData+keyLen]
+		val, err := ctx.Storage.Get(key)
+		if err != nil {
+			logger.Warn("[ext_get_storage_into]", "err", err)
+			ret := 1<<32 - 1
+			return int32(ret)
+		} else if val == nil {
+			logger.Debug("[ext_get_storage_into]", "err", "value is nil")
+			ret := 1<<32 - 1
+			return int32(ret)
+		}
+
+		if len(val) > int(valueLen) {
+			logger.Debug("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
+			return 0
+		}
+
+		copy(memory[valueData:valueData+valueLen], val[valueOffset:])
+		runtime.KeepAlive(m)
+		return int32(len(val[valueOffset:]))
 	})
 	ext_set_storage := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen int32) {
 		logger.Trace("[ext_set_storage] executing...")
@@ -89,6 +112,7 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	})
 	ext_get_allocated_storage := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, keyData, keyLen, writtenOut int32) int32 {
 		logger.Trace("[ext_get_allocated_storage] executing...")
+		fmt.Printf(ctx.Storage.Trie().String())
 		m := c.GetExport("memory").Memory()
 		memory := m.UnsafeData()
 
@@ -149,6 +173,21 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	})
 	ext_clear_prefix := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, prefixData, prefixLen int32) {
 		logger.Trace("[ext_clear_prefix] executing...")
+		m := c.GetExport("memory").Memory()
+		memory := m.UnsafeData()
+
+		prefix := memory[prefixData : prefixData+prefixLen]
+		entries := ctx.Storage.Entries()
+		for k := range entries {
+			if bytes.Equal([]byte(k)[:prefixLen], prefix) {
+				err := ctx.Storage.Delete([]byte(k))
+				if err != nil {
+					logger.Error("[ext_clear_prefix]", "err", err)
+				}
+			}
+		}
+
+		runtime.KeepAlive(memory)
 	})
 	ext_blake2_256_enumerated_trie_root := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, valuesData, lensData, lensLen, result int32) {
 		logger.Trace("[ext_blake2_256_enumerated_trie_root] executing...")
@@ -174,14 +213,19 @@ func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 		logger.Trace("[ext_twox_128] executing...")
 		m := c.GetExport("memory").Memory()
 		mem := m.UnsafeData()
-		logger.Info("[ext_twox_128]", "hashing", mem[data:data+len])
+		logger.Info("[ext_twox_128]", "hashing", fmt.Sprintf("%s", mem[data:data+len]))
 
-		res, err := common.Twox128Hash(mem[data : data+len])
+		// res, err := common.Twox128Hash(mem[data : data+len])
+		// if err != nil {
+		// 	logger.Trace("error hashing in ext_twox_128", "error", err)
+		// }
+		res, err := common.Blake2bHash(mem[data : data+len])
 		if err != nil {
 			logger.Trace("error hashing in ext_twox_128", "error", err)
 		}
-		copy(mem[out:out+16], res)
+		copy(mem[out:out+16], res[0:16])
 		runtime.KeepAlive(m)
+		fmt.Printf(ctx.Storage.Trie().String())
 	})
 	ext_sr25519_generate := wasmtime.WrapFunc(store, func(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
 		logger.Trace("[ext_sr25519_generate] executing...")

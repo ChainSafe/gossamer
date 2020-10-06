@@ -75,8 +75,16 @@ func TestInstance_BabeConfiguration_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 	babeCfg, err := instance.BabeConfiguration()
 	require.NoError(t, err)
-
 	require.Equal(t, expected, babeCfg)
+}
+
+func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
+	expected := []*types.Authority{}
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	res, err := instance.GrandpaAuthorities()
+	require.NoError(t, err)
+	require.Equal(t, expected, res)
 }
 
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
@@ -89,4 +97,39 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
+}
+
+func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
+	// TODO: need to add inherents before calling finalize_block (see babe/inherents_test.go)
+	// need to move inherents to a different package for use with BABE and runtime
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	header := &types.Header{
+		ParentHash: trie.EmptyHash,
+		Number:     big.NewInt(77),
+		//StateRoot: trie.EmptyHash,
+		//ExtrinsicsRoot: trie.EmptyHash,
+		Digest: [][]byte{},
+	}
+
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+
+	expected := &types.Header{
+		StateRoot:      trie.EmptyHash,
+		ExtrinsicsRoot: trie.EmptyHash,
+		Number:         big.NewInt(77),
+		Digest:         [][]byte{},
+	}
+
+	res.Hash()
+	expected.Hash()
+
+	require.Equal(t, expected, res)
 }

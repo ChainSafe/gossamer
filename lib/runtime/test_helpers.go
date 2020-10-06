@@ -99,8 +99,8 @@ func NewTestRuntimeStorage(tr *trie.Trie) *TestRuntimeStorage {
 	}
 }
 
-func (trs *TestRuntimeStorage) TrieAsString() string {
-	return trs.trie.String()
+func (trs *TestRuntimeStorage) Trie() *trie.Trie {
+	return trs.trie
 }
 
 func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
@@ -167,6 +167,14 @@ func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
 
 func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
 	return trs.trie.ClearFromChild(keyToChild, key)
+}
+
+func (trs *TestRuntimeStorage) KeepAlive() {
+	go func() {
+		for {
+			trs.trie = trs.trie
+		}
+	}()
 }
 
 type TestRuntimeNetwork struct {
