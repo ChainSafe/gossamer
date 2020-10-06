@@ -108,7 +108,7 @@ func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
 	}
 
 	t.Cleanup(func() {
-		os.RemoveAll(testDatadirPath)
+		_ = os.RemoveAll(testDatadirPath)
 	})
 
 	return &TestRuntimeStorage{
@@ -117,10 +117,7 @@ func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
 	}
 }
 
-func (trs *TestRuntimeStorage) Trie() *trie.Trie {
-	return trs.trie
-}
-
+// Set ...
 func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
 	err := trs.db.Put(key, value)
 	if err != nil {
@@ -130,6 +127,7 @@ func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
 	return trs.trie.Put(key, value)
 }
 
+// Get ...
 func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
 	if has, _ := trs.db.Has(key); has {
 		return trs.db.Get(key)
@@ -138,6 +136,7 @@ func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
 	return trs.trie.Get(key)
 }
 
+// Root ...
 func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
 	tt := trie.NewEmptyTrie()
 	iter := trs.db.NewIterator()
@@ -153,18 +152,22 @@ func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
 	return tt.Hash()
 }
 
+// SetChild ...
 func (trs *TestRuntimeStorage) SetChild(keyToChild []byte, child *trie.Trie) error {
 	return trs.trie.PutChild(keyToChild, child)
 }
 
+// SetChildStorage ...
 func (trs *TestRuntimeStorage) SetChildStorage(keyToChild, key, value []byte) error {
 	return trs.trie.PutIntoChild(keyToChild, key, value)
 }
 
+// GetChildStorage ...
 func (trs *TestRuntimeStorage) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return trs.trie.GetFromChild(keyToChild, key)
 }
 
+// Delete ...
 func (trs *TestRuntimeStorage) Delete(key []byte) error {
 	err := trs.db.Del(key)
 	if err != nil {
@@ -174,10 +177,20 @@ func (trs *TestRuntimeStorage) Delete(key []byte) error {
 	return trs.trie.Delete(key)
 }
 
+// Entries ...
 func (trs *TestRuntimeStorage) Entries() map[string][]byte {
-	return trs.trie.Entries()
+	iter := trs.db.NewIterator()
+
+	entries := make(map[string][]byte)
+	for iter.Next() {
+		entries[string(iter.Key())] = iter.Value()
+	}
+
+	iter.Release()
+	return entries
 }
 
+// SetBalance ...
 func (trs *TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
 	skey, err := common.BalanceKey(key)
 	if err != nil {
@@ -190,6 +203,7 @@ func (trs *TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
 	return trs.Set(skey, bb)
 }
 
+// GetBalance ...
 func (trs *TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
 	skey, err := common.BalanceKey(key)
 	if err != nil {
@@ -204,17 +218,21 @@ func (trs *TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
 	return binary.LittleEndian.Uint64(bal), nil
 }
 
+// DeleteChildStorage ...
 func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
 	return trs.trie.DeleteFromChild(key)
 }
 
+// ClearChildStorage ...
 func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
 	return trs.trie.ClearFromChild(keyToChild, key)
 }
 
+// TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {
 }
 
+// NetworkState ...
 func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
 	testAddrs := []ma.Multiaddr(nil)
 

@@ -25,6 +25,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+// Metadata calls runtime function Metadata_metadata
+func (in *Instance) Metadata() ([]byte, error) {
+	return in.exec(runtime.Metadata, []byte{})
+}
+
+// Version calls runtime function Core_Version
 func (in *Instance) Version() (*runtime.VersionAPI, error) {
 	res, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
@@ -44,6 +50,7 @@ func (in *Instance) Version() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
+// BabeConfiguration gets the configuration data for BABE from the runtime
 func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	ret, err := in.exec(runtime.BabeAPIConfiguration, []byte{})
 	if err != nil {
@@ -58,6 +65,7 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	return cfg.(*types.BabeConfiguration), nil
 }
 
+// GrandpaAuthorities returns the genesis authorities from the runtime
 func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 	ret, err := in.exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
@@ -72,6 +80,7 @@ func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 	return types.GrandpaAuthorityDataRawToAuthorityData(adr.([]*types.GrandpaAuthorityDataRaw))
 }
 
+// ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
@@ -88,6 +97,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	return v, err
 }
 
+// InitializeBlock calls runtime API function Core_initialize_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
@@ -98,14 +108,17 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 	return err
 }
 
+// InherentExtrinsics calls runtime API function BlockBuilder_inherent_extrinsics
 func (in *Instance) InherentExtrinsics(data []byte) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderInherentExtrinsics, data)
 }
 
+// ApplyExtrinsic calls runtime API function BlockBuilder_apply_extrinsic
 func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+// FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
@@ -121,6 +134,7 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	return bh, nil
 }
 
+// ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b := block.DeepCopy()
 

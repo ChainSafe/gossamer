@@ -27,6 +27,8 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
+var _ gssmrruntime.Instance = (*Instance)(nil)
+
 var logger = log.New("pkg", "runtime", "module", "go-wasmtime")
 
 // Config represents a wasmer configuration
@@ -80,16 +82,20 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	}, nil
 }
 
+// SetContext sets the runtime context's Storage
 func (in *Instance) SetContext(s gssmrruntime.Storage) {
 	ctx.Storage = s
 }
 
+// Stop ...
 func (in *Instance) Stop() {}
 
+// NodeStorage returns the context's NodeStorage
 func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
 	return ctx.NodeStorage
 }
 
+// NetworkService returns the context's NetworkService
 func (in *Instance) NetworkService() gssmrruntime.BasicNetwork {
 	return ctx.Network
 }

@@ -337,12 +337,11 @@ func TestExt_clear_prefix(t *testing.T) {
 	instanceTrieHash, err := instance.ctx.Storage.Root()
 	require.Nil(t, err)
 
+	t.Log(expectedTrie)
+
 	expectedHash, err := expectedTrie.Hash()
 	require.Nil(t, err)
-
-	if !bytes.Equal(instanceTrieHash[:], expectedHash[:]) {
-		t.Error("did not get expected trie")
-	}
+	require.Equal(t, expectedHash, instanceTrieHash)
 }
 
 // test that ext_blake2_128 performs a blake2b hash of the data

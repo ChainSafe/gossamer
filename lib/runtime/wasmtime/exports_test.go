@@ -182,7 +182,7 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 
 	// apply each inherent extrinsic
 	for _, ext := range exts.([][]byte) {
-		in, err := scale.Encode(ext)
+		in, err := scale.Encode(ext) //nolint
 		require.NoError(t, err)
 
 		ret, err := instance.ApplyExtrinsic(in)

@@ -94,6 +94,7 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	return r
 }
 
+// GetRuntimeImports ...
 func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
 	var registerImports func() (*wasm.Imports, error)
 

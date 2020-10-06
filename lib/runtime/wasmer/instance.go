@@ -27,6 +27,8 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+var _ runtime.Instance = (*Instance)(nil)
+
 var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime", "module", "go-wasmer")
 

@@ -133,7 +133,6 @@ func ext_storage_root(c *wasmtime.Caller, resultPtr int32) {
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
 	runtime.KeepAlive(m)
-	return
 }
 
 func ext_get_allocated_storage(c *wasmtime.Caller, keyData, keyLen, writtenOut int32) int32 {
@@ -270,6 +269,7 @@ func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensDat
 	runtime.KeepAlive(memory)
 }
 
+// ImportsNodeRuntime returns the wasmtime imports for NODE_RUNTIME
 func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	ext_print_num := wasmtime.WrapFunc(store, ext_print_num)
 	ext_malloc := wasmtime.WrapFunc(store, ext_malloc)
