@@ -148,17 +148,12 @@ func TestInstance_InherentExtrinsics_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
-	// TODO: need to add inherents before calling finalize_block (see babe/inherents_test.go)
-	// need to move inherents to a different package for use with BABE and runtime
-
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(77),
-		//StateRoot: trie.EmptyHash,
-		//ExtrinsicsRoot: trie.EmptyHash,
-		Digest: [][]byte{},
+		Digest:     [][]byte{},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -201,14 +196,16 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	res.Number = header.Number
 
 	expected := &types.Header{
-		ParentHash:     header.ParentHash,
-		StateRoot:      common.Hash{0xc1, 0x9, 0x63, 0xdb, 0x99, 0x3d, 0x28, 0xf8, 0x12, 0xa3, 0xfa, 0xdc, 0x6b, 0xba, 0x6d, 0x33, 0x2d, 0x51, 0x74, 0xa9, 0x93, 0xf9, 0x7, 0xb, 0xf6, 0x34, 0xc1, 0xbb, 0x7d, 0x89, 0xf7, 0x95},
-		ExtrinsicsRoot: common.Hash{},
-		Number:         big.NewInt(77),
-		Digest:         [][]byte{},
+		ParentHash: header.ParentHash,
+		Number:     big.NewInt(77),
+		Digest:     [][]byte{},
 	}
 
-	res.Hash()
-	expected.Hash()
-	require.Equal(t, expected, res)
+	require.Equal(t, expected.ParentHash, res.ParentHash)
+	require.Equal(t, expected.Number, res.Number)
+	require.Equal(t, expected.Digest, res.Digest)
+	require.NotEqual(t, common.Hash{}, res.StateRoot)
+	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+	require.NotEqual(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }

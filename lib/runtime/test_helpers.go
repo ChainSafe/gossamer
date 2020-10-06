@@ -139,7 +139,18 @@ func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
 }
 
 func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
-	return trs.trie.Hash()
+	tt := trie.NewEmptyTrie()
+	iter := trs.db.NewIterator()
+
+	for iter.Next() {
+		err := tt.Put(iter.Key(), iter.Value())
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
+
+	iter.Release()
+	return tt.Hash()
 }
 
 func (trs *TestRuntimeStorage) SetChild(keyToChild []byte, child *trie.Trie) error {
