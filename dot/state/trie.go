@@ -17,31 +17,93 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/ChainSafe/chaindb"
 )
+
+var triePrefix = []byte("tmp")
+
+func removePrefix(key []byte) []byte {
+	if bytes.Equal(key[:len(triePrefix)], triePrefix) {
+		return key[len(triePrefix):]
+	}
+
+	return key
+}
 
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
+	db   chaindb.Database
 	t    *trie.Trie
 	lock sync.RWMutex
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(t *trie.Trie) *TrieState {
-	return &TrieState{
-		t: t,
+func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
+	tdb := chaindb.NewTable(db, string(triePrefix))
+	entries := t.Entries()
+	for k, v := range entries {
+		err := tdb.Put([]byte(k), v)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	return &TrieState{
+		db: tdb,
+		t:  t,
+	}, nil
+}
+
+// Commit ensures that the TrieState's trie and database match
+// The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
+func (s *TrieState) Commit() error {
+	s.t = trie.NewEmptyTrie()
+	iter := s.db.NewIterator()
+
+	for iter.Next() {
+		err := s.t.Put(removePrefix(iter.Key()), iter.Value())
+		if err != nil {
+			return err
+		}
+	}
+
+	iter.Release()
+	return nil
+}
+
+// Free should be called once this trie state is no longer needed
+func (s *TrieState) Free() error {
+	iter := s.db.NewIterator()
+
+	for iter.Next() {
+		err := s.db.Del(iter.Key())
+		if err != nil {
+			return err
+		}
+	}
+
+	iter.Release()
+	return nil
 }
 
 // Set sets a key-value pair in the trie
 func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+
+	err := s.db.Put(key, value)
+	if err != nil {
+		return err
+	}
+
 	return s.t.Put(key, value)
 }
 
@@ -49,14 +111,35 @@ func (s *TrieState) Set(key []byte, value []byte) error {
 func (s *TrieState) Get(key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
+
+	if has, _ := s.db.Has(key); has {
+		return s.db.Get(key)
+	}
+
 	return s.t.Get(key)
 }
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	err := s.Commit()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
 	return s.t.Hash()
+}
+
+// Delete deletes a key from the trie
+func (s *TrieState) Delete(key []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	err := s.db.Del(key)
+	if err != nil {
+		return err
+	}
+
+	return s.t.Delete(key)
 }
 
 // SetChild sets the child trie at the given key
@@ -87,18 +170,17 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return s.t.GetFromChild(keyToChild, key)
 }
 
-// Delete deletes a key from the trie
-func (s *TrieState) Delete(key []byte) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	return s.t.Delete(key)
-}
-
 // Entries returns every key-value pair in the trie
 func (s *TrieState) Entries() map[string][]byte {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.t.Entries()
+	iter := s.db.NewIterator()
+
+	entries := make(map[string][]byte)
+	for iter.Next() {
+		entries[string(removePrefix(iter.Key()))] = iter.Value()
+	}
+
+	iter.Release()
+	return entries
 }
 
 // SetBalance sets the balance for a given public key

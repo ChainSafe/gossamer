@@ -26,6 +26,10 @@ github.com/ChainSafe/chaindb v0.1.3-0.20201006205605-8b0172911282 h1:Etc0yOcxRJB
 github.com/ChainSafe/chaindb v0.1.3-0.20201006205605-8b0172911282/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
 github.com/ChainSafe/chaindb v0.1.3 h1:yeZbB3J+xEWXLizxm3cuwhfV97NRbZnP2oB/2nKQw5A=
 github.com/ChainSafe/chaindb v0.1.3/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
+github.com/ChainSafe/chaindb v0.1.4-0.20201006224803-c72448e81960 h1:0E/JGXt+FW1VbAOYS9OxiTbz3Dkqr7r6uGO3oMYrhcs=
+github.com/ChainSafe/chaindb v0.1.4-0.20201006224803-c72448e81960/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
+github.com/ChainSafe/chaindb v0.1.4-0.20201006232124-358b5471ff4e h1:L0EL3rtuai+ogfB6V5PJpZnFDYDAr3If1PSUAYGrHbA=
+github.com/ChainSafe/chaindb v0.1.4-0.20201006232124-358b5471ff4e/go.mod h1:FQQJbGzWe+rOa0aW/wSMz1qfIScauntW0HiynEIezuk=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d h1:nalkkPQcITbvhmL4+C4cKA87NW0tfm3Kl9VXRoPywFg=
 github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d/go.mod h1:URdX5+vg25ts3aCh8H5IFZybJYKWhJHYMTnf+ULtoC4=
 github.com/ChainSafe/log15 v1.0.0 h1:vRDVtWtVwIH5uSCBvgTTZh6FA58UBJ6+QiiypaZfBf8=

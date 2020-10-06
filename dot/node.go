@@ -82,7 +82,10 @@ func InitNode(cfg *Config) error {
 	var genEpochInfo *types.EpochInfo
 	if !cfg.Init.TestFirstEpoch {
 		// load genesis trie state for loading runtime info
-		genTrie := state.NewTrieState(t) //nolint
+		genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
+		if err != nil {
+			return fmt.Errorf("failed to instantiate TrieState: %w", err)
+		}
 
 		// create genesis runtime
 		r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
