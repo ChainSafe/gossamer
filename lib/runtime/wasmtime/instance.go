@@ -34,6 +34,7 @@ type Config struct {
 	Imports func(*wasmtime.Store) []*wasmtime.Extern
 }
 
+// Instance represents a go-wasmtime instance
 type Instance struct {
 	vm *wasmtime.Instance
 	mu sync.Mutex
@@ -71,7 +72,24 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	}, nil
 }
 
+func (in *Instance) SetContext(s gssmrruntime.Storage) {
+	ctx.Storage = s
+}
+
+func (in *Instance) Stop() {}
+
+func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
+	return ctx.NodeStorage
+}
+
+func (in *Instance) NetworkService() gssmrruntime.BasicNetwork {
+	return ctx.Network
+}
+
 func (in *Instance) exec(function string, data []byte) ([]byte, error) {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+
 	ptr, err := ctx.Allocator.Allocate(uint32(len(data)))
 	if err != nil {
 		return nil, err
