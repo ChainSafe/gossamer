@@ -412,7 +412,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	}
 
 	intoEpoch := startSlot - epochStart
-	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
+	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch, "start slot", startSlot, "epochStart", epochStart)
 
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.config.EpochLength - intoEpoch
@@ -516,7 +516,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
-		b.logger.Debug("block authoring", "error", err)
+		b.logger.Error("block authoring", "error", err)
 		return nil
 	}
 

@@ -108,6 +108,7 @@ func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
 	}
 
 	t.Cleanup(func() {
+		_ = db.Close()
 		_ = os.RemoveAll(testDatadirPath)
 	})
 

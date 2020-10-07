@@ -40,14 +40,17 @@ func removePrefix(key []byte) []byte {
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	db   chaindb.Database
-	t    *trie.Trie
-	lock sync.RWMutex
+	baseDB chaindb.Database
+	db     chaindb.Database
+	t      *trie.Trie
+	lock   sync.RWMutex
 }
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
+	//logger.Info("NewTrieState", "root before", t.MustHash())
 	tdb := chaindb.NewTable(db, string(triePrefix))
+
 	entries := t.Entries()
 	for k, v := range entries {
 		err := tdb.Put([]byte(k), v)
@@ -56,26 +59,38 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 		}
 	}
 
-	return &TrieState{
-		db: tdb,
-		t:  t,
-	}, nil
+	ts := &TrieState{
+		baseDB: db,
+		db:     tdb,
+		t:      t,
+	}
+	//root, _ := ts.Root()
+	//logger.Info("NewTrieState", "root after", root)
+	return ts, nil
 }
 
 // Commit ensures that the TrieState's trie and database match
 // The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
 func (s *TrieState) Commit() error {
+	//logger.Info("Commit", "root before", s.t.MustHash())
+
 	s.t = trie.NewEmptyTrie()
-	iter := s.db.NewIterator()
+	iter := s.baseDB.NewIterator()
 
 	for iter.Next() {
-		err := s.t.Put(removePrefix(iter.Key()), iter.Value())
+		key := iter.Key()
+		if !bytes.Equal(key[:len(triePrefix)], triePrefix) {
+			continue
+		}
+
+		err := s.t.Put(removePrefix(key), iter.Value())
 		if err != nil {
 			return err
 		}
 	}
 
 	iter.Release()
+	//logger.Info("Commit", "root after", s.t.MustHash())
 	return nil
 }
 

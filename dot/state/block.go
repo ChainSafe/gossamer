@@ -235,6 +235,10 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 		return nil, fmt.Errorf("database is nil")
 	}
 
+	if has, _ := bs.HasHeader(hash); !has {
+		return nil, fmt.Errorf("header does not exist")
+	}
+
 	data, err := bs.db.Get(headerKey(hash))
 	if err != nil {
 		return nil, err

@@ -295,22 +295,22 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 		return 0
 	}
 
-	// TODO: without the next lines, we often see `storage is not null, therefore must be a valid type` when calling
-	// initialize_block. determine why this is happening,
+	// // TODO: without the next lines, we often see `storage is not null, therefore must be a valid type` when calling
+	// // initialize_block. determine why this is happening,
 
-	keyStr := fmt.Sprintf("0x%x", key)
+	// keyStr := fmt.Sprintf("0x%x", key)
 
-	// "Babe Initialized" || "Treasury Approvals" || "System Digest" || "Timestamp DidUpdate"
-	if keyStr == "0xe0410aa8e1aff5af1147fe2f9b33ce62" || keyStr == "0x3f60b9abbdf97ea5f6f2e132acee78a9" || keyStr == "0xf7787e54bb33faaf40a7f3bf438458ee" || keyStr == "0x5e21085b25d4293fe413b5d3a698068a" {
-		val[0] = 0
-	}
+	// // "Babe Initialized" || "Treasury Approvals" || "System Digest" || "Timestamp DidUpdate"
+	// if keyStr == "0xe0410aa8e1aff5af1147fe2f9b33ce62" || keyStr == "0x3f60b9abbdf97ea5f6f2e132acee78a9" || keyStr == "0xf7787e54bb33faaf40a7f3bf438458ee" || keyStr == "0x5e21085b25d4293fe413b5d3a698068a" {
+	// 	val[0] = 0
+	// }
 
-	// "RandomnessCollectiveFlip RandomMaterial" || "Staking CurrentEraPointsEarned"
-	if keyStr == "0xca263a1d57613bec1f68af5eb50a2d31" || keyStr == "0x9ef8d3fecf9615ad693470693c7fb7dd" || keyStr == "0x4fbfbfa5fc2e8c0a7265bcb04f86338f004320a0c2ed9d66fcee8e68b7595b7b" {
-		logger.Trace("[ext_get_allocated_storage]", "value", "nil")
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
+	// // "RandomnessCollectiveFlip RandomMaterial" || "Staking CurrentEraPointsEarned"
+	// if keyStr == "0xca263a1d57613bec1f68af5eb50a2d31" || keyStr == "0x9ef8d3fecf9615ad693470693c7fb7dd" || keyStr == "0x4fbfbfa5fc2e8c0a7265bcb04f86338f004320a0c2ed9d66fcee8e68b7595b7b" {
+	// 	logger.Trace("[ext_get_allocated_storage]", "value", "nil")
+	// 	copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+	// 	return 0
+	// }
 
 	logger.Trace("[ext_get_allocated_storage]", "value", val)
 	copy(memory[ptr:ptr+uint32(len(val))], val)
