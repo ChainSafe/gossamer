@@ -76,10 +76,9 @@ func TestInstance_BabeConfiguration_NodeRuntime(t *testing.T) {
 	}
 
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	t.Log(ctx.Storage)
-	typesCfg, err := instance.BabeConfiguration()
+	babeCfg, err := instance.BabeConfiguration()
 	require.NoError(t, err)
-	require.Equal(t, expected, typesCfg)
+	require.Equal(t, expected, babeCfg)
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {

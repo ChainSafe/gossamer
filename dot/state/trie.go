@@ -48,7 +48,6 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
-	//logger.Info("NewTrieState", "root before", t.MustHash())
 	tdb := chaindb.NewTable(db, string(triePrefix))
 
 	entries := t.Entries()
@@ -64,16 +63,13 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 		db:     tdb,
 		t:      t,
 	}
-	//root, _ := ts.Root()
-	//logger.Info("NewTrieState", "root after", root)
+
 	return ts, nil
 }
 
 // Commit ensures that the TrieState's trie and database match
 // The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
 func (s *TrieState) Commit() error {
-	//logger.Info("Commit", "root before", s.t.MustHash())
-
 	s.t = trie.NewEmptyTrie()
 	iter := s.baseDB.NewIterator()
 
@@ -90,7 +86,6 @@ func (s *TrieState) Commit() error {
 	}
 
 	iter.Release()
-	//logger.Info("Commit", "root after", s.t.MustHash())
 	return nil
 }
 
