@@ -13,11 +13,11 @@ type BlockProducer interface {
 	services.Service
 
 	GetBlockChannel() <-chan types.Block
-	SetRuntime(*runtime.Runtime) error
+	SetRuntime(runtime.Instance) error
 	Pause() error
 	Resume() error
 	Authorities() []*types.Authority
 	SetAuthorities([]*types.Authority) error
 	SetRandomness([types.RandomnessLength]byte)
-	SetEpochThreshold(*big.Int)
+	SetThreshold(*big.Int)
 }

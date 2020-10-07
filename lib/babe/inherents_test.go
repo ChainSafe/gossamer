@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestInherentExtrinsics_Timestamp(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
+	rt := wasmer.NewTestInstance(t, wasmer.NODE_RUNTIME)
 
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))
@@ -31,6 +31,8 @@ func TestInherentExtrinsics_Timestamp(t *testing.T) {
 		in, err := scale.Encode(ext)
 		require.NoError(t, err)
 
+		t.Log(in)
+
 		ret, err := rt.ApplyExtrinsic(in)
 		require.NoError(t, err)
 		require.Equal(t, []byte{0, 0}, ret)
@@ -38,7 +40,7 @@ func TestInherentExtrinsics_Timestamp(t *testing.T) {
 }
 
 func TestInherentExtrinsics_Finalnum(t *testing.T) {
-	rt := runtime.NewTestRuntime(t, runtime.NODE_RUNTIME)
+	rt := wasmer.NewTestInstance(t, wasmer.NODE_RUNTIME)
 
 	idata := NewInherentsData()
 	err := idata.SetInt64Inherent(Timstap0, uint64(time.Now().Unix()))

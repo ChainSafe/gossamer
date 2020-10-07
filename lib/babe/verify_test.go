@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -39,7 +39,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 	dbSrv.UseMemDB()
 
 	tt := trie.NewEmptyTrie()
-	rt := runtime.NewTestRuntimeWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestInstanceWithTrie(t, wasmer.NODE_RUNTIME, tt, log.LvlCrit)
 
 	genesisData := new(genesis.Data)
 
@@ -119,7 +119,7 @@ func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		EpochThreshold: maxThreshold,
+		Threshold: maxThreshold,
 	})
 	descriptor := babeService.Descriptor()
 
@@ -136,7 +136,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		EpochThreshold: maxThreshold,
+		Threshold: maxThreshold,
 	})
 	descriptor := babeService.Descriptor()
 
@@ -216,7 +216,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	// create proof that we can authorize this block
-	babeService.epochThreshold = maxThreshold
+	babeService.threshold = maxThreshold
 	babeService.authorityIndex = 0
 	var slotNumber uint64 = 1
 
