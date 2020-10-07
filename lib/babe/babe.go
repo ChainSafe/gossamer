@@ -412,7 +412,7 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	}
 
 	intoEpoch := startSlot - epochStart
-	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch, "start slot", startSlot, "epochStart", epochStart)
+	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
 
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.config.EpochLength - intoEpoch
