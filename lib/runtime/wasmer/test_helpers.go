@@ -71,7 +71,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 		LogLvl:      lvl,
 		NodeStorage: ns,
 		Network:     new(testRuntimeNetwork),
-		Transaction: new(mockTransaction),
+		Transaction: new(mockTransactionState),
 	}
 
 	r, err := NewInstanceFromFile(fp, cfg)
@@ -312,10 +312,10 @@ func (trn testRuntimeNetwork) NetworkState() common.NetworkState {
 	}
 }
 
-type mockTransaction struct {
+type mockTransactionState struct {
 }
 
 // AddToPool adds a transaction to the pool
-func (mt *mockTransaction) AddToPool(vt *transaction.ValidTransaction) common.Hash {
+func (mt *mockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
 	return common.BytesToHash([]byte("test"))
 }

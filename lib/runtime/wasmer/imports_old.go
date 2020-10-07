@@ -845,7 +845,6 @@ func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 
 	// validate the transaction
 	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	// todo determine how to validate transaction here, calling runtimeAPI.ValidateTransaction?
 	vtx := transaction.NewValidTransaction(ext, txv)
 
 	runtimeCtx.Transaction.AddToPool(vtx)
