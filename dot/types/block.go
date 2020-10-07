@@ -56,13 +56,14 @@ func (b *Block) Encode() ([]byte, error) {
 		enc = append(enc, 0)
 	}
 
-	// fix since scale doesn't handle *types.Body types, but does handle []byte
-	encBody, err := scale.Encode([]byte(*b.Body))
-	if err != nil {
-		return nil, err
-	}
+	return append(enc, []byte(*b.Body)...), nil
+	// // fix since scale doesn't handle *types.Body types, but does handle []byte
+	// encBody, err := scale.Encode([]byte(*b.Body))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return append(enc, encBody...), nil
+	// return append(enc, encBody...), nil
 }
 
 // MustEncode returns the SCALE encoded block and panics if it fails to encode
