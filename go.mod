@@ -9,12 +9,10 @@ require (
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/bytecodealliance/wasmtime-go v0.20.0
-	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/go-interpreter/wagon v0.6.1-0.20200227184901-6803234760a6
-	github.com/golangci/golangci-lint v1.23.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
