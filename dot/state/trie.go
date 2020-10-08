@@ -17,7 +17,6 @@
 package state
 
 import (
-	//"bytes"
 	"encoding/binary"
 	"sync"
 

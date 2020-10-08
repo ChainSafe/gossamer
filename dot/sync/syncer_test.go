@@ -344,8 +344,6 @@ func TestCoreExecuteBlock(t *testing.T) {
 
 	block := buildBlock(t, syncer.runtime, parent)
 	res, err := syncer.executeBlock(block)
-	t.Log(block)
-	t.Log(block.Body)
 	require.Nil(t, err)
 
 	// if execute block returns a non-empty byte array, something went wrong

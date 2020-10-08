@@ -83,10 +83,8 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	t.Log(ts.t)
 	err = storage.StoreTrie(root, ts)
 	require.NoError(t, err)
-	t.Log(ts.t)
 
 	block := &types.Block{
 		Header: &types.Header{
