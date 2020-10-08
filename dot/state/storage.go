@@ -94,7 +94,11 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 	}()
 
 	s.lock.Lock()
-	s.tries[root] = ts.t
+	// make copy of trie since ts.Free will clear the TrieState
+	s.tries[root], err = ts.t.DeepCopy()
+	if err != nil {
+		return err
+	}
 	s.lock.Unlock()
 
 	logger.Debug("stored trie in storage state", "root", root)
