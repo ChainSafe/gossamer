@@ -40,7 +40,7 @@ func newTestTrieStateWithMemDB(t *testing.T) *TrieState {
 }
 
 func newTestTrieStateWithBadgerDB(t *testing.T) *TrieState {
-	fp, _ := ioutil.TempDir(".", "test-datadir-*")
+	fp, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	t.Cleanup(func() {
 		os.RemoveAll(fp)
 	})

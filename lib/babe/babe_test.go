@@ -208,7 +208,7 @@ func TestRunLottery_False(t *testing.T) {
 func TestBabeAnnounceMessage(t *testing.T) {
 	// this test uses a real database because it sets the runtime Storage context, which
 	// must be backed by a non-memory database
-	datadir, _ := ioutil.TempDir(".", "test-datadir-*")
+	datadir, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	dbSrv := state.NewService(datadir, log.LvlInfo)
 	genesisData := new(genesis.Data)
 	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
