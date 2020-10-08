@@ -3,7 +3,7 @@ module github.com/ChainSafe/gossamer
 replace github.com/go-interpreter/wagon v0.0.0 => github.com/perlin-network/wagon v0.3.1-0.20180825141017-f8cb99b55a39
 
 require (
-	github.com/ChainSafe/chaindb v0.1.4-0.20201006232124-358b5471ff4e
+	github.com/ChainSafe/chaindb v0.1.4-0.20201008030016-3949a3dfc37b
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
@@ -13,6 +13,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/go-interpreter/wagon v0.6.1-0.20200227184901-6803234760a6
+	github.com/golangci/golangci-lint v1.23.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2

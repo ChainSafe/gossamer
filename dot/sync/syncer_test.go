@@ -45,11 +45,8 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-func newTestSyncer(t *testing.T, cfg *Config) *Service {
-	if cfg == nil {
-		cfg = &Config{}
-	}
-
+func newTestSyncer(t *testing.T) *Service {
+	cfg := &Config{}
 	stateSrvc := state.NewService("", log.LvlInfo)
 	stateSrvc.UseMemDB()
 
@@ -92,7 +89,7 @@ func newTestSyncer(t *testing.T, cfg *Config) *Service {
 }
 
 func TestHandleSeenBlocks(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 	number := big.NewInt(12)
 	req := syncer.HandleSeenBlocks(number)
 	require.NotNil(t, req)
@@ -101,7 +98,7 @@ func TestHandleSeenBlocks(t *testing.T) {
 }
 
 func TestHandleSeenBlocks_NotHighestSeen(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	number := big.NewInt(12)
 	req := syncer.HandleSeenBlocks(number)
@@ -115,7 +112,7 @@ func TestHandleSeenBlocks_NotHighestSeen(t *testing.T) {
 }
 
 func TestHandleSeenBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	number := big.NewInt(12)
 	req := syncer.HandleSeenBlocks(number)
@@ -130,7 +127,7 @@ func TestHandleSeenBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
 }
 
 func TestHandleSeenBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	number := big.NewInt(12)
 	req := syncer.HandleSeenBlocks(number)
@@ -148,10 +145,10 @@ func TestHandleSeenBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 }
 
 func TestHandleBlockResponse(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(132)
 
-	responder := newTestSyncer(t, nil)
+	responder := newTestSyncer(t)
 	addTestBlocksToState(t, 130, responder.blockState)
 
 	startNum := 1
@@ -181,11 +178,11 @@ func TestHandleBlockResponse(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(20)
 	addTestBlocksToState(t, 4, syncer.blockState)
 
-	responder := newTestSyncer(t, nil)
+	responder := newTestSyncer(t)
 	addTestBlocksToState(t, 16, responder.blockState)
 
 	startNum := 16
@@ -210,7 +207,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -240,7 +237,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 }
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 	msg := &network.BlockResponseMessage{
 		ID:        0,
 		BlockData: nil,
@@ -252,7 +249,7 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	cHeader := &optional.CoreHeader{
 		ParentHash:     syncer.blockState.BestBlockHash(), // executeBlock fails empty or 0 hash
@@ -340,7 +337,7 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 
 func TestCoreExecuteBlock(t *testing.T) {
 	t.Skip() // this currently fails due to mismatching ExtrinsicRoots
-	syncer := newTestSyncer(t, nil)
+	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)

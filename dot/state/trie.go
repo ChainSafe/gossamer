@@ -17,7 +17,7 @@
 package state
 
 import (
-	"bytes"
+	//"bytes"
 	"encoding/binary"
 	"sync"
 
@@ -29,21 +29,12 @@ import (
 
 var triePrefix = []byte("tmp")
 
-func removePrefix(key []byte) []byte {
-	if bytes.Equal(key[:len(triePrefix)], triePrefix) {
-		return key[len(triePrefix):]
-	}
-
-	return key
-}
-
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	baseDB chaindb.Database
-	db     chaindb.Database
-	t      *trie.Trie
-	lock   sync.RWMutex
+	db   chaindb.Database
+	t    *trie.Trie
+	lock sync.RWMutex
 }
 
 // NewTrieState returns a new TrieState with the given trie
@@ -59,27 +50,26 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 	}
 
 	ts := &TrieState{
-		baseDB: db,
-		db:     tdb,
-		t:      t,
+		db: tdb,
+		t:  t,
 	}
 
 	return ts, nil
 }
 
+//nolint
 // Commit ensures that the TrieState's trie and database match
 // The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
 func (s *TrieState) Commit() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	s.t = trie.NewEmptyTrie()
-	iter := s.baseDB.NewIterator()
+	iter := s.db.NewIterator()
 
 	for iter.Next() {
 		key := iter.Key()
-		if !bytes.Equal(key[:len(triePrefix)], triePrefix) {
-			continue
-		}
-
-		err := s.t.Put(removePrefix(key), iter.Value())
+		err := s.t.Put(key, iter.Value())
 		if err != nil {
 			return err
 		}
@@ -91,10 +81,18 @@ func (s *TrieState) Commit() error {
 
 // Free should be called once this trie state is no longer needed
 func (s *TrieState) Free() error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	iter := s.db.NewIterator()
 
 	for iter.Next() {
 		err := s.db.Del(iter.Key())
+		if err != nil {
+			return err
+		}
+
+		err = s.t.Delete(iter.Key())
 		if err != nil {
 			return err
 		}
@@ -129,6 +127,16 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	return s.t.Get(key)
 }
 
+// MustRoot returns the trie's root hash. It panics if it fails to compute the root.
+func (s *TrieState) MustRoot() common.Hash {
+	root, err := s.Root()
+	if err != nil {
+		panic(err)
+	}
+
+	return root
+}
+
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
 	err := s.Commit()
@@ -137,6 +145,13 @@ func (s *TrieState) Root() (common.Hash, error) {
 	}
 
 	return s.t.Hash()
+}
+
+// Has returns whether or not a key exists
+func (s *TrieState) Has(key []byte) (bool, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.db.Has(key)
 }
 
 // Delete deletes a key from the trie
@@ -186,7 +201,7 @@ func (s *TrieState) Entries() map[string][]byte {
 
 	entries := make(map[string][]byte)
 	for iter.Next() {
-		entries[string(removePrefix(iter.Key()))] = iter.Value()
+		entries[string(iter.Key())] = iter.Value()
 	}
 
 	iter.Release()
