@@ -34,7 +34,7 @@ import (
 )
 
 var logger = log.New("pkg", "test/utils")
-var maxRetries = 24
+var maxRetries = 36
 
 // SetLogLevel sets the logging level for this package
 func SetLogLevel(lvl log.Lvl) {
@@ -146,7 +146,7 @@ func StartGossamer(t *testing.T, node *Node) error {
 			"--rpcmods", "system,author,chain,state,dev",
 			"--roles", "4", // authority node
 			"--rpc",
-			"--log", "info",
+			"--log", "trace",
 		)
 	}
 
@@ -358,5 +358,5 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 
 // TestDir returns the test directory path <current-directory>/test_data/<test-name>/<name>
 func TestDir(t *testing.T, name string) string {
-	return filepath.Join(currentDir, "../test_data/", t.Name(), name)
+	return filepath.Join("/tmp/", t.Name(), name)
 }

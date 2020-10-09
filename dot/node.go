@@ -87,6 +87,11 @@ func InitNode(cfg *Config) error {
 			return fmt.Errorf("failed to instantiate TrieState: %w", err)
 		}
 
+		err = genTrie.WriteTrieToDB()
+		if err != nil {
+			return fmt.Errorf("failed to write trie to db: %w", err)
+		}
+
 		// create genesis runtime
 		r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
 		if err != nil {
