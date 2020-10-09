@@ -91,22 +91,22 @@ func TestSync_Basic(t *testing.T) {
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
-	numNodes = 6 // TODO: increase this when syncing improves
+	numNodes = 9 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigBABEMaxThreshold)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ian"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
