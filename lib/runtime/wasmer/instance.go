@@ -128,6 +128,7 @@ func (r *Instance) load(location, length int32) []byte {
 	return mem[location : location+length]
 }
 
+// Exec calls the given function with the given data
 func (r *Instance) Exec(function string, data []byte) ([]byte, error) {
 	return r.exec(function, data)
 }
