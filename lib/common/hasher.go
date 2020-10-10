@@ -17,6 +17,8 @@
 package common
 
 import (
+	"encoding/binary"
+	"github.com/OneOfOne/xxhash"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/sha3"
 )
@@ -57,4 +59,45 @@ func Keccak256(in []byte) Hash {
 	var buf = [32]byte{}
 	copy(buf[:], hash)
 	return buf
+}
+
+// Twox256 returns the twox256 hash of the input data
+func Twox256(in []byte) (Hash, error) {
+	h0 := xxhash.NewS64(0)
+	_, err := h0.Write(in)
+	if err != nil {
+		return Hash{}, err
+	}
+	res0 := h0.Sum64()
+	hash0 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash0, res0)
+
+	h1 := xxhash.NewS64(1)
+	_, err = h1.Write(in)
+	if err != nil {
+		return Hash{}, err
+	}
+	res1 := h1.Sum64()
+	hash1 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash1, res1)
+
+	h2 := xxhash.NewS64(2)
+	_, err = h2.Write(in)
+	if err != nil {
+		return Hash{}, err
+	}
+	res2 := h2.Sum64()
+	hash2 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash2, res2)
+
+	h3 := xxhash.NewS64(3)
+	_, err = h3.Write(in)
+	if err != nil {
+		return Hash{}, err
+	}
+	res3 := h3.Sum64()
+	hash3 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash3, res3)
+
+	return NewHash(append(append(append(hash0, hash1...), hash2...), hash3...)), nil
 }
