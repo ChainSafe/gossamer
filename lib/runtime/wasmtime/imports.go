@@ -730,8 +730,8 @@ func ImportsHostAPITester(store *wasmtime.Store) []*wasmtime.Extern {
 		ext_is_validator.AsExtern(),
 		ext_submit_transaction.AsExtern(),
 		ext_network_state.AsExtern(),
-		ext_local_storage_get.AsExtern(),
 		ext_local_storage_set.AsExtern(),
+		ext_local_storage_get.AsExtern(),
 		ext_local_storage_compare_and_set.AsExtern(),
 	}
 }
