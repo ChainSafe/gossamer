@@ -55,7 +55,7 @@ func TestBlake2bHash_EmptyHash(t *testing.T) {
 	h, err := common.Blake2bHash(in)
 	require.NoError(t, err)
 
-	expected, err := common.HexToBytes("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
+	expected, err := common.HexToHash("0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8")
 	require.NoError(t, err)
 	require.Equal(t, expected, h)
 }
