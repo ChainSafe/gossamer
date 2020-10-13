@@ -82,16 +82,7 @@ func (s *StorageState) pruneStorage() { //nolint
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
-	// err := ts.Commit()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer func() {
-	// 	err = ts.Free()
-	// 	if err != nil {
-	// 		logger.Warn("failed to free TrieState", "error", err)
-	// 	}
-	// }()
+	// TODO: commit and free TrieState
 
 	s.lock.Lock()
 	var err error
