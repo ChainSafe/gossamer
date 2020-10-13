@@ -17,9 +17,11 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
@@ -133,7 +135,16 @@ func (d *PreRuntimeDigest) Type() byte {
 func (d *PreRuntimeDigest) Encode() []byte {
 	enc := []byte{PreRuntimeDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
-	return append(enc, d.Data...)
+	// encode data
+	buffer := bytes.Buffer{}
+	se := scale.Encoder{Writer: &buffer}
+	_, err := se.Encode(d.Data)
+	if err != nil {
+		// todo handle this error
+	}
+	output := buffer.Bytes()
+
+	return append(enc, output...)
 }
 
 // Decode will decode PreRuntimeDigest ConsensusEngineID and Data
@@ -143,7 +154,12 @@ func (d *PreRuntimeDigest) Decode(in []byte) error {
 	}
 
 	copy(d.ConsensusEngineID[:], in[:4])
-	d.Data = in[4:]
+	// decode data
+	output, err := scale.Decode(in[4:], []byte{})
+	if err != nil {
+		// todo handle this error
+	}
+	d.Data = output.([]byte)
 	return nil
 }
 
@@ -162,7 +178,15 @@ func (d *ConsensusDigest) Type() byte {
 func (d *ConsensusDigest) Encode() []byte {
 	enc := []byte{ConsensusDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
-	return append(enc, d.Data...)
+	// encode data
+	buffer := bytes.Buffer{}
+	se := scale.Encoder{Writer: &buffer}
+	_, err := se.Encode(d.Data)
+	if err != nil {
+		// todo handle this error
+	}
+	output := buffer.Bytes()
+	return append(enc, output...)
 }
 
 // Decode will decode into ConsensusEngineID and Data
@@ -172,7 +196,12 @@ func (d *ConsensusDigest) Decode(in []byte) error {
 	}
 
 	copy(d.ConsensusEngineID[:], in[:4])
-	d.Data = in[4:]
+	// decode data
+	output, err := scale.Decode(in[4:], []byte{})
+	if err != nil {
+		// todo handle this error
+	}
+	d.Data = output.([]byte)
 	return nil
 }
 
@@ -196,7 +225,15 @@ func (d *SealDigest) Type() byte {
 func (d *SealDigest) Encode() []byte {
 	enc := []byte{SealDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
-	return append(enc, d.Data...)
+	// encode data
+	buffer := bytes.Buffer{}
+	se := scale.Encoder{Writer: &buffer}
+	_, err := se.Encode(d.Data)
+	if err != nil {
+		// todo handle this error
+	}
+	output := buffer.Bytes()
+	return append(enc, output...)
 }
 
 // Decode will decode into  SealDigest ConsensusEngineID and Data
@@ -206,6 +243,11 @@ func (d *SealDigest) Decode(in []byte) error {
 	}
 
 	copy(d.ConsensusEngineID[:], in[:4])
-	d.Data = in[4:]
+	// decode data
+	output, err := scale.Decode(in[4:], []byte{})
+	if err != nil {
+		// todo handle this error
+	}
+	d.Data = output.([]byte)
 	return nil
 }
