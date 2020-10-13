@@ -242,14 +242,10 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 		return "", fmt.Errorf("unknown request number type: %T", x)
 	}
 
-	fmt.Println("RPC chain_getBlockHash getting block", num)
-
 	h, err := cm.blockAPI.GetBlockHash(num)
 	if err != nil {
-		fmt.Println("RPC chain_getBlockHash failed to get block", num)
 		return "", err
 	}
-	fmt.Println("RPC chain_getBlockHash got block", num, h)
 
 	return h.String(), nil
 }

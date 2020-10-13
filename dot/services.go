@@ -85,7 +85,6 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
 	rtCfg := &wasmtime.Config{
-		//Imports: wasmer.RegisterImports_NodeRuntime,
 		Imports: wasmtime.ImportsNodeRuntime,
 	}
 	rtCfg.Storage = ts

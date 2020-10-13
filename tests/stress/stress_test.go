@@ -176,7 +176,7 @@ func TestSync_Bench(t *testing.T) {
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThresholdBench)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
 	for {
