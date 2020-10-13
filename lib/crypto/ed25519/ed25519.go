@@ -56,7 +56,7 @@ type PublicKey ed25519.PublicKey
 type PublicKeyBytes [PublicKeyLength]byte
 
 // String returns the PublicKeyBytes formatted as a hex string
-func (pk PublicKeyBytes) String() string {
+func (b PublicKeyBytes) String() string {
 	b := [PublicKeyLength]byte(pk)
 	return common.BytesToHex(b[:])
 }
