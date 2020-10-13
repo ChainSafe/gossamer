@@ -106,7 +106,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	nodes = append(nodes, node)
 
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -202,7 +202,7 @@ func TestSync_Bench(t *testing.T) {
 
 	nodes := []*utils.Node{alice, bob}
 	defer func() {
-		errList := utils.StopNodes(t, nodes)
+		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -266,7 +266,7 @@ func TestSync_Restart(t *testing.T) {
 			case <-time.After(time.Second * 3):
 				idx := rand.Intn(numNodes)
 
-				errList := utils.StopNodes(t, nodes[idx:idx+1])
+				errList := utils.TearDown(t, nodes[idx:idx+1])
 				require.Len(t, errList, 0)
 
 				err = utils.StartNodes(t, nodes[idx:idx+1])
