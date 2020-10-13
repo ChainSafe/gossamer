@@ -43,7 +43,7 @@ type Instance struct {
 	mu sync.Mutex
 }
 
-// NewInstanceFromFile instantiates a runtime from the given wasm bytecode
+// NewInstance instantiates a runtime from the given wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	engine := wasmtime.NewEngine()
 	module, err := wasmtime.NewModule(engine, code)
