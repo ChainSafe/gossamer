@@ -17,12 +17,10 @@
 package state
 
 import (
-	//"bytes"
 	"encoding/binary"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	//"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
@@ -136,27 +134,9 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	defer s.lock.RUnlock()
 
 	if has, _ := s.db.Has(key); has {
-		//logger.Trace("returning value from db")
 		return s.db.Get(key)
-		// val, err := s.db.Get(key)
-		// if err != nil {
-		// 	return nil, err
-		// }
-
-		// if bytes.Equal(val, []byte{0}) || bytes.Equal(val, []byte{1}) {
-		// 	return val, nil
-		// }
-
-		// _, err = scale.Decode(val, []byte{})
-		// if err != nil {
-		// 	logger.Trace("returning value from db = nil ")
-		// 	return nil, nil
-		// }
-
-		// return val, nil
 	}
 
-	// return s.t.Get(key)
 	return nil, nil
 }
 

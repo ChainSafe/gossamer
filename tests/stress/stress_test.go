@@ -173,13 +173,26 @@ func TestSync_ManyProducers(t *testing.T) {
 func TestSync_Bench(t *testing.T) {
 	numNodes = 2
 	utils.SetLogLevel(log.LvlInfo)
-	numBlocks := 256
+	numBlocks := 64
 
 	// start block producing node
-	// node produces 10 blocks / second
 	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThresholdBench)
 	require.NoError(t, err)
-	time.Sleep(time.Second*time.Duration(numBlocks/10) + time.Second)
+
+	for {
+		header, err := utils.GetChainHeadWithError(t, alice)
+		if err != nil {
+			continue
+		}
+
+		t.Log(header)
+
+		if header.Number.Int64() >= int64(numBlocks) {
+			break
+		}
+
+		time.Sleep(3 * time.Second)
+	}
 
 	err = utils.PauseBABE(t, alice)
 	require.NoError(t, err)
@@ -191,11 +204,11 @@ func TestSync_Bench(t *testing.T) {
 
 	nodes := []*utils.Node{alice, bob}
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
-	// see how long it takes to sync to block 256
+	// see how long it takes to sync to block numBlocks
 	last := big.NewInt(int64(numBlocks))
 	start := time.Now()
 	var end time.Time
@@ -212,8 +225,8 @@ func TestSync_Bench(t *testing.T) {
 		}
 	}
 
-	maxTime := time.Second * 15
-	minBPS := float64(17)
+	maxTime := time.Second * 7
+	minBPS := float64(8)
 	totalTime := end.Sub(start)
 	bps := float64(numBlocks) / end.Sub(start).Seconds()
 	t.Log("total sync time:", totalTime)
