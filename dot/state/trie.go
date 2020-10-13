@@ -78,6 +78,7 @@ func (s *TrieState) Commit() error {
 	return nil
 }
 
+// WriteTrieToDB writes the trie to the database
 func (s *TrieState) WriteTrieToDB() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()

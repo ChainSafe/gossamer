@@ -180,12 +180,10 @@ func TestSync_Bench(t *testing.T) {
 	require.NoError(t, err)
 
 	for {
-		header, err := utils.GetChainHeadWithError(t, alice)
+		header, err := utils.GetChainHeadWithError(t, alice) //nolint
 		if err != nil {
 			continue
 		}
-
-		t.Log(header)
 
 		if header.Number.Int64() >= int64(numBlocks) {
 			break
