@@ -72,7 +72,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	"github.com/OneOfOne/xxhash"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -439,16 +438,11 @@ func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 
 	logger.Trace("[ext_twox_64] hashing...", "value", memory[data:data+len])
 
-	hasher := xxhash.NewS64(0) // create xxHash with 0 seed
-	_, err := hasher.Write(memory[data : data+len])
+	hash, err := common.Twox64(memory[data : data+len])
 	if err != nil {
 		logger.Error("[ext_twox_64]", "error", err)
 		return
 	}
-
-	res := hasher.Sum64()
-	hash := make([]byte, 8)
-	binary.LittleEndian.PutUint64(hash, res)
 	copy(memory[out:out+8], hash)
 }
 
