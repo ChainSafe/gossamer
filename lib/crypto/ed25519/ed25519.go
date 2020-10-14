@@ -57,8 +57,8 @@ type PublicKeyBytes [PublicKeyLength]byte
 
 // String returns the PublicKeyBytes formatted as a hex string
 func (b PublicKeyBytes) String() string {
-	b := [PublicKeyLength]byte(pk)
-	return common.BytesToHex(b[:])
+	pk := [PublicKeyLength]byte(b)
+	return common.BytesToHex(pk[:])
 }
 
 // Encode returns the SCALE encoding of PublicKeyBytes
