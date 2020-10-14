@@ -60,17 +60,3 @@ func (s *TransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
 func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
 	return s.pool.Insert(vt)
 }
-
-// // MaintainPool moves transactions from the pool to the queue
-// func (s *TransactionState) MaintainPool() error {
-// 	txs := s.pool.Transactions()
-// 	for _, tx := range txs {
-// 		h, err := s.Push(tx)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		s.pool.Remove(h)
-// 	}
-
-// 	return nil
-// }

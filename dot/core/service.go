@@ -471,16 +471,30 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 		return err
 	}
 
+	// remove extrinsics included in a block
 	for _, ext := range exts {
 		s.transactionState.RemoveExtrinsic(ext)
 	}
 
+	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		h, err := s.transactionState.Push(tx)
+		val, err := s.rt.ValidateTransaction(tx.Extrinsic)
 		if err != nil {
-			return err
+			// failed to validate tx, remove it from the pool or queue
+			s.transactionState.RemoveExtrinsic(ext)
+			continue
 		}
+
+		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+
+		h, err := s.transactionState.Push(tx)
+		if err != nil && err == transaction.ErrTransactionExists {
+			// transaction is already in queue, remove it from the pool
+			s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+			continue
+		}
+
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
 		s.logger.Trace("moved transaction to queue", "hash", h)
 	}
