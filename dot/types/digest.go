@@ -17,7 +17,6 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -91,7 +90,7 @@ func DecodeDigestItem(in []byte) (DigestItem, error) {
 // see https://github.com/paritytech/substrate/blob/f548309478da3935f72567c2abc2eceec3978e9f/primitives/runtime/src/generic/digest.rs#L77
 type DigestItem interface {
 	Type() byte
-	Encode() []byte
+	Encode() ([]byte, error)
 	Decode([]byte) error // Decode assumes the type byte (first byte) has been removed from the encoding.
 }
 
@@ -106,8 +105,8 @@ func (d *ChangesTrieRootDigest) Type() byte {
 }
 
 // Encode will encode the ChangesTrieRootDigestType into byte array
-func (d *ChangesTrieRootDigest) Encode() []byte {
-	return append([]byte{ChangesTrieRootDigestType}, d.Hash[:]...)
+func (d *ChangesTrieRootDigest) Encode() ([]byte, error) {
+	return append([]byte{ChangesTrieRootDigestType}, d.Hash[:]...), nil
 }
 
 // Decode will decode into ChangesTrieRootDigest Hash
@@ -132,19 +131,16 @@ func (d *PreRuntimeDigest) Type() byte {
 }
 
 // Encode will encode PreRuntimeDigest ConsensusEngineID and Data
-func (d *PreRuntimeDigest) Encode() []byte {
+func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 	enc := []byte{PreRuntimeDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
 	// encode data
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err := se.Encode(d.Data)
+	output, err := scale.Encode(d.Data)
 	if err != nil {
-		// todo handle this error
+		return nil, err
 	}
-	output := buffer.Bytes()
 
-	return append(enc, output...)
+	return append(enc, output...), nil
 }
 
 // Decode will decode PreRuntimeDigest ConsensusEngineID and Data
@@ -157,7 +153,7 @@ func (d *PreRuntimeDigest) Decode(in []byte) error {
 	// decode data
 	output, err := scale.Decode(in[4:], []byte{})
 	if err != nil {
-		// todo handle this error
+		return err
 	}
 	d.Data = output.([]byte)
 	return nil
@@ -175,18 +171,16 @@ func (d *ConsensusDigest) Type() byte {
 }
 
 // Encode will encode ConsensusDigest ConsensusEngineID and Data
-func (d *ConsensusDigest) Encode() []byte {
+func (d *ConsensusDigest) Encode() ([]byte, error) {
 	enc := []byte{ConsensusDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
 	// encode data
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err := se.Encode(d.Data)
+	output, err := scale.Encode(d.Data)
 	if err != nil {
-		// todo handle this error
+		return nil, err
 	}
-	output := buffer.Bytes()
-	return append(enc, output...)
+
+	return append(enc, output...), nil
 }
 
 // Decode will decode into ConsensusEngineID and Data
@@ -199,7 +193,7 @@ func (d *ConsensusDigest) Decode(in []byte) error {
 	// decode data
 	output, err := scale.Decode(in[4:], []byte{})
 	if err != nil {
-		// todo handle this error
+		return err
 	}
 	d.Data = output.([]byte)
 	return nil
@@ -222,18 +216,15 @@ func (d *SealDigest) Type() byte {
 }
 
 // Encode will encode SealDigest ConsensusEngineID and Data
-func (d *SealDigest) Encode() []byte {
+func (d *SealDigest) Encode() ([]byte, error) {
 	enc := []byte{SealDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
 	// encode data
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err := se.Encode(d.Data)
+	output, err := scale.Encode(d.Data)
 	if err != nil {
-		// todo handle this error
+		return nil, err
 	}
-	output := buffer.Bytes()
-	return append(enc, output...)
+	return append(enc, output...), nil
 }
 
 // Decode will decode into  SealDigest ConsensusEngineID and Data
@@ -246,7 +237,7 @@ func (d *SealDigest) Decode(in []byte) error {
 	// decode data
 	output, err := scale.Decode(in[4:], []byte{})
 	if err != nil {
-		// todo handle this error
+		return err
 	}
 	d.Data = output.([]byte)
 	return nil
