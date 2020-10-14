@@ -266,7 +266,7 @@ func TestSync_Restart(t *testing.T) {
 			case <-time.After(time.Second * 3):
 				idx := rand.Intn(numNodes)
 
-				errList := utils.TearDown(t, nodes[idx:idx+1])
+				errList := utils.StopNodes(t, nodes[idx:idx+1])
 				require.Len(t, errList, 0)
 
 				err = utils.StartNodes(t, nodes[idx:idx+1])
