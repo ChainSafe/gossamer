@@ -40,10 +40,20 @@ func (s *TransactionState) Pending() []*transaction.ValidTransaction {
 	return append(s.queue.Pending(), s.pool.Transactions()...)
 }
 
+// PendingInPool returns the current transactions in the pool
+func (s *TransactionState) PendingInPool() []*transaction.ValidTransaction {
+	return s.pool.Transactions()
+}
+
 // RemoveExtrinsic removes an extrinsic from the queue and pool
 func (s *TransactionState) RemoveExtrinsic(ext types.Extrinsic) {
 	s.pool.Remove(ext.Hash())
 	s.queue.RemoveExtrinsic(ext)
+}
+
+// RemoveExtrinsicFromPool removes an extrinsic from the pool
+func (s *TransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
+	s.pool.Remove(ext.Hash())
 }
 
 // AddToPool adds a transaction to the pool
@@ -51,17 +61,16 @@ func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Ha
 	return s.pool.Insert(vt)
 }
 
-// MaintainPool moves transactions from the pool to the queue
-func (s *TransactionState) MaintainPool() error {
-	// TODO: define and implement algorithm
-	txs := s.pool.Transactions()
-	for _, tx := range txs {
-		h, err := s.Push(tx)
-		if err != nil {
-			return err
-		}
-		s.pool.Remove(h)
-	}
+// // MaintainPool moves transactions from the pool to the queue
+// func (s *TransactionState) MaintainPool() error {
+// 	txs := s.pool.Transactions()
+// 	for _, tx := range txs {
+// 		h, err := s.Push(tx)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		s.pool.Remove(h)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
