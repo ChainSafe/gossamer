@@ -121,11 +121,10 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedBlockHeader := &types.Header{
-		ParentHash:     emptyHeader.Hash(),
-		Number:         big.NewInt(1),
-		StateRoot:      emptyHash,
-		ExtrinsicsRoot: emptyHash,
-		Digest:         [][]byte{pdEnc},
+		ParentHash: emptyHeader.Hash(),
+		Number:     big.NewInt(1),
+		StateRoot:  emptyHash,
+		Digest:     [][]byte{pdEnc},
 	}
 
 	// remove seal from built block, since we can't predict the signature
