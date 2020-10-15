@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMedian_OddLength(t *testing.T) {
@@ -114,11 +115,14 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 			t.Fatal(err)
 		}
 
+		pdEnc, err := predigest.Encode()
+		require.NoError(t, err)
+
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     [][]byte{predigest.Encode()},
+				Digest:     [][]byte{pdEnc},
 			},
 			Body: &types.Body{},
 		}
@@ -180,11 +184,14 @@ func TestEstimateCurrentSlot(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pdEnc, err := predigest.Encode()
+	require.NoError(t, err)
+
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: genesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     [][]byte{predigest.Encode()},
+			Digest:     [][]byte{pdEnc},
 		},
 		Body: &types.Body{},
 	}

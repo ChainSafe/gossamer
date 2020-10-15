@@ -93,7 +93,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	header.Number.Add(parent.Number, big.NewInt(1))
 
 	// add BABE header to digest
-	header.Digest = append(header.Digest, preDigest.Encode())
+	pdEnc, err := preDigest.Encode()
+	if err != nil {
+		return nil, err
+	}
+	header.Digest = append(header.Digest, pdEnc)
 
 	// create seal and add to digest
 	seal, err := b.buildBlockSeal(header)
@@ -101,7 +105,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	header.Digest = append(header.Digest, seal.Encode())
+	sEnc, err := seal.Encode()
+	if err != nil {
+		return nil, err
+	}
+	header.Digest = append(header.Digest, sEnc)
 
 	b.logger.Trace("built block seal")
 
