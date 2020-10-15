@@ -88,6 +88,7 @@ type PriorityQueue struct {
 	sync.Mutex
 }
 
+// NewPriorityQueue creates new instance of PriorityQueue
 func NewPriorityQueue() *PriorityQueue {
 	spq := &PriorityQueue{
 		pq:  make(priorityQueue, 0),
@@ -97,6 +98,7 @@ func NewPriorityQueue() *PriorityQueue {
 	return spq
 }
 
+// RemoveExtrinsic removes an extrinsic from the queue
 func (spq *PriorityQueue) RemoveExtrinsic(ext types.Extrinsic) {
 	spq.Lock()
 	defer spq.Unlock()
