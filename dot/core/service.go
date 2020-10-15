@@ -479,6 +479,8 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
+		// TODO: re-add this on update to v0.8
+
 		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
 		// if err != nil {
 		// 	// failed to validate tx, remove it from the pool or queue

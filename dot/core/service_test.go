@@ -294,6 +294,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 }
 
 func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
+	// TODO" update these to real extrinsics on update to v0.8
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
