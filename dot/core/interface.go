@@ -67,7 +67,11 @@ type StorageState interface {
 
 // TransactionState is the interface for transaction state methods
 type TransactionState interface {
+	Push(vt *transaction.ValidTransaction) (common.Hash, error)
 	AddToPool(vt *transaction.ValidTransaction) common.Hash
+	RemoveExtrinsic(ext types.Extrinsic)
+	RemoveExtrinsicFromPool(ext types.Extrinsic)
+	PendingInPool() []*transaction.ValidTransaction
 }
 
 // FinalityGadget is the interface that a finality gadget must implement
