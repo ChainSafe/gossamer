@@ -19,6 +19,7 @@ package core
 import (
 	"io/ioutil"
 	"math/big"
+	"sort"
 	"testing"
 	"time"
 
@@ -290,4 +291,108 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.Equal(t, 1, len(pending))
 	require.Equal(t, transaction.NewValidTransaction(tx, validity), pending[0])
+}
+
+func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
+	txs := []*transaction.ValidTransaction{
+		{
+			Extrinsic: []byte("a"),
+			Validity:  &transaction.Validity{Priority: 1},
+		},
+		{
+			Extrinsic: []byte("b"),
+			Validity:  &transaction.Validity{Priority: 4},
+		},
+		{
+			Extrinsic: []byte("c"),
+			Validity:  &transaction.Validity{Priority: 2},
+		},
+		{
+			Extrinsic: []byte("d"),
+			Validity:  &transaction.Validity{Priority: 17},
+		},
+		{
+			Extrinsic: []byte("e"),
+			Validity:  &transaction.Validity{Priority: 2},
+		},
+	}
+
+	ts := state.NewTransactionState()
+	hashes := make([]common.Hash, len(txs))
+
+	for i, tx := range txs {
+		h := ts.AddToPool(tx)
+		hashes[i] = h
+	}
+
+	s := &Service{
+		transactionState: ts,
+		logger:           log.New("pkg", "core"),
+	}
+
+	err := s.maintainTransactionPool(&types.Block{
+		Body: types.NewBody([]byte{}),
+	})
+	require.NoError(t, err)
+
+	res := make([]*transaction.ValidTransaction, len(txs))
+	for i := range txs {
+		res[i] = ts.Pop()
+	}
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Extrinsic[0] < res[j].Extrinsic[0]
+	})
+	require.Equal(t, txs, res)
+
+	for _, tx := range txs {
+		ts.RemoveExtrinsic(tx.Extrinsic)
+	}
+	head := ts.Pop()
+	require.Nil(t, head)
+}
+
+func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
+	txs := []*transaction.ValidTransaction{
+		{
+			Extrinsic: []byte("a"),
+			Validity:  &transaction.Validity{Priority: 1},
+		},
+		{
+			Extrinsic: []byte("b"),
+			Validity:  &transaction.Validity{Priority: 4},
+		},
+	}
+
+	ts := state.NewTransactionState()
+	hashes := make([]common.Hash, len(txs))
+
+	for i, tx := range txs {
+		h := ts.AddToPool(tx)
+		hashes[i] = h
+	}
+
+	s := &Service{
+		transactionState: ts,
+		logger:           log.New("pkg", "core"),
+	}
+
+	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
+	require.NoError(t, err)
+
+	err = s.maintainTransactionPool(&types.Block{
+		Body: body,
+	})
+	require.NoError(t, err)
+
+	res := []*transaction.ValidTransaction{}
+	for {
+		tx := ts.Pop()
+		if tx == nil {
+			break
+		}
+		res = append(res, tx)
+	}
+	require.Equal(t, 1, len(res))
+	require.Equal(t, res[0], txs[1])
 }
