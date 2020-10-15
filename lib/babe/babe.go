@@ -504,14 +504,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	// if transaction queue is empty, call MaintainPool to add some txs to the queue
-	head := b.transactionState.Peek()
-	if head == nil {
-		if err = b.transactionState.MaintainPool(); err != nil {
-			b.logger.Error("failed to maintain transaction pool", "error", err)
-		}
-	}
-
 	b.rt.SetContext(ts)
 
 	block, err := b.buildBlock(parent, currentSlot)
