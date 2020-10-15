@@ -213,6 +213,9 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 
 // Entries returns every key-value pair in the trie
 func (s *TrieState) Entries() map[string][]byte {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	iter := s.db.NewIterator()
 
 	entries := make(map[string][]byte)

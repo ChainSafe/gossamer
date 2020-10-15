@@ -21,12 +21,16 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"reflect"
 	"runtime"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/bytecodealliance/wasmtime-go"
@@ -43,8 +47,8 @@ func ext_print_utf8(c *wasmtime.Caller, data, len int32) {
 	logger.Trace("[ext_print_utf8] executing...")
 	m := c.GetExport("memory").Memory()
 	mem := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 	logger.Info("[ext_print_utf8]", "message", fmt.Sprintf("%s", mem[data:data+len]))
-	runtime.KeepAlive(m)
 }
 
 func ext_malloc(c *wasmtime.Caller, size int32) int32 {
@@ -68,6 +72,8 @@ func ext_twox_128(c *wasmtime.Caller, data, len, out int32) {
 	logger.Trace("[ext_twox_128] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
 	logger.Trace("[ext_twox_128]", "hashing", fmt.Sprintf("%s", memory[data:data+len]))
 
 	res, err := common.Twox128Hash(memory[data : data+len])
@@ -76,13 +82,13 @@ func ext_twox_128(c *wasmtime.Caller, data, len, out int32) {
 	}
 
 	copy(memory[out:out+16], res[0:16])
-	runtime.KeepAlive(m)
 }
 
 func ext_get_storage_into(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
 	logger.Trace("[ext_get_storage_into] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	key := memory[keyData : keyData+keyLen]
 	val, err := ctx.Storage.Get(key)
@@ -98,11 +104,10 @@ func ext_get_storage_into(c *wasmtime.Caller, keyData, keyLen, valueData, valueL
 
 	if len(val) > int(valueLen) {
 		logger.Debug("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
-		//return 0
+		return 0
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
-	runtime.KeepAlive(m)
 	return int32(len(val[valueOffset:]))
 }
 
@@ -110,6 +115,7 @@ func ext_set_storage(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen in
 	logger.Trace("[ext_set_storage] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
@@ -125,6 +131,7 @@ func ext_storage_root(c *wasmtime.Caller, resultPtr int32) {
 	logger.Trace("[ext_storage_root] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	root, err := ctx.Storage.Root()
 	if err != nil {
@@ -133,13 +140,13 @@ func ext_storage_root(c *wasmtime.Caller, resultPtr int32) {
 	}
 
 	copy(memory[resultPtr:resultPtr+32], root[:])
-	runtime.KeepAlive(m)
 }
 
 func ext_get_allocated_storage(c *wasmtime.Caller, keyData, keyLen, writtenOut int32) int32 {
 	logger.Trace("[ext_get_allocated_storage] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	key := memory[keyData : keyData+keyLen]
 	logger.Trace("[ext_get_allocated_storage]", "key", fmt.Sprintf("0x%x", key))
@@ -179,8 +186,6 @@ func ext_get_allocated_storage(c *wasmtime.Caller, keyData, keyLen, writtenOut i
 
 	// writtenOut stores the location of the memory that was allocated
 	copy(memory[writtenOut:writtenOut+4], byteLen)
-
-	runtime.KeepAlive(m)
 	return int32(ptr)
 }
 
@@ -188,20 +193,20 @@ func ext_clear_storage(c *wasmtime.Caller, keyData, keyLen int32) {
 	logger.Trace("[ext_clear_storage] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	key := memory[keyData : keyData+keyLen]
 	err := ctx.Storage.Delete(key)
 	if err != nil {
 		logger.Error("[ext_clear_storage]", "error", err)
 	}
-
-	runtime.KeepAlive(memory)
 }
 
 func ext_clear_prefix(c *wasmtime.Caller, prefixData, prefixLen int32) {
 	logger.Trace("[ext_clear_prefix] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	prefix := memory[prefixData : prefixData+prefixLen]
 	entries := ctx.Storage.Entries()
@@ -213,14 +218,13 @@ func ext_clear_prefix(c *wasmtime.Caller, prefixData, prefixLen int32) {
 			}
 		}
 	}
-
-	runtime.KeepAlive(memory)
 }
 
 func ext_blake2_256(c *wasmtime.Caller, data, length, out int32) {
 	logger.Trace("[ext_blake2_256] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	hash, err := common.Blake2bHash(memory[data : data+length])
 	if err != nil {
@@ -229,13 +233,13 @@ func ext_blake2_256(c *wasmtime.Caller, data, length, out int32) {
 	}
 
 	copy(memory[out:out+32], hash[:])
-	runtime.KeepAlive(memory)
 }
 
 func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensData, lensLen, result int32) {
 	logger.Trace("[ext_blake2_256_enumerated_trie_root] executing...")
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
 
 	t := trie.NewEmptyTrie()
 	var i int32
@@ -267,141 +271,456 @@ func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensDat
 	}
 	logger.Trace("[ext_blake2_256_enumerated_trie_root]", "root", root)
 	copy(memory[result:result+32], root[:])
-	runtime.KeepAlive(memory)
 }
 
 func ext_print_hex(c *wasmtime.Caller, offset, size int32) {
 	logger.Trace("[ext_print_hex] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+	logger.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
 }
 
 func ext_storage_changes_root(c *wasmtime.Caller, a, b, d int32) int32 {
 	logger.Trace("[ext_storage_changes_root] executing...")
+	logger.Debug("[ext_storage_changes_root] not yet implemented")
 	return 0
 }
 
 func ext_set_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
 	logger.Trace("[ext_set_child_storage] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
+	key := memory[keyData : keyData+keyLen]
+	value := memory[valueData : valueData+valueLen]
+
+	err := ctx.Storage.SetChildStorage(keyToChild, key, value)
+	if err != nil {
+		logger.Error("[ext_set_child_storage]", "error", err)
+	}
 }
 
 func ext_twox_64(c *wasmtime.Caller, data, length, out int32) {
 	logger.Trace("[ext_twox_64] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	logger.Trace("[ext_twox_64] hashing...", "value", memory[data:data+length])
+
+	hash, err := common.Twox64(memory[data : data+length])
+	if err != nil {
+		logger.Error("[ext_twox_64]", "error", err)
+		return
+	}
+	copy(memory[out:out+8], hash)
 }
 
 func ext_sr25519_generate(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
 	logger.Trace("[ext_sr25519_generate] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	// TODO: key types not yet implemented
+	// id := memory[idData:idData+4]
+
+	seedBytes := memory[seed : seed+seedLen]
+	kp, err := sr25519.NewKeypairFromSeed(seedBytes)
+	if err != nil {
+		logger.Trace("ext_sr25519_generate cannot generate key", "error", err)
+	}
+
+	logger.Trace("ext_sr25519_generate", "address", kp.Public().Address())
+	ctx.Keystore.Insert(kp)
+	copy(memory[out:out+32], kp.Public().Encode())
 }
 
 func ext_sr25519_public_keys(c *wasmtime.Caller, idData, resultLen int32) int32 {
 	logger.Trace("[ext_sr25519_public_keys] executing...")
-	return 0
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keys := ctx.Keystore.Sr25519PublicKeys()
+
+	offset, err := ctx.Allocator.Allocate(uint32(len(keys) * 32))
+	if err != nil {
+		logger.Error("[ext_sr25519_public_keys]", "error", err)
+		return -1
+	}
+
+	for i, key := range keys {
+		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
+	copy(memory[resultLen:resultLen+4], buf)
+	return int32(offset)
 }
 
 func ext_sr25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, out int32) int32 {
 	logger.Trace("[ext_sr25519_sign] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
+	pubkey, err := sr25519.NewPublicKey(pubkeyBytes)
+	if err != nil {
+		logger.Error("[ext_sr25519_sign]", "error", err)
+		return 1
+	}
+
+	signingKey := ctx.Keystore.GetKeypair(pubkey)
+
+	if signingKey == nil {
+		logger.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
+		return 1
+	}
+
+	msgLenBytes := memory[msgLen : msgLen+4]
+	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
+	msg := memory[msgData : msgData+int32(msgLength)]
+	sig, err := signingKey.Sign(msg)
+	if err != nil {
+		logger.Error("[ext_sr25519_sign] could not sign message")
+		return 1
+	}
+
+	copy(memory[out:out+64], sig)
 	return 0
 }
 
 func ext_sr25519_verify(c *wasmtime.Caller, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	logger.Trace("[ext_sr25519_verify] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	msg := memory[msgData : msgData+msgLen]
+	sig := memory[sigData : sigData+64]
+	logger.Trace("[ext_sr25519_verify]", "msg", msg)
+	pub, err := sr25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
+	if err != nil {
+		return 1
+	}
+
+	if ok, err := pub.Verify(msg, sig); err != nil || !ok {
+		return 1
+	}
+
 	return 0
 }
 
 func ext_ed25519_generate(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
 	logger.Trace("[ext_ed25519_generate] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	// TODO: key types not yet implemented
+	// id := memory[idData:idData+4]
+
+	seedBytes := memory[seed : seed+seedLen]
+	kp, err := ed25519.NewKeypairFromSeed(seedBytes)
+	if err != nil {
+		logger.Trace("ext_ed25519_generate cannot generate key", "error", err)
+	}
+
+	logger.Trace("ext_ed25519_generate", "address", kp.Public().Address())
+	ctx.Keystore.Insert(kp)
+	copy(memory[out:out+32], kp.Public().Encode())
 }
 
 func ext_ed25519_verify(c *wasmtime.Caller, msgData, msgLen, sigData, pubkeyData int32) int32 {
 	logger.Trace("[ext_ed25519_verify] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	msg := memory[msgData : msgData+msgLen]
+	sig := memory[sigData : sigData+64]
+	pubkey, err := ed25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
+	if err != nil {
+		return 1
+	}
+
+	if ok, err := pubkey.Verify(msg, sig); err != nil || !ok {
+		return 1
+	}
+
 	return 0
 }
 
 func ext_is_validator(c *wasmtime.Caller) int32 {
 	logger.Trace("[ext_is_validator] executing...")
+	if ctx.Validator {
+		return 1
+	}
 	return 0
 }
 
 func ext_local_storage_get(c *wasmtime.Caller, kind, key, keyLen, valueLen int32) int32 {
 	logger.Trace("[ext_local_storage_get] executing...")
-	return 0
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyM := memory[key : key+keyLen]
+	var res []byte
+	var err error
+	switch gssmrruntime.NodeStorageType(kind) {
+	case gssmrruntime.NodeStorageTypePersistent:
+		res, err = ctx.NodeStorage.PersistentStorage.Get(keyM)
+	case gssmrruntime.NodeStorageTypeLocal:
+		res, err = ctx.NodeStorage.LocalStorage.Get(keyM)
+	}
+
+	if err != nil {
+		logger.Error("[ext_local_storage_get]", "error", err)
+		return 0
+	}
+	// allocate memory for value and copy value to memory
+	ptr, err := ctx.Allocator.Allocate(uint32(valueLen))
+	if err != nil {
+		logger.Error("[ext_local_storage_get]", "error", err)
+		return 0
+	}
+	copy(memory[ptr:ptr+uint32(valueLen)], res[:])
+	return int32(ptr)
 }
 
-func ext_local_storage_compare_and_set(c *wasmtime.Caller, kind, key, keyLen, oldValue, oldValueLen, newValue, newValueLen int32) int32 {
+func ext_local_storage_compare_and_set(c *wasmtime.Caller, kind, keyPtr, keyLen, oldValuePtr, oldValueLen, newValuePtr, newValueLen int32) int32 {
 	logger.Trace("[ext_local_storage_compare_and_set] executing...")
-	return 0
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	key := memory[keyPtr : keyPtr+keyLen]
+	var storedValue []byte
+	var err error
+	var nodeStorage gssmrruntime.BasicStorage
+
+	switch gssmrruntime.NodeStorageType(kind) {
+	case gssmrruntime.NodeStorageTypePersistent:
+		nodeStorage = ctx.NodeStorage.PersistentStorage
+		storedValue, err = nodeStorage.Get(key)
+	case gssmrruntime.NodeStorageTypeLocal:
+		nodeStorage = ctx.NodeStorage.LocalStorage
+		storedValue, err = nodeStorage.Get(key)
+	}
+
+	if err != nil {
+		logger.Error("[ext_local_storage_compare_and_set]", "error", err)
+		return 1
+	}
+
+	oldValue := memory[oldValuePtr : oldValuePtr+oldValueLen]
+
+	if reflect.DeepEqual(storedValue, oldValue) {
+		newValue := memory[newValuePtr : newValuePtr+newValueLen]
+		err := nodeStorage.Put(key, newValue)
+		if err != nil {
+			logger.Error("[ext_local_storage_compare_and_set]", "error", err)
+			return 1
+		}
+		return 0
+	}
+	return 1
 }
 
 func ext_network_state(c *wasmtime.Caller, writtenOut int32) int32 {
 	logger.Trace("[ext_network_state] executing...")
-	return 0
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	if ctx.Network == nil {
+		return 0
+	}
+
+	nsEnc, err := scale.Encode(ctx.Network.NetworkState())
+	if err != nil {
+		logger.Error("[ext_network_state]", "error", err)
+		return 0
+	}
+
+	// copy network state length to memory writtenOut location
+	nsEncLen := uint32(len(nsEnc))
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, nsEncLen)
+	copy(memory[writtenOut:writtenOut+4], buf)
+
+	// allocate memory for value and copy value to memory
+	ptr, err := ctx.Allocator.Allocate(nsEncLen)
+	if err != nil {
+		logger.Error("[ext_network_state]", "error", err)
+		return 0
+	}
+	copy(memory[ptr:ptr+nsEncLen], nsEnc)
+	return int32(ptr)
 }
 
 func ext_submit_transaction(c *wasmtime.Caller, data, len int32) int32 {
 	logger.Trace("[ext_submit_transaction] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	extBytes := memory[data : data+len]
+	ext := types.Extrinsic(extBytes)
+
+	// validate the transaction
+	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	vtx := transaction.NewValidTransaction(ext, txv)
+
+	ctx.Transaction.AddToPool(vtx)
 	return 0
 }
 
 func ext_local_storage_set(c *wasmtime.Caller, kind, key, keyLen, value, valueLen int32) {
 	logger.Trace("[ext_local_storage_set] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyM := memory[key : key+keyLen]
+	valueM := memory[value : value+valueLen]
+
+	var err error
+	switch gssmrruntime.NodeStorageType(kind) {
+	case gssmrruntime.NodeStorageTypePersistent:
+		err = ctx.NodeStorage.PersistentStorage.Put(keyM, valueM)
+	case gssmrruntime.NodeStorageTypeLocal:
+		err = ctx.NodeStorage.LocalStorage.Put(keyM, valueM)
+	}
+	if err != nil {
+		logger.Error("[ext_local_storage_set]", "error", err)
+	}
 }
 
-func ext_kill_child_storage(c *wasmtime.Caller, a, b int32) {
+func ext_kill_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen int32) {
 	logger.Trace("[ext_kill_child_storage] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
+
+	err := ctx.Storage.DeleteChildStorage(keyToChild)
+	if err != nil {
+		logger.Error("[ext_kill_child_storage]", "error", err)
+	}
 }
 
 func ext_sandbox_memory_new(c *wasmtime.Caller, a, b int32) int32 {
 	logger.Trace("[ext_sandbox_memory_new] executing...")
+	logger.Warn("[ext_sandbox_memory_new] not yet implemented")
 	return 0
 }
 
 func ext_sandbox_memory_teardown(c *wasmtime.Caller, a int32) {
 	logger.Trace("[ext_sandbox_memory_teardown] executing...")
+	logger.Warn("[ext_sandbox_memory_teardown] not yet implemented")
 }
 
 func ext_sandbox_instantiate(c *wasmtime.Caller, a, b, g, d, e, f int32) int32 {
 	logger.Trace("[ext_sandbox_instantiate] executing...")
+	logger.Warn("[ext_sandbox_instantiate] not yet implemented")
 	return 0
 }
 
 func ext_sandbox_invoke(c *wasmtime.Caller, a, b, i, d, e, f, g, h int32) int32 {
 	logger.Trace("[ext_sandbox_invoke] executing...")
+	logger.Warn("[ext_sandbox_invoke] not yet implemented")
 	return 0
 }
 
 func ext_sandbox_instance_teardown(c *wasmtime.Caller, a int32) {
 	logger.Trace("[ext_sandbox_instance_teardown] executing...")
+	logger.Warn("[ext_sandbox_instance_teardown] not yet implemented")
 }
 
-func ext_get_allocated_child_storage(c *wasmtime.Caller, a, b, i, d, e int32) int32 {
+func ext_get_allocated_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen, writtenOut int32) int32 {
 	logger.Trace("[ext_get_allocated_child_storage] executing...")
-	return 0
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
+	key := memory[keyData : keyData+keyLen]
+
+	value, err := ctx.Storage.GetChildStorage(keyToChild, key)
+	if err != nil {
+		logger.Error("[ext_get_allocated_child_storage]", "error", err)
+		return 0
+	}
+	valueLen := uint32(len(value))
+	if valueLen == 0 {
+		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
+		return 0
+	}
+
+	// copy length to memory
+	byteLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(byteLen, valueLen)
+	copy(memory[writtenOut:writtenOut+4], byteLen)
+
+	resPtr, err := ctx.Allocator.Allocate(valueLen)
+	if err != nil {
+		logger.Error("[ext_get_allocated_child_storage]", "error", err)
+		return 0
+	}
+	copy(memory[resPtr:resPtr+valueLen], value)
+	return int32(resPtr)
 }
 
 func ext_child_storage_root(c *wasmtime.Caller, a, b, i int32) int32 {
 	logger.Trace("[ext_child_storage_root] executing...")
+	logger.Warn("[ext_child_storage_root] not yet implemented")
 	return 0
 }
 
-func ext_clear_child_storage(c *wasmtime.Caller, a, b, d, z int32) {
+func ext_clear_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen int32) {
 	logger.Trace("[ext_clear_child_storage] executing...")
+	m := c.GetExport("memory").Memory()
+	memory := m.UnsafeData()
+	defer runtime.KeepAlive(m)
+
+	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
+	key := memory[keyData : keyData+keyLen]
+	err := ctx.Storage.ClearChildStorage(keyToChild, key)
+	if err != nil {
+		logger.Error("[ext_clear_child_storage]", "error", err)
+	}
 }
 
 func ext_secp256k1_ecdsa_recover_compressed(c *wasmtime.Caller, a, b, i int32) int32 {
 	logger.Trace("[ext_secp256k1_ecdsa_recover_compressed] executing...")
+	logger.Warn("[ext_secp256k1_ecdsa_recover_compressed] not yet implemented")
 	return 0
 }
 
 func ext_sandbox_memory_get(c *wasmtime.Caller, a, b, d, z int32) int32 {
 	logger.Trace("[ext_sandbox_memory_get] executing...")
+	logger.Warn("[ext_sandbox_memory_get] not yet implemented")
 	return 0
 }
 
 func ext_sandbox_memory_set(c *wasmtime.Caller, a, b, d, z int32) int32 {
 	logger.Trace("[ext_sandbox_memory_set] executing...")
+	logger.Warn("[ext_sandbox_memory_set] not yet implemented")
 	return 0
 }
 
 func ext_log(c *wasmtime.Caller, a, b, d, e, z int32) {
 	logger.Trace("[ext_log] executing...")
+	logger.Warn("[ext_log] not yet implemented")
 }
 
 func ext_twox_256(c *wasmtime.Caller, data, len, out int32) {
