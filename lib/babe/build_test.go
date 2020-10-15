@@ -117,11 +117,14 @@ func TestBuildBlock_ok(t *testing.T) {
 	preDigest, err := babeService.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
+	pdEnc, err := preDigest.Encode()
+	require.NoError(t, err)
+
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     big.NewInt(1),
 		StateRoot:  emptyHash,
-		Digest:     [][]byte{preDigest.Encode()},
+		Digest:     [][]byte{pdEnc},
 	}
 
 	// remove seal from built block, since we can't predict the signature
