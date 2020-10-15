@@ -6,10 +6,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	"github.com/stretchr/testify/require"
 )
 
-func TestTransactionState_MaintainPool(t *testing.T) {
+func TestTransactionState_Pending(t *testing.T) {
+	ts := NewTransactionState()
+
 	txs := []*transaction.ValidTransaction{
 		{
 			Extrinsic: []byte("a"),
@@ -33,30 +36,26 @@ func TestTransactionState_MaintainPool(t *testing.T) {
 		},
 	}
 
-	ts := NewTransactionState()
 	hashes := make([]common.Hash, len(txs))
-
 	for i, tx := range txs {
 		h := ts.AddToPool(tx)
 		hashes[i] = h
 	}
 
-	err := ts.MaintainPool()
-	require.NoError(t, err)
+	pendingPool := ts.PendingInPool()
 
-	res := make([]*transaction.ValidTransaction, len(txs))
-	for i := range txs {
-		res[i] = ts.Pop()
-	}
-
-	sort.Slice(res, func(i, j int) bool {
-		return res[i].Extrinsic[0] < res[j].Extrinsic[0]
+	sort.Slice(pendingPool, func(i, j int) bool {
+		return pendingPool[i].Extrinsic[0] < pendingPool[j].Extrinsic[0]
 	})
-	require.Equal(t, txs, res)
+	require.Equal(t, pendingPool, txs)
 
-	for _, tx := range txs {
-		ts.RemoveExtrinsic(tx.Extrinsic)
-	}
-	head := ts.Pop()
+	pending := ts.Pending()
+	sort.Slice(pending, func(i, j int) bool {
+		return pending[i].Extrinsic[0] < pending[j].Extrinsic[0]
+	})
+	require.Equal(t, pending, txs)
+
+	// queue should be empty
+	head := ts.Peek()
 	require.Nil(t, head)
 }
