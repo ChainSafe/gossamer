@@ -375,6 +375,7 @@ func (l *BlockListener) Listen() {
 	}
 }
 
+// BlockFinalizedListener to handle listening for finalized blocks
 type BlockFinalizedListener struct {
 	channel chan *types.Header
 	wsconn  *WSConn
@@ -412,6 +413,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
 	return bfl.subID, nil
 }
 
+// Listen implementation of Listen interface to listen for channel changes
 func (l *BlockFinalizedListener) Listen() {
 	for header := range l.channel {
 		if header == nil {
