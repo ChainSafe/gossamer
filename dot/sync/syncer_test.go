@@ -212,7 +212,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
 		Extrinsic: ext,
-		Validity:  nil,
+		Validity:  &transaction.Validity{Priority: 1},
 	}
 
 	syncer.transactionState.(*state.TransactionState).Push(tx)
