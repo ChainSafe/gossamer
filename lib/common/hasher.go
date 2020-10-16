@@ -72,6 +72,20 @@ func Keccak256(in []byte) (Hash, error) {
 	return buf, nil
 }
 
+// Twox64 returns the xx64 hash of the input data
+func Twox64(in []byte) ([]byte, error) {
+	hasher := xxhash.NewS64(0)
+	_, err := hasher.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	res := hasher.Sum64()
+	hash := make([]byte, 8)
+	binary.LittleEndian.PutUint64(hash, res)
+	return hash, nil
+}
+
 // Twox256 returns the twox256 hash of the input data
 func Twox256(in []byte) (Hash, error) {
 	h0 := xxhash.NewS64(0)
