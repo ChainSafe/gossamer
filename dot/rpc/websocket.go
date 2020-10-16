@@ -170,6 +170,12 @@ func (c *WSConn) handleComm() {
 				}
 				c.startListener(scl)
 			case "chain_subscribeFinalizedHeads":
+				bfl, err3 := c.initBlockFinalizedListener(reqid)
+				if err3 != nil {
+					logger.Warn("failed to create block finalized", "error", err)
+					continue
+				}
+				c.startListener(bfl)
 			}
 			continue
 		}
@@ -366,5 +372,61 @@ func (l *BlockListener) Listen() {
 			logger.Error("error sending websocket message", "error", err)
 		}
 
+	}
+}
+
+type BlockFinalizedListener struct {
+	channel chan *types.Header
+	wsconn  *WSConn
+	chanID  byte
+	subID   int
+}
+
+func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
+	bfl := &BlockFinalizedListener{
+		channel: make(chan *types.Header),
+		wsconn:  c,
+	}
+
+	if c.blockAPI == nil {
+		err := c.safeSendError(reqID, nil, "error BlockAPI not set")
+		if err != nil {
+			logger.Warn("error sending error message", "error", err)
+		}
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	chanID, err := c.blockAPI.RegisterFinalizedChannel(bfl.channel)
+	if err != nil {
+		return 0, err
+	}
+	bfl.chanID = chanID
+	c.qtyListeners++
+	bfl.subID = c.qtyListeners
+	c.subscriptions[bfl.subID] = bfl
+	c.blockSubChannels[bfl.subID] = chanID
+	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
+	err = c.safeSend(initRes)
+	if err != nil {
+		return 0, err
+	}
+	return bfl.subID, nil
+}
+
+func (l *BlockFinalizedListener) Listen() {
+	for header := range l.channel {
+		if header == nil {
+			continue
+		}
+		head := modules.HeaderToJSON(*header)
+		headM := make(map[string]interface{})
+		headM["result"] = head
+		headM["subscription"] = l.subID
+		res := newSubcriptionBaseResponseJSON()
+		res.Method = "chain_finalizedHead"
+		res.Params = headM
+		err := l.wsconn.safeSend(res)
+		if err != nil {
+			logger.Error("error sending websocket message", "error", err)
+		}
 	}
 }
