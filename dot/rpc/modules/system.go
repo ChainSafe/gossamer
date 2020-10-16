@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -100,7 +99,7 @@ func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *Sy
 	networkState := sm.networkAPI.NetworkState()
 	res.NetworkState.PeerID = networkState.PeerID
 	for _, v := range networkState.Multiaddrs {
-		fmt.Printf("addr %v\n", v)
+		res.NetworkState.Multiaddrs = append(res.NetworkState.Multiaddrs, v.String())
 	}
 	return nil
 }

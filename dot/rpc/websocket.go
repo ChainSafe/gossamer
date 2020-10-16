@@ -33,16 +33,14 @@ import (
 
 // SubscriptionBaseResponseJSON for base json response
 type SubscriptionBaseResponseJSON struct {
-	Jsonrpc      string      `json:"jsonrpc"`
-	Method       string      `json:"method"`
-	Params       interface{} `json:"params"`
-	Subscription int         `json:"subscription"`
+	Jsonrpc string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
 }
 
-func newSubcriptionBaseResponseJSON(subID int) SubscriptionBaseResponseJSON {
+func newSubcriptionBaseResponseJSON() SubscriptionBaseResponseJSON {
 	return SubscriptionBaseResponseJSON{
-		Jsonrpc:      "2.0",
-		Subscription: subID,
+		Jsonrpc: "2.0",
 	}
 }
 
@@ -250,7 +248,14 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	}
 	pA := params.([]interface{})
 	for _, param := range pA {
-		scl.filter[param.(string)] = true
+		switch param.(type) {
+		case []interface{}:
+			for _, p := range param.([]interface{}) {
+				scl.filter[p.(string)] = true
+			}
+		default:
+			return 0, fmt.Errorf("unknow parameter type")
+		}
 	}
 	if c.storageAPI == nil {
 		err := c.safeSendError(reqID, nil, "error StorageAPI not set")
@@ -293,7 +298,8 @@ func (l *StorageChangeListener) Listen() {
 
 		changeM := make(map[string]interface{})
 		changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
-		res := newSubcriptionBaseResponseJSON(l.subID)
+		changeM["subscription"] = l.subID
+		res := newSubcriptionBaseResponseJSON()
 		res.Method = "state_storage"
 		res.Params = changeM
 		err := l.wsconn.safeSend(res)
@@ -351,7 +357,8 @@ func (l *BlockListener) Listen() {
 		head := modules.HeaderToJSON(*block.Header)
 		headM := make(map[string]interface{})
 		headM["result"] = head
-		res := newSubcriptionBaseResponseJSON(l.subID)
+		headM["subscription"] = l.subID
+		res := newSubcriptionBaseResponseJSON()
 		res.Method = "chain_newHead"
 		res.Params = headM
 		err := l.wsconn.safeSend(res)
