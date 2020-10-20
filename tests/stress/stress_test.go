@@ -95,7 +95,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ian"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ian"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
@@ -124,12 +124,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -176,7 +176,7 @@ func TestSync_Bench(t *testing.T) {
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, "alice"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
 	for {
@@ -197,7 +197,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, "bob"), utils.GenesisDefault, utils.ConfigNoBABE, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -243,7 +243,7 @@ func TestSync_Restart(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes

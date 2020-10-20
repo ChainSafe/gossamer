@@ -17,4 +17,5 @@ package modules
 
 import "errors"
 
-var ErrSubscriptionTransport = errors.New("Subscriptions are not available on this transport.")
+// ErrSubscriptionTransport error sent when trying to access websocket subscriptions via http
+var ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")

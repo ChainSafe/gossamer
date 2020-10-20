@@ -65,8 +65,8 @@ func TestChainRPC(t *testing.T) {
 		{
 			description: "test chain_getFinalizedHead",
 			method:      "chain_getFinalizedHead",
-			expected:     "",
-			params: "[]",
+			expected:    "",
+			params:      "[]",
 		},
 	}
 
@@ -126,6 +126,39 @@ func TestChainRPC(t *testing.T) {
 
 			}
 
+		})
+	}
+
+	t.Log("going to tear down gossamer...")
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
+}
+
+func TestChainSubscriptionRPC(t *testing.T) {
+	if utils.MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
+
+	testCases := []*testCase{
+		{
+			description: "test chain_subscribeNewHeads",
+			method:      "chain_subscribeNewHeads",
+			expected:    "",
+			params:      "[]",
+		},
+	}
+
+	t.Log("starting gossamer...")
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	require.Nil(t, err)
+
+	time.Sleep(time.Second) // give server a second to start
+
+	for _, test := range testCases {
+
+		t.Run(test.description, func(t *testing.T) {
+			// todo add websocket call here
 		})
 	}
 
