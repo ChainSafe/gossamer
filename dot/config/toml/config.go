@@ -18,70 +18,70 @@ package toml
 
 // Config is a collection of configurations throughout the system
 type Config struct {
-	Global  GlobalConfig  `toml:"global"`
-	Log     LogConfig     `toml:"log"`
-	Init    InitConfig    `toml:"init"`
-	Account AccountConfig `toml:"account"`
-	Core    CoreConfig    `toml:"core"`
-	Network NetworkConfig `toml:"network"`
-	RPC     RPCConfig     `toml:"rpc"`
+	Global  GlobalConfig  `toml:"global,omitempty"`
+	Log     LogConfig     `toml:"log,omitempty"`
+	Init    InitConfig    `toml:"init,omitempty"`
+	Account AccountConfig `toml:"account,omitempty"`
+	Core    CoreConfig    `toml:"core,omitempty"`
+	Network NetworkConfig `toml:"network,omitempty"`
+	RPC     RPCConfig     `toml:"rpc,omitempty"`
 }
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
 type GlobalConfig struct {
-	Name     string `toml:"name"`
-	ID       string `toml:"id"`
-	BasePath string `toml:"basepath"`
-	LogLvl   string `toml:"log"`
+	Name     string `toml:"name,omitempty"`
+	ID       string `toml:"id,omitempty"`
+	BasePath string `toml:"basepath,omitempty"`
+	LogLvl   string `toml:"log,omitempty"`
 }
 
 // LogConfig represents the log levels for individual packages
 type LogConfig struct {
-	CoreLvl           string `toml:"core"`
-	SyncLvl           string `toml:"sync"`
-	NetworkLvl        string `toml:"network"`
-	RPCLvl            string `toml:"rpc"`
-	StateLvl          string `toml:"state"`
-	RuntimeLvl        string `toml:"runtime"`
-	BlockProducerLvl  string `toml:"babe"`
-	FinalityGadgetLvl string `toml:"grandpa"`
+	CoreLvl           string `toml:"core,omitempty"`
+	SyncLvl           string `toml:"sync,omitempty"`
+	NetworkLvl        string `toml:"network,omitempty"`
+	RPCLvl            string `toml:"rpc,omitempty"`
+	StateLvl          string `toml:"state,omitempty"`
+	RuntimeLvl        string `toml:"runtime,omitempty"`
+	BlockProducerLvl  string `toml:"babe,omitempty"`
+	FinalityGadgetLvl string `toml:"grandpa,omitempty"`
 }
 
 // InitConfig is the configuration for the node initialization
 type InitConfig struct {
-	GenesisRaw string `toml:"genesis-raw"`
+	GenesisRaw string `toml:"genesis-raw,omitempty"`
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
 type AccountConfig struct {
-	Key    string `toml:"key"`
-	Unlock string `toml:"unlock"`
+	Key    string `toml:"key,omitempty"`
+	Unlock string `toml:"unlock,omitempty"`
 }
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port        uint32   `toml:"port"`
-	Bootnodes   []string `toml:"bootnodes"`
-	ProtocolID  string   `toml:"protocol"`
-	NoBootstrap bool     `toml:"nobootstrap"`
-	NoMDNS      bool     `toml:"nomdns"`
+	Port        uint32   `toml:"port,omitempty"`
+	Bootnodes   []string `toml:"bootnodes,omitempty"`
+	ProtocolID  string   `toml:"protocol,omitempty"`
+	NoBootstrap bool     `toml:"nobootstrap,omitempty"`
+	NoMDNS      bool     `toml:"nomdns,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles            byte   `toml:"roles"`
-	BabeAuthority    bool   `toml:"babe-authority"`
-	GrandpaAuthority bool   `toml:"grandpa-authority"`
-	BabeThreshold    string `toml:"babe-threshold"`
-	SlotDuration     uint64 `toml:"slot-duration"`
+	Roles            byte   `toml:"roles,omitempty"`
+	BabeAuthority    bool   `toml:"babe-authority,omitempty"`
+	GrandpaAuthority bool   `toml:"grandpa-authority,omitempty"`
+	BabeThreshold    string `toml:"babe-threshold,omitempty"`
+	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled   bool     `toml:"enabled"`
-	Port      uint32   `toml:"port"`
-	Host      string   `toml:"host"`
-	Modules   []string `toml:"modules"`
-	WSPort    uint32   `toml:"ws-port"`
-	WSEnabled bool     `toml:"ws-enabled"`
+	Enabled   bool     `toml:"enabled,omitempty"`
+	Port      uint32   `toml:"port,omitempty"`
+	Host      string   `toml:"host,omitempty"`
+	Modules   []string `toml:"modules,omitempty"`
+	WSPort    uint32   `toml:"ws-port,omitempty"`
+	WSEnabled bool     `toml:"ws-enabled,omitempty"`
 }

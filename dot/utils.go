@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -187,24 +188,32 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 
 // ExportConfig exports a dot configuration to a toml configuration file
 func ExportConfig(cfg *Config, fp string) *os.File {
-	var (
-		newFile *os.File
-		err     error
-		raw     []byte
-	)
-
-	if raw, err = toml.Marshal(*cfg); err != nil {
+	raw, err := toml.Marshal(*cfg)
+	if  err != nil {
 		logger.Error("failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
+	return WriteConfig(raw, fp)
+}
 
-	newFile, err = os.Create(filepath.Clean(fp))
+// ExportTomlConfig exports a dot configuration to a toml configuration file
+func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
+	raw, err := toml.Marshal(*cfg)
+	if  err != nil {
+		logger.Error("failed to marshal configuration", "error", err)
+		os.Exit(1)
+	}
+	return WriteConfig(raw, fp)
+}
+
+func WriteConfig(data []byte, fp string) *os.File  {
+	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
 		logger.Error("failed to create configuration file", "error", err)
 		os.Exit(1)
 	}
 
-	_, err = newFile.Write(raw)
+	_, err = newFile.Write(data)
 	if err != nil {
 		logger.Error("failed to write to configuration file", "error", err)
 		os.Exit(1)
@@ -217,3 +226,4 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 
 	return newFile
 }
+

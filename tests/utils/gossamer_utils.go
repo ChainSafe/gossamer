@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	log "github.com/ChainSafe/log15"
@@ -355,7 +356,7 @@ func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
 }
 
-func GenerateDefaultConfig() *ctoml.Config {
+func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config {
 		Global:  ctoml.GlobalConfig{
 			Name:     "gssmr",
@@ -393,9 +394,8 @@ func GenerateDefaultConfig() *ctoml.Config {
 	}
 }
 
-// ConfigBabeMaxThreshold
-func GenerateConfigBabeMaxThreshold() *ctoml.Config  {
-	cfg := GenerateDefaultConfig()
+func generateConfigBabeMaxThreshold() *ctoml.Config  {
+	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:           "debug",
 		NetworkLvl:        "debug",
@@ -406,21 +406,20 @@ func GenerateConfigBabeMaxThreshold() *ctoml.Config  {
 		BabeAuthority:    true,
 		GrandpaAuthority: true,
 		BabeThreshold:    "max",
-		SlotDuration:     100,
+		SlotDuration:     500,
 	}
+	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
 	return cfg
 }
 
-// GenerateConfigBabeMaxBench configuration
-func GenerateConfigBabeMaxBench() *ctoml.Config {
-	cfg := GenerateConfigBabeMaxThreshold()
-	cfg.Core.SlotDuration = 100
-	return cfg
+// CreateConfigBabeMaxThreshold generates and creates babe max threshold config file.
+func CreateConfigBabeMaxThreshold() {
+	cfg := generateConfigBabeMaxThreshold()
+	_ = dot.ExportTomlConfig(cfg, ConfigBABEMaxThreshold)
 }
 
-// ConfigLogGrandpa
-func GenerateConfigLogGrandpa() *ctoml.Config {
-	cfg := GenerateDefaultConfig()
+func generateConfigLogGrandpa() *ctoml.Config {
+	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
 		CoreLvl:           "crit",
 		NetworkLvl:        "debug",
@@ -431,14 +430,26 @@ func GenerateConfigLogGrandpa() *ctoml.Config {
 	return cfg
 }
 
-// ConfigNoBabe
-func GenerateConfigNoBabe() *ctoml.Config {
-	cfg := GenerateDefaultConfig()
+// CreateConfigLogGrandpa generates and creates grandpa config file.
+func CreateConfigLogGrandpa() {
+	cfg := generateConfigLogGrandpa()
+	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
+}
+
+func generateConfigNoBabe() *ctoml.Config {
+	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:           "debug",
 		NetworkLvl:        "debug",
 	}
 	cfg.Core.BabeThreshold = "max"
+	cfg.Core.BabeAuthority = false
 	return cfg
+}
+
+// CreateConfigLogGrandpa generates and creates no babe config file.
+func CreateConfigNoBabe() {
+	cfg := generateConfigNoBabe()
+	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
 }
