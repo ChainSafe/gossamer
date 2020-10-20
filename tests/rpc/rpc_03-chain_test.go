@@ -62,10 +62,11 @@ func TestChainRPC(t *testing.T) {
 			expected:    "",
 			params:      "[]",
 		},
-		{ //TODO
+		{
 			description: "test chain_getFinalizedHead",
 			method:      "chain_getFinalizedHead",
-			skip:        true,
+			expected:     "",
+			params: "[]",
 		},
 	}
 
