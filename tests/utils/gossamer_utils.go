@@ -357,24 +357,24 @@ func TestDir(t *testing.T, name string) string {
 }
 
 func generateDefaultConfig() *ctoml.Config {
-	return &ctoml.Config {
-		Global:  ctoml.GlobalConfig{
-			Name:     "gssmr",
-			ID:       "gssmr",
-			LogLvl:   "crit",
+	return &ctoml.Config{
+		Global: ctoml.GlobalConfig{
+			Name:   "gssmr",
+			ID:     "gssmr",
+			LogLvl: "crit",
 		},
-		Log:     ctoml.LogConfig{
-			CoreLvl:           "info",
-			SyncLvl:           "info",
+		Log: ctoml.LogConfig{
+			CoreLvl: "info",
+			SyncLvl: "info",
 		},
-		Init:    ctoml.InitConfig{
+		Init: ctoml.InitConfig{
 			GenesisRaw: "./chain/gssmr/genesis-raw.json",
 		},
 		Account: ctoml.AccountConfig{
 			Key:    "",
 			Unlock: "",
 		},
-		Core:    ctoml.CoreConfig{
+		Core: ctoml.CoreConfig{
 			Roles:            4,
 			BabeAuthority:    true,
 			GrandpaAuthority: true,
@@ -385,7 +385,7 @@ func generateDefaultConfig() *ctoml.Config {
 			NoBootstrap: false,
 			NoMDNS:      false,
 		},
-		RPC:     ctoml.RPCConfig{
+		RPC: ctoml.RPCConfig{
 			Enabled:   false,
 			Host:      "localhost",
 			Modules:   []string{"system", "author", "chain", "state"},
@@ -394,14 +394,14 @@ func generateDefaultConfig() *ctoml.Config {
 	}
 }
 
-func generateConfigBabeMaxThreshold() *ctoml.Config  {
+func generateConfigBabeMaxThreshold() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:           "debug",
-		NetworkLvl:        "debug",
-		BlockProducerLvl:  "info",
+		SyncLvl:          "debug",
+		NetworkLvl:       "debug",
+		BlockProducerLvl: "info",
 	}
-	cfg.Core =  ctoml.CoreConfig{
+	cfg.Core = ctoml.CoreConfig{
 		Roles:            4,
 		BabeAuthority:    true,
 		GrandpaAuthority: true,
@@ -440,15 +440,15 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:           "debug",
-		NetworkLvl:        "debug",
+		SyncLvl:    "debug",
+		NetworkLvl: "debug",
 	}
 	cfg.Core.BabeThreshold = "max"
 	cfg.Core.BabeAuthority = false
 	return cfg
 }
 
-// CreateConfigLogGrandpa generates and creates no babe config file.
+// CreateConfigNoBabe generates and creates no babe config file.
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
 	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)

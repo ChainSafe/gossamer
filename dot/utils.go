@@ -189,7 +189,7 @@ func NewTestConfigWithFile(t *testing.T) (*Config, *os.File) {
 // ExportConfig exports a dot configuration to a toml configuration file
 func ExportConfig(cfg *Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
-	if  err != nil {
+	if err != nil {
 		logger.Error("failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
@@ -199,14 +199,15 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 // ExportTomlConfig exports a dot configuration to a toml configuration file
 func ExportTomlConfig(cfg *ctoml.Config, fp string) *os.File {
 	raw, err := toml.Marshal(*cfg)
-	if  err != nil {
+	if err != nil {
 		logger.Error("failed to marshal configuration", "error", err)
 		os.Exit(1)
 	}
 	return WriteConfig(raw, fp)
 }
 
-func WriteConfig(data []byte, fp string) *os.File  {
+// WriteConfig writes the config `data` in the file 'fp'.
+func WriteConfig(data []byte, fp string) *os.File {
 	newFile, err := os.Create(filepath.Clean(fp))
 	if err != nil {
 		logger.Error("failed to create configuration file", "error", err)
@@ -226,4 +227,3 @@ func WriteConfig(data []byte, fp string) *os.File  {
 
 	return newFile
 }
-
