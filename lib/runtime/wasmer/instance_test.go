@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInstance_Version_NodeRuntime(t *testing.T) {
+func TestInstance_Version_LegacyNodeRuntime(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
 	expected := &runtime.Version{
 		Spec_name:         []byte("node"),
@@ -34,7 +34,7 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 		Impl_version:      193,
 	}
 
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	ret, err := instance.exec(runtime.CoreVersion, []byte{})
 	require.Nil(t, err)

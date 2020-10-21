@@ -34,7 +34,7 @@ func TestInstance_GrandpaAuthoritiesNodeRuntime(t *testing.T) {
 	err = tt.Put(runtime.TestAuthorityDataKey, value)
 	require.NoError(t, err)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -53,8 +53,8 @@ func TestInstance_GrandpaAuthoritiesNodeRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_BabeConfiguration_LegacyNodeRuntime_NoAuthorities(t *testing.T) {
+	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -77,7 +77,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 	}
 }
 
-func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
+func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	// randomness key
@@ -112,7 +112,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -143,8 +143,8 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	}
 }
 
-func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_InitializeBlock_LegacyNodeRuntime(t *testing.T) {
+	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -156,8 +156,8 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	}
 }
 
-func TestInstance_InherentExtrinsics_Timestamp_NodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_InherentExtrinsics_Timestamp_LegacyNodeRuntime(t *testing.T) {
+	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
@@ -182,8 +182,8 @@ func TestInstance_InherentExtrinsics_Timestamp_NodeRuntime(t *testing.T) {
 	}
 }
 
-func TestInstance_InherentExtrinsics_Finalnum_NodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_InherentExtrinsics_Finalnum_LegacyNodeRuntime(t *testing.T) {
+	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
@@ -211,8 +211,8 @@ func TestInstance_InherentExtrinsics_Finalnum_NodeRuntime(t *testing.T) {
 	}
 }
 
-func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
@@ -274,7 +274,7 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }
 
-// TODO: the following tests need to be updated to use NODE_RUNTIME.
+// TODO: the following tests need to be updated to use LEGACY_NODE_RUNTIME.
 // this will likely result in some of them being removed (need to determine what extrinsic types are valid)
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
@@ -457,7 +457,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.ctx.Storage.Get([]byte("testkey"))
+	val, err := rt.inst.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("testvalue"), val)
 
@@ -469,7 +469,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	val, err = rt.ctx.Storage.Get([]byte("testkey"))
+	val, err = rt.inst.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("testvalue"), val)
 }
@@ -493,7 +493,7 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.ctx.Storage.Get([]byte("testkey"))
+	val, err := rt.inst.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte(nil), val)
 }
@@ -547,7 +547,7 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	bb := [32]byte{}
 	copy(bb[:], bob)
 
-	rt.ctx.Storage.SetBalance(ab, 2000)
+	rt.inst.ctx.Storage.SetBalance(ab, 2000)
 
 	transfer := extrinsic.NewTransfer(ab, bb, 1000, 0)
 	ext, err := transfer.AsSignedExtrinsic(kr.Alice().Private().(*sr25519.PrivateKey))
@@ -563,11 +563,11 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 
 	// TODO: not sure if alice's balance is getting decremented properly, seems like it's always getting set to the transfer amount
-	bal, err := rt.ctx.Storage.GetBalance(ab)
+	bal, err := rt.inst.ctx.Storage.GetBalance(ab)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 
-	bal, err = rt.ctx.Storage.GetBalance(bb)
+	bal, err = rt.inst.ctx.Storage.GetBalance(bb)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 }

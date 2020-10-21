@@ -58,7 +58,7 @@ var firstEpochInfo = &types.EpochInfo{
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
 
 	babeCfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)

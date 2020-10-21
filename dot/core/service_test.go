@@ -115,7 +115,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestHandleRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -236,7 +236,7 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	cfg := &Config{
-		// TODO: change to NODE_RUNTIME
+		// TODO: change to LEGACY_NODE_RUNTIME
 		Runtime: wasmer.NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME),
 	}
 

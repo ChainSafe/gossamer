@@ -68,7 +68,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+		cfg.Runtime = wasmer.NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	}
 
 	if cfg.TransactionState == nil {

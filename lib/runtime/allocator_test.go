@@ -367,20 +367,14 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	mem := make([]byte, 1<<16)
 
 	pagesNeeded := (MaxPossibleAllocation / pageSize) - (len(mem) / pageSize) + 1
-	// err := mem.Grow(pagesNeeded)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 	mem = make([]byte, len(mem)+pagesNeeded*65*1024)
 	fbha := NewAllocator(mem, 0)
 
-	// when
 	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
 	if err != nil {
 		t.Error(err)
 	}
 
-	//then
 	t.Log("ptr1", ptr1)
 	if ptr1 != 8 {
 		t.Errorf("Expected value of 8")

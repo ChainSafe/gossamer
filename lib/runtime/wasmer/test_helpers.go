@@ -102,13 +102,15 @@ func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
 
 	switch targetRuntime {
 	case runtime.SUBSTRATE_TEST_RUNTIME:
-		registerImports = RegisterImports_TestRuntime
+		registerImports = ImportsTestRuntime
+	case runtime.LEGACY_NODE_RUNTIME:
+		registerImports = ImportsLegacyNodeRuntime
 	case runtime.NODE_RUNTIME:
-		registerImports = RegisterImports_NodeRuntime
+		registerImports = ImportsNodeRuntime
 	case runtime.TEST_RUNTIME:
-		registerImports = RegisterImports_NodeRuntime
+		registerImports = ImportsLegacyNodeRuntime
 	default:
-		registerImports = RegisterImports_NodeRuntime
+		registerImports = ImportsLegacyNodeRuntime
 	}
 
 	return registerImports

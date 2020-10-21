@@ -33,7 +33,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// TestAuthorityDataKey is the location of GRANDPA authority data in the storage trie for NODE_RUNTIME
+// TestAuthorityDataKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME
 var TestAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
@@ -44,6 +44,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 	switch targetRuntime {
 	case SUBSTRATE_TEST_RUNTIME:
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(SUBSTRATE_TEST_RUNTIME_FP), SUBSTRATE_TEST_RUNTIME_URL
+	case LEGACY_NODE_RUNTIME:
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(LEGACY_NODE_RUNTIME_FP), LEGACY_NODE_RUNTIME_URL
 	case NODE_RUNTIME:
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
 	case TEST_RUNTIME:
