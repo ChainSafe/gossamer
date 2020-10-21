@@ -159,7 +159,7 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		instance.Memory = memory
 	}
 
-	allocator := runtime.NewAllocator(instance.Memory.Data(), 0)
+	allocator := runtime.NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := &runtime.Context{
 		Storage:     cfg.Storage,
