@@ -140,6 +140,15 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 	return nil
 }
 
+func (fbha *FreeingBumpHeapAllocator) Clear() {
+	fbha.bumper = 0
+	fbha.TotalSize = 0
+
+	for i := range fbha.heads {
+    fbha.heads[i] = 0
+	}
+}
+
 func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
 	res := fbha.bumper
 	fbha.bumper += qty
