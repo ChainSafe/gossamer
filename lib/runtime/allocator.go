@@ -60,13 +60,14 @@ type FreeingBumpHeapAllocator struct {
 func NewAllocator(mem []byte, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	currentSize := len(mem)
-	// we don't include offset memory in the heap
-	heapSize := uint32(currentSize) - ptrOffset
 
 	padding := ptrOffset % alignment
 	if padding != 0 {
 		ptrOffset += alignment - padding
 	}
+
+	// we don't include offset memory in the heap
+	heapSize := uint32(currentSize) - ptrOffset
 
 	fbha.bumper = 0
 	fbha.heap = mem
