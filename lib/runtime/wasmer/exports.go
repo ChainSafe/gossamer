@@ -185,7 +185,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return in.inst.ExecuteBlock(block)
 }
 
-func (in *Instance) CheckInherents()      {}
-func (in *Instance) RandomSeed()          {}
-func (in *Instance) OffchainWorker()      {}
-func (in *Instance) GenerateSessionKeys() {}
+func (in *Instance) CheckInherents()      {} //nolint
+func (in *Instance) RandomSeed()          {} //nolint
+func (in *Instance) OffchainWorker()      {} //nolint
+func (in *Instance) GenerateSessionKeys() {} //nolint

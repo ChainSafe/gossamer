@@ -41,6 +41,7 @@ type Instance interface {
 	GenerateSessionKeys()
 }
 
+// InstanceAPI is the interface that any runtime instance must implement
 type InstanceAPI interface {
 	Stop()
 	NodeStorage() NodeStorage
@@ -50,6 +51,7 @@ type InstanceAPI interface {
 	SetContext(s Storage) // used to set the TrieState before a runtime call
 }
 
+// LegacyRuntimeAPI is the interface that a legacy runtime instance must implement
 type LegacyRuntimeAPI interface {
 	Version() (*VersionAPI, error)
 	Metadata() ([]byte, error)
