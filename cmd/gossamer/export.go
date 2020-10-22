@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot"
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -76,17 +77,17 @@ func exportAction(ctx *cli.Context) error {
 	return nil
 }
 
-func dotConfigToToml(dcfg *dot.Config) *Config {
-	cfg := &Config{}
+func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
+	cfg := &ctoml.Config{}
 
-	cfg.Global = GlobalConfig{
+	cfg.Global = ctoml.GlobalConfig{
 		Name:     dcfg.Global.Name,
 		ID:       dcfg.Global.ID,
 		BasePath: dcfg.Global.BasePath,
 		LogLvl:   dcfg.Global.LogLvl.String(),
 	}
 
-	cfg.Log = LogConfig{
+	cfg.Log = ctoml.LogConfig{
 		CoreLvl:           dcfg.Log.CoreLvl.String(),
 		SyncLvl:           dcfg.Log.SyncLvl.String(),
 		NetworkLvl:        dcfg.Log.NetworkLvl.String(),
@@ -97,16 +98,16 @@ func dotConfigToToml(dcfg *dot.Config) *Config {
 		FinalityGadgetLvl: dcfg.Log.FinalityGadgetLvl.String(),
 	}
 
-	cfg.Init = InitConfig{
+	cfg.Init = ctoml.InitConfig{
 		GenesisRaw: dcfg.Init.GenesisRaw,
 	}
 
-	cfg.Account = AccountConfig{
+	cfg.Account = ctoml.AccountConfig{
 		Key:    dcfg.Account.Key,
 		Unlock: dcfg.Account.Unlock,
 	}
 
-	cfg.Core = CoreConfig{
+	cfg.Core = ctoml.CoreConfig{
 		Roles:            dcfg.Core.Roles,
 		BabeAuthority:    dcfg.Core.BabeAuthority,
 		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
@@ -114,7 +115,7 @@ func dotConfigToToml(dcfg *dot.Config) *Config {
 		SlotDuration:     dcfg.Core.SlotDuration,
 	}
 
-	cfg.Network = NetworkConfig{
+	cfg.Network = ctoml.NetworkConfig{
 		Port:        dcfg.Network.Port,
 		Bootnodes:   dcfg.Network.Bootnodes,
 		ProtocolID:  dcfg.Network.ProtocolID,
@@ -122,7 +123,7 @@ func dotConfigToToml(dcfg *dot.Config) *Config {
 		NoMDNS:      dcfg.Network.NoMDNS,
 	}
 
-	cfg.RPC = RPCConfig{
+	cfg.RPC = ctoml.RPCConfig{
 		Enabled:   dcfg.RPC.Enabled,
 		Port:      dcfg.RPC.Port,
 		Host:      dcfg.RPC.Host,

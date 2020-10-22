@@ -69,6 +69,9 @@ func TestChainRPC(t *testing.T) {
 		},
 	}
 
+	utils.CreateConfigBabeMaxThreshold()
+	defer os.Remove(utils.ConfigBABEMaxThreshold)
+
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
 	require.Nil(t, err)
