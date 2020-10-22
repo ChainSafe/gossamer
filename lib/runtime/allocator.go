@@ -146,7 +146,7 @@ func (fbha *FreeingBumpHeapAllocator) Clear() {
 	fbha.TotalSize = 0
 
 	for i := range fbha.heads {
-    fbha.heads[i] = 0
+		fbha.heads[i] = 0
 	}
 }
 
