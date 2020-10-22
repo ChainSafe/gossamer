@@ -282,7 +282,7 @@ func buildSpecAction(ctx *cli.Context) error {
 
 	var bs *dot.BuildSpec
 	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-		bspec, e := dot.BuildFromGenesis(genesis)
+		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
 			return e
 		}

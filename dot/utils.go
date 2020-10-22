@@ -94,7 +94,7 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 
 	fp := utils.GetGssmrGenesisPath()
 
-	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
+	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
 	require.Nil(t, err)
 
 	gen := &genesis.Genesis{
@@ -216,4 +216,34 @@ func ExportConfig(cfg *Config, fp string) *os.File {
 	}
 
 	return newFile
+}
+
+// WriteConfig writes the config `data` in the file 'fp'.
+func WriteConfig(data []byte, fp string) *os.File {
+	newFile, err := os.Create(filepath.Clean(fp))
+	if err != nil {
+		logger.Error("failed to create configuration file", "error", err)
+		os.Exit(1)
+	}
+
+	_, err = newFile.Write(data)
+	if err != nil {
+		logger.Error("failed to write to configuration file", "error", err)
+		os.Exit(1)
+	}
+	if err := newFile.Close(); err != nil {
+		logger.Error("failed to close configuration file", "error", err)
+		os.Exit(1)
+	}
+	return newFile
+}
+
+// CreateJdonRawFile will generate an Json File
+func CreateJsonRawFile(bs *BuildSpec, fp string) *os.File {
+	data, err := bs.ToJSONRaw()
+	if err != nil {
+		logger.Error("failed to convert into raw json", "error", err)
+		os.Exit(1)
+	}
+	return WriteConfig(data, fp)
 }

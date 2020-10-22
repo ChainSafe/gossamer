@@ -73,7 +73,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 	require.NotNil(t, genRawFile)
 	defer os.Remove(genRawFile.Name())
 
-	genHR, err := genesis.NewGenesisFromJSON(genHRFile.Name())
+	genHR, err := genesis.NewGenesisFromJSON(genHRFile.Name(), 0)
 	require.NoError(t, err)
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile.Name())
 	require.NoError(t, err)

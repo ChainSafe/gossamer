@@ -108,7 +108,7 @@ func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instanc
 }
 
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file
-func NewGenesisFromJSON(file string) (*Genesis, error) {
+func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	}
 
 	grt := g.Genesis.Runtime
-	res, err := buildRawMap(grt)
+	res, err := buildRawMap(grt, authCount)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +144,12 @@ type keyValue struct {
 	valueLen *big.Int
 }
 
-func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
+func buildRawMap(m map[string]map[string]interface{}, authCount int) (map[string]string, error) {
 	res := make(map[string]string)
 	for k, v := range m {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
-		buildRawMapInterface(v, kv)
+		buildRawMapInterface(v, kv, authCount)
 
 		key, err := formatKey(kv.key)
 		if err != nil {
@@ -165,24 +165,32 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	return res, nil
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
+func buildRawMapInterface(m map[string]interface{}, kv *keyValue, authCount int) {
 	for k, v := range m {
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
 		case []interface{}:
 			kv.valueLen = big.NewInt(int64(len(v2)))
-			buildRawArrayInterface(v2, kv)
+			buildRawArrayInterface(v2, kv, authCount)
 		case string:
 			kv.value = v2
 		}
 	}
 }
 
-func buildRawArrayInterface(a []interface{}, kv *keyValue) {
+func buildRawArrayInterface(a []interface{}, kv *keyValue, authCount int) {
+	if authCount == 0 {
+		authCount = len(a)
+	}
+
+	count := 0
 	for _, v := range a {
+		if count >= authCount {
+			break
+		}
 		switch v2 := v.(type) {
 		case []interface{}:
-			buildRawArrayInterface(v2, kv)
+			buildRawArrayInterface(v2, kv, authCount)
 		case string:
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
@@ -194,6 +202,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 		}
+		count++
 	}
 }
 
