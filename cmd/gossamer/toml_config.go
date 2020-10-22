@@ -24,80 +24,12 @@ import (
 	"unicode"
 
 	"github.com/naoina/toml"
+
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 )
 
-// Config is a collection of configurations throughout the system
-type Config struct {
-	Global  GlobalConfig  `toml:"global"`
-	Log     LogConfig     `toml:"log"`
-	Init    InitConfig    `toml:"init"`
-	Account AccountConfig `toml:"account"`
-	Core    CoreConfig    `toml:"core"`
-	Network NetworkConfig `toml:"network"`
-	RPC     RPCConfig     `toml:"rpc"`
-}
-
-// GlobalConfig is to marshal/unmarshal toml global config vars
-type GlobalConfig struct {
-	Name     string `toml:"name"`
-	ID       string `toml:"id"`
-	BasePath string `toml:"basepath"`
-	LogLvl   string `toml:"log"`
-}
-
-// LogConfig represents the log levels for individual packages
-type LogConfig struct {
-	CoreLvl           string `toml:"core"`
-	SyncLvl           string `toml:"sync"`
-	NetworkLvl        string `toml:"network"`
-	RPCLvl            string `toml:"rpc"`
-	StateLvl          string `toml:"state"`
-	RuntimeLvl        string `toml:"runtime"`
-	BlockProducerLvl  string `toml:"babe"`
-	FinalityGadgetLvl string `toml:"grandpa"`
-}
-
-// InitConfig is the configuration for the node initialization
-type InitConfig struct {
-	GenesisRaw string `toml:"genesis-raw"`
-}
-
-// AccountConfig is to marshal/unmarshal account config vars
-type AccountConfig struct {
-	Key    string `toml:"key"`
-	Unlock string `toml:"unlock"`
-}
-
-// NetworkConfig is to marshal/unmarshal toml network config vars
-type NetworkConfig struct {
-	Port        uint32   `toml:"port"`
-	Bootnodes   []string `toml:"bootnodes"`
-	ProtocolID  string   `toml:"protocol"`
-	NoBootstrap bool     `toml:"nobootstrap"`
-	NoMDNS      bool     `toml:"nomdns"`
-}
-
-// CoreConfig is to marshal/unmarshal toml core config vars
-type CoreConfig struct {
-	Roles            byte   `toml:"roles"`
-	BabeAuthority    bool   `toml:"babe-authority"`
-	GrandpaAuthority bool   `toml:"grandpa-authority"`
-	BabeThreshold    string `toml:"babe-threshold"`
-	SlotDuration     uint64 `toml:"slot-duration"`
-}
-
-// RPCConfig is to marshal/unmarshal toml RPC config vars
-type RPCConfig struct {
-	Enabled   bool     `toml:"enabled"`
-	Port      uint32   `toml:"port"`
-	Host      string   `toml:"host"`
-	Modules   []string `toml:"modules"`
-	WSPort    uint32   `toml:"ws-port"`
-	WSEnabled bool     `toml:"ws-enabled"`
-}
-
 // loadConfig loads the values from the toml configuration file into the provided configuration
-func loadConfig(cfg *Config, fp string) error {
+func loadConfig(cfg *ctoml.Config, fp string) error {
 	fp, err := filepath.Abs(fp)
 	if err != nil {
 		logger.Error("failed to create absolute path for toml configuration file", "error", err)
@@ -135,7 +67,7 @@ func loadConfig(cfg *Config, fp string) error {
 }
 
 // exportConfig exports a dot configuration to a toml configuration file
-func exportConfig(cfg *Config, fp string) *os.File {
+func exportConfig(cfg *ctoml.Config, fp string) *os.File {
 	var (
 		newFile *os.File
 		err     error
