@@ -174,10 +174,6 @@ func (r *Instance) malloc(size uint32) (uint32, error) {
 	return r.ctx.Allocator.Allocate(size)
 }
 
-func (r *Instance) free(ptr uint32) error {
-	return r.ctx.Allocator.Deallocate(ptr)
-}
-
 func (r *Instance) clear() {
 	r.ctx.Allocator.Clear()
 }

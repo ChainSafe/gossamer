@@ -141,6 +141,7 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 	return nil
 }
 
+// Clear resets the allocator, effectively freeing all allocated memory
 func (fbha *FreeingBumpHeapAllocator) Clear() {
 	fbha.bumper = 0
 	fbha.TotalSize = 0
