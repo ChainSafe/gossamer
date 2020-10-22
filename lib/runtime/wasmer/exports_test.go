@@ -25,7 +25,98 @@ import (
 var kr, _ = keystore.NewSr25519Keyring()
 var maxRetries = 10
 
-func TestInstance_GrandpaAuthoritiesNodeRuntime(t *testing.T) {
+func TestInstance_Version_NodeRuntime(t *testing.T) {
+	expected := &runtime.Version{
+		Spec_name:         []byte("node"),
+		Impl_name:         []byte("substrate-node"),
+		Authoring_version: 10,
+		Spec_version:      260,
+		Impl_version:      0,
+	}
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	require.Nil(t, err)
+
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
+	require.Nil(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func TestInstance_Version_LegacyNodeRuntime(t *testing.T) {
+	expected := &runtime.Version{
+		Spec_name:         []byte("node"),
+		Impl_name:         []byte("substrate-node"),
+		Authoring_version: 10,
+		Spec_version:      193,
+		Impl_version:      193,
+	}
+
+	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+
+	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	require.Nil(t, err)
+
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
+	require.Nil(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func TestInstance_Version_TestRuntime(t *testing.T) {
+	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
+	expected := &runtime.Version{
+		Spec_name:         []byte("test"),
+		Impl_name:         []byte("parity-test"),
+		Authoring_version: 1,
+		Spec_version:      1,
+		Impl_version:      1,
+	}
+
+	instance := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+
+	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	require.Nil(t, err)
+
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
+	require.Nil(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")

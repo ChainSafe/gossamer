@@ -285,7 +285,7 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 
 func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	lim := wasmtime.Limits{
-		Min: 24,
+		Min: 20,
 		Max: wasmtime.LimitsMaxNone,
 	}
 	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))

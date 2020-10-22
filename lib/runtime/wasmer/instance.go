@@ -29,8 +29,8 @@ import (
 var _ runtime.LegacyInstance = (*LegacyInstance)(nil)
 var _ runtime.Instance = (*Instance)(nil)
 
-var memory, memErr = wasm.NewMemory(17, 0)
 var logger = log.New("pkg", "runtime", "module", "go-wasmer")
+var memory *wasm.Memory
 
 // Config represents a wasmer configuration
 type Config struct {
@@ -81,6 +81,10 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	inst.vm.Memory = memory
+	allocator := runtime.NewAllocator(inst.vm.Memory.Data(), 0)
+	inst.ctx.Allocator = allocator
 
 	// TODO: verify that v0.8 specific funcs are available
 	return &Instance{
@@ -159,19 +163,14 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		return nil, err
 	}
 
-	if instance.Memory == nil {
-		if memErr != nil {
-			return nil, err
-		}
-
-		instance.Memory = memory
+	var allocator *runtime.FreeingBumpHeapAllocator
+	if instance.Memory != nil {
+		allocator = runtime.NewAllocator(instance.Memory.Data(), 0)
 	}
-
-	memAllocator := runtime.NewAllocator(instance.Memory.Data(), 0)
 
 	runtimeCtx := &runtime.Context{
 		Storage:     cfg.Storage,
-		Allocator:   memAllocator,
+		Allocator:   allocator,
 		Keystore:    cfg.Keystore,
 		Validator:   cfg.Role == byte(4),
 		NodeStorage: cfg.NodeStorage,

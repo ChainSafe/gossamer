@@ -101,7 +101,7 @@ func ext_print_num(context unsafe.Pointer, data C.int64_t) {
 }
 
 //export ext_malloc
-func ext_malloc(context unsafe.Pointer, size int32) int32 {
+func ext_malloc(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	logger.Trace("[ext_malloc] executing...", "size", size)
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := instanceContext.Data()
@@ -117,11 +117,11 @@ func ext_malloc(context unsafe.Pointer, size int32) int32 {
 		panic(err)
 	}
 
-	return int32(res)
+	return C.int32_t(res)
 }
 
 //export ext_free
-func ext_free(context unsafe.Pointer, addr int32) {
+func ext_free(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_free] executing...", "addr", addr)
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -136,7 +136,7 @@ func ext_free(context unsafe.Pointer, addr int32) {
 
 // prints string located in memory at location `offset` with length `size`
 //export ext_print_utf8
-func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len int32) {
+func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len C.int32_t) {
 	logger.Trace("[ext_print_utf8] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -145,7 +145,7 @@ func ext_print_utf8(context unsafe.Pointer, utf8_data, utf8_len int32) {
 
 // prints hex formatted bytes located in memory at location `offset` with length `size`
 //export ext_print_hex
-func ext_print_hex(context unsafe.Pointer, offset, size int32) {
+func ext_print_hex(context unsafe.Pointer, offset, size C.int32_t) {
 	logger.Trace("[ext_print_hex] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -155,7 +155,7 @@ func ext_print_hex(context unsafe.Pointer, offset, size int32) {
 // gets the key stored at memory location `keyData` with length `keyLen` and stores the value in memory at
 // location `valueData`. the value can have up to value `valueLen` and the returned value starts at value[valueOffset:]
 //export ext_get_storage_into
-func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
+func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, valueLen, valueOffset C.int32_t) C.int32_t {
 	logger.Trace("[ext_get_storage_into] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -169,11 +169,11 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	if err != nil {
 		logger.Warn("[ext_get_storage_into]", "err", err)
 		ret := 1<<32 - 1
-		return int32(ret)
+		return C.int32_t(ret)
 	} else if val == nil {
 		logger.Debug("[ext_get_storage_into]", "err", "value is nil")
 		ret := 1<<32 - 1
-		return int32(ret)
+		return C.int32_t(ret)
 	}
 
 	if len(val) > int(valueLen) {
@@ -182,13 +182,13 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	}
 
 	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
-	return int32(len(val[valueOffset:]))
+	return C.int32_t(len(val[valueOffset:]))
 }
 
 // puts the key at memory location `keyData` with length `keyLen` and value at memory location `valueData`
 // with length `valueLen` into the storage trie
 //export ext_set_storage
-func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen int32) {
+func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLen C.int32_t) {
 	logger.Trace("[ext_set_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -207,7 +207,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 }
 
 //export ext_set_child_storage
-func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
+func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen C.int32_t) {
 	logger.Trace("[ext_set_child_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -226,7 +226,7 @@ func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen
 }
 
 //export ext_get_child_storage_into
-func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
+func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset C.int32_t) C.int32_t {
 	logger.Trace("[ext_get_child_storage_into] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -244,12 +244,12 @@ func ext_get_child_storage_into(context unsafe.Pointer, storageKeyData, storageK
 	}
 
 	copy(memory[valueData:valueData+valueLen], value[valueOffset:])
-	return int32(len(value[valueOffset:]))
+	return C.int32_t(len(value[valueOffset:]))
 }
 
 // returns the trie root in the memory location `resultPtr`
 //export ext_storage_root
-func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
+func ext_storage_root(context unsafe.Pointer, resultPtr C.int32_t) {
 	logger.Trace("[ext_storage_root] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -267,7 +267,7 @@ func ext_storage_root(context unsafe.Pointer, resultPtr int32) {
 }
 
 //export ext_storage_changes_root
-func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
+func ext_storage_changes_root(context unsafe.Pointer, a, b, c C.int32_t) C.int32_t {
 	logger.Trace("[ext_storage_changes_root] executing...")
 	logger.Debug("[ext_storage_changes_root] Not yet implemented.")
 	return 0
@@ -276,7 +276,7 @@ func ext_storage_changes_root(context unsafe.Pointer, a, b, c int32) int32 {
 // gets value stored at key at memory location `keyData` with length `keyLen` and returns the location
 // in memory where it's stored and stores its length in `writtenOut`
 //export ext_get_allocated_storage
-func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut int32) int32 {
+func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenOut C.int32_t) C.int32_t {
 	logger.Trace("[ext_get_allocated_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -324,12 +324,12 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	copy(memory[writtenOut:writtenOut+4], byteLen)
 
 	// return ptr to value
-	return int32(ptr)
+	return C.int32_t(ptr)
 }
 
 // deletes the trie entry with key at memory location `keyData` with length `keyLen`
 //export ext_clear_storage
-func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
+func ext_clear_storage(context unsafe.Pointer, keyData, keyLen C.int32_t) {
 	logger.Trace("[ext_clear_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -346,7 +346,7 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen int32) {
 
 // deletes all entries in the trie that have a key beginning with the prefix stored at `prefixData`
 //export ext_clear_prefix
-func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
+func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen C.int32_t) {
 	logger.Trace("[ext_clear_prefix] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -369,18 +369,18 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen int32) {
 // accepts an array of values, puts them into a trie, and returns the root
 // the keys to the values are their position in the array
 //export ext_blake2_256_enumerated_trie_root
-func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result int32) {
+func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, lensData, lensLen, result C.int32_t) {
 	logger.Trace("[ext_blake2_256_enumerated_trie_root] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
 	t := trie.NewEmptyTrie()
-	var i int32
-	var pos int32 = 0
+	var i C.int32_t
+	var pos C.int32_t = 0
 	logger.Trace("[ext_blake2_256_enumerated_trie_root]", "valuesData", valuesData, "lensData", lensData, "lensLen", lensLen)
 	for i = 0; i < lensLen; i++ {
 		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
-		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
+		valueLen := C.int32_t(binary.LittleEndian.Uint32(valueLenBytes))
 		value := memory[valuesData+pos : valuesData+pos+valueLen]
 		logger.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%d", value), "valueLen", valueLen)
 		pos += valueLen
@@ -410,7 +410,7 @@ func ext_blake2_256_enumerated_trie_root(context unsafe.Pointer, valuesData, len
 // performs blake2b 256-bit hash of the byte array at memory location `data` with length `length` and saves the
 // hash at memory location `out`
 //export ext_blake2_256
-func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
+func ext_blake2_256(context unsafe.Pointer, data, length, out C.int32_t) {
 	logger.Trace("[ext_blake2_256] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -424,7 +424,7 @@ func ext_blake2_256(context unsafe.Pointer, data, length, out int32) {
 }
 
 //export ext_blake2_128
-func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
+func ext_blake2_128(context unsafe.Pointer, data, length, out C.int32_t) {
 	logger.Trace("[ext_blake2_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -439,7 +439,7 @@ func ext_blake2_128(context unsafe.Pointer, data, length, out int32) {
 }
 
 //export ext_keccak_256
-func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
+func ext_keccak_256(context unsafe.Pointer, data, length, out C.int32_t) {
 	logger.Trace("[ext_keccak_256] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -454,7 +454,7 @@ func ext_keccak_256(context unsafe.Pointer, data, length, out int32) {
 }
 
 //export ext_twox_64
-func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
+func ext_twox_64(context unsafe.Pointer, data, len, out C.int32_t) {
 	logger.Trace("[ext_twox_64] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -475,7 +475,7 @@ func ext_twox_64(context unsafe.Pointer, data, len, out int32) {
 }
 
 //export ext_twox_128
-func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
+func ext_twox_128(context unsafe.Pointer, data, len, out C.int32_t) {
 	logger.Trace("[ext_twox_128] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -491,7 +491,7 @@ func ext_twox_128(context unsafe.Pointer, data, len, out int32) {
 }
 
 //export ext_sr25519_generate
-func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
+func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out C.int32_t) {
 	logger.Trace("[ext_sr25519_generate] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -516,7 +516,7 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 }
 
 //export ext_ed25519_public_keys
-func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
+func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen C.int32_t) C.int32_t {
 	logger.Trace("[ext_ed25519_public_keys] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -538,11 +538,11 @@ func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
 	copy(memory[resultLen:resultLen+4], buf)
-	return int32(offset)
+	return C.int32_t(offset)
 }
 
 //export ext_sr25519_public_keys
-func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) int32 {
+func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen C.int32_t) C.int32_t {
 	logger.Trace("[ext_sr25519_public_keys] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -564,11 +564,11 @@ func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen int32) in
 	buf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
 	copy(memory[resultLen:resultLen+4], buf)
-	return int32(offset)
+	return C.int32_t(offset)
 }
 
 //export ext_ed25519_sign
-func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
+func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out C.int32_t) C.int32_t {
 	logger.Trace("[ext_ed25519_sign] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -590,7 +590,7 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 
 	msgLenBytes := memory[msgLen : msgLen+4]
 	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
-	msg := memory[msgData : msgData+int32(msgLength)]
+	msg := memory[msgData : msgData+C.int32_t(msgLength)]
 	sig, err := signingKey.Sign(msg)
 	if err != nil {
 		logger.Error("[ext_ed25519_sign] could not sign message")
@@ -602,7 +602,7 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 }
 
 //export ext_sr25519_sign
-func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out int32) int32 {
+func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLen, out C.int32_t) C.int32_t {
 	logger.Trace("[ext_sr25519_sign] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -625,7 +625,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 
 	msgLenBytes := memory[msgLen : msgLen+4]
 	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
-	msg := memory[msgData : msgData+int32(msgLength)]
+	msg := memory[msgData : msgData+C.int32_t(msgLength)]
 	sig, err := signingKey.Sign(msg)
 	if err != nil {
 		logger.Error("[ext_sr25519_sign] could not sign message")
@@ -637,7 +637,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 }
 
 //export ext_sr25519_verify
-func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
+func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData C.int32_t) C.int32_t {
 	logger.Trace("[ext_sr25519_verify] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -658,7 +658,7 @@ func ext_sr25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 }
 
 //export ext_ed25519_generate
-func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int32) {
+func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out C.int32_t) {
 	logger.Trace("[ext_ed25519_generate] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -683,7 +683,7 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out int
 }
 
 //export ext_ed25519_verify
-func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData int32) int32 {
+func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkeyData C.int32_t) C.int32_t {
 	logger.Trace("[ext_ed25519_verify] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -703,7 +703,7 @@ func ext_ed25519_verify(context unsafe.Pointer, msgData, msgLen, sigData, pubkey
 }
 
 //export ext_secp256k1_ecdsa_recover
-func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubkeyData int32) int32 {
+func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubkeyData C.int32_t) C.int32_t {
 	logger.Trace("[ext_secp256k1_ecdsa_recover] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -724,7 +724,7 @@ func ext_secp256k1_ecdsa_recover(context unsafe.Pointer, msgData, sigData, pubke
 }
 
 //export ext_is_validator
-func ext_is_validator(context unsafe.Pointer) int32 {
+func ext_is_validator(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_is_validator] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
@@ -736,7 +736,7 @@ func ext_is_validator(context unsafe.Pointer) int32 {
 }
 
 //export ext_local_storage_get
-func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen int32) int32 {
+func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen C.int32_t) C.int32_t {
 	logger.Trace("[ext_local_storage_get] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -763,11 +763,11 @@ func ext_local_storage_get(context unsafe.Pointer, kind, key, keyLen, valueLen i
 		return 0
 	}
 	copy(memory[ptr:ptr+uint32(valueLen)], res[:])
-	return int32(ptr)
+	return C.int32_t(ptr)
 }
 
 //export ext_local_storage_compare_and_set
-func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, keyPtr, keyLen, oldValuePtr, oldValueLen, newValuePtr, newValueLen int32) int32 {
+func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, keyPtr, keyLen, oldValuePtr, oldValueLen, newValuePtr, newValueLen C.int32_t) C.int32_t {
 	logger.Trace("[ext_local_storage_compare_and_set] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -807,7 +807,7 @@ func ext_local_storage_compare_and_set(context unsafe.Pointer, kind, keyPtr, key
 }
 
 //export ext_network_state
-func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
+func ext_network_state(context unsafe.Pointer, writtenOut C.int32_t) C.int32_t {
 	logger.Trace("[ext_network_state] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -835,11 +835,11 @@ func ext_network_state(context unsafe.Pointer, writtenOut int32) int32 {
 		return 0
 	}
 	copy(memory[ptr:ptr+nsEncLen], nsEnc)
-	return int32(ptr)
+	return C.int32_t(ptr)
 }
 
 //export ext_submit_transaction
-func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
+func ext_submit_transaction(context unsafe.Pointer, data, len C.int32_t) C.int32_t {
 	logger.Trace("[ext_submit_transaction] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -858,7 +858,7 @@ func ext_submit_transaction(context unsafe.Pointer, data, len int32) int32 {
 }
 
 //export ext_local_storage_set
-func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen int32) {
+func ext_local_storage_set(context unsafe.Pointer, kind, key, keyLen, value, valueLen C.int32_t) {
 	logger.Trace("[ext_local_storage_set] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -931,7 +931,7 @@ func ext_sandbox_instance_teardown(context unsafe.Pointer, a C.int32_t) {
 }
 
 //export ext_get_allocated_child_storage
-func ext_get_allocated_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, writtenOut C.int32_t) int32 {
+func ext_get_allocated_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen, keyData, keyLen, writtenOut C.int32_t) C.int32_t {
 	logger.Trace("[ext_get_allocated_child_storage] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -964,7 +964,7 @@ func ext_get_allocated_child_storage(context unsafe.Pointer, storageKeyData, sto
 		return 0
 	}
 	copy(memory[resPtr:resPtr+valueLen], value)
-	return int32(resPtr)
+	return C.int32_t(resPtr)
 }
 
 //export ext_child_storage_root
