@@ -36,7 +36,7 @@ import (
 )
 
 // DefaultCfg is the default configuration
-var DefaultCfg = dot.GssmrConfig() // TODO: investigate default node other than gssmr #776
+var DefaultCfg = dot.GssmrConfig // TODO: investigate default node other than gssmr #776
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
@@ -84,7 +84,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	// if default configuration not set, load "gssmr" default configuration
 	if cfg == nil {
 		logger.Info("loading default configuration...", "id", "gssmr")
-		cfg = DefaultCfg
+		cfg = DefaultCfg()
 		tomlCfg = dotConfigToToml(cfg)
 	}
 
@@ -167,7 +167,7 @@ func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 
 // createExportConfig creates a new dot configuration from the provided flag values
 func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
-	cfg := DefaultCfg // start with default configuration
+	cfg := DefaultCfg() // start with default configuration
 	tomlCfg := &ctoml.Config{}
 
 	err := loadConfigFile(ctx, tomlCfg)
@@ -604,7 +604,7 @@ func updateDotConfigFromGenesisJSONRaw(ctx *cli.Context, tomlCfg ctoml.Config, c
 	// if we load a toml configuration file without a defined genesis-raw init value or
 	// if we pass an empty string as the genesis init value using the --geneis-raw flag
 	if cfg.Init.GenesisRaw == "" {
-		cfg.Init.GenesisRaw = DefaultCfg.Init.GenesisRaw
+		cfg.Init.GenesisRaw = DefaultCfg().Init.GenesisRaw
 	}
 
 	// load Genesis from genesis configuration file

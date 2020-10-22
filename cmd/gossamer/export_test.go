@@ -79,7 +79,7 @@ func TestExportCommand(t *testing.T) {
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
 					Port:        testCfg.Network.Port,
-					Bootnodes:   []string{}, // TODO: improve cmd tests #687
+					Bootnodes:   testCfg.Network.Bootnodes, // TODO: improve cmd tests #687
 					ProtocolID:  testCfg.Network.ProtocolID,
 					NoBootstrap: testCfg.Network.NoBootstrap,
 					NoMDNS:      testCfg.Network.NoMDNS,
