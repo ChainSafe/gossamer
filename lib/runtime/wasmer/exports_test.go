@@ -64,7 +64,7 @@ func TestInstance_Version_LegacyNodeRuntime(t *testing.T) {
 		Impl_version:      193,
 	}
 
-	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	instance := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	ret, err := instance.exec(runtime.CoreVersion, []byte{})
 	require.Nil(t, err)
@@ -95,7 +95,7 @@ func TestInstance_Version_TestRuntime(t *testing.T) {
 		Impl_version:      1,
 	}
 
-	instance := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	instance := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	ret, err := instance.exec(runtime.CoreVersion, []byte{})
 	require.Nil(t, err)
@@ -125,7 +125,7 @@ func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
 	err = tt.Put(runtime.TestAuthorityDataKey, value)
 	require.NoError(t, err)
 
-	rt := NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
 }
 
 func TestInstance_BabeConfiguration_LegacyNodeRuntime_NoAuthorities(t *testing.T) {
-	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -203,7 +203,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing
 		t.Fatal(err)
 	}
 
-	rt := NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	cfg, err := rt.BabeConfiguration()
 	if err != nil {
@@ -235,7 +235,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing
 }
 
 func TestInstance_InitializeBlock_LegacyNodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -248,7 +248,7 @@ func TestInstance_InitializeBlock_LegacyNodeRuntime(t *testing.T) {
 }
 
 func TestInstance_InherentExtrinsics_Timestamp_LegacyNodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
@@ -274,7 +274,7 @@ func TestInstance_InherentExtrinsics_Timestamp_LegacyNodeRuntime(t *testing.T) {
 }
 
 func TestInstance_InherentExtrinsics_Finalnum_LegacyNodeRuntime(t *testing.T) {
-	rt := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
@@ -303,7 +303,7 @@ func TestInstance_InherentExtrinsics_Finalnum_LegacyNodeRuntime(t *testing.T) {
 }
 
 func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	instance := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
@@ -369,7 +369,7 @@ func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
 // this will likely result in some of them being removed (need to determine what extrinsic types are valid)
 func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice().Public().Encode()
 	bob := kr.Bob().Public().Encode()
@@ -401,7 +401,7 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 }
 
 func TestValidateTransaction_IncludeData(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
@@ -423,7 +423,7 @@ func TestValidateTransaction_IncludeData(t *testing.T) {
 }
 
 func TestValidateTransaction_StorageChange(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewStorageChangeExt([]byte("testkey"), optional.NewBytes(true, []byte("testvalue")))
 	enc, err := ext.Encode()
@@ -444,7 +444,7 @@ func TestValidateTransaction_StorageChange(t *testing.T) {
 }
 
 func TestValidateTransaction_Transfer(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice().Public().Encode()
 	bob := kr.Bob().Public().Encode()
@@ -478,7 +478,7 @@ func TestValidateTransaction_Transfer(t *testing.T) {
 
 func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
 	// TODO: update AuthoritiesChange to need to be signed by an authority
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	alice := kr.Alice().Public().Encode()
 	bob := kr.Bob().Public().Encode()
@@ -509,7 +509,7 @@ func TestApplyExtrinsic_AuthoritiesChange(t *testing.T) {
 }
 
 func TestApplyExtrinsic_IncludeData(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -531,7 +531,7 @@ func TestApplyExtrinsic_IncludeData(t *testing.T) {
 }
 
 func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -548,7 +548,7 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.inst.ctx.Storage.Get([]byte("testkey"))
+	val, err := rt.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("testvalue"), val)
 
@@ -560,13 +560,13 @@ func TestApplyExtrinsic_StorageChange_Set(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	val, err = rt.inst.ctx.Storage.Get([]byte("testkey"))
+	val, err = rt.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte("testvalue"), val)
 }
 
 func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -584,14 +584,14 @@ func TestApplyExtrinsic_StorageChange_Delete(t *testing.T) {
 
 	require.Equal(t, []byte{0, 0}, res)
 
-	val, err := rt.inst.ctx.Storage.Get([]byte("testkey"))
+	val, err := rt.ctx.Storage.Get([]byte("testkey"))
 	require.NoError(t, err)
 	require.Equal(t, []byte(nil), val)
 }
 
 // TODO, this test replaced by TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt, should this be removed?
 func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -623,7 +623,7 @@ func TestApplyExtrinsic_Transfer_NoBalance(t *testing.T) {
 
 // TODO, this test replaced by TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic, should this be removed?
 func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
-	rt := NewTestInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(77),
@@ -638,7 +638,7 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	bb := [32]byte{}
 	copy(bb[:], bob)
 
-	rt.inst.ctx.Storage.SetBalance(ab, 2000)
+	rt.ctx.Storage.SetBalance(ab, 2000)
 
 	transfer := extrinsic.NewTransfer(ab, bb, 1000, 0)
 	ext, err := transfer.AsSignedExtrinsic(kr.Alice().Private().(*sr25519.PrivateKey))
@@ -654,11 +654,11 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 
 	// TODO: not sure if alice's balance is getting decremented properly, seems like it's always getting set to the transfer amount
-	bal, err := rt.inst.ctx.Storage.GetBalance(ab)
+	bal, err := rt.ctx.Storage.GetBalance(ab)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 
-	bal, err = rt.inst.ctx.Storage.GetBalance(bb)
+	bal, err = rt.ctx.Storage.GetBalance(bb)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 }
