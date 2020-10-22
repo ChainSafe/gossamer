@@ -238,7 +238,7 @@ func WriteConfig(data []byte, fp string) *os.File {
 	return newFile
 }
 
-// CreateJdonRawFile will generate an Json File
+// CreateJsonRawFile will generate an Json File
 func CreateJsonRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {

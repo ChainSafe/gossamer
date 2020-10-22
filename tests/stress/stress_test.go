@@ -54,11 +54,12 @@ func TestMain(m *testing.M) {
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(log.LvlInfo, h))
 
-	utils.GenerateGenesisSixAuth()
-	defer os.Remove(utils.GenesisSixAuths)
+	utils.GenerateGenesisThreeAuth()
 
 	// Start all tests
 	code := m.Run()
+
+	os.Remove(utils.GenesisSixAuths)
 	os.Exit(code)
 }
 
