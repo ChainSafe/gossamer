@@ -250,19 +250,20 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
-			err := s.storageState.StoreInDB(block.Header.StateRoot)
-			if err != nil {
-				log.Warn("failed to store storage trie in database", "error", err)
+			if err := s.storageState.StoreInDB(block.Header.StateRoot); err != nil {
+				s.logger.Warn("failed to store storage trie in database", "error", err)
 			}
 
-			err = s.handleChainReorg(prev, block.Header.Hash())
-			if err != nil {
-				log.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+				s.logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
-			err = s.handleRuntimeChanges(block.Header)
-			if err != nil {
-				log.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
+			if err := s.maintainTransactionPool(block); err != nil {
+				s.logger.Warn("failed to maintain transaction pool", "error", err)
+			}
+
+			if err := s.handleRuntimeChanges(block.Header); err != nil {
+				s.logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -456,6 +457,48 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			vtx := transaction.NewValidTransaction(ext, txv)
 			s.transactionState.AddToPool(vtx)
 		}
+	}
+
+	return nil
+}
+
+// maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
+// and moves them to the queue if valid.
+// See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
+func (s *Service) maintainTransactionPool(block *types.Block) error {
+	exts, err := block.Body.AsExtrinsics()
+	if err != nil {
+		return err
+	}
+
+	// remove extrinsics included in a block
+	for _, ext := range exts {
+		s.transactionState.RemoveExtrinsic(ext)
+	}
+
+	// re-validate transactions in the pool and move them to the queue
+	txs := s.transactionState.PendingInPool()
+	for _, tx := range txs {
+		// TODO: re-add this on update to v0.8
+
+		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
+		// if err != nil {
+		// 	// failed to validate tx, remove it from the pool or queue
+		// 	s.transactionState.RemoveExtrinsic(ext)
+		// 	continue
+		// }
+
+		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+
+		h, err := s.transactionState.Push(tx)
+		if err != nil && err == transaction.ErrTransactionExists {
+			// transaction is already in queue, remove it from the pool
+			s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+			continue
+		}
+
+		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+		s.logger.Trace("moved transaction to queue", "hash", h)
 	}
 
 	return nil

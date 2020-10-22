@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 )
 
 func TestChangesTrieRootDigest(t *testing.T) {
@@ -28,11 +29,11 @@ func TestChangesTrieRootDigest(t *testing.T) {
 		Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
 	}
 
-	enc := d.Encode()
+	enc, err := d.Encode()
+	require.NoError(t, err)
+
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -45,11 +46,11 @@ func TestPreRuntimeDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	enc := d.Encode()
+	enc, err := d.Encode()
+	require.NoError(t, err)
+
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -62,11 +63,11 @@ func TestConsensusDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	enc := d.Encode()
+	enc, err := d.Encode()
+	require.NoError(t, err)
+
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)
@@ -79,11 +80,11 @@ func TestSealDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	enc := d.Encode()
+	enc, err := d.Encode()
+	require.NoError(t, err)
+
 	d2, err := DecodeDigestItem(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(d, d2) {
 		t.Fatalf("Fail: got %v expected %v", d2, d)

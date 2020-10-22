@@ -17,6 +17,7 @@
 package stress
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -64,6 +65,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
+	t.Skip()
 	numNodes = 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
@@ -85,6 +87,9 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
+
+	utils.CreateConfigLogGrandpa()
+	defer os.Remove(utils.ConfigLogGrandpa)
 
 	numNodes = 9
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
