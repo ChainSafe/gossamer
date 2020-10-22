@@ -17,6 +17,7 @@
 package wasmtime
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -42,8 +43,9 @@ type Config struct {
 
 // LegacyInstance represents a go-wasmtime instance
 type LegacyInstance struct {
-	vm *wasmtime.Instance
-	mu sync.Mutex
+	vm  *wasmtime.Instance
+	mu  sync.Mutex
+	mem *wasmtime.Memory
 }
 
 type Instance struct {
@@ -98,7 +100,13 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 		return nil, err
 	}
 
-	mem := instance.GetExport("memory").Memory()
+	var mem *wasmtime.Memory
+	if m := cfg.Imports(store)[0].Memory(); m != nil {
+		mem = m
+	} else {
+		mem = instance.GetExport("memory").Memory()
+	}
+
 	data := mem.UnsafeData()
 	allocator := gssmrruntime.NewAllocator(data, 0)
 
@@ -112,7 +120,8 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	}
 
 	return &LegacyInstance{
-		vm: instance,
+		vm:  instance,
+		mem: mem,
 	}, nil
 }
 
@@ -189,8 +198,8 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 		}
 	}()
 
-	mem := in.vm.GetExport("memory").Memory()
-	memdata := mem.UnsafeData()
+	//mem := in.vm.GetExport("memory").Memory()
+	memdata := in.mem.UnsafeData()
 	copy(memdata[ptr:ptr+uint32(len(data))], data)
 
 	run := in.vm.GetExport(function).Func()
@@ -207,6 +216,7 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	length := int32(ret >> 32)
 	offset := int32(ret)
 
-	runtime.KeepAlive(mem)
+	runtime.KeepAlive(in.mem)
+	fmt.Println(memdata[:2048])
 	return memdata[offset : offset+length], nil
 }

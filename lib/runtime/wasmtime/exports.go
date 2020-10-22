@@ -37,6 +37,8 @@ func (in *LegacyInstance) Version() (*runtime.VersionAPI, error) {
 		return nil, err
 	}
 
+	fmt.Println(res)
+
 	version := &runtime.VersionAPI{
 		RuntimeVersion: &runtime.Version{},
 		API:            nil,
