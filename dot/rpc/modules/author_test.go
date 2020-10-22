@@ -255,7 +255,7 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 func newCoreService(t *testing.T) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlInfo)
+	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlInfo)
 	ks := keystore.NewGlobalKeystore()
 
 	// insert alice key for testing
@@ -275,6 +275,6 @@ func newCoreService(t *testing.T) *core.Service {
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	cs := newCoreService(t)
-	rt := wasmer.NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	rt := wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	return NewAuthorModule(nil, cs, rt, txq)
 }

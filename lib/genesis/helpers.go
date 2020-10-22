@@ -91,8 +91,8 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	return header, nil
 }
 
-// NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instance, error) {
+// NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
+func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
 	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
@@ -100,11 +100,11 @@ func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instanc
 
 	code := common.MustHexToBytes(codeStr)
 	cfg := &wasmer.Config{
-		Imports: wasmer.RegisterImports_NodeRuntime,
+		Imports: wasmer.ImportsLegacyNodeRuntime,
 	}
 	cfg.Storage = storage
 
-	return wasmer.NewInstance(code, cfg)
+	return wasmer.NewLegacyInstance(code, cfg)
 }
 
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file

@@ -51,7 +51,7 @@ type Service struct {
 	transactionState TransactionState
 
 	// Current runtime and hash of the current runtime code
-	rt       runtime.Instance
+	rt       runtime.LegacyInstance
 	codeHash common.Hash
 
 	// Block production variables
@@ -88,7 +88,7 @@ type Config struct {
 	TransactionState        TransactionState
 	Network                 Network
 	Keystore                *keystore.GlobalKeystore
-	Runtime                 runtime.Instance
+	Runtime                 runtime.LegacyInstance
 	BlockProducer           BlockProducer
 	IsBlockProducer         bool
 	FinalityGadget          FinalityGadget
@@ -384,7 +384,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 		}
 
 		cfg := &wasmer.Config{
-			Imports: wasmer.RegisterImports_NodeRuntime,
+			Imports: wasmer.ImportsLegacyNodeRuntime,
 		}
 		cfg.Storage = ts
 		cfg.Keystore = s.keys.Acco.(*keystore.GenericKeystore)
@@ -392,7 +392,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 		cfg.NodeStorage = s.rt.NodeStorage()
 		cfg.Network = s.rt.NetworkService()
 
-		s.rt, err = wasmer.NewInstance(code, cfg)
+		s.rt, err = wasmer.NewLegacyInstance(code, cfg)
 		if err != nil {
 			return err
 		}

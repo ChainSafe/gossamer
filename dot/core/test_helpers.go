@@ -51,7 +51,7 @@ var firstEpochInfo = &types.EpochInfo{
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.Instance) error {
+func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error {
 	return nil
 }
 
@@ -89,7 +89,7 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 }
 
 // SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) error {
+func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) error {
 	return nil
 }
 
@@ -178,7 +178,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+		cfg.Runtime = wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	}
 
 	if cfg.Keystore == nil {

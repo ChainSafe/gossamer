@@ -40,7 +40,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 	dbSrv.UseMemDB()
 
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
 
 	genesisData := new(genesis.Data)
 
