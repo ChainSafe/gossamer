@@ -38,13 +38,14 @@ type Config struct {
 	Imports func() (*wasm.Imports, error)
 }
 
-// LegacyInstance represents a go-wasmer instance
+// LegacyInstance represents a v0.6 runtime go-wasmer instance
 type LegacyInstance struct {
 	vm    wasm.Instance
 	ctx   *runtime.Context
 	mutex sync.Mutex
 }
 
+// Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
 	inst *LegacyInstance
 }
@@ -60,6 +61,7 @@ func NewLegacyInstanceFromFile(fp string, cfg *Config) (*LegacyInstance, error) 
 	return NewLegacyInstance(bytes, cfg)
 }
 
+// NewLegacyInstance instantiates a legacy runtime from raw wasm bytecode
 func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	return newLegacyInstance(code, cfg)
 }
@@ -92,6 +94,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}, nil
 }
 
+// Legacy returns the instance as a LegacyInstance
 func (in *Instance) Legacy() *LegacyInstance {
 	return in.inst
 }
@@ -106,16 +109,6 @@ func (in *Instance) Stop() {
 	in.inst.Stop()
 }
 
-// Store func
-func (in *Instance) store(data []byte, location int32) {
-	in.inst.store(data, location)
-}
-
-// Load load
-func (in *Instance) load(location, length int32) []byte {
-	return in.inst.load(location, length)
-}
-
 // Exec calls the given function with the given data
 func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	return in.inst.Exec(function, data)
@@ -124,14 +117,6 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 // Exec func
 func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 	return in.inst.exec(function, data)
-}
-
-func (in *Instance) malloc(size uint32) (uint32, error) {
-	return in.inst.malloc(size)
-}
-
-func (in *Instance) free(ptr uint32) error {
-	return in.inst.free(ptr)
 }
 
 // NodeStorage to get reference to runtime node service

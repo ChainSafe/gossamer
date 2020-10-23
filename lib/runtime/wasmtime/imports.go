@@ -283,6 +283,7 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 }
 
+// ImportsNodeRuntime returns the imports for the v0.8 runtime
 func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	lim := wasmtime.Limits{
 		Min: 20,

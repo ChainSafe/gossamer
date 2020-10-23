@@ -392,7 +392,7 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 }
 
-// ImportsLegacyNodeRuntime returns the wasm imports for the v0.8 node runtime
+// ImportsNodeRuntime returns the imports for the v0.8 runtime
 func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	var err error
 	memory, err = wasm.NewMemory(20, 0)

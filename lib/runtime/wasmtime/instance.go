@@ -41,13 +41,14 @@ type Config struct {
 	Imports func(*wasmtime.Store) []*wasmtime.Extern
 }
 
-// LegacyInstance represents a go-wasmtime instance
+// LegacyInstance represents a v0.6 runtime go-wasmtime instance
 type LegacyInstance struct {
 	vm  *wasmtime.Instance
 	mu  sync.Mutex
 	mem *wasmtime.Memory
 }
 
+// Instance represents a v0.8 runtime go-wasmtime instance
 type Instance struct {
 	inst *LegacyInstance
 }
@@ -125,6 +126,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	}, nil
 }
 
+// Legacy returns the instance as a LegacyInstance
 func (in *Instance) Legacy() *LegacyInstance {
 	return in.inst
 }
