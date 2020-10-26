@@ -129,7 +129,7 @@ func ext_free(context unsafe.Pointer, addr C.int32_t) {
 	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
 	if err != nil {
 		logger.Error("[ext_free] Error:", "Error", err)
-		panic(err)
+		//panic(err)
 	}
 }
 

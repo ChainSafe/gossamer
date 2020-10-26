@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/stretchr/testify/require"
 )
 
 // test used for ensuring runtime exec calls can me made concurrently
@@ -33,4 +34,13 @@ func TestConcurrentRuntimeCalls(t *testing.T) {
 	go func() {
 		_, _ = instance.exec(runtime.CoreVersion, []byte{})
 	}()
+}
+
+func TestPointerSize(t *testing.T) {
+	in := int64(8) + int64(32)<<32
+	ptr, length := int64ToPointerAndSize(in)
+	require.Equal(t, int32(8), ptr)
+	require.Equal(t, int32(32), length)
+	res := pointerAndSizeToInt64(ptr, length)
+	require.Equal(t, in, res)
 }

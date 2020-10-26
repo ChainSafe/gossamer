@@ -233,13 +233,15 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	resi := res.ToI64()
+	// resi := res.ToI64()
 
-	length := int32(resi >> 32)
-	offset := int32(resi)
+	// length := int32(resi >> 32)
+	// offset := int32(resi)
 
+	offset, length := int64ToPointerAndSize(res.ToI64())
 	rawdata := in.load(offset, length)
-
+	fmt.Println(length, offset)
+	fmt.Println(rawdata)
 	return rawdata, err
 }
 
@@ -259,4 +261,14 @@ func (in *LegacyInstance) NodeStorage() runtime.NodeStorage {
 // NetworkService to get referernce to runtime network service
 func (in *LegacyInstance) NetworkService() runtime.BasicNetwork {
 	return in.ctx.Network
+}
+
+// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
+func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
+	return int32(in), int32(in >> 32)
+}
+
+// pointerAndSizeToInt64 converts int32 pointer and size to a int64
+func pointerAndSizeToInt64(ptr, size int32) int64 {
+	return int64(ptr) + (int64(size) << 32)
 }

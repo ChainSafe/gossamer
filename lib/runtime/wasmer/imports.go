@@ -76,14 +76,38 @@ package wasmer
 import "C"
 
 import (
+	"fmt"
 	"unsafe"
+
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, target, msg C.int64_t) {
+func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	targetPtr, targetSize := int64ToPointerAndSize(int64(targetData))
+	target := fmt.Sprintf("%s", memory[targetPtr:targetPtr+targetSize])
+	msgPtr, msgSize := int64ToPointerAndSize(int64(msgData))
+	msg := fmt.Sprintf("%s", memory[msgPtr:msgPtr+msgSize])
+
+	switch int(level) {
+	case 0:
+		logger.Crit("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 1:
+		logger.Warn("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 2:
+		logger.Info("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 3:
+		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 4:
+		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+	}
 }
 
 //export ext_sandbox_instance_teardown_version_1
@@ -241,7 +265,7 @@ func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 
 //export ext_allocator_malloc_version_1
 func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
-	logger.Trace("[ext_allocator_malloc_version_1] executing...")
+	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
 	return ext_malloc(context, size)
 }
 
@@ -270,9 +294,22 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32
 }
 
 //export ext_hashing_twox_128_version_1
-func ext_hashing_twox_128_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_twox_128_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
-	return 0
+	ptr, size := int64ToPointerAndSize(int64(data))
+	// instanceContext := wasm.IntoInstanceContext(context)
+	// memory := instanceContext.Memory().Data()
+
+	// input := memory[ptr:ptr+size]
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	out, err := ctx.Allocator.Allocate(16)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+	ext_twox_128(context, C.int32_t(ptr), C.int32_t(size), C.int32_t(out))
+	return C.int32_t(out)
 }
 
 //export ext_hashing_twox_64_version_1
@@ -349,9 +386,46 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 }
 
 //export ext_storage_get_version_1
-func ext_storage_get_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_storage_get_version_1(context unsafe.Pointer, keyData C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_get_version_1] executing...")
-	return 0
+	keyPtr, keySize := int64ToPointerAndSize(int64(keyData))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	s := runtimeCtx.Storage
+
+	key := memory[keyPtr : keyPtr+keySize]
+	logger.Trace("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
+
+	val, err := s.Get(key)
+	if err != nil {
+		logger.Error("[ext_storage_get_version_1]", "error", err)
+		return 0
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(val)))
+	if err != nil {
+		logger.Error("[ext_storage_get_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Trace("[ext_storage_get_version_1]", "value", val)
+
+	var optVal *optional.Bytes
+	if len(val) == 0 {
+		optVal = optional.NewBytes(false, nil)
+	} else {
+		optVal = optional.NewBytes(true, val)
+	}
+
+	encVal := optVal.Encode()
+
+	copy(memory[ptr:ptr+uint32(len(encVal))], encVal)
+	//fmt.Println(encVal, int32(ptr), int32(len(encVal)))
+	return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(len(encVal))))
 }
 
 //export ext_storage_next_key_version_1
