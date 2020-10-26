@@ -92,7 +92,7 @@ func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
-	err = tt.Put(runtime.TestAuthorityDataKey, value)
+	err = tt.Put(runtime.GrandpaAuthorityDataKey, value)
 	require.NoError(t, err)
 
 	rt := NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)

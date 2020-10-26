@@ -229,20 +229,14 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
+
 	res, err := runtimeFunc(int32(ptr), datalen)
 	if err != nil {
 		return nil, err
 	}
-	// resi := res.ToI64()
-
-	// length := int32(resi >> 32)
-	// offset := int32(resi)
 
 	offset, length := int64ToPointerAndSize(res.ToI64())
-	rawdata := in.load(offset, length)
-	fmt.Println(length, offset)
-	fmt.Println(rawdata)
-	return rawdata, err
+	return in.load(offset, length), nil
 }
 
 func (in *LegacyInstance) malloc(size uint32) (uint32, error) {

@@ -33,9 +33,6 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-// TestAuthorityDataKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME
-var TestAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
-
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
 func GetRuntimeVars(targetRuntime string) (string, string) {
 	var testRuntimeFilePath string
@@ -229,6 +226,10 @@ func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
 // ClearChildStorage ...
 func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
 	return trs.trie.ClearFromChild(keyToChild, key)
+}
+
+func (trs *TestRuntimeStorage) NextKey([]byte) ([]byte, error) {
+	return nil, nil
 }
 
 // TestRuntimeNetwork ...

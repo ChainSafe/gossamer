@@ -407,33 +407,52 @@ func ext_storage_get_version_1(context unsafe.Pointer, keyData C.int64_t) C.int6
 		return 0
 	}
 
-	// allocate memory for value and copy value to memory
-	ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(val)))
-	if err != nil {
-		logger.Error("[ext_storage_get_version_1]", "error", err)
-		return 0
-	}
-
 	logger.Trace("[ext_storage_get_version_1]", "value", val)
 
-	var optVal *optional.Bytes
-	if len(val) == 0 {
-		optVal = optional.NewBytes(false, nil)
-	} else {
-		optVal = optional.NewBytes(true, val)
-	}
+	// // allocate memory for value and copy value to memory
+	// ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(val)))
+	// if err != nil {
+	// 	logger.Error("[ext_storage_get_version_1]", "error", err)
+	// 	return 0
+	// }
 
-	encVal := optVal.Encode()
+	// logger.Trace("[ext_storage_get_version_1]", "value", val)
 
-	copy(memory[ptr:ptr+uint32(len(encVal))], encVal)
-	//fmt.Println(encVal, int32(ptr), int32(len(encVal)))
-	return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(len(encVal))))
+	// var optVal *optional.Bytes
+	// if len(val) == 0 {
+	// 	optVal = optional.NewBytes(false, nil)
+	// } else {
+	// 	optVal = optional.NewBytes(true, val)
+	// }
+
+	// encVal := optVal.Encode()
+
+	// copy(memory[ptr:ptr+uint32(len(val))], encVal)
+	// //fmt.Println(encVal, int32(ptr), int32(len(encVal)))
+	// return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(len(encVal))))
+	return C.int64_t(storeAsOptional("ext_storage_get_version_1", runtimeCtx.Allocator, memory, val))
 }
 
 //export ext_storage_next_key_version_1
-func ext_storage_next_key_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_storage_next_key_version_1(context unsafe.Pointer, keyData C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_next_key_version_1] executing...")
-	return 0
+	keyPtr, keySize := int64ToPointerAndSize(int64(keyData))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	s := runtimeCtx.Storage
+
+	key := memory[keyPtr : keyPtr+keySize]
+	next, err := s.NextKey(key)
+	if err != nil {
+		logger.Error("[ext_storage_next_key_version_1] failed to get next key", "error", err)
+		return 0
+	}
+
+	logger.Trace("[ext_storage_next_key_version_1]", "next", next)
+	return C.int64_t(storeAsOptional("ext_storage_next_key_version_1", runtimeCtx.Allocator, memory, next))
 }
 
 //export ext_storage_read_version_1
@@ -466,6 +485,29 @@ func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 //export ext_offchain_index_set_version_1
 func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
+}
+
+// storeAsOptional allocates memory for the given data, converts it to an
+// optional type, encodes it and stores it in memory. it returns the pointer-size to the data
+func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator, memory []byte, data []byte) int64 {
+	var opt *optional.Bytes
+	if len(data) == 0 {
+		opt = optional.NewBytes(false, nil)
+	} else {
+		opt = optional.NewBytes(true, data)
+	}
+
+	enc := opt.Encode()
+
+	// allocate memory for value and copy value to memory
+	ptr, err := allocator.Allocate(uint32(len(enc)))
+	if err != nil {
+		logger.Error(fmt.Sprintf("[%s]", caller), "error", err)
+		return 0
+	}
+
+	copy(memory[ptr:ptr+uint32(len(enc))], data)
+	return pointerAndSizeToInt64(int32(ptr), int32(len(enc)))
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime

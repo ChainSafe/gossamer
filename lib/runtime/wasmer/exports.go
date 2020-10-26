@@ -102,10 +102,10 @@ func (in *LegacyInstance) GrandpaAuthorities() ([]*types.Authority, error) {
 func (in *LegacyInstance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
-		return fmt.Errorf("cannot encode header: %s", err)
+		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	encodedHeader = append(encodedHeader, 0)
+	encodedHeader = append(encodedHeader, []byte{0, 0}...)
 
 	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
