@@ -220,8 +220,10 @@ func ext_misc_print_num_version_1(context unsafe.Pointer, a C.int64_t) {
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
+	ptr, size := int64ToPointerAndSize(int64(data))
+	ext_print_utf8(context, C.int32_t(ptr), C.int32_t(size))
 }
 
 //export ext_misc_runtime_version_version_1

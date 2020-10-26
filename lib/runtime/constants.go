@@ -16,6 +16,10 @@
 
 package runtime
 
+import (
+	"github.com/ChainSafe/gossamer/lib/common"
+)
+
 //nolint
 const (
 	SUBSTRATE_TEST_RUNTIME     = "substrate_test_runtime"
@@ -36,3 +40,44 @@ const (
 	TESTS_FP      = "test_wasm.wasm"
 	TEST_WASM_URL = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
 )
+
+var (
+	// CoreVersion is the runtime API call Core_version
+	CoreVersion = "Core_version"
+	// CoreInitializeBlock is the runtime API call Core_initialize_block
+	CoreInitializeBlock = "Core_initialize_block"
+	// CoreExecuteBlock is the runtime API call Core_execute_block
+	CoreExecuteBlock = "Core_execute_block"
+	// Metadata is the runtime API call Metadata_metadata
+	Metadata = "Metadata_metadata"
+	// TaggedTransactionQueueValidateTransaction is the runtime API call TaggedTransactionQueue_validate_transaction
+	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
+	// GrandpaAuthorities is the runtime API call GrandpaApi_grandpa_authorities
+	GrandpaAuthorities = "GrandpaApi_grandpa_authorities"
+	// BabeAPIConfiguration is the runtime API call BabeApi_configuration
+	BabeAPIConfiguration = "BabeApi_configuration"
+	// BlockBuilderInherentExtrinsics is the runtime API call BlockBuilder_inherent_extrinsics
+	BlockBuilderInherentExtrinsics = "BlockBuilder_inherent_extrinsics"
+	// BlockBuilderApplyExtrinsic is the runtime API call BlockBuilder_apply_extrinsic
+	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
+	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
+	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
+)
+
+// GrandpaAuthorityDataKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
+var GrandpaAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
+
+// BABEPrefix is the prefix for all BABE related storage values
+var BABEPrefix, _ = common.Twox128Hash([]byte("Babe"))
+
+// BABEAuthorityDataKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
+func BABEAuthorityDataKey() []byte {
+	key, _ := common.Twox128Hash([]byte("Authorities"))
+	return append(BABEPrefix, key...)
+}
+
+// BABERandomnessKey is the location of the BABE initial randomness in the storage trie for NODE_RUNTIME
+func BABERandomnessKey() []byte {
+	key, _ := common.Twox128Hash([]byte("Randomness"))
+	return append(BABEPrefix, key...)
+}
