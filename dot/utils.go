@@ -228,28 +228,8 @@ func WriteConfig(data []byte, fp string) *os.File {
 	return newFile
 }
 
-// WriteConfig writes the config `data` in the file 'fp'.
-func WriteConfig(data []byte, fp string) *os.File {
-	newFile, err := os.Create(filepath.Clean(fp))
-	if err != nil {
-		logger.Error("failed to create configuration file", "error", err)
-		os.Exit(1)
-	}
-
-	_, err = newFile.Write(data)
-	if err != nil {
-		logger.Error("failed to write to configuration file", "error", err)
-		os.Exit(1)
-	}
-	if err := newFile.Close(); err != nil {
-		logger.Error("failed to close configuration file", "error", err)
-		os.Exit(1)
-	}
-	return newFile
-}
-
-// CreateJsonRawFile will generate an Json File
-func CreateJsonRawFile(bs *BuildSpec, fp string) *os.File {
+// CreateJSONRawFile will generate an Json File
+func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	data, err := bs.ToJSONRaw()
 	if err != nil {
 		logger.Error("failed to convert into raw json", "error", err)

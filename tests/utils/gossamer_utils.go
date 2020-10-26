@@ -364,7 +364,7 @@ func GenerateGenesisOneAuth() {
 		logger.Error("genesis file not found", "error", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJsonRawFile(bs, GenesisOneAuth)
+	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
 }
 
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
@@ -374,7 +374,7 @@ func GenerateGenesisThreeAuth() {
 		logger.Error("genesis file not found", "error", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJsonRawFile(bs, GenesisThreeAuths)
+	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
 }
 
 // GenerateGenesisSixAuth generates Genesis file with six authority.
@@ -384,7 +384,7 @@ func GenerateGenesisSixAuth() {
 		logger.Error("genesis file not found", "error", err)
 		os.Exit(1)
 	}
-	_ = dot.CreateJsonRawFile(bs, GenesisSixAuths)
+	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
 }
 
 func generateDefaultConfig() *ctoml.Config {
