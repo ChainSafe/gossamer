@@ -107,7 +107,26 @@ func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instanc
 	return wasmer.NewInstance(code, cfg)
 }
 
-// NewGenesisFromJSON parses Human Readable JSON formatted genesis file
+// trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
+func trimGenesisAuthority(g *Genesis, authCount int) {
+	for k, authMap := range g.Genesis.Runtime {
+		if k != "babe" && k != "grandpa" {
+			continue
+		}
+		authorities, _ := authMap["authorities"].([]interface{})
+		var newAuthorities []interface{}
+		for _, authority := range authorities {
+			if len(newAuthorities) >= authCount {
+				break
+			}
+			newAuthorities = append(newAuthorities, authority)
+		}
+		authMap["authorities"] = newAuthorities
+	}
+}
+
+// NewGenesisFromJSON parses Human Readable JSON formatted genesis file.Name. If authCount > 0,
+// then it keeps only `authCount` number of authorities for babe and grandpa.
 func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
@@ -126,8 +145,12 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 		return nil, err
 	}
 
+	if authCount > 0 {
+		trimGenesisAuthority(g, authCount)
+	}
+
 	grt := g.Genesis.Runtime
-	res, err := buildRawMap(grt, authCount)
+	res, err := buildRawMap(grt)
 	if err != nil {
 		return nil, err
 	}
@@ -144,12 +167,12 @@ type keyValue struct {
 	valueLen *big.Int
 }
 
-func buildRawMap(m map[string]map[string]interface{}, authCount int) (map[string]string, error) {
+func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
 	res := make(map[string]string)
 	for k, v := range m {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
-		buildRawMapInterface(v, kv, authCount)
+		buildRawMapInterface(v, kv)
 
 		key, err := formatKey(kv.key)
 		if err != nil {
@@ -165,32 +188,24 @@ func buildRawMap(m map[string]map[string]interface{}, authCount int) (map[string
 	return res, nil
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *keyValue, authCount int) {
+func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
 	for k, v := range m {
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
 		case []interface{}:
 			kv.valueLen = big.NewInt(int64(len(v2)))
-			buildRawArrayInterface(v2, kv, authCount)
+			buildRawArrayInterface(v2, kv)
 		case string:
 			kv.value = v2
 		}
 	}
 }
 
-func buildRawArrayInterface(a []interface{}, kv *keyValue, authCount int) {
-	if authCount == 0 {
-		authCount = len(a)
-	}
-
-	count := 0
+func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 	for _, v := range a {
-		if count >= authCount {
-			break
-		}
 		switch v2 := v.(type) {
 		case []interface{}:
-			buildRawArrayInterface(v2, kv, authCount)
+			buildRawArrayInterface(v2, kv)
 		case string:
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
@@ -202,7 +217,6 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue, authCount int) {
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 		}
-		count++
 	}
 }
 

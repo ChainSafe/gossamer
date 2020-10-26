@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 	// Start all tests
 	code := m.Run()
 
-	os.Remove(utils.GenesisSixAuths)
+	os.Remove(utils.GenesisThreeAuths)
 	os.Exit(code)
 }
 
