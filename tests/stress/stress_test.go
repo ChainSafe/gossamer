@@ -49,6 +49,9 @@ func TestMain(m *testing.M) {
 		utils.HOSTNAME = "localhost"
 	}
 
+	utils.CreateConfigNoBabe()
+	utils.CreateConfigBabeMaxThreshold()
+
 	// TODO: implement test log flag
 	utils.SetLogLevel(log.LvlInfo)
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
@@ -60,6 +63,8 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	os.Remove(utils.GenesisThreeAuths)
+	os.Remove(utils.ConfigNoBABE)
+	os.Remove(utils.ConfigBABEMaxThreshold)
 	os.Exit(code)
 }
 

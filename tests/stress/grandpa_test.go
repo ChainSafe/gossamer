@@ -94,6 +94,9 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 		t.Skip("skipping TestStress_Grandpa_NineAuthorities")
 	}
 
+	utils.CreateConfigLogGrandpa()
+	defer os.Remove(utils.ConfigLogGrandpa)
+
 	numNodes = 9
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)

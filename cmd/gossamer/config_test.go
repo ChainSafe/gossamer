@@ -607,7 +607,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 			FinalityGadgetLvl: log.LvlInfo,
 		},
 		Init: dot.InitConfig{
-			GenesisRaw: DefaultCfg.Init.GenesisRaw,
+			GenesisRaw: DefaultCfg().Init.GenesisRaw,
 		},
 		Account: testCfg.Account,
 		Core:    testCfg.Core,

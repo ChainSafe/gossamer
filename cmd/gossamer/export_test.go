@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -78,7 +79,7 @@ func TestExportCommand(t *testing.T) {
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
 					Port:        testCfg.Network.Port,
-					Bootnodes:   []string{}, // TODO: improve cmd tests #687
+					Bootnodes:   testCfg.Network.Bootnodes, // TODO: improve cmd tests #687
 					ProtocolID:  testCfg.Network.ProtocolID,
 					NoBootstrap: testCfg.Network.NoBootstrap,
 					NoMDNS:      testCfg.Network.NoMDNS,
@@ -161,7 +162,7 @@ func TestExportCommand(t *testing.T) {
 
 			config := ctx.GlobalString(ConfigFlag.Name)
 
-			cfg := new(Config)
+			cfg := new(ctoml.Config)
 			err = loadConfig(cfg, config)
 			require.Nil(t, err)
 
