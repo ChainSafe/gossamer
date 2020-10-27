@@ -408,28 +408,6 @@ func ext_storage_get_version_1(context unsafe.Pointer, keyData C.int64_t) C.int6
 	}
 
 	logger.Trace("[ext_storage_get_version_1]", "value", val)
-
-	// // allocate memory for value and copy value to memory
-	// ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(val)))
-	// if err != nil {
-	// 	logger.Error("[ext_storage_get_version_1]", "error", err)
-	// 	return 0
-	// }
-
-	// logger.Trace("[ext_storage_get_version_1]", "value", val)
-
-	// var optVal *optional.Bytes
-	// if len(val) == 0 {
-	// 	optVal = optional.NewBytes(false, nil)
-	// } else {
-	// 	optVal = optional.NewBytes(true, val)
-	// }
-
-	// encVal := optVal.Encode()
-
-	// copy(memory[ptr:ptr+uint32(len(val))], encVal)
-	// //fmt.Println(encVal, int32(ptr), int32(len(encVal)))
-	// return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(len(encVal))))
 	return C.int64_t(storeAsOptional("ext_storage_get_version_1", runtimeCtx.Allocator, memory, val))
 }
 
@@ -506,7 +484,7 @@ func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator,
 		return 0
 	}
 
-	copy(memory[ptr:ptr+uint32(len(enc))], data)
+	copy(memory[ptr:ptr+uint32(len(enc))], enc)
 	return pointerAndSizeToInt64(int32(ptr), int32(len(enc)))
 }
 
