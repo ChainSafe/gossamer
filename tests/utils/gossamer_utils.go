@@ -29,6 +29,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot"
+	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	log "github.com/ChainSafe/log15"
 )
@@ -68,11 +70,6 @@ var (
 	ConfigDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/config.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
 	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
-	// ConfigLogNone is a config file where log levels are set to CRIT for all packages
-	ConfigLogNone string = filepath.Join(currentDir, "../utils/config_log_none.toml")
-
-	// ConfigBABE is a config file with BABE and BABE logging enabled
-	ConfigBABE string = filepath.Join(currentDir, "../utils/config_babe.toml")
 	// ConfigNoBABE is a config file with BABE disabled
 	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
@@ -384,4 +381,102 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 // TestDir returns the test directory path <current-directory>/test_data/<test-name>/<name>
 func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
+}
+
+func generateDefaultConfig() *ctoml.Config {
+	return &ctoml.Config{
+		Global: ctoml.GlobalConfig{
+			Name:   "gssmr",
+			ID:     "gssmr",
+			LogLvl: "crit",
+		},
+		Log: ctoml.LogConfig{
+			CoreLvl: "info",
+			SyncLvl: "info",
+		},
+		Init: ctoml.InitConfig{
+			GenesisRaw: "./chain/gssmr/genesis-raw.json",
+		},
+		Account: ctoml.AccountConfig{
+			Key:    "",
+			Unlock: "",
+		},
+		Core: ctoml.CoreConfig{
+			Roles:            4,
+			BabeAuthority:    true,
+			GrandpaAuthority: true,
+		},
+		Network: ctoml.NetworkConfig{
+			Bootnodes:   nil,
+			ProtocolID:  "/gossamer/gssmr/0",
+			NoBootstrap: false,
+			NoMDNS:      false,
+		},
+		RPC: ctoml.RPCConfig{
+			Enabled:   false,
+			Host:      "localhost",
+			Modules:   []string{"system", "author", "chain", "state"},
+			WSEnabled: false,
+		},
+	}
+}
+
+func generateConfigBabeMaxThreshold() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Log = ctoml.LogConfig{
+		SyncLvl:          "debug",
+		NetworkLvl:       "debug",
+		BlockProducerLvl: "info",
+	}
+	cfg.Core = ctoml.CoreConfig{
+		Roles:            4,
+		BabeAuthority:    true,
+		GrandpaAuthority: true,
+		BabeThreshold:    "max",
+		SlotDuration:     500,
+	}
+	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
+	return cfg
+}
+
+// CreateConfigBabeMaxThreshold generates and creates babe max threshold config file.
+func CreateConfigBabeMaxThreshold() {
+	cfg := generateConfigBabeMaxThreshold()
+	_ = dot.ExportTomlConfig(cfg, ConfigBABEMaxThreshold)
+}
+
+func generateConfigLogGrandpa() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Log = ctoml.LogConfig{
+		CoreLvl:           "crit",
+		NetworkLvl:        "debug",
+		RuntimeLvl:        "crit",
+		BlockProducerLvl:  "info",
+		FinalityGadgetLvl: "debug",
+	}
+	return cfg
+}
+
+// CreateConfigLogGrandpa generates and creates grandpa config file.
+func CreateConfigLogGrandpa() {
+	cfg := generateConfigLogGrandpa()
+	_ = dot.ExportTomlConfig(cfg, ConfigLogGrandpa)
+}
+
+func generateConfigNoBabe() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Global.LogLvl = "info"
+	cfg.Log = ctoml.LogConfig{
+		SyncLvl:    "debug",
+		NetworkLvl: "debug",
+	}
+	cfg.Core.BabeThreshold = "max"
+	cfg.Core.BabeAuthority = false
+	return cfg
+}
+
+// CreateConfigNoBabe generates and creates no babe config file.
+func CreateConfigNoBabe() {
+	cfg := generateConfigNoBabe()
+	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
 }
