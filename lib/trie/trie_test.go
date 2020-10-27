@@ -575,3 +575,23 @@ func TestGetKeysWithPrefix(t *testing.T) {
 		t.Fatalf("Fail: got %v expected %v", keys, expected)
 	}
 }
+
+func TestNextKey(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	expected := tests[1].key
+	next := trie.NextKey(tests[0].key)
+	require.Equal(t, expected, next)
+}

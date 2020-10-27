@@ -117,6 +117,43 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 	return kv
 }
 
+// NextKey returns the next key in the trie in lexicographic order. It returns nil if there is no next key
+func (t *Trie) NextKey(key []byte) []byte {
+	return t.nextKey(t.root, nil, key, false)
+}
+
+func (t *Trie) nextKey(current node, prefix, target []byte, ret bool) []byte {
+	switch c := current.(type) {
+	case *branch:
+		fullKey := nibblesToKeyLE(append(prefix, c.key...))
+		if ret {
+			return fullKey
+		}
+
+		if bytes.Equal(target, fullKey[:len(target)]) {
+			//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+			//return t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, true)
+			ret = true
+		}
+		for i, child := range c.children {
+			t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, ret)
+		}
+	case *leaf:
+		fullKey := nibblesToKeyLE(append(prefix, c.key...))
+		if ret {
+			return fullKey
+		}
+
+		if bytes.Equal(target, fullKey[:len(target)]) {
+			return t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, true)
+		}
+		//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
+		//return kv
+	}
+
+	return nil	
+}
+
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
 	if err := t.tryPut(key, value); err != nil {

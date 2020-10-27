@@ -272,3 +272,50 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	defer s.lock.Unlock()
 	return s.t.ClearFromChild(keyToChild, key)
 }
+
+// NextKey returns the next key in the trie in lexigraphical order. If it does not exist, it returns nil.
+func (s *TrieState) NextKey(key []byte) []byte {
+	entries := s.Entries()
+
+	keys := [][]byte{}
+	for k := range entries {
+		keys = append(keys, []byte(k))
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		var max int 
+		if len(keys[i]) > len(keys[j]) {
+			max = len(keys[i])
+		} else {
+			max = len(keys[j])
+		}
+
+		for k := 0; k < max; k++ {
+			if k >= len(keys[i]) {
+				return true
+			}
+
+			if k >= len(keys[j]) {
+				return false
+			}
+
+			if keys[i][k] < keys[j][k] {
+				return true
+			}
+		}
+
+		return false
+	})
+
+	for i := range keys {
+		if i == len(keys) - 1 {
+			break
+		}
+
+		if bytes.Equal(keys[i], key) {
+			return keys[i+1]
+		}
+	}
+
+	return nil
+}
