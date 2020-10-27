@@ -487,8 +487,8 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 }
 
-// storeAsOptional allocates memory for the given data, converts it to an
-// optional type, encodes it and stores it in memory. it returns the pointer-size to the data
+// storeAsOptional allocates memory for the given data, converts it to an optional type, encodes it and
+// stores it in memory. it returns the pointer-size to the data
 func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator, memory []byte, data []byte) int64 {
 	var opt *optional.Bytes
 	if len(data) == 0 {

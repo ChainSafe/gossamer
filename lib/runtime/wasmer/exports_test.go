@@ -79,7 +79,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
-	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
 	expected := &types.BabeConfiguration{
 		SlotDuration:       3000,
 		EpochLength:        200,
@@ -102,7 +101,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	err = tt.Put(runtime.BABERandomnessKey(), rvalue[:])
 	require.NoError(t, err)
 
-	//avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	avalue, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
@@ -122,7 +120,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 		{Key: authB, Weight: 1},
 	}
 
-	// see: https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L621
 	expected := &types.BabeConfiguration{
 		SlotDuration:       3000,
 		EpochLength:        200,
