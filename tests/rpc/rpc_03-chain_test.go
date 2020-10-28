@@ -152,7 +152,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 				map[string](interface{}){
 					"subscription": float64(1),
 					"result": map[string](interface{}){
-						"number":         "0x04",
+						"number":         "0x01",
 						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
 						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
 						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
@@ -176,7 +176,7 @@ func TestChainSubscriptionRPC(t *testing.T) {
 				map[string](interface{}){
 					"subscription": float64(1),
 					"result": map[string](interface{}){
-						"number":         "0x04",
+						"number":         "0x01",
 						"parentHash":     "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21",
 						"stateRoot":      "0x3b1a31d10d4d8a444579fd5a3fb17cbe6bebba9d939d88fe7bafb9d48036abb5",
 						"extrinsicsRoot": "0x8025c0d64df303f79647611c8c2b0a77bc2247ee12d851df4624e1f71ebb3aed",
