@@ -43,18 +43,6 @@ jobs:
     - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
   - name: Test State - Race
     script: make test-state-race
-  - name: Integration Tests - Stable
-    script: make it-stable
-  - name: Integration Tests - RPC
-    script: make it-rpc
-  - name: Integration Test - Stress
-    script: make it-stress
-  - name: Integration Test - GRANDPA
-    script: make it-grandpa
-  - name: Build Docker Image
-    script:
-    - make docker-build
-    - make docker-version
   - name: Build Gossamer Docs
     language: ruby
     rvm:
@@ -77,6 +65,20 @@ jobs:
       target_branch: gh-pages
       on:
         branch: development # deploy on merge into development
+  - stage: Docker build
+    name: Build Docker Image
+    script:
+      - make docker-build
+      - make docker-version
+  - stage: Integration Tests
+    name: Stable
+    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-stable
+  - name: RPC
+    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-rpc
+  - name: Stress
+    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-stress
+  - name: GRANDPA
+    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-grandpa
   allow_failures:
     - stage: build
       env:
