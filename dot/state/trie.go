@@ -272,3 +272,9 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	defer s.lock.Unlock()
 	return s.t.ClearFromChild(keyToChild, key)
 }
+
+// NextKey returns the next key in the trie in lexicographic order.
+// TODO: complete this
+func (s *TrieState) NextKey(key []byte) []byte {
+	return nil
+}

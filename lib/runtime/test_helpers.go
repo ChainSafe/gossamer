@@ -228,8 +228,9 @@ func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
 	return trs.trie.ClearFromChild(keyToChild, key)
 }
 
-func (trs *TestRuntimeStorage) NextKey([]byte) ([]byte, error) {
-	return nil, nil
+// NextKey ...
+func (trs *TestRuntimeStorage) NextKey([]byte) []byte {
+	return nil
 }
 
 // TestRuntimeNetwork ...

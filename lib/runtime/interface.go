@@ -79,7 +79,7 @@ type Storage interface {
 	GetBalance(key [32]byte) (uint64, error)
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
-	NextKey([]byte) ([]byte, error)
+	NextKey([]byte) []byte
 }
 
 // BasicNetwork interface for functions used by runtime network state function
