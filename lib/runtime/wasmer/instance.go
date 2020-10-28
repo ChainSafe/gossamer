@@ -211,12 +211,7 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	defer func() {
-		err = in.free(ptr)
-		if err != nil {
-			logger.Error("exec: could not free ptr", "error", err)
-		}
-	}()
+	defer in.clear()
 
 	in.mutex.Lock()
 	defer in.mutex.Unlock()
@@ -243,8 +238,8 @@ func (in *LegacyInstance) malloc(size uint32) (uint32, error) {
 	return in.ctx.Allocator.Allocate(size)
 }
 
-func (in *LegacyInstance) free(ptr uint32) error {
-	return in.ctx.Allocator.Deallocate(ptr)
+func (in *LegacyInstance) clear() {
+	in.ctx.Allocator.Clear()
 }
 
 // NodeStorage to get reference to runtime node service
