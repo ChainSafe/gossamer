@@ -45,9 +45,6 @@ type StateStorageKeyRequest struct {
 	Block common.Hash `json:"block"`
 }
 
-// StateBlockHashQuery is a hash value
-type StateBlockHashQuery common.Hash
-
 // StateRuntimeMetadataQuery is a hash value
 type StateRuntimeMetadataQuery common.Hash
 
@@ -203,7 +200,7 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
-func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateBlockHashQuery, res *StateRuntimeVersionResponse) error {
+func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *StateRuntimeVersionResponse) error {
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion()
 	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
 	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
