@@ -220,10 +220,10 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	// defer func() {
-	// 	err = stateSrvc.Stop()
-	// 	require.NoError(t, err)
-	// }()
+	defer func() {
+		err = stateSrvc.Stop()
+		require.NoError(t, err)
+	}()
 
 	gendata, err := state.LoadGenesisData(stateSrvc.DB())
 	require.NoError(t, err)
@@ -244,10 +244,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	stateRoot := genesisHeader.StateRoot
 	expectedHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), stateRoot, trie.EmptyHash, [][]byte{})
 	require.NoError(t, err)
-
 	require.Equal(t, expectedHeader.Hash(), genesisHeader.Hash())
-	err = stateSrvc.Stop()
-	require.NoError(t, err)
 }
 
 // TestInitNode_LoadStorageRoot
@@ -290,7 +287,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expectedRoot, err := expected.Hash()
 	require.NoError(t, err)
 
-	mgr := node.Sservices.Get(&core.Service{})
+	mgr := node.Services.Get(&core.Service{})
 
 	var coreSrvc *core.Service
 	var ok bool
@@ -342,7 +339,7 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	if stateSrv, ok = mgr.(*state.Service); !ok {
 		t.Fatal("could not find core service")
 	}
-	require.NotNil(t, coreSrvc)
+	require.NotNil(t, stateSrv)
 
 	kr, _ := keystore.NewSr25519Keyring()
 	alice := kr.Alice().Public().(*sr25519.PublicKey).AsBytes()
