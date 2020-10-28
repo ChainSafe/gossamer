@@ -108,7 +108,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	// create genesis based on file just created, this will fill Raw field of genesis
-	testGenesisProcessed, err := NewGenesisFromJSON(file.Name())
+	testGenesisProcessed, err := NewGenesisFromJSON(file.Name(), 0)
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)

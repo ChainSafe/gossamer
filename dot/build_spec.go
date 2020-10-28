@@ -59,8 +59,8 @@ func (b *BuildSpec) ToJSONRaw() ([]byte, error) {
 }
 
 // BuildFromGenesis builds a BuildSpec based on the human-readable genesis file at path
-func BuildFromGenesis(path string) (*BuildSpec, error) {
-	gen, err := genesis.NewGenesisFromJSON(path)
+func BuildFromGenesis(path string, authCount int) (*BuildSpec, error) {
+	gen, err := genesis.NewGenesisFromJSON(path, authCount)
 	if err != nil {
 		return nil, err
 	}

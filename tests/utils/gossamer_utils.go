@@ -32,6 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -354,6 +355,36 @@ func TearDown(t *testing.T, nodes []*Node) (errorList []error) {
 // TestDir returns the test directory path <current-directory>/test_data/<test-name>/<name>
 func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
+}
+
+// GenerateGenesisOneAuth generates Genesis file with one authority.
+func GenerateGenesisOneAuth() {
+	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 1)
+	if err != nil {
+		logger.Error("genesis file not found", "error", err)
+		os.Exit(1)
+	}
+	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
+}
+
+// GenerateGenesisThreeAuth generates Genesis file with three authority.
+func GenerateGenesisThreeAuth() {
+	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
+	if err != nil {
+		logger.Error("genesis file not found", "error", err)
+		os.Exit(1)
+	}
+	_ = dot.CreateJSONRawFile(bs, GenesisThreeAuths)
+}
+
+// GenerateGenesisSixAuth generates Genesis file with six authority.
+func GenerateGenesisSixAuth() {
+	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 6)
+	if err != nil {
+		logger.Error("genesis file not found", "error", err)
+		os.Exit(1)
+	}
+	_ = dot.CreateJSONRawFile(bs, GenesisSixAuths)
 }
 
 func generateDefaultConfig() *ctoml.Config {

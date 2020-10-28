@@ -28,7 +28,7 @@ func TestBuildFromGenesis(t *testing.T) {
 	file, err := genesis.CreateTestGenesisJSONFile(false)
 	defer os.Remove(file)
 	require.NoError(t, err)
-	bs, err := BuildFromGenesis(file)
+	bs, err := BuildFromGenesis(file, 0)
 	require.NoError(t, err)
 
 	// confirm human-readable fields
