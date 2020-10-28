@@ -95,7 +95,7 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 
 	fp := utils.GetGssmrGenesisPath()
 
-	gssmrGen, err := genesis.NewGenesisFromJSON(fp)
+	gssmrGen, err := genesis.NewGenesisFromJSON(fp, 0)
 	require.Nil(t, err)
 
 	gen := &genesis.Genesis{
@@ -226,4 +226,14 @@ func WriteConfig(data []byte, fp string) *os.File {
 	}
 
 	return newFile
+}
+
+// CreateJSONRawFile will generate an Json File
+func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
+	data, err := bs.ToJSONRaw()
+	if err != nil {
+		logger.Error("failed to convert into raw json", "error", err)
+		os.Exit(1)
+	}
+	return WriteConfig(data, fp)
 }

@@ -107,8 +107,27 @@ func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instanc
 	return wasmer.NewInstance(code, cfg)
 }
 
-// NewGenesisFromJSON parses Human Readable JSON formatted genesis file
-func NewGenesisFromJSON(file string) (*Genesis, error) {
+// trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
+func trimGenesisAuthority(g *Genesis, authCount int) {
+	for k, authMap := range g.Genesis.Runtime {
+		if k != "babe" && k != "grandpa" {
+			continue
+		}
+		authorities, _ := authMap["authorities"].([]interface{})
+		var newAuthorities []interface{}
+		for _, authority := range authorities {
+			if len(newAuthorities) >= authCount {
+				break
+			}
+			newAuthorities = append(newAuthorities, authority)
+		}
+		authMap["authorities"] = newAuthorities
+	}
+}
+
+// NewGenesisFromJSON parses Human Readable JSON formatted genesis file.Name. If authCount > 0,
+// then it keeps only `authCount` number of authorities for babe and grandpa.
+func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err
@@ -124,6 +143,10 @@ func NewGenesisFromJSON(file string) (*Genesis, error) {
 	err = json.Unmarshal(data, g)
 	if err != nil {
 		return nil, err
+	}
+
+	if authCount > 0 {
+		trimGenesisAuthority(g, authCount)
 	}
 
 	grt := g.Genesis.Runtime
