@@ -188,6 +188,11 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		},
 	}
 
+	utils.GenerateGenesisOneAuth()
+	defer os.Remove(utils.GenesisOneAuth)
+	utils.CreateConfigBabeMaxThreshold()
+	defer os.Remove(utils.ConfigBABEMaxThreshold)
+
 	t.Log("starting gossamer...")
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
 	require.Nil(t, err)
