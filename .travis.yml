@@ -76,7 +76,7 @@ jobs:
       local_dir: docs
       target_branch: gh-pages
       on:
-        branch: development # deploy on merge into development
+        branch: noot/fix-docs # deploy on merge into development
   allow_failures:
     - stage: build
       env:
