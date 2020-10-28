@@ -60,13 +60,14 @@ type FreeingBumpHeapAllocator struct {
 func NewAllocator(mem []byte, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
 	currentSize := len(mem)
-	// we don't include offset memory in the heap
-	heapSize := uint32(currentSize) - ptrOffset
 
 	padding := ptrOffset % alignment
 	if padding != 0 {
 		ptrOffset += alignment - padding
 	}
+
+	// we don't include offset memory in the heap
+	heapSize := uint32(currentSize) - ptrOffset
 
 	fbha.bumper = 0
 	fbha.heap = mem
@@ -138,6 +139,16 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 	fbha.TotalSize = fbha.TotalSize - uint32(itemSize+8)
 
 	return nil
+}
+
+// Clear resets the allocator, effectively freeing all allocated memory
+func (fbha *FreeingBumpHeapAllocator) Clear() {
+	fbha.bumper = 0
+	fbha.TotalSize = 0
+
+	for i := range fbha.heads {
+		fbha.heads[i] = 0
+	}
 }
 
 func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
