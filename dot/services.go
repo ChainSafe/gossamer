@@ -115,7 +115,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 	kps := ks.Keypairs()
 	logger.Info("keystore", "keys", kps)
-	if len(kps) == 0 {
+	if len(kps) == 0 && cfg.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
 
@@ -137,7 +137,6 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 	bcfg := &babe.ServiceConfig{
 		LogLvl:           cfg.Log.BlockProducerLvl,
-		Keypair:          kps[0].(*sr25519.Keypair),
 		Runtime:          rt,
 		BlockState:       st.Block,
 		StorageState:     st.Storage,
@@ -146,6 +145,11 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 		StartSlot:        bestSlot + 1,
 		Threshold:        cfg.Core.BabeThreshold,
 		SlotDuration:     cfg.Core.SlotDuration,
+		Authority:        cfg.Core.BabeAuthority,
+	}
+
+	if cfg.Core.BabeAuthority {
+		bcfg.Keypair = kps[0].(*sr25519.Keypair)
 	}
 
 	// create new BABE service
