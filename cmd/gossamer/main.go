@@ -282,7 +282,7 @@ func buildSpecAction(ctx *cli.Context) error {
 
 	var bs *dot.BuildSpec
 	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
-		bspec, e := dot.BuildFromGenesis(genesis)
+		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
 			return e
 		}
@@ -306,7 +306,6 @@ func buildSpecAction(ctx *cli.Context) error {
 	if bs == nil {
 		return fmt.Errorf("error building genesis")
 	}
-
 	res := []byte{} //nolint
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()

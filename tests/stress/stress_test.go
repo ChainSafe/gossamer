@@ -57,8 +57,12 @@ func TestMain(m *testing.M) {
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	logger.SetHandler(log.LvlFilterHandler(log.LvlInfo, h))
 
+	utils.GenerateGenesisThreeAuth()
+
 	// Start all tests
 	code := m.Run()
+
+	os.Remove(utils.GenesisThreeAuths)
 	os.Remove(utils.ConfigNoBABE)
 	os.Remove(utils.ConfigBABEMaxThreshold)
 	os.Exit(code)
