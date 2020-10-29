@@ -84,6 +84,33 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	return nil
 }
 
+// DecodeWebsocket will decode body into target interface
+func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+
+	var response WebsocketResponse
+	err := decoder.Decode(&response)
+	require.Nil(t, err, string(body))
+	require.Equal(t, response.Version, "2.0")
+
+	if response.Error != nil {
+		return errors.New(response.Error.Message)
+	}
+
+	if response.Result != nil {
+		decoder = json.NewDecoder(bytes.NewReader(response.Result))
+	} else {
+		decoder = json.NewDecoder(bytes.NewReader(response.Params))
+	}
+
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(target)
+	require.Nil(t, err, string(body))
+	return nil
+}
+
 // DecodeRPC_NT will decode []body into target interface (NT is Not Test testing required)
 func DecodeRPC_NT(body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
