@@ -143,13 +143,7 @@ func (r *Instance) exec(function string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		err = r.free(ptr)
-		if err != nil {
-			logger.Error("exec: could not free ptr", "error", err)
-		}
-	}()
+	defer r.clear()
 
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -180,8 +174,8 @@ func (r *Instance) malloc(size uint32) (uint32, error) {
 	return r.ctx.Allocator.Allocate(size)
 }
 
-func (r *Instance) free(ptr uint32) error {
-	return r.ctx.Allocator.Deallocate(ptr)
+func (r *Instance) clear() {
+	r.ctx.Allocator.Clear()
 }
 
 // NodeStorage to get reference to runtime node service
