@@ -131,20 +131,21 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var hashes map[common.Hash][]string
 	var err error
 
-	for i := 0; i < maxRetries; i++ {
-		hashes, err = compareBlocksByNumber(t, nodes, num)
-		if err == nil {
-			break
+	timeout := time.After(30 * time.Second)
+	for {
+		select {
+		case <- timeout:
+			if err != nil {
+				err = fmt.Errorf("%w: hashes=%v", err, hashes)
+			}
+			return err
+		default:
+			hashes, err = compareBlocksByNumber(t, nodes, num)
+			if err == nil {
+				return nil
+			}
 		}
-
-		time.Sleep(time.Second)
 	}
-
-	if err != nil {
-		err = fmt.Errorf("%w: hashes=%v", err, hashes)
-	}
-
-	return err
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
