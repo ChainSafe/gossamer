@@ -29,6 +29,8 @@ type BlockAPI interface {
 	GetFinalizedHash(uint64, uint64) (common.Hash, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
+	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
+	UnregisterFinalizedChannel(id byte)
 }
 
 // NetworkAPI interface for network state methods

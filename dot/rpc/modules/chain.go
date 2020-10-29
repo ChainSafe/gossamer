@@ -171,18 +171,19 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeFinalizedHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
-	return nil
+	return ErrSubscriptionTransport
 }
 
 // SubscribeNewHead handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeNewHead(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
-	return nil
+	return ErrSubscriptionTransport
 }
 
-// SubscribeNewHeads isn't implemented properly yet.
+// SubscribeNewHeads handled by websocket handler, but this func should remain
+//  here so it's added to rpc_methods list
 func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res *ChainBlockHeaderResponse) error {
-	return nil
+	return ErrSubscriptionTransport
 }
 
 func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {
