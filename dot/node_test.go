@@ -101,6 +101,7 @@ func TestNewNode(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	err = keystore.LoadKeystore("alice", ks.Gran)
+	require.NoError(t, err)
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
@@ -169,6 +170,7 @@ func TestStartNode(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	err = keystore.LoadKeystore("alice", ks.Gran)
+	require.NoError(t, err)
 	err = keystore.LoadKeystore("alice", ks.Babe)
 	require.NoError(t, err)
 
