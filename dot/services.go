@@ -293,7 +293,7 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 	voters := grandpa.NewVotersFromAuthorityData(ad)
 
 	keys := ks.Keypairs()
-	if len(keys) == 0 {
+	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
 		return nil, errors.New("no ed25519 keys provided for GRANDPA")
 	}
 
@@ -303,8 +303,11 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 		DigestHandler: dh,
 		SetID:         1,
 		Voters:        voters,
-		Keypair:       keys[0].(*ed25519.Keypair),
 		Authority:     cfg.Core.GrandpaAuthority,
+	}
+
+	if cfg.Core.GrandpaAuthority {
+		gsCfg.Keypair = keys[0].(*ed25519.Keypair)
 	}
 
 	return grandpa.NewService(gsCfg)
