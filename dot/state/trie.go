@@ -273,6 +273,7 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	return s.t.ClearFromChild(keyToChild, key)
 }
 
+//<<<<<<< HEAD
 // NextKey returns the next key in the trie in lexigraphical order. If it does not exist, it returns nil.
 func (s *TrieState) NextKey(key []byte) []byte {
 	entries := s.Entries()
@@ -319,3 +320,10 @@ func (s *TrieState) NextKey(key []byte) []byte {
 
 	return nil
 }
+// =======
+// // NextKey returns the next key in the trie in lexicographic order.
+// // TODO: complete this
+// func (s *TrieState) NextKey(key []byte) []byte {
+// 	return nil
+// }
+// >>>>>>> c3bb893a1f6541957c17729a6bb4f49f7c0a800f

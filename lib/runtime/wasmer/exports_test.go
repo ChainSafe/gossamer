@@ -7,7 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	//"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -46,6 +45,8 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
+	t.Skip()
+
 	tt := trie.NewEmptyTrie()
 
 	//value, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
@@ -93,6 +94,8 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 }
 
 func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
+	t.Skip()
+
 	tt := trie.NewEmptyTrie()
 
 	// rvalue, err := common.HexToHash("0x01")
@@ -134,6 +137,8 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
+	t.Skip()
+
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	header := &types.Header{
@@ -152,6 +157,8 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
+	t.Skip()
+
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	header := &types.Header{

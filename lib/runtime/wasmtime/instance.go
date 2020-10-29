@@ -192,13 +192,7 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		err = ctx.Allocator.Deallocate(ptr)
-		if err != nil {
-			logger.Error("exec: could not free ptr", "error", err)
-		}
-	}()
+	defer ctx.Allocator.Clear()
 
 	//mem := in.vm.GetExport("memory").Memory()
 	memdata := in.mem.UnsafeData()

@@ -27,6 +27,9 @@ import (
 )
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
+	utils.GenerateGenesisOneAuth()
+	defer os.Remove(utils.GenesisOneAuth)
+
 	numNodes = 1
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
@@ -66,6 +69,9 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	t.Skip()
+	utils.GenerateGenesisSixAuth()
+	defer os.Remove(utils.GenesisSixAuths)
+
 	numNodes = 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
@@ -120,7 +126,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	time.Sleep(time.Second * 50) // let some rounds run
 
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisThreeAuths, utils.ConfigDefault)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisThreeAuths, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

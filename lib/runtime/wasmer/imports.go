@@ -81,6 +81,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -204,9 +205,23 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
-func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
 	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
-	return 0
+	//dataPtr, dataSize := int64ToPointerAndSize(int64(data))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// allocate memory for value and copy value to memory
+	ptr, err := runtimeCtx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		return 0
+	}
+
+	copy(memory[ptr:ptr+32], trie.EmptyHash[:])
+	return C.int32_t(ptr)
 }
 
 //export ext_misc_print_hex_version_1
@@ -299,10 +314,7 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32
 func ext_hashing_twox_128_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
 	ptr, size := int64ToPointerAndSize(int64(data))
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// memory := instanceContext.Memory().Data()
 
-	// input := memory[ptr:ptr+size]
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	out, err := ctx.Allocator.Allocate(16)
@@ -408,7 +420,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keyData C.int64_t) C.int6
 	}
 
 	logger.Trace("[ext_storage_get_version_1]", "value", val)
-	return C.int64_t(storeAsOptional("ext_storage_get_version_1", runtimeCtx.Allocator, memory, val))
+	return storeAsOptional("ext_storage_get_version_1", runtimeCtx.Allocator, memory, val)
 }
 
 //export ext_storage_next_key_version_1
@@ -423,14 +435,9 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keyData C.int64_t) C
 	s := runtimeCtx.Storage
 
 	key := memory[keyPtr : keyPtr+keySize]
-	next, err := s.NextKey(key)
-	if err != nil {
-		logger.Error("[ext_storage_next_key_version_1] failed to get next key", "error", err)
-		return 0
-	}
-
+	next := s.NextKey(key)
 	logger.Trace("[ext_storage_next_key_version_1]", "next", next)
-	return C.int64_t(storeAsOptional("ext_storage_next_key_version_1", runtimeCtx.Allocator, memory, next))
+	return storeAsOptional("ext_storage_next_key_version_1", runtimeCtx.Allocator, memory, next)
 }
 
 //export ext_storage_read_version_1
@@ -467,7 +474,7 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 
 // storeAsOptional allocates memory for the given data, converts it to an optional type, encodes it and
 // stores it in memory. it returns the pointer-size to the data
-func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator, memory []byte, data []byte) int64 {
+func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator, memory []byte, data []byte) C.int64_t {
 	var opt *optional.Bytes
 	if len(data) == 0 {
 		opt = optional.NewBytes(false, nil)
@@ -476,16 +483,17 @@ func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator,
 	}
 
 	enc := opt.Encode()
+	length := uint32(len(enc))
 
 	// allocate memory for value and copy value to memory
-	ptr, err := allocator.Allocate(uint32(len(enc)))
+	ptr, err := allocator.Allocate(length)
 	if err != nil {
 		logger.Error(fmt.Sprintf("[%s]", caller), "error", err)
 		return 0
 	}
 
-	copy(memory[ptr:ptr+uint32(len(enc))], enc)
-	return pointerAndSizeToInt64(int32(ptr), int32(len(enc)))
+	copy(memory[ptr:ptr+length], enc)
+	return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(length)))
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime
