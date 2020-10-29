@@ -132,20 +132,23 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var err error
 
 	timeout := time.After(30 * time.Second)
+doneBlockProduction:
 	for {
 		select {
-		case <- timeout:
-			if err != nil {
-				err = fmt.Errorf("%w: hashes=%v", err, hashes)
-			}
-			return err
+		case <-timeout:
+			break doneBlockProduction
 		default:
 			hashes, err = compareBlocksByNumber(t, nodes, num)
 			if err == nil {
-				return nil
+				break doneBlockProduction
 			}
 		}
 	}
+
+	if err != nil {
+		err = fmt.Errorf("%w: hashes=%v", err, hashes)
+	}
+	return err
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
