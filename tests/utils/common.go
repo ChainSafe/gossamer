@@ -60,6 +60,24 @@ type ServerResponse struct {
 	ID *json.RawMessage `json:"id"`
 }
 
+// WebsocketResponse wraps the Websocket response
+type WebsocketResponse struct {
+	// JSON-RPC Version
+	Version string `json:"jsonrpc"`
+	// Method name called
+	Method string `json:"method"`
+	// Resulting values
+	Result json.RawMessage `json:"result"`
+	// Params values including results
+	Params json.RawMessage `json:"params"`
+	// Any generated errors
+	Error *Error `json:"error"`
+	// Request id
+	Subscription *json.RawMessage `json:"subscription"`
+	// Request id
+	ID *json.RawMessage `json:"id"`
+}
+
 // ErrCode is a int type used for the rpc error codes
 type ErrCode int
 
