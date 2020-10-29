@@ -27,6 +27,7 @@ var testCalls = []struct {
 	{[]byte{}, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":0}` + "\n")},                                                                                         // empty request
 	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`), []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
 	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`), []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`), []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
@@ -97,6 +98,10 @@ func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, er
 }
 func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
 }
+func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
+	return 0, nil
+}
+func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
 
 type MockStorageAPI struct{}
 
