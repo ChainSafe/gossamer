@@ -284,7 +284,7 @@ func (s *TrieState) NextKey(key []byte) []byte {
 	}
 
 	sort.Slice(keys, func(i, j int) bool {
-		var max int 
+		var max int
 		if len(keys[i]) > len(keys[j]) {
 			max = len(keys[i])
 		} else {
@@ -309,7 +309,7 @@ func (s *TrieState) NextKey(key []byte) []byte {
 	})
 
 	for i := range keys {
-		if i == len(keys) - 1 {
+		if i == len(keys)-1 {
 			break
 		}
 
@@ -320,6 +320,7 @@ func (s *TrieState) NextKey(key []byte) []byte {
 
 	return nil
 }
+
 // =======
 // // NextKey returns the next key in the trie in lexicographic order.
 // // TODO: complete this

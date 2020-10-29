@@ -19,6 +19,7 @@ package trie
 import (
 	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -119,39 +120,46 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 
 // NextKey returns the next key in the trie in lexicographic order. It returns nil if there is no next key
 func (t *Trie) NextKey(key []byte) []byte {
-	return t.nextKey(t.root, nil, key, false)
+	k := keyToNibbles(key)
+	return nibblesToKeyLE(t.nextKey(t.root, nil, k, false))
 }
 
 func (t *Trie) nextKey(current node, prefix, target []byte, ret bool) []byte {
+	fmt.Println("key, ret", target, ret)
 	switch c := current.(type) {
 	case *branch:
-		fullKey := nibblesToKeyLE(append(prefix, c.key...))
-		if ret {
+		fullKey := append(prefix, c.key...)
+		fmt.Println("branch", fullKey)
+		if ret && c.value != nil {
 			return fullKey
 		}
 
-		if bytes.Equal(target, fullKey[:len(target)]) {
+		if len(fullKey) >= len(target) && bytes.Equal(target, fullKey[:len(target)]) {
 			//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
 			//return t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, true)
 			ret = true
 		}
 		for i, child := range c.children {
-			t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, ret)
+			next := t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, ret)
+			if next != nil {
+				return next
+			}
 		}
 	case *leaf:
-		fullKey := nibblesToKeyLE(append(prefix, c.key...))
+		fullKey := append(prefix, c.key...)
+		fmt.Println("leaf", fullKey)
 		if ret {
 			return fullKey
 		}
 
-		if bytes.Equal(target, fullKey[:len(target)]) {
-			return t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, true)
+		if len(fullKey) >= len(target) && bytes.Equal(target, fullKey[:len(target)]) {
+			return c.value
 		}
 		//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
 		//return kv
 	}
 
-	return nil	
+	return nil
 }
 
 // Put inserts a key with value into the trie
