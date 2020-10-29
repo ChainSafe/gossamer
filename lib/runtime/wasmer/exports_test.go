@@ -14,6 +14,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInstance_Version_PolkadotRuntime(t *testing.T) {
+	expected := &runtime.Version{
+		Spec_name:         []byte("polkadot"),
+		Impl_name:         []byte("parity-polkadot"),
+		Authoring_version: 0,
+		Spec_version:      25,
+		Impl_version:      0,
+	}
+
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+
+	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	require.Nil(t, err)
+
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+	version.Decode(ret)
+	require.Nil(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
 func TestInstance_Version_NodeRuntime(t *testing.T) {
 	expected := &runtime.Version{
 		Spec_name:         []byte("node"),
@@ -44,8 +74,9 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected, version.RuntimeVersion)
 }
 
-func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
-	t.Skip()
+// see https://raw.githubusercontent.com/paritytech/polkadot/3094e8d267b502351c0bccf3bfd1f7443d79fd20/service/res/polkadot.json
+func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
+	//	t.Skip()
 
 	tt := trie.NewEmptyTrie()
 
@@ -56,7 +87,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	err = tt.Put(runtime.GrandpaAuthorityDataKey, value)
 	require.NoError(t, err)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.LvlTrace)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -160,6 +191,18 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	t.Skip()
 
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	header := &types.Header{
+		Number: big.NewInt(1),
+		Digest: [][]byte{},
+	}
+
+	err := rt.InitializeBlock(header)
+	require.NoError(t, err)
+}
+
+func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
+	rt := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
 	header := &types.Header{
 		Number: big.NewInt(1),

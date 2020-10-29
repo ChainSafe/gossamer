@@ -29,6 +29,7 @@ package wasmer
 // extern int32_t ext_crypto_ed25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int32_t ext_crypto_ed25519_verify_version_1(void *context, int32_t a, int64_t b, int32_t c);
 // extern int32_t ext_crypto_finish_batch_verify_version_1(void *context);
+// extern int64_t ext_crypto_secp256k1_ecdsa_recover_version_1(void *context, int32_t a, int32_t b);
 // extern int64_t ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(void *context, int32_t a, int32_t b);
 // extern int32_t ext_crypto_sr25519_generate_version_1(void *context, int32_t a, int64_t b);
 // extern int64_t ext_crypto_sr25519_public_keys_version_1(void *context, int32_t a);
@@ -166,6 +167,12 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
+	return 0
+}
+
+//export ext_crypto_secp256k1_ecdsa_recover_version_1
+func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
 	return 0
 }
 
@@ -549,6 +556,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_crypto_finish_batch_verify_version_1", ext_crypto_finish_batch_verify_version_1, C.ext_crypto_finish_batch_verify_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_1", ext_crypto_secp256k1_ecdsa_recover_version_1, C.ext_crypto_secp256k1_ecdsa_recover_version_1)
 	if err != nil {
 		return nil, err
 	}

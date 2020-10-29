@@ -36,6 +36,11 @@ const (
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
 	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
+	// v0.8 polkadot runtime
+	POLKADOT_RUNTIME     = "polkadot_runtime"
+	POLKADOT_RUNTIME_FP  = "polkadot_runtime.compact.wasm"
+	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
+
 	TEST_RUNTIME  = "test_runtime"
 	TESTS_FP      = "test_wasm.wasm"
 	TEST_WASM_URL = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"

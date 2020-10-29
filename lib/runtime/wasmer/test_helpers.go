@@ -92,6 +92,8 @@ func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
 		registerImports = ImportsNodeRuntime
 	case runtime.TEST_RUNTIME:
 		registerImports = ImportsLegacyNodeRuntime
+	case runtime.POLKADOT_RUNTIME:
+		registerImports = ImportsNodeRuntime
 	default:
 		registerImports = ImportsLegacyNodeRuntime
 	}
