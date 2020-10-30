@@ -68,7 +68,7 @@ func GetChainHeadWithError(t *testing.T, node *Node) (*types.Header, error) {
 
 // GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head
 func GetBlockHash(t *testing.T, node *Node, num string) (common.Hash, error) {
-	respBody, err := PostRPC(ChainGetBlockHash, NewEndpoint(node.RPCPort), "["+num+"]")
+	respBody, err := PostRPCWithRetry(ChainGetBlockHash, NewEndpoint(node.RPCPort), "["+num+"]", 5)
 	if err != nil {
 		return common.Hash{}, err
 	}
