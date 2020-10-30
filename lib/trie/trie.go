@@ -121,42 +121,101 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 // NextKey returns the next key in the trie in lexicographic order. It returns nil if there is no next key
 func (t *Trie) NextKey(key []byte) []byte {
 	k := keyToNibbles(key)
-	return nibblesToKeyLE(t.nextKey(t.root, nil, k, false))
+	fmt.Println("key", k)
+	return nibblesToKeyLE(t.nextKey([]node{}, t.root, nil, k))
 }
 
-func (t *Trie) nextKey(current node, prefix, target []byte, ret bool) []byte {
-	fmt.Println("key, ret", target, ret)
+func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []byte {
 	switch c := current.(type) {
 	case *branch:
 		fullKey := append(prefix, c.key...)
 		fmt.Println("branch", fullKey)
-		if ret && c.value != nil {
-			return fullKey
+		// if ret && c.value != nil {
+		// 	return fullKey
+		// }
+
+		if bytes.Equal(target, fullKey) {
+			for i, child := range c.children {
+				if child == nil {
+					continue
+				}
+
+				// descend and return first key
+				return returnFirstKey(append(fullKey, byte(i)), child)
+			}
 		}
 
-		if len(fullKey) >= len(target) && bytes.Equal(target, fullKey[:len(target)]) {
-			//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
-			//return t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, true)
-			ret = true
-		}
-		for i, child := range c.children {
-			next := t.nextKey(child, append(prefix, append(c.key, byte(i))...), target, ret)
-			if next != nil {
-				return next
+		if len(target) >= len(fullKey) && bytes.Equal(target[:len(fullKey)], fullKey) {
+			for i, child := range c.children {
+				if child == nil {
+					continue
+				}
+
+				return t.nextKey(append([]node{c}, ancestors...), child, append(fullKey, byte(i)), target)
 			}
 		}
 	case *leaf:
 		fullKey := append(prefix, c.key...)
 		fmt.Println("leaf", fullKey)
-		if ret {
-			return fullKey
+
+		if bytes.Equal(target, fullKey) {
+			fmt.Println("found target, searching for next")
+			// ancestors are all branches, find one with another child w/ index greater than ours
+			for _, anc := range ancestors {
+				myIdx := prefix[len(prefix)-1]
+				fmt.Println("myIdx", myIdx)
+
+				br, ok := anc.(*branch)
+				if !ok {
+					fmt.Println("ancestor wasnt branch???")
+					return nil
+				}
+
+				prefix = prefix[:len(prefix)-len(br.key)-1]
+
+				if br.childrenBitmap()>>(myIdx+1) == 0 {
+					//prefix = prefix[:len(prefix)-len(br.key)]
+					continue
+				}
+
+				// descend into ancestor's other children
+				for i, child := range br.children[myIdx+1:] {
+					idx := byte(i) + myIdx + 1
+
+					if child == nil {
+						continue
+					}
+
+					fmt.Println("descending into node at ", idx, child, prefix)
+
+					return returnFirstKey(append(prefix, byte(idx)), child)
+				}
+			}
 		}
 
-		if len(fullKey) >= len(target) && bytes.Equal(target, fullKey[:len(target)]) {
-			return c.value
+	}
+
+	return nil
+}
+
+// returnFirstKey descends into a node and returns the first key with an associated value
+func returnFirstKey(prefix []byte, n node) []byte {
+	fmt.Println("returnFirstKey prefix", prefix, n)
+	switch c := n.(type) {
+	case *branch:
+		if c.value != nil {
+			return append(prefix, c.key...)
 		}
-		//kv[string(nibblesToKeyLE(append(prefix, c.key...)))] = c.value
-		//return kv
+
+		for i, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			return returnFirstKey(append(prefix, append(c.key, byte(i))...), child)
+		}
+	case *leaf:
+		return append(prefix, c.key...)
 	}
 
 	return nil

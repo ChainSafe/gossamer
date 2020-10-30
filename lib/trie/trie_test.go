@@ -593,7 +593,24 @@ func TestNextKey(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
-	expected := tests[1].key
-	next := trie.NextKey(tests[0].key)
+	t.Log(trie)
+
+	// expected := tests[1].key
+	// next := trie.NextKey(tests[0].key)
+	// require.Equal(t, expected, next)
+
+	// expected = tests[2].key
+	// next = trie.NextKey(tests[1].key)
+	// require.Equal(t, expected, next)
+
+	expected := tests[3].key
+	next := trie.NextKey(tests[2].key)
 	require.Equal(t, expected, next)
+
+	// expected = tests[4].key
+	// next = trie.NextKey(tests[3].key)
+	// require.Equal(t, expected, next)
+
+	// next = trie.NextKey(tests[4].key)
+	// require.Nil(t, next)
 }
