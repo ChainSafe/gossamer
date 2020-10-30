@@ -19,7 +19,6 @@ package trie
 import (
 	"bytes"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -121,18 +120,19 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 // NextKey returns the next key in the trie in lexicographic order. It returns nil if there is no next key
 func (t *Trie) NextKey(key []byte) []byte {
 	k := keyToNibbles(key)
-	fmt.Println("key", k)
-	return nibblesToKeyLE(t.nextKey([]node{}, t.root, nil, k))
+
+	next := t.nextKey([]node{}, t.root, nil, k)
+	if next == nil {
+		return nil
+	}
+
+	return nibblesToKeyLE(next)
 }
 
 func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []byte {
 	switch c := current.(type) {
 	case *branch:
 		fullKey := append(prefix, c.key...)
-		fmt.Println("branch", fullKey)
-		// if ret && c.value != nil {
-		// 	return fullKey
-		// }
 
 		if bytes.Equal(target, fullKey) {
 			for i, child := range c.children {
@@ -147,7 +147,7 @@ func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []
 
 		if len(target) >= len(fullKey) && bytes.Equal(target[:len(fullKey)], fullKey) {
 			for i, child := range c.children {
-				if child == nil {
+				if child == nil || byte(i) != target[len(fullKey)] {
 					continue
 				}
 
@@ -156,25 +156,21 @@ func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []
 		}
 	case *leaf:
 		fullKey := append(prefix, c.key...)
-		fmt.Println("leaf", fullKey)
 
 		if bytes.Equal(target, fullKey) {
-			fmt.Println("found target, searching for next")
 			// ancestors are all branches, find one with another child w/ index greater than ours
 			for _, anc := range ancestors {
+				// index of the current node in its parent branch
 				myIdx := prefix[len(prefix)-1]
-				fmt.Println("myIdx", myIdx)
 
 				br, ok := anc.(*branch)
 				if !ok {
-					fmt.Println("ancestor wasnt branch???")
 					return nil
 				}
 
 				prefix = prefix[:len(prefix)-len(br.key)-1]
 
 				if br.childrenBitmap()>>(myIdx+1) == 0 {
-					//prefix = prefix[:len(prefix)-len(br.key)]
 					continue
 				}
 
@@ -186,13 +182,10 @@ func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []
 						continue
 					}
 
-					fmt.Println("descending into node at ", idx, child, prefix)
-
-					return returnFirstKey(append(prefix, byte(idx)), child)
+					return returnFirstKey(append(prefix, append(br.key, byte(idx))...), child)
 				}
 			}
 		}
-
 	}
 
 	return nil
@@ -200,7 +193,6 @@ func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []
 
 // returnFirstKey descends into a node and returns the first key with an associated value
 func returnFirstKey(prefix []byte, n node) []byte {
-	fmt.Println("returnFirstKey prefix", prefix, n)
 	switch c := n.(type) {
 	case *branch:
 		if c.value != nil {

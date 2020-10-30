@@ -584,6 +584,7 @@ func TestNextKey(t *testing.T) {
 	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x7a}, value: []byte("gnocchi"), op: PUT},
 		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
 		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
@@ -593,24 +594,95 @@ func TestNextKey(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
-	t.Log(trie)
+	testCases := []struct {
+		input    []byte
+		expected []byte
+	}{
+		{
+			tests[0].key,
+			tests[1].key,
+		},
+		{
+			tests[1].key,
+			tests[2].key,
+		},
+		{
+			tests[2].key,
+			tests[3].key,
+		},
+		{
+			tests[3].key,
+			tests[4].key,
+		},
+		{
+			tests[4].key,
+			tests[5].key,
+		},
+		{
+			tests[5].key,
+			nil,
+		},
+	}
 
-	// expected := tests[1].key
-	// next := trie.NextKey(tests[0].key)
-	// require.Equal(t, expected, next)
+	for _, tc := range testCases {
+		next := trie.NextKey(tc.input)
+		require.Equal(t, tc.expected, next)
+	}
+}
 
-	// expected = tests[2].key
-	// next = trie.NextKey(tests[1].key)
-	// require.Equal(t, expected, next)
+func TestNextKey_MoreAncestors(t *testing.T) {
+	trie := NewEmptyTrie()
 
-	expected := tests[3].key
-	next := trie.NextKey(tests[2].key)
-	require.Equal(t, expected, next)
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
 
-	// expected = tests[4].key
-	// next = trie.NextKey(tests[3].key)
-	// require.Equal(t, expected, next)
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
 
-	// next = trie.NextKey(tests[4].key)
-	// require.Nil(t, next)
+	testCases := []struct {
+		input    []byte
+		expected []byte
+	}{
+		{
+			tests[0].key,
+			tests[1].key,
+		},
+		{
+			tests[1].key,
+			tests[2].key,
+		},
+		{
+			tests[2].key,
+			tests[3].key,
+		},
+		{
+			tests[3].key,
+			tests[4].key,
+		},
+		{
+			tests[4].key,
+			tests[5].key,
+		},
+		{
+			tests[5].key,
+			tests[6].key,
+		},
+		{
+			tests[6].key,
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		next := trie.NextKey(tc.input)
+		require.Equal(t, tc.expected, next)
+	}
 }
