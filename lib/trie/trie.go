@@ -182,7 +182,7 @@ func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []
 						continue
 					}
 
-					return returnFirstKey(append(prefix, append(br.key, byte(idx))...), child)
+					return returnFirstKey(append(prefix, append(br.key, idx)...), child)
 				}
 			}
 		}
