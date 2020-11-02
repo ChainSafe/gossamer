@@ -71,6 +71,7 @@ jobs:
     script:
       - make VERSION=$VERSION docker-build
       - make VERSION=$VERSION docker-version
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - docker push chainsafe/gossamer:$VERSION
   - stage: Integration Tests
     name: Stable
