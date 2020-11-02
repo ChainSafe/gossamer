@@ -52,6 +52,9 @@ var (
 	// BaseRPCPort is the starting RPC port for test nodes
 	BaseRPCPort = 8540
 
+	// BaseWSPort is the starting Websocket port for test nodes
+	BaseWSPort = 8546
+
 	currentDir, _ = os.Getwd()
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
@@ -82,6 +85,7 @@ type Node struct {
 	Idx      int
 	basePath string
 	config   string
+	WSPort   string
 }
 
 // InitGossamer initializes given node number and returns node reference
@@ -108,43 +112,38 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	return &Node{
 		Idx:      idx,
 		RPCPort:  strconv.Itoa(BaseRPCPort + idx),
+		WSPort:   strconv.Itoa(BaseWSPort + idx),
 		basePath: basePath,
 		config:   config,
 	}, nil
 }
 
 // StartGossamer starts given node
-func StartGossamer(t *testing.T, node *Node) error {
+func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
+	var params []string = []string{"--port", strconv.Itoa(basePort + node.Idx),
+		"--config", node.config,
+		"--basepath", node.basePath,
+		"--rpchost", HOSTNAME,
+		"--rpcport", node.RPCPort,
+		"--rpcmods", "system,author,chain,state,dev",
+		"--rpc",
+		"--log", "info"}
+
 	if node.Idx >= len(keyList) {
-		//nolint
-		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
-			"--config", node.config,
-			"--basepath", node.basePath,
-			"--rpchost", HOSTNAME,
-			"--rpcport", node.RPCPort,
-			"--ws=false",
-			"--rpcmods", "system,author,chain,state",
-			"--roles", "1", // no key provided, non-authority node
-			"--rpc",
-			"--log", "info",
-		)
+		params = append(params, "--roles", "1")
 	} else {
 		key = keyList[node.Idx]
-		//nolint
-		node.Process = exec.Command(gossamerCMD, "--port", strconv.Itoa(basePort+node.Idx),
-			"--config", node.config,
-			"--key", key,
-			"--basepath", node.basePath,
-			"--rpchost", HOSTNAME,
-			"--rpcport", node.RPCPort,
-			"--ws=false",
-			"--rpcmods", "system,author,chain,state,dev",
-			"--roles", "4", // authority node
-			"--rpc",
-			"--log", "trace",
-		)
+		params = append(params, "--roles", "4",
+			"--key", key)
 	}
+
+	if websocket {
+		params = append(params, "--ws",
+			"--wsport", node.WSPort)
+	}
+	//nolint
+	node.Process = exec.Command(gossamerCMD, params...)
 
 	node.Key = key
 
@@ -212,14 +211,14 @@ func StartGossamer(t *testing.T, node *Node) error {
 }
 
 // RunGossamer will initialize and start a gossamer instance
-func RunGossamer(t *testing.T, idx int, basepath, genesis, config string) (*Node, error) {
+func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
 		logger.Crit("could not initialize gossamer", "error", err)
 		os.Exit(1)
 	}
 
-	err = StartGossamer(t, node)
+	err = StartGossamer(t, node, websocket)
 	if err != nil {
 		logger.Crit("could not start gossamer", "error", err)
 		os.Exit(1)
@@ -282,7 +281,7 @@ func InitNodes(num int, config string) ([]*Node, error) {
 // StartNodes starts given array of nodes
 func StartNodes(t *testing.T, nodes []*Node) error {
 	for _, n := range nodes {
-		err := StartGossamer(t, n)
+		err := StartGossamer(t, n, false)
 		if err != nil {
 			return nil
 		}
@@ -295,6 +294,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 	var nodes []*Node
 
 	var wg sync.WaitGroup
+	var nodeMu sync.Mutex
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
@@ -303,7 +303,37 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 			if i < len(keyList) {
 				name = keyList[i]
 			}
-			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config)
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false)
+			if err != nil {
+				logger.Error("failed to run gossamer", "i", i)
+			}
+
+			nodeMu.Lock()
+			nodes = append(nodes, node)
+			nodeMu.Unlock()
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	return nodes, nil
+}
+
+// InitializeAndStartNodesWebsocket will spin up `num` gossamer nodes running with Websocket rpc enabled
+func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config string) ([]*Node, error) {
+	var nodes []*Node
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i := 0; i < num; i++ {
+		go func(i int) {
+			name := strconv.Itoa(i)
+			if i < len(keyList) {
+				name = keyList[i]
+			}
+			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true)
 			if err != nil {
 				logger.Error("failed to run gossamer", "i", i)
 			}

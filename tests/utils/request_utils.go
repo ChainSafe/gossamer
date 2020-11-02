@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -62,6 +63,19 @@ func PostRPC(method, host, params string) ([]byte, error) {
 
 }
 
+// PostRPCWithRetry is a wrapper around `PostRPC` that calls it `retry` number of times.
+func PostRPCWithRetry(method, host, params string, retry int) ([]byte, error) {
+	count := 0
+	for {
+		resp, err := PostRPC(method, host, params)
+		if err == nil || count >= retry {
+			return resp, err
+		}
+		time.Sleep(200 * time.Millisecond)
+		count++
+	}
+}
+
 // DecodeRPC will decode []body into target interface
 func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	decoder := json.NewDecoder(bytes.NewReader(body))
@@ -77,6 +91,33 @@ func DecodeRPC(t *testing.T, body []byte, target interface{}) error {
 	}
 
 	decoder = json.NewDecoder(bytes.NewReader(response.Result))
+	decoder.DisallowUnknownFields()
+
+	err = decoder.Decode(target)
+	require.Nil(t, err, string(body))
+	return nil
+}
+
+// DecodeWebsocket will decode body into target interface
+func DecodeWebsocket(t *testing.T, body []byte, target interface{}) error {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+
+	var response WebsocketResponse
+	err := decoder.Decode(&response)
+	require.Nil(t, err, string(body))
+	require.Equal(t, response.Version, "2.0")
+
+	if response.Error != nil {
+		return errors.New(response.Error.Message)
+	}
+
+	if response.Result != nil {
+		decoder = json.NewDecoder(bytes.NewReader(response.Result))
+	} else {
+		decoder = json.NewDecoder(bytes.NewReader(response.Params))
+	}
+
 	decoder.DisallowUnknownFields()
 
 	err = decoder.Decode(target)
