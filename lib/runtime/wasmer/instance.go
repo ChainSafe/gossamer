@@ -26,6 +26,9 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+// Name represents the name of the interpreter
+const Name = "wasmer"
+
 var _ runtime.Instance = (*Instance)(nil)
 
 var memory, memErr = wasm.NewMemory(17, 0)

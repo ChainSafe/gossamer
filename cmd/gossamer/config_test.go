@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -278,6 +279,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				Roles:            4,
 				BabeAuthority:    true,
 				GrandpaAuthority: true,
+				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 			},
 		},
 		{
@@ -288,6 +290,7 @@ func TestCoreConfigFromFlags(t *testing.T) {
 				Roles:            0,
 				BabeAuthority:    false,
 				GrandpaAuthority: false,
+				WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 			},
 		},
 	}

@@ -27,6 +27,9 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
+// Name represents the name of the interpreter
+const Name = "wasmtime"
+
 var _ gssmrruntime.Instance = (*Instance)(nil)
 
 var logger = log.New("pkg", "runtime", "module", "go-wasmtime")

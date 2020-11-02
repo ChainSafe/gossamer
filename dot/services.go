@@ -37,6 +37,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 )
 
@@ -84,20 +85,41 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		LocalStorage:      database.NewMemDatabase(),
 		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
-	rtCfg := &wasmtime.Config{
-		Imports: wasmtime.ImportsNodeRuntime,
-	}
-	rtCfg.Storage = ts
-	rtCfg.Keystore = ks
-	rtCfg.LogLvl = cfg.Log.RuntimeLvl
-	rtCfg.NodeStorage = ns
-	rtCfg.Network = net
-	rtCfg.Role = cfg.Core.Roles
 
-	// create runtime executor
-	rt, err := wasmtime.NewInstance(code, rtCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+	var rt runtime.Instance
+	switch cfg.Core.WasmInterpreter {
+	case wasmer.Name:
+		rtCfg := &wasmer.Config{
+			Imports: wasmer.RegisterImports_NodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmer.NewInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
+	case wasmtime.Name:
+		rtCfg := &wasmtime.Config{
+			Imports: wasmtime.ImportsNodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmtime.NewInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
 	}
 
 	return rt, nil
