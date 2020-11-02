@@ -70,6 +70,11 @@ func createStateService(cfg *Config) (*state.Service, error) {
 }
 
 func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.Instance, error) {
+	logger.Info(
+		"creating runtime...",
+		"interpreter", cfg.Core.WasmInterpreter,
+	)
+
 	// load runtime code from trie
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {

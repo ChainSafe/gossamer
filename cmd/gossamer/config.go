@@ -485,6 +485,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"babe-threshold", cfg.BabeThreshold,
+		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
 
