@@ -367,21 +367,14 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	mem := make([]byte, 1<<16)
 
 	pagesNeeded := (MaxPossibleAllocation / pageSize) - (len(mem) / pageSize) + 1
-	// err := mem.Grow(pagesNeeded)
-	// if err != nil {
-	// 	t.Error(err)
-	// }
 	mem = make([]byte, len(mem)+pagesNeeded*65*1024)
 	fbha := NewAllocator(mem, 0)
 
-	// when
 	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
 	if err != nil {
 		t.Error(err)
 	}
 
-	//then
-	t.Log("ptr1", ptr1)
 	if ptr1 != 8 {
 		t.Errorf("Expected value of 8")
 	}
@@ -447,7 +440,6 @@ func TestShouldGetItemFromIndex(t *testing.T) {
 	itemSize := getItemSizeFromIndex(index)
 
 	//then
-	t.Log("[TestShouldGetItemFromIndex]", "item_size", itemSize)
 	if itemSize != 8 {
 		t.Error("item_size should be 8, got item_size:", itemSize)
 	}
@@ -463,7 +455,6 @@ func TestShouldGetMaxFromIndex(t *testing.T) {
 	itemSize := getItemSizeFromIndex(index)
 
 	//then
-	t.Log("[TestShouldGetMaxFromIndex]", "item_size", itemSize)
 	if itemSize != MaxPossibleAllocation {
 		t.Errorf("item_size should be %d, got item_size: %d", MaxPossibleAllocation, itemSize)
 	}

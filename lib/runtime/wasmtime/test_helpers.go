@@ -60,7 +60,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	cfg.Network = new(runtime.TestRuntimeNetwork)
 
 	r, err := NewInstanceFromFile(fp, cfg)
-	require.Nil(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
+	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
 	return r
 }
@@ -70,6 +70,8 @@ func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store)
 	var imports func(*wasmtime.Store) []*wasmtime.Extern
 
 	switch targetRuntime {
+	case runtime.LEGACY_NODE_RUNTIME:
+		imports = ImportsLegacyNodeRuntime
 	case runtime.NODE_RUNTIME:
 		imports = ImportsNodeRuntime
 	default:

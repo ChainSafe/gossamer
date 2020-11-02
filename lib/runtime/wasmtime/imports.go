@@ -17,42 +17,144 @@
 package wasmtime
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
-	"math/big"
-	"reflect"
-	"runtime"
-
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
-
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
-var ctx gssmrruntime.Context
-
-func ext_print_num(data int64) {
-	logger.Trace("[ext_print_num] executing...")
-	logger.Info("[ext_print_num]", "message", fmt.Sprintf("%d", data))
+func ext_logging_log_version_1(c *wasmtime.Caller, level int32, target, msg int64) {
+	logger.Trace("[ext_logging_log_version_1] executing...")
 }
 
-func ext_print_utf8(c *wasmtime.Caller, data, len int32) {
-	logger.Trace("[ext_print_utf8] executing...")
-	m := c.GetExport("memory").Memory()
-	mem := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-	logger.Info("[ext_print_utf8]", "message", fmt.Sprintf("%s", mem[data:data+len]))
+func ext_sandbox_instance_teardown_version_1(c *wasmtime.Caller, a int32) {
+	logger.Trace("[ext_sandbox_instance_teardown_version_1] executing...")
 }
 
-func ext_malloc(c *wasmtime.Caller, size int32) int32 {
-	logger.Trace("[ext_malloc] executing...")
+func ext_sandbox_instantiate_version_1(c *wasmtime.Caller, a int32, x, y int64, z int32) int32 {
+	logger.Trace("[ext_sandbox_instantiate_version_1] executing...")
+	return 0
+}
+
+func ext_sandbox_invoke_version_1(c *wasmtime.Caller, a int32, x, y int64, z, d, e int32) int32 {
+	logger.Trace("[ext_sandbox_invoke_version_1] executing...")
+	return 0
+}
+
+func ext_sandbox_memory_get_version_1(c *wasmtime.Caller, a, z, d, e int32) int32 {
+	logger.Trace("[ext_sandbox_memory_get_version_1] executing...")
+	return 0
+}
+
+func ext_sandbox_memory_new_version_1(c *wasmtime.Caller, a, z int32) int32 {
+	logger.Trace("[ext_sandbox_memory_new_version_1] executing...")
+	return 0
+}
+
+func ext_sandbox_memory_set_version_1(c *wasmtime.Caller, a, z, d, e int32) int32 {
+	logger.Trace("[ext_sandbox_memory_set_version_1] executing...")
+	return 0
+}
+
+func ext_sandbox_memory_teardown_version_1(c *wasmtime.Caller, a int32) {
+	logger.Trace("[ext_sandbox_memory_teardown_version_1] executing...")
+}
+
+func ext_crypto_ed25519_generate_version_1(c *wasmtime.Caller, a int32, z int64) int32 {
+	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_ed25519_verify_version_1(c *wasmtime.Caller, a int32, z int64, y int32) int32 {
+	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_finish_batch_verify_version_1(c *wasmtime.Caller) int32 {
+	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(c *wasmtime.Caller, a, z int32) int64 {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_sr25519_generate_version_1(c *wasmtime.Caller, a int32, z int64) int32 {
+	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_sr25519_public_keys_version_1(c *wasmtime.Caller, a int32) int64 {
+	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_sr25519_sign_version_1(c *wasmtime.Caller, a, z int32, y int64) int64 {
+	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_sr25519_verify_version_2(c *wasmtime.Caller, a int32, z int64, y int32) int32 {
+	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
+	return 0
+}
+
+func ext_crypto_start_batch_verify_version_1(c *wasmtime.Caller) {
+	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
+}
+
+func ext_trie_blake2_256_ordered_root_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
+	return 0
+}
+
+func ext_misc_print_hex_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+}
+
+func ext_misc_print_num_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_misc_print_num_version_1] executing...")
+}
+
+func ext_misc_print_utf8_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
+}
+
+func ext_misc_runtime_version_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
+	return 0
+}
+
+func ext_default_child_storage_clear_version_1(c *wasmtime.Caller, a, b int64) {
+	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
+}
+
+func ext_default_child_storage_get_version_1(c *wasmtime.Caller, a, b int64) int64 {
+	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
+	return 0
+}
+
+func ext_default_child_storage_root_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
+	return 0
+}
+
+func ext_default_child_storage_set_version_1(c *wasmtime.Caller, a, b, z int64) {
+	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
+}
+
+func ext_default_child_storage_storage_kill_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+}
+
+func ext_allocator_free_version_1(c *wasmtime.Caller, addr int32) {
+	logger.Trace("[ext_allocator_free_version_1] executing...")
+	err := ctx.Allocator.Deallocate(uint32(addr))
+	if err != nil {
+		logger.Error("[ext_free]", "error", err)
+	}
+}
+
+func ext_allocator_malloc_version_1(c *wasmtime.Caller, size int32) int32 {
+	logger.Trace("[ext_allocator_malloc_version_1] executing...")
 	res, err := ctx.Allocator.Allocate(uint32(size))
 	if err != nil {
 		logger.Error("[ext_malloc]", "Error:", err)
@@ -60,1003 +162,247 @@ func ext_malloc(c *wasmtime.Caller, size int32) int32 {
 	return int32(res)
 }
 
-func ext_free(c *wasmtime.Caller, addr int32) {
-	logger.Trace("[ext_free] executing...")
-	err := ctx.Allocator.Deallocate(uint32(addr))
-	if err != nil {
-		logger.Error("[ext_free]", "error", err)
-	}
-}
-
-func ext_twox_128(c *wasmtime.Caller, data, len, out int32) {
-	logger.Trace("[ext_twox_128] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	logger.Trace("[ext_twox_128]", "hashing", fmt.Sprintf("%s", memory[data:data+len]))
-
-	res, err := common.Twox128Hash(memory[data : data+len])
-	if err != nil {
-		logger.Trace("error hashing in ext_twox_128", "error", err)
-	}
-
-	copy(memory[out:out+16], res[0:16])
-}
-
-func ext_get_storage_into(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
-	logger.Trace("[ext_get_storage_into] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	key := memory[keyData : keyData+keyLen]
-	val, err := ctx.Storage.Get(key)
-	if err != nil {
-		logger.Warn("[ext_get_storage_into]", "err", err)
-		ret := 1<<32 - 1
-		return int32(ret)
-	} else if val == nil {
-		logger.Debug("[ext_get_storage_into]", "err", "value is nil")
-		ret := 1<<32 - 1
-		return int32(ret)
-	}
-
-	if len(val) > int(valueLen) {
-		logger.Debug("[ext_get_storage_into]", "error", "value exceeds allocated buffer length")
-		return 0
-	}
-
-	copy(memory[valueData:valueData+valueLen], val[valueOffset:])
-	return int32(len(val[valueOffset:]))
-}
-
-func ext_set_storage(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen int32) {
-	logger.Trace("[ext_set_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	key := memory[keyData : keyData+keyLen]
-	val := memory[valueData : valueData+valueLen]
-	logger.Trace("[ext_set_storage]", "key", fmt.Sprintf("0x%x", key), "val", val)
-	err := ctx.Storage.Set(key, val)
-	if err != nil {
-		logger.Error("[ext_set_storage]", "error", err)
-		return
-	}
-}
-
-func ext_storage_root(c *wasmtime.Caller, resultPtr int32) {
-	logger.Trace("[ext_storage_root] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	root, err := ctx.Storage.Root()
-	if err != nil {
-		logger.Error("[ext_storage_root]", "error", err)
-		return
-	}
-
-	copy(memory[resultPtr:resultPtr+32], root[:])
-}
-
-func ext_get_allocated_storage(c *wasmtime.Caller, keyData, keyLen, writtenOut int32) int32 {
-	logger.Trace("[ext_get_allocated_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	key := memory[keyData : keyData+keyLen]
-	logger.Trace("[ext_get_allocated_storage]", "key", fmt.Sprintf("0x%x", key))
-
-	val, err := ctx.Storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_get_allocated_storage]", "error", err)
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
-	if len(val) >= (1 << 32) {
-		logger.Error("[ext_get_allocated_storage]", "error", "retrieved value length exceeds 2^32")
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
-	if val == nil {
-		logger.Trace("[ext_get_allocated_storage]", "value", "nil")
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
-	ptr, err := ctx.Allocator.Allocate(uint32(len(val)))
-	if err != nil {
-		logger.Error("[ext_get_allocated_storage]", "error", err)
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
-	logger.Trace("[ext_get_allocated_storage]", "value", val)
-	copy(memory[ptr:ptr+uint32(len(val))], val)
-
-	// copy length to memory
-	byteLen := make([]byte, 4)
-	binary.LittleEndian.PutUint32(byteLen, uint32(len(val)))
-
-	// writtenOut stores the location of the memory that was allocated
-	copy(memory[writtenOut:writtenOut+4], byteLen)
-	return int32(ptr)
-}
-
-func ext_clear_storage(c *wasmtime.Caller, keyData, keyLen int32) {
-	logger.Trace("[ext_clear_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	key := memory[keyData : keyData+keyLen]
-	err := ctx.Storage.Delete(key)
-	if err != nil {
-		logger.Error("[ext_clear_storage]", "error", err)
-	}
-}
-
-func ext_clear_prefix(c *wasmtime.Caller, prefixData, prefixLen int32) {
-	logger.Trace("[ext_clear_prefix] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	prefix := memory[prefixData : prefixData+prefixLen]
-	entries := ctx.Storage.Entries()
-	for k := range entries {
-		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
-			err := ctx.Storage.Delete([]byte(k))
-			if err != nil {
-				logger.Error("[ext_clear_prefix]", "err", err)
-			}
-		}
-	}
-}
-
-func ext_blake2_256(c *wasmtime.Caller, data, length, out int32) {
-	logger.Trace("[ext_blake2_256] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	hash, err := common.Blake2bHash(memory[data : data+length])
-	if err != nil {
-		logger.Error("[ext_blake2_256]", "error", err)
-		return
-	}
-
-	copy(memory[out:out+32], hash[:])
-}
-
-func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensData, lensLen, result int32) {
-	logger.Trace("[ext_blake2_256_enumerated_trie_root] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	t := trie.NewEmptyTrie()
-	var i int32
-	var pos int32 = 0
-	for i = 0; i < lensLen; i++ {
-		valueLenBytes := memory[lensData+i*4 : lensData+(i+1)*4]
-		valueLen := int32(binary.LittleEndian.Uint32(valueLenBytes))
-		value := memory[valuesData+pos : valuesData+pos+valueLen]
-		logger.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "value", fmt.Sprintf("%d", value), "valueLen", valueLen)
-		pos += valueLen
-
-		// encode the key
-		encodedOutput, err := scale.Encode(big.NewInt(int64(i)))
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return
-		}
-		logger.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
-		err = t.Put(encodedOutput, value)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return
-		}
-	}
-	root, err := t.Hash()
-	if err != nil {
-		logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-		return
-	}
-	logger.Trace("[ext_blake2_256_enumerated_trie_root]", "root", root)
-	copy(memory[result:result+32], root[:])
-}
-
-func ext_print_hex(c *wasmtime.Caller, offset, size int32) {
-	logger.Trace("[ext_print_hex] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-	logger.Debug("[ext_print_hex]", "message", fmt.Sprintf("%x", memory[offset:offset+size]))
-}
-
-func ext_storage_changes_root(c *wasmtime.Caller, a, b, d int32) int32 {
-	logger.Trace("[ext_storage_changes_root] executing...")
-	logger.Debug("[ext_storage_changes_root] not yet implemented")
+func ext_hashing_blake2_128_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
 	return 0
 }
 
-func ext_set_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen int32) {
-	logger.Trace("[ext_set_child_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-	key := memory[keyData : keyData+keyLen]
-	value := memory[valueData : valueData+valueLen]
-
-	err := ctx.Storage.SetChildStorage(keyToChild, key, value)
-	if err != nil {
-		logger.Error("[ext_set_child_storage]", "error", err)
-	}
-}
-
-func ext_twox_64(c *wasmtime.Caller, data, length, out int32) {
-	logger.Trace("[ext_twox_64] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	logger.Trace("[ext_twox_64] hashing...", "value", memory[data:data+length])
-
-	hash, err := common.Twox64(memory[data : data+length])
-	if err != nil {
-		logger.Error("[ext_twox_64]", "error", err)
-		return
-	}
-	copy(memory[out:out+8], hash)
-}
-
-func ext_sr25519_generate(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
-	logger.Trace("[ext_sr25519_generate] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	// TODO: key types not yet implemented
-	// id := memory[idData:idData+4]
-
-	seedBytes := memory[seed : seed+seedLen]
-	kp, err := sr25519.NewKeypairFromSeed(seedBytes)
-	if err != nil {
-		logger.Trace("ext_sr25519_generate cannot generate key", "error", err)
-	}
-
-	logger.Trace("ext_sr25519_generate", "address", kp.Public().Address())
-	ctx.Keystore.Insert(kp)
-	copy(memory[out:out+32], kp.Public().Encode())
-}
-
-func ext_sr25519_public_keys(c *wasmtime.Caller, idData, resultLen int32) int32 {
-	logger.Trace("[ext_sr25519_public_keys] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keys := ctx.Keystore.Sr25519PublicKeys()
-
-	offset, err := ctx.Allocator.Allocate(uint32(len(keys) * 32))
-	if err != nil {
-		logger.Error("[ext_sr25519_public_keys]", "error", err)
-		return -1
-	}
-
-	for i, key := range keys {
-		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
-	}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
-	copy(memory[resultLen:resultLen+4], buf)
-	return int32(offset)
-}
-
-func ext_sr25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, out int32) int32 {
-	logger.Trace("[ext_sr25519_sign] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
-	pubkey, err := sr25519.NewPublicKey(pubkeyBytes)
-	if err != nil {
-		logger.Error("[ext_sr25519_sign]", "error", err)
-		return 1
-	}
-
-	signingKey := ctx.Keystore.GetKeypair(pubkey)
-
-	if signingKey == nil {
-		logger.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
-		return 1
-	}
-
-	msgLenBytes := memory[msgLen : msgLen+4]
-	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
-	msg := memory[msgData : msgData+int32(msgLength)]
-	sig, err := signingKey.Sign(msg)
-	if err != nil {
-		logger.Error("[ext_sr25519_sign] could not sign message")
-		return 1
-	}
-
-	copy(memory[out:out+64], sig)
+func ext_hashing_blake2_256_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
 	return 0
 }
 
-func ext_sr25519_verify(c *wasmtime.Caller, msgData, msgLen, sigData, pubkeyData int32) int32 {
-	logger.Trace("[ext_sr25519_verify] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	msg := memory[msgData : msgData+msgLen]
-	sig := memory[sigData : sigData+64]
-	logger.Trace("[ext_sr25519_verify]", "msg", msg)
-	pub, err := sr25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
-	if err != nil {
-		return 1
-	}
-
-	if ok, err := pub.Verify(msg, sig); err != nil || !ok {
-		return 1
-	}
-
+func ext_hashing_keccak_256_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
 	return 0
 }
 
-func ext_ed25519_generate(c *wasmtime.Caller, idData, seed, seedLen, out int32) {
-	logger.Trace("[ext_ed25519_generate] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	// TODO: key types not yet implemented
-	// id := memory[idData:idData+4]
-
-	seedBytes := memory[seed : seed+seedLen]
-	kp, err := ed25519.NewKeypairFromSeed(seedBytes)
-	if err != nil {
-		logger.Trace("ext_ed25519_generate cannot generate key", "error", err)
-	}
-
-	logger.Trace("ext_ed25519_generate", "address", kp.Public().Address())
-	ctx.Keystore.Insert(kp)
-	copy(memory[out:out+32], kp.Public().Encode())
-}
-
-func ext_ed25519_verify(c *wasmtime.Caller, msgData, msgLen, sigData, pubkeyData int32) int32 {
-	logger.Trace("[ext_ed25519_verify] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	msg := memory[msgData : msgData+msgLen]
-	sig := memory[sigData : sigData+64]
-	pubkey, err := ed25519.NewPublicKey(memory[pubkeyData : pubkeyData+32])
-	if err != nil {
-		return 1
-	}
-
-	if ok, err := pubkey.Verify(msg, sig); err != nil || !ok {
-		return 1
-	}
-
+func ext_hashing_sha2_256_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
 	return 0
 }
 
-func ext_is_validator(c *wasmtime.Caller) int32 {
-	logger.Trace("[ext_is_validator] executing...")
-	if ctx.Validator {
-		return 1
-	}
+func ext_hashing_twox_128_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
 	return 0
 }
 
-func ext_local_storage_get(c *wasmtime.Caller, kind, key, keyLen, valueLen int32) int32 {
-	logger.Trace("[ext_local_storage_get] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyM := memory[key : key+keyLen]
-	var res []byte
-	var err error
-	switch gssmrruntime.NodeStorageType(kind) {
-	case gssmrruntime.NodeStorageTypePersistent:
-		res, err = ctx.NodeStorage.PersistentStorage.Get(keyM)
-	case gssmrruntime.NodeStorageTypeLocal:
-		res, err = ctx.NodeStorage.LocalStorage.Get(keyM)
-	}
-
-	if err != nil {
-		logger.Error("[ext_local_storage_get]", "error", err)
-		return 0
-	}
-	// allocate memory for value and copy value to memory
-	ptr, err := ctx.Allocator.Allocate(uint32(valueLen))
-	if err != nil {
-		logger.Error("[ext_local_storage_get]", "error", err)
-		return 0
-	}
-	copy(memory[ptr:ptr+uint32(valueLen)], res[:])
-	return int32(ptr)
-}
-
-func ext_local_storage_compare_and_set(c *wasmtime.Caller, kind, keyPtr, keyLen, oldValuePtr, oldValueLen, newValuePtr, newValueLen int32) int32 {
-	logger.Trace("[ext_local_storage_compare_and_set] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	key := memory[keyPtr : keyPtr+keyLen]
-	var storedValue []byte
-	var err error
-	var nodeStorage gssmrruntime.BasicStorage
-
-	switch gssmrruntime.NodeStorageType(kind) {
-	case gssmrruntime.NodeStorageTypePersistent:
-		nodeStorage = ctx.NodeStorage.PersistentStorage
-		storedValue, err = nodeStorage.Get(key)
-	case gssmrruntime.NodeStorageTypeLocal:
-		nodeStorage = ctx.NodeStorage.LocalStorage
-		storedValue, err = nodeStorage.Get(key)
-	}
-
-	if err != nil {
-		logger.Error("[ext_local_storage_compare_and_set]", "error", err)
-		return 1
-	}
-
-	oldValue := memory[oldValuePtr : oldValuePtr+oldValueLen]
-
-	if reflect.DeepEqual(storedValue, oldValue) {
-		newValue := memory[newValuePtr : newValuePtr+newValueLen]
-		err := nodeStorage.Put(key, newValue)
-		if err != nil {
-			logger.Error("[ext_local_storage_compare_and_set]", "error", err)
-			return 1
-		}
-		return 0
-	}
-	return 1
-}
-
-func ext_network_state(c *wasmtime.Caller, writtenOut int32) int32 {
-	logger.Trace("[ext_network_state] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	if ctx.Network == nil {
-		return 0
-	}
-
-	nsEnc, err := scale.Encode(ctx.Network.NetworkState())
-	if err != nil {
-		logger.Error("[ext_network_state]", "error", err)
-		return 0
-	}
-
-	// copy network state length to memory writtenOut location
-	nsEncLen := uint32(len(nsEnc))
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, nsEncLen)
-	copy(memory[writtenOut:writtenOut+4], buf)
-
-	// allocate memory for value and copy value to memory
-	ptr, err := ctx.Allocator.Allocate(nsEncLen)
-	if err != nil {
-		logger.Error("[ext_network_state]", "error", err)
-		return 0
-	}
-	copy(memory[ptr:ptr+nsEncLen], nsEnc)
-	return int32(ptr)
-}
-
-func ext_submit_transaction(c *wasmtime.Caller, data, len int32) int32 {
-	logger.Trace("[ext_submit_transaction] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	extBytes := memory[data : data+len]
-	ext := types.Extrinsic(extBytes)
-
-	// validate the transaction
-	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	vtx := transaction.NewValidTransaction(ext, txv)
-
-	ctx.Transaction.AddToPool(vtx)
+func ext_hashing_twox_64_version_1(c *wasmtime.Caller, z int64) int32 {
+	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
 	return 0
 }
 
-func ext_local_storage_set(c *wasmtime.Caller, kind, key, keyLen, value, valueLen int32) {
-	logger.Trace("[ext_local_storage_set] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyM := memory[key : key+keyLen]
-	valueM := memory[value : value+valueLen]
-
-	var err error
-	switch gssmrruntime.NodeStorageType(kind) {
-	case gssmrruntime.NodeStorageTypePersistent:
-		err = ctx.NodeStorage.PersistentStorage.Put(keyM, valueM)
-	case gssmrruntime.NodeStorageTypeLocal:
-		err = ctx.NodeStorage.LocalStorage.Put(keyM, valueM)
-	}
-	if err != nil {
-		logger.Error("[ext_local_storage_set]", "error", err)
-	}
-}
-
-func ext_kill_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen int32) {
-	logger.Trace("[ext_kill_child_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-
-	err := ctx.Storage.DeleteChildStorage(keyToChild)
-	if err != nil {
-		logger.Error("[ext_kill_child_storage]", "error", err)
-	}
-}
-
-func ext_sandbox_memory_new(c *wasmtime.Caller, a, b int32) int32 {
-	logger.Trace("[ext_sandbox_memory_new] executing...")
-	logger.Warn("[ext_sandbox_memory_new] not yet implemented")
+func ext_offchain_is_validator_version_1(c *wasmtime.Caller) int32 {
+	logger.Trace("[ext_offchain_is_validator_version_1] executing...")
 	return 0
 }
 
-func ext_sandbox_memory_teardown(c *wasmtime.Caller, a int32) {
-	logger.Trace("[ext_sandbox_memory_teardown] executing...")
-	logger.Warn("[ext_sandbox_memory_teardown] not yet implemented")
-}
-
-func ext_sandbox_instantiate(c *wasmtime.Caller, a, b, g, d, e, f int32) int32 {
-	logger.Trace("[ext_sandbox_instantiate] executing...")
-	logger.Warn("[ext_sandbox_instantiate] not yet implemented")
+func ext_offchain_local_storage_compare_and_set_version_1(c *wasmtime.Caller, a int32, x, y, z int64) int32 {
+	logger.Trace("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
 	return 0
 }
 
-func ext_sandbox_invoke(c *wasmtime.Caller, a, b, i, d, e, f, g, h int32) int32 {
-	logger.Trace("[ext_sandbox_invoke] executing...")
-	logger.Warn("[ext_sandbox_invoke] not yet implemented")
+func ext_offchain_local_storage_get_version_1(c *wasmtime.Caller, a int32, x int64) int64 {
+	logger.Trace("[ext_offchain_local_storage_get_version_1] executing...")
 	return 0
 }
 
-func ext_sandbox_instance_teardown(c *wasmtime.Caller, a int32) {
-	logger.Trace("[ext_sandbox_instance_teardown] executing...")
-	logger.Warn("[ext_sandbox_instance_teardown] not yet implemented")
+func ext_offchain_local_storage_set_version_1(c *wasmtime.Caller, a int32, x, y int64) {
+	logger.Trace("[ext_offchain_local_storage_set_version_1] executing...")
 }
 
-func ext_get_allocated_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen, writtenOut int32) int32 {
-	logger.Trace("[ext_get_allocated_child_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-	key := memory[keyData : keyData+keyLen]
-
-	value, err := ctx.Storage.GetChildStorage(keyToChild, key)
-	if err != nil {
-		logger.Error("[ext_get_allocated_child_storage]", "error", err)
-		return 0
-	}
-	valueLen := uint32(len(value))
-	if valueLen == 0 {
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
-	// copy length to memory
-	byteLen := make([]byte, 4)
-	binary.LittleEndian.PutUint32(byteLen, valueLen)
-	copy(memory[writtenOut:writtenOut+4], byteLen)
-
-	resPtr, err := ctx.Allocator.Allocate(valueLen)
-	if err != nil {
-		logger.Error("[ext_get_allocated_child_storage]", "error", err)
-		return 0
-	}
-	copy(memory[resPtr:resPtr+valueLen], value)
-	return int32(resPtr)
-}
-
-func ext_child_storage_root(c *wasmtime.Caller, a, b, i int32) int32 {
-	logger.Trace("[ext_child_storage_root] executing...")
-	logger.Warn("[ext_child_storage_root] not yet implemented")
+func ext_offchain_network_state_version_1(c *wasmtime.Caller) int64 {
+	logger.Trace("[ext_offchain_network_state_version_1] executing...")
 	return 0
 }
 
-func ext_clear_child_storage(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen int32) {
-	logger.Trace("[ext_clear_child_storage] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	defer runtime.KeepAlive(m)
-
-	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-	key := memory[keyData : keyData+keyLen]
-	err := ctx.Storage.ClearChildStorage(keyToChild, key)
-	if err != nil {
-		logger.Error("[ext_clear_child_storage]", "error", err)
-	}
-}
-
-func ext_secp256k1_ecdsa_recover_compressed(c *wasmtime.Caller, a, b, i int32) int32 {
-	logger.Trace("[ext_secp256k1_ecdsa_recover_compressed] executing...")
-	logger.Warn("[ext_secp256k1_ecdsa_recover_compressed] not yet implemented")
+func ext_offchain_random_seed_version_1(c *wasmtime.Caller) int32 {
+	logger.Trace("[ext_offchain_random_seed_version_1] executing...")
 	return 0
 }
 
-func ext_sandbox_memory_get(c *wasmtime.Caller, a, b, d, z int32) int32 {
-	logger.Trace("[ext_sandbox_memory_get] executing...")
-	logger.Warn("[ext_sandbox_memory_get] not yet implemented")
+func ext_offchain_submit_transaction_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_offchain_submit_transaction_version_1] executing...")
 	return 0
 }
 
-func ext_sandbox_memory_set(c *wasmtime.Caller, a, b, d, z int32) int32 {
-	logger.Trace("[ext_sandbox_memory_set] executing...")
-	logger.Warn("[ext_sandbox_memory_set] not yet implemented")
+func ext_storage_append_version_1(c *wasmtime.Caller, a, b int64) {
+	logger.Trace("[ext_storage_append_version_1] executing...")
+}
+
+func ext_storage_changes_root_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_storage_changes_root_version_1] executing...")
 	return 0
 }
 
-func ext_log(c *wasmtime.Caller, a, b, d, e, z int32) {
-	logger.Trace("[ext_log] executing...")
-	logger.Warn("[ext_log] not yet implemented")
+func ext_storage_clear_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_storage_clear_version_1] executing...")
 }
 
-func ext_twox_256(c *wasmtime.Caller, data, len, out int32) {
-	logger.Trace("[ext_twox_256] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-	logger.Trace("[ext_twox_256] hashing...", "value", fmt.Sprintf("%s", memory[data:data+len]))
-
-	hash, err := common.Twox256(memory[data : data+len])
-	if err != nil {
-		logger.Error("[ext_twox_256]", "error", err)
-		return
-	}
-
-	copy(memory[out:out+32], hash[:])
-	runtime.KeepAlive(m)
+func ext_storage_clear_prefix_version_1(c *wasmtime.Caller, a int64) {
+	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
 }
 
-func ext_blake2_128(c *wasmtime.Caller, data, length, out int32) {
-	logger.Trace("[ext_blake2_128] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-
-	hash, err := common.Blake2b128(memory[data : data+length])
-	if err != nil {
-		logger.Error("[ext_blake2_128]", "error", err)
-		return
-	}
-
-	logger.Trace("[ext_blake2_128]", "hash", fmt.Sprintf("0x%x", hash))
-	copy(memory[out:out+16], hash[:])
-	runtime.KeepAlive(m)
+func ext_storage_commit_transaction_version_1(c *wasmtime.Caller) {
+	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
 }
 
-func ext_keccak_256(c *wasmtime.Caller, data, length, out int32) {
-	logger.Trace("[ext_keccak_256] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-
-	hash, err := common.Keccak256(memory[data : data+length])
-	if err != nil {
-		logger.Error("[ext_keccak_256]", "error", err)
-		return
-	}
-
-	logger.Trace("[ext_keccak_256]", "hash", hash)
-	copy(memory[out:out+32], hash[:])
-	runtime.KeepAlive(m)
-}
-
-func ext_exists_storage(c *wasmtime.Caller, a, b int32) int32 {
-	logger.Trace("[ext_exists_storage] executing...")
-	logger.Warn("[ext_exists_storage] not yet implemented")
+func ext_storage_get_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_storage_get_version_1] executing...")
 	return 0
 }
 
-func ext_exists_child_storage(c *wasmtime.Caller, a, b, e, d int32) int32 {
-	logger.Trace("[ext_exists_child_storage] executing...")
-	logger.Warn("[ext_exists_child_storage] not yet implemented")
+func ext_storage_next_key_version_1(c *wasmtime.Caller, z int64) int64 {
+	logger.Trace("[ext_storage_next_key_version_1] executing...")
 	return 0
 }
 
-func ext_clear_child_prefix(c *wasmtime.Caller, a, b, e, d int32) {
-	logger.Trace("[ext_clear_child_prefix] executing...")
-	logger.Warn("[ext_clear_child_prefix] not yet implemented")
-}
-
-func ext_get_child_storage_into(c *wasmtime.Caller, storageKeyData, storageKeyLen, keyData, keyLen, valueData, valueLen, valueOffset int32) int32 {
-	logger.Trace("[ext_get_child_storage_into] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-
-	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-	key := memory[keyData : keyData+keyLen]
-
-	value, err := ctx.Storage.GetChildStorage(keyToChild, key)
-	if err != nil {
-		logger.Error("[ext_get_child_storage_into]", "error", err)
-		return -(1 << 31)
-	}
-
-	copy(memory[valueData:valueData+valueLen], value[valueOffset:])
-	runtime.KeepAlive(m)
-	return int32(len(value[valueOffset:]))
-}
-
-func ext_ed25519_public_keys(c *wasmtime.Caller, idData, resultLen int32) int32 {
-	logger.Trace("[ext_ed25519_public_keys] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-
-	keys := ctx.Keystore.Ed25519PublicKeys()
-	// TODO: when do deallocate?
-	offset, err := ctx.Allocator.Allocate(uint32(len(keys) * 32))
-	if err != nil {
-		logger.Error("[ext_ed25519_public_keys]", "error", err)
-		return -1
-	}
-
-	for i, key := range keys {
-		copy(memory[offset+uint32(i*32):offset+uint32((i+1)*32)], key.Encode())
-	}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, uint32(len(keys)))
-	copy(memory[resultLen:resultLen+4], buf)
-	runtime.KeepAlive(m)
-	return int32(offset)
-}
-
-func ext_ed25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, out int32) int32 {
-	logger.Trace("[ext_ed25519_sign] executing...")
-	m := c.GetExport("memory").Memory()
-	memory := m.UnsafeData()
-
-	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
-	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
-	if err != nil {
-		logger.Error("[ext_ed25519_sign]", "error", err)
-		return 1
-	}
-
-	signingKey := ctx.Keystore.GetKeypair(pubkey)
-	if signingKey == nil {
-		logger.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
-		return 1
-	}
-
-	msgLenBytes := memory[msgLen : msgLen+4]
-	msgLength := binary.LittleEndian.Uint32(msgLenBytes)
-	msg := memory[msgData : msgData+int32(msgLength)]
-	sig, err := signingKey.Sign(msg)
-	if err != nil {
-		logger.Error("[ext_ed25519_sign] could not sign message")
-		return 1
-	}
-
-	copy(memory[out:out+64], sig)
-	runtime.KeepAlive(m)
+func ext_storage_read_version_1(c *wasmtime.Caller, a, b int64, x int32) int64 {
+	logger.Trace("[ext_storage_read_version_1] executing...")
 	return 0
 }
 
-// ImportsNodeRuntime returns the wasmtime imports for NODE_RUNTIME
+func ext_storage_rollback_transaction_version_1(c *wasmtime.Caller) {
+	logger.Trace("[ext_storage_rollback_transaction_version_1] executing...")
+}
+
+func ext_storage_root_version_1(c *wasmtime.Caller) int64 {
+	logger.Trace("[ext_storage_root_version_1] executing...")
+	return 0
+}
+
+func ext_storage_set_version_1(c *wasmtime.Caller, a, b int64) {
+	logger.Trace("[ext_storage_set_version_1] executing...")
+}
+
+func ext_storage_start_transaction_version_1(c *wasmtime.Caller) {
+	logger.Trace("[ext_storage_start_transaction_version_1] executing...")
+}
+
+func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
+	logger.Trace("[ext_offchain_index_set_version_1] executing...")
+}
+
+// ImportsNodeRuntime returns the imports for the v0.8 runtime
 func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
-	ext_print_num := wasmtime.WrapFunc(store, ext_print_num)
-	ext_malloc := wasmtime.WrapFunc(store, ext_malloc)
-	ext_free := wasmtime.WrapFunc(store, ext_free)
-	ext_print_utf8 := wasmtime.WrapFunc(store, ext_print_utf8)
-	ext_print_hex := wasmtime.WrapFunc(store, ext_print_hex)
-	ext_get_storage_into := wasmtime.WrapFunc(store, ext_get_storage_into)
-	ext_set_storage := wasmtime.WrapFunc(store, ext_set_storage)
-	ext_set_child_storage := wasmtime.WrapFunc(store, ext_set_child_storage)
-	ext_storage_root := wasmtime.WrapFunc(store, ext_storage_root)
-	ext_storage_changes_root := wasmtime.WrapFunc(store, ext_storage_changes_root)
-	ext_get_allocated_storage := wasmtime.WrapFunc(store, ext_get_allocated_storage)
-	ext_clear_storage := wasmtime.WrapFunc(store, ext_clear_storage)
-	ext_clear_prefix := wasmtime.WrapFunc(store, ext_clear_prefix)
-	ext_blake2_256_enumerated_trie_root := wasmtime.WrapFunc(store, ext_blake2_256_enumerated_trie_root)
-	ext_blake2_256 := wasmtime.WrapFunc(store, ext_blake2_256)
-	ext_twox_64 := wasmtime.WrapFunc(store, ext_twox_64)
-	ext_twox_128 := wasmtime.WrapFunc(store, ext_twox_128)
-	ext_sr25519_generate := wasmtime.WrapFunc(store, ext_sr25519_generate)
-	ext_sr25519_public_keys := wasmtime.WrapFunc(store, ext_sr25519_public_keys)
-	ext_sr25519_sign := wasmtime.WrapFunc(store, ext_sr25519_sign)
-	ext_sr25519_verify := wasmtime.WrapFunc(store, ext_sr25519_verify)
-	ext_ed25519_generate := wasmtime.WrapFunc(store, ext_ed25519_generate)
-	ext_ed25519_verify := wasmtime.WrapFunc(store, ext_ed25519_verify)
-	ext_is_validator := wasmtime.WrapFunc(store, ext_is_validator)
-	ext_local_storage_get := wasmtime.WrapFunc(store, ext_local_storage_get)
-	ext_local_storage_compare_and_set := wasmtime.WrapFunc(store, ext_local_storage_compare_and_set)
-	ext_network_state := wasmtime.WrapFunc(store, ext_network_state)
-	ext_submit_transaction := wasmtime.WrapFunc(store, ext_submit_transaction)
-	ext_local_storage_set := wasmtime.WrapFunc(store, ext_local_storage_set)
-	ext_kill_child_storage := wasmtime.WrapFunc(store, ext_kill_child_storage)
-	ext_sandbox_memory_new := wasmtime.WrapFunc(store, ext_sandbox_memory_new)
-	ext_sandbox_memory_teardown := wasmtime.WrapFunc(store, ext_sandbox_memory_teardown)
-	ext_sandbox_instantiate := wasmtime.WrapFunc(store, ext_sandbox_instantiate)
-	ext_sandbox_invoke := wasmtime.WrapFunc(store, ext_sandbox_invoke)
-	ext_sandbox_instance_teardown := wasmtime.WrapFunc(store, ext_sandbox_instance_teardown)
-	ext_get_allocated_child_storage := wasmtime.WrapFunc(store, ext_get_allocated_child_storage)
-	ext_child_storage_root := wasmtime.WrapFunc(store, ext_child_storage_root)
-	ext_clear_child_storage := wasmtime.WrapFunc(store, ext_clear_child_storage)
-	ext_secp256k1_ecdsa_recover_compressed := wasmtime.WrapFunc(store, ext_secp256k1_ecdsa_recover_compressed)
-	ext_sandbox_memory_get := wasmtime.WrapFunc(store, ext_sandbox_memory_get)
-	ext_sandbox_memory_set := wasmtime.WrapFunc(store, ext_sandbox_memory_set)
-	ext_log := wasmtime.WrapFunc(store, ext_log)
-
-	return []*wasmtime.Extern{
-		ext_blake2_256.AsExtern(),
-		ext_twox_128.AsExtern(),
-		ext_clear_storage.AsExtern(),
-		ext_set_storage.AsExtern(),
-		ext_get_allocated_storage.AsExtern(),
-		ext_get_storage_into.AsExtern(),
-		ext_kill_child_storage.AsExtern(),
-		ext_sandbox_memory_new.AsExtern(),
-		ext_sandbox_memory_teardown.AsExtern(),
-		ext_sandbox_instantiate.AsExtern(),
-		ext_sandbox_invoke.AsExtern(),
-		ext_sandbox_instance_teardown.AsExtern(),
-		ext_print_utf8.AsExtern(),
-		ext_print_hex.AsExtern(),
-		ext_print_num.AsExtern(),
-		ext_is_validator.AsExtern(),
-		ext_local_storage_get.AsExtern(),
-		ext_local_storage_compare_and_set.AsExtern(),
-		ext_sr25519_public_keys.AsExtern(),
-		ext_network_state.AsExtern(),
-		ext_sr25519_sign.AsExtern(),
-		ext_submit_transaction.AsExtern(),
-		ext_local_storage_set.AsExtern(),
-		ext_get_allocated_child_storage.AsExtern(),
-		ext_ed25519_generate.AsExtern(),
-		ext_sr25519_generate.AsExtern(),
-		ext_child_storage_root.AsExtern(),
-		ext_clear_prefix.AsExtern(),
-		ext_storage_root.AsExtern(),
-		ext_storage_changes_root.AsExtern(),
-		ext_clear_child_storage.AsExtern(),
-		ext_set_child_storage.AsExtern(),
-		ext_secp256k1_ecdsa_recover_compressed.AsExtern(),
-		ext_ed25519_verify.AsExtern(),
-		ext_sr25519_verify.AsExtern(),
-		ext_sandbox_memory_get.AsExtern(),
-		ext_sandbox_memory_set.AsExtern(),
-		ext_blake2_256_enumerated_trie_root.AsExtern(),
-		ext_malloc.AsExtern(),
-		ext_free.AsExtern(),
-		ext_twox_64.AsExtern(),
-		ext_log.AsExtern(),
+	lim := wasmtime.Limits{
+		Min: 20,
+		Max: wasmtime.LimitsMaxNone,
 	}
-}
+	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
 
-// ImportsHostAPITester returns the wasmtime imports for host API tester
-func ImportsHostAPITester(store *wasmtime.Store) []*wasmtime.Extern {
-	ext_print_num := wasmtime.WrapFunc(store, ext_print_num)
-	ext_malloc := wasmtime.WrapFunc(store, ext_malloc)
-	ext_free := wasmtime.WrapFunc(store, ext_free)
-	ext_print_utf8 := wasmtime.WrapFunc(store, ext_print_utf8)
-	ext_print_hex := wasmtime.WrapFunc(store, ext_print_hex)
-	ext_get_storage_into := wasmtime.WrapFunc(store, ext_get_storage_into)
-	ext_set_storage := wasmtime.WrapFunc(store, ext_set_storage)
-	ext_set_child_storage := wasmtime.WrapFunc(store, ext_set_child_storage)
-	ext_storage_root := wasmtime.WrapFunc(store, ext_storage_root)
-	ext_storage_changes_root := wasmtime.WrapFunc(store, ext_storage_changes_root)
-	ext_get_allocated_storage := wasmtime.WrapFunc(store, ext_get_allocated_storage)
-	ext_clear_storage := wasmtime.WrapFunc(store, ext_clear_storage)
-	ext_clear_prefix := wasmtime.WrapFunc(store, ext_clear_prefix)
-	ext_blake2_256_enumerated_trie_root := wasmtime.WrapFunc(store, ext_blake2_256_enumerated_trie_root)
-	ext_blake2_128 := wasmtime.WrapFunc(store, ext_blake2_128)
-	ext_blake2_256 := wasmtime.WrapFunc(store, ext_blake2_256)
-	ext_twox_64 := wasmtime.WrapFunc(store, ext_twox_64)
-	ext_twox_128 := wasmtime.WrapFunc(store, ext_twox_128)
-	ext_twox_256 := wasmtime.WrapFunc(store, ext_twox_256)
-	ext_sr25519_generate := wasmtime.WrapFunc(store, ext_sr25519_generate)
-	ext_sr25519_public_keys := wasmtime.WrapFunc(store, ext_sr25519_public_keys)
-	ext_sr25519_sign := wasmtime.WrapFunc(store, ext_sr25519_sign)
-	ext_sr25519_verify := wasmtime.WrapFunc(store, ext_sr25519_verify)
-	ext_ed25519_generate := wasmtime.WrapFunc(store, ext_ed25519_generate)
-	ext_ed25519_verify := wasmtime.WrapFunc(store, ext_ed25519_verify)
-	ext_is_validator := wasmtime.WrapFunc(store, ext_is_validator)
-	ext_local_storage_get := wasmtime.WrapFunc(store, ext_local_storage_get)
-	ext_local_storage_compare_and_set := wasmtime.WrapFunc(store, ext_local_storage_compare_and_set)
-	ext_network_state := wasmtime.WrapFunc(store, ext_network_state)
-	ext_submit_transaction := wasmtime.WrapFunc(store, ext_submit_transaction)
-	ext_local_storage_set := wasmtime.WrapFunc(store, ext_local_storage_set)
-	ext_kill_child_storage := wasmtime.WrapFunc(store, ext_kill_child_storage)
-	ext_sandbox_memory_new := wasmtime.WrapFunc(store, ext_sandbox_memory_new)
-	ext_sandbox_memory_teardown := wasmtime.WrapFunc(store, ext_sandbox_memory_teardown)
-	ext_sandbox_instantiate := wasmtime.WrapFunc(store, ext_sandbox_instantiate)
-	ext_sandbox_invoke := wasmtime.WrapFunc(store, ext_sandbox_invoke)
-	ext_sandbox_instance_teardown := wasmtime.WrapFunc(store, ext_sandbox_instance_teardown)
-	ext_get_allocated_child_storage := wasmtime.WrapFunc(store, ext_get_allocated_child_storage)
-	ext_child_storage_root := wasmtime.WrapFunc(store, ext_child_storage_root)
-	ext_clear_child_storage := wasmtime.WrapFunc(store, ext_clear_child_storage)
-	ext_secp256k1_ecdsa_recover_compressed := wasmtime.WrapFunc(store, ext_secp256k1_ecdsa_recover_compressed)
-	ext_sandbox_memory_get := wasmtime.WrapFunc(store, ext_sandbox_memory_get)
-	ext_sandbox_memory_set := wasmtime.WrapFunc(store, ext_sandbox_memory_set)
-	ext_keccak_256 := wasmtime.WrapFunc(store, ext_keccak_256)
-	ext_exists_storage := wasmtime.WrapFunc(store, ext_exists_storage)
-	ext_exists_child_storage := wasmtime.WrapFunc(store, ext_exists_child_storage)
-	ext_clear_child_prefix := wasmtime.WrapFunc(store, ext_clear_child_prefix)
-	ext_get_child_storage_into := wasmtime.WrapFunc(store, ext_get_child_storage_into)
-	ext_ed25519_public_keys := wasmtime.WrapFunc(store, ext_ed25519_public_keys)
-	ext_ed25519_sign := wasmtime.WrapFunc(store, ext_ed25519_sign)
+	ext_logging_log_version_1 := wasmtime.WrapFunc(store, ext_logging_log_version_1)
+	ext_sandbox_instance_teardown_version_1 := wasmtime.WrapFunc(store, ext_sandbox_instance_teardown_version_1)
+	ext_sandbox_instantiate_version_1 := wasmtime.WrapFunc(store, ext_sandbox_instantiate_version_1)
+	ext_sandbox_invoke_version_1 := wasmtime.WrapFunc(store, ext_sandbox_invoke_version_1)
+	ext_sandbox_memory_get_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_get_version_1)
+	ext_sandbox_memory_new_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_new_version_1)
+	ext_sandbox_memory_set_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_set_version_1)
+	ext_sandbox_memory_teardown_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_teardown_version_1)
+	ext_crypto_ed25519_generate_version_1 := wasmtime.WrapFunc(store, ext_crypto_ed25519_generate_version_1)
+	ext_crypto_ed25519_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_ed25519_verify_version_1)
+	ext_crypto_finish_batch_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_finish_batch_verify_version_1)
+	ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 := wasmtime.WrapFunc(store, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
+	ext_crypto_sr25519_generate_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_generate_version_1)
+	ext_crypto_sr25519_public_keys_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_public_keys_version_1)
+	ext_crypto_sr25519_sign_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_sign_version_1)
+	ext_crypto_sr25519_verify_version_2 := wasmtime.WrapFunc(store, ext_crypto_sr25519_verify_version_2)
+	ext_crypto_start_batch_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_start_batch_verify_version_1)
+	ext_trie_blake2_256_ordered_root_version_1 := wasmtime.WrapFunc(store, ext_trie_blake2_256_ordered_root_version_1)
+	ext_misc_print_hex_version_1 := wasmtime.WrapFunc(store, ext_misc_print_hex_version_1)
+	ext_misc_print_num_version_1 := wasmtime.WrapFunc(store, ext_misc_print_num_version_1)
+	ext_misc_print_utf8_version_1 := wasmtime.WrapFunc(store, ext_misc_print_utf8_version_1)
+	ext_misc_runtime_version_version_1 := wasmtime.WrapFunc(store, ext_misc_runtime_version_version_1)
+	ext_default_child_storage_clear_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_clear_version_1)
+	ext_default_child_storage_get_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_get_version_1)
+	ext_default_child_storage_root_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_root_version_1)
+	ext_default_child_storage_set_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_set_version_1)
+	ext_default_child_storage_storage_kill_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_storage_kill_version_1)
+	ext_allocator_free_version_1 := wasmtime.WrapFunc(store, ext_allocator_free_version_1)
+	ext_allocator_malloc_version_1 := wasmtime.WrapFunc(store, ext_allocator_malloc_version_1)
+	ext_hashing_blake2_128_version_1 := wasmtime.WrapFunc(store, ext_hashing_blake2_128_version_1)
+	ext_hashing_blake2_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_blake2_256_version_1)
+	ext_hashing_keccak_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_keccak_256_version_1)
+	ext_hashing_sha2_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_sha2_256_version_1)
+	ext_hashing_twox_128_version_1 := wasmtime.WrapFunc(store, ext_hashing_twox_128_version_1)
+	ext_hashing_twox_64_version_1 := wasmtime.WrapFunc(store, ext_hashing_twox_64_version_1)
+	ext_offchain_is_validator_version_1 := wasmtime.WrapFunc(store, ext_offchain_is_validator_version_1)
+	ext_offchain_local_storage_compare_and_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_compare_and_set_version_1)
+	ext_offchain_local_storage_get_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_get_version_1)
+	ext_offchain_local_storage_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_set_version_1)
+	ext_offchain_network_state_version_1 := wasmtime.WrapFunc(store, ext_offchain_network_state_version_1)
+	ext_offchain_random_seed_version_1 := wasmtime.WrapFunc(store, ext_offchain_random_seed_version_1)
+	ext_offchain_submit_transaction_version_1 := wasmtime.WrapFunc(store, ext_offchain_submit_transaction_version_1)
+	ext_storage_append_version_1 := wasmtime.WrapFunc(store, ext_storage_append_version_1)
+	ext_storage_changes_root_version_1 := wasmtime.WrapFunc(store, ext_storage_changes_root_version_1)
+	ext_storage_clear_version_1 := wasmtime.WrapFunc(store, ext_storage_clear_version_1)
+	ext_storage_clear_prefix_version_1 := wasmtime.WrapFunc(store, ext_storage_clear_prefix_version_1)
+	ext_storage_commit_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_commit_transaction_version_1)
+	ext_storage_get_version_1 := wasmtime.WrapFunc(store, ext_storage_get_version_1)
+	ext_storage_next_key_version_1 := wasmtime.WrapFunc(store, ext_storage_next_key_version_1)
+	ext_storage_read_version_1 := wasmtime.WrapFunc(store, ext_storage_read_version_1)
+	ext_storage_rollback_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_rollback_transaction_version_1)
+	ext_storage_root_version_1 := wasmtime.WrapFunc(store, ext_storage_root_version_1)
+	ext_storage_set_version_1 := wasmtime.WrapFunc(store, ext_storage_set_version_1)
+	ext_storage_start_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_start_transaction_version_1)
+	ext_offchain_index_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_index_set_version_1)
 
 	return []*wasmtime.Extern{
-		ext_malloc.AsExtern(),
-		ext_free.AsExtern(),
-		ext_sandbox_instantiate.AsExtern(),
-		ext_sandbox_instance_teardown.AsExtern(),
-		ext_sandbox_invoke.AsExtern(),
-		ext_sandbox_memory_new.AsExtern(),
-		ext_sandbox_memory_get.AsExtern(),
-		ext_sandbox_memory_set.AsExtern(),
-		ext_sandbox_memory_teardown.AsExtern(),
-		ext_twox_64.AsExtern(),
-		ext_twox_128.AsExtern(),
-		ext_twox_256.AsExtern(),
-		ext_blake2_128.AsExtern(),
-		ext_blake2_256.AsExtern(),
-		ext_keccak_256.AsExtern(),
-		ext_print_utf8.AsExtern(),
-		ext_print_hex.AsExtern(),
-		ext_print_num.AsExtern(),
-		ext_set_storage.AsExtern(),
-		ext_set_child_storage.AsExtern(),
-		ext_clear_child_storage.AsExtern(),
-		ext_clear_storage.AsExtern(),
-		ext_exists_storage.AsExtern(),
-		ext_exists_child_storage.AsExtern(),
-		ext_clear_prefix.AsExtern(),
-		ext_clear_child_prefix.AsExtern(),
-		ext_kill_child_storage.AsExtern(),
-		ext_get_allocated_storage.AsExtern(),
-		ext_get_allocated_child_storage.AsExtern(),
-		ext_get_storage_into.AsExtern(),
-		ext_get_child_storage_into.AsExtern(),
-		ext_storage_root.AsExtern(),
-		ext_child_storage_root.AsExtern(),
-		ext_storage_changes_root.AsExtern(),
-		ext_blake2_256_enumerated_trie_root.AsExtern(),
-		ext_ed25519_public_keys.AsExtern(),
-		ext_ed25519_verify.AsExtern(),
-		ext_ed25519_generate.AsExtern(),
-		ext_ed25519_sign.AsExtern(),
-		ext_sr25519_public_keys.AsExtern(),
-		ext_sr25519_verify.AsExtern(),
-		ext_sr25519_generate.AsExtern(),
-		ext_sr25519_sign.AsExtern(),
-		ext_secp256k1_ecdsa_recover_compressed.AsExtern(),
-		ext_is_validator.AsExtern(),
-		ext_submit_transaction.AsExtern(),
-		ext_network_state.AsExtern(),
-		ext_local_storage_set.AsExtern(),
-		ext_local_storage_get.AsExtern(),
-		ext_local_storage_compare_and_set.AsExtern(),
+		mem.AsExtern(),
+		ext_logging_log_version_1.AsExtern(),
+		ext_sandbox_instance_teardown_version_1.AsExtern(),
+		ext_sandbox_instantiate_version_1.AsExtern(),
+		ext_sandbox_invoke_version_1.AsExtern(),
+		ext_sandbox_memory_get_version_1.AsExtern(),
+		ext_sandbox_memory_new_version_1.AsExtern(),
+		ext_sandbox_memory_set_version_1.AsExtern(),
+		ext_sandbox_memory_teardown_version_1.AsExtern(),
+		ext_crypto_ed25519_generate_version_1.AsExtern(),
+		ext_crypto_ed25519_verify_version_1.AsExtern(),
+		ext_crypto_finish_batch_verify_version_1.AsExtern(),
+		ext_crypto_secp256k1_ecdsa_recover_compressed_version_1.AsExtern(),
+		ext_crypto_sr25519_generate_version_1.AsExtern(),
+		ext_crypto_sr25519_public_keys_version_1.AsExtern(),
+		ext_crypto_sr25519_sign_version_1.AsExtern(),
+		ext_crypto_sr25519_verify_version_2.AsExtern(),
+		ext_crypto_start_batch_verify_version_1.AsExtern(),
+		ext_trie_blake2_256_ordered_root_version_1.AsExtern(),
+		ext_misc_print_hex_version_1.AsExtern(),
+		ext_misc_print_num_version_1.AsExtern(),
+		ext_misc_print_utf8_version_1.AsExtern(),
+		ext_misc_runtime_version_version_1.AsExtern(),
+		ext_default_child_storage_clear_version_1.AsExtern(),
+		ext_default_child_storage_get_version_1.AsExtern(),
+		ext_default_child_storage_root_version_1.AsExtern(),
+		ext_default_child_storage_set_version_1.AsExtern(),
+		ext_default_child_storage_storage_kill_version_1.AsExtern(),
+		ext_allocator_free_version_1.AsExtern(),
+		ext_allocator_malloc_version_1.AsExtern(),
+		ext_hashing_blake2_128_version_1.AsExtern(),
+		ext_hashing_blake2_256_version_1.AsExtern(),
+		ext_hashing_keccak_256_version_1.AsExtern(),
+		ext_hashing_sha2_256_version_1.AsExtern(),
+		ext_hashing_twox_128_version_1.AsExtern(),
+		ext_hashing_twox_64_version_1.AsExtern(),
+		ext_offchain_is_validator_version_1.AsExtern(),
+		ext_offchain_local_storage_compare_and_set_version_1.AsExtern(),
+		ext_offchain_local_storage_get_version_1.AsExtern(),
+		ext_offchain_local_storage_set_version_1.AsExtern(),
+		ext_offchain_network_state_version_1.AsExtern(),
+		ext_offchain_random_seed_version_1.AsExtern(),
+		ext_offchain_submit_transaction_version_1.AsExtern(),
+		ext_storage_append_version_1.AsExtern(),
+		ext_storage_changes_root_version_1.AsExtern(),
+		ext_storage_clear_version_1.AsExtern(),
+		ext_storage_clear_prefix_version_1.AsExtern(),
+		ext_storage_commit_transaction_version_1.AsExtern(),
+		ext_storage_get_version_1.AsExtern(),
+		ext_storage_next_key_version_1.AsExtern(),
+		ext_storage_read_version_1.AsExtern(),
+		ext_storage_rollback_transaction_version_1.AsExtern(),
+		ext_storage_root_version_1.AsExtern(),
+		ext_storage_set_version_1.AsExtern(),
+		ext_storage_start_transaction_version_1.AsExtern(),
+		ext_offchain_index_set_version_1.AsExtern(),
 	}
 }

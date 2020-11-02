@@ -99,14 +99,14 @@ type ConsensusMessageHandler interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetRuntime(runtime.Instance) error
+	SetRuntime(runtime.LegacyInstance) error
 	Authorities() []*types.Authority
 	SetAuthorities([]*types.Authority) error
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
-	SetRuntimeChangeAtBlock(header *types.Header, rt runtime.Instance) error
+	SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error
 	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority)
 }
 
