@@ -106,7 +106,12 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	logger.Info("creating service", "key", cfg.Keypair.Public().Hex(), "voter set", Voters(cfg.Voters))
+	var pub string
+	if cfg.Authority {
+		pub = cfg.Keypair.Public().Hex()
+	}
+
+	logger.Info("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
 	// get latest finalized header
 	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)

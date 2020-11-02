@@ -137,7 +137,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 	kps := ks.Keypairs()
 	logger.Info("keystore", "keys", kps)
-	if len(kps) == 0 {
+	if len(kps) == 0 && cfg.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
 
@@ -159,7 +159,6 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 	bcfg := &babe.ServiceConfig{
 		LogLvl:           cfg.Log.BlockProducerLvl,
-		Keypair:          kps[0].(*sr25519.Keypair),
 		Runtime:          rt,
 		BlockState:       st.Block,
 		StorageState:     st.Storage,
@@ -168,6 +167,11 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 		StartSlot:        bestSlot + 1,
 		Threshold:        cfg.Core.BabeThreshold,
 		SlotDuration:     cfg.Core.SlotDuration,
+		Authority:        cfg.Core.BabeAuthority,
+	}
+
+	if cfg.Core.BabeAuthority {
+		bcfg.Keypair = kps[0].(*sr25519.Keypair)
 	}
 
 	// create new BABE service
@@ -311,7 +315,7 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 	voters := grandpa.NewVotersFromAuthorityData(ad)
 
 	keys := ks.Keypairs()
-	if len(keys) == 0 {
+	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
 		return nil, errors.New("no ed25519 keys provided for GRANDPA")
 	}
 
@@ -321,8 +325,11 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 		DigestHandler: dh,
 		SetID:         1,
 		Voters:        voters,
-		Keypair:       keys[0].(*ed25519.Keypair),
 		Authority:     cfg.Core.GrandpaAuthority,
+	}
+
+	if cfg.Core.GrandpaAuthority {
+		gsCfg.Keypair = keys[0].(*ed25519.Keypair)
 	}
 
 	return grandpa.NewService(gsCfg)

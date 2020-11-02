@@ -62,6 +62,10 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		}
 	}
 
+	if !b.authority {
+		return nil
+	}
+
 	var err error
 	for i := startSlot; i < startSlot+b.config.EpochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
