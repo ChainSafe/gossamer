@@ -194,7 +194,6 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	}
 	defer ctx.Allocator.Clear()
 
-	//mem := in.vm.GetExport("memory").Memory()
 	memdata := in.mem.UnsafeData()
 	copy(memdata[ptr:ptr+uint32(len(data))], data)
 
@@ -213,6 +212,5 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	offset := int32(ret)
 
 	runtime.KeepAlive(in.mem)
-	fmt.Println(memdata[:2048])
 	return memdata[offset : offset+length], nil
 }
