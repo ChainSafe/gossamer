@@ -248,17 +248,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	var bp BlockProducer
-
-	if cfg.Core.BabeAuthority {
-		// create BABE service
-		bp, err = createBABEService(cfg, rt, stateSrvc, ks.Babe)
-		if err != nil {
-			return nil, err
-		}
-
-		nodeSrvcs = append(nodeSrvcs, bp)
+	// create BABE service
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
+	if err != nil {
+		return nil, err
 	}
+
+	nodeSrvcs = append(nodeSrvcs, bp)
 
 	dh, err := createDigestHandler(stateSrvc, bp, ver)
 	if err != nil {

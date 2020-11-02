@@ -42,10 +42,11 @@ var (
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
-	logger log.Logger
-	ctx    context.Context
-	cancel context.CancelFunc
-	paused bool
+	logger    log.Logger
+	ctx       context.Context
+	cancel    context.CancelFunc
+	paused    bool
+	authority bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -89,12 +90,13 @@ type ServiceConfig struct {
 	Threshold        *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
 	StartSlot        uint64   // slot to start at
+	Authority        bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
 func NewService(cfg *ServiceConfig) (*Service, error) {
-	if cfg.Keypair == nil {
-		return nil, errors.New("cannot create BABE Service; no keypair provided")
+	if cfg.Keypair == nil && cfg.Authority {
+		return nil, errors.New("cannot create BABE service as authority; no keypair provided")
 	}
 
 	if cfg.BlockState == nil {
@@ -132,6 +134,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		threshold:        cfg.Threshold,
 		startSlot:        cfg.StartSlot,
 		pause:            make(chan struct{}),
+		authority:        cfg.Authority,
 	}
 
 	var err error
@@ -156,12 +159,14 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		}
 	}
 
-	err = babeService.setAuthorityIndex()
-	if err != nil {
-		return nil, err
+	if cfg.Authority {
+		err = babeService.setAuthorityIndex()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	logger.Debug("created BABE service", "authorities", AuthorityData(babeService.authorityData), "authority index", babeService.authorityIndex, "threshold", babeService.threshold)
+	logger.Debug("created BABE service", "block producer", cfg.Authority, "authorities", AuthorityData(babeService.authorityData), "authority index", babeService.authorityIndex, "threshold", babeService.threshold)
 	return babeService, nil
 }
 
@@ -429,6 +434,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		case <-b.pause:
 			return
 		case <-slotDone[i]:
+			if !b.authority {
+				continue
+			}
+
 			slotNum := startSlot + uint64(i)
 			err = b.handleSlot(slotNum)
 			if err != nil {
