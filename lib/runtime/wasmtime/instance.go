@@ -17,7 +17,6 @@
 package wasmtime
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"sync"
