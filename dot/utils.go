@@ -121,8 +121,8 @@ func NewTestGenesisFile(t *testing.T, cfg *Config) *os.File {
 func NewTestGenesisAndRuntime(t *testing.T) string {
 	dir := utils.NewTestDir(t)
 
-	_ = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-	runtimeFilePath := runtime.GetAbsolutePath(runtime.NODE_RUNTIME_FP)
+	_ = wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
+	runtimeFilePath := runtime.GetAbsolutePath(runtime.LEGACY_NODE_RUNTIME_FP)
 
 	runtimeData, err := ioutil.ReadFile(runtimeFilePath)
 	require.Nil(t, err)

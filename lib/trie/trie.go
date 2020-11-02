@@ -117,6 +117,102 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 	return kv
 }
 
+// NextKey returns the next key in the trie in lexicographic order. It returns nil if there is no next key
+func (t *Trie) NextKey(key []byte) []byte {
+	k := keyToNibbles(key)
+
+	next := t.nextKey([]node{}, t.root, nil, k)
+	if next == nil {
+		return nil
+	}
+
+	return nibblesToKeyLE(next)
+}
+
+func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []byte {
+	switch c := current.(type) {
+	case *branch:
+		fullKey := append(prefix, c.key...)
+
+		if bytes.Equal(target, fullKey) {
+			for i, child := range c.children {
+				if child == nil {
+					continue
+				}
+
+				// descend and return first key
+				return returnFirstKey(append(fullKey, byte(i)), child)
+			}
+		}
+
+		if len(target) >= len(fullKey) && bytes.Equal(target[:len(fullKey)], fullKey) {
+			for i, child := range c.children {
+				if child == nil || byte(i) != target[len(fullKey)] {
+					continue
+				}
+
+				return t.nextKey(append([]node{c}, ancestors...), child, append(fullKey, byte(i)), target)
+			}
+		}
+	case *leaf:
+		fullKey := append(prefix, c.key...)
+
+		if bytes.Equal(target, fullKey) {
+			// ancestors are all branches, find one with another child w/ index greater than ours
+			for _, anc := range ancestors {
+				// index of the current node in its parent branch
+				myIdx := prefix[len(prefix)-1]
+
+				br, ok := anc.(*branch)
+				if !ok {
+					return nil
+				}
+
+				prefix = prefix[:len(prefix)-len(br.key)-1]
+
+				if br.childrenBitmap()>>(myIdx+1) == 0 {
+					continue
+				}
+
+				// descend into ancestor's other children
+				for i, child := range br.children[myIdx+1:] {
+					idx := byte(i) + myIdx + 1
+
+					if child == nil {
+						continue
+					}
+
+					return returnFirstKey(append(prefix, append(br.key, idx)...), child)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// returnFirstKey descends into a node and returns the first key with an associated value
+func returnFirstKey(prefix []byte, n node) []byte {
+	switch c := n.(type) {
+	case *branch:
+		if c.value != nil {
+			return append(prefix, c.key...)
+		}
+
+		for i, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			return returnFirstKey(append(prefix, append(c.key, byte(i))...), child)
+		}
+	case *leaf:
+		return append(prefix, c.key...)
+	}
+
+	return nil
+}
+
 // Put inserts a key with value into the trie
 func (t *Trie) Put(key, value []byte) error {
 	if err := t.tryPut(key, value); err != nil {

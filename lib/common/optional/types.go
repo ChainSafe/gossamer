@@ -104,6 +104,15 @@ func (x *Bytes) Set(exists bool, value []byte) {
 	x.value = value
 }
 
+// Encode returns the SCALE encoded optional
+func (x *Bytes) Encode() []byte {
+	if !x.exists {
+		return []byte{0}
+	}
+
+	return append([]byte{1}, x.value...)
+}
+
 // Hash represents an optional Hash type.
 type Hash struct {
 	exists bool
