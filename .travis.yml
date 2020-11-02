@@ -23,6 +23,7 @@ go:
 env:
   global:
   - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
+  - VERSION=$(git rev-parse HEAD)
 cache:
   directories:
   - $HOME/.cache/go-build
@@ -68,17 +69,18 @@ jobs:
   - stage: Docker build
     name: Build Docker Image
     script:
-      - make docker-build
-      - make docker-version
+      - make VERSION=$VERSION docker-build
+      - make VERSION=$VERSION docker-version
+      - docker push chainsafe/gossamer:$VERSION
   - stage: Integration Tests
     name: Stable
-    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-stable
+    script: docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stable
   - name: RPC
-    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-rpc
+    script: docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-rpc
   - name: Stress
-    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-stress
+    script: docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stress
   - name: GRANDPA
-    script: docker run -it --entrypoint="make" chainsafe/gossamer:latest it-grandpa
+    script: docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-grandpa
   allow_failures:
     - stage: build
       env:
