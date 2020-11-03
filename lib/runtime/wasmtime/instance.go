@@ -27,11 +27,12 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
-var ctx gssmrruntime.Context
+// Name represents the name of the interpreter
+const Name = "wasmtime"
 
 var _ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
-var _ gssmrruntime.Instance = (*Instance)(nil)
 
+var ctx gssmrruntime.Context
 var logger = log.New("pkg", "runtime", "module", "go-wasmtime")
 
 // Config represents a wasmer configuration
