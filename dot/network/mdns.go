@@ -45,7 +45,7 @@ type mdns struct {
 // newMDNS creates a new mDNS instance from the host
 func newMDNS(host *host) *mdns {
 	return &mdns{
-		logger: host.logger.New("module", "mdns"),
+		logger: logger.New("module", "mdns"),
 		host:   host,
 	}
 }

@@ -41,17 +41,19 @@ const (
 	blockAnnounceID = "/block-announces/1"
 )
 
-var _ services.Service = &Service{}
-var logger = log.New("pkg", "network")
+var (
+	_        services.Service = &Service{}
+	logger                    = log.New("pkg", "network")
+	maxReads                  = 16
+)
 
-type blockAnnounceData struct {
-	validated bool                  // set to true if a handshake has been received and validated, false otherwise
-	msg       *BlockAnnounceMessage // if this node is the sender of the BlockAnnounce, this is set, otherwise, it's nil
-}
+type (
+	messageDecoder = func([]byte) (Message, error)
+	messageHandler = func(peer peer.ID, msg Message)
+)
 
 // Service describes a network service
 type Service struct {
-	logger log.Logger
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -99,13 +101,12 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// create a new host instance
-	host, err := newHost(ctx, cfg, logger)
+	host, err := newHost(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	network := &Service{
-		logger:                  logger,
 		ctx:                     ctx,
 		cancel:                  cancel,
 		cfg:                     cfg,
@@ -113,7 +114,7 @@ func NewService(cfg *Config) (*Service, error) {
 		mdns:                    newMDNS(host),
 		status:                  newStatus(host),
 		gossip:                  newGossip(host),
-		requestTracker:          newRequestTracker(host.logger),
+		requestTracker:          newRequestTracker(logger),
 		blockState:              cfg.BlockState,
 		networkState:            cfg.NetworkState,
 		messageHandler:          cfg.MessageHandler,
@@ -144,7 +145,7 @@ func (s *Service) Start() error {
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
-		s.logger.Info("Started listening", "address", addr)
+		logger.Info("Started listening", "address", addr)
 	}
 
 	if !s.noBootstrap {
@@ -170,13 +171,13 @@ func (s *Service) Stop() error {
 	// close mDNS discovery service
 	err := s.mdns.close()
 	if err != nil {
-		s.logger.Error("Failed to close mDNS discovery service", "error", err)
+		logger.Error("Failed to close mDNS discovery service", "error", err)
 	}
 
 	// close host and host services
 	err = s.host.close()
 	if err != nil {
-		s.logger.Error("Failed to close host", "error", err)
+		logger.Error("Failed to close host", "error", err)
 	}
 
 	return nil
@@ -210,10 +211,10 @@ func (s *Service) SendMessage(msg Message) {
 		return
 	}
 	if msg == nil {
-		s.logger.Debug("Received nil message from core service")
+		logger.Debug("Received nil message from core service")
 		return
 	}
-	s.logger.Debug(
+	logger.Debug(
 		"Broadcasting message from core service",
 		"host", s.host.id(),
 		"type", msg.Type(),
@@ -224,8 +225,15 @@ func (s *Service) SendMessage(msg Message) {
 		// create handshake and send to all peers
 		hs, err := s.getBlockAnnounceHandshake()
 		if err != nil {
-			s.logger.Error("failed to get BlockAnnounceHandshake", "error", err)
+			logger.Error("failed to get BlockAnnounceHandshake", "error", err)
 			return
+		}
+
+		for _, peer := range s.host.peers() {
+			s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
+				validated: false,
+				msg:       msg.(*BlockAnnounceMessage),
+			}
 		}
 
 		s.host.broadcastWithProtocol(hs, blockAnnounceID)
@@ -244,7 +252,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 		// get latest block header from block state
 		latestBlock, err := s.blockState.BestBlockHeader()
 		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			s.logger.Error("Failed to get chain head", "error", err)
+			logger.Error("Failed to get chain head", "error", err)
 			return
 		}
 
@@ -272,7 +280,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		s.logger.Error("Failed to get connection from stream")
+		logger.Error("Failed to get connection from stream")
 		return
 	}
 
@@ -281,11 +289,11 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
-// handleSyncStream handles streams with the <protcol-id>/sync/2 protocol ID
+// handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		s.logger.Error("Failed to get connection from stream")
+		logger.Error("Failed to get connection from stream")
 		return
 	}
 
@@ -294,32 +302,6 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) handleBlockAnnounceStream(stream libp2pnetwork.Stream) {
-	conn := stream.Conn()
-	if conn == nil {
-		s.logger.Error("Failed to get connection from stream")
-		return
-	}
-
-	peer := conn.RemotePeer()
-
-	// we haven't received a handshake yet from the peer, get handshake first
-	if hsData, has := s.blockAnnounceHandshakes[peer]; !has {
-		s.readStream(stream, peer, blockAnnounceHandshakeDecoder, s.handleBlockAnnounceMessage)
-		return
-	} else if !hsData.validated {
-		// we received a handshake, but it was invalid
-		return
-	}
-
-	s.readStream(stream, peer, decodeMessageBytes, s.handleBlockAnnounceMessage)
-}
-
-var maxReads = 16
-
-type messageDecoder = func([]byte) (Message, error)
-type messageHandler = func(peer peer.ID, msg Message)
-
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -327,7 +309,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	for {
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
-			s.logger.Error("Failed to read LEB128 encoding", "error", err)
+			logger.Error("Failed to read LEB128 encoding", "error", err)
 			_ = stream.Close()
 			s.errCh <- err
 			return
@@ -342,7 +324,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		for i := 0; i < maxReads; i++ {
 			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
-				s.logger.Error("Failed to read message from stream", "error", err)
+				logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()
 				s.errCh <- err
 				return
@@ -355,18 +337,18 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		if tot != length {
-			s.logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
 			continue
 		}
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes)
 		if err != nil {
-			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
 		}
 
-		s.logger.Trace(
+		logger.Trace(
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
@@ -393,7 +375,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 			s.requestTracker.addRequestedBlockID(req.ID)
 			err := s.host.send(peer, syncID, req)
 			if err != nil {
-				s.logger.Error("failed to send BlockRequest message", "peer", peer)
+				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
 		}
 	}
@@ -402,96 +384,13 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			s.logger.Debug("cannot create response for request", "id", req.ID)
+			logger.Debug("cannot create response for request", "id", req.ID)
 			return
 		}
 
 		err = s.host.send(peer, syncID, resp)
 		if err != nil {
-			s.logger.Error("failed to send BlockResponse message", "peer", peer)
-		}
-	}
-}
-
-func (s *Service) getBlockAnnounceHandshake() (*BlockAnnounceHandshake, error) {
-	latestBlock, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-
-	return &BlockAnnounceHandshake{
-		Roles:           s.cfg.Roles,
-		BestBlockNumber: latestBlock.Number.Uint64(),
-		BestBlockHash:   latestBlock.Hash(),
-		GenesisHash:     s.blockState.GenesisHash(),
-	}, nil
-}
-
-func (s *Service) validateBlockAnnounceHandshake(hs *BlockAnnounceHandshake) error {
-	if hs.GenesisHash != s.blockState.GenesisHash() {
-		return errors.New("genesis hash mismatch")
-	}
-
-	return nil
-}
-
-// handleBlockAnnounceMessage handles BlockAnnounce messages
-// if some more blocks are required to sync the announced block, the node will open a sync stream
-// with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
-	if hs, ok := msg.(*BlockAnnounceHandshake); ok {
-		// if we are the receiver and haven't received the handshake already, validate it
-		if _, has := s.blockAnnounceHandshakes[peer]; !has {
-			err := s.validateBlockAnnounceHandshake(hs)
-			if err != nil {
-				s.logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
-				s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
-					validated: false,
-				}
-			}
-			return
-		}
-
-		// if we are the initiator and haven't received the handshake already, validate it
-		if hsData, has := s.blockAnnounceHandshakes[peer]; has && !hsData.validated {
-			err := s.validateBlockAnnounceHandshake(hs)
-			if err != nil {
-				s.logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
-				delete(s.blockAnnounceHandshakes, peer)
-			}
-			return
-		}
-
-		// if we are the initiator, send the BlockAnnounce
-		if hsData, has := s.blockAnnounceHandshakes[peer]; has && hsData.msg != nil {
-			err := s.host.send(peer, blockAnnounceID, s.blockAnnounceHandshakes[peer].msg)
-			if err != nil {
-				s.logger.Error("failed to send BlockAnnounceMessage", "peer", peer, "error", err)
-			}
-			return
-		}
-
-		// otherwise, send back a handshake
-		resp, err := s.getBlockAnnounceHandshake()
-		if err != nil {
-			s.logger.Error("failed to get BlockAnnounceHandshake", "error", err)
-			return
-		}
-
-		err = s.host.send(peer, blockAnnounceID, resp)
-		if err != nil {
-			s.logger.Error("failed to send BlockAnnounceHandshake", "peer", peer, "error", err)
-		}
-	}
-
-	if an, ok := msg.(*BlockAnnounceMessage); ok {
-		req := s.syncer.HandleBlockAnnounce(an)
-		if req != nil {
-			s.requestTracker.addRequestedBlockID(req.ID)
-			err := s.host.send(peer, syncID, req)
-			if err != nil {
-				s.logger.Error("failed to send BlockRequest message", "peer", peer)
-			}
+			logger.Error("failed to send BlockResponse message", "peer", peer)
 		}
 	}
 }
@@ -503,23 +402,11 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
-			// if an, ok := msg.(*BlockAnnounceMessage); ok {
-			// 	req := s.syncer.HandleBlockAnnounce(an)
-			// 	if req != nil {
-			// 		s.requestTracker.addRequestedBlockID(req.ID)
-			// 		log.Info("sending", "req", req)
-			// 		err := s.host.send(peer, syncID, req)
-			// 		if err != nil {
-			// 			s.logger.Error("failed to send BlockRequest message", "peer", peer)
-			// 		}
-			// 	}
-			// } else {
 			if s.messageHandler == nil {
-				s.logger.Crit("Failed to handle message", "error", "message handler is nil")
+				logger.Crit("Failed to handle message", "error", "message handler is nil")
 				return
 			}
 			s.messageHandler.HandleMessage(msg)
-			//}
 		}
 
 		// check if gossip is enabled
@@ -546,7 +433,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 					s.requestTracker.addRequestedBlockID(req.ID)
 					err := s.host.send(peer, syncID, req)
 					if err != nil {
-						s.logger.Error("failed to send BlockRequest message", "peer", peer)
+						logger.Error("failed to send BlockRequest message", "peer", peer)
 					}
 				}
 			}
@@ -560,7 +447,7 @@ func (s *Service) handleStatusMesssage(statusMessage *StatusMessage) *BlockReque
 	// get latest block header from block state
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		s.logger.Error("Failed to get best block header from block state", "error", err)
+		logger.Error("Failed to get best block header from block state", "error", err)
 		return nil
 	}
 
@@ -568,7 +455,7 @@ func (s *Service) handleStatusMesssage(statusMessage *StatusMessage) *BlockReque
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-		s.logger.Debug("sending new block to syncer", "number", statusMessage.BestBlockNumber)
+		logger.Debug("sending new block to syncer", "number", statusMessage.BestBlockNumber)
 		return s.syncer.HandleSeenBlocks(bestBlockNum)
 	}
 
