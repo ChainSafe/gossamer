@@ -147,7 +147,6 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
 			s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
 				validated: true,
 			}
-			return
 		}
 
 		// if we are the initiator and haven't received the handshake already, validate it
@@ -156,8 +155,8 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
 			if err != nil {
 				logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
 				delete(s.blockAnnounceHandshakes, peer)
+				return
 			}
-			return
 		}
 
 		// if we are the initiator, send the BlockAnnounce
