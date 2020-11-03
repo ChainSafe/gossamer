@@ -30,6 +30,54 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+func blockAnnounceHandshakeDecoder(in []byte) (Message, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	h := new(BlockAnnounceHandshake)
+	return h, h.Decode(r)
+}
+
+// BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
+type BlockAnnounceHandshake struct {
+	Roles           byte
+	BestBlockNumber uint64
+	BestBlockHash   common.Hash
+	GenesisHash     common.Hash
+}
+
+// String formats a BlockAnnounceHandshake as a string
+func (h *BlockAnnounceHandshake) String() string {
+	return fmt.Sprintf("BlockAnnounceHandshake Roles=%d BestBlockNumber=%d BestBlockHash=%s GenesisHash=%s",
+		h.Roles,
+		h.BestBlockNumber,
+		h.BestBlockHash,
+		h.GenesisHash)
+}
+
+// Encode encodes a BlockAnnounceHandshake message using SCALE
+func (h *BlockAnnounceHandshake) Encode() ([]byte, error) {
+	return scale.Encode(h)
+}
+
+// Decode the message into a BlockAnnounceHandshake
+func (h *BlockAnnounceHandshake) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(h)
+	return err
+}
+
+func (h *BlockAnnounceHandshake) Type() int {
+	return -1
+}
+
+func (h *BlockAnnounceHandshake) IDString() string {
+	return ""
+}
+
 //nolint
 const (
 	StatusMsgType             = 0

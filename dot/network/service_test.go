@@ -194,7 +194,7 @@ func TestHandleMessage_BlockAnnounce(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	s.handleMessage(peerID, msg)
+	s.handleBlockAnnounceMessage(peerID, msg)
 	require.True(t, s.requestTracker.hasRequestedBlockID(99))
 }
 

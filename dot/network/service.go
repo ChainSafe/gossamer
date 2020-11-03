@@ -32,12 +32,22 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// NetworkStateTimeout is the set time interval that we update network state
-const NetworkStateTimeout = time.Minute
-const syncID = "/sync/2"
+const (
+	// NetworkStateTimeout is the set time interval that we update network state
+	NetworkStateTimeout = time.Minute
+
+	// the following are sub-protocols used by the node
+	syncID          = "/sync/2"
+	blockAnnounceID = "/block-announces/1"
+)
 
 var _ services.Service = &Service{}
 var logger = log.New("pkg", "network")
+
+type blockAnnounceData struct {
+	validated bool                  // set to true if a handshake has been received and validated, false otherwise
+	msg       *BlockAnnounceMessage // if this node is the sender of the BlockAnnounce, this is set, otherwise, it's nil
+}
 
 // Service describes a network service
 type Service struct {
@@ -45,13 +55,14 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg            *Config
-	host           *host
-	mdns           *mdns
-	status         *status
-	gossip         *gossip
-	requestTracker *requestTracker
-	errCh          chan<- error
+	cfg                     *Config
+	host                    *host
+	mdns                    *mdns
+	status                  *status
+	gossip                  *gossip
+	requestTracker          *requestTracker
+	errCh                   chan<- error
+	blockAnnounceHandshakes map[peer.ID]*blockAnnounceData
 
 	// Service interfaces
 	blockState   BlockState
@@ -94,23 +105,24 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	network := &Service{
-		logger:         logger,
-		ctx:            ctx,
-		cancel:         cancel,
-		cfg:            cfg,
-		host:           host,
-		mdns:           newMDNS(host),
-		status:         newStatus(host),
-		gossip:         newGossip(host),
-		requestTracker: newRequestTracker(host.logger),
-		blockState:     cfg.BlockState,
-		networkState:   cfg.NetworkState,
-		messageHandler: cfg.MessageHandler,
-		noBootstrap:    cfg.NoBootstrap,
-		noMDNS:         cfg.NoMDNS,
-		noStatus:       cfg.NoStatus,
-		syncer:         cfg.Syncer,
-		errCh:          cfg.ErrChan,
+		logger:                  logger,
+		ctx:                     ctx,
+		cancel:                  cancel,
+		cfg:                     cfg,
+		host:                    host,
+		mdns:                    newMDNS(host),
+		status:                  newStatus(host),
+		gossip:                  newGossip(host),
+		requestTracker:          newRequestTracker(host.logger),
+		blockState:              cfg.BlockState,
+		networkState:            cfg.NetworkState,
+		messageHandler:          cfg.MessageHandler,
+		noBootstrap:             cfg.NoBootstrap,
+		noMDNS:                  cfg.NoMDNS,
+		noStatus:                cfg.NoStatus,
+		syncer:                  cfg.Syncer,
+		errCh:                   cfg.ErrChan,
+		blockAnnounceHandshakes: make(map[peer.ID]*blockAnnounceData),
 	}
 
 	return network, err
@@ -128,6 +140,7 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(blockAnnounceID, s.handleBlockAnnounceStream)
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -206,6 +219,19 @@ func (s *Service) SendMessage(msg Message) {
 		"type", msg.Type(),
 	)
 
+	switch msg.Type() {
+	case BlockAnnounceMsgType:
+		// create handshake and send to all peers
+		hs, err := s.getBlockAnnounceHandshake()
+		if err != nil {
+			s.logger.Error("failed to get BlockAnnounceHandshake", "error", err)
+			return
+		}
+
+		s.host.broadcastWithProtocol(hs, blockAnnounceID)
+		return
+	}
+
 	// broadcast message to connected peers
 	s.host.broadcast(msg)
 }
@@ -251,7 +277,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleMessage)
+	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
 	// the stream stays open until closed or reset
 }
 
@@ -264,14 +290,37 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleSyncMessage)
+	s.readStream(stream, peer, decodeMessageBytes, s.handleSyncMessage)
 	// the stream stays open until closed or reset
+}
+
+func (s *Service) handleBlockAnnounceStream(stream libp2pnetwork.Stream) {
+	conn := stream.Conn()
+	if conn == nil {
+		s.logger.Error("Failed to get connection from stream")
+		return
+	}
+
+	peer := conn.RemotePeer()
+
+	// we haven't received a handshake yet from the peer, get handshake first
+	if hsData, has := s.blockAnnounceHandshakes[peer]; !has {
+		s.readStream(stream, peer, blockAnnounceHandshakeDecoder, s.handleBlockAnnounceMessage)
+		return
+	} else if !hsData.validated {
+		// we received a handshake, but it was invalid
+		return
+	}
+
+	s.readStream(stream, peer, decodeMessageBytes, s.handleBlockAnnounceMessage)
 }
 
 var maxReads = 16
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
+type messageDecoder = func([]byte) (Message, error)
+type messageHandler = func(peer peer.ID, msg Message)
 
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
@@ -311,7 +360,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 		}
 
 		// decode message based on message type
-		msg, err := decodeMessageBytes(msgBytes)
+		msg, err := decoder(msgBytes)
 		if err != nil {
 			s.logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
@@ -364,29 +413,113 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 	}
 }
 
+func (s *Service) getBlockAnnounceHandshake() (*BlockAnnounceHandshake, error) {
+	latestBlock, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	return &BlockAnnounceHandshake{
+		Roles:           s.cfg.Roles,
+		BestBlockNumber: latestBlock.Number.Uint64(),
+		BestBlockHash:   latestBlock.Hash(),
+		GenesisHash:     s.blockState.GenesisHash(),
+	}, nil
+}
+
+func (s *Service) validateBlockAnnounceHandshake(hs *BlockAnnounceHandshake) error {
+	if hs.GenesisHash != s.blockState.GenesisHash() {
+		return errors.New("genesis hash mismatch")
+	}
+
+	return nil
+}
+
+// handleBlockAnnounceMessage handles BlockAnnounce messages
+// if some more blocks are required to sync the announced block, the node will open a sync stream
+// with its peer and send a BlockRequest message
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
+	if hs, ok := msg.(*BlockAnnounceHandshake); ok {
+		// if we are the receiver and haven't received the handshake already, validate it
+		if _, has := s.blockAnnounceHandshakes[peer]; !has {
+			err := s.validateBlockAnnounceHandshake(hs)
+			if err != nil {
+				s.logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
+				s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
+					validated: false,
+				}
+			}
+			return
+		}
+
+		// if we are the initiator and haven't received the handshake already, validate it
+		if hsData, has := s.blockAnnounceHandshakes[peer]; has && !hsData.validated {
+			err := s.validateBlockAnnounceHandshake(hs)
+			if err != nil {
+				s.logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
+				delete(s.blockAnnounceHandshakes, peer)
+			}
+			return
+		}
+
+		// if we are the initiator, send the BlockAnnounce
+		if hsData, has := s.blockAnnounceHandshakes[peer]; has && hsData.msg != nil {
+			err := s.host.send(peer, blockAnnounceID, s.blockAnnounceHandshakes[peer].msg)
+			if err != nil {
+				s.logger.Error("failed to send BlockAnnounceMessage", "peer", peer, "error", err)
+			}
+			return
+		}
+
+		// otherwise, send back a handshake
+		resp, err := s.getBlockAnnounceHandshake()
+		if err != nil {
+			s.logger.Error("failed to get BlockAnnounceHandshake", "error", err)
+			return
+		}
+
+		err = s.host.send(peer, blockAnnounceID, resp)
+		if err != nil {
+			s.logger.Error("failed to send BlockAnnounceHandshake", "peer", peer, "error", err)
+		}
+	}
+
+	if an, ok := msg.(*BlockAnnounceMessage); ok {
+		req := s.syncer.HandleBlockAnnounce(an)
+		if req != nil {
+			s.requestTracker.addRequestedBlockID(req.ID)
+			err := s.host.send(peer, syncID, req)
+			if err != nil {
+				s.logger.Error("failed to send BlockRequest message", "peer", peer)
+			}
+		}
+	}
+}
+
 // handleMessage handles the message based on peer status and message type
+// TODO: deprecate this handler, messages will be handled via their sub-protocols
 func (s *Service) handleMessage(peer peer.ID, msg Message) {
 	if msg.Type() != StatusMsgType {
 
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
-			if an, ok := msg.(*BlockAnnounceMessage); ok {
-				req := s.syncer.HandleBlockAnnounce(an)
-				if req != nil {
-					s.requestTracker.addRequestedBlockID(req.ID)
-					log.Info("sending", "req", req)
-					err := s.host.send(peer, syncID, req)
-					if err != nil {
-						s.logger.Error("failed to send BlockRequest message", "peer", peer)
-					}
-				}
-			} else {
-				if s.messageHandler == nil {
-					s.logger.Crit("Failed to send message", "error", "message handler is nil")
-					return
-				}
-				s.messageHandler.HandleMessage(msg)
+			// if an, ok := msg.(*BlockAnnounceMessage); ok {
+			// 	req := s.syncer.HandleBlockAnnounce(an)
+			// 	if req != nil {
+			// 		s.requestTracker.addRequestedBlockID(req.ID)
+			// 		log.Info("sending", "req", req)
+			// 		err := s.host.send(peer, syncID, req)
+			// 		if err != nil {
+			// 			s.logger.Error("failed to send BlockRequest message", "peer", peer)
+			// 		}
+			// 	}
+			// } else {
+			if s.messageHandler == nil {
+				s.logger.Crit("Failed to handle message", "error", "message handler is nil")
+				return
 			}
+			s.messageHandler.HandleMessage(msg)
+			//}
 		}
 
 		// check if gossip is enabled
