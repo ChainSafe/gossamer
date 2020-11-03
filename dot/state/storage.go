@@ -74,10 +74,11 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
-func (s *StorageState) pruneStorage() { //nolint
-	// TODO: when a block is finalized, delete non-finalized tries from DB and mapping
-	// as well as all states before finalized block
-	// TODO: pruning options? eg archive, full, etc
+func (s *StorageState) pruneStorage(hash common.Hash) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.baseDB.Del(hash[:])
+	delete(s.tries, hash)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database

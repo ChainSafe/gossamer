@@ -42,6 +42,7 @@ type Service struct {
 	Network     *NetworkState
 	Transaction *TransactionState
 	Epoch       *EpochState
+	closeCh     chan interface{}
 }
 
 // NewService create a new instance of Service
@@ -57,6 +58,7 @@ func NewService(path string, lvl log.Lvl) *Service {
 		Storage: nil,
 		Block:   nil,
 		Network: nil,
+		closeCh: make(chan interface{}),
 	}
 }
 
@@ -139,6 +141,8 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		s.Block = blockState
 		s.Epoch = epochState
 
+		// Start background goroutine to GC pruned keys.
+		go s.pruneStorage()
 	} else {
 
 		// close database
@@ -149,6 +153,17 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 	}
 
 	return nil
+}
+
+func (s *Service) pruneStorage() {
+	for {
+		select {
+		case keyHash := <-s.Block.pruneKeyCh:
+			s.Storage.pruneStorage(keyHash)
+		case <-s.closeCh:
+			return
+		}
+	}
 }
 
 // storeInitialValues writes initial genesis values to the state database
@@ -294,6 +309,7 @@ func (s *Service) Stop() error {
 	if err != nil {
 		return err
 	}
+	close(s.closeCh)
 
 	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
 	return s.db.Close()
