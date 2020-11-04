@@ -96,9 +96,11 @@ package wasmer
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -368,21 +370,69 @@ func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.in
 
 
 //export ext_hashing_blake2_128_version_1
-func ext_hashing_blake2_128_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Blake2b128(data)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_128_version_1]", "error", err)
+		panic(err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, hash, 16)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_128_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_hashing_blake2_256_version_1
-func ext_hashing_blake2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Blake2bHash(data)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_256_version_1]", "error", err)
+		panic(err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_hashing_keccak_256_version_1
-func ext_hashing_keccak_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Keccak256(data)
+	if err != nil {
+		logger.Error("[ext_hashing_keccak_256_version_1]", "error", err)
+		panic(err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_keccak_256_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+	
+	return C.int32_t(out)
 }
 
 //export ext_hashing_sha2_256_version_1
@@ -392,9 +442,25 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32
 }
 
 //export ext_hashing_twox_256_version_1
-func ext_hashing_twox_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_twox_256_version_1] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Twox256(data)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_256_version_1]", "error", err)
+		panic(err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_256_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_hashing_twox_128_version_1
@@ -414,9 +480,25 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, data C.int64_t) C.in
 }
 
 //export ext_hashing_twox_64_version_1
-func ext_hashing_twox_64_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Twox64(data)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
+		panic(err)
+	}
+
+	out, err := toWasmMemorySized(instanceContext, hash, 8)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_64_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(out)
 }
 
 
@@ -568,9 +650,55 @@ func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 }
 
 
-// storeAsOptional allocates memory for the given data, converts it to an optional type, encodes it and
-// stores it in memory. it returns the pointer-size to the data
-func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator, memory []byte, data []byte) C.int64_t {
+// Convert 64bit wasm span descriptor to Go memory slice
+func asMemorySlice(context wasm.InstanceContext, span C.int64_t) []byte {
+	memory := context.Memory().Data()
+
+	ptr, size := int64ToPointerAndSize(int64(span))
+
+	return memory[ptr:ptr+size]
+}
+
+// Copy a byte slice to wasm memory and return the resulting 64bit span descriptor
+func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
+	memory := context.Memory().Data()
+	allocator := context.Data().(*runtime.Context).Allocator
+
+	size := uint32(len(data))
+
+	out, err := allocator.Allocate(size)
+	if err != nil {
+		return 0, err
+	}
+
+	copy(memory[out:out+size], data[:])
+
+	return pointerAndSizeToInt64(int32(out), int32(size)), nil
+}
+
+// Copy a byte slice of a fixed size to wasm memory and return resulting pointer
+func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (uint32, error) {
+
+	if int(size) != len(data) {
+		return 0, errors.New("internal byte array size missmatch") 
+	}
+
+	memory := context.Memory().Data()
+	allocator := context.Data().(*runtime.Context).Allocator
+
+	out, err := allocator.Allocate(size)
+	if err != nil {
+		return 0, err
+	}
+
+	copy(memory[out:out+size], data[:])
+
+	return out, nil
+}
+
+// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) { 
+
 	var opt *optional.Bytes
 	if len(data) == 0 {
 		opt = optional.NewBytes(false, nil)
@@ -578,18 +706,12 @@ func storeAsOptional(caller string, allocator *runtime.FreeingBumpHeapAllocator,
 		opt = optional.NewBytes(true, data)
 	}
 
-	enc := opt.Encode()
-	length := uint32(len(enc))
-
-	// allocate memory for value and copy value to memory
-	ptr, err := allocator.Allocate(length)
+	enc, err := opt.Encode()
 	if err != nil {
-		logger.Error(fmt.Sprintf("[%s]", caller), "error", err)
-		return 0
+		return 0, err
 	}
 
-	copy(memory[ptr:ptr+length], enc)
-	return C.int64_t(pointerAndSizeToInt64(int32(ptr), int32(length)))
+	return toWasmMemory(context, enc)
 }
 
 
