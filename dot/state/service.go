@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -158,10 +159,14 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 func (s *Service) pruneStorage() {
 	for {
 		select {
-		case keyHash := <-s.Block.pruneKeyCh:
-			s.Storage.pruneStorage(keyHash)
+		case keys := <-s.Block.pruneKeyCh:
+			for _, v := range keys {
+				s.Storage.pruneKey(v)
+			}
 		case <-s.closeCh:
 			return
+		default:
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }

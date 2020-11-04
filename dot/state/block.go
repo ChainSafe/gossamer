@@ -49,7 +49,7 @@ type BlockState struct {
 	importedLock  sync.RWMutex
 	finalizedLock sync.RWMutex
 
-	pruneKeyCh chan common.Hash
+	pruneKeyCh chan []common.Hash
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
@@ -64,7 +64,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
 		finalized:  make(map[byte]chan<- *types.Header),
-		pruneKeyCh: make(chan common.Hash, 1000),
+		pruneKeyCh: make(chan []common.Hash, 1000),
 	}
 
 	bs.genesisHash = bt.GenesisHash()
@@ -87,7 +87,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
 		finalized:  make(map[byte]chan<- *types.Header),
-		pruneKeyCh: make(chan common.Hash, 1000),
+		pruneKeyCh: make(chan []common.Hash, 1000),
 	}
 
 	err := bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
@@ -441,8 +441,8 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 		if err != nil {
 			return err
 		}
-		bs.pruneKeyCh <- rem
 	}
+	bs.pruneKeyCh <- pruned
 
 	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
 }

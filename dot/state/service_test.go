@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -126,5 +127,68 @@ func TestService_BlockTree(t *testing.T) {
 
 	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
 		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
+	}
+}
+func Test_ServicePruneStorage(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	serv := NewService(testDir, log.LvlTrace)
+	serv.UseMemDB()
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	require.Nil(t, err)
+
+	genesisData := new(genesis.Data)
+
+	tr := trie.NewEmptyTrie()
+	err = serv.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	require.Nil(t, err)
+
+	serv.Block = newTestBlockState(t, testGenesisHeader)
+	serv.Storage = newTestStorageState(t)
+	ch := make(chan *types.Header, 3)
+	id, err := serv.Block.RegisterFinalizedChannel(ch)
+	require.NoError(t, err)
+
+	defer serv.Block.UnregisterFinalizedChannel(id)
+
+	chain, _ := AddBlocksToState(t, serv.Block, 3)
+
+	type prunedBlock struct {
+		hash  common.Hash
+		dbKey []byte
+	}
+
+	var prunedArr []prunedBlock
+	for i, b := range chain {
+		emptyTrie := trie.NewEmptyTrie()
+		chainHash := b.Hash()
+		err := emptyTrie.Put(chainHash[:], chainHash[:])
+		require.NoError(t, err)
+
+		// Update the block in StorageState manually.
+		serv.Storage.tries[b.Hash()] = emptyTrie
+		err = serv.Storage.StoreInDB(b.Hash())
+		require.NoError(t, err)
+
+		if i == len(chain)-1 {
+			serv.Block.SetFinalizedHash(b.Hash(), 0, 0)
+		} else {
+			rootHash, err := emptyTrie.Hash()
+			require.NoError(t, err)
+			prunedArr = append(prunedArr, prunedBlock{hash: b.Hash(), dbKey: rootHash[:]})
+		}
+	}
+
+	time.Sleep(10 * time.Second)
+
+	for _, v := range prunedArr {
+		_, ok := serv.Storage.tries[v.hash]
+		require.Equal(t, false, ok)
+
+		ok, err := serv.Storage.baseDB.Has(v.dbKey)
+		require.NoError(t, err)
+		require.Equal(t, false, ok)
 	}
 }

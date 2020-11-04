@@ -74,10 +74,17 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
-func (s *StorageState) pruneStorage(hash common.Hash) {
+func (s *StorageState) pruneKey(hash common.Hash) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.baseDB.Del(hash[:])
+
+	tr, ok := s.tries[hash]
+	if !ok {
+		return
+	}
+
+	dbKey, _ := tr.Hash()
+	_ = s.baseDB.Del(dbKey[:])
 	delete(s.tries, hash)
 }
 
