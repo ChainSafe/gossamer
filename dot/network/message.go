@@ -47,6 +47,9 @@ const (
 	RemoteChangesRequestType  = 12
 	RemoteChangesResponseType = 13
 	ChainSpecificMsgType      = 255
+
+	// TODO: do handshake have type identifiers?
+	BlockAnnounceHandshakeType = 254
 )
 
 // Message interface
@@ -83,6 +86,9 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
+		err = m.Decode(r)
+	case BlockAnnounceHandshakeType:
+		m = new(BlockAnnounceHandshake)
 		err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)

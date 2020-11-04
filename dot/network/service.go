@@ -48,8 +48,8 @@ var (
 )
 
 type (
-	messageDecoder = func([]byte) (Message, error)
-	messageHandler = func(peer peer.ID, msg Message)
+	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
+	messageHandler = func(peer peer.ID, msg Message) error
 )
 
 // Service describes a network service
@@ -222,21 +222,30 @@ func (s *Service) SendMessage(msg Message) {
 
 	switch msg.Type() {
 	case BlockAnnounceMsgType:
-		// create handshake and send to all peers
+		// create handshake and send to all peers that haven't already completed the handshake
 		hs, err := s.getBlockAnnounceHandshake()
 		if err != nil {
 			logger.Error("failed to get BlockAnnounceHandshake", "error", err)
 			return
 		}
 
-		for _, peer := range s.host.peers() {
-			s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
-				validated: false,
-				msg:       msg.(*BlockAnnounceMessage),
+		for _, peer := range s.host.peers() { // TODO: check if stream is open, if not, open and send handshake
+			if _, has := s.blockAnnounceHandshakes[peer]; !has {
+				s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
+					validated: false,
+					msg:       msg.(*BlockAnnounceMessage),
+				}
+
+				logger.Info("sending BlockAnnounceHandshake", "peer", peer, "msg", hs)
+				s.host.send(peer, blockAnnounceID, hs)
+			} else {
+				// we've already completed the handshake with the peer, send BlockAnnounce directly
+				s.host.send(peer, blockAnnounceID, msg)
 			}
+
 		}
 
-		s.host.broadcastWithProtocol(hs, blockAnnounceID)
+		//s.host.broadcastWithProtocol(hs, blockAnnounceID)
 		return
 	}
 
@@ -285,7 +294,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
+	s.readStream(stream, peer, s.handleMessage)
 	// the stream stays open until closed or reset
 }
 
@@ -298,11 +307,11 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleSyncMessage)
+	s.readStream(stream, peer, s.handleSyncMessage)
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
@@ -342,7 +351,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes)
+		msg, err := decodeMessageBytes(msgBytes)
 		if err != nil {
 			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
@@ -356,14 +365,20 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		)
 
 		// handle message based on peer status and message type
-		handler(peer, msg)
+		err = handler(peer, msg)
+		if err != nil {
+			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
+			_ = stream.Close()
+			s.errCh <- err
+			return
+		}
 	}
 }
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
-func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
+func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	if msg == nil {
-		return
+		return nil
 	}
 
 	// if it's a BlockResponse with an ID corresponding to a BlockRequest we sent, forward
@@ -385,7 +400,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request", "id", req.ID)
-			return
+			return nil
 		}
 
 		err = s.host.send(peer, syncID, resp)
@@ -393,18 +408,20 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) {
 			logger.Error("failed to send BlockResponse message", "peer", peer)
 		}
 	}
+
+	return nil
 }
 
 // handleMessage handles the message based on peer status and message type
 // TODO: deprecate this handler, messages will be handled via their sub-protocols
-func (s *Service) handleMessage(peer peer.ID, msg Message) {
+func (s *Service) handleMessage(peer peer.ID, msg Message) error {
 	if msg.Type() != StatusMsgType {
 
 		// check if status is disabled or peer status is confirmed
 		if s.noStatus || s.status.confirmed(peer) {
 			if s.messageHandler == nil {
 				logger.Crit("Failed to handle message", "error", "message handler is nil")
-				return
+				return nil
 			}
 			s.messageHandler.HandleMessage(msg)
 		}
@@ -439,6 +456,8 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) {
 			}
 		}
 	}
+
+	return nil
 }
 
 // handleStatusMesssage returns a block request message if peer best block

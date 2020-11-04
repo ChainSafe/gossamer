@@ -29,7 +29,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var errCannotValidateBlockAnnounceHandshake = errors.New("failed to validate block announce handshake")
+
 type blockAnnounceData struct {
+	received  bool
 	validated bool                  // set to true if a handshake has been received and validated, false otherwise
 	msg       *BlockAnnounceMessage // if this node is the sender of the BlockAnnounce, this is set, otherwise, it's nil
 }
@@ -64,7 +67,8 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	enc, err := scale.Encode(hs)
+	return append([]byte{BlockAnnounceHandshakeType}, enc...), err
 }
 
 // Decode the message into a BlockAnnounceHandshake
@@ -76,7 +80,7 @@ func (hs *BlockAnnounceHandshake) Decode(r io.Reader) error {
 
 // Type ...
 func (hs *BlockAnnounceHandshake) Type() int {
-	return -1
+	return BlockAnnounceHandshakeType
 }
 
 // IDString ...
@@ -108,6 +112,7 @@ func (s *Service) validateBlockAnnounceHandshake(hs *BlockAnnounceHandshake) err
 
 // handleBlockAnnounceStream handles streams with the <protocol-id>/block-announces/1 protocol ID
 func (s *Service) handleBlockAnnounceStream(stream libp2pnetwork.Stream) {
+	logger.Info("received data on /block-announces/1")
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
@@ -116,72 +121,94 @@ func (s *Service) handleBlockAnnounceStream(stream libp2pnetwork.Stream) {
 
 	peer := conn.RemotePeer()
 
-	// we haven't received a handshake yet from the peer, get handshake first
-	if hsData, has := s.blockAnnounceHandshakes[peer]; !has {
-		s.readStream(stream, peer, blockAnnounceHandshakeDecoder, s.handleBlockAnnounceMessage)
-		return
-	} else if !hsData.validated {
-		// we received a handshake, but it was invalid
-		return
-	}
+	logger.Info("handshake data", "peer", peer, "data", s.blockAnnounceHandshakes[peer])
 
-	s.readStream(stream, peer, decodeMessageBytes, s.handleBlockAnnounceMessage)
+	// // we haven't received a handshake yet from the peer, get handshake first
+	// if hsData, has := s.blockAnnounceHandshakes[peer]; !has || !hsData.received {
+	// 	s.readStream(stream, peer, blockAnnounceHandshakeDecoder, s.handleBlockAnnounceMessage)
+	// 	return
+	// } else if !hsData.validated && hsData.received {
+	// 	// we received a handshake, but it was invalid
+	// 	return
+	// }
+
+	s.readStream(stream, peer, s.handleBlockAnnounceMessage)
 }
 
-// handleBlockAnnounceMessage handles BlockAnnounce messages
+// handleBlockAnnounceMessage handles BlockAnnounce and BlockAnnounceHandshake messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) error {
+	logger.Info("received message on /block-announces/1", "msg", msg)
+
 	if hs, ok := msg.(*BlockAnnounceHandshake); ok {
+		logger.Info("received BlockAnnounceHandshake", "msg", hs)
 		// if we are the receiver and haven't received the handshake already, validate it
 		if _, has := s.blockAnnounceHandshakes[peer]; !has {
+			logger.Info("receiver: validating handshake")
 			err := s.validateBlockAnnounceHandshake(hs)
 			if err != nil {
 				logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
 				s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
 					validated: false,
+					received:  true,
 				}
-				return
+				return errCannotValidateBlockAnnounceHandshake
 			}
 
 			s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
 				validated: true,
+				received:  true,
 			}
+			logger.Info("receiver: validated handshake", "peer", peer)
+			logger.Info("receiver: sending handshake")
+
+			// otherwise, send back a handshake
+			resp, err := s.getBlockAnnounceHandshake()
+			if err != nil {
+				logger.Error("failed to get BlockAnnounceHandshake", "error", err)
+				return nil
+			}
+
+			err = s.host.send(peer, blockAnnounceID, resp)
+			if err != nil {
+				logger.Error("failed to send BlockAnnounceHandshake", "peer", peer, "error", err)
+			}
+			logger.Info("receiver: sent handshake", "peer", peer)
 		}
 
 		// if we are the initiator and haven't received the handshake already, validate it
 		if hsData, has := s.blockAnnounceHandshakes[peer]; has && !hsData.validated {
+			logger.Info("sender: validating handshake")
 			err := s.validateBlockAnnounceHandshake(hs)
 			if err != nil {
 				logger.Error("failed to validate BlockAnnounceHandshake", "peer", peer, "error", err)
+				// TODO: also delete on stream close
 				delete(s.blockAnnounceHandshakes, peer)
-				return
+				return errCannotValidateBlockAnnounceHandshake
 			}
+
+			s.blockAnnounceHandshakes[peer].validated = true
+			s.blockAnnounceHandshakes[peer].received = true
+			logger.Info("sender: validated handshake", "peer", peer)
+		} else if hsData.received {
+			return nil
 		}
 
 		// if we are the initiator, send the BlockAnnounce
-		if hsData, has := s.blockAnnounceHandshakes[peer]; has && hsData.msg != nil {
+		logger.Info("handshake data", "peer", peer, "data", s.blockAnnounceHandshakes[peer])
+		if hsData, has := s.blockAnnounceHandshakes[peer]; has && hsData.validated && hsData.received && hsData.msg != nil {
+			logger.Info("sender: sending BlockAnnounceMessage")
 			err := s.host.send(peer, blockAnnounceID, s.blockAnnounceHandshakes[peer].msg)
 			if err != nil {
 				logger.Error("failed to send BlockAnnounceMessage", "peer", peer, "error", err)
 			}
-			return
-		}
-
-		// otherwise, send back a handshake
-		resp, err := s.getBlockAnnounceHandshake()
-		if err != nil {
-			logger.Error("failed to get BlockAnnounceHandshake", "error", err)
-			return
-		}
-
-		err = s.host.send(peer, blockAnnounceID, resp)
-		if err != nil {
-			logger.Error("failed to send BlockAnnounceHandshake", "peer", peer, "error", err)
+			return nil
 		}
 	}
 
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
+		logger.Info("received BlockAnnounceMessage", "msg", an)
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
@@ -191,4 +218,6 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) {
 			}
 		}
 	}
+
+	return nil
 }

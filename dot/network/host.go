@@ -188,7 +188,7 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 			"Opened stream",
 			"host", h.id(),
 			"peer", p,
-			"protocol", s.Protocol(),
+			"protocol", h.protocolID+sub,
 		)
 	}
 
