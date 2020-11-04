@@ -236,16 +236,18 @@ func (s *Service) SendMessage(msg Message) {
 					msg:       msg.(*BlockAnnounceMessage),
 				}
 
-				logger.Info("sending BlockAnnounceHandshake", "peer", peer, "msg", hs)
-				s.host.send(peer, blockAnnounceID, hs)
+				logger.Trace("sending BlockAnnounceHandshake", "peer", peer, "message", hs)
+				err = s.host.send(peer, blockAnnounceID, hs)
 			} else {
 				// we've already completed the handshake with the peer, send BlockAnnounce directly
-				s.host.send(peer, blockAnnounceID, msg)
+				err = s.host.send(peer, blockAnnounceID, msg)
 			}
 
+			if err != nil {
+				logger.Error("failed to send message to peer", "peer", peer, "error", err)
+			}
 		}
 
-		//s.host.broadcastWithProtocol(hs, blockAnnounceID)
 		return
 	}
 

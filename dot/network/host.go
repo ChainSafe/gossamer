@@ -200,16 +200,6 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	return err
 }
 
-// broadcastWithProtocol sends a message to each connected peer with the given sub-protocol
-func (h *host) broadcastWithProtocol(msg Message, sub protocol.ID) {
-	for _, p := range h.peers() {
-		err := h.send(p, sub, msg)
-		if err != nil {
-			logger.Error("Failed to broadcast message to peer", "peer", p, "error", err)
-		}
-	}
-}
-
 // broadcast sends a message to each connected peer
 func (h *host) broadcast(msg Message) {
 	for _, p := range h.peers() {
