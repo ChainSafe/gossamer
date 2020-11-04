@@ -141,9 +141,6 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		s.Storage = storageState
 		s.Block = blockState
 		s.Epoch = epochState
-
-		// Start background goroutine to GC pruned keys.
-		go s.pruneStorage()
 	} else {
 
 		// close database
@@ -271,6 +268,9 @@ func (s *Service) Start() error {
 
 	// create epoch state
 	s.Epoch = NewEpochState(db)
+
+	// Start background goroutine to GC pruned keys.
+	go s.pruneStorage()
 	return nil
 }
 

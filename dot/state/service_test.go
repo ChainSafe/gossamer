@@ -145,6 +145,9 @@ func Test_ServicePruneStorage(t *testing.T) {
 	err = serv.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
 	require.Nil(t, err)
 
+	err = serv.Start()
+	require.Nil(t, err)
+
 	serv.Block = newTestBlockState(t, testGenesisHeader)
 	serv.Storage = newTestStorageState(t)
 	ch := make(chan *types.Header, 3)
@@ -191,4 +194,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, false, ok)
 	}
+
+	err = serv.Stop()
+	require.Nil(t, err)
 }
