@@ -640,8 +640,21 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 }
 
 //export ext_storage_set_version_1
-func ext_storage_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
+func ext_storage_set_version_1(context unsafe.Pointer, key C.int64_t, value C.int64_t) {
 	logger.Trace("[ext_storage_set_version_1] executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+		
+	keyBytes := asMemorySlice(context, key)
+	valueBytes := asMemorySlice(context, value)
+
+	logger.Trace("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", keyBytes), "val", valueBytes)
+	err := storage.Set(keyBytes, valueBytes)
+	if err != nil {
+		logger.Error("[ext_storage_set_version_1]", "error", err)
+		panic(err)
+	}
 }
 
 //export ext_storage_start_transaction_version_1
