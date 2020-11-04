@@ -17,6 +17,7 @@
 package optional
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -118,6 +119,31 @@ func (x *Bytes) Encode() ([]byte, error) {
 	}
 
 	return append([]byte{1}, value...), nil
+}
+
+// Decode return an optional Byte from scale encoded data
+func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists > 1 {
+		return nil, errors.New("Decoding failed, invalid optional")
+	}
+
+	x.exists = (exists != 0)
+
+	if x.exists {
+		sd := scale.Decoder{Reader: r}
+		value, err := sd.DecodeByteArray()
+		if err != nil {
+			return nil, err
+		}
+		x.value = value
+	}
+
+	return x, nil
 }
 
 // Hash represents an optional Hash type.
