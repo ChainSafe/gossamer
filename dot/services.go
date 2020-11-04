@@ -37,6 +37,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 )
 
@@ -69,6 +70,11 @@ func createStateService(cfg *Config) (*state.Service, error) {
 }
 
 func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.LegacyInstance, error) {
+	logger.Info(
+		"creating runtime...",
+		"interpreter", cfg.Core.WasmInterpreter,
+	)
+
 	// load runtime code from trie
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
@@ -84,20 +90,41 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		LocalStorage:      database.NewMemDatabase(),
 		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
-	rtCfg := &wasmtime.Config{
-		Imports: wasmtime.ImportsLegacyNodeRuntime,
-	}
-	rtCfg.Storage = ts
-	rtCfg.Keystore = ks
-	rtCfg.LogLvl = cfg.Log.RuntimeLvl
-	rtCfg.NodeStorage = ns
-	rtCfg.Network = net
-	rtCfg.Role = cfg.Core.Roles
 
-	// create runtime executor
-	rt, err := wasmtime.NewLegacyInstance(code, rtCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+	var rt runtime.LegacyInstance
+	switch cfg.Core.WasmInterpreter {
+	case wasmer.Name:
+		rtCfg := &wasmer.Config{
+			Imports: wasmer.ImportsLegacyNodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmer.NewLegacyInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
+	case wasmtime.Name:
+		rtCfg := &wasmtime.Config{
+			Imports: wasmtime.ImportsLegacyNodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmtime.NewLegacyInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
 	}
 
 	return rt, nil

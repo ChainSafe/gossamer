@@ -26,8 +26,10 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+// Name represents the name of the interpreter
+const Name = "wasmer"
+
 var _ runtime.LegacyInstance = (*LegacyInstance)(nil)
-var _ runtime.Instance = (*Instance)(nil)
 
 var logger = log.New("pkg", "runtime", "module", "go-wasmer")
 var memory *wasm.Memory

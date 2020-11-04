@@ -17,6 +17,7 @@
 package gssmr
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -57,6 +58,8 @@ var (
 	DefaultBabeAuthority = true
 	// DefaultGrandpaAuthority is true if the node is a grandpa authority (overwrites previous settings)
 	DefaultGrandpaAuthority = true
+	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
+	DefaultWasmInterpreter = wasmer.Name
 
 	// NetworkConfig
 
