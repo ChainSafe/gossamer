@@ -726,15 +726,8 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 // ImportsNodeRuntime returns the imports for the v0.8 runtime
 func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	var err error
-	memory, err = wasm.NewMemory(20, 0)
-	if err != nil {
-		return nil, err
-	}
 
-	imports, err := wasm.NewImports().AppendMemory("memory", memory)
-	if err != nil {
-		return nil, err
-	}
+	imports := wasm.NewImports()
 
 	_, err = imports.Append("ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1)
 	if err != nil {
