@@ -16,7 +16,7 @@
 
 package runtime
 
-// Simple raw memory interface
+// Memory is a raw memory interface
 type Memory interface {
 	Data() []byte
 	Length() uint32

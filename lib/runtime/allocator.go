@@ -67,7 +67,7 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	}
 
 	// we don't include offset memory in the heap
-	heapSize := uint32(currentSize) - ptrOffset
+	heapSize := currentSize - ptrOffset
 
 	fbha.bumper = 0
 	fbha.heap = mem

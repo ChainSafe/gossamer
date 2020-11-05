@@ -20,16 +20,18 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
-// Thin wrapper around wasmtime memory to support 
+// Memory is a thin wrapper around wasmtime memory to support
 // Gossamer runtime.Memory interface
 type Memory struct {
 	memory *wasmtime.Memory
 }
 
+// Data returns the memory's data
 func (m Memory) Data() []byte {
 	return m.memory.UnsafeData()
 }
 
+// Length returns the memory's length
 func (m Memory) Length() uint32 {
 	return uint32(m.memory.DataSize())
 }
