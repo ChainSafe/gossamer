@@ -48,6 +48,9 @@ var (
 )
 
 type (
+	// messageDecoder is passed on readStream to decode the data from the stream into a message.
+	// since messages are decoded based on context, this is different for every sub-protocol.
+	messageDecoder = func([]byte, peer.ID) (Message, error)
 	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
 	messageHandler = func(peer peer.ID, msg Message) error
 )
@@ -296,7 +299,7 @@ func (s *Service) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleMessage)
+	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
 	// the stream stays open until closed or reset
 }
 
@@ -309,11 +312,11 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleSyncMessage)
+	s.readStream(stream, peer, decodeMessageBytes, s.handleSyncMessage)
 	// the stream stays open until closed or reset
 }
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler messageHandler) {
+func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
@@ -353,7 +356,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 		}
 
 		// decode message based on message type
-		msg, err := decodeMessageBytes(msgBytes)
+		msg, err := decoder(msgBytes, peer)
 		if err != nil {
 			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue

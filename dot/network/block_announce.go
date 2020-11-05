@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -34,6 +35,30 @@ type blockAnnounceData struct {
 	received  bool
 	validated bool                  // set to true if a handshake has been received and validated, false otherwise
 	msg       *BlockAnnounceMessage // if this node is the sender of the BlockAnnounce, this is set, otherwise, it's nil
+}
+
+func (s *Service) blockAnnounceDecoder(in []byte, peer peer.ID) (Message, error) {
+	// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
+	// assume we are receiving the handshake
+	if hsData, has := s.blockAnnounceHandshakes[peer]; !has || !hsData.received {
+		r := &bytes.Buffer{}
+		_, err := r.Write(in)
+		if err != nil {
+			return nil, err
+		}
+
+		hs := new(BlockAnnounceHandshake)
+		return hs, hs.Decode(r)
+	}
+
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	hs := new(BlockAnnounceMessage)
+	return hs, hs.Decode(r)
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
@@ -107,7 +132,7 @@ func (s *Service) handleBlockAnnounceStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.handleBlockAnnounceMessage)
+	s.readStream(stream, peer, s.blockAnnounceDecoder, s.handleBlockAnnounceMessage)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce and BlockAnnounceHandshake messages

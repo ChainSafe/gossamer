@@ -28,6 +28,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 //nolint
@@ -48,7 +50,7 @@ const (
 	RemoteChangesResponseType = 13
 	ChainSpecificMsgType      = 255
 
-	// TODO: do handshake have type identifiers?
+	// TODO: do handshakes have type identifiers?
 	BlockAnnounceHandshakeType = 254
 )
 
@@ -78,18 +80,18 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	case BlockAnnounceMsgType:
-		m = new(BlockAnnounceMessage)
-		err = m.Decode(r)
+	// case BlockAnnounceMsgType:
+	// 	m = new(BlockAnnounceMessage)
+	// 	err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
 		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
 		err = m.Decode(r)
-	case BlockAnnounceHandshakeType:
-		m = new(BlockAnnounceHandshake)
-		err = m.Decode(r)
+	// case BlockAnnounceHandshakeType:
+	// 	m = new(BlockAnnounceHandshake)
+	// 	err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)
 	}
@@ -98,7 +100,7 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 }
 
 // decodeMessageBytes decodes the message based on message type
-func decodeMessageBytes(in []byte) (m Message, err error) {
+func decodeMessageBytes(in []byte, _ peer.ID) (m Message, err error) {
 	r := &bytes.Buffer{}
 	_, err = r.Write(in)
 	if err != nil {
@@ -333,7 +335,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return append([]byte{BlockAnnounceMsgType}, enc...), nil
+	return enc, nil //append([]byte{BlockAnnounceMsgType}, enc...), nil
 }
 
 // Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
