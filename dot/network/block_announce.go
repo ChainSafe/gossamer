@@ -80,8 +80,7 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	enc, err := scale.Encode(hs)
-	return append([]byte{BlockAnnounceHandshakeType}, enc...), err
+	return scale.Encode(hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
@@ -93,7 +92,7 @@ func (hs *BlockAnnounceHandshake) Decode(r io.Reader) error {
 
 // Type ...
 func (hs *BlockAnnounceHandshake) Type() int {
-	return BlockAnnounceHandshakeType
+	return -1
 }
 
 // IDString ...

@@ -49,9 +49,6 @@ const (
 	RemoteChangesRequestType  = 12
 	RemoteChangesResponseType = 13
 	ChainSpecificMsgType      = 255
-
-	// TODO: do handshakes have type identifiers?
-	BlockAnnounceHandshakeType = 254
 )
 
 // Message interface
