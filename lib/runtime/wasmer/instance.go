@@ -29,6 +29,10 @@ import (
 // Name represents the name of the interpreter
 const Name = "wasmer"
 
+// Check that runtime interfaces are satisfied
+var _ runtime.LegacyInstance = (*LegacyInstance)(nil)
+var _ runtime.Memory = (*wasm.Memory)(nil)
+
 var logger = log.New("pkg", "runtime", "module", "go-wasmer")
 
 // Config represents a wasmer configuration
