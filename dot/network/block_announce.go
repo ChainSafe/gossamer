@@ -38,25 +38,20 @@ type blockAnnounceData struct {
 }
 
 func (s *Service) blockAnnounceDecoder(in []byte, peer peer.ID) (Message, error) {
-	// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
-	// assume we are receiving the handshake
-	if hsData, has := s.blockAnnounceHandshakes[peer]; !has || !hsData.received {
-		r := &bytes.Buffer{}
-		_, err := r.Write(in)
-		if err != nil {
-			return nil, err
-		}
-
-		hs := new(BlockAnnounceHandshake)
-		return hs, hs.Decode(r)
-	}
-
 	r := &bytes.Buffer{}
 	_, err := r.Write(in)
 	if err != nil {
 		return nil, err
 	}
 
+	// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
+	// assume we are receiving the handshake
+	if hsData, has := s.blockAnnounceHandshakes[peer]; !has || !hsData.received {
+		hs := new(BlockAnnounceHandshake)
+		return hs, hs.Decode(r)
+	}
+
+	// otherwise, assume we are receiving the BlockAnnounceMessage
 	ba := new(BlockAnnounceMessage)
 	return ba, ba.Decode(r)
 }

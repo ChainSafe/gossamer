@@ -326,7 +326,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return enc, nil //append([]byte{BlockAnnounceMsgType}, enc...), nil
+	return enc, nil
 }
 
 // Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
