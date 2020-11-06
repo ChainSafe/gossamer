@@ -57,7 +57,7 @@ type Message interface {
 	Decode(io.Reader) error
 	String() string
 	Type() int
-	IDString() string // TODO: this can likely be removed
+	IDString() string // TODO: this can be removed
 }
 
 // decodeMessage decodes the message based on message type
@@ -77,18 +77,12 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	// case BlockAnnounceMsgType:
-	// 	m = new(BlockAnnounceMessage)
-	// 	err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
 		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
 		err = m.Decode(r)
-	// case BlockAnnounceHandshakeType:
-	// 	m = new(BlockAnnounceHandshake)
-	// 	err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)
 	}

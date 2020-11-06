@@ -57,8 +57,8 @@ func (s *Service) blockAnnounceDecoder(in []byte, peer peer.ID) (Message, error)
 		return nil, err
 	}
 
-	hs := new(BlockAnnounceMessage)
-	return hs, hs.Decode(r)
+	ba := new(BlockAnnounceMessage)
+	return ba, ba.Decode(r)
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
