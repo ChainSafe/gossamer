@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -74,18 +75,18 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
-func (s *StorageState) pruneKey(hash common.Hash) {
+func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	tr, ok := s.tries[hash]
+	tr, ok := s.tries[keyHeader.StateRoot]
 	if !ok {
 		return
 	}
 
 	dbKey, _ := tr.Hash()
 	_ = s.baseDB.Del(dbKey[:])
-	delete(s.tries, hash)
+	delete(s.tries, keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
@@ -358,4 +359,15 @@ func (s *StorageState) setBalance(hash *common.Hash, key [32]byte, balance uint6
 	binary.LittleEndian.PutUint64(bb, balance)
 
 	return s.setStorage(hash, skey, bb)
+}
+
+func (s *StorageState) pruneStorage(closeCh chan interface{}) {
+	for {
+		select {
+		case key := <-s.blockState.pruneKeyCh:
+			s.pruneKey(key)
+		case <-closeCh:
+			return
+		}
+	}
 }

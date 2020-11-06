@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -153,21 +152,6 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 	return nil
 }
 
-func (s *Service) pruneStorage() {
-	for {
-		select {
-		case keys := <-s.Block.pruneKeyCh:
-			for _, v := range keys {
-				s.Storage.pruneKey(v)
-			}
-		case <-s.closeCh:
-			return
-		default:
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-}
-
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
 
@@ -270,7 +254,7 @@ func (s *Service) Start() error {
 	s.Epoch = NewEpochState(db)
 
 	// Start background goroutine to GC pruned keys.
-	go s.pruneStorage()
+	go s.Storage.pruneStorage(s.closeCh)
 	return nil
 }
 

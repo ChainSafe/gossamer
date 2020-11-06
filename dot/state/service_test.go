@@ -55,40 +55,40 @@ func TestService_Start(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = state.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = state.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
 
 	genesisData := new(genesis.Data)
 
 	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = state.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = state.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestService_BlockTree(t *testing.T) {
@@ -100,30 +100,30 @@ func TestService_BlockTree(t *testing.T) {
 	stateA := NewService(testDir, log.LvlTrace)
 
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
 	err = stateA.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = stateA.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// add blocks to state
 	AddBlocksToState(t, stateA.Block, 10)
 
 	err = stateA.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	stateB := NewService(testDir, log.LvlTrace)
 
 	err = stateB.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	err = stateB.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
 		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
@@ -136,27 +136,14 @@ func Test_ServicePruneStorage(t *testing.T) {
 	serv := NewService(testDir, log.LvlTrace)
 	serv.UseMemDB()
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
-	require.Nil(t, err)
-
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
-	err = serv.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
-	require.Nil(t, err)
-
-	err = serv.Start()
-	require.Nil(t, err)
-
-	serv.Block = newTestBlockState(t, testGenesisHeader)
-	serv.Storage = newTestStorageState(t)
-	ch := make(chan *types.Header, 3)
-	id, err := serv.Block.RegisterFinalizedChannel(ch)
+	err := serv.Initialize(genesisData, testGenesisHeader, tr, firstEpochInfo)
 	require.NoError(t, err)
 
-	defer serv.Block.UnregisterFinalizedChannel(id)
-
-	chain, _ := AddBlocksToState(t, serv.Block, 3)
+	err = serv.Start()
+	require.NoError(t, err)
 
 	type prunedBlock struct {
 		hash  common.Hash
@@ -164,37 +151,46 @@ func Test_ServicePruneStorage(t *testing.T) {
 	}
 
 	var prunedArr []prunedBlock
-	for i, b := range chain {
-		emptyTrie := trie.NewEmptyTrie()
-		chainHash := b.Hash()
-		err := emptyTrie.Put(chainHash[:], chainHash[:])
+	for i := 0; i < 3; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv)
+
+		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		// Update the block in StorageState manually.
-		serv.Storage.tries[b.Hash()] = emptyTrie
-		err = serv.Storage.StoreInDB(b.Hash())
+		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
 		require.NoError(t, err)
 
-		if i == len(chain)-1 {
-			serv.Block.SetFinalizedHash(b.Hash(), 0, 0)
-		} else {
-			rootHash, err := emptyTrie.Hash()
-			require.NoError(t, err)
-			prunedArr = append(prunedArr, prunedBlock{hash: b.Hash(), dbKey: rootHash[:]})
+		// Only finalize the head block.
+		if i == 2 {
+			serv.Block.SetFinalizedHash(block.Header.Hash(), 0, 0)
+			break
 		}
+
+		// Store the other blocks that will be pruned.
+		var trieVal *trie.Trie
+		trieVal, err = trieState.t.DeepCopy()
+		require.NoError(t, err)
+
+		var rootHash common.Hash
+		rootHash, err = trieVal.Hash()
+		require.NoError(t, err)
+
+		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
 	}
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
+		serv.Storage.lock.Lock()
 		_, ok := serv.Storage.tries[v.hash]
+		serv.Storage.lock.Unlock()
 		require.Equal(t, false, ok)
 
-		ok, err := serv.Storage.baseDB.Has(v.dbKey)
+		ok, err = serv.Storage.baseDB.Has(v.dbKey)
 		require.NoError(t, err)
 		require.Equal(t, false, ok)
 	}
 
 	err = serv.Stop()
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
