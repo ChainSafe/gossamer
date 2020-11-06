@@ -66,38 +66,34 @@ jobs:
       target_branch: gh-pages
       on:
         branch: development # deploy on merge into development
-  - name: Test Env var
-    script:
-      - echo "TRAVIS_PULL_REQUEST= $TRAVIS_PULL_REQUEST"
-      - echo "TRAVIS_SECURE_ENV_VARS= $TRAVIS_SECURE_ENV_VARS"
   - stage: Docker build
     name: Build Docker Image
     script:
       - make VERSION=$VERSION docker-build
       - make VERSION=$VERSION docker-version
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then travis_terminate 0; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
       - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - docker push chainsafe/gossamer:$VERSION
   - stage: Integration Tests
     name: Stable
     script:
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make it-stable; fi'
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then travis_terminate 0; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-stable; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
       - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stable
   - name: RPC
     script:
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make it-rpc; fi'
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then travis_terminate 0; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-rpc; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
       - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-rpc
   - name: Stress
     script:
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make it-stress; fi'
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then travis_terminate 0; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-stress; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
       - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stress
   - name: GRANDPA
     script:
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then make it-grandpa; fi'
-      - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then travis_terminate 0; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-grandpa; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
       - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-grandpa
   allow_failures:
     - stage: build
