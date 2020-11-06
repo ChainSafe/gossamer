@@ -66,6 +66,10 @@ jobs:
       target_branch: gh-pages
       on:
         branch: development # deploy on merge into development
+  - name: Test Env var
+    script:
+      - echo "TRAVIS_PULL_REQUEST= $TRAVIS_PULL_REQUEST"
+      - echo "TRAVIS_SECURE_ENV_VARS= $TRAVIS_SECURE_ENV_VARS"
   - stage: Docker build
     name: Build Docker Image
     script:
