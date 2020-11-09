@@ -29,10 +29,11 @@ import (
 // Name represents the name of the interpreter
 const Name = "wasmer"
 
+// Check that runtime interfaces are satisfied
 var _ runtime.LegacyInstance = (*LegacyInstance)(nil)
+var _ runtime.Memory = (*wasm.Memory)(nil)
 
 var logger = log.New("pkg", "runtime", "module", "go-wasmer")
-var memory *wasm.Memory
 
 // Config represents a wasmer configuration
 type Config struct {
@@ -85,10 +86,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	inst.vm.Memory = memory
-	allocator := runtime.NewAllocator(inst.vm.Memory.Data(), 0)
-	inst.ctx.Allocator = allocator
 
 	// TODO: verify that v0.8 specific funcs are available
 	return &Instance{
@@ -144,16 +141,29 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		return nil, err
 	}
 
+	// Provide importable memory for newer runtimes
+	memory, err := wasm.NewMemory(20, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = imports.AppendMemory("memory", memory)
+	if err != nil {
+		return nil, err
+	}
+
 	// Instantiates the WebAssembly module.
 	instance, err := wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
 		return nil, err
 	}
 
-	var allocator *runtime.FreeingBumpHeapAllocator
-	if instance.Memory != nil {
-		allocator = runtime.NewAllocator(instance.Memory.Data(), 0)
+	// Assume imported memory is used if runtime does not export any
+	if !instance.HasMemory() {
+		instance.Memory = memory
 	}
+
+	allocator := runtime.NewAllocator(instance.Memory, 0)
 
 	runtimeCtx := &runtime.Context{
 		Storage:     cfg.Storage,
