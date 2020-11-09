@@ -25,6 +25,26 @@ import (
 
 const pageSize = 65536
 
+// struct to mock memory interface
+type mockMemory struct {
+	buffer []byte
+}
+
+// return mock memory as byte slice
+func (m mockMemory) Data() []byte {
+	return m.buffer
+}
+
+// return mock memory size
+func (m mockMemory) Length() uint32 {
+	return uint32(len(m.buffer))
+}
+
+// create new mock memory of specified size
+func newMockMemory(size uint32) mockMemory {
+	return mockMemory{buffer: make([]byte, size)}
+}
+
 // struct to hold data for a round of tests
 type testHolder struct {
 	offset uint32
@@ -270,7 +290,7 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		allocator := NewAllocator(make([]byte, 1<<16), test.offset)
+		allocator := NewAllocator(newMockMemory(1<<16), test.offset)
 
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
@@ -316,8 +336,8 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 // test that allocator should no allocate memory if the allocate
 //  request is larger than current size
 func TestShouldNotAllocateIfTooLarge(t *testing.T) {
-	mem := make([]byte, 1<<16)
-	currentSize := uint32(len(mem))
+	mem := newMockMemory(1 << 16)
+	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
 	// when
@@ -335,8 +355,8 @@ func TestShouldNotAllocateIfTooLarge(t *testing.T) {
 // test that the allocator should not allocate memory if
 //  it's already full
 func TestShouldNotAllocateIfFull(t *testing.T) {
-	mem := make([]byte, 1<<16)
-	currentSize := uint32(len(mem))
+	mem := newMockMemory(1 << 16)
+	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
 	ptr1, err := fbha.Allocate((currentSize / 2) - 8)
@@ -364,10 +384,11 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := make([]byte, 1<<16)
+	mem := newMockMemory(1 << 16)
 
-	pagesNeeded := (MaxPossibleAllocation / pageSize) - (len(mem) / pageSize) + 1
-	mem = make([]byte, len(mem)+pagesNeeded*65*1024)
+	pagesNeeded := (MaxPossibleAllocation / pageSize) - (mem.Length() / pageSize) + 1
+	mem = newMockMemory(mem.Length() + pagesNeeded*65*1024)
+
 	fbha := NewAllocator(mem, 0)
 
 	ptr1, err := fbha.Allocate(MaxPossibleAllocation)
@@ -382,7 +403,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(make([]byte, 1<<16), 0)
+	fbha := NewAllocator(newMockMemory(1<<16), 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)

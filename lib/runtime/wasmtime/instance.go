@@ -108,8 +108,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 		mem = instance.GetExport("memory").Memory()
 	}
 
-	data := mem.UnsafeData()
-	allocator := gssmrruntime.NewAllocator(data, 0)
+	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
 	ctx = gssmrruntime.Context{
 		Storage:     cfg.Storage,
