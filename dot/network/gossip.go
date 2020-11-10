@@ -33,7 +33,7 @@ type gossip struct {
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) *gossip {
 	return &gossip{
-		logger:  host.logger.New("module", "gossip"),
+		logger:  logger.New("module", "gossip"),
 		host:    host,
 		hasSeen: &sync.Map{},
 	}

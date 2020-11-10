@@ -28,6 +28,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 //nolint
@@ -55,7 +57,7 @@ type Message interface {
 	Decode(io.Reader) error
 	String() string
 	Type() int
-	IDString() string
+	IDString() string // TODO: this can be removed
 }
 
 // decodeMessage decodes the message based on message type
@@ -75,9 +77,6 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	case BlockAnnounceMsgType:
-		m = new(BlockAnnounceMessage)
-		err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
 		err = m.Decode(r)
@@ -92,7 +91,7 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 }
 
 // decodeMessageBytes decodes the message based on message type
-func decodeMessageBytes(in []byte) (m Message, err error) {
+func decodeMessageBytes(in []byte, _ peer.ID) (m Message, err error) {
 	r := &bytes.Buffer{}
 	_, err = r.Write(in)
 	if err != nil {
@@ -327,7 +326,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return append([]byte{BlockAnnounceMsgType}, enc...), nil
+	return enc, nil
 }
 
 // Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed

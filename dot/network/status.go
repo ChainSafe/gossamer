@@ -45,7 +45,7 @@ type status struct {
 // newStatus creates a new status instance from host
 func newStatus(host *host) *status {
 	return &status{
-		logger:        host.logger.New("module", "status"),
+		logger:        logger.New("module", "status"),
 		host:          host,
 		peerConfirmed: &sync.Map{},
 		peerMessage:   &sync.Map{},
