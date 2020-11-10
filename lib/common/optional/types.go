@@ -17,10 +17,13 @@
 package optional
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 const none = "None"
@@ -105,12 +108,42 @@ func (x *Bytes) Set(exists bool, value []byte) {
 }
 
 // Encode returns the SCALE encoded optional
-func (x *Bytes) Encode() []byte {
+func (x *Bytes) Encode() ([]byte, error) {
 	if !x.exists {
-		return []byte{0}
+		return []byte{0}, nil
 	}
 
-	return append([]byte{1}, x.value...)
+	value, err := scale.Encode(x.value)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{1}, value...), nil
+}
+
+// Decode return an optional Byte from scale encoded data
+func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists > 1 {
+		return nil, errors.New("Decoding failed, invalid optional")
+	}
+
+	x.exists = (exists != 0)
+
+	if x.exists {
+		sd := scale.Decoder{Reader: r}
+		value, err := sd.DecodeByteArray()
+		if err != nil {
+			return nil, err
+		}
+		x.value = value
+	}
+
+	return x, nil
 }
 
 // Hash represents an optional Hash type.
