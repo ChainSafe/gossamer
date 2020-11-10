@@ -17,9 +17,11 @@
 package state
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -174,4 +176,30 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			arrivalTime++
 		}
 	}
+}
+
+func generateBlockWithRandomTrie(t *testing.T, serv *Service) (*types.Block, *TrieState) {
+	trieState, err := serv.Storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+
+	// Generate random data for trie state.
+	rand := time.Now().UnixNano()
+	key := []byte("testKey" + fmt.Sprint(rand))
+	value := []byte("testValue" + fmt.Sprint(rand))
+	err = trieState.Set(key, value)
+	require.NoError(t, err)
+
+	trieStateRoot, err := trieState.Root()
+	require.NoError(t, err)
+
+	// Generate a block with the above StateRoot.
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: serv.Block.BestBlockHash(),
+			Number:     big.NewInt(rand),
+			StateRoot:  trieStateRoot,
+		},
+		Body: types.NewBody([]byte{}),
+	}
+	return block, trieState
 }
