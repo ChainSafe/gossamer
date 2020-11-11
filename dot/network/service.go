@@ -35,6 +35,7 @@ import (
 // NetworkStateTimeout is the set time interval that we update network state
 const NetworkStateTimeout = time.Minute
 const syncID = "/sync/2"
+const light2ID = "light/2"
 
 var _ services.Service = &Service{}
 var logger = log.New("pkg", "network")
@@ -128,7 +129,7 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
-
+	s.host.registerStreamHandler(light2ID, s.handleLightStream)
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
 		s.logger.Info("Started listening", "address", addr)
@@ -268,6 +269,19 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
+// handleSyncStream handles streams with the <protcol-id>/light/2 protocol ID
+func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
+	conn := stream.Conn()
+	if conn == nil {
+		s.logger.Error("Failed to get connection from stream")
+		return
+	}
+
+	peer := conn.RemotePeer()
+	s.readStream(stream, peer, s.handleLightSyncMsg)
+	// the stream stays open until closed or reset
+}
+
 var maxReads = 16
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler func(peer peer.ID, msg Message)) {
@@ -326,6 +340,33 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, handler 
 
 		// handle message based on peer status and message type
 		handler(peer, msg)
+	}
+}
+func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) {
+	var resp Message
+	var err error
+	switch req := msg.(type) {
+	case *RemoteCallRequest:
+		resp, err = remoteCallResp(peer, req)
+	case *RemoteHeaderRequest:
+		resp, err = remoteHeaderResp(peer, req)
+	case *RemoteChangesRequest:
+		resp, err = remoteChangeResp(peer, req)
+	case *RemoteReadRequest:
+		resp, err = remoteReadResp(peer, req)
+	case *RemoteReadChildRequest:
+		resp, err = remoteReadChildResp(peer, req)
+	default:
+		s.logger.Error("ignoring request without request data from peer {}", peer)
+	}
+	if err != nil{
+		s.logger.Error("failed to get the response")
+	}
+	if resp != nil {
+		err := s.host.send(peer, light2ID, resp)
+		if err != nil {
+			s.logger.Error("failed to send LightResponse message", "peer", peer)
+		}
 	}
 }
 
@@ -493,3 +534,4 @@ func (s *Service) NodeRoles() byte {
 func (s *Service) SetMessageHandler(handler MessageHandler) {
 	s.messageHandler = handler
 }
+

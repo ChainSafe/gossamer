@@ -46,6 +46,8 @@ const (
 	RemoteHeaderResponseType  = 11
 	RemoteChangesRequestType  = 12
 	RemoteChangesResponseType = 13
+	RemoteReadChildRequestType = 14
+	RemoteReadChildResponseType = 15
 	ChainSpecificMsgType      = 255
 )
 
@@ -83,6 +85,36 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
+		err = m.Decode(r)
+	case RemoteCallRequestType:
+		m = new(RemoteCallRequest)
+		err = m.Decode(r)
+	case RemoteCallResponseType:
+		m = new(RemoteCallResponse)
+		err = m.Decode(r)
+	case RemoteChangesRequestType:
+		m = new(RemoteChangesRequest)
+		err = m.Decode(r)
+	case RemoteChangesResponseType:
+		m = new(RemoteChangesResponse)
+		err = m.Decode(r)
+	case RemoteReadRequestType:
+		m = new(RemoteReadRequest)
+		err = m.Decode(r)
+	case RemoteReadResponseType:
+		m = new(RemoteReadResponse)
+		err = m.Decode(r)
+	case RemoteReadChildRequestType:
+		m = new(RemoteReadChildRequest)
+		err = m.Decode(r)
+	case RemoteReadChildResponseType:
+		m = new(RemoteReadResponse)
+		err = m.Decode(r)
+	case RemoteHeaderRequestType:
+		m = new(RemoteHeaderRequest)
+		err = m.Decode(r)
+	case RemoteHeaderResponseType:
+		m = new(RemoteHeaderResponse)
 		err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)
@@ -528,3 +560,4 @@ func (cm *ConsensusMessage) IDString() string {
 	}
 	return hash.String()
 }
+
