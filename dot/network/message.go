@@ -559,4 +559,3 @@ func (cm *ConsensusMessage) IDString() string {
 	}
 	return hash.String()
 }
-

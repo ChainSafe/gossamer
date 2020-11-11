@@ -32,17 +32,13 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// NetworkStateTimeout is the set time interval that we update network state
-const NetworkStateTimeout = time.Minute
-const syncID = "/sync/2"
-const light2ID = "light/2"
-
 const (
 	// NetworkStateTimeout is the set time interval that we update network state
 	NetworkStateTimeout = time.Minute
 
 	// the following are sub-protocols used by the node
 	syncID          = "/sync/2"
+	light2ID        = "light/2"
 	blockAnnounceID = "/block-announces/1"
 )
 
@@ -326,7 +322,7 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
-		s.logger.Error("Failed to get connection from stream")
+		logger.Error("Failed to get connection from stream")
 		return
 	}
 
@@ -335,7 +331,6 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
-var maxReads = 16
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -399,7 +394,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 	}
 }
-func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) {
+func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 	var resp Message
 	var err error
 	switch req := msg.(type) {
@@ -414,17 +409,24 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) {
 	case *RemoteReadChildRequest:
 		resp, err = remoteReadChildResp(peer, req)
 	default:
-		s.logger.Error("ignoring request without request data from peer {}", peer)
+		logger.Error("ignoring request without request data from peer {}", peer)
 	}
-	if err != nil{
-		s.logger.Error("failed to get the response")
+
+	if err != nil {
+		logger.Error("failed to get the response", "err", err)
+		return err
 	}
-	if resp != nil {
-		err := s.host.send(peer, light2ID, resp)
-		if err != nil {
-			s.logger.Error("failed to send LightResponse message", "peer", peer)
-		}
+
+	if resp == nil {
+		return nil
 	}
+
+	err = s.host.send(peer, light2ID, resp)
+	if err != nil {
+		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
+		return err
+	}
+	return nil
 }
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
@@ -584,4 +586,3 @@ func (s *Service) NodeRoles() byte {
 func (s *Service) SetMessageHandler(handler MessageHandler) {
 	s.messageHandler = handler
 }
-
