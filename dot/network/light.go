@@ -119,7 +119,7 @@ func (rc *RemoteCallRequest) Type() int {
 	return RemoteCallRequestType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteCallRequest
 func (rc *RemoteCallRequest) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rc.Encode()
@@ -145,7 +145,7 @@ func (rc *RemoteChangesRequest) String() string {
 	)
 }
 
-// Encode encodes a RemoteCallRequest message using SCALE and appends the type byte to the start
+// Encode encodes a RemoteChangesRequest message using SCALE and appends the type byte to the start
 func (rc *RemoteChangesRequest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(rc)
 	if err != nil {
@@ -166,7 +166,7 @@ func (rc *RemoteChangesRequest) Type() int {
 	return RemoteChangesRequestType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteChangesRequest
 func (rc *RemoteChangesRequest) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rc.Encode()
@@ -185,7 +185,7 @@ func (rh *RemoteHeaderRequest) String() string {
 	return fmt.Sprintf("Block =%s", string(rh.Block))
 }
 
-// Encode encodes a RemoteCallRequest message using SCALE and appends the type byte to the start
+// Encode encodes a RemoteHeaderRequest message using SCALE and appends the type byte to the start
 func (rh *RemoteHeaderRequest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(rh)
 	if err != nil {
@@ -194,7 +194,7 @@ func (rh *RemoteHeaderRequest) Encode() ([]byte, error) {
 	return append([]byte{RemoteHeaderRequestType}, enc...), nil
 }
 
-// Decode the message into a RemoteChangesRequest, it assumes the type byte has been removed
+// Decode the message into a RemoteHeaderRequest, it assumes the type byte has been removed
 func (rh *RemoteHeaderRequest) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
 	_, err := sd.Decode(rh)
@@ -206,7 +206,7 @@ func (rh *RemoteHeaderRequest) Type() int {
 	return RemoteHeaderRequestType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteHeaderRequest
 func (rh *RemoteHeaderRequest) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rh.Encode()
@@ -246,7 +246,7 @@ func (rr *RemoteReadRequest) Type() int {
 	return RemoteReadRequestType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteReadRequest
 func (rr *RemoteReadRequest) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rr.Encode()
@@ -273,7 +273,7 @@ func (rr *RemoteReadChildRequest) String() string {
 	)
 }
 
-// Encode encodes a RemoteCallRequest message using SCALE and appends the type byte to the start
+// Encode encodes a RemoteReadChildRequest message using SCALE and appends the type byte to the start
 func (rr *RemoteReadChildRequest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(rr)
 	if err != nil {
@@ -282,7 +282,7 @@ func (rr *RemoteReadChildRequest) Encode() ([]byte, error) {
 	return append([]byte{RemoteReadChildRequestType}, enc...), nil
 }
 
-// Decode the message into a RemoteReadRequest, it assumes the type byte has been removed
+// Decode the message into a RemoteReadChildRequest, it assumes the type byte has been removed
 func (rr *RemoteReadChildRequest) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
 	_, err := sd.Decode(rr)
@@ -294,7 +294,7 @@ func (rr *RemoteReadChildRequest) Type() int {
 	return RemoteReadChildRequestType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteReadChildRequest
 func (rr *RemoteReadChildRequest) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rr.Encode()
@@ -334,7 +334,7 @@ func (rc *RemoteCallResponse) Type() int {
 	return RemoteCallResponseType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteCallResponse
 func (rc *RemoteCallResponse) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rc.Encode()
@@ -389,7 +389,7 @@ func (rc *RemoteChangesResponse) Type() int {
 	return RemoteChangesResponseType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteChangesResponse
 func (rc *RemoteChangesResponse) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rc.Encode()
@@ -429,7 +429,7 @@ func (rr *RemoteReadResponse) Type() int {
 	return RemoteReadResponseType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteReadResponse
 func (rr *RemoteReadResponse) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rr.Encode()
@@ -469,7 +469,7 @@ func (rh *RemoteHeaderResponse) Type() int {
 	return RemoteReadResponseType
 }
 
-// IDString Returns an empty string to ensure we don't rebroadcast it
+// IDString returns the Hash of RemoteHeaderResponse
 func (rh *RemoteHeaderResponse) IDString() string {
 	// scale encode each extrinsic
 	encMsg, err := rh.Encode()
