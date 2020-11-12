@@ -119,18 +119,9 @@ func (rc *RemoteCallRequest) Type() int {
 	return RemoteCallRequestType
 }
 
-// IDString returns the Hash of RemoteCallRequest
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rc *RemoteCallRequest) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rc.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteChangesRequest as a string
@@ -166,18 +157,9 @@ func (rc *RemoteChangesRequest) Type() int {
 	return RemoteChangesRequestType
 }
 
-// IDString returns the Hash of RemoteChangesRequest
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rc *RemoteChangesRequest) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rc.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteHeaderRequest as a string
@@ -206,18 +188,9 @@ func (rh *RemoteHeaderRequest) Type() int {
 	return RemoteHeaderRequestType
 }
 
-// IDString returns the Hash of RemoteHeaderRequest
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rh *RemoteHeaderRequest) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rh.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteReadRequest as a string
@@ -246,18 +219,9 @@ func (rr *RemoteReadRequest) Type() int {
 	return RemoteReadRequestType
 }
 
-// IDString returns the Hash of RemoteReadRequest
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rr *RemoteReadRequest) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rr.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteReadChildRequest as a string
@@ -294,18 +258,9 @@ func (rr *RemoteReadChildRequest) Type() int {
 	return RemoteReadChildRequestType
 }
 
-// IDString returns the Hash of RemoteReadChildRequest
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rr *RemoteReadChildRequest) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rr.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteCallResponse as a string
@@ -334,18 +289,9 @@ func (rc *RemoteCallResponse) Type() int {
 	return RemoteCallResponseType
 }
 
-// IDString returns the Hash of RemoteCallResponse
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rc *RemoteCallResponse) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rc.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteChangesResponse as a string
@@ -389,18 +335,9 @@ func (rc *RemoteChangesResponse) Type() int {
 	return RemoteChangesResponseType
 }
 
-// IDString returns the Hash of RemoteChangesResponse
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rc *RemoteChangesResponse) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rc.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteReadResponse as a string
@@ -429,18 +366,9 @@ func (rr *RemoteReadResponse) Type() int {
 	return RemoteReadResponseType
 }
 
-// IDString returns the Hash of RemoteReadResponse
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rr *RemoteReadResponse) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rr.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 // String formats a RemoteHeaderResponse as a string
@@ -469,18 +397,9 @@ func (rh *RemoteHeaderResponse) Type() int {
 	return RemoteReadResponseType
 }
 
-// IDString returns the Hash of RemoteHeaderResponse
+// IDString Returns an empty string to ensure we don't rebroadcast it
 func (rh *RemoteHeaderResponse) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := rh.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	return ""
 }
 
 func remoteCallResp(peer peer.ID, req *RemoteCallRequest) (*RemoteCallResponse, error) {

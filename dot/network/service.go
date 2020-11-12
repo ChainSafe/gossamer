@@ -38,7 +38,7 @@ const (
 
 	// the following are sub-protocols used by the node
 	syncID          = "/sync/2"
-	light2ID        = "light/2"
+	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 )
 
@@ -145,7 +145,7 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
-	s.host.registerStreamHandler(light2ID, s.handleLightStream)
+	s.host.registerStreamHandler(lightID, s.handleLightStream)
 	s.host.registerStreamHandler(blockAnnounceID, s.handleBlockAnnounceStream)
 
 	// log listening addresses to console
@@ -318,7 +318,7 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
-// handleLightStream handles streams with the <protcol-id>/light/2 protocol ID
+// handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
@@ -421,7 +421,7 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 		return nil
 	}
 
-	err = s.host.send(peer, light2ID, resp)
+	err = s.host.send(peer, lightID, resp)
 	if err != nil {
 		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
 		return err
