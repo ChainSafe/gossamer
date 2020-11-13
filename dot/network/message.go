@@ -34,21 +34,24 @@ import (
 
 //nolint
 const (
-	StatusMsgType             = 0
-	BlockRequestMsgType       = 1
-	BlockResponseMsgType      = 2
-	BlockAnnounceMsgType      = 3
-	TransactionMsgType        = 4
-	ConsensusMsgType          = 5
-	RemoteCallRequestType     = 6
-	RemoteCallResponseType    = 7
-	RemoteReadRequestType     = 8
-	RemoteReadResponseType    = 9
-	RemoteHeaderRequestType   = 10
-	RemoteHeaderResponseType  = 11
-	RemoteChangesRequestType  = 12
-	RemoteChangesResponseType = 13
-	ChainSpecificMsgType      = 255
+	StatusMsgType             byte = 0
+	BlockRequestMsgType       byte = 1
+	BlockResponseMsgType      byte = 2
+	BlockAnnounceMsgType      byte = 3
+	TransactionMsgType        byte = 4
+	ConsensusMsgType          byte = 5
+	RemoteCallRequestType     byte = 6
+	RemoteCallResponseType    byte = 7
+	RemoteReadRequestType     byte = 8
+	RemoteReadResponseType    byte = 9
+	RemoteHeaderRequestType   byte = 10
+	RemoteHeaderResponseType  byte = 11
+	RemoteChangesRequestType  byte = 12
+	RemoteChangesResponseType byte = 13
+
+	// TODO: custom type register
+	BlockAnnounceHandshakeType byte = 254
+	ChainSpecificMsgType       byte = 255
 )
 
 // Message interface
@@ -56,7 +59,7 @@ type Message interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error
 	String() string
-	Type() int
+	Type() byte
 	IDString() string // TODO: this can be removed
 }
 
@@ -113,7 +116,7 @@ type StatusMessage struct {
 }
 
 // Type returns StatusMsgType
-func (sm *StatusMessage) Type() int {
+func (sm *StatusMessage) Type() byte {
 	return StatusMsgType
 }
 
@@ -177,7 +180,7 @@ const RequestedDataMessageQueue = byte(8)
 const RequestedDataJustification = byte(16)
 
 // Type returns BlockRequestMsgType
-func (bm *BlockRequestMessage) Type() int {
+func (bm *BlockRequestMessage) Type() byte {
 	return BlockRequestMsgType
 }
 
@@ -306,7 +309,7 @@ type BlockAnnounceMessage struct {
 }
 
 // Type returns BlockAnnounceMsgType
-func (bm *BlockAnnounceMessage) Type() int {
+func (bm *BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
 }
 
@@ -357,7 +360,7 @@ type BlockResponseMessage struct {
 }
 
 // Type returns BlockResponseMsgType
-func (bm *BlockResponseMessage) Type() int {
+func (bm *BlockResponseMessage) Type() byte {
 	return BlockResponseMsgType
 }
 
@@ -405,7 +408,7 @@ type TransactionMessage struct {
 }
 
 // Type returns TransactionMsgType
-func (tm *TransactionMessage) Type() int {
+func (tm *TransactionMessage) Type() byte {
 	return TransactionMsgType
 }
 
@@ -478,7 +481,7 @@ type ConsensusMessage struct {
 }
 
 // Type returns ConsensusMsgType
-func (cm *ConsensusMessage) Type() int {
+func (cm *ConsensusMessage) Type() byte {
 	return ConsensusMsgType
 }
 
