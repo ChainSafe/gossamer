@@ -18,7 +18,6 @@ package network
 
 import (
 	"bufio"
-	//"bytes"
 	"context"
 	"errors"
 	"math/big"

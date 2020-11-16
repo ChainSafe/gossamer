@@ -62,7 +62,6 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(enc)
 
-	//srv.blockAnnounceHandshakes[testPeerID].received = true
 	msg, err := decodeBlockAnnounceMessage(buf)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
