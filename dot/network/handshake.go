@@ -16,9 +16,26 @@
 
 package network
 
+import (
+	"errors"
+	"io"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+)
+
+var errCannotValidateHandshake = errors.New("failed to validate handshake")
+
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	// Validates the handshake again the given handshake
-	//Validate(Handshake) error
 	Message
 }
+
+type (
+	HandshakeGetter    = func() (Handshake, error)
+	HandshakeDecoder   = func(io.Reader) (Handshake, error)
+	HandshakeValidator = func(Handshake) error
+	MessageDecoder     = func(io.Reader) (Message, error)
+
+	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
+	NotificationsMessageHandler = func(peer peer.ID, msg Message) error
+)

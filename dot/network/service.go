@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"io"
 	"math/big"
 	"os"
 	"time"
@@ -56,14 +55,6 @@ type (
 	messageDecoder = func([]byte, peer.ID) (Message, error)
 	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
 	messageHandler = func(peer peer.ID, msg Message) error
-
-	HandshakeGetter    = func() (Handshake, error)
-	HandshakeDecoder   = func(io.Reader) (Handshake, error)
-	HandshakeValidator = func(Handshake) error
-	MessageDecoder     = func(io.Reader) (Message, error)
-
-	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
-	NotificationsMessageHandler = func(peer peer.ID, msg Message) error
 )
 
 type notificationsProtocol struct {
@@ -83,14 +74,13 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg            *Config
-	host           *host
-	mdns           *mdns
-	status         *status
-	gossip         *gossip
-	requestTracker *requestTracker
-	errCh          chan<- error
-	//blockAnnounceHandshakes map[peer.ID]*blockAnnounceData
+	cfg                    *Config
+	host                   *host
+	mdns                   *mdns
+	status                 *status
+	gossip                 *gossip
+	requestTracker         *requestTracker
+	errCh                  chan<- error
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 
 	// Service interfaces
@@ -134,23 +124,22 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	network := &Service{
-		ctx:            ctx,
-		cancel:         cancel,
-		cfg:            cfg,
-		host:           host,
-		mdns:           newMDNS(host),
-		status:         newStatus(host),
-		gossip:         newGossip(host),
-		requestTracker: newRequestTracker(logger),
-		blockState:     cfg.BlockState,
-		networkState:   cfg.NetworkState,
-		messageHandler: cfg.MessageHandler,
-		noBootstrap:    cfg.NoBootstrap,
-		noMDNS:         cfg.NoMDNS,
-		noStatus:       cfg.NoStatus,
-		syncer:         cfg.Syncer,
-		errCh:          cfg.ErrChan,
-		//blockAnnounceHandshakes: make(map[peer.ID]*blockAnnounceData),
+		ctx:                    ctx,
+		cancel:                 cancel,
+		cfg:                    cfg,
+		host:                   host,
+		mdns:                   newMDNS(host),
+		status:                 newStatus(host),
+		gossip:                 newGossip(host),
+		requestTracker:         newRequestTracker(logger),
+		blockState:             cfg.BlockState,
+		networkState:           cfg.NetworkState,
+		messageHandler:         cfg.MessageHandler,
+		noBootstrap:            cfg.NoBootstrap,
+		noMDNS:                 cfg.NoMDNS,
+		noStatus:               cfg.NoStatus,
+		syncer:                 cfg.Syncer,
+		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 	}
 
@@ -169,7 +158,8 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
-	//s.host.registerStreamHandler(blockAnnounceID, s.handleBlockAnnounceStream)
+
+	// register block announce protocol
 	s.RegisterNotificationsProtocol(
 		blockAnnounceID,
 		BlockAnnounceMsgType,
@@ -272,7 +262,6 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		handlerWithValidate := func(peer peer.ID, msg Message) error {
 			logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
 
-			//if hs, ok := msg.(*BlockAnnounceHandshake); ok {
 			hs, err := handshakeGetter()
 			if err != nil {
 				logger.Error("failed to gwt handshake", "sub-protocol", info.subProtocol, "error", err)
@@ -421,37 +410,6 @@ func (s *Service) SendMessage(msg Message) {
 
 		return
 	}
-
-	// switch msg.Type() {
-	// case BlockAnnounceMsgType:
-	// 	// create handshake and send to all peers that haven't already completed the handshake
-	// 	hs, err := s.getBlockAnnounceHandshake()
-	// 	if err != nil {
-	// 		logger.Error("failed to get BlockAnnounceHandshake", "error", err)
-	// 		return
-	// 	}
-
-	// 	for _, peer := range s.host.peers() { // TODO: check if stream is open, if not, open and send handshake
-	// 		if _, has := s.blockAnnounceHandshakes[peer]; !has {
-	// 			s.blockAnnounceHandshakes[peer] = &blockAnnounceData{
-	// 				validated: false,
-	// 				msg:       msg.(*BlockAnnounceMessage),
-	// 			}
-
-	// 			logger.Trace("sending BlockAnnounceHandshake", "peer", peer, "message", hs)
-	// 			err = s.host.send(peer, blockAnnounceID, hs)
-	// 		} else {
-	// 			// we've already completed the handshake with the peer, send BlockAnnounce directly
-	// 			err = s.host.send(peer, blockAnnounceID, msg)
-	// 		}
-
-	// 		if err != nil {
-	// 			logger.Error("failed to send message to peer", "peer", peer, "error", err)
-	// 		}
-	// 	}
-
-	// 	return
-	// }
 
 	// broadcast message to connected peers
 	s.host.broadcast(msg)

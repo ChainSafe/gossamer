@@ -102,7 +102,7 @@ func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Trace(
-		"ConnManager Connected to peer",
+		"Connected to peer",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
@@ -121,7 +121,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 // Disconnected is called when a connection closed
 func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	logger.Trace(
-		"ConnManager Disconnected from peer",
+		"Disconnected from peer",
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
