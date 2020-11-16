@@ -25,11 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
-	//libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-var errCannotValidateBlockAnnounceHandshake = errors.New("failed to validate block announce handshake")
 
 func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
 	sd := scale.Decoder{Reader: r}
@@ -99,6 +96,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 }
 
 func (s *Service) validateBlockAnnounceHandshake(hs Handshake) error {
+	logger.Info("validating handshake", "handshake", hs)
 	if _, ok := hs.(*BlockAnnounceHandshake); !ok {
 		return errors.New("invalid handshake type")
 	}

@@ -17,120 +17,79 @@
 package network
 
 import (
-// "math/big"
-// "testing"
+	"bytes"
+	"math/big"
+	"testing"
 
-// "github.com/ChainSafe/gossamer/lib/common"
-// "github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
-// "github.com/libp2p/go-libp2p-core/peer"
-// "github.com/stretchr/testify/require"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/require"
 )
 
-// func TestBlockAnnounceDecoder(t *testing.T) {
-// 	srv := &Service{
-// 		blockAnnounceHandshakes: make(map[peer.ID]*blockAnnounceData),
-// 	}
+func TestDecodeBlockAnnounceHandshake(t *testing.T) {
+	testHandshake := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     common.Hash{2},
+	}
 
-// 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-// 	srv.blockAnnounceHandshakes[testPeerID] = &blockAnnounceData{
-// 		received: false,
-// 	}
+	enc, err := testHandshake.Encode()
+	require.NoError(t, err)
 
-// 	testHandshake := &BlockAnnounceHandshake{
-// 		Roles:           4,
-// 		BestBlockNumber: 77,
-// 		BestBlockHash:   common.Hash{1},
-// 		GenesisHash:     common.Hash{2},
-// 	}
+	buf := &bytes.Buffer{}
+	buf.Write(enc)
 
-// 	enc, err := testHandshake.Encode()
-// 	require.NoError(t, err)
+	msg, err := decodeBlockAnnounceHandshake(buf)
+	require.NoError(t, err)
+	require.Equal(t, testHandshake, msg)
+}
 
-// 	msg, err := srv.blockAnnounceDecoder(enc, testPeerID)
-// 	require.NoError(t, err)
-// 	require.Equal(t, testHandshake, msg)
+func TestDecodeBlockAnnounceMessage(t *testing.T) {
+	testBlockAnnounce := &BlockAnnounceMessage{
+		ParentHash:     common.Hash{1},
+		Number:         big.NewInt(77),
+		StateRoot:      common.Hash{2},
+		ExtrinsicsRoot: common.Hash{3},
+		Digest:         [][]byte{},
+	}
 
-// 	testBlockAnnounce := &BlockAnnounceMessage{
-// 		ParentHash:     common.Hash{1},
-// 		Number:         big.NewInt(77),
-// 		StateRoot:      common.Hash{2},
-// 		ExtrinsicsRoot: common.Hash{3},
-// 		Digest:         [][]byte{},
-// 	}
+	enc, err := testBlockAnnounce.Encode()
+	require.NoError(t, err)
 
-// 	enc, err = testBlockAnnounce.Encode()
-// 	require.NoError(t, err)
+	buf := &bytes.Buffer{}
+	buf.Write(enc)
 
-// 	srv.blockAnnounceHandshakes[testPeerID].received = true
-// 	msg, err = srv.blockAnnounceDecoder(enc, testPeerID)
-// 	require.NoError(t, err)
-// 	require.Equal(t, testBlockAnnounce, msg)
-// }
+	//srv.blockAnnounceHandshakes[testPeerID].received = true
+	msg, err := decodeBlockAnnounceMessage(buf)
+	require.NoError(t, err)
+	require.Equal(t, testBlockAnnounce, msg)
+}
 
-// func TestHandleBlockAnnounceMessage_BlockAnnounce(t *testing.T) {
-// 	basePath := utils.NewTestBasePath(t, "nodeA")
+func TestHandleBlockAnnounceMessage(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
 
-// 	// removes all data directories created within test directory
-// 	defer utils.RemoveTestDir(t)
+	// removes all data directories created within test directory
+	defer utils.RemoveTestDir(t)
 
-// 	config := &Config{
-// 		BasePath:    basePath,
-// 		Port:        7001,
-// 		RandSeed:    1,
-// 		NoBootstrap: true,
-// 		NoMDNS:      true,
-// 		NoStatus:    true,
-// 	}
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		NoStatus:    true,
+	}
 
-// 	s := createTestService(t, config)
+	s := createTestService(t, config)
 
-// 	peerID := peer.ID("noot")
-// 	msg := &BlockAnnounceMessage{
-// 		Number: big.NewInt(10),
-// 	}
+	peerID := peer.ID("noot")
+	msg := &BlockAnnounceMessage{
+		Number: big.NewInt(10),
+	}
 
-// 	s.handleBlockAnnounceMessage(peerID, msg)
-// 	require.True(t, s.requestTracker.hasRequestedBlockID(99))
-// }
-
-// func TestHandleBlockAnnounceMessage_BlockAnnounceHandshake(t *testing.T) {
-// 	basePath := utils.NewTestBasePath(t, "nodeA")
-
-// 	// removes all data directories created within test directory
-// 	defer utils.RemoveTestDir(t)
-
-// 	config := &Config{
-// 		BasePath:    basePath,
-// 		Port:        7001,
-// 		RandSeed:    1,
-// 		NoBootstrap: true,
-// 		NoMDNS:      true,
-// 		NoStatus:    true,
-// 	}
-
-// 	s := createTestService(t, config)
-
-// 	testPeerID := peer.ID("noot")
-// 	testHandshake := &BlockAnnounceHandshake{
-// 		Roles:           4,
-// 		BestBlockNumber: 77,
-// 		BestBlockHash:   common.Hash{1},
-// 		GenesisHash:     common.Hash{2},
-// 	}
-
-// 	s.handleBlockAnnounceMessage(testPeerID, testHandshake)
-// 	require.True(t, s.blockAnnounceHandshakes[testPeerID].received)
-// 	require.False(t, s.blockAnnounceHandshakes[testPeerID].validated)
-
-// 	testHandshake = &BlockAnnounceHandshake{
-// 		Roles:           4,
-// 		BestBlockNumber: 77,
-// 		BestBlockHash:   common.Hash{1},
-// 		GenesisHash:     s.blockState.GenesisHash(),
-// 	}
-
-// 	s.handleBlockAnnounceMessage(testPeerID, testHandshake)
-// 	require.True(t, s.blockAnnounceHandshakes[testPeerID].received)
-// 	require.True(t, s.blockAnnounceHandshakes[testPeerID].validated)
-// }
+	s.handleBlockAnnounceMessage(peerID, msg)
+	require.True(t, s.requestTracker.hasRequestedBlockID(99))
+}
