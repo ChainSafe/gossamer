@@ -87,13 +87,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 		logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
 
-		ourHs, err := handshakeGetter()
-		if err != nil {
-			logger.Error("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
-			return err
-		}
-
-		if msg.Type() == ourHs.Type() {
+		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
 			if !ok {
 				return errors.New("failed to convert message to Handshake")

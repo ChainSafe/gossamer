@@ -201,7 +201,8 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// RegisterNotificationsProtocol registers a protocol with the network service with the given handler and returns its msg ID
+// RegisterNotificationsProtocol registers a protocol with the network service with the given handler
+// messageID is a user-defined message ID for the message passed over this protocol.
 func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	messageID byte,
 	handshakeGetter HandshakeGetter,

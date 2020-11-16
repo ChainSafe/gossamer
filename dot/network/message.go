@@ -48,10 +48,7 @@ const (
 	RemoteHeaderResponseType  byte = 11
 	RemoteChangesRequestType  byte = 12
 	RemoteChangesResponseType byte = 13
-
-	// TODO: custom type register
-	BlockAnnounceHandshakeType byte = 254
-	ChainSpecificMsgType       byte = 255
+	ChainSpecificMsgType      byte = 255
 )
 
 // Message interface
@@ -61,6 +58,7 @@ type Message interface {
 	String() string
 	Type() byte
 	IDString() string // TODO: this can be removed
+	IsHandshake() bool
 }
 
 // decodeMessage decodes the message based on message type
@@ -151,6 +149,11 @@ func (sm *StatusMessage) Decode(r io.Reader) error {
 // IDString Returns an empty string to ensure we don't rebroadcast it
 func (sm *StatusMessage) IDString() string {
 	return ""
+}
+
+// IsHandshake returns false
+func (sm *StatusMessage) IsHandshake() bool {
+	return false
 }
 
 // BlockRequestMessage for optionals, if first byte is 0, then it is None
@@ -299,6 +302,11 @@ func (bm *BlockRequestMessage) IDString() string {
 	return fmt.Sprintf("%d", bm.ID)
 }
 
+// IsHandshake returns false
+func (bm *BlockRequestMessage) IsHandshake() bool {
+	return false
+}
+
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
 	ParentHash     common.Hash
@@ -353,6 +361,11 @@ func (bm *BlockAnnounceMessage) IDString() string {
 	return hash.String()
 }
 
+// IsHandshake returns false
+func (bm *BlockAnnounceMessage) IsHandshake() bool {
+	return false
+}
+
 // BlockResponseMessage struct
 type BlockResponseMessage struct {
 	ID        uint64
@@ -400,6 +413,11 @@ func (bm *BlockResponseMessage) Decode(r io.Reader) error {
 // IDString returns the ID of BlockResponseMessage
 func (bm *BlockResponseMessage) IDString() string {
 	return fmt.Sprintf("%d", bm.ID)
+}
+
+// IsHandshake returns false
+func (bm *BlockResponseMessage) IsHandshake() bool {
+	return false
 }
 
 // TransactionMessage is a struct that holds reference to Extrinsics
@@ -472,6 +490,11 @@ func (tm *TransactionMessage) IDString() string {
 	return hash.String()
 }
 
+// IsHandshake returns false
+func (tm *TransactionMessage) IsHandshake() bool {
+	return false
+}
+
 // ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
 	// Identifies consensus engine.
@@ -529,4 +552,9 @@ func (cm *ConsensusMessage) IDString() string {
 		return ""
 	}
 	return hash.String()
+}
+
+// IsHandshake returns false
+func (cm *ConsensusMessage) IsHandshake() bool {
+	return false
 }

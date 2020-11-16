@@ -73,12 +73,17 @@ func (hs *BlockAnnounceHandshake) Decode(r io.Reader) error {
 
 // Type ...
 func (hs *BlockAnnounceHandshake) Type() byte {
-	return BlockAnnounceHandshakeType
+	return 0
 }
 
 // IDString ...
 func (hs *BlockAnnounceHandshake) IDString() string {
 	return ""
+}
+
+// IsHandshake returns true
+func (hs *BlockAnnounceHandshake) IsHandshake() bool {
+	return true
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
