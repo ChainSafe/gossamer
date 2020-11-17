@@ -113,7 +113,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		getHandshake:  s.getBlockAnnounceHandshake,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.getBlockAnnounceHandshake, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
@@ -153,7 +153,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		getHandshake:  s.getBlockAnnounceHandshake,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.getBlockAnnounceHandshake, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
 	// don't set handshake data ie. this stream has just been opened
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")

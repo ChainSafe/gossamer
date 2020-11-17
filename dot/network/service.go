@@ -233,7 +233,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		p := conn.RemotePeer()
 
 		decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-		handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeGetter, handshakeValidator, messageHandler)
+		handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
 
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
@@ -281,35 +281,11 @@ func (s *Service) SendMessage(msg Message) {
 
 	// check if the message is part of a notifications protocol
 	for msgID, prtl := range s.notificationsProtocols {
-		if msg.Type() != msgID {
+		if msg.Type() != msgID || prtl == nil {
 			continue
 		}
 
-		hs, err := prtl.getHandshake()
-		if err != nil {
-			logger.Error("failed to get handshake", "protocol", prtl.subProtocol, "error", err)
-			return
-		}
-
-		for _, peer := range s.host.peers() { // TODO: check if stream is open, if not, open and send handshake
-			if _, has := prtl.handshakeData[peer]; !has {
-				prtl.handshakeData[peer] = &handshakeData{
-					validated:   false,
-					outboundMsg: msg,
-				}
-
-				logger.Trace("sending handshake", "protocol", prtl.subProtocol, "peer", peer, "message", hs)
-				err = s.host.send(peer, prtl.subProtocol, hs)
-			} else {
-				// we've already completed the handshake with the peer, send BlockAnnounce directly
-				err = s.host.send(peer, prtl.subProtocol, msg)
-			}
-
-			if err != nil {
-				logger.Error("failed to send message to peer", "peer", peer, "error", err)
-			}
-		}
-
+		s.broadcastExcluding(prtl, peer.ID(""), msg)
 		return
 	}
 

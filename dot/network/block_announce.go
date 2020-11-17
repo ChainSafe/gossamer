@@ -17,7 +17,6 @@
 package network
 
 import (
-	//"bytes"
 	"errors"
 	"fmt"
 	"io"

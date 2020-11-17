@@ -81,9 +81,11 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	}
 }
 
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeGetter HandshakeGetter, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
 	return func(peer peer.ID, msg Message) error {
-		sub := info.subProtocol
+		if msg == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
+			return nil
+		}
 
 		logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
 
@@ -112,13 +114,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				}
 
 				// once validated, send back a handshake
-				resp, err := handshakeGetter()
+				resp, err := info.getHandshake()
 				if err != nil {
 					logger.Error("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
 					return nil
 				}
 
-				err = s.host.send(peer, sub, resp)
+				err = s.host.send(peer, info.subProtocol, resp)
 				if err != nil {
 					logger.Error("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					return err
@@ -147,15 +149,62 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the initiator, send the message
 			if hsData, has := info.handshakeData[peer]; has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
 				logger.Trace("sender: sending message", "sub-protocol", info.subProtocol)
-				err := s.host.send(peer, sub, hsData.outboundMsg)
+				err := s.host.send(peer, info.subProtocol, hsData.outboundMsg)
 				if err != nil {
 					logger.Error("failed to send message", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					return err
 				}
 				return nil
 			}
+
+			return nil
 		}
 
-		return messageHandler(peer, msg)
+		err := messageHandler(peer, msg)
+		if err != nil {
+			return err
+		}
+
+		// TODO: improve this by keeping track of who you've received/sent messages from
+		s.broadcastExcluding(info, peer, msg)
+		return nil
+	}
+}
+
+// broadcastExcluding sends a message to each connected peer except the given peer
+// Used for notifications sub-protocols to gossip a message
+func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg Message) {
+	logger.Trace(
+		"broadcasting message from notifications sub-protocol",
+		"sub-protocol", info.subProtocol,
+	)
+
+	hs, err := info.getHandshake()
+	if err != nil {
+		logger.Error("failed to get handshake", "protocol", info.subProtocol, "error", err)
+		return
+	}
+
+	for _, peer := range s.host.peers() { // TODO: check if stream is open, if not, open and send handshake
+		if peer == excluding {
+			continue
+		}
+
+		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
+			info.handshakeData[peer] = &handshakeData{
+				validated:   false,
+				outboundMsg: msg,
+			}
+
+			logger.Trace("sending handshake", "protocol", info.subProtocol, "peer", peer, "message", hs)
+			err = s.host.send(peer, info.subProtocol, hs)
+		} else {
+			// we've already completed the handshake with the peer, send message directly
+			err = s.host.send(peer, info.subProtocol, msg)
+		}
+
+		if err != nil {
+			logger.Error("failed to send message to peer", "peer", peer, "error", err)
+		}
 	}
 }
