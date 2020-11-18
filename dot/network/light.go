@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -18,19 +17,86 @@ type Pair struct {
 
 // LightRequest is all possible light client related requests.
 type LightRequest struct {
-	RmtCallRequest      RemoteCallRequest
-	RmtReadRequest      RemoteReadRequest
-	RmtHeaderRequest    RemoteHeaderRequest
-	RmtReadChildRequest RemoteReadChildRequest
-	RmtChangesRequest   RemoteChangesRequest
+	RmtCallRequest      *RemoteCallRequest
+	RmtReadRequest      *RemoteReadRequest
+	RmtHeaderRequest    *RemoteHeaderRequest
+	RmtReadChildRequest *RemoteReadChildRequest
+	RmtChangesRequest   *RemoteChangesRequest
+}
+
+// Encode encodes a LightRequest message using SCALE and appends the type byte to the start
+func (l LightRequest) Encode() ([]byte, error) {
+	enc, err := scale.Encode(l)
+	if err != nil {
+		return enc, err
+	}
+	return append([]byte{LightRequestType}, enc...), nil
+}
+
+// Decode the message into a LightRequest, it assumes the type byte has been removed
+func (l LightRequest) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(l)
+	return err
+}
+
+// String formats a LightRequest as a string
+func (l LightRequest) String() string {
+	return fmt.Sprintf(
+		"RemoteCallRequest=%s RemoteReadRequest=%s RemoteHeaderRequest=%s "+
+			"RemoteReadChildRequest=%s RemoteChangesRequest=%s",
+		l.RmtCallRequest, l.RmtReadRequest, l.RmtHeaderRequest, l.RmtReadChildRequest, l.RmtChangesRequest)
+}
+
+// Type returns LightRequestType
+func (l LightRequest) Type() int {
+	return LightRequestType
+}
+
+// IDString ...
+func (l LightRequest) IDString() string {
+	return ""
 }
 
 // LightResponse is all possible light client response messages.
 type LightResponse struct {
-	RmtCallResponse   RemoteCallResponse
-	RmtReadResponse   RemoteReadResponse
-	RmtHeaderResponse RemoteHeaderResponse
-	RmtChangeResponse RemoteChangesResponse
+	RmtCallResponse   *RemoteCallResponse
+	RmtReadResponse   *RemoteReadResponse
+	RmtHeaderResponse *RemoteHeaderResponse
+	RmtChangeResponse *RemoteChangesResponse
+}
+
+// Encode encodes a LightResponse message using SCALE and appends the type byte to the start
+func (l LightResponse) Encode() ([]byte, error) {
+	enc, err := scale.Encode(l)
+	if err != nil {
+		return enc, err
+	}
+	return append([]byte{LightResponseType}, enc...), nil
+}
+
+// Decode the message into a LightResponse, it assumes the type byte has been removed
+func (l LightResponse) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(l)
+	return err
+}
+
+// String formats a RemoteReadRequest as a string
+func (l LightResponse) String() string {
+	return fmt.Sprintf(
+		"RemoteCallResponse=%s RemoteReadResponse=%s RemoteHeaderResponse=%s RemoteChangesResponse=%s",
+		l.RmtCallResponse, l.RmtReadResponse, l.RmtHeaderResponse, l.RmtChangeResponse)
+}
+
+// Type returns LightResponseType
+func (l LightResponse) Type() int {
+	return LightResponseType
+}
+
+// IDString ...
+func (l LightResponse) IDString() string {
+	return ""
 }
 
 // RemoteCallRequest ...
@@ -98,32 +164,6 @@ func (rc *RemoteCallRequest) String() string {
 		string(rc.Block), rc.Method, string(rc.Data))
 }
 
-// Encode encodes a RemoteCallRequest message using SCALE and appends the type byte to the start
-func (rc *RemoteCallRequest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rc)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteCallRequestType}, enc...), nil
-}
-
-// Decode the message into a RemoteCallRequest, it assumes the type byte has been removed
-func (rc *RemoteCallRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rc)
-	return err
-}
-
-// Type returns RemoteCallRequestType
-func (rc *RemoteCallRequest) Type() int {
-	return RemoteCallRequestType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rc *RemoteCallRequest) IDString() string {
-	return ""
-}
-
 // String formats a RemoteChangesRequest as a string
 func (rc *RemoteChangesRequest) String() string {
 	return fmt.Sprintf("FirstBlock =%s LastBlock=%s Min=%s Max=%s Storagekey=%s key=%s",
@@ -136,92 +176,14 @@ func (rc *RemoteChangesRequest) String() string {
 	)
 }
 
-// Encode encodes a RemoteChangesRequest message using SCALE and appends the type byte to the start
-func (rc *RemoteChangesRequest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rc)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteChangesRequestType}, enc...), nil
-}
-
-// Decode the message into a RemoteChangesRequest, it assumes the type byte has been removed
-func (rc *RemoteChangesRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rc)
-	return err
-}
-
-// Type returns RemoteChangesRequestType
-func (rc *RemoteChangesRequest) Type() int {
-	return RemoteChangesRequestType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rc *RemoteChangesRequest) IDString() string {
-	return ""
-}
-
 // String formats a RemoteHeaderRequest as a string
 func (rh *RemoteHeaderRequest) String() string {
 	return fmt.Sprintf("Block =%s", string(rh.Block))
 }
 
-// Encode encodes a RemoteHeaderRequest message using SCALE and appends the type byte to the start
-func (rh *RemoteHeaderRequest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rh)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteHeaderRequestType}, enc...), nil
-}
-
-// Decode the message into a RemoteHeaderRequest, it assumes the type byte has been removed
-func (rh *RemoteHeaderRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rh)
-	return err
-}
-
-// Type returns RemoteHeaderRequestType
-func (rh *RemoteHeaderRequest) Type() int {
-	return RemoteHeaderRequestType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rh *RemoteHeaderRequest) IDString() string {
-	return ""
-}
-
 // String formats a RemoteReadRequest as a string
 func (rr *RemoteReadRequest) String() string {
 	return fmt.Sprintf("Block =%s", string(rr.Block))
-}
-
-// Encode encodes a RemoteReadRequest message using SCALE and appends the type byte to the start
-func (rr *RemoteReadRequest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rr)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteReadRequestType}, enc...), nil
-}
-
-// Decode the message into a RemoteReadRequest, it assumes the type byte has been removed
-func (rr *RemoteReadRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rr)
-	return err
-}
-
-// Type returns RemoteReadRequestType
-func (rr *RemoteReadRequest) Type() int {
-	return RemoteReadRequestType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rr *RemoteReadRequest) IDString() string {
-	return ""
 }
 
 // String formats a RemoteReadChildRequest as a string
@@ -237,61 +199,9 @@ func (rr *RemoteReadChildRequest) String() string {
 	)
 }
 
-// Encode encodes a RemoteReadChildRequest message using SCALE and appends the type byte to the start
-func (rr *RemoteReadChildRequest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rr)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteReadChildRequestType}, enc...), nil
-}
-
-// Decode the message into a RemoteReadChildRequest, it assumes the type byte has been removed
-func (rr *RemoteReadChildRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rr)
-	return err
-}
-
-// Type returns RemoteReadChildRequestType
-func (rr *RemoteReadChildRequest) Type() int {
-	return RemoteReadChildRequestType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rr *RemoteReadChildRequest) IDString() string {
-	return ""
-}
-
 // String formats a RemoteCallResponse as a string
 func (rc *RemoteCallResponse) String() string {
 	return fmt.Sprintf("Proof =%s", string(rc.Proof))
-}
-
-// Encode encodes a RemoteCallResponse message using SCALE and appends the type byte to the start
-func (rc *RemoteCallResponse) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rc)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteCallResponseType}, enc...), nil
-}
-
-// Decode the message into a RemoteCallResponse, it assumes the type byte has been removed
-func (rc *RemoteCallResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rc)
-	return err
-}
-
-// Type returns RemoteCallResponseType
-func (rc *RemoteCallResponse) Type() int {
-	return RemoteCallResponseType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rc *RemoteCallResponse) IDString() string {
-	return ""
 }
 
 // String formats a RemoteChangesResponse as a string
@@ -314,92 +224,14 @@ func (rc *RemoteChangesResponse) String() string {
 	)
 }
 
-// Encode encodes a RemoteChangesResponse message using SCALE and appends the type byte to the start
-func (rc *RemoteChangesResponse) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rc)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteChangesResponseType}, enc...), nil
-}
-
-// Decode the message into a RemoteChangesResponse, it assumes the type byte has been removed
-func (rc *RemoteChangesResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rc)
-	return err
-}
-
-// Type returns RemoteChangesResponseType
-func (rc *RemoteChangesResponse) Type() int {
-	return RemoteChangesResponseType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rc *RemoteChangesResponse) IDString() string {
-	return ""
-}
-
 // String formats a RemoteReadResponse as a string
 func (rr *RemoteReadResponse) String() string {
 	return fmt.Sprintf("Proof =%s", string(rr.Proof))
 }
 
-// Encode encodes a RemoteReadResponse message using SCALE and appends the type byte to the start
-func (rr *RemoteReadResponse) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rr)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteReadResponseType}, enc...), nil
-}
-
-// Decode the message into a RemoteReadRequest, it assumes the type byte has been removed
-func (rr *RemoteReadResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rr)
-	return err
-}
-
-// Type returns RemoteReadResponseType
-func (rr *RemoteReadResponse) Type() int {
-	return RemoteReadResponseType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rr *RemoteReadResponse) IDString() string {
-	return ""
-}
-
 // String formats a RemoteHeaderResponse as a string
 func (rh *RemoteHeaderResponse) String() string {
 	return fmt.Sprintf("Header =%s Proof =%s", rh.Header, string(rh.proof))
-}
-
-// Encode encodes a RemoteHeaderResponse message using SCALE and appends the type byte to the start
-func (rh *RemoteHeaderResponse) Encode() ([]byte, error) {
-	enc, err := scale.Encode(rh)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{RemoteReadResponseType}, enc...), nil
-}
-
-// Decode the message into a RemoteHeaderResponse, it assumes the type byte has been removed
-func (rh *RemoteHeaderResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(rh)
-	return err
-}
-
-// Type returns RemoteReadResponseType
-func (rh *RemoteHeaderResponse) Type() int {
-	return RemoteReadResponseType
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (rh *RemoteHeaderResponse) IDString() string {
-	return ""
 }
 
 func remoteCallResp(peer peer.ID, req *RemoteCallRequest) (*RemoteCallResponse, error) {
@@ -408,8 +240,8 @@ func remoteCallResp(peer peer.ID, req *RemoteCallRequest) (*RemoteCallResponse, 
 func remoteChangeResp(peer peer.ID, req *RemoteChangesRequest) (*RemoteChangesResponse, error) {
 	return &RemoteChangesResponse{}, nil
 }
-func remoteHeaderResp(peer peer.ID, req *RemoteHeaderRequest) (*RemoteCallResponse, error) {
-	return &RemoteCallResponse{}, nil
+func remoteHeaderResp(peer peer.ID, req *RemoteHeaderRequest) (*RemoteHeaderResponse, error) {
+	return &RemoteHeaderResponse{}, nil
 }
 func remoteReadChildResp(peer peer.ID, req *RemoteReadChildRequest) (*RemoteReadResponse, error) {
 	return &RemoteReadResponse{}, nil

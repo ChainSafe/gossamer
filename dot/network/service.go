@@ -395,20 +395,25 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	}
 }
 func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
-	var resp Message
+	lr, ok := msg.(LightRequest)
+	if !ok {
+		logger.Error("failed to get the request message from peer ", peer)
+		return nil
+	}
+
+	var resp *LightResponse
 	var err error
-	switch req := msg.(type) {
-	case *RemoteCallRequest:
-		resp, err = remoteCallResp(peer, req)
-	case *RemoteHeaderRequest:
-		resp, err = remoteHeaderResp(peer, req)
-	case *RemoteChangesRequest:
-		resp, err = remoteChangeResp(peer, req)
-	case *RemoteReadRequest:
-		resp, err = remoteReadResp(peer, req)
-	case *RemoteReadChildRequest:
-		resp, err = remoteReadChildResp(peer, req)
-	default:
+	if lr.RmtChangesRequest != nil {
+		resp.RmtCallResponse, err = remoteCallResp(peer, lr.RmtCallRequest)
+	} else if lr.RmtHeaderRequest != nil {
+		resp.RmtHeaderResponse, err = remoteHeaderResp(peer, lr.RmtHeaderRequest)
+	} else if lr.RmtCallRequest != nil {
+		resp.RmtChangeResponse, err = remoteChangeResp(peer, lr.RmtChangesRequest)
+	} else if lr.RmtReadRequest != nil {
+		resp.RmtReadResponse, err = remoteReadResp(peer, lr.RmtReadRequest)
+	} else if lr.RmtReadChildRequest != nil {
+		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
+	} else {
 		logger.Error("ignoring request without request data from peer {}", peer)
 	}
 

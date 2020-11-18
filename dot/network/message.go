@@ -34,23 +34,15 @@ import (
 
 //nolint
 const (
-	StatusMsgType             = 0
-	BlockRequestMsgType       = 1
-	BlockResponseMsgType      = 2
-	BlockAnnounceMsgType      = 3
-	TransactionMsgType        = 4
-	ConsensusMsgType          = 5
-	RemoteCallRequestType     = 6
-	RemoteCallResponseType    = 7
-	RemoteReadRequestType     = 8
-	RemoteReadResponseType    = 9
-	RemoteHeaderRequestType   = 10
-	RemoteHeaderResponseType  = 11
-	RemoteChangesRequestType  = 12
-	RemoteChangesResponseType = 13
-	RemoteReadChildRequestType = 14
-	RemoteReadChildResponseType = 15
-	ChainSpecificMsgType      = 255
+	StatusMsgType        = 0
+	BlockRequestMsgType  = 1
+	BlockResponseMsgType = 2
+	BlockAnnounceMsgType = 3
+	TransactionMsgType   = 4
+	ConsensusMsgType     = 5
+	LightRequestType     = 6
+	LightResponseType    = 7
+	ChainSpecificMsgType = 255
 )
 
 // Message interface
@@ -85,35 +77,11 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
 		err = m.Decode(r)
-	case RemoteCallRequestType:
-		m = new(RemoteCallRequest)
+	case LightRequestType:
+		m = new(LightRequest)
 		err = m.Decode(r)
-	case RemoteCallResponseType:
-		m = new(RemoteCallResponse)
-		err = m.Decode(r)
-	case RemoteChangesRequestType:
-		m = new(RemoteChangesRequest)
-		err = m.Decode(r)
-	case RemoteChangesResponseType:
-		m = new(RemoteChangesResponse)
-		err = m.Decode(r)
-	case RemoteReadRequestType:
-		m = new(RemoteReadRequest)
-		err = m.Decode(r)
-	case RemoteReadResponseType:
-		m = new(RemoteReadResponse)
-		err = m.Decode(r)
-	case RemoteReadChildRequestType:
-		m = new(RemoteReadChildRequest)
-		err = m.Decode(r)
-	case RemoteReadChildResponseType:
-		m = new(RemoteReadResponse)
-		err = m.Decode(r)
-	case RemoteHeaderRequestType:
-		m = new(RemoteHeaderRequest)
-		err = m.Decode(r)
-	case RemoteHeaderResponseType:
-		m = new(RemoteHeaderResponse)
+	case LightResponseType:
+		m = new(LightResponse)
 		err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)
