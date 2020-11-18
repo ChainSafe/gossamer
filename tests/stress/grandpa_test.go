@@ -126,7 +126,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	time.Sleep(time.Second * 50) // let some rounds run
 
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisThreeAuths, utils.ConfigDefault)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisThreeAuths, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

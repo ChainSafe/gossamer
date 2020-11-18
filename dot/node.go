@@ -93,7 +93,7 @@ func InitNode(cfg *Config) error {
 		}
 
 		// create genesis runtime
-		r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
+		r, err := genesis.NewLegacyRuntimeFromGenesis(gen, genTrie) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to create genesis runtime: %w", err)
 		}
@@ -248,17 +248,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	var bp BlockProducer
-
-	if cfg.Core.BabeAuthority {
-		// create BABE service
-		bp, err = createBABEService(cfg, rt, stateSrvc, ks.Babe)
-		if err != nil {
-			return nil, err
-		}
-
-		nodeSrvcs = append(nodeSrvcs, bp)
+	// create BABE service
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
+	if err != nil {
+		return nil, err
 	}
+
+	nodeSrvcs = append(nodeSrvcs, bp)
 
 	dh, err := createDigestHandler(stateSrvc, bp, ver)
 	if err != nil {

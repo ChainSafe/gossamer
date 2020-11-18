@@ -58,14 +58,15 @@ var firstEpochInfo = &types.EpochInfo{
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
 
 	babeCfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
-			Runtime: rt,
+			Runtime:   rt,
+			Authority: true,
 		}
 	}
 
@@ -222,6 +223,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		EpochState:       dbSrv.Epoch,
 		TransactionState: dbSrv.Transaction,
 		LogLvl:           log.LvlTrace,
+		Authority:        true,
 	}
 
 	babeService := createTestService(t, cfg)

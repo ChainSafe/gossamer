@@ -34,6 +34,8 @@ import (
 
 var blockPrefix = "block"
 
+const pruneKeyBufferSize = 1000
+
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
 	bt                 *blocktree.BlockTree
@@ -48,6 +50,8 @@ type BlockState struct {
 	finalized     map[byte]chan<- *types.Header
 	importedLock  sync.RWMutex
 	finalizedLock sync.RWMutex
+
+	pruneKeyCh chan *types.Header
 }
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
@@ -57,11 +61,12 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs := &BlockState{
-		bt:        bt,
-		baseDB:    db,
-		db:        chaindb.NewTable(db, blockPrefix),
-		imported:  make(map[byte]chan<- *types.Block),
-		finalized: make(map[byte]chan<- *types.Header),
+		bt:         bt,
+		baseDB:     db,
+		db:         chaindb.NewTable(db, blockPrefix),
+		imported:   make(map[byte]chan<- *types.Block),
+		finalized:  make(map[byte]chan<- *types.Header),
+		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
 	bs.genesisHash = bt.GenesisHash()
@@ -79,11 +84,12 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 // NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:        blocktree.NewBlockTreeFromGenesis(header, db),
-		baseDB:    db,
-		db:        chaindb.NewTable(db, blockPrefix),
-		imported:  make(map[byte]chan<- *types.Block),
-		finalized: make(map[byte]chan<- *types.Header),
+		bt:         blocktree.NewBlockTreeFromGenesis(header, db),
+		baseDB:     db,
+		db:         chaindb.NewTable(db, blockPrefix),
+		imported:   make(map[byte]chan<- *types.Block),
+		finalized:  make(map[byte]chan<- *types.Header),
+		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
 	err := bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
@@ -433,10 +439,17 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, rem := range pruned {
-		err := bs.DeleteBlock(rem)
+		header, err := bs.GetHeader(rem)
 		if err != nil {
 			return err
 		}
+
+		err = bs.DeleteBlock(rem)
+		if err != nil {
+			return err
+		}
+
+		bs.pruneKeyCh <- header
 	}
 
 	return bs.db.Put(finalizedHashKey(round, setID), hash[:])

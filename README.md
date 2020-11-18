@@ -113,6 +113,18 @@ start polkadot node:
 Our work on gossamer is funded by grants. If you'd like to donate, you can send us ETH or DAI at the following address:
 `0x764001D60E69f0C3D0b41B0588866cFaE796972c`
 
+## ChainSafe Security Policy
+
+### Reporting a Security Bug
+
+We take all security issues seriously, if you believe you have found a security issue within a ChainSafe
+project please notify us immediately. If an issue is confirmed, we will take all necessary precautions 
+to ensure a statement and patch release is made in a timely manner.
+
+Please email us a description of the flaw and any related information (e.g. reproduction steps, version) to
+[security at chainsafe dot io](mailto:security@chainsafe.io).
+
+
 ## License
 
 _GNU Lesser General Public License v3.0_
@@ -121,3 +133,4 @@ _GNU Lesser General Public License v3.0_
 <p align="center">
 	<img src="/docs/assets/img/chainsafe_gopher.png">
 </p>
+

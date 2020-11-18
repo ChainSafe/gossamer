@@ -70,10 +70,11 @@ type NetworkConfig struct {
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
 	Roles            byte   `toml:"roles,omitempty"`
-	BabeAuthority    bool   `toml:"babe-authority,omitempty"`
-	GrandpaAuthority bool   `toml:"grandpa-authority,omitempty"`
+	BabeAuthority    bool   `toml:"babe-authority"`
+	GrandpaAuthority bool   `toml:"grandpa-authority"`
 	BabeThreshold    string `toml:"babe-threshold,omitempty"`
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
+	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

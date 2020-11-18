@@ -68,7 +68,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+		cfg.Runtime = wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	}
 
 	if cfg.TransactionState == nil {
@@ -277,7 +277,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.Equal(t, int64(1), high)
 }
 
-func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *types.Block {
+func buildBlock(t *testing.T, instance runtime.LegacyInstance, parent *types.Header) *types.Block {
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),

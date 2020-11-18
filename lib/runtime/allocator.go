@@ -38,7 +38,7 @@ const MaxPossibleAllocation = 16777216 // 2^24 bytes
 type FreeingBumpHeapAllocator struct {
 	bumper      uint32
 	heads       [HeadsQty]uint32
-	heap        []byte
+	heap        Memory
 	maxHeapSize uint32
 	ptrOffset   uint32
 	TotalSize   uint32
@@ -49,7 +49,7 @@ type FreeingBumpHeapAllocator struct {
 //
 // # Arguments
 //
-// * `mem` - A wasm.Memory to the available memory which is
+// * `mem` - A runtime.Memory to the available memory which is
 //   used as the heap.
 //
 // * `ptrOffset` - The pointers returned by `Allocate()` start from this
@@ -57,16 +57,17 @@ type FreeingBumpHeapAllocator struct {
 //   hence a padding might be added to align `ptrOffset` properly.
 //
 // * returns a pointer to an initilized FreeingBumpHeapAllocator
-func NewAllocator(mem []byte, ptrOffset uint32) *FreeingBumpHeapAllocator {
+func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
-	currentSize := len(mem)
-	// we don't include offset memory in the heap
-	heapSize := uint32(currentSize) - ptrOffset
+	currentSize := mem.Length()
 
 	padding := ptrOffset % alignment
 	if padding != 0 {
 		ptrOffset += alignment - padding
 	}
+
+	// we don't include offset memory in the heap
+	heapSize := currentSize - ptrOffset
 
 	fbha.bumper = 0
 	fbha.heap = mem
@@ -140,6 +141,16 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 	return nil
 }
 
+// Clear resets the allocator, effectively freeing all allocated memory
+func (fbha *FreeingBumpHeapAllocator) Clear() {
+	fbha.bumper = 0
+	fbha.TotalSize = 0
+
+	for i := range fbha.heads {
+		fbha.heads[i] = 0
+	}
+}
+
 func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
 	res := fbha.bumper
 	fbha.bumper += qty
@@ -147,18 +158,18 @@ func (fbha *FreeingBumpHeapAllocator) bump(qty uint32) uint32 {
 }
 
 func (fbha *FreeingBumpHeapAllocator) setHeap(ptr uint32, value uint8) {
-	fbha.heap[fbha.ptrOffset+ptr] = value
+	fbha.heap.Data()[fbha.ptrOffset+ptr] = value
 }
 
 func (fbha *FreeingBumpHeapAllocator) setHeap4bytes(ptr uint32, value []byte) {
-	copy(fbha.heap[fbha.ptrOffset+ptr:fbha.ptrOffset+ptr+4], value)
+	copy(fbha.heap.Data()[fbha.ptrOffset+ptr:fbha.ptrOffset+ptr+4], value)
 }
 func (fbha *FreeingBumpHeapAllocator) getHeap4bytes(ptr uint32) []byte {
-	return fbha.heap[fbha.ptrOffset+ptr : fbha.ptrOffset+ptr+4]
+	return fbha.heap.Data()[fbha.ptrOffset+ptr : fbha.ptrOffset+ptr+4]
 }
 
 func (fbha *FreeingBumpHeapAllocator) getHeapByte(ptr uint32) byte {
-	return fbha.heap[fbha.ptrOffset+ptr]
+	return fbha.heap.Data()[fbha.ptrOffset+ptr]
 }
 
 func getItemSizeFromIndex(index uint) uint {

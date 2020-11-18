@@ -30,6 +30,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 type commonPrefixTest struct {
@@ -573,5 +575,114 @@ func TestGetKeysWithPrefix(t *testing.T) {
 	keys = trie.GetKeysWithPrefix([]byte{0x07, 0x30})
 	if !reflect.DeepEqual(keys, expected) {
 		t.Fatalf("Fail: got %v expected %v", keys, expected)
+	}
+}
+
+func TestNextKey(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x7a}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	testCases := []struct {
+		input    []byte
+		expected []byte
+	}{
+		{
+			tests[0].key,
+			tests[1].key,
+		},
+		{
+			tests[1].key,
+			tests[2].key,
+		},
+		{
+			tests[2].key,
+			tests[3].key,
+		},
+		{
+			tests[3].key,
+			tests[4].key,
+		},
+		{
+			tests[4].key,
+			tests[5].key,
+		},
+		{
+			tests[5].key,
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		next := trie.NextKey(tc.input)
+		require.Equal(t, tc.expected, next)
+	}
+}
+
+func TestNextKey_MoreAncestors(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	testCases := []struct {
+		input    []byte
+		expected []byte
+	}{
+		{
+			tests[0].key,
+			tests[1].key,
+		},
+		{
+			tests[1].key,
+			tests[2].key,
+		},
+		{
+			tests[2].key,
+			tests[3].key,
+		},
+		{
+			tests[3].key,
+			tests[4].key,
+		},
+		{
+			tests[4].key,
+			tests[5].key,
+		},
+		{
+			tests[5].key,
+			tests[6].key,
+		},
+		{
+			tests[6].key,
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		next := trie.NextKey(tc.input)
+		require.Equal(t, tc.expected, next)
 	}
 }

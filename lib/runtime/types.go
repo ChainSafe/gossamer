@@ -25,29 +25,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var (
-	// CoreVersion is the runtime API call Core_version
-	CoreVersion = "Core_version"
-	// CoreInitializeBlock is the runtime API call Core_initialize_block
-	CoreInitializeBlock = "Core_initialize_block"
-	// CoreExecuteBlock is the runtime API call Core_execute_block
-	CoreExecuteBlock = "Core_execute_block"
-	// Metadata is the runtime API call Metadata_metadata
-	Metadata = "Metadata_metadata"
-	// TaggedTransactionQueueValidateTransaction is the runtime API call TaggedTransactionQueue_validate_transaction
-	TaggedTransactionQueueValidateTransaction = "TaggedTransactionQueue_validate_transaction"
-	// GrandpaAuthorities is the runtime API call GrandpaApi_grandpa_authorities
-	GrandpaAuthorities = "GrandpaApi_grandpa_authorities"
-	// BabeAPIConfiguration is the runtime API call BabeApi_configuration
-	BabeAPIConfiguration = "BabeApi_configuration"
-	// BlockBuilderInherentExtrinsics is the runtime API call BlockBuilder_inherent_extrinsics
-	BlockBuilderInherentExtrinsics = "BlockBuilder_inherent_extrinsics"
-	// BlockBuilderApplyExtrinsic is the runtime API call BlockBuilder_apply_extrinsic
-	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
-	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
-	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
-)
-
 // NodeStorageType type to identify offchain storage type
 type NodeStorageType byte
 

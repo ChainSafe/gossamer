@@ -14,33 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package wasmer
+package runtime
 
-import (
-	"testing"
-
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/stretchr/testify/require"
-)
-
-// test used for ensuring runtime exec calls can me made concurrently
-func TestConcurrentRuntimeCalls(t *testing.T) {
-	instance := NewTestInstance(t, runtime.TEST_RUNTIME)
-
-	// execute 2 concurrent calls to the runtime
-	go func() {
-		_, _ = instance.exec(runtime.CoreVersion, []byte{})
-	}()
-	go func() {
-		_, _ = instance.exec(runtime.CoreVersion, []byte{})
-	}()
-}
-
-func TestPointerSize(t *testing.T) {
-	in := int64(8) + int64(32)<<32
-	ptr, length := int64ToPointerAndSize(in)
-	require.Equal(t, int32(8), ptr)
-	require.Equal(t, int32(32), length)
-	res := pointerAndSizeToInt64(ptr, length)
-	require.Equal(t, in, res)
+// Memory is a raw memory interface
+type Memory interface {
+	Data() []byte
+	Length() uint32
 }

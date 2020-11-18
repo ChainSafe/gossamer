@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/ChainSafe/log15"
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
@@ -39,7 +38,6 @@ var defaultMaxPeerCount = 5
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	logger     log.Logger
 	ctx        context.Context
 	h          libp2phost.Host
 	dht        *kaddht.IpfsDHT
@@ -48,7 +46,7 @@ type host struct {
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
-func newHost(ctx context.Context, cfg *Config, logger log.Logger) (*host, error) {
+func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// use "p2p" for multiaddress format
 	ma.SwapToP2pMultiaddrs()
@@ -93,10 +91,7 @@ func newHost(ctx context.Context, cfg *Config, logger log.Logger) (*host, error)
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
-	logger = logger.New("module", "host")
-
 	return &host{
-		logger:     logger,
 		ctx:        ctx,
 		h:          h,
 		dht:        dht,
@@ -112,14 +107,14 @@ func (h *host) close() error {
 	// close DHT service
 	err := h.dht.Close()
 	if err != nil {
-		h.logger.Error("Failed to close DHT service", "error", err)
+		logger.Error("Failed to close DHT service", "error", err)
 		return err
 	}
 
 	// close libp2p host
 	err = h.h.Close()
 	if err != nil {
-		h.logger.Error("Failed to close libp2p host", "error", err)
+		logger.Error("Failed to close libp2p host", "error", err)
 		return err
 	}
 
@@ -148,7 +143,7 @@ func (h *host) bootstrap() {
 	for _, addrInfo := range h.bootnodes {
 		err := h.connect(addrInfo)
 		if err != nil {
-			h.logger.Error("Failed to bootstrap peer", "error", err)
+			logger.Error("Failed to bootstrap peer", "error", err)
 		}
 	}
 }
@@ -166,7 +161,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 		return err
 	}
 
-	h.logger.Trace(
+	logger.Trace(
 		"Sent message to peer",
 		"host", h.id(),
 		"peer", p,
@@ -189,11 +184,11 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 			return err
 		}
 
-		h.logger.Trace(
+		logger.Trace(
 			"Opened stream",
 			"host", h.id(),
 			"peer", p,
-			"protocol", s.Protocol(),
+			"protocol", h.protocolID+sub,
 		)
 	}
 
@@ -210,7 +205,7 @@ func (h *host) broadcast(msg Message) {
 	for _, p := range h.peers() {
 		err := h.send(p, "", msg)
 		if err != nil {
-			h.logger.Error("Failed to broadcast message to peer", "peer", p, "error", err)
+			logger.Error("Failed to broadcast message to peer", "peer", p, "error", err)
 		}
 	}
 }
@@ -221,7 +216,7 @@ func (h *host) broadcastExcluding(msg Message, peer peer.ID) {
 		if p != peer {
 			err := h.send(p, "", msg)
 			if err != nil {
-				h.logger.Error("Failed to send message during broadcast", "peer", p, "err", err)
+				logger.Error("Failed to send message during broadcast", "peer", p, "err", err)
 			}
 		}
 	}

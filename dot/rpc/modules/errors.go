@@ -13,21 +13,9 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+package modules
 
-package genesis_test
+import "errors"
 
-import (
-	"testing"
-
-	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	"github.com/stretchr/testify/require"
-)
-
-func TestNewRuntimeFromGenesis(t *testing.T) {
-	gen := dot.NewTestGenesis(t)
-	_, err := genesis.NewRuntimeFromGenesis(gen, &state.TrieState{})
-	require.NoError(t, err)
-}
+// ErrSubscriptionTransport error sent when trying to access websocket subscriptions via http
+var ErrSubscriptionTransport = errors.New("subscriptions are not available on this transport")

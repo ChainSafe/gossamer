@@ -4,7 +4,9 @@ PROJECTNAME=$(shell basename "$(PWD)")
 GOLANGCI := $(GOPATH)/bin/golangci-lint
 COMPANY=chainsafe
 NAME=gossamer
+ifndef VERSION
 VERSION=latest
+endif
 FULLDOCKERNAME=$(COMPANY)/$(NAME):$(VERSION)
 
 .PHONY: help lint test install build clean start docker gossamer
