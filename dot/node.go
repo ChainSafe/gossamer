@@ -36,6 +36,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// test
 var logger = log.New("pkg", "dot")
 
 // Node is a container for all the components of a node.
