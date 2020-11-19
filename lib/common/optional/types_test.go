@@ -43,7 +43,7 @@ func TestBooleanSet(t *testing.T) {
 		t.Fatal("value should be false")
 	}
 
-	testBool.Set(true, true)
+	testBool.Set(true)
 
 	if !testBool.Exists() {
 		t.Fatal("exist should be true")
@@ -62,7 +62,7 @@ func TestBooleanExists(t *testing.T) {
 	}
 
 	// TODO: confirm if setting should set Exists value to true
-	testBool.Set(true, false)
+	testBool.Set(false)
 	if !testBool.Exists() {
 		t.Fatal("exist should be true")
 	}
@@ -75,7 +75,7 @@ func TestBooleanValue(t *testing.T) {
 		t.Fatal("value should be false")
 	}
 
-	testBool.Set(false, true)
+	testBool.Set(true)
 	if !testBool.Value() {
 		t.Fatal("exist should be true")
 	}
@@ -92,7 +92,7 @@ func TestBooleanEncode(t *testing.T) {
 	}
 
 	// Possibly redundant
-	testBool.Set(true, true)
+	testBool.Set(true)
 
 	_, err = testBool.Encode()
 	if err != nil {
@@ -126,7 +126,7 @@ func TestBooleanDecode(t *testing.T) {
 		t.Fatal("decoded value should be false")
 	}
 
-	testBool.Set(true, true)
+	testBool.Set(true)
 	encoded, err = testBool.Encode()
 
 	if err != nil {
@@ -149,32 +149,7 @@ func TestBooleanDecode(t *testing.T) {
 	if !decoded.Value() {
 		t.Fatal("decoded value should be true")
 	}
-
-	testBool.Set(false, true)
-	encoded, err = testBool.Encode()
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buf = &bytes.Buffer{}
-	buf.Write(encoded)
-
-	decoded, decodeError = testBool.Decode(buf)
-
-	if decodeError != nil {
-		t.Fatal(decodeError)
-	}
-
-	if decoded.Exists() {
-		t.Fatal("decoded exist should be false")
-	}
-
-	if !decoded.Value() {
-		t.Fatal("decoded value should be true")
-	}
-
-	testBool.Set(true, false)
+	testBool.Set(false)
 	encoded, err = testBool.Encode()
 
 	if err != nil {

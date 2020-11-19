@@ -171,8 +171,8 @@ func (x *Boolean) Value() bool {
 }
 
 // Set sets the exists and value fields.
-func (x *Boolean) Set(exists bool, value bool) {
-	x.exists = exists
+func (x *Boolean) Set(value bool) {
+	x.exists = true
 	x.value = value
 }
 
@@ -181,35 +181,40 @@ func (x *Boolean) Encode() ([]byte, error) {
 	if !x.exists {
 		return []byte{0}, nil
 	}
+	var encodeValue []byte
 
-	value, err := scale.Encode(x.value)
-	if err != nil {
-		return nil, err
+	if !x.exists {
+		encodeValue = []byte{0}
+	} else if !x.value {
+		encodeValue = []byte{1}
+	} else {
+		encodeValue = []byte{2}
 	}
 
-	return append([]byte{1}, value...), nil
+	return encodeValue, nil
 }
 
 // Decode return an optional Boolean from scale encoded data
 func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
+	decoded, err := common.ReadByte(r)
 
-	if exists > 1 {
+	if err != nil {
 		return nil, errors.New("Decoding failed, invalid optional")
 	}
 
-	x.exists = (exists != 0)
+	if decoded > 2 {
+		return nil, errors.New("Decoding failed, invalid optional")
+	}
 
-	if x.exists {
-		sd := scale.Decoder{Reader: r}
-		value, err := sd.DecodeBool()
-		if err != nil {
-			return nil, err
-		}
-		x.value = value
+	if decoded == 0 {
+		x.exists = false
+		x.value = false
+	} else if decoded == 1 {
+		x.exists = true
+		x.value = false
+	} else {
+		x.exists = true
+		x.value = true
 	}
 
 	return x, nil
