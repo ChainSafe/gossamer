@@ -261,14 +261,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// create GRANDPA service
-	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, fg)
-	dh.SetFinalityGadget(fg)
-
 	// Syncer
 	syncer, err := createSyncService(cfg, stateSrvc, bp, dh, ver, rt)
 	if err != nil {
@@ -289,6 +281,14 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		// do not create or append network service if network service is not enabled
 		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
 	}
+
+	// create GRANDPA service
+	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, fg)
+	dh.SetFinalityGadget(fg)
 
 	// Core Service
 

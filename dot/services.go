@@ -307,7 +307,7 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -331,6 +331,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 		SetID:         1,
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
+		Network:       net,
 	}
 
 	if cfg.Core.GrandpaAuthority {

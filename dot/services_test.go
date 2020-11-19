@@ -88,7 +88,7 @@ func TestCreateCoreService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
@@ -214,7 +214,7 @@ func TestCreateRPCService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
@@ -288,7 +288,7 @@ func TestCreateGrandpaService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, &network.Service{})
 	require.NoError(t, err)
 	require.NotNil(t, gs)
 }
@@ -338,7 +338,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc, nil, nil)
 	require.NoError(t, err)
 
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran)
+	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	require.NoError(t, err)
 
 	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
