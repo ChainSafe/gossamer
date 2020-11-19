@@ -145,4 +145,6 @@ func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 		"peer", s.Conn().RemotePeer(),
 		"protocol", s.Protocol(),
 	)
+
+	// TODO: on stream close, clear notifications protocol data for this peer
 }
