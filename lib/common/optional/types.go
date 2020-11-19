@@ -188,9 +188,9 @@ func (x *Boolean) Value() bool {
 
 	if x.value[1] == 1 {
 		return true
-	} else {
-		return false
 	}
+
+	return false
 }
 
 // Encode returns the SCALE encoded optional
