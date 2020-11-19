@@ -170,6 +170,12 @@ func (x *Boolean) Value() bool {
 	return x.value
 }
 
+// Set sets the exists and value fields.
+func (x *Boolean) Set(exists bool, value bool) {
+	x.exists = exists
+	x.value = value
+}
+
 // Encode returns the SCALE encoded optional
 func (x *Boolean) Encode() ([]byte, error) {
 	if !x.exists {

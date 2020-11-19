@@ -17,6 +17,7 @@
 package optional
 
 import (
+	"bytes"
 	"testing"
 )
 
@@ -32,7 +33,7 @@ func TestNewBoolean(t *testing.T) {
 	}
 }
 
-func TestSet(t *testing.T) {
+func TestBooleanSet(t *testing.T) {
 	testBool := NewBoolean(false, false)
 
 	if testBool.Exists() {
@@ -52,7 +53,7 @@ func TestSet(t *testing.T) {
 	}
 }
 
-func TestExists(t *testing.T) {
+func TestBooleanExists(t *testing.T) {
 	// Non-existant
 	testBool := NewBoolean(false, false)
 
@@ -67,8 +68,7 @@ func TestExists(t *testing.T) {
 	}
 }
 
-func TestValue(t *testing.T) {
-	// Non-existant
+func TestBooleanValue(t *testing.T) {
 	testBool := NewBoolean(false, false)
 
 	if testBool.Value() {
@@ -78,5 +78,48 @@ func TestValue(t *testing.T) {
 	testBool.Set(false, true)
 	if !testBool.Value() {
 		t.Fatal("exist should be true")
+	}
+}
+
+func TestBooleanEncode(t *testing.T) {
+	// Non-existant
+	testBool := NewBoolean(false, false)
+
+	_, err := testBool.Encode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Possibly redundant
+	testBool.Set(true, true)
+
+	_, err = testBool.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func TestBooleanDecode(t *testing.T) {
+	testBool := NewBoolean(true, false)
+
+	encoded, err := testBool.Encode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := &bytes.Buffer{}
+	buf.Write(encoded)
+
+	decoded, decodeError := testBool.Decode(buf)
+
+	if decodeError != nil {
+		t.Fatal(decodeError)
+	}
+
+	if !decoded.Exists() {
+		t.Fatal("decoded value incorrect")
 	}
 }
