@@ -111,7 +111,7 @@ docker-build:
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
 
 gossamer: clean
-	GOBIN=$(PWD)/bin go run scripts/ci.go install
+	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..
 
 ## install: install the gossamer binary in $GOPATH/bin
 install:
