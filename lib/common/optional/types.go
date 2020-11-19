@@ -146,12 +146,13 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	return x, nil
 }
 
+// Boolean represents an optional bool type.
 type Boolean struct {
 	exists bool
 	value  bool
 }
 
-// NewBytes returns a new optional.Bytes
+// NewBoolean returns a new optional.Boolean
 func NewBoolean(exists bool, value bool) *Boolean {
 	return &Boolean{
 		exists: exists,
