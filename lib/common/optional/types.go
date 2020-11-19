@@ -146,6 +146,68 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	return x, nil
 }
 
+type Boolean struct {
+	exists bool
+	value  bool
+}
+
+// NewBytes returns a new optional.Bytes
+func NewBoolean(exists bool, value bool) *Boolean {
+	return &Boolean{
+		exists: exists,
+		value:  value,
+	}
+}
+
+// Exists returns true if the value is Some, false if it is None.
+func (x *Boolean) Exists() bool {
+	return x.exists
+}
+
+// Value returns the []byte value. It returns nil if it is None.
+func (x *Boolean) Value() bool {
+	return x.value
+}
+
+// Encode returns the SCALE encoded optional
+func (x *Boolean) Encode() ([]byte, error) {
+	if !x.exists {
+		return []byte{0}, nil
+	}
+
+	value, err := scale.Encode(x.value)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{1}, value...), nil
+}
+
+// Decode return an optional Boolean from scale encoded data
+func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
+	exists, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists > 1 {
+		return nil, errors.New("Decoding failed, invalid optional")
+	}
+
+	x.exists = (exists != 0)
+
+	if x.exists {
+		sd := scale.Decoder{Reader: r}
+		value, err := sd.DecodeBool()
+		if err != nil {
+			return nil, err
+		}
+		x.value = value
+	}
+
+	return x, nil
+}
+
 // Hash represents an optional Hash type.
 type Hash struct {
 	exists bool
