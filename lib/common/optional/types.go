@@ -146,17 +146,33 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	return x, nil
 }
 
+// Boolean represents an optional bool type.
 type Boolean struct {
 	exists bool
-	value  bool
+	value  [2]byte
 }
 
-// NewBytes returns a new optional.Bytes
+// NewBoolean returns a new optional.Boolean
 func NewBoolean(exists bool, value bool) *Boolean {
-	return &Boolean{
-		exists: exists,
-		value:  value,
+	var boolValue byte
+	if value {
+		boolValue = 1
+	} else {
+		boolValue = 0
 	}
+	if exists {
+
+		return &Boolean{
+			exists: exists,
+			value:  [2]byte{1, boolValue},
+		}
+	} else {
+		return &Boolean{
+			exists: exists,
+			value:  [2]byte{1, boolValue},
+		}
+	}
+
 }
 
 // Exists returns true if the value is Some, false if it is None.
@@ -164,9 +180,17 @@ func (x *Boolean) Exists() bool {
 	return x.exists
 }
 
-// Value returns the []byte value. It returns nil if it is None.
+// Value returns the bool value. It returns nil if it is None.
 func (x *Boolean) Value() bool {
-	return x.value
+	if !x.exists {
+		return false
+	}
+
+	if x.value[1] == 1 {
+		return true
+	} else {
+		return false
+	}
 }
 
 // Encode returns the SCALE encoded optional
@@ -198,11 +222,11 @@ func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
 
 	if x.exists {
 		sd := scale.Decoder{Reader: r}
-		value, err := sd.DecodeBool()
+		value, err := sd.DecodeByteArray()
 		if err != nil {
 			return nil, err
 		}
-		x.value = value
+		x.value = [2]byte{value[0], value[1]}
 	}
 
 	return x, nil
