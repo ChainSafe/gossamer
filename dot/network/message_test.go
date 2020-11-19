@@ -432,7 +432,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 
 }
 
-func TestDecodeBlockAnnounceMessage(t *testing.T) {
+func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400")
 	require.Nil(t, err)
 
