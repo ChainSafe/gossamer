@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,10 +30,50 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	log "github.com/ChainSafe/log15"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
 )
 
 var testTimeout = 20 * time.Second
+
+type testNetwork struct {
+	t         *testing.T
+	out       chan GrandpaMessage
+	finalized chan GrandpaMessage
+}
+
+func newTestNetwork(t *testing.T) *testNetwork {
+	return &testNetwork{
+		t:         t,
+		out:       make(chan GrandpaMessage, 128),
+		finalized: make(chan GrandpaMessage, 128),
+	}
+}
+
+func (n *testNetwork) SendMessage(msg Message) {
+	cm, ok := msg.(*ConsensusMessage)
+	require.True(n.t, ok)
+
+	gmsg, err := decodeMessage(cm)
+	require.NoError(n.t, err)
+
+	if gmsg.Type() == finalizationType {
+		n.finalized <- gmsg
+	} else {
+		n.out <- gmsg
+	}
+}
+
+func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
+	messageID byte,
+	handshakeGetter network.HandshakeGetter,
+	handshakeDecoder network.HandshakeDecoder,
+	handshakeValidator network.HandshakeValidator,
+	messageDecoder network.MessageDecoder,
+	messageHandler network.NotificationsMessageHandler,
+) error {
+	return nil
+}
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -50,9 +91,10 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan FinalityMessage, chan FinalityMessage, chan FinalityMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	voters := newTestVoters()
+	net := newTestNetwork(t)
 
 	cfg := &Config{
 		BlockState:    st.Block,
@@ -61,11 +103,12 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan FinalityMes
 		Keypair:       kp,
 		LogLvl:        log.LvlTrace,
 		Authority:     true,
+		Network:       net,
 	}
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	return gs, gs.in, gs.out, gs.finalized
+	return gs, gs.in, net.out, net.finalized
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
@@ -158,7 +201,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, done *bool) {
+func broadcastVotes(from <-chan GrandpaMessage, to []chan GrandpaMessage, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			if *done {
@@ -170,7 +213,7 @@ func broadcastVotes(from <-chan FinalityMessage, to []chan FinalityMessage, done
 	}
 }
 
-func cleanup(gs *Service, in, out chan FinalityMessage, done *bool) { //nolint
+func cleanup(gs *Service, in, out chan GrandpaMessage, done *bool) { //nolint
 	*done = true
 	close(in)
 	gs.cancel()
@@ -183,9 +226,9 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan FinalityMessage, len(kr.Keys))
-	outs := make([]chan FinalityMessage, len(kr.Keys))
-	fins := make([]chan FinalityMessage, len(kr.Keys))
+	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	outs := make([]chan GrandpaMessage, len(kr.Keys))
+	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
 
 	for i := range gss {
@@ -215,7 +258,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	finalized := make([]*FinalizationMessage, len(kr.Keys))
 
 	for i, fin := range fins {
-		go func(i int, fin <-chan FinalityMessage) {
+		go func(i int, fin <-chan GrandpaMessage) {
 			select {
 			case f := <-fin:
 
@@ -260,9 +303,9 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan FinalityMessage, len(kr.Keys))
-	outs := make([]chan FinalityMessage, len(kr.Keys))
-	fins := make([]chan FinalityMessage, len(kr.Keys))
+	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	outs := make([]chan GrandpaMessage, len(kr.Keys))
+	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
 
 	// this represents the chains that will be slightly ahead of the others
@@ -314,7 +357,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan FinalityMessage) {
+		go func(i int, fin <-chan GrandpaMessage) {
 			select {
 			case f := <-fin:
 
@@ -357,9 +400,9 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan FinalityMessage, len(kr.Keys))
-	outs := make([]chan FinalityMessage, len(kr.Keys))
-	fins := make([]chan FinalityMessage, len(kr.Keys))
+	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	outs := make([]chan GrandpaMessage, len(kr.Keys))
+	fins := make([]chan GrandpaMessage, len(kr.Keys))
 
 	done := false
 	r := byte(rand.Intn(256))
@@ -411,7 +454,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 	for i, fin := range fins {
 
-		go func(i int, fin <-chan FinalityMessage) {
+		go func(i int, fin <-chan GrandpaMessage) {
 			select {
 			case f := <-fin:
 
@@ -454,9 +497,9 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan FinalityMessage, len(kr.Keys))
-	outs := make([]chan FinalityMessage, len(kr.Keys))
-	fins := make([]chan FinalityMessage, len(kr.Keys))
+	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	outs := make([]chan GrandpaMessage, len(kr.Keys))
+	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
 
 	for i := range gss {
@@ -492,7 +535,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 
 		for i, fin := range fins {
 
-			go func(i int, fin <-chan FinalityMessage) {
+			go func(i int, fin <-chan GrandpaMessage) {
 				select {
 				case f := <-fin:
 

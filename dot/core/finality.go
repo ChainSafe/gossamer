@@ -16,74 +16,74 @@
 
 package core
 
-import (
-	"context"
+// import (
+// 	"context"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-)
+// 	"github.com/ChainSafe/gossamer/dot/network"
+// )
 
-// processConsensusMessage routes a consensus message from the network to the finality gadget
-func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
-	out, err := s.consensusMessageHandler.HandleMessage(msg)
-	if err != nil {
-		return err
-	}
+// // processConsensusMessage routes a consensus message from the network to the finality gadget
+// func (s *Service) processConsensusMessage(msg *network.ConsensusMessage) error {
+// 	out, err := s.consensusMessageHandler.HandleMessage(msg)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if out != nil {
-		s.net.SendMessage(out)
-		return nil
-	}
+// 	if out != nil {
+// 		s.net.SendMessage(out)
+// 		return nil
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// sendVoteMessages routes a VoteMessage from the finality gadget to the network
-func (s *Service) sendVoteMessages(ctx context.Context) {
-	out := s.finalityGadget.GetVoteOutChannel()
+// // sendVoteMessages routes a VoteMessage from the finality gadget to the network
+// func (s *Service) sendVoteMessages(ctx context.Context) {
+// 	out := s.finalityGadget.GetVoteOutChannel()
 
-	for {
-		select {
-		case v := <-out:
-			if v == nil {
-				continue
-			}
+// 	for {
+// 		select {
+// 		case v := <-out:
+// 			if v == nil {
+// 				continue
+// 			}
 
-			msg, err := v.ToConsensusMessage()
-			if err != nil {
-				s.logger.Error("failed to convert VoteMessage to ConsensusMessage", "msg", msg)
-				continue
-			}
+// 			msg, err := v.ToConsensusMessage()
+// 			if err != nil {
+// 				s.logger.Error("failed to convert VoteMessage to ConsensusMessage", "msg", msg)
+// 				continue
+// 			}
 
-			s.logger.Debug("sending VoteMessage to network", "msg", msg)
-			s.net.SendMessage(msg)
-		case <-ctx.Done():
-			return
-		}
-	}
-}
+// 			s.logger.Debug("sending VoteMessage to network", "msg", msg)
+// 			s.net.SendMessage(msg)
+// 		case <-ctx.Done():
+// 			return
+// 		}
+// 	}
+// }
 
-// sendFinalityMessages routes a FinalizationMessage from the finality gadget to the network
-func (s *Service) sendFinalizationMessages(ctx context.Context) {
-	out := s.finalityGadget.GetFinalizedChannel()
+// // sendFinalityMessages routes a FinalizationMessage from the finality gadget to the network
+// func (s *Service) sendFinalizationMessages(ctx context.Context) {
+// 	out := s.finalityGadget.GetFinalizedChannel()
 
-	for {
-		select {
-		case v := <-out:
-			if v == nil {
-				continue
-			}
+// 	for {
+// 		select {
+// 		case v := <-out:
+// 			if v == nil {
+// 				continue
+// 			}
 
-			s.logger.Info("finalized block!!!", "msg", v)
-			msg, err := v.ToConsensusMessage()
-			if err != nil {
-				s.logger.Error("failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
-				continue
-			}
+// 			s.logger.Info("finalized block!!!", "msg", v)
+// 			msg, err := v.ToConsensusMessage()
+// 			if err != nil {
+// 				s.logger.Error("failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
+// 				continue
+// 			}
 
-			s.logger.Debug("sending FinalityMessage to network", "msg", v)
-			s.net.SendMessage(msg)
-		case <-ctx.Done():
-			return
-		}
-	}
-}
+// 			s.logger.Debug("sending FinalityMessage to network", "msg", v)
+// 			s.net.SendMessage(msg)
+// 		case <-ctx.Done():
+// 			return
+// 		}
+// 	}
+// }

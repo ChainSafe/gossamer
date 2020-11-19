@@ -16,64 +16,64 @@
 
 package core
 
-import (
-	"context"
-	"testing"
-	"time"
+// import (
+// 	"context"
+// 	"testing"
+// 	"time"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestProcessConsensusMessage(t *testing.T) {
-	fg := &mockFinalityGadget{
-		in:        make(chan FinalityMessage, 2),
-		out:       make(chan FinalityMessage, 2),
-		finalized: make(chan FinalityMessage, 2),
-	}
+// func TestProcessConsensusMessage(t *testing.T) {
+// 	fg := &mockFinalityGadget{
+// 		in:        make(chan FinalityMessage, 2),
+// 		out:       make(chan FinalityMessage, 2),
+// 		finalized: make(chan FinalityMessage, 2),
+// 	}
 
-	s := NewTestService(t, &Config{
-		FinalityGadget: fg,
-	})
-	err := s.processConsensusMessage(testConsensusMessage)
-	require.NoError(t, err)
-}
+// 	s := NewTestService(t, &Config{
+// 		FinalityGadget: fg,
+// 	})
+// 	err := s.processConsensusMessage(testConsensusMessage)
+// 	require.NoError(t, err)
+// }
 
-func TestSendVoteMessages(t *testing.T) {
-	fg := &mockFinalityGadget{
-		in:        make(chan FinalityMessage, 2),
-		out:       make(chan FinalityMessage, 2),
-		finalized: make(chan FinalityMessage, 2),
-	}
+// func TestSendVoteMessages(t *testing.T) {
+// 	fg := &mockFinalityGadget{
+// 		in:        make(chan FinalityMessage, 2),
+// 		out:       make(chan FinalityMessage, 2),
+// 		finalized: make(chan FinalityMessage, 2),
+// 	}
 
-	net := new(mockNetwork)
-	s := NewTestService(t, &Config{
-		Network:        net,
-		FinalityGadget: fg,
-	})
+// 	net := new(mockNetwork)
+// 	s := NewTestService(t, &Config{
+// 		Network:        net,
+// 		FinalityGadget: fg,
+// 	})
 
-	go s.sendVoteMessages(context.Background())
-	fg.out <- &mockFinalityMessage{}
+// 	go s.sendVoteMessages(context.Background())
+// 	fg.out <- &mockFinalityMessage{}
 
-	time.Sleep(testMessageTimeout)
-	require.Equal(t, testConsensusMessage, net.Message)
-}
+// 	time.Sleep(testMessageTimeout)
+// 	require.Equal(t, testConsensusMessage, net.Message)
+// }
 
-func TestSendFinalizationMessages(t *testing.T) {
-	fg := &mockFinalityGadget{
-		in:        make(chan FinalityMessage, 2),
-		out:       make(chan FinalityMessage, 2),
-		finalized: make(chan FinalityMessage, 2),
-	}
+// func TestSendFinalizationMessages(t *testing.T) {
+// 	fg := &mockFinalityGadget{
+// 		in:        make(chan FinalityMessage, 2),
+// 		out:       make(chan FinalityMessage, 2),
+// 		finalized: make(chan FinalityMessage, 2),
+// 	}
 
-	net := new(mockNetwork)
-	s := NewTestService(t, &Config{
-		FinalityGadget: fg,
-		Network:        net,
-	})
+// 	net := new(mockNetwork)
+// 	s := NewTestService(t, &Config{
+// 		FinalityGadget: fg,
+// 		Network:        net,
+// 	})
 
-	go s.sendFinalizationMessages(context.Background())
-	fg.finalized <- &mockFinalityMessage{}
+// 	go s.sendFinalizationMessages(context.Background())
+// 	fg.finalized <- &mockFinalityMessage{}
 
-	time.Sleep(testMessageTimeout)
-	require.Equal(t, testConsensusMessage, net.Message)
-}
+// 	time.Sleep(testMessageTimeout)
+// 	require.Equal(t, testConsensusMessage, net.Message)
+// }

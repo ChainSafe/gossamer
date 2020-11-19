@@ -41,7 +41,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) HandleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
 	m, err := decodeMessage(msg)
 	if err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 }
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or FinalizationMessage
-func decodeMessage(msg *ConsensusMessage) (m FinalityMessage, err error) {
+func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 	var (
 		mi interface{}
 		ok bool

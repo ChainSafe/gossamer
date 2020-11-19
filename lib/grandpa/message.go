@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/core"
+	//"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -13,25 +13,26 @@ import (
 )
 
 // FinalityMessage is an alias for the core.FinalityMessage interface
-type FinalityMessage = core.FinalityMessage
-
-// ConsensusMessage is an alias for network.ConsensusMessage
-type ConsensusMessage = network.ConsensusMessage
-
-// GetVoteOutChannel returns a read-only VoteMessage channel
-func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
-	return s.out
+//type FinalityMessage = core.FinalityMessage
+type GrandpaMessage interface {
+	ToConsensusMessage() (*network.ConsensusMessage, error)
+	Type() byte
 }
 
-// GetVoteInChannel returns a write-only VoteMessage channel
-func (s *Service) GetVoteInChannel() chan<- FinalityMessage {
-	return s.in
-}
+// // GetVoteOutChannel returns a read-only VoteMessage channel
+// func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
+// 	return s.out
+// }
 
-// GetFinalizedChannel returns a read-only FinalizationMessage channel
-func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
-	return s.finalized
-}
+// // GetVoteInChannel returns a write-only VoteMessage channel
+// func (s *Service) GetVoteInChannel() chan<- FinalityMessage {
+// 	return s.in
+// }
+
+// // GetFinalizedChannel returns a read-only FinalizationMessage channel
+// func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
+// 	return s.finalized
+// }
 
 var (
 	voteType            byte = 0

@@ -78,23 +78,23 @@ type TransactionState interface {
 type FinalityGadget interface {
 	services.Service
 
-	GetVoteOutChannel() <-chan FinalityMessage
-	GetVoteInChannel() chan<- FinalityMessage
-	GetFinalizedChannel() <-chan FinalityMessage
+	// GetVoteOutChannel() <-chan FinalityMessage
+	// GetVoteInChannel() chan<- FinalityMessage
+	// GetFinalizedChannel() <-chan FinalityMessage
 	UpdateAuthorities(ad []*types.Authority)
 	Authorities() []*types.Authority
 }
 
-// FinalityMessage is the interface a finality message must implement
-type FinalityMessage interface {
-	ToConsensusMessage() (*network.ConsensusMessage, error)
-	Type() byte
-}
+// // FinalityMessage is the interface a finality message must implement
+// type FinalityMessage interface {
+// 	ToConsensusMessage() (*network.ConsensusMessage, error)
+// 	Type() byte
+// }
 
-// ConsensusMessageHandler is the interface a consensus message handler must implement
-type ConsensusMessageHandler interface {
-	HandleMessage(*network.ConsensusMessage) (*network.ConsensusMessage, error)
-}
+// // ConsensusMessageHandler is the interface a consensus message handler must implement
+// type ConsensusMessageHandler interface {
+// 	HandleMessage(*network.ConsensusMessage) (*network.ConsensusMessage, error)
+// }
 
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {

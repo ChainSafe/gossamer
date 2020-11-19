@@ -19,8 +19,11 @@ package grandpa
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 // BlockState is the interface required by GRANDPA into the block state
@@ -50,4 +53,16 @@ type BlockState interface {
 // DigestHandler is the interface required by GRANDPA for the digest handler
 type DigestHandler interface {
 	NextGrandpaAuthorityChange() uint64
+}
+
+type Network interface {
+	SendMessage(msg network.Message)
+	RegisterNotificationsProtocol(sub protocol.ID,
+		messageID byte,
+		handshakeGetter network.HandshakeGetter,
+		handshakeDecoder network.HandshakeDecoder,
+		handshakeValidator network.HandshakeValidator,
+		messageDecoder network.MessageDecoder,
+		messageHandler network.NotificationsMessageHandler,
+	) error
 }

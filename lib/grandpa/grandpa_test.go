@@ -84,6 +84,7 @@ func newTestVoters() []*Voter {
 func newTestService(t *testing.T) (*Service, *state.Service) {
 	st := newTestState(t)
 	voters := newTestVoters()
+	net := newTestNetwork(t)
 
 	cfg := &Config{
 		BlockState:    st.Block,
@@ -91,6 +92,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 		Voters:        voters,
 		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
+		Network:       net,
 	}
 
 	gs, err := NewService(cfg)
