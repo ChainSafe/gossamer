@@ -98,11 +98,10 @@ func TestBooleanEncode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 func TestBooleanDecode(t *testing.T) {
-	testBool := NewBoolean(true, false)
+	testBool := NewBoolean(false, false)
 
 	encoded, err := testBool.Encode()
 
@@ -119,7 +118,83 @@ func TestBooleanDecode(t *testing.T) {
 		t.Fatal(decodeError)
 	}
 
+	if decoded.Exists() {
+		t.Fatal("decoded exist should be false")
+	}
+
+	if decoded.Value() {
+		t.Fatal("decoded value should be false")
+	}
+
+	testBool.Set(true, true)
+	encoded, err = testBool.Encode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf = &bytes.Buffer{}
+	buf.Write(encoded)
+
+	decoded, decodeError = testBool.Decode(buf)
+
+	if decodeError != nil {
+		t.Fatal(decodeError)
+	}
+
 	if !decoded.Exists() {
-		t.Fatal("decoded value incorrect")
+		t.Fatal("decoded exist should be true")
+	}
+
+	if !decoded.Value() {
+		t.Fatal("decoded value should be true")
+	}
+
+	testBool.Set(false, true)
+	encoded, err = testBool.Encode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf = &bytes.Buffer{}
+	buf.Write(encoded)
+
+	decoded, decodeError = testBool.Decode(buf)
+
+	if decodeError != nil {
+		t.Fatal(decodeError)
+	}
+
+	if decoded.Exists() {
+		t.Fatal("decoded exist should be false")
+	}
+
+	if !decoded.Value() {
+		t.Fatal("decoded value should be true")
+	}
+
+	testBool.Set(true, false)
+	encoded, err = testBool.Encode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf = &bytes.Buffer{}
+	buf.Write(encoded)
+
+	decoded, decodeError = testBool.Decode(buf)
+
+	if decodeError != nil {
+		t.Fatal(decodeError)
+	}
+
+	if !decoded.Exists() {
+		t.Fatal("decoded exist should be true")
+	}
+
+	if decoded.Value() {
+		t.Fatal("decoded value should be false")
 	}
 }
