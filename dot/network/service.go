@@ -459,6 +459,9 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 		return err
 	}
 
+	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage.
+	logger.Debug("LightResponse: ", resp.String())
+
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
 		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
