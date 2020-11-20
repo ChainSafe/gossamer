@@ -24,6 +24,10 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
+func (l LightRequest) IsHandshake() bool {
+	return false
+}
+
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(l)
@@ -49,7 +53,7 @@ func (l LightRequest) String() string {
 }
 
 // Type returns LightRequestType
-func (l LightRequest) Type() int {
+func (l LightRequest) Type() byte {
 	return LightRequestType
 }
 
@@ -64,6 +68,10 @@ type LightResponse struct {
 	RmtReadResponse   *RemoteReadResponse
 	RmtHeaderResponse *RemoteHeaderResponse
 	RmtChangeResponse *RemoteChangesResponse
+}
+
+func (l LightResponse) IsHandshake() bool {
+	return false
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
@@ -90,7 +98,7 @@ func (l LightResponse) String() string {
 }
 
 // Type returns LightResponseType
-func (l LightResponse) Type() int {
+func (l LightResponse) Type() byte {
 	return LightResponseType
 }
 
