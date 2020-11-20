@@ -211,3 +211,24 @@ func TestService_NodeRoles(t *testing.T) {
 	role := svc.NodeRoles()
 	require.Equal(t, cfg.Roles, role)
 }
+
+func TestService_Health(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	defer utils.RemoveTestDir(t)
+
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		NoStatus:    true,
+	}
+
+	s := createTestService(t, config)
+
+	require.Equal(t, s.Health().IsSyncing, true)
+
+	// TODO: Scenario where is not syncing
+
+}
