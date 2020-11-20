@@ -438,17 +438,18 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 
 	var resp LightResponse
 	var err error
-	if lr.RmtCallRequest != nil {
+	switch {
+	case lr.RmtCallRequest != nil:
 		resp.RmtCallResponse, err = remoteCallResp(peer, lr.RmtCallRequest)
-	} else if lr.RmtHeaderRequest != nil {
+	case lr.RmtHeaderRequest != nil:
 		resp.RmtHeaderResponse, err = remoteHeaderResp(peer, lr.RmtHeaderRequest)
-	} else if lr.RmtChangesRequest != nil {
+	case lr.RmtChangesRequest != nil:
 		resp.RmtChangeResponse, err = remoteChangeResp(peer, lr.RmtChangesRequest)
-	} else if lr.RmtReadRequest != nil {
+	case lr.RmtReadRequest != nil:
 		resp.RmtReadResponse, err = remoteReadResp(peer, lr.RmtReadRequest)
-	} else if lr.RmtReadChildRequest != nil {
+	case lr.RmtReadChildRequest != nil:
 		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
-	} else {
+	default:
 		logger.Error("ignoring request without request data from peer {}", peer)
 		return nil
 	}
