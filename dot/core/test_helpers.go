@@ -103,9 +103,6 @@ func (n *mockNetwork) SendMessage(m network.Message) {
 
 // mockFinalityGadget implements the FinalityGadget interface
 type mockFinalityGadget struct {
-	// in        chan FinalityMessage
-	// out       chan FinalityMessage
-	// finalized chan FinalityMessage
 	auths []*types.Authority
 }
 
@@ -118,26 +115,6 @@ func (fg *mockFinalityGadget) Start() error {
 func (fg *mockFinalityGadget) Stop() error {
 	return nil
 }
-
-// // GetVoteOutChannel returns the out channel
-// func (fg *mockFinalityGadget) GetVoteOutChannel() <-chan FinalityMessage {
-// 	return fg.out
-// }
-
-// // GetVoteInChannel returns the in channel
-// func (fg *mockFinalityGadget) GetVoteInChannel() chan<- FinalityMessage {
-// 	return fg.in
-// }
-
-// // GetFinalizedChannel returns the finalized channel
-// func (fg *mockFinalityGadget) GetFinalizedChannel() <-chan FinalityMessage {
-// 	return fg.finalized
-// }
-
-// // DecodeMessage returns a mockFinalityMessage
-// func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error) {
-// 	return &mockFinalityMessage{}, nil
-// }
 
 func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
 	fg.auths = ad
@@ -223,10 +200,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.TransactionState == nil {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
-
-	// if cfg.ConsensusMessageHandler == nil {
-	// 	cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
-	// }
 
 	if cfg.Network == nil {
 		basePath := utils.NewTestBasePath(t, "node")

@@ -19,21 +19,6 @@ type GrandpaMessage interface {
 	Type() byte
 }
 
-// // GetVoteOutChannel returns a read-only VoteMessage channel
-// func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
-// 	return s.out
-// }
-
-// // GetVoteInChannel returns a write-only VoteMessage channel
-// func (s *Service) GetVoteInChannel() chan<- FinalityMessage {
-// 	return s.in
-// }
-
-// // GetFinalizedChannel returns a read-only FinalizationMessage channel
-// func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
-// 	return s.finalized
-// }
-
 var (
 	voteType            byte = 0
 	precommitType       byte = 1

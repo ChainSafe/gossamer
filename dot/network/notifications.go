@@ -200,6 +200,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			err = s.host.send(peer, info.subProtocol, hs)
 		} else {
 			// we've already completed the handshake with the peer, send message directly
+			logger.Trace("sending message", "protocol", info.subProtocol, "peer", peer, "message", msg)
 			err = s.host.send(peer, info.subProtocol, msg)
 		}
 

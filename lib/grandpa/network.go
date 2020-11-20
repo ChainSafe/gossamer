@@ -21,13 +21,16 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
 var (
-	grandpaID = "/paritytech/grandpa/1"
-	messageID = network.ConsensusMsgType
+	grandpaID protocol.ID = "/paritytech/grandpa/1"
+	messageID             = network.ConsensusMsgType
 )
 
 // Handshake is an alias for network.Handshake
@@ -76,8 +79,15 @@ func (hs *GrandpaHandshake) IsHandshake() bool {
 	return true
 }
 
-func (s *Service) registerProtocol() {
-
+func (s *Service) registerProtocol() error {
+	return s.network.RegisterNotificationsProtocol(grandpaID,
+		messageID,
+		s.getHandshake,
+		s.decodeHandshake,
+		s.validateHandshake,
+		s.decodeMessage,
+		s.handleNetworkMessage,
+	)
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
@@ -113,6 +123,9 @@ func (s *Service) handleNetworkMessage(_ peer.ID, msg Message) error {
 		return err
 	}
 
-	s.network.SendMessage(resp)
+	if resp != nil {
+		s.network.SendMessage(resp)
+	}
+
 	return nil
 }

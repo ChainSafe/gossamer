@@ -89,7 +89,6 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	//s.out <- msg
 	s.network.SendMessage(cm)
 	s.logger.Trace("sent VoteMessage", "msg", msg)
 

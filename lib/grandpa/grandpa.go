@@ -73,8 +73,6 @@ type Service struct {
 
 	// channels for communication with other services
 	in chan GrandpaMessage // only used to receive *VoteMessage
-	//out       chan FinalityMessage // only used to send *VoteMessage
-	//finalized chan FinalityMessage // only used to send *FinalizationMessage; channel that finalized blocks are output from at the end of a round
 }
 
 // Config represents a GRANDPA service configuration
@@ -147,14 +145,18 @@ func NewService(cfg *Config) (*Service, error) {
 		justification:      make(map[uint64][]*Justification),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
-		// out:                make(chan FinalityMessage, 128),
-		// finalized:          make(chan FinalityMessage, 128),
-		resumed: make(chan struct{}),
-		network: cfg.Network,
+		resumed:            make(chan struct{}),
+		network:            cfg.Network,
 	}
 
 	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.paused.Store(false)
+
+	err = s.registerProtocol()
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -178,7 +180,6 @@ func (s *Service) Stop() error {
 	defer s.chanLock.Unlock()
 
 	s.cancel()
-	//close(s.out)
 
 	if !s.authority {
 		return nil

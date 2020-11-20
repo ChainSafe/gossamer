@@ -198,17 +198,14 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 		"authority", cfg.Core.Roles == types.AuthorityRole,
 	)
 
-	//handler := grandpa.NewMessageHandler(fg.(*grandpa.Service), stateSrvc.Block)
-
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:           cfg.Log.CoreLvl,
-		BlockState:       stateSrvc.Block,
-		StorageState:     stateSrvc.Storage,
-		TransactionState: stateSrvc.Transaction,
-		BlockProducer:    bp,
-		FinalityGadget:   fg,
-		//ConsensusMessageHandler: handler,
+		LogLvl:              cfg.Log.CoreLvl,
+		BlockState:          stateSrvc.Block,
+		StorageState:        stateSrvc.Storage,
+		TransactionState:    stateSrvc.Transaction,
+		BlockProducer:       bp,
+		FinalityGadget:      fg,
 		Keystore:            ks,
 		Runtime:             rt,
 		IsBlockProducer:     cfg.Core.BabeAuthority,
