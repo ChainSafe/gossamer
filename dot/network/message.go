@@ -34,21 +34,15 @@ import (
 
 //nolint
 const (
-	StatusMsgType             byte = 0
-	BlockRequestMsgType       byte = 1
-	BlockResponseMsgType      byte = 2
-	BlockAnnounceMsgType      byte = 3
-	TransactionMsgType        byte = 4
-	ConsensusMsgType          byte = 5
-	RemoteCallRequestType     byte = 6
-	RemoteCallResponseType    byte = 7
-	RemoteReadRequestType     byte = 8
-	RemoteReadResponseType    byte = 9
-	RemoteHeaderRequestType   byte = 10
-	RemoteHeaderResponseType  byte = 11
-	RemoteChangesRequestType  byte = 12
-	RemoteChangesResponseType byte = 13
-	ChainSpecificMsgType      byte = 255
+	StatusMsgType        byte = 0
+	BlockRequestMsgType  byte = 1
+	BlockResponseMsgType byte = 2
+	BlockAnnounceMsgType byte = 3
+	TransactionMsgType   byte = 4
+	ConsensusMsgType     byte = 5
+	LightRequestType     byte = 6
+	LightResponseType    byte = 7
+	ChainSpecificMsgType byte = 255
 )
 
 // Message interface
@@ -80,6 +74,12 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 		err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
+		err = m.Decode(r)
+	case LightRequestType:
+		m = new(LightRequest)
+		err = m.Decode(r)
+	case LightResponseType:
+		m = new(LightResponse)
 		err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)

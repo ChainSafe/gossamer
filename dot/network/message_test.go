@@ -571,6 +571,6 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	encodedMessage, err := expected.Encode()
 	require.Nil(t, err)
 
-	require.Equal(t, encMsg, encodedMessage[1:])
+	require.Equal(t, encMsg, encodedMessage)
 
 }
