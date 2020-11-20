@@ -9,11 +9,13 @@ import (
 
 type mockSyncer struct {
 	highestSeen *big.Int
+	synced      bool
 }
 
 func newMockSyncer() *mockSyncer {
 	return &mockSyncer{
 		highestSeen: big.NewInt(0),
+		synced:      false,
 	}
 }
 
@@ -47,4 +49,8 @@ func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *BlockRequestMessage {
 
 func (s *mockSyncer) GetSyncedState() bool {
 	return false
+}
+
+func (s *mockSyncer) SetSyncedState(newState bool) {
+	s.synced = newState
 }
