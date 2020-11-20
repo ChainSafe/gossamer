@@ -24,6 +24,7 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
+// IsHandshake returns false
 func (l LightRequest) IsHandshake() bool {
 	return false
 }
@@ -70,6 +71,7 @@ type LightResponse struct {
 	RmtChangeResponse *RemoteChangesResponse
 }
 
+// IsHandshake returns false
 func (l LightResponse) IsHandshake() bool {
 	return false
 }

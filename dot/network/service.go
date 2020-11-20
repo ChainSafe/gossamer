@@ -461,9 +461,8 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
 		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
-		return err
 	}
-	return nil
+	return err
 }
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
