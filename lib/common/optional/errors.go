@@ -18,5 +18,5 @@ package optional
 
 import "errors"
 
-// ErrOptionalDecode is returned when decoding an optional fails
-var ErrOptionalDecode = errors.New("decoding failed, invalid optional")
+// ErrInvalidOptional is returned when decoding an optional fails
+var ErrInvalidOptional = errors.New("decoding failed, invalid optional")

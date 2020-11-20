@@ -128,7 +128,7 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	}
 
 	if exists > 1 {
-		return nil, ErrOptionalDecode
+		return nil, ErrInvalidOptional
 	}
 
 	x.exists = (exists != 0)
@@ -196,11 +196,11 @@ func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
 	decoded, err := common.ReadByte(r)
 
 	if err != nil {
-		return nil, ErrOptionalDecode
+		return nil, ErrInvalidOptional
 	}
 
 	if decoded > 2 {
-		return nil, ErrOptionalDecode
+		return nil, ErrInvalidOptional
 	}
 
 	if decoded == 0 {

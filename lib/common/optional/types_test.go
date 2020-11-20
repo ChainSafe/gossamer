@@ -61,7 +61,6 @@ func TestBooleanExists(t *testing.T) {
 		t.Fatal("exist should be false")
 	}
 
-	// TODO: confirm if setting should set Exists value to true
 	testBool.Set(false)
 	if !testBool.Exists() {
 		t.Fatal("exist should be true")
