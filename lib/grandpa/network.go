@@ -21,7 +21,6 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
