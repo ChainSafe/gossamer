@@ -17,7 +17,6 @@
 package optional
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -129,7 +128,7 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	}
 
 	if exists > 1 {
-		return nil, errors.New("Decoding failed, invalid optional")
+		return nil, ErrOptionalDecode
 	}
 
 	x.exists = (exists != 0)
@@ -183,9 +182,7 @@ func (x *Boolean) Encode() ([]byte, error) {
 	}
 	var encodeValue []byte
 
-	if !x.exists {
-		encodeValue = []byte{0}
-	} else if !x.value {
+	if !x.value {
 		encodeValue = []byte{1}
 	} else {
 		encodeValue = []byte{2}
@@ -199,11 +196,11 @@ func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
 	decoded, err := common.ReadByte(r)
 
 	if err != nil {
-		return nil, errors.New("Decoding failed, invalid optional")
+		return nil, ErrOptionalDecode
 	}
 
 	if decoded > 2 {
-		return nil, errors.New("Decoding failed, invalid optional")
+		return nil, ErrOptionalDecode
 	}
 
 	if decoded == 0 {

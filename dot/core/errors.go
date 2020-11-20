@@ -21,10 +21,10 @@ import (
 	"fmt"
 )
 
-// ErrNilBlockState is returned when BlockState is nik
+// ErrNilBlockState is returned when BlockState is nil
 var ErrNilBlockState = errors.New("cannot have nil BlockState")
 
-// ErrNilStorageState is returned when StorageState is nik
+// ErrNilStorageState is returned when StorageState is nil
 var ErrNilStorageState = errors.New("cannot have nil StorageState")
 
 // ErrNilKeystore is returned when keystore is nil
