@@ -228,6 +228,9 @@ func TestService_Health(t *testing.T) {
 	s := createTestService(t, config)
 
 	require.Equal(t, s.Health().IsSyncing, true)
+	mockSync := s.syncer.(*mockSyncer)
+
+	mockSync.SetSyncedState(true)
 
 	// TODO: Scenario where is not syncing
 
