@@ -523,9 +523,10 @@ func (s *Service) handleStatusMesssage(statusMessage *StatusMessage) *BlockReque
 
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
+
 	return common.Health{
 		Peers:           s.host.peerCount(),
-		IsSyncing:       false, // TODO
+		IsSyncing:       !s.syncer.GetSyncedState(), // TODO: Assumtion is that if not synced, we are syncing
 		ShouldHavePeers: !s.noBootstrap,
 	}
 }
