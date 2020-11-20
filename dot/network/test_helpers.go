@@ -48,7 +48,7 @@ func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *BlockRequestMessage {
 }
 
 func (s *mockSyncer) GetSyncedState() bool {
-	return false
+	return s.synced
 }
 
 func (s *mockSyncer) SetSyncedState(newState bool) {
