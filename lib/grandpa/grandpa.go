@@ -151,18 +151,17 @@ func NewService(cfg *Config) (*Service, error) {
 
 	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.paused.Store(false)
-
-	err = s.registerProtocol()
-	if err != nil {
-		return nil, err
-	}
-
 	return s, nil
 }
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
 	// TODO: determine if we need to send a catch-up request
+
+	err := s.registerProtocol()
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		err := s.initiate()
