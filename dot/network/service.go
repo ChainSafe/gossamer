@@ -395,19 +395,19 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	}
 }
 func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
-	lr, ok := msg.(LightRequest)
+	lr, ok := msg.(*LightRequest)
 	if !ok {
 		logger.Error("failed to get the request message from peer ", peer)
 		return nil
 	}
 
-	var resp *LightResponse
+	var resp LightResponse
 	var err error
-	if lr.RmtChangesRequest != nil {
+	if lr.RmtCallRequest != nil {
 		resp.RmtCallResponse, err = remoteCallResp(peer, lr.RmtCallRequest)
 	} else if lr.RmtHeaderRequest != nil {
 		resp.RmtHeaderResponse, err = remoteHeaderResp(peer, lr.RmtHeaderRequest)
-	} else if lr.RmtCallRequest != nil {
+	} else if lr.RmtChangesRequest != nil {
 		resp.RmtChangeResponse, err = remoteChangeResp(peer, lr.RmtChangesRequest)
 	} else if lr.RmtReadRequest != nil {
 		resp.RmtReadResponse, err = remoteReadResp(peer, lr.RmtReadRequest)
@@ -415,6 +415,7 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
 	} else {
 		logger.Error("ignoring request without request data from peer {}", peer)
+		return nil
 	}
 
 	if err != nil {
@@ -422,11 +423,7 @@ func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
 		return err
 	}
 
-	if resp == nil {
-		return nil
-	}
-
-	err = s.host.send(peer, lightID, resp)
+	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
 		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
 		return err

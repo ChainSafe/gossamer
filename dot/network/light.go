@@ -25,7 +25,7 @@ type LightRequest struct {
 }
 
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
-func (l LightRequest) Encode() ([]byte, error) {
+func (l *LightRequest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(l)
 	if err != nil {
 		return enc, err
@@ -34,7 +34,7 @@ func (l LightRequest) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
-func (l LightRequest) Decode(r io.Reader) error {
+func (l *LightRequest) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
 	_, err := sd.Decode(l)
 	return err
@@ -67,7 +67,7 @@ type LightResponse struct {
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
-func (l LightResponse) Encode() ([]byte, error) {
+func (l *LightResponse) Encode() ([]byte, error) {
 	enc, err := scale.Encode(l)
 	if err != nil {
 		return enc, err
@@ -76,7 +76,7 @@ func (l LightResponse) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
-func (l LightResponse) Decode(r io.Reader) error {
+func (l *LightResponse) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
 	_, err := sd.Decode(l)
 	return err
