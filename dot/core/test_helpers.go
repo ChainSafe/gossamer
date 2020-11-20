@@ -124,28 +124,6 @@ func (fg *mockFinalityGadget) Authorities() []*types.Authority {
 	return fg.auths
 }
 
-var testConsensusMessage = &network.ConsensusMessage{
-	ConsensusEngineID: types.GrandpaEngineID,
-	Data:              []byte("nootwashere"),
-}
-
-type mockFinalityMessage struct{}
-
-// ToConsensusMessage returns a testConsensusMessage
-func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	return testConsensusMessage, nil
-}
-
-func (fm *mockFinalityMessage) Type() byte {
-	return 0
-}
-
-type mockConsensusMessageHandler struct{}
-
-func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessage) (*network.ConsensusMessage, error) {
-	return nil, nil
-}
-
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {

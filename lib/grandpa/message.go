@@ -11,9 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// FinalityMessage is an alias for the core.FinalityMessage interface
-//type FinalityMessage = core.FinalityMessage
-type GrandpaMessage interface {
+// GrandpaMessage is implemented by all GRANDPA network messages
+type GrandpaMessage interface { //nolint
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 	Type() byte
 }

@@ -55,6 +55,7 @@ type DigestHandler interface {
 	NextGrandpaAuthorityChange() uint64
 }
 
+// Network is the interface required by GRANDPA for the network
 type Network interface {
 	SendMessage(msg network.Message)
 	RegisterNotificationsProtocol(sub protocol.ID,

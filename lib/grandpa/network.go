@@ -42,7 +42,7 @@ type Message = network.Message
 type ConsensusMessage = network.ConsensusMessage
 
 // GrandpaHandshake is exchanged by nodes that are beginning the grandpa protocol
-type GrandpaHandshake struct {
+type GrandpaHandshake struct { //nolint
 	Roles byte
 }
 
