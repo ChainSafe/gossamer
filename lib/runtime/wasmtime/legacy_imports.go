@@ -541,6 +541,63 @@ func ext_ed25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, o
 	return 0
 }
 
+// ImportLegacyRuntimeLinker add wasmtime imports to linker
+func ImportLegacyRuntimeLinker(store *wasmtime.Store, linker *wasmtime.Linker) error {
+	fns := []struct {
+		name string
+		fn   interface{}
+	}{
+		{"ext_blake2_256", ext_blake2_256},
+		{"ext_malloc", ext_malloc},
+		{"ext_print_num", ext_print_num},
+		{"ext_print_utf8", ext_print_utf8},
+		{"ext_print_hex", ext_print_hex},
+		{"ext_get_storage_into", ext_get_storage_into},
+		{"ext_set_storage", ext_set_storage},
+		{"ext_set_child_storage", ext_set_child_storage},
+		{"ext_storage_root", ext_storage_root},
+		{"ext_storage_changes_root", ext_storage_changes_root},
+		{"ext_get_allocated_storage", ext_get_allocated_storage},
+		{"ext_clear_storage", ext_clear_storage},
+		{"ext_clear_prefix", ext_clear_prefix},
+		{"ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root},
+		{"ext_twox_64", ext_twox_64},
+		{"ext_twox_128", ext_twox_128},
+		{"ext_sr25519_generate", ext_sr25519_generate},
+		{"ext_sr25519_public_keys", ext_sr25519_public_keys},
+		{"ext_sr25519_sign", ext_sr25519_sign},
+		{"ext_sr25519_verify", ext_sr25519_verify},
+		{"ext_ed25519_generate", ext_ed25519_generate},
+		{"ext_ed25519_verify", ext_ed25519_verify},
+		{"ext_is_validator", ext_is_validator},
+		{"ext_local_storage_get", ext_local_storage_get},
+		{"ext_local_storage_compare_and_set", ext_local_storage_compare_and_set},
+		{"ext_network_state", ext_network_state},
+		{"ext_submit_transaction", ext_submit_transaction},
+		{"ext_local_storage_set", ext_local_storage_set},
+		{"ext_kill_child_storage", ext_kill_child_storage},
+		{"ext_sandbox_memory_new", ext_sandbox_memory_new},
+		{"ext_sandbox_memory_teardown", ext_sandbox_memory_teardown},
+		{"ext_sandbox_instantiate", ext_sandbox_instantiate},
+		{"ext_sandbox_invoke", ext_sandbox_invoke},
+		{"ext_sandbox_instance_teardown", ext_sandbox_instance_teardown},
+		{"ext_get_allocated_child_storage", ext_get_allocated_child_storage},
+		{"ext_child_storage_root", ext_child_storage_root},
+		{"ext_clear_child_storage", ext_clear_child_storage},
+		{"ext_secp256k1_ecdsa_recover_compressed", ext_secp256k1_ecdsa_recover_compressed},
+		{"ext_sandbox_memory_get", ext_sandbox_memory_get},
+		{"ext_sandbox_memory_set", ext_sandbox_memory_set},
+		{"ext_log", ext_log},
+		{"ext_free", ext_free},
+	}
+	for _, f := range fns {
+		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ImportsLegacyNodeRuntime returns the wasmtime imports for LEGACY_NODE_RUNTIME
 func ImportsLegacyNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 	ext_print_num := wasmtime.WrapFunc(store, ext_print_num)
@@ -630,6 +687,71 @@ func ImportsLegacyNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
 		ext_twox_64.AsExtern(),
 		ext_log.AsExtern(),
 	}
+}
+
+// ImportHostHandlerLinker adds the wasmtime imports for host API tester to linker
+func ImportHostHandlerLinker(store *wasmtime.Store, linker *wasmtime.Linker) error {
+	fns := []struct {
+		name string
+		fn   interface{}
+	}{
+		{"ext_print_num", ext_print_num},
+		{"ext_malloc", ext_malloc},
+		{"ext_free", ext_free},
+		{"ext_print_utf8", ext_print_utf8},
+		{"ext_print_hex", ext_print_hex},
+		{"ext_get_storage_into", ext_get_storage_into},
+		{"ext_set_storage", ext_set_storage},
+		{"ext_set_child_storage", ext_set_child_storage},
+		{"ext_storage_root", ext_storage_root},
+		{"ext_get_allocated_storage", ext_get_allocated_storage},
+		{"ext_clear_storage", ext_clear_storage},
+		{"ext_clear_prefix", ext_clear_prefix},
+		{"ext_blake2_256_enumerated_trie_root", ext_blake2_256_enumerated_trie_root},
+		{"ext_blake2_128", ext_blake2_128},
+		{"ext_blake2_256", ext_blake2_256},
+		{"ext_twox_64", ext_twox_64},
+		{"ext_twox_128", ext_twox_128},
+		{"ext_sr25519_generate", ext_sr25519_generate},
+		{"ext_sr25519_public_keys", ext_sr25519_public_keys},
+		{"ext_sr25519_sign", ext_sr25519_sign},
+		{"ext_sr25519_verify", ext_sr25519_verify},
+		{"ext_ed25519_generate", ext_ed25519_generate},
+		{"ext_ed25519_verify", ext_ed25519_verify},
+		{"ext_is_validator", ext_is_validator},
+		{"ext_local_storage_get", ext_local_storage_get},
+		{"ext_local_storage_compare_and_set", ext_local_storage_compare_and_set},
+		{"ext_network_state", ext_network_state},
+		{"ext_submit_transaction", ext_submit_transaction},
+		{"ext_local_storage_set", ext_local_storage_set},
+		{"ext_kill_child_storage", ext_kill_child_storage},
+		{"ext_sandbox_memory_new", ext_sandbox_memory_new},
+		{"ext_sandbox_memory_teardown", ext_sandbox_memory_teardown},
+		{"ext_sandbox_instantiate", ext_sandbox_instantiate},
+		{"ext_sandbox_invoke", ext_sandbox_invoke},
+		{"ext_sandbox_instance_teardown", ext_sandbox_instance_teardown},
+		{"ext_get_allocated_child_storage", ext_get_allocated_child_storage},
+		{"ext_child_storage_root", ext_child_storage_root},
+		{"ext_clear_child_storage", ext_clear_child_storage},
+		{"ext_secp256k1_ecdsa_recover_compressed", ext_secp256k1_ecdsa_recover_compressed},
+		{"ext_sandbox_memory_get", ext_sandbox_memory_get},
+		{"ext_sandbox_memory_set", ext_sandbox_memory_set},
+		{"ext_keccak_256", ext_keccak_256},
+		{"ext_exists_storage", ext_exists_storage},
+		{"ext_exists_child_storage", ext_exists_child_storage},
+		{"ext_clear_child_prefix", ext_clear_child_prefix},
+		{"ext_get_child_storage_into", ext_get_child_storage_into},
+		{"ext_ed25519_public_keys", ext_ed25519_public_keys},
+		{"ext_ed25519_sign", ext_ed25519_sign},
+	}
+
+	for _, f := range fns {
+		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ImportsHostAPITester returns the wasmtime imports for host API tester
