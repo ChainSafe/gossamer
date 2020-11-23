@@ -74,7 +74,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
-		expectedMsgType  int
+		expectedMsgType  byte
 		expectedMsgValue *network.BlockResponseMessage
 	}{
 		{

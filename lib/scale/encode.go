@@ -276,8 +276,11 @@ func (se *Encoder) encodeTuple(t interface{}) (bytesEncoded int, err error) {
 		v = reflect.ValueOf(t)
 	}
 
-	values := make([]interface{}, 0)
+	if !v.IsValid() {
+		return bytesEncoded, err
+	}
 
+	values := make([]interface{}, 0)
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).CanInterface() {
 			values = append(values, v.Field(i).Interface())
