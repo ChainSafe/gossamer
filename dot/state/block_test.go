@@ -295,7 +295,7 @@ func TestLatestFinalizedRound(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	// todo ed, update this test, then remove skip
+	// todo ed, update this test so that it works with updated pruning
 	t.Skip()
 	bs := newTestBlockState(t, testGenesisHeader)
 	all := bs.bt.GetAllBlocks()
