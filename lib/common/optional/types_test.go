@@ -22,7 +22,7 @@ import (
 )
 
 func TestNewBoolean(t *testing.T) {
-	// Non-existant
+	// Non-existent
 	testBool := NewBoolean(false, false)
 
 	if testBool.Exists() {
@@ -54,7 +54,7 @@ func TestBooleanSet(t *testing.T) {
 }
 
 func TestBooleanExists(t *testing.T) {
-	// Non-existant
+	// Non-existent
 	testBool := NewBoolean(false, false)
 
 	if testBool.Exists() {
@@ -81,7 +81,7 @@ func TestBooleanValue(t *testing.T) {
 }
 
 func TestBooleanEncode(t *testing.T) {
-	// Non-existant
+	// Non-existent
 	testBool := NewBoolean(false, false)
 
 	_, err := testBool.Encode()
