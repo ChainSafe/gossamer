@@ -283,19 +283,19 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 }
 
-// ImportsNodeRuntimeLinker adds the imports for the v0.8 runtime to linker
-func ImportsNodeRuntimeLinker(store *wasmtime.Store, linker *wasmtime.Linker) error {
+// ImportNodeRuntimeLinker adds the imports for the v0.8 runtime to linker
+func ImportNodeRuntimeLinker(store *wasmtime.Store, linker *wasmtime.Linker) error {
 	lim := wasmtime.Limits{
 		Min: 20,
 		Max: wasmtime.LimitsMaxNone,
 	}
+
 	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
 
 	fns := []struct {
 		name string
 		fn   interface{}
 	}{
-
 		{"ext_logging_log_version_1", ext_logging_log_version_1},
 		{"ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1},
 		{"ext_sandbox_instantiate_version_1", ext_sandbox_instantiate_version_1},
@@ -357,9 +357,7 @@ func ImportsNodeRuntimeLinker(store *wasmtime.Store, linker *wasmtime.Linker) er
 			return err
 		}
 	}
-
 	return nil
-
 }
 
 // ImportsNodeRuntime returns the imports for the v0.8 runtime

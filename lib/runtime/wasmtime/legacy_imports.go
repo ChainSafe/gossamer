@@ -590,6 +590,7 @@ func ImportLegacyRuntimeLinker(store *wasmtime.Store, linker *wasmtime.Linker) e
 		{"ext_log", ext_log},
 		{"ext_free", ext_free},
 	}
+
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
 			return err
@@ -750,7 +751,6 @@ func ImportHostHandlerLinker(store *wasmtime.Store, linker *wasmtime.Linker) err
 			return err
 		}
 	}
-
 	return nil
 }
 
