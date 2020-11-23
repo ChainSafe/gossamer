@@ -4,7 +4,9 @@ PROJECTNAME=$(shell basename "$(PWD)")
 GOLANGCI := $(GOPATH)/bin/golangci-lint
 COMPANY=chainsafe
 NAME=gossamer
+ifndef VERSION
 VERSION=latest
+endif
 FULLDOCKERNAME=$(COMPANY)/$(NAME):$(VERSION)
 
 .PHONY: help lint test install build clean start docker gossamer
@@ -109,7 +111,7 @@ docker-build:
 	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
 
 gossamer: clean
-	GOBIN=$(PWD)/bin go run scripts/ci.go install
+	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..
 
 ## install: install the gossamer binary in $GOPATH/bin
 install:

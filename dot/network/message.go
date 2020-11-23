@@ -28,25 +28,21 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 //nolint
 const (
-	StatusMsgType             = 0
-	BlockRequestMsgType       = 1
-	BlockResponseMsgType      = 2
-	BlockAnnounceMsgType      = 3
-	TransactionMsgType        = 4
-	ConsensusMsgType          = 5
-	RemoteCallRequestType     = 6
-	RemoteCallResponseType    = 7
-	RemoteReadRequestType     = 8
-	RemoteReadResponseType    = 9
-	RemoteHeaderRequestType   = 10
-	RemoteHeaderResponseType  = 11
-	RemoteChangesRequestType  = 12
-	RemoteChangesResponseType = 13
-	ChainSpecificMsgType      = 255
+	StatusMsgType        byte = 0
+	BlockRequestMsgType  byte = 1
+	BlockResponseMsgType byte = 2
+	BlockAnnounceMsgType byte = 3
+	TransactionMsgType   byte = 4
+	ConsensusMsgType     byte = 5
+	LightRequestType     byte = 6
+	LightResponseType    byte = 7
+	ChainSpecificMsgType byte = 255
 )
 
 // Message interface
@@ -54,8 +50,9 @@ type Message interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error
 	String() string
-	Type() int
-	IDString() string
+	Type() byte
+	IDString() string // TODO: this can be removed
+	IsHandshake() bool
 }
 
 // decodeMessage decodes the message based on message type
@@ -75,14 +72,17 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	case BlockAnnounceMsgType:
-		m = new(BlockAnnounceMessage)
-		err = m.Decode(r)
 	case TransactionMsgType:
 		m = new(TransactionMessage)
 		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
+		err = m.Decode(r)
+	case LightRequestType:
+		m = new(LightRequest)
+		err = m.Decode(r)
+	case LightResponseType:
+		m = new(LightResponse)
 		err = m.Decode(r)
 	default:
 		return nil, fmt.Errorf("unsupported message type %d", msgType)
@@ -92,7 +92,7 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 }
 
 // decodeMessageBytes decodes the message based on message type
-func decodeMessageBytes(in []byte) (m Message, err error) {
+func decodeMessageBytes(in []byte, _ peer.ID) (m Message, err error) {
 	r := &bytes.Buffer{}
 	_, err = r.Write(in)
 	if err != nil {
@@ -114,7 +114,7 @@ type StatusMessage struct {
 }
 
 // Type returns StatusMsgType
-func (sm *StatusMessage) Type() int {
+func (sm *StatusMessage) Type() byte {
 	return StatusMsgType
 }
 
@@ -151,6 +151,11 @@ func (sm *StatusMessage) IDString() string {
 	return ""
 }
 
+// IsHandshake returns false
+func (sm *StatusMessage) IsHandshake() bool {
+	return false
+}
+
 // BlockRequestMessage for optionals, if first byte is 0, then it is None
 // otherwise it is Some
 type BlockRequestMessage struct {
@@ -178,7 +183,7 @@ const RequestedDataMessageQueue = byte(8)
 const RequestedDataJustification = byte(16)
 
 // Type returns BlockRequestMsgType
-func (bm *BlockRequestMessage) Type() int {
+func (bm *BlockRequestMessage) Type() byte {
 	return BlockRequestMsgType
 }
 
@@ -297,6 +302,11 @@ func (bm *BlockRequestMessage) IDString() string {
 	return fmt.Sprintf("%d", bm.ID)
 }
 
+// IsHandshake returns false
+func (bm *BlockRequestMessage) IsHandshake() bool {
+	return false
+}
+
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
 	ParentHash     common.Hash
@@ -307,7 +317,7 @@ type BlockAnnounceMessage struct {
 }
 
 // Type returns BlockAnnounceMsgType
-func (bm *BlockAnnounceMessage) Type() int {
+func (bm *BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
 }
 
@@ -327,7 +337,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	if err != nil {
 		return enc, err
 	}
-	return append([]byte{BlockAnnounceMsgType}, enc...), nil
+	return enc, nil
 }
 
 // Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
@@ -351,6 +361,11 @@ func (bm *BlockAnnounceMessage) IDString() string {
 	return hash.String()
 }
 
+// IsHandshake returns false
+func (bm *BlockAnnounceMessage) IsHandshake() bool {
+	return false
+}
+
 // BlockResponseMessage struct
 type BlockResponseMessage struct {
 	ID        uint64
@@ -358,7 +373,7 @@ type BlockResponseMessage struct {
 }
 
 // Type returns BlockResponseMsgType
-func (bm *BlockResponseMessage) Type() int {
+func (bm *BlockResponseMessage) Type() byte {
 	return BlockResponseMsgType
 }
 
@@ -400,13 +415,18 @@ func (bm *BlockResponseMessage) IDString() string {
 	return fmt.Sprintf("%d", bm.ID)
 }
 
+// IsHandshake returns false
+func (bm *BlockResponseMessage) IsHandshake() bool {
+	return false
+}
+
 // TransactionMessage is a struct that holds reference to Extrinsics
 type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
 // Type returns TransactionMsgType
-func (tm *TransactionMessage) Type() int {
+func (tm *TransactionMessage) Type() byte {
 	return TransactionMsgType
 }
 
@@ -470,6 +490,11 @@ func (tm *TransactionMessage) IDString() string {
 	return hash.String()
 }
 
+// IsHandshake returns false
+func (tm *TransactionMessage) IsHandshake() bool {
+	return false
+}
+
 // ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
 	// Identifies consensus engine.
@@ -479,7 +504,7 @@ type ConsensusMessage struct {
 }
 
 // Type returns ConsensusMsgType
-func (cm *ConsensusMessage) Type() int {
+func (cm *ConsensusMessage) Type() byte {
 	return ConsensusMsgType
 }
 
@@ -527,4 +552,9 @@ func (cm *ConsensusMessage) IDString() string {
 		return ""
 	}
 	return hash.String()
+}
+
+// IsHandshake returns false
+func (cm *ConsensusMessage) IsHandshake() bool {
+	return false
 }

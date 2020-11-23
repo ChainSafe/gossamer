@@ -158,8 +158,8 @@ func (s *TrieState) Root() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.lock.RLock()
+	defer s.lock.RUnlock()
 	return s.t.Hash()
 }
 
@@ -273,8 +273,9 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	return s.t.ClearFromChild(keyToChild, key)
 }
 
-// NextKey returns the next key in the trie in lexicographic order.
-// TODO: complete this
+// NextKey returns the next key in the trie in lexigraphical order. If it does not exist, it returns nil.
 func (s *TrieState) NextKey(key []byte) []byte {
-	return nil
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.NextKey(key)
 }

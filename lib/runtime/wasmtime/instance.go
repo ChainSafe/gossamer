@@ -17,7 +17,6 @@
 package wasmtime
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -28,12 +27,16 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
-var ctx gssmrruntime.Context
+// Name represents the name of the interpreter
+const Name = "wasmtime"
 
-var _ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
-var _ gssmrruntime.Instance = (*Instance)(nil)
+var (
+	_ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
+	_ gssmrruntime.Instance       = (*Instance)(nil)
 
-var logger = log.New("pkg", "runtime", "module", "go-wasmtime")
+	ctx    gssmrruntime.Context
+	logger = log.New("pkg", "runtime", "module", "go-wasmtime")
+)
 
 // Config represents a wasmer configuration
 type Config struct {
@@ -108,8 +111,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 		mem = instance.GetExport("memory").Memory()
 	}
 
-	data := mem.UnsafeData()
-	allocator := gssmrruntime.NewAllocator(data, 0)
+	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
 	ctx = gssmrruntime.Context{
 		Storage:     cfg.Storage,
@@ -194,7 +196,6 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	}
 	defer ctx.Allocator.Clear()
 
-	//mem := in.vm.GetExport("memory").Memory()
 	memdata := in.mem.UnsafeData()
 	copy(memdata[ptr:ptr+uint32(len(data))], data)
 
@@ -213,6 +214,5 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	offset := int32(ret)
 
 	runtime.KeepAlive(in.mem)
-	fmt.Println(memdata[:2048])
 	return memdata[offset : offset+length], nil
 }

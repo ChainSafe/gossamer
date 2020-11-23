@@ -62,6 +62,6 @@ func ErrMessageCast(s string) error {
 }
 
 // ErrUnsupportedMsgType is returned if we receive an unknown message type
-func ErrUnsupportedMsgType(d int) error {
+func ErrUnsupportedMsgType(d byte) error {
 	return fmt.Errorf("received unsupported message type %d", d)
 }

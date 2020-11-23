@@ -17,7 +17,6 @@
 package network
 
 import (
-	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -172,32 +171,6 @@ func TestBroadcastMessages(t *testing.T) {
 	require.Equal(t, TestMessage, mmhB.Message)
 }
 
-func TestHandleMessage_BlockAnnounce(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-		NoStatus:    true,
-	}
-
-	s := createTestService(t, config)
-
-	peerID := peer.ID("noot")
-	msg := &BlockAnnounceMessage{
-		Number: big.NewInt(10),
-	}
-
-	s.handleMessage(peerID, msg)
-	require.True(t, s.requestTracker.hasRequestedBlockID(99))
-}
-
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
@@ -237,4 +210,63 @@ func TestService_NodeRoles(t *testing.T) {
 
 	role := svc.NodeRoles()
 	require.Equal(t, cfg.Roles, role)
+}
+
+func TestHandleLightMessage_Response(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	defer utils.RemoveTestDir(t)
+
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		NoStatus:    true,
+	}
+	s := createTestService(t, config)
+
+	peerID := peer.ID("noot")
+
+	// Testing empty request
+	msg := &LightRequest{}
+	err := s.handleLightSyncMsg(peerID, msg)
+	require.NoError(t, err)
+
+	expectedErr := "failed to find any peer in table"
+
+	// Testing remoteCallResp()
+	msg = &LightRequest{
+		RmtCallRequest: &RemoteCallRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteHeaderResp()
+	msg = &LightRequest{
+		RmtHeaderRequest: &RemoteHeaderRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteChangeResp()
+	msg = &LightRequest{
+		RmtChangesRequest: &RemoteChangesRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteReadResp()
+	msg = &LightRequest{
+		RmtReadRequest: &RemoteReadRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteReadChildResp()
+	msg = &LightRequest{
+		RmtReadChildRequest: &RemoteReadChildRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
 }

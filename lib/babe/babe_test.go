@@ -65,7 +65,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
-			Runtime: rt,
+			Runtime:   rt,
+			Authority: true,
 		}
 	}
 
@@ -222,6 +223,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		EpochState:       dbSrv.Epoch,
 		TransactionState: dbSrv.Transaction,
 		LogLvl:           log.LvlTrace,
+		Authority:        true,
 	}
 
 	babeService := createTestService(t, cfg)

@@ -37,6 +37,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 )
 
@@ -69,6 +70,11 @@ func createStateService(cfg *Config) (*state.Service, error) {
 }
 
 func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.LegacyInstance, error) {
+	logger.Info(
+		"creating runtime...",
+		"interpreter", cfg.Core.WasmInterpreter,
+	)
+
 	// load runtime code from trie
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
@@ -84,20 +90,41 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		LocalStorage:      database.NewMemDatabase(),
 		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
-	rtCfg := &wasmtime.Config{
-		Imports: wasmtime.ImportsLegacyNodeRuntime,
-	}
-	rtCfg.Storage = ts
-	rtCfg.Keystore = ks
-	rtCfg.LogLvl = cfg.Log.RuntimeLvl
-	rtCfg.NodeStorage = ns
-	rtCfg.Network = net
-	rtCfg.Role = cfg.Core.Roles
 
-	// create runtime executor
-	rt, err := wasmtime.NewLegacyInstance(code, rtCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+	var rt runtime.LegacyInstance
+	switch cfg.Core.WasmInterpreter {
+	case wasmer.Name:
+		rtCfg := &wasmer.Config{
+			Imports: wasmer.ImportsLegacyNodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmer.NewLegacyInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
+	case wasmtime.Name:
+		rtCfg := &wasmtime.Config{
+			Imports: wasmtime.ImportsLegacyNodeRuntime,
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = wasmtime.NewLegacyInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
 	}
 
 	return rt, nil
@@ -115,7 +142,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 
 	kps := ks.Keypairs()
 	logger.Info("keystore", "keys", kps)
-	if len(kps) == 0 {
+	if len(kps) == 0 && cfg.Core.BabeAuthority {
 		return nil, ErrNoKeysProvided
 	}
 
@@ -137,7 +164,6 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 
 	bcfg := &babe.ServiceConfig{
 		LogLvl:           cfg.Log.BlockProducerLvl,
-		Keypair:          kps[0].(*sr25519.Keypair),
 		Runtime:          rt,
 		BlockState:       st.Block,
 		StorageState:     st.Storage,
@@ -146,6 +172,11 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 		StartSlot:        bestSlot + 1,
 		Threshold:        cfg.Core.BabeThreshold,
 		SlotDuration:     cfg.Core.SlotDuration,
+		Authority:        cfg.Core.BabeAuthority,
+	}
+
+	if cfg.Core.BabeAuthority {
+		bcfg.Keypair = kps[0].(*sr25519.Keypair)
 	}
 
 	// create new BABE service
@@ -289,7 +320,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 	voters := grandpa.NewVotersFromAuthorityData(ad)
 
 	keys := ks.Keypairs()
-	if len(keys) == 0 {
+	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
 		return nil, errors.New("no ed25519 keys provided for GRANDPA")
 	}
 
@@ -299,8 +330,11 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 		DigestHandler: dh,
 		SetID:         1,
 		Voters:        voters,
-		Keypair:       keys[0].(*ed25519.Keypair),
 		Authority:     cfg.Core.GrandpaAuthority,
+	}
+
+	if cfg.Core.GrandpaAuthority {
+		gsCfg.Keypair = keys[0].(*ed25519.Keypair)
 	}
 
 	return grandpa.NewService(gsCfg)

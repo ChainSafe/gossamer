@@ -23,6 +23,7 @@ go:
 env:
   global:
   - CC_TEST_REPORTER_ID=abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
+  - VERSION=$(git rev-parse HEAD)
 cache:
   directories:
   - $HOME/.cache/go-build
@@ -43,18 +44,6 @@ jobs:
     - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
   - name: Test State - Race
     script: make test-state-race
-  - name: Integration Tests - Stable
-    script: make it-stable
-  - name: Integration Tests - RPC
-    script: make it-rpc
-  - name: Integration Test - Stress
-    script: make it-stress
-  - name: Integration Test - GRANDPA
-    script: make it-grandpa
-  - name: Build Docker Image
-    script:
-    - make docker-build
-    - make docker-version
   - name: Build Gossamer Docs
     language: ruby
     rvm:
@@ -73,10 +62,39 @@ jobs:
       provider: pages
       cleanup: false
       token: $GITHUB_TOKEN # set in settings on travis as a secure variable
-      local_dir: docs/_site
+      local_dir: docs
       target_branch: gh-pages
       on:
         branch: development # deploy on merge into development
+  - stage: Docker build
+    name: Build Docker Image
+    script:
+      - make VERSION=$VERSION docker-build
+      - make VERSION=$VERSION docker-version
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - docker push chainsafe/gossamer:$VERSION
+  - stage: Integration Tests
+    name: Stable
+    script:
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-stable; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
+      - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stable
+  - name: RPC
+    script:
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-rpc; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
+      - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-rpc
+  - name: Stress
+    script:
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-stress; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
+      - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-stress
+  - name: GRANDPA
+    script:
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then make it-grandpa; fi'
+      - 'if [ "$TRAVIS_SECURE_ENV_VARS" == "false" ]; then travis_terminate 0; fi'
+      - docker run --rm -it --entrypoint="make" chainsafe/gossamer:$VERSION it-grandpa
   allow_failures:
     - stage: build
       env:

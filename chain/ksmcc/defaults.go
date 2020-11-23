@@ -17,6 +17,7 @@
 package ksmcc
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -53,6 +54,8 @@ var (
 	DefaultAuthority = false
 	// DefaultRoles Default node roles
 	DefaultRoles = byte(1) // full node (see Table D.2)
+	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default
+	DefaultWasmInterpreter = wasmer.Name
 
 	// NetworkConfig
 

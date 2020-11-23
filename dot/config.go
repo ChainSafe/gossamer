@@ -91,6 +91,7 @@ type CoreConfig struct {
 	GrandpaAuthority bool
 	BabeThreshold    *big.Int
 	SlotDuration     uint64
+	WasmInterpreter  string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -149,6 +150,7 @@ func GssmrConfig() *Config {
 			Roles:            gssmr.DefaultRoles,
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
+			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
 			Port:        gssmr.DefaultNetworkPort,
@@ -197,7 +199,8 @@ func KsmccConfig() *Config {
 			Unlock: ksmcc.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles: ksmcc.DefaultRoles,
+			Roles:           ksmcc.DefaultRoles,
+			WasmInterpreter: ksmcc.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
 			Port:        ksmcc.DefaultNetworkPort,

@@ -30,6 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -466,11 +468,24 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.BabeThreshold = nil
 	}
 
+	switch tomlCfg.WasmInterpreter {
+	case wasmer.Name:
+		cfg.WasmInterpreter = wasmer.Name
+	case wasmtime.Name:
+		cfg.WasmInterpreter = wasmtime.Name
+	case "":
+		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
+	default:
+		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
+		logger.Warn("invalid wasm interpreter set in config", "defaulting to", gssmr.DefaultWasmInterpreter)
+	}
+
 	logger.Debug(
 		"core configuration",
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"babe-threshold", cfg.BabeThreshold,
+		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
 

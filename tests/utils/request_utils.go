@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -60,6 +61,19 @@ func PostRPC(method, host, params string) ([]byte, error) {
 
 	return respBody, err
 
+}
+
+// PostRPCWithRetry is a wrapper around `PostRPC` that calls it `retry` number of times.
+func PostRPCWithRetry(method, host, params string, retry int) ([]byte, error) {
+	count := 0
+	for {
+		resp, err := PostRPC(method, host, params)
+		if err == nil || count >= retry {
+			return resp, err
+		}
+		time.Sleep(200 * time.Millisecond)
+		count++
+	}
 }
 
 // DecodeRPC will decode []body into target interface

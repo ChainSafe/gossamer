@@ -294,6 +294,7 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 	var nodes []*Node
 
 	var wg sync.WaitGroup
+	var nodeMu sync.Mutex
 	wg.Add(num)
 
 	for i := 0; i < num; i++ {
@@ -307,7 +308,9 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 				logger.Error("failed to run gossamer", "i", i)
 			}
 
+			nodeMu.Lock()
 			nodes = append(nodes, node)
+			nodeMu.Unlock()
 			wg.Done()
 		}(i)
 	}
