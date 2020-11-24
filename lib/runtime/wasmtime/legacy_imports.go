@@ -542,7 +542,9 @@ func ext_ed25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, o
 }
 
 // ImportLegacyNodeRuntime add wasmtime imports to linker
-func ImportLegacyNodeRuntime(store *wasmtime.Store, linker *wasmtime.Linker) error {
+func ImportLegacyNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
+	linker := wasmtime.NewLinker(store)
+
 	fns := []struct {
 		name string
 		fn   interface{}
@@ -592,10 +594,10 @@ func ImportLegacyNodeRuntime(store *wasmtime.Store, linker *wasmtime.Linker) err
 	}
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return linker, nil
 }
 
 // ImportHostHandler adds the wasmtime imports for host API tester to linker

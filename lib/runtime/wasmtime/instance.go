@@ -38,7 +38,7 @@ var logger = log.New("pkg", "runtime", "module", "go-wasmtime")
 // Config represents a wasmer configuration
 type Config struct {
 	gssmrruntime.InstanceConfig
-	Imports func(*wasmtime.Store, *wasmtime.Linker) error
+	Imports func(*wasmtime.Store) (*wasmtime.Linker, error)
 }
 
 // LegacyInstance represents a v0.6 runtime go-wasmtime instance
@@ -96,8 +96,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	}
 
 	store := wasmtime.NewStore(engine)
-	linker := wasmtime.NewLinker(store)
-	err := cfg.Imports(store, linker)
+	linker, err := cfg.Imports(store)
 	if err != nil {
 		return nil, err
 	}

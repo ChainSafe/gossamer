@@ -66,8 +66,8 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 }
 
 // GetRuntimeImports ...
-func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store, *wasmtime.Linker) error {
-	var imports func(*wasmtime.Store, *wasmtime.Linker) error
+func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store) (*wasmtime.Linker, error) {
+	var imports func(*wasmtime.Store) (*wasmtime.Linker, error)
 
 	switch targetRuntime {
 	case runtime.LEGACY_NODE_RUNTIME:
