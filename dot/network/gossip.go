@@ -20,27 +20,24 @@ import (
 	"sync"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // gossip submodule
 type gossip struct {
 	logger log.Logger
-	host   *host
 	seen   *sync.Map
 }
 
-// newGossip creates a new gossip instance from the host
-func newGossip(host *host) *gossip {
+// newGossip creates a new gossip message tracker
+func newGossip() *gossip {
 	return &gossip{
 		logger: logger.New("module", "gossip"),
-		host:   host,
 		seen:   &sync.Map{},
 	}
 }
 
 // hasSeen broadcasts messages that have not been seen
-func (g *gossip) hasSeen(msg Message, from peer.ID) bool {
+func (g *gossip) hasSeen(msg Message) bool {
 	// check if message has not been seen
 	if seen, ok := g.seen.Load(msg.IDString()); !ok || !seen.(bool) {
 		// set message to has been seen

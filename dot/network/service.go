@@ -118,7 +118,7 @@ func NewService(cfg *Config) (*Service, error) {
 		host:                   host,
 		mdns:                   newMDNS(host),
 		status:                 newStatus(host),
-		gossip:                 newGossip(host),
+		gossip:                 newGossip(),
 		requestTracker:         newRequestTracker(logger),
 		blockState:             cfg.BlockState,
 		networkState:           cfg.NetworkState,
@@ -524,7 +524,7 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) error {
 		if !s.noGossip {
 
 			// handle non-status message from peer with gossip submodule
-			seen := s.gossip.hasSeen(msg, peer)
+			seen := s.gossip.hasSeen(msg)
 			if !seen {
 				s.host.broadcastExcluding(msg, peer)
 			}
