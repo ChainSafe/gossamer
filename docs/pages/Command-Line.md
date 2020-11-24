@@ -28,11 +28,11 @@ The `gossamer` command accepts the following ***local flags*** and ***global fla
 --roles value      Roles of the gossamer node
 --nobootstrap      Disables network bootstrapping (mdns still enabled)
 --nomdns           Disables network mdns discovery
---rpc              Enable the HTTP-RPC server
+--rpc-external     Enable the HTTP-RPC server
 --rpchost value    HTTP-RPC server listening hostname
 --rpcport value    HTTP-RPC server listening port (default: 0)
 --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---ws               Enable the websockets server
+--ws-external      Enable the websockets server
 --wsport value     Websockets server listening port (default: 0)
 --help, -h         show help
 --version, -v      print the version
@@ -107,11 +107,11 @@ List of ***local flag*** options for `export` subcommand:
 --roles value      Roles of the gossamer node
 --nobootstrap      Disables network bootstrapping (mdns still enabled)
 --nomdns           Disables network mdns discovery
---rpc              Enable the HTTP-RPC server
+--rpc-external     Enable the HTTP-RPC server
 --rpchost value    HTTP-RPC server listening hostname
 --rpcport value    HTTP-RPC server listening port (default: 0)
 --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---ws               Enable the websockets server
+--ws-external      Enable the websockets server
 --wsport value     Websockets server listening port (default: 0)
 ```
 

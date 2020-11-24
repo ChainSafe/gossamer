@@ -416,8 +416,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		expected    dot.RPCConfig
 	}{
 		{
-			"Test gossamer --rpc",
-			[]string{"config", "rpc"},
+			"Test gossamer --rpc-external",
+			[]string{"config", "rpc-external"},
 			[]interface{}{testCfgFile.Name(), "true"},
 			dot.RPCConfig{
 				Enabled: true,
@@ -428,8 +428,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --rpc false",
-			[]string{"config", "rpc"},
+			"Test gossamer --rpc-external false",
+			[]string{"config", "rpc-external"},
 			[]interface{}{testCfgFile.Name(), "false"},
 			dot.RPCConfig{
 				Enabled: false,
@@ -489,8 +489,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --ws",
-			[]string{"config", "ws"},
+			"Test gossamer --ws-external",
+			[]string{"config", "ws-external"},
 			[]interface{}{testCfgFile.Name(), false},
 			dot.RPCConfig{
 				Enabled:   testCfg.RPC.Enabled,
@@ -502,8 +502,8 @@ func TestRPCConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --ws",
-			[]string{"config", "ws"},
+			"Test gossamer --ws-external",
+			[]string{"config", "ws-external"},
 			[]interface{}{testCfgFile.Name(), true},
 			dot.RPCConfig{
 				Enabled:   testCfg.RPC.Enabled,

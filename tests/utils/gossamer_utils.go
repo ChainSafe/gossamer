@@ -127,7 +127,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpchost", HOSTNAME,
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev",
-		"--rpc",
+		"--rpc-external",
 		"--log", "info"}
 
 	if node.Idx >= len(keyList) {
@@ -139,7 +139,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if websocket {
-		params = append(params, "--ws",
+		params = append(params, "--ws-external",
 			"--wsport", node.WSPort)
 	}
 	//nolint
