@@ -97,8 +97,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 
 	store := wasmtime.NewStore(engine)
 	linker := wasmtime.NewLinker(store)
-
-	err := ImportLegacyNodeRuntime(store, linker)
+	err := cfg.Imports(store, linker)
 	if err != nil {
 		return nil, err
 	}
