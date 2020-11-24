@@ -19,8 +19,8 @@ package network
 import (
 	"errors"
 	"path"
-	"strconv"
-	"strings"
+	//"strconv"
+	//"strings"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -40,9 +40,6 @@ const DefaultRandSeed = int64(0)
 
 // DefaultProtocolID the default value for Config.ProtocolID
 const DefaultProtocolID = "/gossamer/gssmr/0"
-
-// DefaultProtocolVersion the default value for Config.ProtocolVersion
-const DefaultProtocolVersion = 0
 
 // DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
 const DefaultRoles = byte(1)
@@ -73,10 +70,6 @@ type Config struct {
 	Bootnodes []string
 	// ProtocolID the protocol ID for network messages
 	ProtocolID string
-	// ProtocolVersion the protocol version for network messages (the third item in the ProtocolID)
-	ProtocolVersion uint32
-	// MinSupportedVersion the minimum supported protocol version (defaults to current ProtocolVersion)
-	MinSupportedVersion uint32
 	// NoBootstrap disables bootstrapping
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
@@ -196,36 +189,6 @@ func (c *Config) buildProtocol() error {
 			"DefaultProtocolID", DefaultProtocolID,
 		)
 		c.ProtocolID = DefaultProtocolID
-	}
-
-	if c.ProtocolVersion == 0 {
-		s := strings.Split(c.ProtocolID, "/")
-		// expecting the default protocol format ("/gossamer/gssmr/0")
-		if len(s) != 4 {
-			c.logger.Warn(
-				"Unable to parse ProtocolID, using DefaultProtocolVersion",
-				"DefaultProtocolVersion", DefaultProtocolVersion,
-			)
-		} else {
-			// get the last item in the slice ("0" in the default protocol format)
-			i, err := strconv.Atoi(s[len(s)-1])
-			if err != nil {
-				c.logger.Warn(
-					"Unable to parse ProtocolID, using DefaultProtocolVersion",
-					"DefaultProtocolVersion", DefaultProtocolVersion,
-				)
-			} else {
-				c.ProtocolVersion = uint32(i)
-			}
-		}
-	}
-
-	if c.MinSupportedVersion < c.ProtocolVersion {
-		c.logger.Warn(
-			"MinSupportedVersion less than ProtocolVersion, using ProtocolVersion",
-			"ProtocolVersion", c.ProtocolVersion,
-		)
-		c.MinSupportedVersion = c.ProtocolVersion
 	}
 
 	return nil
