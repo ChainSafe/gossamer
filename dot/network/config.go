@@ -61,12 +61,9 @@ type Config struct {
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
 	Roles byte
 
-	// BlockState the block state's interface
+	// Service interfaces
 	BlockState BlockState
-	// NetworkState the network state's interface
-	NetworkState NetworkState
-
-	Syncer Syncer
+	Syncer     Syncer
 
 	// Port the network port used for listening
 	Port uint32
@@ -139,10 +136,6 @@ func (c *Config) checkState() (err error) {
 	// set NoStatus to true if we don't need BlockState
 	if c.BlockState == nil && !c.NoStatus {
 		err = errors.New("failed to build configuration: BlockState required")
-	}
-
-	if c.NetworkState == nil {
-		err = errors.New("failed to build configuration: NetworkState required")
 	}
 
 	return err

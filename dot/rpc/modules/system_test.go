@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
+	//"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
@@ -59,10 +59,10 @@ func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus:     true,
-		NetworkState: &state.NetworkState{},
-		BasePath:     testDir,
-		Syncer:       &mockSyncer{},
+		NoStatus: true,
+		//NetworkState: &state.NetworkState{},
+		BasePath: testDir,
+		Syncer:   &mockSyncer{},
 	}
 
 	srv, err := network.NewService(cfg)

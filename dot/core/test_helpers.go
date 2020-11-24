@@ -205,9 +205,9 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 // helper method to create and start a new network service
 func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	if cfg.NetworkState == nil {
-		cfg.NetworkState = &network.MockNetworkState{}
-	}
+	// if cfg.NetworkState == nil {
+	// 	cfg.NetworkState = &network.MockNetworkState{}
+	// }
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3

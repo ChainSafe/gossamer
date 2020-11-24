@@ -117,29 +117,29 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
-// HandleSeenBlocks handles a block that is newly "seen" ie. a block that a peer claims to have through a StatusMessage
-func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessage {
-	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
-		return nil
-	}
+// // HandleSeenBlocks handles a block that is newly "seen" ie. a block that a peer claims to have through a StatusMessage
+// func (s *Service) HandleSeenBlocks(blockNum *big.Int) *network.BlockRequestMessage {
+// 	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
+// 		return nil
+// 	}
 
-	// need to sync
-	var start int64
-	if s.synced {
-		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
-		s.synced = false
+// 	// need to sync
+// 	var start int64
+// 	if s.synced {
+// 		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
+// 		s.synced = false
 
-		err := s.blockProducer.Pause()
-		if err != nil {
-			s.logger.Warn("failed to pause block production")
-		}
-	} else {
-		start = s.highestSeenBlock.Int64()
-	}
+// 		err := s.blockProducer.Pause()
+// 		if err != nil {
+// 			s.logger.Warn("failed to pause block production")
+// 		}
+// 	} else {
+// 		start = s.highestSeenBlock.Int64()
+// 	}
 
-	s.highestSeenBlock = blockNum
-	return s.createBlockRequest(start)
-}
+// 	s.highestSeenBlock = blockNum
+// 	return s.createBlockRequest(start)
+// }
 
 // HandleBlockAnnounce creates a block request message from the block
 // announce messages (block announce messages include the header but the full
@@ -196,6 +196,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 		if bestNum.Cmp(header.Number) > 0 {
 			start = header.Number.Int64()
 		} else {
+			s.highestSeenBlock = header.Number
 			start = bestNum.Int64() + 1
 		}
 

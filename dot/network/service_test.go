@@ -59,9 +59,9 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.BlockState = &MockBlockState{}
 	}
 
-	if cfg.NetworkState == nil {
-		cfg.NetworkState = &MockNetworkState{}
-	}
+	// if cfg.NetworkState == nil {
+	// 	cfg.NetworkState = &MockNetworkState{}
+	// }
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 

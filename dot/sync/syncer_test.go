@@ -88,61 +88,61 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func TestHandleSeenBlocks(t *testing.T) {
-	syncer := newTestSyncer(t)
-	number := big.NewInt(12)
-	req := syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
-	require.Equal(t, number, syncer.highestSeenBlock)
-}
+// func TestHandleSeenBlocks(t *testing.T) {
+// 	syncer := newTestSyncer(t)
+// 	number := big.NewInt(12)
+// 	req := syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
+// 	require.Equal(t, number, syncer.highestSeenBlock)
+// }
 
-func TestHandleSeenBlocks_NotHighestSeen(t *testing.T) {
-	syncer := newTestSyncer(t)
+// func TestHandleSeenBlocks_NotHighestSeen(t *testing.T) {
+// 	syncer := newTestSyncer(t)
 
-	number := big.NewInt(12)
-	req := syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
+// 	number := big.NewInt(12)
+// 	req := syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
 
-	lower := big.NewInt(11)
-	req = syncer.HandleSeenBlocks(lower)
-	require.Nil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-}
+// 	lower := big.NewInt(11)
+// 	req = syncer.HandleSeenBlocks(lower)
+// 	require.Nil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
+// }
 
-func TestHandleSeenBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
-	syncer := newTestSyncer(t)
+// func TestHandleSeenBlocks_GreaterThanHighestSeen_NotSynced(t *testing.T) {
+// 	syncer := newTestSyncer(t)
 
-	number := big.NewInt(12)
-	req := syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
+// 	number := big.NewInt(12)
+// 	req := syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
 
-	number = big.NewInt(16)
-	req = syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(12))
-}
+// 	number = big.NewInt(16)
+// 	req = syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
+// 	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(12))
+// }
 
-func TestHandleSeenBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
-	syncer := newTestSyncer(t)
+// func TestHandleSeenBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
+// 	syncer := newTestSyncer(t)
 
-	number := big.NewInt(12)
-	req := syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
+// 	number := big.NewInt(12)
+// 	req := syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
 
-	// synced to block 12
-	syncer.synced = true
+// 	// synced to block 12
+// 	syncer.synced = true
 
-	number = big.NewInt(16)
-	req = syncer.HandleSeenBlocks(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, uint64(13), req.StartingBlock.Value().(uint64))
-}
+// 	number = big.NewInt(16)
+// 	req = syncer.HandleSeenBlocks(number)
+// 	require.NotNil(t, req)
+// 	require.Equal(t, number, syncer.highestSeenBlock)
+// 	require.Equal(t, uint64(13), req.StartingBlock.Value().(uint64))
+// }
 
 func TestHandleBlockResponse(t *testing.T) {
 	syncer := newTestSyncer(t)
