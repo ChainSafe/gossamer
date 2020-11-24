@@ -601,7 +601,8 @@ func ImportLegacyNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
 }
 
 // ImportHostHandler adds the wasmtime imports for host API tester to linker
-func ImportHostHandler(store *wasmtime.Store, linker *wasmtime.Linker) error {
+func ImportHostHandler(store *wasmtime.Store) (*wasmtime.Linker, error) {
+	linker := wasmtime.NewLinker(store)
 
 	fns := []struct {
 		name string
@@ -660,9 +661,9 @@ func ImportHostHandler(store *wasmtime.Store, linker *wasmtime.Linker) error {
 
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return linker, nil
 }
