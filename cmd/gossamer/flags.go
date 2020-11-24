@@ -137,7 +137,7 @@ var (
 var (
 	// RPCEnabledFlag Enable the HTTP-RPC
 	RPCEnabledFlag = cli.BoolFlag{
-		Name:  "rpc",
+		Name:  "rpc-external",
 		Usage: "Enable the HTTP-RPC server",
 	}
 	// RPCHostFlag HTTP-RPC server listening hostname
@@ -160,7 +160,7 @@ var (
 		Usage: "Websockets server listening port",
 	}
 	WSEnabledFlag = cli.BoolFlag{
-		Name:  "ws",
+		Name:  "ws-external",
 		Usage: "Enable the websockets server",
 	}
 )
