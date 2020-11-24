@@ -128,9 +128,10 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	pReq := *req
 	reqBytes, _ := common.HexToBytes(pReq[0])
+	bhash := common.BytesToHash(reqBytes)
 
 	if len(reqBytes) < 1 {
-		pairs, err := sm.storageAPI.Entries(nil)
+		pairs, err := sm.storageAPI.Entries(&bhash)
 		if err != nil {
 			return err
 		}
@@ -201,7 +202,7 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *StateRuntimeVersionResponse) error {
-	rtVersion, err := sm.coreAPI.GetRuntimeVersion()
+	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req)
 	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
 	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
 	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version

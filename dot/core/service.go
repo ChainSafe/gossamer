@@ -517,8 +517,13 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
-	ts, err := s.storageState.TrieState(nil)
+func (s *Service) GetRuntimeVersion(req *string) (*runtime.VersionAPI, error) {
+	var bhash *common.Hash
+	if req != nil {
+		*bhash, _ = common.HexToHash(*req)
+	}
+
+	ts, err := s.storageState.TrieState(bhash)
 	if err != nil {
 		return nil, err
 	}
