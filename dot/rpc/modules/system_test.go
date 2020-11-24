@@ -55,6 +55,10 @@ func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage
 	return nil
 }
 
+func (s *mockSyncer) GetSyncedState() bool {
+	return false
+}
+
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
