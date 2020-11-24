@@ -82,7 +82,7 @@ type Config struct {
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
 	// NoStatus disables the status message exchange protocol
-	NoStatus bool
+	//NoStatus bool
 
 	MessageHandler MessageHandler
 
@@ -134,7 +134,7 @@ func (c *Config) build() error {
 
 func (c *Config) checkState() (err error) {
 	// set NoStatus to true if we don't need BlockState
-	if c.BlockState == nil && !c.NoStatus {
+	if c.BlockState == nil {
 		err = errors.New("failed to build configuration: BlockState required")
 	}
 

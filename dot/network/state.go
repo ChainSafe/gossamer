@@ -17,7 +17,7 @@
 package network
 
 import (
-	"math/big"
+	//"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -78,5 +78,5 @@ type Syncer interface {
 	HandleBlockAnnounce(*BlockAnnounceMessage) *BlockRequestMessage
 
 	// HandleSeenBlocks is called upon receiving a StatusMessage from a peer that has a higher chain head than us
-	HandleSeenBlocks(*big.Int) *BlockRequestMessage
+	//HandleSeenBlocks(*big.Int) *BlockRequestMessage
 }

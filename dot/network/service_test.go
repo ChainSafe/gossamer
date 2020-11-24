@@ -129,9 +129,7 @@ func TestBroadcastMessages(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
@@ -147,9 +145,7 @@ func TestBroadcastMessages(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
@@ -181,7 +177,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
@@ -222,7 +217,6 @@ func TestHandleLightMessage_Response(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 	s := createTestService(t, config)
 

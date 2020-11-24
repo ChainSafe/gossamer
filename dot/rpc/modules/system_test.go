@@ -17,13 +17,12 @@
 package modules
 
 import (
-	"math/big"
 	"os"
 	"path"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	//"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
@@ -51,18 +50,23 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 	return nil
 }
 
-func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage {
-	return nil
+type mockBlockState struct{}
+
+func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {
+	return genesisHeader, nil
+}
+
+func (s *mockBlockState) GenesisHash() common.Hash {
+	return genesisHeader.Hash()
 }
 
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus: true,
-		//NetworkState: &state.NetworkState{},
-		BasePath: testDir,
-		Syncer:   &mockSyncer{},
+		BasePath:   testDir,
+		BlockState: &mockBlockState{},
+		Syncer:     &mockSyncer{},
 	}
 
 	srv, err := network.NewService(cfg)

@@ -95,9 +95,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
@@ -110,9 +108,7 @@ func TestConnect(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
@@ -158,9 +154,7 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	addrA := nodeA.host.multiaddrs()[0]
 
@@ -175,9 +169,7 @@ func TestBootstrap(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	peerCountA := nodeA.host.peerCount()
 	peerCountB := nodeB.host.peerCount()
@@ -219,9 +211,7 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
@@ -237,9 +227,7 @@ func TestSend(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
@@ -279,7 +267,6 @@ func TestBroadcast(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	mmhB := new(MockMessageHandler)
@@ -294,7 +281,6 @@ func TestBroadcast(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
@@ -320,7 +306,6 @@ func TestBroadcast(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	nodeC.noGossip = true
-	nodeC.noStatus = true
 
 	addrInfosC, err := nodeC.host.addrInfos()
 	require.NoError(t, err)
@@ -368,7 +353,6 @@ func TestExistingStream(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	addrInfosA, err := nodeA.host.addrInfos()
 	require.NoError(t, err)
@@ -385,9 +369,7 @@ func TestExistingStream(t *testing.T) {
 	}
 
 	nodeB := createTestService(t, configB)
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)

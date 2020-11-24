@@ -38,9 +38,9 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 	}
 }
 
-func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *BlockRequestMessage {
-	if num.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = num
-	}
-	return nil
-}
+// func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *BlockRequestMessage {
+// 	if num.Cmp(s.highestSeen) > 0 {
+// 		s.highestSeen = num
+// 	}
+// 	return nil
+// }

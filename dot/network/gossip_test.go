@@ -47,8 +47,6 @@ func TestGossip(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
 
-	nodeA.noStatus = true
-
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
 	mmhB := new(MockMessageHandler)
@@ -64,8 +62,6 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
-	nodeB.noStatus = true
 
 	addrInfosA, err := nodeA.host.addrInfos()
 	if err != nil {
@@ -97,8 +93,6 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	defer nodeC.Stop()
-
-	nodeC.noStatus = true
 
 	err = nodeC.host.connect(*addrInfosA[0])
 	// retry connect if "failed to dial" error
