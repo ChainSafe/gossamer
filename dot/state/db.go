@@ -68,13 +68,13 @@ func LoadGenesisData(db database.Database) (*genesis.Data, error) {
 }
 
 // StoreLatestStorageHash stores the current root hash in the database at LatestStorageHashKey
-func StoreLatestStorageHash(db database.Database, t *trie.Trie) error {
-	hash, err := t.Hash()
-	if err != nil {
-		return err
-	}
+func StoreLatestStorageHash(db database.Database, root common.Hash) error {
+	// hash, err := t.Hash()
+	// if err != nil {
+	// 	return err
+	// }
 
-	return db.Put(common.LatestStorageHashKey, hash[:])
+	return db.Put(common.LatestStorageHashKey, root[:])
 }
 
 // LoadLatestStorageHash retrieves the hash stored at LatestStorageHashKey from the DB
