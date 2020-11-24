@@ -81,8 +81,6 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
-	// NoStatus disables the status message exchange protocol
-	//NoStatus bool
 
 	MessageHandler MessageHandler
 

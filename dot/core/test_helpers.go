@@ -205,10 +205,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 // helper method to create and start a new network service
 func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	// if cfg.NetworkState == nil {
-	// 	cfg.NetworkState = &network.MockNetworkState{}
-	// }
-
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
 	}
@@ -255,12 +251,5 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 }
 
 func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
-	return nil
-}
-
-func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage {
-	if num.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = num
-	}
 	return nil
 }

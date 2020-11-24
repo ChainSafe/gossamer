@@ -63,18 +63,3 @@ func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 func (mbs *MockBlockState) GenesisHash() common.Hash {
 	return common.NewHash([]byte{})
 }
-
-// // GetHealth retrieves network health from the database
-// func (ns *MockNetworkState) GetHealth() common.Health {
-// 	return ns.Health
-// }
-
-// // GetMockNetworkState retrieves network state from the database
-// func (ns *MockNetworkState) GetNetworkState() common.NetworkState {
-// 	return ns.NetworkState
-// }
-
-// // GetPeers retrieves network state from the database
-// func (ns *MockNetworkState) GetPeers() []common.PeerInfo {
-// 	return ns.Peers
-// }

@@ -79,8 +79,7 @@ type Service struct {
 	// Configuration options
 	noBootstrap bool
 	noMDNS      bool
-	//noStatus    bool // internal option
-	noGossip bool // internal option
+	noGossip    bool // internal option
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -109,18 +108,17 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	network := &Service{
-		ctx:            ctx,
-		cancel:         cancel,
-		cfg:            cfg,
-		host:           host,
-		mdns:           newMDNS(host),
-		gossip:         newGossip(host),
-		requestTracker: newRequestTracker(logger),
-		blockState:     cfg.BlockState,
-		messageHandler: cfg.MessageHandler,
-		noBootstrap:    cfg.NoBootstrap,
-		noMDNS:         cfg.NoMDNS,
-		//noStatus:               cfg.NoStatus,
+		ctx:                    ctx,
+		cancel:                 cancel,
+		cfg:                    cfg,
+		host:                   host,
+		mdns:                   newMDNS(host),
+		gossip:                 newGossip(host),
+		requestTracker:         newRequestTracker(logger),
+		blockState:             cfg.BlockState,
+		messageHandler:         cfg.MessageHandler,
+		noBootstrap:            cfg.NoBootstrap,
+		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
 		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),

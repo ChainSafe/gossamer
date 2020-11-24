@@ -37,10 +37,3 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 		Max:           optional.NewUint32(false, 0),
 	}
 }
-
-// func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *BlockRequestMessage {
-// 	if num.Cmp(s.highestSeen) > 0 {
-// 		s.highestSeen = num
-// 	}
-// 	return nil
-// }

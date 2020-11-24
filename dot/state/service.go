@@ -34,12 +34,11 @@ var logger = log.New("pkg", "state")
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
-	dbPath  string
-	db      chaindb.Database
-	isMemDB bool // set to true if using an in-memory database; only used for testing.
-	Storage *StorageState
-	Block   *BlockState
-	//Network     *NetworkState
+	dbPath      string
+	db          chaindb.Database
+	isMemDB     bool // set to true if using an in-memory database; only used for testing.
+	Storage     *StorageState
+	Block       *BlockState
 	Transaction *TransactionState
 	Epoch       *EpochState
 	closeCh     chan interface{}
@@ -57,7 +56,6 @@ func NewService(path string, lvl log.Lvl) *Service {
 		isMemDB: false,
 		Storage: nil,
 		Block:   nil,
-		//Network: nil,
 		closeCh: make(chan interface{}),
 	}
 }
