@@ -224,7 +224,6 @@ func TestService_Health(t *testing.T) {
 		NoMDNS:      true,
 		NoStatus:    true,
 	}
-
 	s := createTestService(t, config)
 
 	require.Equal(t, s.Health().IsSyncing, true)
@@ -232,5 +231,63 @@ func TestService_Health(t *testing.T) {
 
 	mockSync.SetSyncedState(true)
 	require.Equal(t, s.Health().IsSyncing, false)
+}
 
+func TestHandleLightMessage_Response(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	defer utils.RemoveTestDir(t)
+
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		NoStatus:    true,
+	}
+	s := createTestService(t, config)
+
+	peerID := peer.ID("noot")
+
+	// Testing empty request
+	msg := &LightRequest{}
+	err := s.handleLightSyncMsg(peerID, msg)
+	require.NoError(t, err)
+
+	expectedErr := "failed to find any peer in table"
+
+	// Testing remoteCallResp()
+	msg = &LightRequest{
+		RmtCallRequest: &RemoteCallRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteHeaderResp()
+	msg = &LightRequest{
+		RmtHeaderRequest: &RemoteHeaderRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteChangeResp()
+	msg = &LightRequest{
+		RmtChangesRequest: &RemoteChangesRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteReadResp()
+	msg = &LightRequest{
+		RmtReadRequest: &RemoteReadRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
+
+	// Testing remoteReadChildResp()
+	msg = &LightRequest{
+		RmtReadChildRequest: &RemoteReadChildRequest{},
+	}
+	err = s.handleLightSyncMsg(peerID, msg)
+	require.Error(t, err, expectedErr, msg.String())
 }

@@ -39,6 +39,7 @@ const (
 
 	// the following are sub-protocols used by the node
 	syncID          = "/sync/2"
+	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 )
 
@@ -145,6 +146,7 @@ func (s *Service) Start() error {
 	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
@@ -351,6 +353,19 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	// the stream stays open until closed or reset
 }
 
+// handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
+func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
+	conn := stream.Conn()
+	if conn == nil {
+		logger.Error("Failed to get connection from stream")
+		return
+	}
+
+	peer := conn.RemotePeer()
+	s.readStream(stream, peer, decodeMessageBytes, s.handleLightSyncMsg)
+	// the stream stays open until closed or reset
+}
+
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
@@ -413,6 +428,45 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			return
 		}
 	}
+}
+func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
+	lr, ok := msg.(*LightRequest)
+	if !ok {
+		logger.Error("failed to get the request message from peer ", peer)
+		return nil
+	}
+
+	var resp LightResponse
+	var err error
+	switch {
+	case lr.RmtCallRequest != nil:
+		resp.RmtCallResponse, err = remoteCallResp(peer, lr.RmtCallRequest)
+	case lr.RmtHeaderRequest != nil:
+		resp.RmtHeaderResponse, err = remoteHeaderResp(peer, lr.RmtHeaderRequest)
+	case lr.RmtChangesRequest != nil:
+		resp.RmtChangeResponse, err = remoteChangeResp(peer, lr.RmtChangesRequest)
+	case lr.RmtReadRequest != nil:
+		resp.RmtReadResponse, err = remoteReadResp(peer, lr.RmtReadRequest)
+	case lr.RmtReadChildRequest != nil:
+		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
+	default:
+		logger.Error("ignoring request without request data from peer {}", peer)
+		return nil
+	}
+
+	if err != nil {
+		logger.Error("failed to get the response", "err", err)
+		return err
+	}
+
+	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage.
+	logger.Debug("LightResponse: ", resp.String())
+
+	err = s.host.send(peer, lightID, &resp)
+	if err != nil {
+		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
+	}
+	return err
 }
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)

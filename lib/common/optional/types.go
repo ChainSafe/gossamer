@@ -17,7 +17,6 @@
 package optional
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -129,7 +128,7 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	}
 
 	if exists > 1 {
-		return nil, errors.New("Decoding failed, invalid optional")
+		return nil, ErrInvalidOptional
 	}
 
 	x.exists = (exists != 0)
@@ -141,6 +140,78 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 			return nil, err
 		}
 		x.value = value
+	}
+
+	return x, nil
+}
+
+// Boolean represents an optional bool type.
+type Boolean struct {
+	exists bool
+	value  bool
+}
+
+// NewBoolean returns a new optional.Boolean
+func NewBoolean(exists bool, value bool) *Boolean {
+	return &Boolean{
+		exists: exists,
+		value:  value,
+	}
+}
+
+// Exists returns true if the value is Some, false if it is None.
+func (x *Boolean) Exists() bool {
+	return x.exists
+}
+
+// Value returns the []byte value. It returns nil if it is None.
+func (x *Boolean) Value() bool {
+	return x.value
+}
+
+// Set sets the exists and value fields.
+func (x *Boolean) Set(value bool) {
+	x.exists = true
+	x.value = value
+}
+
+// Encode returns the SCALE encoded optional
+func (x *Boolean) Encode() ([]byte, error) {
+	if !x.exists {
+		return []byte{0}, nil
+	}
+	var encodeValue []byte
+
+	if !x.value {
+		encodeValue = []byte{1}
+	} else {
+		encodeValue = []byte{2}
+	}
+
+	return encodeValue, nil
+}
+
+// Decode return an optional Boolean from scale encoded data
+func (x *Boolean) Decode(r io.Reader) (*Boolean, error) {
+	decoded, err := common.ReadByte(r)
+
+	if err != nil {
+		return nil, ErrInvalidOptional
+	}
+
+	if decoded > 2 {
+		return nil, ErrInvalidOptional
+	}
+
+	if decoded == 0 {
+		x.exists = false
+		x.value = false
+	} else if decoded == 1 {
+		x.exists = true
+		x.value = false
+	} else {
+		x.exists = true
+		x.value = true
 	}
 
 	return x, nil
