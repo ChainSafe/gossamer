@@ -524,7 +524,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) error {
 		if !s.noGossip {
 
 			// handle non-status message from peer with gossip submodule
-			s.gossip.handleMessage(msg, peer)
+			seen := s.gossip.hasSeen(msg, peer)
+			if !seen {
+				s.host.broadcastExcluding(msg, peer)
+			}
 		}
 
 	} else {

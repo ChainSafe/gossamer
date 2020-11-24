@@ -25,36 +25,28 @@ import (
 
 // gossip submodule
 type gossip struct {
-	logger  log.Logger
-	host    *host
-	hasSeen *sync.Map
+	logger log.Logger
+	host   *host
+	seen   *sync.Map
 }
 
 // newGossip creates a new gossip instance from the host
 func newGossip(host *host) *gossip {
 	return &gossip{
-		logger:  logger.New("module", "gossip"),
-		host:    host,
-		hasSeen: &sync.Map{},
+		logger: logger.New("module", "gossip"),
+		host:   host,
+		seen:   &sync.Map{},
 	}
 }
 
-// handleMessage broadcasts messages that have not been seen
-func (g *gossip) handleMessage(msg Message, from peer.ID) {
-
+// hasSeen broadcasts messages that have not been seen
+func (g *gossip) hasSeen(msg Message, from peer.ID) bool {
 	// check if message has not been seen
-	if seen, ok := g.hasSeen.Load(msg.IDString()); !ok || !seen.(bool) {
-
+	if seen, ok := g.seen.Load(msg.IDString()); !ok || !seen.(bool) {
 		// set message to has been seen
-		g.hasSeen.Store(msg.IDString(), true)
-
-		g.logger.Trace(
-			"Gossiping message from peer",
-			"host", g.host.id(),
-			"type", msg.Type(),
-		)
-
-		// broadcast message to connected peers
-		g.host.broadcastExcluding(msg, from)
+		g.seen.Store(msg.IDString(), true)
+		return false
 	}
+
+	return true
 }
