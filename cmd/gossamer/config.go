@@ -551,7 +551,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	// check --rpc flag and update node configuration
 	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
 		cfg.Enabled = true
-	} else if ctx.IsSet(RPCExternalEnabledFlag.Name) && !enabled {
+	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
 		cfg.Enabled = false
 	}
 
@@ -600,10 +600,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	logger.Debug(
 		"rpc configuration",
+		"enabled", cfg.Enabled,
 		"external enabled", cfg.ExternalEnabled,
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
+		"ws", cfg.WSEnabled,
 		"external ws", cfg.WSExternalEnabled,
 		"wsport", cfg.WSPort,
 	)

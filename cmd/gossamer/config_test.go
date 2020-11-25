@@ -478,7 +478,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpchost",
 			[]string{"config", "rpchost"},
-			[]interface{}{testCfgFile.Name(), "testhost"},
+			[]interface{}{testCfgFile.Name(), "testhost"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled:           testCfg.RPC.Enabled,
 				ExternalEnabled:   testCfg.RPC.ExternalEnabled,
@@ -493,7 +493,7 @@ func TestRPCConfigFromFlags(t *testing.T) {
 		{
 			"Test gossamer --rpcport",
 			[]string{"config", "rpcport"},
-			[]interface{}{testCfgFile.Name(), "5678"},
+			[]interface{}{testCfgFile.Name(), "5678"}, // rpc must be enabled
 			dot.RPCConfig{
 				Enabled:           testCfg.RPC.Enabled,
 				ExternalEnabled:   testCfg.RPC.ExternalEnabled,

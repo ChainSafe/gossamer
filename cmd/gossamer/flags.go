@@ -135,7 +135,7 @@ var (
 
 // RPC service configuration flags
 var (
-	// RPCExternalEnabledFlag Enable the HTTP-RPC
+	// RPCEnabledFlag Enable the HTTP-RPC
 	RPCEnabledFlag = cli.BoolFlag{
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
@@ -249,10 +249,12 @@ var (
 		NoMDNSFlag,
 
 		// rpc flags
+		RPCEnabledFlag,
 		RPCExternalEnabledFlag,
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
+		WSEnabledFlag,
 		WSExternalEnabledFlag,
 		WSPortFlag,
 	}
