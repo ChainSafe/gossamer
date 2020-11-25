@@ -517,13 +517,13 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(req *string) (*runtime.VersionAPI, error) {
-	var bhash *common.Hash
-	if req != nil {
-		*bhash, _ = common.HexToHash(*req)
+func (s *Service) GetRuntimeVersion(bhash common.Hash) (*runtime.VersionAPI, error) {
+	stateRootHash, err := s.storageState.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
 	}
 
-	ts, err := s.storageState.TrieState(bhash)
+	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -545,6 +545,17 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 //GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata() ([]byte, error) {
+func (s *Service) GetMetadata(bhash common.Hash) ([]byte, error) {
+	stateRootHash, err := s.storageState.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return nil, err
+	}
+
+	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	s.rt.SetContext(ts)
 	return s.rt.Metadata()
 }

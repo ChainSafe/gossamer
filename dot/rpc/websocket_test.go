@@ -120,3 +120,6 @@ func (m *MockStorageAPI) RegisterStorageChangeChannel(ch chan<- *state.KeyValue)
 func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {
 
 }
+func (m *MockStorageAPI) GetStateRootFromBlock(bhash common.Hash) (*common.Hash, error) {
+	return nil, nil
+}

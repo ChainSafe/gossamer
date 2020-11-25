@@ -126,12 +126,19 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+
+	// Extract the params
 	pReq := *req
 	reqBytes, _ := common.HexToBytes(pReq[0])
-	bhash := common.BytesToHash(reqBytes)
+	bhash, _ := common.HexToHash(pReq[1])
+
+	stateRootHash, err := sm.storageAPI.GetStateRootFromBlock(bhash)
+	if err != nil {
+		return err
+	}
 
 	if len(reqBytes) < 1 {
-		pairs, err := sm.storageAPI.Entries(&bhash)
+		pairs, err := sm.storageAPI.Entries(stateRootHash)
 		if err != nil {
 			return err
 		}
@@ -141,7 +148,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 	} else {
 		// TODO this should return all keys with same prefix, currently only returning
 		//  matches.  Implement when #837 is done.
-		resI, err := sm.storageAPI.GetStorage(nil, reqBytes)
+		resI, err := sm.storageAPI.GetStorage(stateRootHash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -189,10 +196,12 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 // GetMetadata calls runtime Metadata_metadata function
 func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	metadata, err := sm.coreAPI.GetMetadata()
+	bhash := common.Hash(*req)
+	metadata, err := sm.coreAPI.GetMetadata(bhash)
 	if err != nil {
 		return err
 	}
+
 	decoded, err := scale.Decode(metadata, []byte{})
 	*res = common.BytesToHex(decoded.([]byte))
 	return err
@@ -202,7 +211,8 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *StateRuntimeVersionResponse) error {
-	rtVersion, err := sm.coreAPI.GetRuntimeVersion(req)
+	bhash, _ := common.HexToHash(*req)
+	rtVersion, err := sm.coreAPI.GetRuntimeVersion(bhash)
 	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
 	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
 	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
