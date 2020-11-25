@@ -492,3 +492,8 @@ func (s *Service) handleDigests(header *types.Header) error {
 
 	return nil
 }
+
+// IsSynced exposes the synced state
+func (s *Service) IsSynced() bool {
+	return s.synced
+}

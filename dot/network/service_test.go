@@ -212,6 +212,27 @@ func TestService_NodeRoles(t *testing.T) {
 	require.Equal(t, cfg.Roles, role)
 }
 
+func TestService_Health(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	defer utils.RemoveTestDir(t)
+
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		NoStatus:    true,
+	}
+	s := createTestService(t, config)
+
+	require.Equal(t, s.Health().IsSyncing, true)
+	mockSync := s.syncer.(*mockSyncer)
+
+	mockSync.SetSyncedState(true)
+	require.Equal(t, s.Health().IsSyncing, false)
+}
+
 func TestHandleLightMessage_Response(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
