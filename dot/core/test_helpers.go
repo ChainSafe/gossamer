@@ -315,6 +315,6 @@ func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage
 	return nil
 }
 
-func (s *mockSyncer) GetSyncedState() bool {
+func (s *mockSyncer) IsSynced() bool {
 	return false
 }

@@ -80,6 +80,6 @@ type Syncer interface {
 	// HandleSeenBlocks is called upon receiving a StatusMessage from a peer that has a higher chain head than us
 	HandleSeenBlocks(*big.Int) *BlockRequestMessage
 
-	// GetSyncedState exposes the internal synced state
-	GetSyncedState() bool
+	// IsSynced exposes the internal synced state
+	IsSynced() bool
 }

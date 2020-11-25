@@ -580,7 +580,7 @@ func (s *Service) Health() common.Health {
 
 	return common.Health{
 		Peers:           s.host.peerCount(),
-		IsSyncing:       !s.syncer.GetSyncedState(),
+		IsSyncing:       !s.syncer.IsSynced(),
 		ShouldHavePeers: !s.noBootstrap,
 	}
 }
