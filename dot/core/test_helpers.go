@@ -289,6 +289,7 @@ func newMockSyncer() *mockSyncer {
 		highestSeen: big.NewInt(0),
 	}
 }
+
 func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	return nil, nil
 }
@@ -312,4 +313,8 @@ func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage
 		s.highestSeen = num
 	}
 	return nil
+}
+
+func (s *mockSyncer) IsSynced() bool {
+	return false
 }
