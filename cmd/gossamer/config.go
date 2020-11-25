@@ -539,18 +539,18 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 
 // setDotRPCConfig sets dot.RPCConfig using flag values from the cli context
 func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConfig) {
-	cfg.Enabled = tomlCfg.Enabled
+	cfg.ExternalEnabled = tomlCfg.ExternalEnabled
 	cfg.Port = tomlCfg.Port
 	cfg.Host = tomlCfg.Host
 	cfg.Modules = tomlCfg.Modules
 	cfg.WSPort = tomlCfg.WSPort
-	cfg.WSEnabled = tomlCfg.WSEnabled
+	cfg.WSExternalEnabled = tomlCfg.WSExternalEnabled
 
-	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
-		cfg.Enabled = true
-	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
-		cfg.Enabled = false
+	// check --rpc-external flag and update node configuration
+	if enabled := ctx.GlobalBool(RPCExternalEnabledFlag.Name); enabled {
+		cfg.ExternalEnabled = true
+	} else if ctx.IsSet(RPCExternalEnabledFlag.Name) && !enabled {
+		cfg.ExternalEnabled = false
 	}
 
 	// check --rpcport flag and update node configuration
@@ -572,10 +572,10 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if wsenabled := ctx.GlobalBool(WSEnabledFlag.Name); wsenabled {
-		cfg.WSEnabled = true
-	} else if ctx.IsSet(WSEnabledFlag.Name) && !wsenabled {
-		cfg.WSEnabled = false
+	if wsExternalEnabled := ctx.GlobalBool(WSExternalEnabledFlag.Name); wsExternalEnabled {
+		cfg.WSExternalEnabled = true
+	} else if ctx.IsSet(WSExternalEnabledFlag.Name) && !wsExternalEnabled {
+		cfg.WSExternalEnabled = false
 	}
 
 	// format rpc modules
@@ -585,11 +585,11 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	logger.Debug(
 		"rpc configuration",
-		"enabled", cfg.Enabled,
+		"external enabled", cfg.ExternalEnabled,
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
-		"ws", cfg.WSEnabled,
+		"external ws", cfg.WSExternalEnabled,
 		"wsport", cfg.WSPort,
 	)
 }

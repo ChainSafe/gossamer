@@ -51,7 +51,7 @@ type HTTPServerConfig struct {
 	SystemAPI           modules.SystemAPI
 	Host                string
 	RPCPort             uint32
-	WSEnabled           bool
+	WSExternalEnabled   bool
 	WSPort              uint32
 	Modules             []string
 }
@@ -138,15 +138,13 @@ func (h *HTTPServer) Start() error {
 			h.logger.Error("http error", "err", err)
 		}
 	}()
-
-	if !h.serverConfig.WSEnabled {
-		return nil
-	}
+	// TODO: Confirm if RPC & WS always enabled is correct
 
 	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
+		// TODO: Confirm if this only accepts localhost
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
 			h.logger.Error("http error", "err", err)
@@ -158,24 +156,22 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if h.serverConfig.WSEnabled {
-		// close all channels and websocket connections
-		for _, conn := range h.wsConns {
-			for _, sub := range conn.subscriptions {
-				switch v := sub.(type) {
-				case *StorageChangeListener:
-					h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(v.chanID)
-					close(v.channel)
-				case *BlockListener:
-					h.serverConfig.BlockAPI.UnregisterImportedChannel(v.chanID)
-					close(v.channel)
-				}
+	// close all channels and websocket connections
+	for _, conn := range h.wsConns {
+		for _, sub := range conn.subscriptions {
+			switch v := sub.(type) {
+			case *StorageChangeListener:
+				h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(v.chanID)
+				close(v.channel)
+			case *BlockListener:
+				h.serverConfig.BlockAPI.UnregisterImportedChannel(v.chanID)
+				close(v.channel)
 			}
+		}
 
-			err := conn.wsconn.Close()
-			if err != nil {
-				h.logger.Error("error closing websocket connection", "error", err)
-			}
+		err := conn.wsconn.Close()
+		if err != nil {
+			h.logger.Error("error closing websocket connection", "error", err)
 		}
 	}
 	return nil

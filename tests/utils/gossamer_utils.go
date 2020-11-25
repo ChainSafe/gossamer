@@ -447,10 +447,10 @@ func generateDefaultConfig() *ctoml.Config {
 			NoMDNS:      false,
 		},
 		RPC: ctoml.RPCConfig{
-			Enabled:   false,
-			Host:      "localhost",
-			Modules:   []string{"system", "author", "chain", "state"},
-			WSEnabled: false,
+			ExternalEnabled:   false,
+			Host:              "localhost",
+			Modules:           []string{"system", "author", "chain", "state"},
+			WSExternalEnabled: false,
 		},
 	}
 }
