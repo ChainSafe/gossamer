@@ -57,7 +57,7 @@ arr=()
 start_func() {
   echo "starting gossamer node $i in background ..."
   "$PWD"/bin/gossamer --port=$(($PORT + $i)) --key=${keys[$i-1]} --basepath="$BASE_PATH$i" \
-    --rpc-external --rpchost=$HOSTNAME --rpcport=$(($RPC_PORT + $i)) --roles=1 --rpcmods=system,author,chain >"$BASE_PATH"/node"$i".log 2>&1 & disown
+    --rpc --ws --rpchost=$HOSTNAME --rpcport=$(($RPC_PORT + $i)) --roles=1 --rpcmods=system,author,chain >"$BASE_PATH"/node"$i".log 2>&1 & disown
 
   GOSSAMER_PID=$!
   echo "started gossamer node, pid=$GOSSAMER_PID"

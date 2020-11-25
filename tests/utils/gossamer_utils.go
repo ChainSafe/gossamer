@@ -127,7 +127,8 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpchost", HOSTNAME,
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev",
-		"--rpc-external",
+		"--rpc",
+		"--ws",
 		"--log", "info"}
 
 	if node.Idx >= len(keyList) {
@@ -139,7 +140,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	}
 
 	if websocket {
-		params = append(params, "--ws-external",
+		params = append(params, "--ws",
 			"--wsport", node.WSPort)
 	}
 	//nolint
@@ -447,9 +448,11 @@ func generateDefaultConfig() *ctoml.Config {
 			NoMDNS:      false,
 		},
 		RPC: ctoml.RPCConfig{
+			Enabled:           false,
 			ExternalEnabled:   false,
 			Host:              "localhost",
 			Modules:           []string{"system", "author", "chain", "state"},
+			WSEnabled:         false,
 			WSExternalEnabled: false,
 		},
 	}

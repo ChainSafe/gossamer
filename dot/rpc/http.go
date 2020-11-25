@@ -49,8 +49,10 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
+	ExternalEnabled     bool
 	Host                string
 	RPCPort             uint32
+	WSEnabled           bool
 	WSExternalEnabled   bool
 	WSPort              uint32
 	Modules             []string
@@ -156,22 +158,24 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	// close all channels and websocket connections
-	for _, conn := range h.wsConns {
-		for _, sub := range conn.subscriptions {
-			switch v := sub.(type) {
-			case *StorageChangeListener:
-				h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(v.chanID)
-				close(v.channel)
-			case *BlockListener:
-				h.serverConfig.BlockAPI.UnregisterImportedChannel(v.chanID)
-				close(v.channel)
+	if h.serverConfig.WSEnabled {
+		// close all channels and websocket connections
+		for _, conn := range h.wsConns {
+			for _, sub := range conn.subscriptions {
+				switch v := sub.(type) {
+				case *StorageChangeListener:
+					h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(v.chanID)
+					close(v.channel)
+				case *BlockListener:
+					h.serverConfig.BlockAPI.UnregisterImportedChannel(v.chanID)
+					close(v.channel)
+				}
 			}
-		}
 
-		err := conn.wsconn.Close()
-		if err != nil {
-			h.logger.Error("error closing websocket connection", "error", err)
+			err := conn.wsconn.Close()
+			if err != nil {
+				h.logger.Error("error closing websocket connection", "error", err)
+			}
 		}
 	}
 	return nil

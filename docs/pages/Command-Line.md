@@ -107,11 +107,13 @@ List of ***local flag*** options for `export` subcommand:
 --roles value      Roles of the gossamer node
 --nobootstrap      Disables network bootstrapping (mdns still enabled)
 --nomdns           Disables network mdns discovery
---rpc-external     Enable the HTTP-RPC server
+--rpc              Enable the HTTP-RPC server
+--rpc-external     Enable external HTTP-RPC connections
 --rpchost value    HTTP-RPC server listening hostname
 --rpcport value    HTTP-RPC server listening port (default: 0)
 --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---ws-external      Enable the websockets server
+--ws               Enable the websockets server
+--ws-external      Enable external websockets connections
 --wsport value     Websockets server listening port (default: 0)
 ```
 

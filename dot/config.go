@@ -96,11 +96,13 @@ type CoreConfig struct {
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
+	Enabled           bool
 	ExternalEnabled   bool
 	Port              uint32
 	Host              string
 	Modules           []string
 	WSPort            uint32
+	WSEnabled         bool
 	WSExternalEnabled bool
 }
 
@@ -115,9 +117,24 @@ func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != byte(0)
 }
 
-// RPCExternalServiceEnabled returns true if the rpc service is enabled
+// RPCServiceEnabled returns true if the rpc service is enabled
+func RPCServiceEnabled(cfg *Config) bool {
+	return cfg.RPC.Enabled
+}
+
+// RPCExternalServiceEnabled returns true if the rpc service accepts external connections
 func RPCExternalServiceEnabled(cfg *Config) bool {
 	return cfg.RPC.ExternalEnabled
+}
+
+// WSServiceEnabled returns true if the websocket service is enabled
+func WSServiceEnabled(cfg *Config) bool {
+	return cfg.RPC.WSEnabled
+}
+
+// WSExternalServiceEnabled returns true if the websocket service accepts external connections
+func WSExternalServiceEnabled(cfg *Config) bool {
+	return cfg.RPC.WSExternalEnabled
 }
 
 // GssmrConfig returns a new test configuration using the provided basepath
