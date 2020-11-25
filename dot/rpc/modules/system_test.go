@@ -31,7 +31,7 @@ import (
 var (
 	testHealth = common.Health{
 		Peers:           0,
-		IsSyncing:       false,
+		IsSyncing:       true,
 		ShouldHavePeers: true,
 	}
 	testPeers = []common.PeerInfo{}
@@ -53,6 +53,10 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 
 func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage {
 	return nil
+}
+
+func (s *mockSyncer) IsSynced() bool {
+	return false
 }
 
 func newNetworkService(t *testing.T) *network.Service {
