@@ -456,7 +456,7 @@ func (s *Service) playGrandpaRound() error {
 		}
 	}(&finalized)
 
-	s.logger.Debug("receiving pre-vote messages...")
+	s.logger.Debug("receiving pre-commit messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
