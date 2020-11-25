@@ -31,7 +31,7 @@ import (
 var (
 	testHealth = common.Health{
 		Peers:           0,
-		IsSyncing:       false,
+		IsSyncing:       true,
 		ShouldHavePeers: true,
 	}
 	testPeers = []common.PeerInfo{}
