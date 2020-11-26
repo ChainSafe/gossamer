@@ -76,9 +76,15 @@ var rpcHost string
 
 // ServeHTTP implemented to handle WebSocket connections
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Entered WS Serve")
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // todo determine how this should check orgigin
+			// TODO: #864
+			if !h.serverConfig.WSExternalEnabled {
+				ip := GetIP(r)
+				fmt.Println("Requesting IP", ip)
+			}
+			return true
 		},
 	}
 
