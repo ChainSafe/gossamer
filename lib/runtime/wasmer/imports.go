@@ -620,8 +620,30 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 }
 
 //export ext_storage_read_version_1
-func ext_storage_read_version_1(context unsafe.Pointer, a, b C.int64_t, x C.int32_t) C.int64_t {
+func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 	logger.Trace("[ext_storage_read_version_1] executing...")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+	memory := context.Memory().Data()
+
+	key := asMemorySlice(instanceContext, keySpan)
+	value, err := storage.Get(key)
+	if err != nil {
+		logger.Error("[ext_storage_get_version_1]", "error", err)
+		return 0
+	}
+	logger.Trace("[ext_storage_get_version_1]", "value", value)
+	if value == nil {
+		ret, _ := toWasmMemoryOptional(context, []byte{})
+		return ret
+	}
+
+	valuBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+	copy(memory[valueBuf:valueBuf+valueLen], value)
+	if len(value) >= valueLen {
+		return valueLen
+	}
 	return 0
 }
 

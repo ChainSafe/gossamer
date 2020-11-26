@@ -3,11 +3,13 @@ package wasmer
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -204,4 +206,70 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 
 	err := rt.InitializeBlock(header)
 	require.NoError(t, err)
+}
+
+func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	header := &types.Header{
+		ParentHash: trie.EmptyHash,
+		Number:     big.NewInt(77),
+		Digest:     [][]byte{},
+	}
+
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+	t.Log(idata)
+
+	// err = idata.SetInt64Inherent(types.Babeslot, 1)
+	// require.NoError(t, err)
+
+	// err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
+	// require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	t.Log(inherentExts)
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext) //nolint
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
+		require.NoError(t, err, in)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+
+	expected := &types.Header{
+		ParentHash: header.ParentHash,
+		Number:     big.NewInt(77),
+		Digest:     [][]byte{},
+	}
+
+	require.Equal(t, expected.ParentHash, res.ParentHash)
+	require.Equal(t, expected.Number, res.Number)
+	require.Equal(t, expected.Digest, res.Digest)
+	require.NotEqual(t, common.Hash{}, res.StateRoot)
+	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+	require.NotEqual(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }
