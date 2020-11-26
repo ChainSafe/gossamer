@@ -13,9 +13,15 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package rpc
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+
+	"github.com/gorilla/rpc/v2"
+)
 
 // GetIP gets a requests IP address by reading off the forwarded-for
 // header (for proxies) and falls back to use the remote address.
@@ -25,4 +31,14 @@ func GetIP(r *http.Request) string {
 		return forwarded
 	}
 	return r.RemoteAddr
+}
+
+// LocalRequestOnly HTTP handler to restrict to only local connections
+func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
+	ip := GetIP(r.Request)
+	if ip != "127.0.0.1" {
+		logger.Error("external HTTP request refuesed", "error")
+		return errors.New("external HTTP request refused")
+	}
+	return nil
 }

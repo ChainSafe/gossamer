@@ -86,6 +86,10 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
+	if !cfg.ExternalEnabled {
+		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
+	}
+
 	return server
 }
 
@@ -134,13 +138,13 @@ func (h *HTTPServer) Start() error {
 	h.logger.Info("Starting HTTP Server...", "host", h.serverConfig.Host, "port", h.serverConfig.RPCPort)
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
+
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
 			h.logger.Error("http error", "err", err)
 		}
 	}()
-	// TODO: Confirm if RPC & WS always enabled is correct
 
 	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
