@@ -111,7 +111,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		}
 	case wasmtime.Name:
 		rtCfg := &wasmtime.Config{
-			Imports: wasmtime.ImportsLegacyNodeRuntime,
+			Imports: wasmtime.ImportLegacyNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
