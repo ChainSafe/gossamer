@@ -169,7 +169,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		if !s.noGossip {
 			seen := s.gossip.hasSeen(msg)
 			if !seen {
-				s.broadcastExcluding(info, peer, msg)
+				//s.broadcastExcluding(info, peer, msg)
 			}
 		}
 
