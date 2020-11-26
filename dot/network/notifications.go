@@ -166,12 +166,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		// TODO: improve this by keeping track of who you've received/sent messages from
-		if !s.noGossip {
-			seen := s.gossip.hasSeen(msg)
-			if !seen {
-				//s.broadcastExcluding(info, peer, msg)
-			}
-		}
+		// if !s.noGossip {
+		// 	seen := s.gossip.hasSeen(msg)
+		// 	if !seen {
+		// 		s.broadcastExcluding(info, peer, msg)
+		// 	}
+		// }
 
 		return nil
 	}
