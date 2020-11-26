@@ -84,6 +84,10 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if !h.serverConfig.WSExternalEnabled {
 				ip := GetIP(r)
 				fmt.Println("Requesting IP", ip)
+				if ip != "127.0.0.1" {
+					logger.Error("external websocket request refuesed", "error")
+					return false
+				}
 			}
 			return true
 		},
