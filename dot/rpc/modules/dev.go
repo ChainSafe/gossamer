@@ -83,8 +83,8 @@ func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interfac
 	return err
 }
 
-// SetBABEEpochThreshold dev rpc method that sets BABE Epoch Threshold of the BABE Producer
-func (m *DevModule) SetBABEEpochThreshold(r *http.Request, req *string, res *string) error {
+// SetBABEThreshold dev rpc method that sets BABE Epoch Threshold of the BABE Producer
+func (m *DevModule) SetBABEThreshold(r *http.Request, req *string, res *string) error {
 	n := new(big.Int)
 	n, ok := n.SetString(*req, 10)
 	if !ok {

@@ -111,12 +111,12 @@ func TestDevModule_SetBlockProducerAuthorities_NotFound(t *testing.T) {
 	require.Equal(t, aBefore, aAfter)
 }
 
-func TestDevModule_SetBABEEpochThreshold(t *testing.T) {
+func TestDevModule_SetBABEThreshold(t *testing.T) {
 	bs := newBABEService(t)
 	m := NewDevModule(bs, nil)
 	req := "123"
 	var res string
-	err := m.SetBABEEpochThreshold(nil, &req, &res)
+	err := m.SetBABEThreshold(nil, &req, &res)
 	require.NoError(t, err)
 	require.Equal(t, "set BABE threshold to 123", res)
 }
