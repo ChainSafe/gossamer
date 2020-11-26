@@ -105,7 +105,6 @@ func (in *LegacyInstance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	encodedHeader = append(encodedHeader, 0)
 	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }

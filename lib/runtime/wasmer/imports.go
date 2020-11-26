@@ -108,10 +108,6 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-var (
-	data int64
-)
-
 //export ext_logging_log_version_1
 func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
@@ -356,21 +352,13 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, a 
 //export ext_allocator_free_version_1
 func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
-	if addr == C.int32_t(24) {
-		return
-	}
 	ext_free(context, addr)
 }
 
 //export ext_allocator_malloc_version_1
 func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-	instanceContext := wasm.IntoInstanceContext(context)
-
-	logger.Info("[ext_allocator_malloc_version_1]", "data", asMemorySlice(instanceContext, C.int64_t(data)), "len", len(asMemorySlice(instanceContext, C.int64_t(data))), "ptrsize", data)
-	ptr := ext_malloc(context, size)
-	logger.Info("[ext_allocator_malloc_version_1]", "ptr", ptr)
-	return ptr
+	return ext_malloc(context, size)
 }
 
 //export ext_hashing_blake2_128_version_1
@@ -607,9 +595,6 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 		panic(err)
 	}
 
-	data = valueSpan
-	logger.Trace("[ext_storage_get_version_1]", "ptrsize", data, "data", asMemorySlice(instanceContext, C.int64_t(data)), "len", len(asMemorySlice(instanceContext, C.int64_t(data))))
-
 	return C.int64_t(valueSpan)
 }
 
@@ -677,7 +662,9 @@ func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(context wasm.InstanceContext, span C.int64_t) []byte {
 	memory := context.Memory().Data()
+
 	ptr, size := int64ToPointerAndSize(int64(span))
+
 	return memory[ptr : ptr+size]
 }
 
@@ -692,13 +679,16 @@ func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	logger.Info("toWasmMemory", "out", int32(out), "size", size, "out%8", out%8)
+
 	copy(memory[out:out+size], data[:])
+	logger.Info("toWasmMemory", "data", data)
+
 	return pointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
 // Copy a byte slice of a fixed size to wasm memory and return resulting pointer
 func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (uint32, error) {
+
 	if int(size) != len(data) {
 		return 0, errors.New("internal byte array size missmatch")
 	}
@@ -718,11 +708,12 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
-	var opt *optional.EncodedBytes
+
+	var opt *optional.Bytes
 	if len(data) == 0 {
-		opt = optional.NewEncodedBytes(false, nil)
+		opt = optional.NewBytes(false, nil)
 	} else {
-		opt = optional.NewEncodedBytes(true, data)
+		opt = optional.NewBytes(true, data)
 	}
 
 	enc, err := opt.Encode()

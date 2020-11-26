@@ -17,10 +17,8 @@
 package optional
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -142,77 +140,6 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 			return nil, err
 		}
 		x.value = value
-	}
-
-	return x, nil
-}
-
-// EncodedBytes represents an optional EncodedBytes type
-type EncodedBytes struct {
-	exists bool
-	value  []byte
-}
-
-// NewEncodedBytes returns a new optional.EncodedBytes
-func NewEncodedBytes(exists bool, value []byte) *EncodedBytes {
-	return &EncodedBytes{
-		exists: exists,
-		value:  value,
-	}
-}
-
-// Exists returns true if the value is Some, false if it is None.
-func (x *EncodedBytes) Exists() bool {
-	return x.exists
-}
-
-// Value returns the []byte value. It returns nil if it is None.
-func (x *EncodedBytes) Value() []byte {
-	return x.value
-}
-
-// String returns the value as a string.
-func (x *EncodedBytes) String() string {
-	if !x.exists {
-		return none
-	}
-	return fmt.Sprintf("%x", x.value)
-}
-
-// Set sets the exists and value fields.
-func (x *EncodedBytes) Set(exists bool, value []byte) {
-	x.exists = exists
-	x.value = value
-}
-
-// Encode returns the SCALE encoded optional
-// Note: this differs from optional.Bytes in that it doesn't encode the value,
-// as it assumes it is already encoded.
-func (x *EncodedBytes) Encode() ([]byte, error) {
-	if !x.exists {
-		return []byte{0}, nil
-	}
-
-	return append([]byte{1}, x.value...), nil
-}
-
-// Decode return an optional EncodedBytes from scale encoded data
-// Note: this differs from optional.Bytes in that it doesn't SCALE decode the value.
-func (x *EncodedBytes) Decode(r io.Reader) (*EncodedBytes, error) {
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists > 1 {
-		return nil, errors.New("decoding failed, invalid optional")
-	}
-
-	x.exists = (exists != 0)
-
-	x.value, err = ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
 	}
 
 	return x, nil
