@@ -104,6 +104,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	//"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -137,123 +138,144 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 //export ext_sandbox_instance_teardown_version_1
 func ext_sandbox_instance_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
 	logger.Trace("[ext_sandbox_instance_teardown_version_1] executing...")
+	logger.Warn("[ext_sandbox_instance_teardown_version_1] unimplemented")
 }
 
 //export ext_sandbox_instantiate_version_1
 func ext_sandbox_instantiate_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_instantiate_version_1] executing...")
+	logger.Warn("[ext_sandbox_instantiate_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_invoke_version_1
 func ext_sandbox_invoke_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_invoke_version_1] executing...")
+	logger.Warn("[ext_sandbox_invoke_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_get_version_1
 func ext_sandbox_memory_get_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_get_version_1] executing...")
+	logger.Warn("[ext_sandbox_memory_get_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_new_version_1
 func ext_sandbox_memory_new_version_1(context unsafe.Pointer, a, z C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_new_version_1] executing...")
+	logger.Warn("[ext_sandbox_memory_new_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_set_version_1
 func ext_sandbox_memory_set_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_set_version_1] executing...")
+	logger.Warn("[ext_sandbox_memory_set_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_teardown_version_1
 func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
 	logger.Trace("[ext_sandbox_memory_teardown_version_1] executing...")
+	logger.Warn("[ext_sandbox_memory_teardown_version_1] unimplemented")
 }
 
 //export ext_crypto_ed25519_generate_version_1
 func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
+	logger.Warn("[ext_crypto_ed25519_generate_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
 func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
+	logger.Warn("[ext_crypto_ed25519_public_keys_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_ed25519_sign_version_1
 func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, a, z C.int32_t, y C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
+	logger.Warn("[ext_crypto_ed25519_sign_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_ed25519_verify_version_1
 func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+	logger.Warn("[ext_crypto_ed25519_verify_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
+	logger.Warn("[ext_crypto_finish_batch_verify_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_1
 func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
+	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
+	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_sr25519_generate_version_1
 func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
+	logger.Warn("[ext_crypto_sr25519_generate_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
 func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+	logger.Warn("[ext_crypto_sr25519_public_keys_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_sr25519_sign_version_1
 func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, a, z C.int32_t, y C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
+	logger.Warn("[ext_crypto_sr25519_sign_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_sr25519_verify_version_1
 func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
+	logger.Warn("[ext_crypto_sr25519_verify_version_1] unimplemented")
 	return 0
 }
 
 //export ext_crypto_sr25519_verify_version_2
 func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
+	logger.Warn("[ext_crypto_sr25519_verify_version_2] unimplemented")
 	return 0
 }
 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
+	logger.Warn("[ext_crypto_start_batch_verify_version_1] unimplemented")
 }
 
 //export ext_trie_blake2_256_root_version_1
 func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
 	logger.Trace("[ext_trie_blake2_256_root_version_1] executing...")
+	logger.Warn("[ext_trie_blake2_256_root_version_1] unimplemented")
 	return 0
 }
 
@@ -280,11 +302,13 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.i
 //export ext_misc_print_hex_version_1
 func ext_misc_print_hex_version_1(context unsafe.Pointer, a C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+	logger.Warn("[ext_misc_print_hex_version_1] unimplemented")
 }
 
 //export ext_misc_print_num_version_1
 func ext_misc_print_num_version_1(context unsafe.Pointer, a C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
+	logger.Warn("[ext_misc_print_num_version_1] unimplemented")
 }
 
 //export ext_misc_print_utf8_version_1
@@ -297,57 +321,67 @@ func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
 //export ext_misc_runtime_version_version_1
 func ext_misc_runtime_version_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
+	logger.Warn("[ext_misc_runtime_version_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_read_version_1
 func ext_default_child_storage_read_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t, c C.int64_t, d C.int32_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_read_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_clear_version_1
 func ext_default_child_storage_clear_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_clear_version_1] unimplemented")
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
 func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_clear_prefix_version_1] unimplemented")
 }
 
 //export ext_default_child_storage_exists_version_1
 func ext_default_child_storage_exists_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) C.int32_t {
 	logger.Trace("[ext_default_child_storage_exists_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_exists_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_get_version_1
 func ext_default_child_storage_get_version_1(context unsafe.Pointer, a, b C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_get_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_next_key_version_1
 func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_next_key_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_next_key_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_root_version_1
 func ext_default_child_storage_root_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_root_version_1] unimplemented")
 	return 0
 }
 
 //export ext_default_child_storage_set_version_1
 func ext_default_child_storage_set_version_1(context unsafe.Pointer, a, b, z C.int64_t) {
 	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_set_version_1] unimplemented")
 }
 
 //export ext_default_child_storage_storage_kill_version_1
 func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, a C.int64_t) {
 	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_1] unimplemented")
 }
 
 //export ext_allocator_free_version_1
@@ -431,6 +465,7 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 //export ext_hashing_sha2_256_version_1
 func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
+	logger.Warn("[ext_hashing_sha2_256_version_1] unimplemented")
 	return 0
 }
 
@@ -497,58 +532,77 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 //export ext_offchain_index_set_version_1
 func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
+	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
 }
 
 //export ext_offchain_is_validator_version_1
 func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_offchain_is_validator_version_1] executing...")
+	logger.Warn("[ext_offchain_is_validator_version_1] unimplemented")
 	return 0
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
 func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, a C.int32_t, x, y, z C.int64_t) C.int32_t {
 	logger.Trace("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
+	logger.Warn("[ext_offchain_local_storage_compare_and_set_version_1] unimplemented")
 	return 0
 }
 
 //export ext_offchain_local_storage_get_version_1
 func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, a C.int32_t, x C.int64_t) C.int64_t {
 	logger.Trace("[ext_offchain_local_storage_get_version_1] executing...")
+	logger.Warn("[ext_offchain_local_storage_get_version_1] unimplemented")
 	return 0
 }
 
 //export ext_offchain_local_storage_set_version_1
 func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t) {
 	logger.Trace("[ext_offchain_local_storage_set_version_1] executing...")
+	logger.Warn("[ext_offchain_local_storage_set_version_1] unimplemented")
 }
 
 //export ext_offchain_network_state_version_1
 func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_network_state_version_1] executing...")
+	logger.Warn("[ext_offchain_network_state_version_1] unimplemented")
 	return 0
 }
 
 //export ext_offchain_random_seed_version_1
 func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_offchain_random_seed_version_1] executing...")
+	logger.Warn("[ext_offchain_random_seed_version_1] unimplemented")
 	return 0
 }
 
 //export ext_offchain_submit_transaction_version_1
 func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
 	logger.Trace("[ext_offchain_submit_transaction_version_1] executing...")
+	logger.Warn("[ext_offchain_submit_transaction_version_1] unimplemented")
 	return 0
 }
 
 //export ext_storage_append_version_1
 func ext_storage_append_version_1(context unsafe.Pointer, a, b C.int64_t) {
 	logger.Trace("[ext_storage_append_version_1] executing...")
+	logger.Warn("[ext_storage_append_version_1] unimplemented")
 }
 
 //export ext_storage_changes_root_version_1
-func ext_storage_changes_root_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
-	return 0
+	logger.Warn("[ext_storage_changes_root_version_1] returning None")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	rootSpan, err := toWasmMemoryOptional(instanceContext, nil)
+	if err != nil {
+		logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int64_t(rootSpan)
 }
 
 //export ext_storage_clear_version_1
@@ -559,23 +613,26 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 
 	key := asMemorySlice(instanceContext, keySpan)
 
-	logger.Trace("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Trace("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
 	_ = storage.Delete(key)
 }
 
 //export ext_storage_clear_prefix_version_1
 func ext_storage_clear_prefix_version_1(context unsafe.Pointer, a C.int64_t) {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
+	logger.Warn("[ext_storage_clear_prefix_version_1] unimplemented")
 }
 
 //export ext_storage_commit_transaction_version_1
 func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
+	logger.Warn("[ext_storage_commit_transaction_version_1] unimplemented")
 }
 
 //export ext_storage_exists_version_1
 func ext_storage_exists_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
 	logger.Trace("[ext_storage_exists_version_1] executing...")
+	logger.Warn("[ext_storage_exists_version_1] unimplemented")
 	return 0
 }
 
@@ -667,6 +724,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 //export ext_storage_rollback_transaction_version_1
 func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_storage_rollback_transaction_version_1] executing...")
+	logger.Warn("[ext_storage_rollback_transaction_version_1] unimplemented")
 }
 
 //export ext_storage_root_version_1
@@ -684,17 +742,32 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 
 	logger.Trace("[ext_storage_root_version_1]", "root", root)
 
-	allocator := instanceContext.Data().(*runtime.Context).Allocator
-	memory := instanceContext.Memory().Data()
+	// encRoot, err := scale.Encode(root)
+	// if err != nil {
+	// 	logger.Error("[ext_storage_root_version_1] failed to encode", "error", err)
+	// 	return 0
+	// }
 
-	out, err := allocator.Allocate(uint32(len(root)))
+	rootSpan, err := toWasmMemory(instanceContext, root[:])
 	if err != nil {
 		logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
 		return 0
 	}
 
-	copy(memory[out:out+32], root[:])
-	return C.int64_t(out)
+	return C.int64_t(rootSpan)
+
+	// allocator := instanceContext.Data().(*runtime.Context).Allocator
+	// memory := instanceContext.Memory().Data()
+
+	// out, err := allocator.Allocate(32)
+	// if err != nil {
+	// 	logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
+	// 	return 0
+	// }
+
+	// copy(memory[out:out+32], root[:])
+	// return C.int64_t(out)
+	//return C.int64_t(pointerAndSizeToInt64(int32(out), int32(32)))
 }
 
 //export ext_storage_set_version_1
@@ -718,6 +791,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 //export ext_storage_start_transaction_version_1
 func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_storage_start_transaction_version_1] executing...")
+	logger.Warn("[ext_storage_start_transaction_version_1] unimplemented")
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

@@ -225,11 +225,11 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(idata)
 
-	// err = idata.SetInt64Inherent(types.Babeslot, 1)
-	// require.NoError(t, err)
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
 
-	// err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
-	// require.NoError(t, err)
+	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
+	require.NoError(t, err)
 
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
@@ -271,5 +271,5 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, common.Hash{}, res.StateRoot)
 	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-	require.NotEqual(t, trie.EmptyHash, res.ExtrinsicsRoot)
+	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }
