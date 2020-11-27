@@ -19,6 +19,7 @@ package rpc
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/rpc/v2"
 )
@@ -36,7 +37,7 @@ func GetIP(r *http.Request) string {
 // LocalRequestOnly HTTP handler to restrict to only local connections
 func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	ip := GetIP(r.Request)
-	if ip != "127.0.0.1" {
+	if !strings.Contains(ip, "127.0.0.1") {
 		logger.Error("external HTTP request refuesed", "error")
 		return errors.New("external HTTP request refused")
 	}

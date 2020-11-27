@@ -77,15 +77,13 @@ var rpcHost string
 
 // ServeHTTP implemented to handle WebSocket connections
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Entered WS Serve")
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			// TODO: #864
 			if !h.serverConfig.WSExternalEnabled {
 				ip := GetIP(r)
-				fmt.Println("Requesting IP", ip)
-				if ip != "127.0.0.1" {
-					logger.Error("external websocket request refuesed", "error")
+				if !strings.Contains(ip, "127.0.0.1") {
+					logger.Error("external websocket request refused", "error")
 					return false
 				}
 			}
