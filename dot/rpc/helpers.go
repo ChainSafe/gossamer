@@ -37,9 +37,9 @@ func GetIP(r *http.Request) string {
 // LocalRequestOnly HTTP handler to restrict to only local connections
 func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	ip := GetIP(r.Request)
-	if !strings.Contains(ip, "127.0.0.1") {
-		logger.Error("external HTTP request refuesed", "error")
-		return errors.New("external HTTP request refused")
+	if strings.Contains(ip, "127.0.0.1") || strings.Contains(ip, "localhost") {
+		return nil
 	}
-	return nil
+	logger.Error("external HTTP request refuesed", "error")
+	return errors.New("external HTTP request refused")
 }
