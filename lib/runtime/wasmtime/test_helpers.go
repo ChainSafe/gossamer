@@ -66,14 +66,14 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 }
 
 // GetRuntimeImports ...
-func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store) []*wasmtime.Extern {
-	var imports func(*wasmtime.Store) []*wasmtime.Extern
+func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store) (*wasmtime.Linker, error) {
+	var imports func(*wasmtime.Store) (*wasmtime.Linker, error)
 
 	switch targetRuntime {
 	case runtime.LEGACY_NODE_RUNTIME:
-		imports = ImportsLegacyNodeRuntime
+		imports = ImportLegacyNodeRuntime
 	case runtime.NODE_RUNTIME:
-		imports = ImportsNodeRuntime
+		imports = ImportNodeRuntime
 	default:
 		t.Fatalf("unknown runtime type %s", targetRuntime)
 	}
