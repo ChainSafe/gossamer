@@ -517,10 +517,15 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash common.Hash) (*runtime.VersionAPI, error) {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(bhash)
-	if err != nil {
-		return nil, err
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error) {
+	var stateRootHash *common.Hash
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		var err error
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
@@ -545,12 +550,19 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 }
 
 //GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata(bhash common.Hash) ([]byte, error) {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(bhash)
-	if err != nil {
-		return nil, err
-	}
+func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
+	var (
+		stateRootHash *common.Hash
+		err           error
+	)
 
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
 	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
 		return nil, err
