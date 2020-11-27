@@ -49,7 +49,7 @@ const (
 	// v0.8 test API wasm
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
-	HOST_API_TEST_RUNTIME_URL = "https://gist.githubusercontent.com/noot/c562b4872a66aee8624b5e5a5902b58b/raw/3c564f88b9f03e67ed1a5d76c53d9484f222eef1/hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
 )
 
 var (
