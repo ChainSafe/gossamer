@@ -49,6 +49,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case TEST_RUNTIME:
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(TESTS_FP), TEST_WASM_URL
+	case HOST_API_TEST_RUNTIME:
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(HOST_API_TEST_RUNTIME_FP), HOST_API_TEST_RUNTIME_URL
 	}
 
 	return testRuntimeFilePath, testRuntimeURL

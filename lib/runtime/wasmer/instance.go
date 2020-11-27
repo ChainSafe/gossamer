@@ -36,7 +36,6 @@ var (
 	_ runtime.Memory         = (*wasm.Memory)(nil)
 
 	logger = log.New("pkg", "runtime", "module", "go-wasmer")
-	memory *wasm.Memory
 )
 
 // Config represents a wasmer configuration

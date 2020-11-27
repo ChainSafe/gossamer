@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -121,14 +122,15 @@ func main() {
 	}
 }
 
+// wasmToHexAction converts a .wasm file to a hex string and outputs it to stdout
 func wasmToHexAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
 	if len(arguments) == 0 {
 		return fmt.Errorf("no args provided, please provide wasm file")
 	}
 
-	filepath := arguments[0]
-	bytes, err := ioutil.ReadFile(filepath)
+	fp := arguments[0]
+	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}

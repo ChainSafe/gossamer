@@ -104,7 +104,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	//"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -282,7 +281,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, data C.int64_t) 
 //export ext_trie_blake2_256_ordered_root_version_1
 func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
 	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
-	//dataPtr, dataSize := int64ToPointerAndSize(int64(data))
+	logger.Warn("[ext_trie_blake2_256_ordered_root_version_1] unimplemented")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -742,12 +741,6 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 
 	logger.Trace("[ext_storage_root_version_1]", "root", root)
 
-	// encRoot, err := scale.Encode(root)
-	// if err != nil {
-	// 	logger.Error("[ext_storage_root_version_1] failed to encode", "error", err)
-	// 	return 0
-	// }
-
 	rootSpan, err := toWasmMemory(instanceContext, root[:])
 	if err != nil {
 		logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
@@ -755,19 +748,6 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	}
 
 	return C.int64_t(rootSpan)
-
-	// allocator := instanceContext.Data().(*runtime.Context).Allocator
-	// memory := instanceContext.Memory().Data()
-
-	// out, err := allocator.Allocate(32)
-	// if err != nil {
-	// 	logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
-	// 	return 0
-	// }
-
-	// copy(memory[out:out+32], root[:])
-	// return C.int64_t(out)
-	//return C.int64_t(pointerAndSizeToInt64(int32(out), int32(32)))
 }
 
 //export ext_storage_set_version_1
