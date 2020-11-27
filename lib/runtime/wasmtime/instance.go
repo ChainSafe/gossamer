@@ -41,7 +41,7 @@ var (
 // Config represents a wasmer configuration
 type Config struct {
 	gssmrruntime.InstanceConfig
-	Imports func(*wasmtime.Store) []*wasmtime.Extern
+	Imports func(*wasmtime.Store) (*wasmtime.Linker, error)
 }
 
 // LegacyInstance represents a v0.6 runtime go-wasmtime instance
@@ -117,18 +117,17 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	}
 
 	store := wasmtime.NewStore(engine)
-	instance, err := wasmtime.NewInstance(store, module, cfg.Imports(store))
+	linker, err := cfg.Imports(store)
 	if err != nil {
 		return nil, err
 	}
 
-	var mem *wasmtime.Memory
-	if m := cfg.Imports(store)[0].Memory(); m != nil {
-		mem = m
-	} else {
-		mem = instance.GetExport("memory").Memory()
+	instance, err := linker.Instantiate(module)
+	if err != nil {
+		return nil, err
 	}
 
+	mem := instance.GetExport("memory").Memory()
 	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
 	ctx = gssmrruntime.Context{
