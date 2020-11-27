@@ -52,7 +52,7 @@ var ErrNilFinalityGadget = errors.New("cannot have nil FinalityGadget")
 var ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")
 
 // ErrEmptyRuntimeCode is returned when the storage :code is empty
-var ErrEmptyRuntimeCode = errors.New("new :code is empty!")
+var ErrEmptyRuntimeCode = errors.New("new :code is empty")
 
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {
