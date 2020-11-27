@@ -244,16 +244,6 @@ func formatKey(key []string) (string, error) {
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
-		// var fKey string
-		// for _, v := range key {
-		// 	fKey = fKey + v + " "
-		// }
-		// fKey = strings.Trim(fKey, " ")
-		// fKey = strings.Title(fKey)
-		// kb, err := common.Twox128Hash([]byte(fKey))
-		// if err != nil {
-		// 	return "", err
-		// }
 		prefix, err := common.Twox128Hash([]byte(key[0]))
 		if err != nil {
 			return "", err

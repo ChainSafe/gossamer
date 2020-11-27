@@ -19,10 +19,13 @@ package genesis
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	"github.com/stretchr/testify/require"
 )
@@ -111,4 +114,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)
+}
+
+func TestFormatKey(t *testing.T) {
+	input := []string{"Babe", "Authorities"}
+	out, err := formatKey(input)
+	require.NoError(t, err)
+	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthorityDataKey()))
 }
