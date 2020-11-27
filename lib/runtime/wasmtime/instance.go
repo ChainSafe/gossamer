@@ -90,6 +90,24 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	}, nil
 }
 
+// NewInstance instantiates a runtime from the given wasm bytecode
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
+	engine := wasmtime.NewEngine()
+	module, err := wasmtime.NewModule(engine, code)
+	if err != nil {
+		return nil, err
+	}
+
+	inst, err := newLegacyInstanceFromModule(module, engine, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Instance{
+		inst: inst,
+	}, nil
+}
+
 func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg *Config) (*LegacyInstance, error) {
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {

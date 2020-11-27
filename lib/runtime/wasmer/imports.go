@@ -584,7 +584,7 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, z C.int64
 }
 
 //export ext_storage_append_version_1
-func ext_storage_append_version_1(context unsafe.Pointer, a, b C.int64_t) {
+func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_storage_append_version_1] executing...")
 	logger.Warn("[ext_storage_append_version_1] unimplemented")
 }
@@ -592,7 +592,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, a, b C.int64_t) {
 //export ext_storage_changes_root_version_1
 func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
-	logger.Warn("[ext_storage_changes_root_version_1] returning None")
+	logger.Trace("[ext_storage_changes_root_version_1] returning None")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 

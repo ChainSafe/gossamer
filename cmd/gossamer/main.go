@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot"
@@ -81,6 +82,17 @@ var (
 			"\tUsage: gossamer build-spec\n" +
 			"\tTo generate raw genesis file: gossamer build-spec --raw",
 	}
+	// TODO: update this to put the wasm into a genesis file
+	wasmToHexCommand = cli.Command{
+		Action:    FixFlagOrder(wasmToHexAction),
+		Name:      "convert-wasm",
+		Usage:     "Converts a .wasm file to a hex string to be used in a genesis file",
+		ArgsUsage: "",
+		Flags:     RootFlags,
+		Category:  "CONVERT-WASM",
+		Description: "The convert-wasm command converts a .wasm file to a hex string to be used in a genesis file.\n" +
+			"\tUsage: gossamer convert-wasm runtime.wasm\n",
+	}
 )
 
 // init initializes the cli application
@@ -96,6 +108,7 @@ func init() {
 		initCommand,
 		accountCommand,
 		buildSpecCommand,
+		wasmToHexCommand,
 	}
 	app.Flags = RootFlags
 }
@@ -106,6 +119,22 @@ func main() {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func wasmToHexAction(ctx *cli.Context) error {
+	arguments := ctx.Args()
+	if len(arguments) == 0 {
+		return fmt.Errorf("no args provided, please provide wasm file")
+	}
+
+	filepath := arguments[0]
+	bytes, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("0x%x", bytes)
+	return nil
 }
 
 // gossamerAction is the root action for the gossamer command, creates a node
