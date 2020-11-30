@@ -185,7 +185,6 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1(t *testing.T) {
-	t.Skip() // TODO: figure out how to format multiple params
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -194,21 +193,16 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	testoffset := uint32(2)
+	testBufferSize := uint32(100)
 
-	testParams := struct {
-		key        []byte
-		offset     uint32
-		bufferSize uint32
-	}{
-		key:        testkey,
-		offset:     testoffset,
-		bufferSize: uint32(len(testvalue)),
-	}
-
-	enc, err := scale.Encode(testParams)
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encOffset, err := scale.Encode(testoffset)
+	require.NoError(t, err)
+	encBufferSize, err := scale.Encode(testBufferSize)
 	require.NoError(t, err)
 
-	ret, err := inst.Exec("rtm_ext_storage_read_version_1", enc)
+	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
 	require.NoError(t, err)
 
 	buf := &bytes.Buffer{}
@@ -216,7 +210,8 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
-	require.Equal(t, testvalue[testoffset:], read.Value())
+	val := read.Value()
+	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
@@ -233,24 +228,17 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_set_version_1(t *testing.T) {
-	t.Skip() // TODO: figure out how to format multiple params
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
 
-	testParams := struct {
-		key   []byte
-		value []byte
-	}{
-		key:   testkey,
-		value: testvalue,
-	}
-
-	enc, err := scale.Encode(testParams)
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encValue, err := scale.Encode(testvalue)
 	require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_storage_set_version_1", enc)
+	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
 	require.NoError(t, err)
 
 	val, err := inst.inst.ctx.Storage.Get(testkey)

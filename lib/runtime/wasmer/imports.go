@@ -705,9 +705,9 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	}
 
 	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
-	copy(memory[valueBuf+int32(offset):valueBuf+int32(offset)+valueLen], value)
+	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
-	size := uint32(len(value))
+	size := uint32(len(value[offset:]))
 	sizeBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(sizeBuf, size)
 
