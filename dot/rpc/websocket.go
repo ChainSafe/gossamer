@@ -80,7 +80,6 @@ var rpcHost string
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			// TODO: #864
 			if !h.serverConfig.WSExternal {
 				ip, _, error := net.SplitHostPort(r.RemoteAddr)
 				if error != nil {

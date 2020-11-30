@@ -92,7 +92,6 @@ func TestNewHTTPServer(t *testing.T) {
 }
 
 func TestBlockExternalIP(t *testing.T) {
-	// TODO: #864
 	coreAPI := core.NewTestService(t, nil)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
