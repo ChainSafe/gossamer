@@ -128,9 +128,7 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var (
-		bhash         *common.Hash
 		stateRootHash *common.Hash
-		hash          common.Hash
 		err           error
 	)
 
@@ -142,16 +140,8 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 
 	reqBytes, _ := common.HexToBytes(pReq[0])
 	if len(pReq) > 1 && pReq[1] != "" {
-		hash, err = common.HexToHash(pReq[1])
-		if err != nil {
-			return err
-		}
-		bhash = new(common.Hash)
-		*bhash = hash
-	}
-
-	if bhash != nil {
-		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(bhash)
+		hash, _ := common.HexToHash(pReq[1])
+		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(&hash)
 		if err != nil {
 			return err
 		}
