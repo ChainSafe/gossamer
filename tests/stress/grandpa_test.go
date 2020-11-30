@@ -68,7 +68,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
@@ -115,8 +115,11 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_CatchUp(t *testing.T) {
-	numNodes = 3
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisThreeAuths, utils.ConfigDefault)
+	utils.GenerateGenesisSixAuth()
+	defer os.Remove(utils.GenesisSixAuths)
+
+	numNodes = 6
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -126,7 +129,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	time.Sleep(time.Second * 50) // let some rounds run
 
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisThreeAuths, utils.ConfigDefault, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
