@@ -162,7 +162,7 @@ func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, he
 	}
 
 	// write storage hash to database
-	err = StoreLatestStorageHash(db, t)
+	err = StoreLatestStorageHash(db, t.MustHash())
 	if err != nil {
 		return fmt.Errorf("failed to write storage hash to database: %s", err)
 	}
@@ -241,7 +241,7 @@ func (s *Service) Start() error {
 	// load current storage state
 	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
-		return fmt.Errorf("failed to get state root from database: %s", err)
+		return fmt.Errorf("failed to get load storage trie from database: %s", err)
 	}
 
 	// create network state
@@ -273,10 +273,12 @@ func (s *Service) Stop() error {
 		return errTrieDoesNotExist(head)
 	}
 
-	err = StoreLatestStorageHash(s.db, t)
+	err = StoreLatestStorageHash(s.db, head)
 	if err != nil {
 		return err
 	}
+
+	logger.Debug("storing latest storage trie", "hash", head)
 
 	err = s.Storage.StoreInDB(head)
 	if err != nil {
@@ -301,5 +303,11 @@ func (s *Service) Stop() error {
 	close(s.closeCh)
 
 	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
+
+	err = s.db.Flush()
+	if err != nil {
+		return err
+	}
+
 	return s.db.Close()
 }
