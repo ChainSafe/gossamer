@@ -85,6 +85,6 @@ type RPCConfig struct {
 	Host       string   `toml:"host,omitempty"`
 	Modules    []string `toml:"modules,omitempty"`
 	WSPort     uint32   `toml:"ws-port,omitempty"`
-	WSEnabled  bool     `toml:"ws,omitempty"`
+	WS         bool     `toml:"ws,omitempty"`
 	WSExternal bool     `toml:"ws-external,omitempty"`
 }

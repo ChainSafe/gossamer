@@ -319,7 +319,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()
 	cfg.RPC.External = false
-	cfg.RPC.WSEnabled = true
+	cfg.RPC.WS = true
 	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
 

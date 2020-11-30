@@ -102,7 +102,7 @@ type RPCConfig struct {
 	Host       string
 	Modules    []string
 	WSPort     uint32
-	WSEnabled  bool
+	WS         bool
 	WSExternal bool
 }
 

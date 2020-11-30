@@ -58,7 +58,7 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 		External:   false,
 		RPCPort:    8545,
 		WSPort:     8546,
-		WSEnabled:  true,
+		WS:         true,
 		WSExternal: false,
 		RPCAPI:     NewService(),
 		CoreAPI:    coreAPI,

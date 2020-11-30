@@ -165,8 +165,8 @@ var (
 		Name:  "wsport",
 		Usage: "Websockets server listening port",
 	}
-	// WSEnabledFlag Enable the websockets server
-	WSEnabledFlag = cli.BoolFlag{
+	// WSFlag Enable the websockets server
+	WSFlag = cli.BoolFlag{
 		Name:  "ws",
 		Usage: "Enable the websockets server",
 	}
@@ -254,7 +254,7 @@ var (
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
-		WSEnabledFlag,
+		WSFlag,
 		WSExternalFlag,
 		WSPortFlag,
 	}

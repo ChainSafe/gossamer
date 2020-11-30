@@ -275,7 +275,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		"external", cfg.RPC.External,
 		"rpc port", cfg.RPC.Port,
 		"mods", cfg.RPC.Modules,
-		"ws enabled", cfg.RPC.WSEnabled,
+		"ws", cfg.RPC.WS,
 		"ws port", cfg.RPC.WSPort,
 		"ws external", cfg.RPC.WSExternal,
 	)
@@ -295,7 +295,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		External:            cfg.RPC.External,
 		Host:                cfg.RPC.Host,
 		RPCPort:             cfg.RPC.Port,
-		WSEnabled:           cfg.RPC.WSEnabled,
+		WS:                  cfg.RPC.WS,
 		WSExternal:          cfg.RPC.WSExternal,
 		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,

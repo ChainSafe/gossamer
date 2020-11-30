@@ -52,7 +52,7 @@ type HTTPServerConfig struct {
 	External            bool
 	Host                string
 	RPCPort             uint32
-	WSEnabled           bool
+	WS                  bool
 	WSExternal          bool
 	WSPort              uint32
 	Modules             []string
@@ -164,7 +164,7 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if h.serverConfig.WSEnabled {
+	if h.serverConfig.WS {
 		// close all channels and websocket connections
 		for _, conn := range h.wsConns {
 			for _, sub := range conn.subscriptions {
