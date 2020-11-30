@@ -17,6 +17,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -26,6 +27,8 @@ import (
 func TestAccountGenerate(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 
 	ctx, err := newTestContext(
 		"Test gossamer account --generate",
