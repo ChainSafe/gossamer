@@ -79,12 +79,12 @@ type CoreConfig struct {
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled           bool     `toml:"enabled,omitempty"`
-	ExternalEnabled   bool     `toml:"external-enabled,omitempty"`
-	Port              uint32   `toml:"port,omitempty"`
-	Host              string   `toml:"host,omitempty"`
-	Modules           []string `toml:"modules,omitempty"`
-	WSPort            uint32   `toml:"ws-port,omitempty"`
-	WSEnabled         bool     `toml:"ws-enabled,omitempty"`
-	WSExternalEnabled bool     `toml:"ws-external-enabled,omitempty"`
+	Enabled    bool     `toml:"enabled,omitempty"`
+	External   bool     `toml:"external,omitempty"`
+	Port       uint32   `toml:"port,omitempty"`
+	Host       string   `toml:"host,omitempty"`
+	Modules    []string `toml:"modules,omitempty"`
+	WSPort     uint32   `toml:"ws-port,omitempty"`
+	WSEnabled  bool     `toml:"ws,omitempty"`
+	WSExternal bool     `toml:"ws-external,omitempty"`
 }

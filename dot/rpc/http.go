@@ -49,11 +49,11 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
-	ExternalEnabled     bool
+	External            bool
 	Host                string
 	RPCPort             uint32
 	WSEnabled           bool
-	WSExternalEnabled   bool
+	WSExternal          bool
 	WSPort              uint32
 	Modules             []string
 }
@@ -86,7 +86,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
-	if !cfg.ExternalEnabled {
+	if !cfg.External {
 		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
 	}
 
@@ -150,7 +150,9 @@ func (h *HTTPServer) Start() error {
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
-		// TODO: Confirm if this only accepts localhost
+		if h.serverConfig.WSExternal {
+
+		}
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
 			h.logger.Error("http error", "err", err)

@@ -272,10 +272,12 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
+		"external", cfg.RPC.External,
 		"rpc port", cfg.RPC.Port,
 		"mods", cfg.RPC.Modules,
-		"ws external enabled", cfg.RPC.WSExternalEnabled,
+		"ws enabled", cfg.RPC.WSEnabled,
 		"ws port", cfg.RPC.WSPort,
+		"ws external", cfg.RPC.WSExternal,
 	)
 	rpcService := rpc.NewService()
 
@@ -290,11 +292,11 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
 		SystemAPI:           sysSrvc,
-		ExternalEnabled:     cfg.RPC.ExternalEnabled,
+		External:            cfg.RPC.External,
 		Host:                cfg.RPC.Host,
 		RPCPort:             cfg.RPC.Port,
 		WSEnabled:           cfg.RPC.WSEnabled,
-		WSExternalEnabled:   cfg.RPC.WSExternalEnabled,
+		WSExternal:          cfg.RPC.WSExternal,
 		WSPort:              cfg.RPC.WSPort,
 		Modules:             cfg.RPC.Modules,
 	}

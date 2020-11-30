@@ -311,7 +311,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// RPC Service
 
 	// check if rpc service is enabled
-	if enabled := RPCServiceEnabled(cfg); enabled {
+	if enabled := cfg.RPC.Enabled; enabled {
 		// create rpc service and append rpc service to node services
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)

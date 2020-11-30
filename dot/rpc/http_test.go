@@ -99,13 +99,13 @@ func TestBlockExternalIP(t *testing.T) {
 	}
 	sysAPI := system.NewService(si)
 	cfg := &HTTPServerConfig{
-		Modules:           []string{"system"},
-		RPCPort:           8545,
-		RPCAPI:            NewService(),
-		CoreAPI:           coreAPI,
-		SystemAPI:         sysAPI,
-		ExternalEnabled:   false,
-		WSExternalEnabled: false,
+		Modules:    []string{"system"},
+		RPCPort:    8545,
+		RPCAPI:     NewService(),
+		CoreAPI:    coreAPI,
+		SystemAPI:  sysAPI,
+		External:   false,
+		WSExternal: false,
 	}
 
 	s := NewHTTPServer(cfg)

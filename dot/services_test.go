@@ -318,9 +318,9 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()
-	cfg.RPC.ExternalEnabled = false
+	cfg.RPC.External = false
 	cfg.RPC.WSEnabled = true
-	cfg.RPC.WSExternalEnabled = false
+	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
 
 	err := InitNode(cfg)

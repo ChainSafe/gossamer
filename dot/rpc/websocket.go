@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"net"
 	"net/http"
 	"strings"
 
@@ -80,11 +81,18 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			// TODO: #864
-			if !h.serverConfig.WSExternalEnabled {
-				ip := GetIP(r)
-				if strings.Contains(ip, "127.0.0.1") || strings.Contains(ip, "localhost") {
+			if !h.serverConfig.WSExternal {
+				ip, _, error := net.SplitHostPort(r.RemoteAddr)
+				if error != nil {
+					logger.Error("unable to parse IP", "error")
+					return false
+				}
+
+				f := LocalhostFilter()
+				if allowed := f.Allowed(ip); allowed {
 					return true
 				}
+
 				logger.Error("external websocket request refused", "error")
 				return false
 			}

@@ -540,13 +540,13 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 // setDotRPCConfig sets dot.RPCConfig using flag values from the cli context
 func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConfig) {
 	cfg.Enabled = tomlCfg.Enabled
-	cfg.ExternalEnabled = tomlCfg.ExternalEnabled
+	cfg.External = tomlCfg.External
 	cfg.Port = tomlCfg.Port
 	cfg.Host = tomlCfg.Host
 	cfg.Modules = tomlCfg.Modules
 	cfg.WSPort = tomlCfg.WSPort
 	cfg.WSEnabled = tomlCfg.WSEnabled
-	cfg.WSExternalEnabled = tomlCfg.WSExternalEnabled
+	cfg.WSExternal = tomlCfg.WSExternal
 
 	// check --rpc flag and update node configuration
 	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
@@ -556,10 +556,10 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	// check --rpc-external flag and update node configuration
-	if externalEnabled := ctx.GlobalBool(RPCExternalEnabledFlag.Name); externalEnabled {
-		cfg.ExternalEnabled = true
-	} else if ctx.IsSet(RPCExternalEnabledFlag.Name) && !externalEnabled {
-		cfg.ExternalEnabled = false
+	if external := ctx.GlobalBool(RPCExternalFlag.Name); external {
+		cfg.External = true
+	} else if ctx.IsSet(RPCExternalFlag.Name) && !external {
+		cfg.External = false
 	}
 
 	// check --rpcport flag and update node configuration
@@ -587,10 +587,10 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSEnabled = false
 	}
 
-	if wsExternalEnabled := ctx.GlobalBool(WSExternalEnabledFlag.Name); wsExternalEnabled {
-		cfg.WSExternalEnabled = true
-	} else if ctx.IsSet(WSExternalEnabledFlag.Name) && !wsExternalEnabled {
-		cfg.WSExternalEnabled = false
+	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {
+		cfg.WSExternal = true
+	} else if ctx.IsSet(WSExternalFlag.Name) && !wsExternal {
+		cfg.WSExternal = false
 	}
 
 	// format rpc modules
@@ -601,12 +601,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	logger.Debug(
 		"rpc configuration",
 		"enabled", cfg.Enabled,
-		"external enabled", cfg.ExternalEnabled,
+		"external", cfg.External,
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
-		"ws", cfg.WSEnabled,
-		"external ws", cfg.WSExternalEnabled,
+		"ws enabled", cfg.WSEnabled,
+		"ws external", cfg.WSExternal,
 		"wsport", cfg.WSPort,
 	)
 }

@@ -18,26 +18,29 @@ package rpc
 
 import (
 	"errors"
-	"net/http"
-	"strings"
+	"net"
 
 	"github.com/gorilla/rpc/v2"
+	"github.com/jpillora/ipfilter"
 )
 
-// GetIP gets a requests IP address by reading off the forwarded-for
-// header (for proxies) and falls back to use the remote address.
-func GetIP(r *http.Request) string {
-	forwarded := r.Header.Get("X-FORWARDED-FOR")
-	if forwarded != "" {
-		return forwarded
-	}
-	return r.RemoteAddr
+// LocalhostFilter creates a ipfilter object for localhost
+func LocalhostFilter() *ipfilter.IPFilter {
+	return ipfilter.New(ipfilter.Options{
+		BlockByDefault: true,
+		AllowedIPs:     []string{"127.0.0.1", "::1"},
+	})
 }
 
 // LocalRequestOnly HTTP handler to restrict to only local connections
 func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
-	ip := GetIP(r.Request)
-	if strings.Contains(ip, "127.0.0.1") || strings.Contains(ip, "localhost") {
+	ip, _, error := net.SplitHostPort(r.Request.RemoteAddr)
+	if error != nil {
+		logger.Error("unable to parse IP", "error")
+		return errors.New("unable to parse IP")
+	}
+	f := LocalhostFilter()
+	if allowed := f.Allowed(ip); allowed {
 		return nil
 	}
 	logger.Error("external HTTP request refuesed", "error")
