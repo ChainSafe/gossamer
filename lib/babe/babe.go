@@ -513,7 +513,12 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	b.rt.SetContext(ts)
+	tsCopy, err := ts.Copy()
+	if err != nil {
+		b.logger.Error("failed to copy parent storage trie", "error", err)
+	}
+
+	b.rt.SetContext(tsCopy)
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
@@ -523,10 +528,9 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	// block built successfully, store resulting trie in storage state
 	// TODO: why does StateRoot not match the root of the trie after building a block?
-	err = b.storageState.StoreTrie(block.Header.StateRoot, ts)
+	err = b.storageState.StoreTrie(block.Header.StateRoot, tsCopy)
 	if err != nil {
 		b.logger.Error("failed to store trie in storage state", "error", err)
-		return err
 	}
 
 	hash := block.Header.Hash()
