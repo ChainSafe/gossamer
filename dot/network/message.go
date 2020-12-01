@@ -72,9 +72,6 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	case TransactionMsgType:
-		m = new(TransactionMessage)
-		err = m.Decode(r)
 	case ConsensusMsgType:
 		m = new(ConsensusMessage)
 		err = m.Decode(r)
@@ -448,10 +445,7 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 	}
 
 	// scale encode the set of all extrinsics
-	encodedMessage, err := scale.Encode(encodedExtrinsics)
-
-	// prepend message type to message
-	return append([]byte{TransactionMsgType}, encodedMessage...), err
+	return scale.Encode(encodedExtrinsics)
 }
 
 // Decode the message into a TransactionMessage, it assumes the type byte han been removed
