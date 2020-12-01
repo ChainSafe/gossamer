@@ -216,7 +216,7 @@ func TestStateRPCAPI(t *testing.T) {
 	// Cases for valid block hash in RPC params
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			respBody, err := utils.PostRPC(test.method, "http://"+utils.HOSTNAME+":"+nodes[0].RPCPort, test.params)
+			respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
 			require.Nil(t, err)
 
 			if test.isErr {
