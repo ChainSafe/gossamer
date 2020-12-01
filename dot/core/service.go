@@ -250,10 +250,6 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
-			if err := s.storageState.StoreInDB(block.Header.StateRoot); err != nil {
-				s.logger.Warn("failed to store storage trie in database", "error", err)
-			}
-
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
 				s.logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
@@ -371,9 +367,14 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+		s.logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
 		code, err := s.storageState.LoadCode(&sr)
 		if err != nil {
 			return err
+		}
+
+		if len(code) == 0 {
+			return ErrEmptyRuntimeCode
 		}
 
 		s.rt.Stop()

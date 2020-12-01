@@ -87,17 +87,17 @@ func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 		}
 	}
 
-	err := StoreLatestStorageHash(db, tt)
+	expected, err := tt.Hash()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = StoreLatestStorageHash(db, expected)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	hash, err := LoadLatestStorageHash(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected, err := tt.Hash()
 	if err != nil {
 		t.Fatal(err)
 	}

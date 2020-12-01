@@ -56,6 +56,19 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 	return ts, nil
 }
 
+// Copy performs a deep copy of the TrieState
+func (s *TrieState) Copy() (*TrieState, error) {
+	trieCopy, err := s.t.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
+
+	return &TrieState{
+		db: s.db,
+		t:  trieCopy,
+	}, nil
+}
+
 //nolint
 // Commit ensures that the TrieState's trie and database match
 // The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
@@ -102,11 +115,6 @@ func (s *TrieState) Free() error {
 
 	for iter.Next() {
 		err := s.db.Del(iter.Key())
-		if err != nil {
-			return err
-		}
-
-		err = s.t.Delete(iter.Key())
 		if err != nil {
 			return err
 		}
