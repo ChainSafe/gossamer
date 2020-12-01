@@ -61,14 +61,12 @@ type Service struct {
 	rt runtime.LegacyInstance
 
 	// Epoch configuration data
-	config         *types.BabeConfiguration
-	randomness     [types.RandomnessLength]byte
-	authorityIndex uint64
-	authorityData  []*types.Authority
-	threshold      *big.Int // validator threshold
-	startSlot      uint64
-	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	isDisabled     bool
+	slotDuration uint64 // in milliseconds
+	epochLength  uint64 // in slots
+	epochData    *epochData
+	startSlot    uint64
+	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	isDisabled   bool
 
 	// Channels for inter-process communication
 	blockChan chan types.Block // send blocks to core service
@@ -131,55 +129,73 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		transactionState: cfg.TransactionState,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
 		blockChan:        make(chan types.Block),
-		authorityData:    cfg.AuthData,
-		threshold:        cfg.Threshold,
 		startSlot:        cfg.StartSlot,
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
 	}
 
 	var err error
-	babeService.config, err = babeService.rt.BabeConfiguration()
+	genCfg, err := babeService.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err
 	}
 
-	// if slot duration is set via the config file, overwrite the runtime value
-	if cfg.SlotDuration > 0 {
-		babeService.config.SlotDuration = cfg.SlotDuration
+	err = babeService.setEpochData(cfg, genCfg)
+	if err != nil {
+		return nil, err
 	}
 
-	logger.Info("config", "slot duration (ms)", babeService.config.SlotDuration, "epoch length (slots)", babeService.config.EpochLength)
-
-	if babeService.authorityData == nil {
-		logger.Info("setting authority data to genesis authorities", "authorities", babeService.config.GenesisAuthorities)
-
-		babeService.authorityData, err = types.BABEAuthorityRawToAuthority(babeService.config.GenesisAuthorities)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if cfg.Authority {
-		err = babeService.setAuthorityIndex()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	logger.Debug("created BABE service", "block producer", cfg.Authority, "authorities", AuthorityData(babeService.authorityData), "authority index", babeService.authorityIndex, "threshold", babeService.threshold)
+	logger.Info("created service",
+		"block producer", cfg.Authority,
+		"slot duration (ms)", babeService.slotDuration,
+		"epoch length (slots)", babeService.epochLength,
+		"authorities", AuthorityData(babeService.epochData.authorityData),
+		"authority index", babeService.epochData.authorityIndex,
+		"threshold", babeService.epochData.threshold.Bytes(),
+	)
 	return babeService, nil
 }
 
-// Start starts BABE block authoring
-func (b *Service) Start() error {
-	if b.threshold == nil {
-		err := b.setThreshold()
+func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
+	b.epochData = &epochData{}
+
+	// if slot duration is set via the config file, overwrite the runtime value
+	if cfg.SlotDuration > 0 {
+		b.slotDuration = cfg.SlotDuration
+	} else {
+		b.slotDuration = genCfg.SlotDuration
+	}
+
+	if cfg.AuthData == nil {
+		b.epochData.authorityData, err = types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+		if err != nil {
+			return err
+		}
+	} else {
+		b.epochData.authorityData = cfg.AuthData
+	}
+
+	if cfg.Authority {
+		b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorityData)
 		if err != nil {
 			return err
 		}
 	}
 
+	if cfg.Threshold == nil {
+		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorityData))
+		if err != nil {
+			return err
+		}
+	} else {
+		b.epochData.threshold = cfg.Threshold
+	}
+
+	return nil
+}
+
+// Start starts BABE block authoring
+func (b *Service) Start() error {
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		b.logger.Error("failed to get current epoch", "error", err)
@@ -239,26 +255,8 @@ func (b *Service) Stop() error {
 }
 
 // SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.LegacyInstance) error {
+func (b *Service) SetRuntime(rt runtime.LegacyInstance) {
 	b.rt = rt
-
-	var err error
-	b.config, err = b.rt.BabeConfiguration()
-	if err != nil {
-		return err
-	}
-
-	b.authorityData, err = types.BABEAuthorityRawToAuthority(b.config.GenesisAuthorities)
-	if err != nil {
-		return err
-	}
-
-	err = b.setAuthorityIndex()
-	if err != nil {
-		return err
-	}
-
-	return b.setThreshold()
 }
 
 // GetBlockChannel returns the channel where new blocks are passed
@@ -269,7 +267,7 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
 func (b *Service) SetOnDisabled(authorityIndex uint64) {
-	if authorityIndex == b.authorityIndex {
+	if authorityIndex == b.epochData.authorityIndex {
 		b.isDisabled = true
 	}
 }
@@ -277,15 +275,15 @@ func (b *Service) SetOnDisabled(authorityIndex uint64) {
 // Descriptor returns the Descriptor for the current Service.
 func (b *Service) Descriptor() *Descriptor {
 	return &Descriptor{
-		AuthorityData: b.authorityData,
-		Randomness:    b.randomness,
-		Threshold:     b.threshold,
+		AuthorityData: b.epochData.authorityData,
+		Randomness:    b.epochData.randomness,
+		Threshold:     b.epochData.threshold,
 	}
 }
 
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []*types.Authority {
-	return b.authorityData
+	return b.epochData.authorityData
 }
 
 // // SetAuthorities sets the current Block Producer Authorities and sets Authority index
@@ -306,16 +304,16 @@ func (b *Service) Authorities() []*types.Authority {
 // 	return b.setAuthorityIndex()
 // }
 
-// SetThreshold sets the threshold for a block producer
-func (b *Service) SetThreshold(a *big.Int) {
-	b.threshold = a
-}
+// // SetThreshold sets the threshold for a block producer
+// func (b *Service) SetThreshold(a *big.Int) {
+// 	b.threshold = a
+// }
 
-// SetRandomness sets randomness for BABE service
-// Note that this only takes effect at the end of an epoch, where it is used to calculate the next epoch's randomness
-func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
-	b.randomness = a
-}
+// // SetRandomness sets randomness for BABE service
+// // Note that this only takes effect at the end of an epoch, where it is used to calculate the next epoch's randomness
+// func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
+// 	b.randomness = a
+// }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
@@ -345,31 +343,23 @@ func (b *Service) safeSend(msg types.Block) error {
 	return nil
 }
 
-func (b *Service) setAuthorityIndex() error {
+func (b *Service) getAuthorityIndex(authorityData []*types.Authority) (uint64, error) {
 	pub := b.keypair.Public()
 
-	b.logger.Debug("set authority index", "authority key", pub.Hex(), "authorities", AuthorityData(b.authorityData))
-
-	for i, auth := range b.authorityData {
+	for i, auth := range authorityData {
 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
-			b.authorityIndex = uint64(i)
-			return nil
+			return uint64(i), nil
 		}
 	}
 
-	return fmt.Errorf("key not in BABE authority data")
+	return 0, fmt.Errorf("key not in BABE authority data")
 }
 
-func (b *Service) slotDuration() time.Duration {
-	return time.Duration(b.config.SlotDuration * 1000000) // SlotDuration in ms, time.Duration in ns
+func (b *Service) getSlotDuration() time.Duration {
+	return time.Duration(b.slotDuration * 1000000) // SlotDuration in ms, time.Duration in ns
 }
 
 func (b *Service) initiate() {
-	if b.config == nil {
-		b.logger.Error("block authoring", "error", "config is nil")
-		return
-	}
-
 	if b.blockState == nil {
 		b.logger.Error("block authoring", "error", "blockState is nil")
 		return
@@ -429,14 +419,14 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
 
 	// starting slot for next epoch
-	nextStartSlot := startSlot + b.config.EpochLength - intoEpoch
+	nextStartSlot := startSlot + b.epochLength - intoEpoch
 
-	slotDone := make([]<-chan time.Time, b.config.EpochLength-intoEpoch)
-	for i := 0; i < int(b.config.EpochLength-intoEpoch); i++ {
-		slotDone[i] = time.After(b.slotDuration() * time.Duration(i))
+	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
+	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
+		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
 	}
 
-	for i := 0; i < int(b.config.EpochLength-intoEpoch); i++ {
+	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 		select {
 		case <-b.ctx.Done():
 			return
@@ -512,7 +502,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	currentSlot := Slot{
 		start:    uint64(time.Now().Unix()),
-		duration: b.config.SlotDuration,
+		duration: b.slotDuration,
 		number:   slotNum,
 	}
 
@@ -560,22 +550,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
 	return b.keypair.VrfSign(input)
-}
-
-// sets the slot lottery threshold for the current epoch
-func (b *Service) setThreshold() error {
-	var err error
-	if b.config == nil {
-		return errors.New("cannot set threshold: no babe config")
-	}
-
-	b.threshold, err = CalculateThreshold(b.config.C1, b.config.C2, len(b.Authorities()))
-	if err != nil {
-		return err
-	}
-
-	b.logger.Debug("set threshold", "threshold", b.threshold.Bytes())
-	return nil
 }
 
 // CalculateThreshold calculates the slot lottery threshold

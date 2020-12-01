@@ -324,25 +324,25 @@ func TestStartAndStop(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestService_SetThreshold(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{})
-	etBefore := bs.threshold
-	newThreshold := big.NewInt(1000)
+// func TestService_SetThreshold(t *testing.T) {
+// 	bs := createTestService(t, &ServiceConfig{})
+// 	etBefore := bs.threshold
+// 	newThreshold := big.NewInt(1000)
 
-	bs.SetThreshold(newThreshold)
+// 	bs.SetThreshold(newThreshold)
 
-	etAfter := bs.threshold
-	require.NotEqual(t, etBefore, etAfter)
-	require.Equal(t, newThreshold, etAfter)
-}
+// 	etAfter := bs.threshold
+// 	require.NotEqual(t, etBefore, etAfter)
+// 	require.Equal(t, newThreshold, etAfter)
+// }
 
-func TestService_SetRandomness(t *testing.T) {
-	bs := createTestService(t, &ServiceConfig{})
-	rBefore := bs.randomness
-	rand := [types.RandomnessLength]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
-	bs.SetRandomness(rand)
-	rAfter := bs.randomness
+// func TestService_SetRandomness(t *testing.T) {
+// 	bs := createTestService(t, &ServiceConfig{})
+// 	rBefore := bs.randomness
+// 	rand := [types.RandomnessLength]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
+// 	bs.SetRandomness(rand)
+// 	rAfter := bs.randomness
 
-	require.NotEqual(t, rBefore, rAfter)
-	require.Equal(t, rand, rAfter)
-}
+// 	require.NotEqual(t, rBefore, rAfter)
+// 	require.Equal(t, rand, rAfter)
+// }

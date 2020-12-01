@@ -22,43 +22,53 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 // initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
-	if epoch > 2 {
-		var err error
-		b.randomness, err = b.epochRandomness(epoch)
-		if err != nil {
-			return err
-		}
-	}
-
 	if epoch > 1 {
-		first, err := b.blockState.BestBlockNumber()
+		data, err := b.epochState.GetEpochData(epoch)
 		if err != nil {
 			return err
 		}
 
-		if first.Uint64() == 0 {
-			first = big.NewInt(1) // first epoch starts at block 1, not block 0
-		}
-
-		// Duration may only change when the runtime is updated. This call happens in SetRuntime()
-		// FirstBlock is used to calculate the randomness (blocks in an epoch used to calculate epoch randomness for 2 epochs ahead)
-		// Randomness changes every epoch, as calculated by epochRandomness()
-		info := &types.EpochInfo{
-			Duration:   b.config.EpochLength,
-			FirstBlock: first.Uint64(),
-			Randomness: b.randomness,
-		}
-
-		err = b.epochState.SetEpochInfo(epoch, info)
+		idx, err := b.getAuthorityIndex(data.Authorities)
 		if err != nil {
 			return err
+		}
+
+		has, err := b.epochState.HasConfigData(epoch)
+		if err != nil {
+			return err
+		}
+
+		if has {
+			cfgData, err := b.epochState.GetConfigData(epoch)
+			if err != nil {
+				return err
+			}
+
+			threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
+			if err != nil {
+				return err
+			}
+
+			b.epochData = &epochData{
+				randomness:     data.Randomness,
+				authorityData:  data.Authorities,
+				authorityIndex: idx,
+				threshold:      threshold,
+			}
+		} else {
+			b.epochData = &epochData{
+				randomness:     data.Randomness,
+				authorityData:  data.Authorities,
+				authorityIndex: idx,
+				threshold:      b.epochData.threshold,
+			}
 		}
 	}
 
@@ -67,7 +77,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	}
 
 	var err error
-	for i := startSlot; i < startSlot+b.config.EpochLength; i++ {
+	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
@@ -79,51 +89,51 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	return nil
 }
 
-func (b *Service) epochRandomness(epoch uint64) ([types.RandomnessLength]byte, error) {
-	if epoch < 2 {
-		return b.randomness, nil
-	}
+// func (b *Service) epochRandomness(epoch uint64) ([types.RandomnessLength]byte, error) {
+// 	if epoch < 2 {
+// 		return b.randomness, nil
+// 	}
 
-	epochMinusTwo, err := b.epochState.GetEpochInfo(epoch - 2)
-	if err != nil {
-		return [types.RandomnessLength]byte{}, err
-	}
+// 	epochMinusTwo, err := b.epochState.GetEpochInfo(epoch - 2)
+// 	if err != nil {
+// 		return [types.RandomnessLength]byte{}, err
+// 	}
 
-	lastNum := epochMinusTwo.FirstBlock + epochMinusTwo.Duration - 1
-	first, err := b.blockState.GetBlockByNumber(big.NewInt(int64(epochMinusTwo.FirstBlock)))
-	if err != nil {
-		return [types.RandomnessLength]byte{}, err
-	}
+// 	lastNum := epochMinusTwo.FirstBlock + epochMinusTwo.Duration - 1
+// 	first, err := b.blockState.GetBlockByNumber(big.NewInt(int64(epochMinusTwo.FirstBlock)))
+// 	if err != nil {
+// 		return [types.RandomnessLength]byte{}, err
+// 	}
 
-	last, err := b.blockState.GetBlockByNumber(big.NewInt(int64(lastNum)))
-	if err != nil {
-		return [types.RandomnessLength]byte{}, err
-	}
+// 	last, err := b.blockState.GetBlockByNumber(big.NewInt(int64(lastNum)))
+// 	if err != nil {
+// 		return [types.RandomnessLength]byte{}, err
+// 	}
 
-	sc, err := b.blockState.SubChain(first.Header.Hash(), last.Header.Hash())
-	if err != nil {
-		return [types.RandomnessLength]byte{}, err
-	}
+// 	sc, err := b.blockState.SubChain(first.Header.Hash(), last.Header.Hash())
+// 	if err != nil {
+// 		return [types.RandomnessLength]byte{}, err
+// 	}
 
-	epochBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(epochBytes, epoch)
-	buf := append(b.randomness[:], epochBytes...)
-	for _, hash := range sc {
-		header, err := b.blockState.GetHeader(hash)
-		if err != nil {
-			return [types.RandomnessLength]byte{}, err
-		}
+// 	epochBytes := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(epochBytes, epoch)
+// 	buf := append(b.randomness[:], epochBytes...)
+// 	for _, hash := range sc {
+// 		header, err := b.blockState.GetHeader(hash)
+// 		if err != nil {
+// 			return [types.RandomnessLength]byte{}, err
+// 		}
 
-		output, err := getVRFOutput(header)
-		if err != nil {
-			return [types.RandomnessLength]byte{}, err
-		}
+// 		output, err := getVRFOutput(header)
+// 		if err != nil {
+// 			return [types.RandomnessLength]byte{}, err
+// 		}
 
-		buf = append(buf, output[:]...)
-	}
+// 		buf = append(buf, output[:]...)
+// 	}
 
-	return common.Blake2bHash(buf)
-}
+// 	return common.Blake2bHash(buf)
+// }
 
 // incrementEpoch increments the current epoch stored in the db and returns the new epoch number
 func (b *Service) incrementEpoch() (uint64, error) {
@@ -147,7 +157,7 @@ func (b *Service) incrementEpoch() (uint64, error) {
 func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
+	vrfInput := append(slotBytes, b.epochData.randomness[:]...)
 
 	output, proof, err := b.vrfSign(vrfInput)
 	if err != nil {
@@ -155,14 +165,14 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	}
 
 	outputInt := big.NewInt(0).SetBytes(output[:])
-	if b.threshold == nil {
-		err = b.setThreshold()
-		if err != nil {
-			return nil, err
-		}
-	}
+	// if b.epochData.threshold == nil {
+	// 	err = b.setThreshold()
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
-	if outputInt.Cmp(b.threshold) < 0 {
+	if outputInt.Cmp(b.epochData.threshold) < 0 {
 		outbytes := [sr25519.VrfOutputLength]byte{}
 		copy(outbytes[:], output)
 		proofbytes := [sr25519.VrfProofLength]byte{}

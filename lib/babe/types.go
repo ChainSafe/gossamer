@@ -64,3 +64,11 @@ type Descriptor struct {
 	Randomness    [types.RandomnessLength]byte
 	Threshold     *big.Int
 }
+
+// epochData contains the current epoch information
+type epochData struct {
+	randomness     [types.RandomnessLength]byte
+	authorityIndex uint64
+	authorityData  []*types.Authority
+	threshold      *big.Int
+}
