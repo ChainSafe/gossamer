@@ -114,6 +114,11 @@ func TestStateRPC(t *testing.T) {
 }
 
 func TestStateRPCAPI(t *testing.T) {
+	if utils.MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
+
 	t.Log("starting gossamer...")
 
 	utils.CreateConfigBabeMaxThreshold()
