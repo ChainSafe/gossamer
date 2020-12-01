@@ -68,7 +68,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_SixAuthorities(t *testing.T) {
-	//t.Skip()
+	t.Skip()
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
