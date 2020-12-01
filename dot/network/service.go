@@ -41,6 +41,7 @@ const (
 	syncID          = "/sync/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
+	transactionsID  = "/transactions/1"
 )
 
 var (
@@ -72,12 +73,13 @@ type Service struct {
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 
 	// Service interfaces
-	blockState   BlockState
-	networkState NetworkState
-	syncer       Syncer
+	blockState         BlockState
+	networkState       NetworkState
+	syncer             Syncer
+	transactionHandler TransactionHandler
 
 	// Interface for inter-process communication
-	messageHandler MessageHandler
+	messageHandler MessageHandler // TODO: remove with cleanup
 
 	// Configuration options
 	noBootstrap bool
@@ -123,6 +125,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:             cfg.BlockState,
 		networkState:           cfg.NetworkState,
 		messageHandler:         cfg.MessageHandler,
+		transactionHandler:     cfg.TransactionHandler,
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		noStatus:               cfg.NoStatus,
@@ -157,6 +160,20 @@ func (s *Service) Start() error {
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
+	)
+	if err != nil {
+		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+	}
+
+	// register transactions protocol
+	err = s.RegisterNotificationsProtocol(
+		transactionsID,
+		TransactionMsgType,
+		s.getTransactionHandshake,
+		decodeTransactionHandshake,
+		validateTransactionHandshake,
+		decodeTransactionMessage,
+		s.handleTransactionMessage,
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -621,9 +638,4 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
-}
-
-//SetMessageHandler sets the given MessageHandler for this service
-func (s *Service) SetMessageHandler(handler MessageHandler) {
-	s.messageHandler = handler
 }
