@@ -74,6 +74,8 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		}
 	}
 
+	// if we were previously disabled, we are now re-enabled since the epoch changed
+	b.isDisabled = false
 	return nil
 }
 

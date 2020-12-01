@@ -26,13 +26,7 @@ import (
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := chaindb.NewMemDatabase()
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 0,
-		Randomness: [32]byte{},
-	}
-
-	s, err := NewEpochStateFromGenesis(db, info)
+	s, err := NewEpochStateFromGenesis(db, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
 }
@@ -54,21 +48,19 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 	require.Equal(t, uint64(2), epoch)
 }
 
-func TestEpochState_EpochInfo(t *testing.T) {
+func TestEpochState_EpochData(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	has, err := s.HasEpochInfo(1)
+	has, err := s.HasEpochData(1)
 	require.NoError(t, err)
 	require.True(t, has)
 
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 400,
+	info := &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
-	err = s.SetEpochInfo(2, info)
+	err = s.SetEpochData(2, info)
 	require.NoError(t, err)
-	res, err := s.GetEpochInfo(2)
+	res, err := s.GetEpochData(2)
 	require.NoError(t, err)
 	require.Equal(t, info, res)
 }
@@ -76,22 +68,18 @@ func TestEpochState_EpochInfo(t *testing.T) {
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 400,
+	info := &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
-	err := s.SetEpochInfo(2, info)
+	err := s.SetEpochData(2, info)
 	require.NoError(t, err)
 
-	info = &types.EpochInfo{
-		Duration:   100,
-		FirstBlock: 600,
+	info = &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
-	err = s.SetEpochInfo(3, info)
+	err = s.SetEpochData(3, info)
 	require.NoError(t, err)
 
 	start, err := s.GetStartSlotForEpoch(0)
@@ -102,25 +90,7 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), start)
 
-	err = s.SetCurrentEpoch(3)
-	require.NoError(t, err)
-
 	start, err = s.GetStartSlotForEpoch(2)
 	require.NoError(t, err)
-	require.Equal(t, uint64(201), start)
-
-	start, err = s.GetStartSlotForEpoch(3)
-	require.NoError(t, err)
-	require.Equal(t, uint64(401), start)
-
-	err = s.SetCurrentEpoch(4)
-	require.NoError(t, err)
-
-	start, err = s.GetStartSlotForEpoch(0)
-	require.NoError(t, err)
-	require.Equal(t, uint64(501), start)
-
-	start, err = s.GetStartSlotForEpoch(4)
-	require.NoError(t, err)
-	require.Equal(t, uint64(501), start)
+	require.Equal(t, genesisBABEConfig.EpochLength+1, start)
 }

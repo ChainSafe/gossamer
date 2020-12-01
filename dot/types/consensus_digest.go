@@ -4,52 +4,21 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// ScheduledChangeType identifies a ScheduledChange consensus digest
-var ScheduledChangeType = byte(1)
+// The follow are the consensus digest types for grandpa
+var (
+	GrandpaScheduledChangeType = byte(1)
+	GrandpaForcedChangeType    = byte(2)
+	GrandpaOnDisabledType      = byte(3)
+	GrandpaPauseType           = byte(4)
+	GrandpaResumeType          = byte(5)
+)
 
-// ForcedChangeType identifies a ForcedChange consensus digest
-var ForcedChangeType = byte(2)
-
-// OnDisabledType identifies a DisabledChange consensus digest
-var OnDisabledType = byte(3)
-
-// PauseType identifies a Pause consensus digest
-var PauseType = byte(4)
-
-// ResumeType identifies a Resume consensus digest
-var ResumeType = byte(5)
-
-// BABEScheduledChange represents a BABE scheduled authority change
-type BABEScheduledChange struct {
-	Auths []*AuthorityRaw
-	Delay uint32
-}
-
-// Encode returns a SCALE encoded BABEScheduledChange with first type byte
-func (sc *BABEScheduledChange) Encode() ([]byte, error) {
-	d, err := scale.Encode(sc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{ScheduledChangeType}, d...), nil
-}
-
-// BABEForcedChange represents a BABE forced authority change
-type BABEForcedChange struct {
-	Auths []*AuthorityRaw
-	Delay uint32
-}
-
-// Encode returns a SCALE encoded BABEForcedChange with first type byte
-func (fc *BABEForcedChange) Encode() ([]byte, error) {
-	d, err := scale.Encode(fc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{ForcedChangeType}, d...), nil
-}
+// The follow are the consensus digest types for BABE
+var (
+	NextEpochDataType  = byte(1)
+	BABEOnDisabledType = byte(2)
+	NextConfigDataType = byte(3)
+)
 
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change
 type GrandpaScheduledChange struct {
@@ -64,7 +33,7 @@ func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	return append([]byte{ScheduledChangeType}, d...), nil
+	return append([]byte{GrandpaScheduledChangeType}, d...), nil
 }
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
@@ -80,50 +49,100 @@ func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
 		return nil, err
 	}
 
-	return append([]byte{ForcedChangeType}, d...), nil
+	return append([]byte{GrandpaForcedChangeType}, d...), nil
 }
 
-// OnDisabled represents a GRANDPA authority being disabled
-type OnDisabled struct {
+// GrandpaOnDisabled represents a GRANDPA authority being disabled
+type GrandpaOnDisabled struct {
 	ID uint64
 }
 
-// Encode returns a SCALE encoded OnDisabled with first type byte
-func (od *OnDisabled) Encode() ([]byte, error) {
+// Encode returns a SCALE encoded GrandpaOnDisabled with first type byte
+func (od *GrandpaOnDisabled) Encode() ([]byte, error) {
 	d, err := scale.Encode(od)
 	if err != nil {
 		return nil, err
 	}
 
-	return append([]byte{OnDisabledType}, d...), nil
+	return append([]byte{GrandpaOnDisabledType}, d...), nil
 }
 
-// Pause represents an authority set pause
-type Pause struct {
+// GrandpaPause represents an authority set pause
+type GrandpaPause struct {
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded Pause with first type byte
-func (p *Pause) Encode() ([]byte, error) {
+// Encode returns a SCALE encoded GrandpaPause with first type byte
+func (p *GrandpaPause) Encode() ([]byte, error) {
 	d, err := scale.Encode(p)
 	if err != nil {
 		return nil, err
 	}
 
-	return append([]byte{PauseType}, d...), nil
+	return append([]byte{GrandpaPauseType}, d...), nil
 }
 
-// Resume represents an authority set resume
-type Resume struct {
+// GrandpaResume represents an authority set resume
+type GrandpaResume struct {
 	Delay uint32
 }
 
-// Encode returns a SCALE encoded Resume with first type byte
-func (r *Resume) Encode() ([]byte, error) {
+// Encode returns a SCALE encoded GrandpaResume with first type byte
+func (r *GrandpaResume) Encode() ([]byte, error) {
 	d, err := scale.Encode(r)
 	if err != nil {
 		return nil, err
 	}
 
-	return append([]byte{ResumeType}, d...), nil
+	return append([]byte{GrandpaResumeType}, d...), nil
+}
+
+// NextEpochData is the digest that contains the data for the upcoming BABE epoch.
+// It is included in the first block of every epoch to describe the next epoch.
+type NextEpochData struct {
+	Authorities []*Authority
+	Randomness  [RandomnessLength]byte
+}
+
+// Encode returns a SCALE encoded NextEpochData with first type byte
+func (d *NextEpochData) Encode() ([]byte, error) {
+	enc, err := scale.Encode(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{NextEpochDataType}, enc...), nil
+}
+
+// BABEOnDisabled represents a GRANDPA authority being disabled
+type BABEOnDisabled struct {
+	ID uint64
+}
+
+// Encode returns a SCALE encoded BABEOnDisabled with first type byte
+func (od *BABEOnDisabled) Encode() ([]byte, error) {
+	d, err := scale.Encode(od)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{BABEOnDisabledType}, d...), nil
+}
+
+// NextConfigData is the digest that contains changes to the BABE configuration.
+// It is potentially included in the first block of an epoch to describe the next epoch.
+type NextConfigData struct {
+	C1            uint64
+	C2            uint64
+	SecondarySlot bool
+}
+
+// Encode returns a SCALE encoded NextConfigData with first type byte
+func (d *NextConfigData) Encode() ([]byte, error) {
+	enc, err := scale.Encode(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{NextConfigDataType}, enc...), nil
 }

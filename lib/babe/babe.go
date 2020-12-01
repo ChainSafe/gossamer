@@ -68,6 +68,7 @@ type Service struct {
 	threshold      *big.Int // validator threshold
 	startSlot      uint64
 	slotToProof    map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
+	isDisabled     bool
 
 	// Channels for inter-process communication
 	blockChan chan types.Block // send blocks to core service
@@ -265,6 +266,14 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 	return b.blockChan
 }
 
+// SetOnDisabled sets the block producer with the given index as disabled
+// If this is our node, we stop producing blocks
+func (b *Service) SetOnDisabled(authorityIndex uint64) {
+	if authorityIndex == b.authorityIndex {
+		b.isDisabled = true
+	}
+}
+
 // Descriptor returns the Descriptor for the current Service.
 func (b *Service) Descriptor() *Descriptor {
 	return &Descriptor{
@@ -279,23 +288,23 @@ func (b *Service) Authorities() []*types.Authority {
 	return b.authorityData
 }
 
-// SetAuthorities sets the current Block Producer Authorities and sets Authority index
-func (b *Service) SetAuthorities(data []*types.Authority) error {
-	// check key is in new Authorities list before we update Authorities Data
-	pub := b.keypair.Public()
-	found := false
-	for _, auth := range data {
-		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
-			found = true
-		}
-	}
-	if !found {
-		return fmt.Errorf("key not in BABE authority data")
-	}
+// // SetAuthorities sets the current Block Producer Authorities and sets Authority index
+// func (b *Service) SetAuthorities(data []*types.Authority) error {
+// 	// check key is in new Authorities list before we update Authorities Data
+// 	pub := b.keypair.Public()
+// 	found := false
+// 	for _, auth := range data {
+// 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
+// 			found = true
+// 		}
+// 	}
+// 	if !found {
+// 		return fmt.Errorf("key not in BABE authority data")
+// 	}
 
-	b.authorityData = data
-	return b.setAuthorityIndex()
-}
+// 	b.authorityData = data
+// 	return b.setAuthorityIndex()
+// }
 
 // SetThreshold sets the threshold for a block producer
 func (b *Service) SetThreshold(a *big.Int) {
@@ -466,6 +475,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
+	if b.isDisabled {
+		return ErrNotAuthorized
+	}
+
 	if b.slotToProof[slotNum] == nil {
 		// if we don't have a proof already set, re-run lottery.
 		proof, err := b.runLottery(slotNum)

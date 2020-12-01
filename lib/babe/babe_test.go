@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -323,56 +322,6 @@ func TestStartAndStop(t *testing.T) {
 	require.NoError(t, err)
 	err = bs.Stop()
 	require.NoError(t, err)
-}
-
-func TestService_SetAuthorities(t *testing.T) {
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-	bs := createTestService(t, &ServiceConfig{
-		Keypair: kr.Alice().(*sr25519.Keypair),
-	})
-
-	aBefore := bs.authorityData
-
-	auths := []*types.Authority{}
-	bd1 := &types.Authority{
-		Key:    kr.Alice().Public().(*sr25519.PublicKey),
-		Weight: 1,
-	}
-	auths = append(auths, bd1)
-	bd2 := &types.Authority{
-		Key:    kr.Bob().Public().(*sr25519.PublicKey),
-		Weight: 1,
-	}
-	auths = append(auths, bd2)
-
-	err = bs.SetAuthorities(auths)
-	require.NoError(t, err)
-	aAfter := bs.authorityData
-	require.NotEqual(t, aBefore, aAfter)
-}
-
-func TestService_SetAuthorities_WrongKey(t *testing.T) {
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-	bs := createTestService(t, &ServiceConfig{
-		Keypair: kr.Alice().(*sr25519.Keypair),
-	})
-
-	aBefore := bs.authorityData
-
-	auths := []*types.Authority{}
-	bd1 := &types.Authority{
-		Key:    kr.Bob().Public().(*sr25519.PublicKey),
-		Weight: 1,
-	}
-	auths = append(auths, bd1)
-
-	err = bs.SetAuthorities(auths)
-	require.EqualError(t, err, "key not in BABE authority data")
-	aAfter := bs.authorityData
-	// auths before should equal auths after since there is an error with key, auths should not change
-	require.Equal(t, aBefore, aAfter)
 }
 
 func TestService_SetThreshold(t *testing.T) {

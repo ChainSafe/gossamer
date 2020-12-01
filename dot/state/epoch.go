@@ -18,7 +18,6 @@ package state
 
 import (
 	"encoding/binary"
-	"errors"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,24 +25,32 @@ import (
 )
 
 var (
-	epochPrefix     = "epoch"
-	currentEpochKey = []byte("current")
-	epochInfoPrefix = []byte("epochinfo")
+	epochPrefix      = "epoch"
+	currentEpochKey  = []byte("current")
+	epochDataPrefix  = []byte("epochinfo")
+	configDataPrefix = []byte("configinfo")
 )
 
-func epochInfoKey(epoch uint64) []byte {
+func epochDataKey(epoch uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
-	return append(epochInfoPrefix, buf...)
+	return append(epochDataPrefix, buf...)
+}
+
+func configDataKey(epoch uint64) []byte {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return append(configDataPrefix, buf...)
 }
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db chaindb.Database
+	db            chaindb.Database
+	epochDuration uint64 // measured in slots
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*EpochState, error) {
+func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	epochDB := chaindb.NewTable(db, epochPrefix)
 	err := epochDB.Put(currentEpochKey, []byte{1, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
@@ -51,10 +58,16 @@ func NewEpochStateFromGenesis(db chaindb.Database, info *types.EpochInfo) (*Epoc
 	}
 
 	s := &EpochState{
-		db: epochDB,
+		db:            epochDB,
+		epochDuration: genesisConfig.EpochLength,
 	}
 
-	err = s.SetEpochInfo(1, info)
+	err = s.SetEpochData(1, &types.EpochData{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.SetConfigData(1, &types.ConfigData{})
 	if err != nil {
 		return nil, err
 	}
@@ -86,34 +99,69 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 	return binary.LittleEndian.Uint64(b), nil
 }
 
-// SetEpochInfo sets the epoch info for a given epoch
-func (s *EpochState) SetEpochInfo(epoch uint64, info *types.EpochInfo) error {
+func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
+	// TODO: use s.epochDuration and BABE pre-digest
+	return 1, nil
+}
+
+// SetEpochData sets the epoch data for a given epoch
+func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	enc, err := scale.Encode(info)
 	if err != nil {
 		return err
 	}
 
-	return s.db.Put(epochInfoKey(epoch), enc)
+	return s.db.Put(epochDataKey(epoch), enc)
 }
 
-// GetEpochInfo returns the epoch info for a given epoch
-func (s *EpochState) GetEpochInfo(epoch uint64) (*types.EpochInfo, error) {
-	enc, err := s.db.Get(epochInfoKey(epoch))
+// GetEpochInfo returns the epoch data for a given epoch
+func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
+	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, new(types.EpochInfo))
+	info, err := scale.Decode(enc, new(types.EpochData))
 	if err != nil {
 		return nil, err
 	}
 
-	return info.(*types.EpochInfo), nil
+	return info.(*types.EpochData), nil
 }
 
-// HasEpochInfo returns whether epoch info exists for a given epoch
-func (s *EpochState) HasEpochInfo(epoch uint64) (bool, error) {
-	return s.db.Has(epochInfoKey(epoch))
+// HasEpochData returns whether epoch data exists for a given epoch
+func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
+	return s.db.Has(epochDataKey(epoch))
+}
+
+// SetConfigData sets the BABE config data for a given epoch
+func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
+	enc, err := scale.Encode(info)
+	if err != nil {
+		return err
+	}
+
+	return s.db.Put(configDataKey(epoch), enc)
+}
+
+// GetConfigData returns the BABE config data for a given epoch
+func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
+	enc, err := s.db.Get(configDataKey(epoch))
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := scale.Decode(enc, new(types.ConfigData))
+	if err != nil {
+		return nil, err
+	}
+
+	return info.(*types.ConfigData), nil
+}
+
+// HasEpochData returns whether config data exists for a given epoch
+func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
+	return s.db.Has(configDataKey(epoch))
 }
 
 // GetStartSlotForEpoch returns the first slot in the given epoch.
@@ -133,21 +181,5 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 		return 1, nil
 	}
 
-	if epoch > curr {
-		return 0, errors.New("epoch in future")
-	}
-
-	slot := uint64(0)
-
-	// start at epoch 1
-	for i := uint64(1); i < epoch; i++ {
-		info, err := s.GetEpochInfo(i)
-		if err != nil {
-			return 0, err
-		}
-
-		slot += info.Duration
-	}
-
-	return slot + 1, nil
+	return s.epochDuration*(epoch-1) + 1, nil
 }

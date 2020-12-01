@@ -44,9 +44,14 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 type mockVerifier struct{}
@@ -61,7 +66,7 @@ func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	auths []*types.Authority
+	disabled uint64
 }
 
 // Start mocks starting
@@ -74,13 +79,8 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-func (bp *mockBlockProducer) Authorities() []*types.Authority {
-	return bp.auths
-}
-
-func (bp *mockBlockProducer) SetAuthorities(a []*types.Authority) error {
-	bp.auths = a
-	return nil
+func (bp *mockBlockProducer) SetOnDisabled(idx uint64) {
+	bp.disabled = idx
 }
 
 // GetBlockChannel returns a new channel
@@ -206,7 +206,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	genesisData := new(genesis.Data)
 
 	tt := trie.NewEmptyTrie()
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, firstEpochInfo)
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
