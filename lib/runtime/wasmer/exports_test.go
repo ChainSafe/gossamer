@@ -249,7 +249,6 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	idata := types.NewInherentsData()
 	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
 	require.NoError(t, err)
-	t.Log(idata)
 
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
 	require.NoError(t, err)
@@ -263,8 +262,6 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := instance.InherentExtrinsics(ienc)
 	require.NoError(t, err)
-
-	t.Log(inherentExts)
 
 	// decode inherent extrinsics
 	exts, err := scale.Decode(inherentExts, [][]byte{})
