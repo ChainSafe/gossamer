@@ -402,10 +402,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 			s.blockProducer.SetRuntime(s.rt)
 		}
 
-		err = s.verifier.SetRuntimeChangeAtBlock(header, s.rt)
-		if err != nil {
-			return err
-		}
+		// TODO: set syncer runtime
 	}
 
 	return nil

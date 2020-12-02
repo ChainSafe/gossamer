@@ -56,13 +56,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error {
-	return nil
-}
-
-func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.Authority) {
-
-}
+func (v *mockVerifier) SetOnDisabled(_ uint64, _ *types.Header) {}
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {

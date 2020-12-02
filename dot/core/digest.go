@@ -409,8 +409,7 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 	}
 	od = dec.(*types.BABEOnDisabled)
 
-	// TODO: update VerificationManager
-
+	h.verifier.SetOnDisabled(od.ID, header)
 	h.babe.SetOnDisabled(od.ID)
 	return nil
 }

@@ -81,6 +81,11 @@ func NewVerificationManager(blockState BlockState, descriptor *Descriptor) (*Ver
 	}, nil
 }
 
+// SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
+func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) {
+	// TODO: see issue #1205
+}
+
 // SetRuntimeChangeAtBlock sets a runtime change at the given block
 // Blocks that are descendants of this block will be verified using the given runtime
 func (v *VerificationManager) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error {
