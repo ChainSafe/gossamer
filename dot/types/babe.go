@@ -15,12 +15,8 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package types
 
-// import (
-// 	"io"
-
-// 	"github.com/ChainSafe/gossamer/lib/common"
-// 	"github.com/ChainSafe/gossamer/lib/scale"
-// )
+// RandomnessLength is the length of the epoch randomness (32 bytes)
+const RandomnessLength = 32
 
 // BabeConfiguration contains the genesis data for BABE
 // see: https://github.com/paritytech/substrate/blob/426c26b8bddfcdbaf8d29f45b128e0864b57de1c/core/consensus/babe/primitives/src/lib.rs#L132
@@ -48,14 +44,13 @@ func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
 	return ad, nil
 }
 
-// RandomnessLength is the length of the epoch randomness (32 bytes)
-const RandomnessLength = 32
-
+// EpochData is the data provided for a BABE epoch
 type EpochData struct {
 	Authorities []*Authority
 	Randomness  [RandomnessLength]byte
 }
 
+// ToEpochDataRaw returns the EpochData as an EpochDataRaw, converting the Authority to AuthorityRaw
 func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 	raw := &EpochDataRaw{
 		Randomness: d.Randomness,
@@ -70,11 +65,13 @@ func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 	return raw
 }
 
+// EpochDataRaw is the data provided for an epoch, with Authority as AuthorityRaw
 type EpochDataRaw struct {
 	Authorities []*AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
+// ToEpochData returns the EpochDataRaw as EpochData
 func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 	epochData := &EpochData{
 		Randomness: d.Randomness,
@@ -89,42 +86,7 @@ func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 	return epochData, nil
 }
 
-// func (d *EpochData) Decode(r io.Reader) error {
-// 	d = new(EpochData)
-
-// 	dec := &scale.Decoder{r}
-// 	authRaw, err := dec.Decode([]*AuthorityRaw{})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	d.Authorities, err = BABEAuthorityRawToAuthority(authRaw.([]*AuthorityRaw))
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	d.Randomness, err = common.Read32Bytes(r)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-// func (d *EpochData) Encode() ([]byte, error) {
-// 	enc, err := scale.Encode(int32(len(d.Authorities)))
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	for _, auth := range d.Authorities {
-// 		a := auth.Encode()
-// 		enc = append(enc, a...)
-// 	}
-
-// 	return append(enc, d.Randomness[:]...), nil
-// }
-
+// ConfigData represents a BABE configuration update
 type ConfigData struct {
 	C1             uint64
 	C2             uint64

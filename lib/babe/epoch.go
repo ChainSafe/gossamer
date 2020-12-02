@@ -22,7 +22,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -89,52 +88,6 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	return nil
 }
 
-// func (b *Service) epochRandomness(epoch uint64) ([types.RandomnessLength]byte, error) {
-// 	if epoch < 2 {
-// 		return b.randomness, nil
-// 	}
-
-// 	epochMinusTwo, err := b.epochState.GetEpochInfo(epoch - 2)
-// 	if err != nil {
-// 		return [types.RandomnessLength]byte{}, err
-// 	}
-
-// 	lastNum := epochMinusTwo.FirstBlock + epochMinusTwo.Duration - 1
-// 	first, err := b.blockState.GetBlockByNumber(big.NewInt(int64(epochMinusTwo.FirstBlock)))
-// 	if err != nil {
-// 		return [types.RandomnessLength]byte{}, err
-// 	}
-
-// 	last, err := b.blockState.GetBlockByNumber(big.NewInt(int64(lastNum)))
-// 	if err != nil {
-// 		return [types.RandomnessLength]byte{}, err
-// 	}
-
-// 	sc, err := b.blockState.SubChain(first.Header.Hash(), last.Header.Hash())
-// 	if err != nil {
-// 		return [types.RandomnessLength]byte{}, err
-// 	}
-
-// 	epochBytes := make([]byte, 8)
-// 	binary.LittleEndian.PutUint64(epochBytes, epoch)
-// 	buf := append(b.randomness[:], epochBytes...)
-// 	for _, hash := range sc {
-// 		header, err := b.blockState.GetHeader(hash)
-// 		if err != nil {
-// 			return [types.RandomnessLength]byte{}, err
-// 		}
-
-// 		output, err := getVRFOutput(header)
-// 		if err != nil {
-// 			return [types.RandomnessLength]byte{}, err
-// 		}
-
-// 		buf = append(buf, output[:]...)
-// 	}
-
-// 	return common.Blake2bHash(buf)
-// }
-
 // incrementEpoch increments the current epoch stored in the db and returns the new epoch number
 func (b *Service) incrementEpoch() (uint64, error) {
 	epoch, err := b.epochState.GetCurrentEpoch()
@@ -165,12 +118,6 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 	}
 
 	outputInt := big.NewInt(0).SetBytes(output[:])
-	// if b.epochData.threshold == nil {
-	// 	err = b.setThreshold()
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// }
 
 	if outputInt.Cmp(b.epochData.threshold) < 0 {
 		outbytes := [sr25519.VrfOutputLength]byte{}

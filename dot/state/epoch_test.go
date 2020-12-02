@@ -95,3 +95,64 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisBABEConfig.EpochLength+1, start)
 }
+
+func TestEpochState_ConfigData(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+
+	data := &types.ConfigData{
+		C1:             1,
+		C2:             8,
+		SecondarySlots: true,
+	}
+
+	err := s.SetConfigData(1, data)
+	require.NoError(t, err)
+
+	ret, err := s.GetConfigData(1)
+	require.NoError(t, err)
+	require.Equal(t, data, ret)
+}
+
+func TestEpochState_GetEpochForBlock(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+
+	babeHeader := &types.BabeHeader{
+		SlotNumber: 10,
+	}
+
+	enc := babeHeader.Encode()
+	digest := &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err := digest.Encode()
+	require.NoError(t, err)
+
+	header := &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+
+	epoch, err := s.GetEpochForBlock(header)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), epoch)
+
+	babeHeader = &types.BabeHeader{
+		SlotNumber: 210,
+	}
+
+	enc = babeHeader.Encode()
+	digest = &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err = digest.Encode()
+	require.NoError(t, err)
+
+	header = &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+
+	epoch, err = s.GetEpochForBlock(header)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), epoch)
+}

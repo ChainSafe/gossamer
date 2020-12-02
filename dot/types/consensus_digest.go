@@ -114,6 +114,14 @@ func (d *NextEpochData) Encode() ([]byte, error) {
 	return append([]byte{NextEpochDataType}, enc...), nil
 }
 
+// ToEpochData returns the NextEpochData as EpochData
+func (d *NextEpochData) ToEpochData() *EpochData {
+	return &EpochData{
+		Authorities: d.Authorities,
+		Randomness:  d.Randomness,
+	}
+}
+
 // BABEOnDisabled represents a GRANDPA authority being disabled
 type BABEOnDisabled struct {
 	ID uint64
@@ -145,4 +153,13 @@ func (d *NextConfigData) Encode() ([]byte, error) {
 	}
 
 	return append([]byte{NextConfigDataType}, enc...), nil
+}
+
+// ToConfigData returns the NextConfigData as ConfigData
+func (d *NextConfigData) ToConfigData() *ConfigData {
+	return &ConfigData{
+		C1:             d.C1,
+		C2:             d.C2,
+		SecondarySlots: d.SecondarySlot,
+	}
 }

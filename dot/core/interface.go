@@ -100,14 +100,12 @@ type ConsensusMessageHandler interface {
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(runtime.LegacyInstance)
-	//Authorities() []*types.Authority
 	SetOnDisabled(authorityIndex uint64)
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
 	SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error
-	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority)
 }
 
 // Network is the interface for the network service
@@ -115,6 +113,7 @@ type Network interface {
 	SendMessage(network.Message)
 }
 
+// EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetEpochData(epoch uint64, info *types.EpochData) error

@@ -100,9 +100,34 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 	return binary.LittleEndian.Uint64(b), nil
 }
 
+// GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
 func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
-	// TODO: use s.epochDuration and BABE pre-digest
-	return 1, nil
+	for _, d := range header.Digest {
+		if len(d) == 0 {
+			continue
+		}
+
+		if d[0] != types.PreRuntimeDigestType {
+			continue
+		}
+
+		di, err := types.DecodeDigestItem(d)
+		if err != nil {
+			return 0, err
+		}
+
+		predigest := di.(*types.PreRuntimeDigest)
+
+		babeHeader := new(types.BabeHeader)
+		err = babeHeader.Decode(predigest.Data)
+		if err != nil {
+			return 0, err
+		}
+
+		return (babeHeader.SlotNumber / s.epochDuration) + 1, nil
+	}
+
+	return 0, errors.New("header does not contain pre-runtime digest")
 }
 
 // SetEpochData sets the epoch data for a given epoch

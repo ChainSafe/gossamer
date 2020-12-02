@@ -179,11 +179,11 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 	if d.ConsensusEngineID == types.BabeEngineID {
 		switch t {
 		case types.NextEpochDataType:
-			return h.handleNextEpochData(d)
+			return h.handleNextEpochData(d, header)
 		case types.BABEOnDisabledType:
 			return h.handleBABEOnDisabled(d, header)
 		case types.NextConfigDataType:
-			return h.handleNextConfigData(d)
+			return h.handleNextConfigData(d, header)
 		default:
 			return errors.New("invalid consensus digest data")
 		}
@@ -401,20 +401,6 @@ func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBl
 	}, nil
 }
 
-// func newBABEChange(raw []*types.AuthorityRaw, delay uint32, currBlock *big.Int) (*babeChange, error) {
-// 	auths, err := types.BABEAuthorityRawToAuthority(raw)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	d := big.NewInt(int64(delay))
-
-// 	return &babeChange{
-// 		auths:   auths,
-// 		atBlock: big.NewInt(-1).Add(currBlock, d),
-// 	}, nil
-// }
-
 func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
 	od := &types.BABEOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
@@ -429,7 +415,7 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 	return nil
 }
 
-func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest) error {
+func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
 	od := &types.NextEpochData{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -437,11 +423,16 @@ func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest) error {
 	}
 	od = dec.(*types.NextEpochData)
 
-	// TODO: set EpochState
-	return nil
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	// set EpochState epoch data for upcoming epoch
+	return h.epochState.SetEpochData(currEpoch+1, od.ToEpochData())
 }
 
-func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest) error {
+func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
 	od := &types.NextConfigData{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -449,6 +440,11 @@ func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest) error {
 	}
 	od = dec.(*types.NextConfigData)
 
-	// TODO: set EpochState
-	return nil
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	// set EpochState config data for upcoming epoch
+	return h.epochState.SetConfigData(currEpoch+1, od.ToConfigData())
 }

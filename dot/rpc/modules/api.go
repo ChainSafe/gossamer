@@ -49,9 +49,6 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
-	// SetAuthorities(data []*types.Authority) error
-	// SetRandomness([types.RandomnessLength]byte)
-	// SetThreshold(*big.Int)
 }
 
 // TransactionStateAPI ...
