@@ -39,7 +39,7 @@ func NewAuthority(pub crypto.PublicKey, weight uint64) *Authority {
 }
 
 // Encode returns the SCALE encoding of the BABEAuthorityData.
-func (a *Authority) Encode() []byte {
+func (a *Authority) Encode() ([]byte, error) {
 	raw := a.ToRaw()
 
 	enc := raw.Key[:]
@@ -47,7 +47,12 @@ func (a *Authority) Encode() []byte {
 	weightBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(weightBytes, raw.Weight)
 
-	return append(enc, weightBytes...)
+	return append(enc, weightBytes...), nil
+}
+
+// Decode sets the
+func (a *Authority) Decode(r io.Reader) error {
+	return a.DecodeSr25519(r)
 }
 
 // DecodeSr25519 sets the Authority to the SCALE decoded input for Authority containing SR25519 Keys.

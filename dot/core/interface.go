@@ -99,7 +99,7 @@ type ConsensusMessageHandler interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetRuntime(runtime.LegacyInstance) error
+	SetRuntime(runtime.LegacyInstance)
 	//Authorities() []*types.Authority
 	SetOnDisabled(authorityIndex uint64)
 }

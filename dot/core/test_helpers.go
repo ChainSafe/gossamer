@@ -89,9 +89,7 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 }
 
 // SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) error {
-	return nil
-}
+func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) {}
 
 type mockNetwork struct {
 	Message network.Message

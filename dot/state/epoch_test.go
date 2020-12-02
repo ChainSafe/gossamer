@@ -55,7 +55,8 @@ func TestEpochState_EpochData(t *testing.T) {
 	require.True(t, has)
 
 	info := &types.EpochData{
-		Randomness: [32]byte{77},
+		Authorities: []*types.Authority{},
+		Randomness:  [32]byte{77},
 	}
 
 	err = s.SetEpochData(2, info)

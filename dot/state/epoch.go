@@ -18,6 +18,7 @@ package state
 
 import (
 	"encoding/binary"
+	"errors"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -106,7 +107,9 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 
 // SetEpochData sets the epoch data for a given epoch
 func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
-	enc, err := scale.Encode(info)
+	raw := info.ToEpochDataRaw()
+
+	enc, err := scale.Encode(raw)
 	if err != nil {
 		return err
 	}
@@ -121,12 +124,17 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 		return nil, err
 	}
 
-	info, err := scale.Decode(enc, new(types.EpochData))
+	info, err := scale.Decode(enc, &types.EpochDataRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	return info.(*types.EpochData), nil
+	raw, ok := info.(*types.EpochDataRaw)
+	if !ok {
+		return nil, errors.New("failed to decode raw epoch data")
+	}
+
+	return raw.ToEpochData()
 }
 
 // HasEpochData returns whether epoch data exists for a given epoch

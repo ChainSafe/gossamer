@@ -399,10 +399,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 		}
 
 		if s.isBlockProducer {
-			err = s.blockProducer.SetRuntime(s.rt)
-			if err != nil {
-				return err
-			}
+			s.blockProducer.SetRuntime(s.rt)
 		}
 
 		err = s.verifier.SetRuntimeChangeAtBlock(header, s.rt)

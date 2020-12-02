@@ -28,7 +28,7 @@ func TestBABEAuthority(t *testing.T) {
 	}
 
 	ad := NewAuthority(kr.Alice().Public().(*sr25519.PublicKey), 77)
-	enc := ad.Encode()
+	enc, _ := ad.Encode()
 
 	buf := &bytes.Buffer{}
 	buf.Write(enc)

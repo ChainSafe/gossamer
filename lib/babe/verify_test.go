@@ -44,7 +44,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 
 	genesisData := new(genesis.Data)
 
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -195,7 +195,7 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	require.Equal(t, true, ok)
 
 	// create and verify block that's descendant of block A, should verify
-	babeService.randomness = randomnessA
+	babeService.epochData.randomness = randomnessA
 	block, _ = createTestBlock(t, babeService, block1a, [][]byte{}, 1)
 	require.NoError(t, err)
 
@@ -217,8 +217,8 @@ func TestVerifySlotWinner(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	// create proof that we can authorize this block
-	babeService.threshold = maxThreshold
-	babeService.authorityIndex = 0
+	babeService.epochData.threshold = maxThreshold
+	babeService.epochData.authorityIndex = 0
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber)
@@ -239,7 +239,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	authorityData[0] = &types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
-	babeService.authorityData = authorityData
+	babeService.epochData.authorityData = authorityData
 
 	verifier, err := newVerifier(babeService.blockState, babeService.Descriptor())
 	if err != nil {
@@ -287,8 +287,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
-	babeService.authorityData = make([]*types.Authority, 1)
-	babeService.authorityData[0] = &types.Authority{
+	babeService.epochData.authorityData = make([]*types.Authority, 1)
+	babeService.epochData.authorityData[0] = &types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
 

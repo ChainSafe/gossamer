@@ -191,6 +191,8 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		b.epochData.threshold = cfg.Threshold
 	}
 
+	b.epochLength = genCfg.EpochLength
+
 	return nil
 }
 
@@ -285,35 +287,6 @@ func (b *Service) Descriptor() *Descriptor {
 func (b *Service) Authorities() []*types.Authority {
 	return b.epochData.authorityData
 }
-
-// // SetAuthorities sets the current Block Producer Authorities and sets Authority index
-// func (b *Service) SetAuthorities(data []*types.Authority) error {
-// 	// check key is in new Authorities list before we update Authorities Data
-// 	pub := b.keypair.Public()
-// 	found := false
-// 	for _, auth := range data {
-// 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
-// 			found = true
-// 		}
-// 	}
-// 	if !found {
-// 		return fmt.Errorf("key not in BABE authority data")
-// 	}
-
-// 	b.authorityData = data
-// 	return b.setAuthorityIndex()
-// }
-
-// // SetThreshold sets the threshold for a block producer
-// func (b *Service) SetThreshold(a *big.Int) {
-// 	b.threshold = a
-// }
-
-// // SetRandomness sets randomness for BABE service
-// // Note that this only takes effect at the end of an epoch, where it is used to calculate the next epoch's randomness
-// func (b *Service) SetRandomness(a [types.RandomnessLength]byte) {
-// 	b.randomness = a
-// }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {

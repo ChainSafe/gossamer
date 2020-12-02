@@ -50,17 +50,20 @@ var emptyHeader = &types.Header{
 
 var testEpochLength = uint64(10)
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   testEpochLength,
-	FirstBlock: 1,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+	var err error
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
-
-	babeCfg, err := rt.BabeConfiguration()
-	require.NoError(t, err)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
@@ -96,7 +99,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		genesisData := new(genesis.Data)
 
-		err = dbSrv.Initialize(genesisData, genesisHeader, tt, firstEpochInfo)
+		err = dbSrv.Initialize(genesisData, genesisHeader, tt, genesisBABEConfig)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()
@@ -113,23 +116,15 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
-
-	babeService.config = babeCfg
-	if cfg.Threshold == nil {
-		babeService.threshold = maxThreshold
-	}
-
 	return babeService
 }
 
 func TestSlotDuration(t *testing.T) {
 	bs := &Service{
-		config: &types.BabeConfiguration{
-			SlotDuration: 1000,
-		},
+		slotDuration: 1000,
 	}
 
-	dur := bs.slotDuration()
+	dur := bs.getSlotDuration()
 	require.Equal(t, dur.Milliseconds(), int64(1000))
 }
 
@@ -179,7 +174,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
-	babeService.threshold = maxThreshold
+	babeService.epochData.threshold = maxThreshold
 
 	outAndProof, err := babeService.runLottery(0)
 	if err != nil {
@@ -193,7 +188,7 @@ func TestRunLottery(t *testing.T) {
 
 func TestRunLottery_False(t *testing.T) {
 	babeService := createTestService(t, nil)
-	babeService.threshold = big.NewInt(0)
+	babeService.epochData.threshold = big.NewInt(0)
 
 	outAndProof, err := babeService.runLottery(0)
 	if err != nil {
@@ -211,7 +206,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	datadir, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	dbSrv := state.NewService(datadir, log.LvlInfo)
 	genesisData := new(genesis.Data)
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 	err = dbSrv.Start()
 	require.NoError(t, err)
@@ -232,28 +227,18 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		_ = babeService.Stop()
 	})
 
-	babeService.config = &types.BabeConfiguration{
-		SlotDuration:       5000,
-		EpochLength:        6,
-		C1:                 1,
-		C2:                 10,
-		GenesisAuthorities: []*types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     false,
+	babeService.epochData.authorityIndex = 0
+	babeService.epochData.authorityData = []*types.Authority{
+		{Key: nil, Weight: 1},
+		{Key: nil, Weight: 1},
+		{Key: nil, Weight: 1},
 	}
 
-	babeService.authorityIndex = 0
-	babeService.authorityData = []*types.Authority{
-		{Key: nil, Weight: 1},
-		{Key: nil, Weight: 1},
-		{Key: nil, Weight: 1},
-	}
+	babeService.epochData.threshold = maxThreshold
+	blockNumber := big.NewInt(int64(1))
 
 	err = babeService.Start()
 	require.NoError(t, err)
-
-	babeService.threshold = maxThreshold
-	blockNumber := big.NewInt(int64(1))
 
 	newBlocks := babeService.GetBlockChannel()
 	select {
@@ -264,16 +249,12 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 }
 
-func TestDetermineAuthorityIndex(t *testing.T) {
+func TestGetAuthorityIndex(t *testing.T) {
 	kpA, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	kpB, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
@@ -284,34 +265,22 @@ func TestDetermineAuthorityIndex(t *testing.T) {
 	}
 
 	bs := &Service{
-		authorityData: authData,
-		keypair:       kpA,
-		logger:        log.New("BABE"),
+		keypair: kpA,
+		logger:  log.New("BABE"),
 	}
 
-	err = bs.setAuthorityIndex()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if bs.authorityIndex != 0 {
-		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 0)
-	}
+	idx, err := bs.getAuthorityIndex(authData)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), idx)
 
 	bs = &Service{
-		authorityData: authData,
-		keypair:       kpB,
-		logger:        log.New("BABE"),
+		keypair: kpB,
+		logger:  log.New("BABE"),
 	}
 
-	err = bs.setAuthorityIndex()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if bs.authorityIndex != 1 {
-		t.Fatalf("Fail: got %d expected %d", bs.authorityIndex, 1)
-	}
+	idx, err = bs.getAuthorityIndex(authData)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), idx)
 }
 
 func TestStartAndStop(t *testing.T) {
@@ -323,26 +292,3 @@ func TestStartAndStop(t *testing.T) {
 	err = bs.Stop()
 	require.NoError(t, err)
 }
-
-// func TestService_SetThreshold(t *testing.T) {
-// 	bs := createTestService(t, &ServiceConfig{})
-// 	etBefore := bs.threshold
-// 	newThreshold := big.NewInt(1000)
-
-// 	bs.SetThreshold(newThreshold)
-
-// 	etAfter := bs.threshold
-// 	require.NotEqual(t, etBefore, etAfter)
-// 	require.Equal(t, newThreshold, etAfter)
-// }
-
-// func TestService_SetRandomness(t *testing.T) {
-// 	bs := createTestService(t, &ServiceConfig{})
-// 	rBefore := bs.randomness
-// 	rand := [types.RandomnessLength]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
-// 	bs.SetRandomness(rand)
-// 	rAfter := bs.randomness
-
-// 	require.NotEqual(t, rBefore, rAfter)
-// 	require.Equal(t, rand, rAfter)
-// }
