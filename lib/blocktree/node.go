@@ -202,3 +202,21 @@ func (n *node) getAllDescendants(desc []Hash) []Hash {
 
 	return desc
 }
+
+// DeepCopy returns a copy of the given node
+func deepCopy(nd *node) *node {
+	nCopy := *nd
+	nCopy.hash = nd.hash
+	nCopy.arrivalTime = nd.arrivalTime
+	if nd.depth != nil {
+		nCopy.depth = new(big.Int).Set(nd.depth)
+	}
+	if len(nd.children) > 0 {
+		nCopy.children = make([]*node, len(nd.children))
+		copy(nCopy.children, nd.children)
+	}
+	if nd.parent != nil {
+		nCopy.parent = deepCopy(nd.parent)
+	}
+	return &nCopy
+}
