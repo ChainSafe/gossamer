@@ -162,7 +162,7 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Valid(t *testing.T) {
-	cs := core.NewTestService(t, nil)
+	cs := core.NewTestService(t, nil, nil)
 
 	auth := NewAuthorModule(nil, cs, nil, nil)
 	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
@@ -174,7 +174,7 @@ func TestAuthorModule_InsertKey_Valid(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
-	cs := core.NewTestService(t, nil)
+	cs := core.NewTestService(t, nil, nil)
 
 	auth := NewAuthorModule(nil, cs, nil, nil)
 	req := &KeyInsertRequest{"gran", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"}
@@ -186,7 +186,7 @@ func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_InValid(t *testing.T) {
-	cs := core.NewTestService(t, nil)
+	cs := core.NewTestService(t, nil, nil)
 
 	auth := NewAuthorModule(nil, cs, nil, nil)
 	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x0000000000000000000000000000000000000000000000000000000000000000"}
@@ -196,7 +196,7 @@ func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
-	cs := core.NewTestService(t, nil)
+	cs := core.NewTestService(t, nil, nil)
 
 	auth := NewAuthorModule(nil, cs, nil, nil)
 	req := &KeyInsertRequest{"mack", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
@@ -252,7 +252,7 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 	require.False(t, res)
 }
 
-func newCoreService(t *testing.T) *core.Service {
+func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlInfo)
@@ -270,11 +270,11 @@ func newCoreService(t *testing.T) *core.Service {
 		IsBlockProducer:  false,
 	}
 
-	return core.NewTestService(t, cfg)
+	return core.NewTestService(t, cfg, srvc)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
-	cs := newCoreService(t)
+	cs := newCoreService(t, nil)
 	rt := wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	return NewAuthorModule(nil, cs, rt, txq)
 }

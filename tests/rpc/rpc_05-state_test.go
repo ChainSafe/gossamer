@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -110,4 +111,125 @@ func TestStateRPC(t *testing.T) {
 	t.Log("going to tear down gossamer...")
 	errList := utils.TearDown(t, nodes)
 	require.Len(t, errList, 0)
+}
+
+func TestStateRPCAPI(t *testing.T) {
+	if utils.MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
+
+	t.Log("starting gossamer...")
+
+	utils.CreateConfigBabeMaxThreshold()
+	defer os.Remove(utils.ConfigBABEMaxThreshold)
+
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	require.Nil(t, err)
+
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	time.Sleep(5 * time.Second) // Wait for block production
+
+	blockHash, err := utils.GetBlockHash(t, nodes[0], "")
+	if err != nil {
+		blockHash = common.Hash{}
+	}
+
+	const randomHash = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
+	const ErrKeyNotFound = "Key not found"
+	testCases := []*testCase{
+		{
+			description: "Test valid block hash state_getRuntimeVersion",
+			method:      "state_getRuntimeVersion",
+			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
+		},
+		{
+			description: "Test valid block hash state_getPairs",
+			method:      "state_getPairs",
+			params:      fmt.Sprintf(`["0x", "%s"]`, blockHash.String()),
+		},
+		{
+			description: "Test valid block hash state_getMetadata",
+			method:      "state_getMetadata",
+			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
+		},
+		{
+			description: "Test empty value state_getRuntimeVersion",
+			method:      "state_getRuntimeVersion",
+			params:      `[""]`,
+		},
+		{
+			description: "Test empty value hash state_getPairs",
+			method:      "state_getPairs",
+			params:      `["0x", ""]`,
+		},
+		{
+			description: "Test empty value hash state_getMetadata",
+			method:      "state_getMetadata",
+			params:      `[""]`,
+		},
+		{
+			description: "Test optional params state_getRuntimeVersion",
+			method:      "state_getRuntimeVersion",
+			params:      `[]`,
+		},
+		{
+			description: "Test optional params hash state_getPairs",
+			method:      "state_getPairs",
+			params:      `["0x"]`,
+		},
+		{
+			description: "Test optional params hash state_getMetadata",
+			method:      "state_getMetadata",
+			params:      `[]`,
+		},
+		{
+			description: "Test invalid block hash state_getRuntimeVersion",
+			method:      "state_getRuntimeVersion",
+			params:      fmt.Sprintf(`["%s"]`, randomHash),
+			expected:    ErrKeyNotFound,
+			isErr:       true,
+		},
+		{
+			description: "Test invalid block hash state_getPairs",
+			method:      "state_getPairs",
+			params:      fmt.Sprintf(`["0x", "%s"]`, randomHash),
+			expected:    ErrKeyNotFound,
+			isErr:       true,
+		},
+		{
+			description: "Test invalid block hash state_getMetadata",
+			method:      "state_getMetadata",
+			params:      fmt.Sprintf(`["%s"]`, randomHash),
+			expected:    ErrKeyNotFound,
+			isErr:       true,
+		},
+		{
+			description: "Test required params missing hash state_getPairs",
+			method:      "state_getPairs",
+			params:      `[]`,
+			expected:    "required field missing in params",
+			isErr:       true,
+		},
+	}
+
+	// Cases for valid block hash in RPC params
+	for _, test := range testCases {
+		t.Run(test.description, func(t *testing.T) {
+			respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
+			require.Nil(t, err)
+
+			if test.isErr {
+				require.Contains(t, string(respBody), test.expected)
+			} else {
+				require.NotContains(t, string(respBody), test.expected)
+			}
+			time.Sleep(100 * time.Millisecond)
+		})
+	}
 }

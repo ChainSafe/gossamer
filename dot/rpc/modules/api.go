@@ -18,6 +18,7 @@ type StorageAPI interface {
 	Entries(root *common.Hash) (map[string][]byte, error)
 	RegisterStorageChangeChannel(ch chan<- *state.KeyValue) (byte, error)
 	UnregisterStorageChangeChannel(id byte)
+	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
 
 // BlockAPI is the interface for the block state
@@ -65,10 +66,10 @@ type TransactionStateAPI interface {
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	HasKey(pubKeyStr string, keyType string) (bool, error)
-	GetRuntimeVersion() (*runtime.VersionAPI, error)
+	GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error)
 	IsBlockProducer() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
-	GetMetadata() ([]byte, error)
+	GetMetadata(bhash *common.Hash) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
