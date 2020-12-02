@@ -70,7 +70,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 }
 
 func TestStartService(t *testing.T) {
-	s := NewTestService(t, nil)
+	s := NewTestService(t, nil, nil)
 
 	// TODO: improve dot tests #687
 	require.NotNil(t, s)
@@ -91,7 +91,7 @@ func TestAnnounceBlock(t *testing.T) {
 		Network:   net,
 	}
 
-	s := NewTestService(t, cfg)
+	s := NewTestService(t, cfg, nil)
 	err := s.Start()
 	require.Nil(t, err)
 	defer s.Stop()
@@ -131,7 +131,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 		IsBlockProducer:  false,
 	}
 
-	s := NewTestService(t, cfg)
+	s := NewTestService(t, cfg, nil)
 
 	_, err = runtime.GetRuntimeBlob(runtime.HOST_API_TEST_RUNTIME_FP, runtime.HOST_API_TEST_RUNTIME_URL)
 	require.Nil(t, err)
@@ -179,7 +179,7 @@ func TestService_HasKey(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
-	svc := NewTestService(t, cfg)
+	svc := NewTestService(t, cfg, nil)
 
 	res, err := svc.HasKey(kr.Alice().Public().Hex(), "babe")
 	require.NoError(t, err)
@@ -195,7 +195,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
-	svc := NewTestService(t, cfg)
+	svc := NewTestService(t, cfg, nil)
 
 	res, err := svc.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "unknown key type: xxxx")
@@ -203,7 +203,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 }
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
-	s := NewTestService(t, nil)
+	s := NewTestService(t, nil, nil)
 	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
 
 	head, err := s.blockState.BestBlockHeader()
@@ -214,7 +214,7 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
-	s := NewTestService(t, nil)
+	s := NewTestService(t, nil, nil)
 	height := 5
 	branch := 3
 	branches := map[int]int{branch: 1}
@@ -241,7 +241,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 		Runtime: wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME),
 	}
 
-	s := NewTestService(t, cfg)
+	s := NewTestService(t, cfg, nil)
 	height := 5
 	branch := 3
 	addTestBlocksToState(t, height, s.blockState.(*state.BlockState))

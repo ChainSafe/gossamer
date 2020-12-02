@@ -33,7 +33,7 @@ func TestProcessConsensusMessage(t *testing.T) {
 
 	s := NewTestService(t, &Config{
 		FinalityGadget: fg,
-	})
+	}, nil)
 	err := s.processConsensusMessage(testConsensusMessage)
 	require.NoError(t, err)
 }
@@ -49,7 +49,7 @@ func TestSendVoteMessages(t *testing.T) {
 	s := NewTestService(t, &Config{
 		Network:        net,
 		FinalityGadget: fg,
-	})
+	}, nil)
 
 	go s.sendVoteMessages(context.Background())
 	fg.out <- &mockFinalityMessage{}
@@ -69,7 +69,7 @@ func TestSendFinalizationMessages(t *testing.T) {
 	s := NewTestService(t, &Config{
 		FinalityGadget: fg,
 		Network:        net,
-	})
+	}, nil)
 
 	go s.sendFinalizationMessages(context.Background())
 	fg.finalized <- &mockFinalityMessage{}
