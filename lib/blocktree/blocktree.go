@@ -157,6 +157,10 @@ func (bt *BlockTree) Prune(newRoot Hash) (pruned []Hash) {
 	// get pruned nodes
 	pruned = bt.head.getAllDescendantsExcluding(nil, newRoot)
 
+	// set blocktree with new root node
+	next := newBlockTreeFromNode(n, bt.db)
+	*bt = *next
+
 	return pruned
 }
 

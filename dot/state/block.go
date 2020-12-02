@@ -444,10 +444,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 			return err
 		}
 
-		if des, err1 := bs.IsDescendantOf(rem, hash); des {
-			if err1 != nil {
-				logger.Error("pruning block error", "error", err)
-			}
+		if des, _ := bs.IsDescendantOf(rem, hash); des {
 			continue
 		}
 
