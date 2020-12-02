@@ -146,13 +146,14 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
+	if !h.serverConfig.WS {
+		return nil
+	}
+
 	h.logger.Info("Starting WebSocket Server...", "host", h.serverConfig.Host, "port", h.serverConfig.WSPort)
 	ws := mux.NewRouter()
 	ws.Handle("/", h)
 	go func() {
-		if h.serverConfig.WSExternal {
-
-		}
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.WSPort), ws)
 		if err != nil {
 			h.logger.Error("http error", "err", err)

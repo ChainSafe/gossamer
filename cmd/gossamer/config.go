@@ -557,8 +557,10 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 
 	// check --rpc-external flag and update node configuration
 	if external := ctx.GlobalBool(RPCExternalFlag.Name); external {
+		cfg.Enabled = true
 		cfg.External = true
 	} else if ctx.IsSet(RPCExternalFlag.Name) && !external {
+		cfg.Enabled = true
 		cfg.External = false
 	}
 
@@ -588,8 +590,10 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	}
 
 	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {
+		cfg.WS = true
 		cfg.WSExternal = true
 	} else if ctx.IsSet(WSExternalFlag.Name) && !wsExternal {
+		cfg.WS = true
 		cfg.WSExternal = false
 	}
 
