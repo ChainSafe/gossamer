@@ -130,8 +130,6 @@ func TestService_BlockTree(t *testing.T) {
 	}
 }
 func Test_ServicePruneStorage(t *testing.T) {
-	// todo ed, update test so that it works with new pruning
-	t.Skip()
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
