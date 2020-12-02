@@ -286,3 +286,44 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 func (bt *BlockTree) GetAllBlocks() []Hash {
 	return bt.head.getAllDescendants(nil)
 }
+
+func (bt *BlockTree) DeepCopy() *BlockTree {
+	// copy everything but pointers / arrays
+	btCopy := *bt;
+	// copy head pointers and children array
+	if bt.head != nil {
+		btCopy.head = DeepCopy(bt.head)
+		//btCopy.head = &node{}
+
+	}
+	// copy leaves
+	if bt.leaves != nil {
+		btCopy.leaves = newEmptyLeafMap()
+
+			lMap := bt.leaves.toMap()
+			for hash, val := range lMap {
+				btCopy.leaves.store(hash, DeepCopy(val))
+			}
+	}
+
+	// copy db
+	btCopy.db = bt.db
+	return &btCopy
+}
+
+func DeepCopy(nd *node) *node {
+	nCopy := *nd
+	nCopy.hash = nd.hash
+	nCopy.arrivalTime = nd.arrivalTime
+	if nd.depth != nil {
+		nCopy.depth = new(big.Int).Set(nd.depth)
+	}
+	if len(nd.children) > 0 {
+		nCopy.children = make([]*node, len(nd.children))
+		copy(nCopy.children, nd.children)
+	}
+	if nd.parent != nil {
+		nCopy.parent = DeepCopy(nd.parent)
+	}
+	return &nCopy
+}

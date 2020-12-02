@@ -379,3 +379,47 @@ func TestBlockTree_Prune(t *testing.T) {
 	require.ElementsMatch(t, expected, pruned)
 	require.Equal(t, bt.head, testNode)
 }
+
+func TestBlockTree_DeepCopy(t *testing.T) {
+	bt, _ := createFlatTree(t, 8)
+
+	btCopy := bt.DeepCopy()
+
+	require.Equal(t, bt.db, btCopy.db)
+	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
+	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+}
+
+func equalNodeValue(nd *node, ndCopy *node) bool {
+	if nd.hash != ndCopy.hash {
+		return false
+	}
+	if nd.depth.Cmp(ndCopy.depth) != 0 {
+		return false
+	}
+	if nd.arrivalTime != ndCopy.arrivalTime {
+		return false
+	}
+	for i, child := range nd.children {
+		return equalNodeValue(child, ndCopy.children[i])
+	}
+	if nd.parent.hash != ndCopy.parent.hash {
+		return false
+	}
+	if nd.parent.arrivalTime != ndCopy.parent.arrivalTime {
+		return false
+	}
+	if nd.parent.depth.Cmp(ndCopy.parent.depth) != 0 {
+		return false
+	}
+	return true
+}
+func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
+	lmm := lm.toMap()
+	lmCopyM := lmCopy.toMap()
+	for key, val := range lmm {
+		lmCopyVal := lmCopyM[key]
+		return equalNodeValue(val, lmCopyVal)
+	}
+	return true
+}
