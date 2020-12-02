@@ -159,7 +159,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
-
 	tt := trie.NewEmptyTrie()
 	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, firstEpochInfo)
 	require.Nil(t, err)
@@ -194,7 +193,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			BlockState:  stateSrvc.Block,
 		}
 		cfg.Network = createTestNetworkService(t, config)
-		require.NoError(t, err)
 	}
 
 	s, err := NewService(cfg)
