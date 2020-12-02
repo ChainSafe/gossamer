@@ -27,6 +27,7 @@ import (
 
 var (
 	epochPrefix      = "epoch"
+	epochLengthKey   = []byte("epochlength")
 	currentEpochKey  = []byte("current")
 	epochDataPrefix  = []byte("epochinfo")
 	configDataPrefix = []byte("configinfo")
@@ -46,8 +47,8 @@ func configDataKey(epoch uint64) []byte {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db            chaindb.Database
-	epochDuration uint64 // measured in slots
+	db          chaindb.Database
+	epochLength uint64 // measured in slots
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -58,29 +59,72 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
+	if genesisConfig.EpochLength == 0 {
+		return nil, errors.New("epoch length is 0")
+	}
+
 	s := &EpochState{
-		db:            epochDB,
-		epochDuration: genesisConfig.EpochLength,
+		db:          epochDB,
+		epochLength: genesisConfig.EpochLength,
 	}
 
-	err = s.SetEpochData(1, &types.EpochData{})
+	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.SetConfigData(1, &types.ConfigData{})
+	err = s.SetEpochData(1, &types.EpochData{
+		Authorities: auths,
+		Randomness:  genesisConfig.Randomness,
+	})
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.SetConfigData(1, &types.ConfigData{
+		C1:             genesisConfig.C1,
+		C2:             genesisConfig.C2,
+		SecondarySlots: genesisConfig.SecondarySlots,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = storeEpochLength(db, genesisConfig.EpochLength)
+	logger.Crit("NewEpochStateFromGenesis", "epochLength", s.epochLength)
 
 	return s, nil
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db chaindb.Database) *EpochState {
-	return &EpochState{
-		db: chaindb.NewTable(db, epochPrefix),
+func NewEpochState(db chaindb.Database) (*EpochState, error) {
+	epochLength, err := loadEpochLength(db)
+	if err != nil {
+		return nil, err
 	}
+	return &EpochState{
+		db:          chaindb.NewTable(db, epochPrefix),
+		epochLength: epochLength,
+	}, nil
+}
+
+func storeEpochLength(db chaindb.Database, l uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, l)
+	return db.Put(epochLengthKey, buf)
+}
+
+func loadEpochLength(db chaindb.Database) (uint64, error) {
+	data, err := db.Get(epochLengthKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+func (s *EpochState) GetEpochLength() uint64 {
+	return s.epochLength
 }
 
 // SetCurrentEpoch sets the current epoch
@@ -102,6 +146,10 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 
 // GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
 func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
+	if header == nil {
+		return 0, errors.New("header is nil")
+	}
+
 	for _, d := range header.Digest {
 		if len(d) == 0 {
 			continue
@@ -124,7 +172,8 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, err
 		}
 
-		return (babeHeader.SlotNumber / s.epochDuration) + 1, nil
+		logger.Crit("GetEpochForBlock", "epochLength", s.epochLength)
+		return (babeHeader.SlotNumber / s.epochLength) + 1, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")
@@ -214,5 +263,5 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 		return 1, nil
 	}
 
-	return s.epochDuration*(epoch-1) + 1, nil
+	return s.epochLength*(epoch-1) + 1, nil
 }

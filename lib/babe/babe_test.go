@@ -228,7 +228,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	})
 
 	babeService.epochData.authorityIndex = 0
-	babeService.epochData.authorityData = []*types.Authority{
+	babeService.epochData.authorities = []*types.Authority{
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},

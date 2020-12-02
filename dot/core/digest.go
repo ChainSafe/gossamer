@@ -387,8 +387,8 @@ func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
 	return nil
 }
 
-func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
-	auths, err := types.GrandpaAuthorityDataRawToAuthorityData(raw)
+func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err
 	}

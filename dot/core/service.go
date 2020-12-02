@@ -35,13 +35,15 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var _ services.Service = &Service{}
+var (
+	_      services.Service = &Service{}
+	logger log.Logger       = log.New("pkg", "core")
+)
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	logger log.Logger
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -131,7 +133,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilConsensusMessageHandler
 	}
 
-	logger := log.New("pkg", "core")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -155,7 +156,6 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		logger:                  logger,
 		ctx:                     ctx,
 		cancel:                  cancel,
 		rt:                      cfg.Runtime,
@@ -203,7 +203,7 @@ func (s *Service) Start() error {
 	go s.handleBlocks(ctx)
 
 	if s.isFinalityAuthority && s.finalityGadget != nil {
-		s.logger.Debug("routing finality gadget messages")
+		logger.Debug("routing finality gadget messages")
 		ctx, _ = context.WithCancel(s.ctx) //nolint
 		go s.sendVoteMessages(ctx)
 
@@ -251,15 +251,15 @@ func (s *Service) handleBlocks(ctx context.Context) {
 			}
 
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				s.logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
 			if err := s.maintainTransactionPool(block); err != nil {
-				s.logger.Warn("failed to maintain transaction pool", "error", err)
+				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
 
 			if err := s.handleRuntimeChanges(block.Header); err != nil {
-				s.logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
+				logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -278,7 +278,7 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 
 			err := s.handleReceivedBlock(&block)
 			if err != nil {
-				s.logger.Warn("failed to handle block from BABE session", "err", err)
+				logger.Warn("failed to handle block from BABE session", "err", err)
 			}
 		case <-ctx.Done():
 			return
@@ -298,7 +298,7 @@ func (s *Service) HandleMessage(message network.Message) {
 
 	err := s.handleReceivedMessage(message)
 	if err != nil {
-		s.logger.Trace("failed to handle message from network service", "err", err)
+		logger.Trace("failed to handle message from network service", "err", err)
 	}
 }
 
@@ -313,7 +313,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
-	s.logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
+	logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
 
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
@@ -367,7 +367,7 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		s.logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
+		logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
 		code, err := s.storageState.LoadCode(&sr)
 		if err != nil {
 			return err
@@ -441,11 +441,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range exts {
-			s.logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 
 			txv, err := s.rt.ValidateTransaction(ext)
 			if err != nil {
-				s.logger.Trace("failed to validate transaction", "extrinsic", ext)
+				logger.Trace("failed to validate transaction", "extrinsic", ext)
 				continue
 			}
 
@@ -493,7 +493,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 		}
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
-		s.logger.Trace("moved transaction to queue", "hash", h)
+		logger.Trace("moved transaction to queue", "hash", h)
 	}
 
 	return nil

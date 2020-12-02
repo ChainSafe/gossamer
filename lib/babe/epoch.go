@@ -57,14 +57,14 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 
 			b.epochData = &epochData{
 				randomness:     data.Randomness,
-				authorityData:  data.Authorities,
+				authorities:    data.Authorities,
 				authorityIndex: idx,
 				threshold:      threshold,
 			}
 		} else {
 			b.epochData = &epochData{
 				randomness:     data.Randomness,
-				authorityData:  data.Authorities,
+				authorities:    data.Authorities,
 				authorityIndex: idx,
 				threshold:      b.epochData.threshold,
 			}

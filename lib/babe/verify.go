@@ -104,7 +104,7 @@ func (v *VerificationManager) SetAuthorityChangeAtBlock(header *types.Header, au
 
 	num := header.Number.Int64()
 	desc := &Descriptor{
-		AuthorityData: authorities,
+		Authorities: authorities,
 	}
 
 	// find branch that header is on, set randomness and threshold to latest known on that chain
@@ -220,18 +220,18 @@ func descriptorFromRuntime(rt runtime.LegacyInstance) (*Descriptor, error) {
 	}
 
 	return &Descriptor{
-		AuthorityData: auths,
-		Randomness:    cfg.Randomness,
-		Threshold:     threshold,
+		Authorities: auths,
+		Randomness:  cfg.Randomness,
+		Threshold:   threshold,
 	}, nil
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
-	blockState    BlockState
-	authorityData []*types.Authority
-	randomness    [types.RandomnessLength]byte
-	threshold     *big.Int
+	blockState  BlockState
+	Authorities []*types.Authority
+	randomness  [types.RandomnessLength]byte
+	threshold   *big.Int
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
@@ -241,16 +241,16 @@ func newVerifier(blockState BlockState, descriptor *Descriptor) (*verifier, erro
 	}
 
 	return &verifier{
-		blockState:    blockState,
-		authorityData: descriptor.AuthorityData,
-		randomness:    descriptor.Randomness,
-		threshold:     descriptor.Threshold,
+		blockState:  blockState,
+		Authorities: descriptor.Authorities,
+		randomness:  descriptor.Randomness,
+		threshold:   descriptor.Threshold,
 	}, nil
 }
 
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
 func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
-	if len(b.authorityData) <= int(header.BlockProducerIndex) {
+	if len(b.Authorities) <= int(header.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
 	}
 
@@ -261,7 +261,7 @@ func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 		return false, fmt.Errorf("vrf output over threshold")
 	}
 
-	pub := b.authorityData[header.BlockProducerIndex].Key
+	pub := b.Authorities[header.BlockProducerIndex].Key
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
@@ -313,13 +313,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	if len(b.authorityData) <= int(babeHeader.BlockProducerIndex) {
+	if len(b.Authorities) <= int(babeHeader.BlockProducerIndex) {
 		return false, fmt.Errorf("no authority data for index %d", babeHeader.BlockProducerIndex)
 	}
 
 	slot := babeHeader.SlotNumber
 
-	authorPub := b.authorityData[babeHeader.BlockProducerIndex].Key
+	authorPub := b.Authorities[babeHeader.BlockProducerIndex].Key
 	// remove seal before verifying
 	header.Digest = header.Digest[:len(header.Digest)-1]
 	encHeader, err := header.Encode()

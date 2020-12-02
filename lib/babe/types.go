@@ -46,11 +46,11 @@ func NewSlot(start, duration, number uint64) *Slot {
 	}
 }
 
-// AuthorityData is an alias for []*types.Authority
-type AuthorityData []*types.Authority
+// Authorities is an alias for []*types.Authority
+type Authorities []*types.Authority
 
-// String returns the AuthorityData as a formatted string
-func (d AuthorityData) String() string {
+// String returns the Authorities as a formatted string
+func (d Authorities) String() string {
 	str := ""
 	for _, di := range []*types.Authority(d) {
 		str = str + fmt.Sprintf("[key=0x%x idx=%d] ", di.Key.Encode(), di.Weight)
@@ -60,15 +60,15 @@ func (d AuthorityData) String() string {
 
 // Descriptor contains the information needed to verify blocks
 type Descriptor struct {
-	AuthorityData []*types.Authority
-	Randomness    [types.RandomnessLength]byte
-	Threshold     *big.Int
+	Authorities []*types.Authority
+	Randomness  [types.RandomnessLength]byte
+	Threshold   *big.Int
 }
 
 // epochData contains the current epoch information
 type epochData struct {
 	randomness     [types.RandomnessLength]byte
 	authorityIndex uint64
-	authorityData  []*types.Authority
+	authorities    []*types.Authority
 	threshold      *big.Int
 }

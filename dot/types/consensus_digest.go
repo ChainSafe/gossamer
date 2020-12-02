@@ -22,7 +22,7 @@ var (
 
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change
 type GrandpaScheduledChange struct {
-	Auths []*GrandpaAuthorityDataRaw
+	Auths []*GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
@@ -38,7 +38,7 @@ func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
 
 // GrandpaForcedChange represents a GRANDPA forced authority change
 type GrandpaForcedChange struct {
-	Auths []*GrandpaAuthorityDataRaw
+	Auths []*GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
@@ -140,9 +140,9 @@ func (od *BABEOnDisabled) Encode() ([]byte, error) {
 // NextConfigData is the digest that contains changes to the BABE configuration.
 // It is potentially included in the first block of an epoch to describe the next epoch.
 type NextConfigData struct {
-	C1            uint64
-	C2            uint64
-	SecondarySlot bool
+	C1             uint64
+	C2             uint64
+	SecondarySlots bool
 }
 
 // Encode returns a SCALE encoded NextConfigData with first type byte
@@ -160,6 +160,6 @@ func (d *NextConfigData) ToConfigData() *ConfigData {
 	return &ConfigData{
 		C1:             d.C1,
 		C2:             d.C2,
-		SecondarySlots: d.SecondarySlot,
+		SecondarySlots: d.SecondarySlots,
 	}
 }

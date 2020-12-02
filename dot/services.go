@@ -318,7 +318,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 		return nil, ErrInvalidKeystoreType
 	}
 
-	voters := grandpa.NewVotersFromAuthorityData(ad)
+	voters := grandpa.NewVotersFromAuthorities(ad)
 
 	keys := ks.Keypairs()
 	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
@@ -365,9 +365,9 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt runtime.LegacyInstan
 	}
 
 	descriptor := &babe.Descriptor{
-		AuthorityData: ad,
-		Randomness:    babeCfg.Randomness,
-		Threshold:     threshold,
+		Authorities: ad,
+		Randomness:  babeCfg.Randomness,
+		Threshold:   threshold,
 	}
 
 	ver, err := babe.NewVerificationManager(st.Block, descriptor)

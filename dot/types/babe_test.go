@@ -48,7 +48,7 @@ func TestBABEAuthority(t *testing.T) {
 	}
 }
 
-func TestBABEAuthorityData_ToRaw(t *testing.T) {
+func TestBABEAuthorities_ToRaw(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
 	if err != nil {
 		t.Fatal(err)

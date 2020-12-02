@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	//"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -54,6 +53,8 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 		fg = &mockFinalityGadget{}
 	}
 
+	logger.Crit("newTestDigestHandler", "epochLength", stateSrvc.Epoch.GetEpochLength())
+
 	time.Sleep(time.Second)
 	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, bp, fg, &mockVerifier{})
 	require.NoError(t, err)
@@ -70,7 +71,7 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	require.NoError(t, err)
 
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{
+		Auths: []*types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
@@ -115,7 +116,7 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	require.NoError(t, err)
 
 	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{
+		Auths: []*types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
@@ -258,7 +259,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 
 	block := uint32(3)
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: block,
 	}
 
@@ -284,7 +285,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	later := uint32(5)
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: later,
 	}
 
@@ -301,7 +302,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	earlier := uint32(3)
 	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: earlier,
 	}
 
@@ -318,4 +319,101 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	next := handler.NextGrandpaAuthorityChange()
 	require.Equal(t, uint64(earlier), next)
+}
+
+func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	digest := &types.BABEOnDisabled{
+		ID: 7,
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	err = handler.HandleConsensusDigest(d, nil)
+	require.NoError(t, err)
+	require.Equal(t, uint64(7), handler.babe.(*mockBlockProducer).disabled)
+}
+
+func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
+	babeHeader := &types.BabeHeader{
+		SlotNumber: slotNumber,
+	}
+
+	enc := babeHeader.Encode()
+	digest := &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err := digest.Encode()
+	require.NoError(t, err)
+
+	return &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+}
+
+func TestDigestHandler_HandleNextEpochData(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	digest := &types.NextEpochData{
+		Authorities: []*types.Authority{},
+		Randomness:  [32]byte{77, 88, 99},
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	header := createHeaderWithPreDigest(t, 10)
+
+	err = handler.HandleConsensusDigest(d, header)
+	require.NoError(t, err)
+
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(2)
+	require.NoError(t, err)
+	require.Equal(t, digest.ToEpochData(), stored)
+}
+
+func TestDigestHandler_HandleNextConfighData(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	digest := &types.NextConfigData{
+		C1:             1,
+		C2:             8,
+		SecondarySlots: true,
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	header := createHeaderWithPreDigest(t, 10)
+
+	err = handler.HandleConsensusDigest(d, header)
+	require.NoError(t, err)
+
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(2)
+	require.NoError(t, err)
+	require.Equal(t, digest.ToConfigData(), stored)
 }

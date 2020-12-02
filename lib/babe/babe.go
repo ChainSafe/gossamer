@@ -149,7 +149,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"block producer", cfg.Authority,
 		"slot duration (ms)", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
-		"authorities", AuthorityData(babeService.epochData.authorityData),
+		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
 		"threshold", babeService.epochData.threshold.Bytes(),
 	)
@@ -167,23 +167,23 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 	}
 
 	if cfg.AuthData == nil {
-		b.epochData.authorityData, err = types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+		b.epochData.authorities, err = types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 		if err != nil {
 			return err
 		}
 	} else {
-		b.epochData.authorityData = cfg.AuthData
+		b.epochData.authorities = cfg.AuthData
 	}
 
 	if cfg.Authority {
-		b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorityData)
+		b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
 		if err != nil {
 			return err
 		}
 	}
 
 	if cfg.Threshold == nil {
-		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorityData))
+		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
 		if err != nil {
 			return err
 		}
@@ -277,15 +277,15 @@ func (b *Service) SetOnDisabled(authorityIndex uint64) {
 // Descriptor returns the Descriptor for the current Service.
 func (b *Service) Descriptor() *Descriptor {
 	return &Descriptor{
-		AuthorityData: b.epochData.authorityData,
-		Randomness:    b.epochData.randomness,
-		Threshold:     b.epochData.threshold,
+		Authorities: b.epochData.authorities,
+		Randomness:  b.epochData.randomness,
+		Threshold:   b.epochData.threshold,
 	}
 }
 
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []*types.Authority {
-	return b.epochData.authorityData
+	return b.epochData.authorities
 }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
@@ -316,10 +316,10 @@ func (b *Service) safeSend(msg types.Block) error {
 	return nil
 }
 
-func (b *Service) getAuthorityIndex(authorityData []*types.Authority) (uint64, error) {
+func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint64, error) {
 	pub := b.keypair.Public()
 
-	for i, auth := range authorityData {
+	for i, auth := range Authorities {
 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
 			return uint64(i), nil
 		}

@@ -38,7 +38,7 @@ func NewAuthority(pub crypto.PublicKey, weight uint64) *Authority {
 	}
 }
 
-// Encode returns the SCALE encoding of the BABEAuthorityData.
+// Encode returns the SCALE encoding of the BABEAuthorities.
 func (a *Authority) Encode() ([]byte, error) {
 	raw := a.ToRaw()
 
@@ -75,7 +75,7 @@ func (a *Authority) DecodeSr25519(r io.Reader) error {
 	return a.FromRawSr25519(raw)
 }
 
-// ToRaw returns the BABEAuthorityData as BABEAuthorityDataRaw. It encodes the authority public keys.
+// ToRaw returns the BABEAuthorities as BABEAuthoritiesRaw. It encodes the authority public keys.
 func (a *Authority) ToRaw() *AuthorityRaw {
 	raw := new(AuthorityRaw)
 
