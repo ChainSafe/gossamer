@@ -255,6 +255,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 		NoMDNS:             cfg.Network.NoMDNS,
 		Syncer:             syncer,
 		TransactionHandler: coreSrvc,
+		MessageHandler:     coreSrvc,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
