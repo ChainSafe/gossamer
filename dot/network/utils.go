@@ -26,7 +26,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/go-interpreter/wagon/wasm/leb128"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
@@ -133,9 +132,36 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 }
 
 func uint64ToLEB128(in uint64) []byte {
-	return leb128.AppendUleb128([]byte{}, in)
+	out := []byte{}
+	for {
+		b := uint8(in & 0x7f)
+		in >>= 7
+		if in != 0 {
+			b |= 0x80
+		}
+		out = append(out, b)
+		if in == 0 {
+			break
+		}
+	}
+	return out
 }
 
 func readLEB128ToUint64(r io.Reader) (uint64, error) {
-	return leb128.ReadVarUint64(r)
+	buffer := make([]byte, 1)
+	var out uint64
+	var shift uint
+	for {
+		_, err := io.ReadFull(r, buffer)
+		if err != nil {
+			return 0, err
+		}
+		b := buffer[0]
+		out |= uint64(0x7F&b) << shift
+		if b&0x80 == 0 {
+			break
+		}
+		shift += 7
+	}
+	return out, nil
 }
