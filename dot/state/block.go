@@ -449,6 +449,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 			return err
 		}
 
+		logger.Trace("pruned block", "hash", rem)
 		bs.pruneKeyCh <- header
 	}
 
