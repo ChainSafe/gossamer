@@ -215,7 +215,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	messageHandler NotificationsMessageHandler,
 ) error {
 	s.notificationsMu.Lock()
-	s.notificationsMu.Unlock()
+	defer s.notificationsMu.Unlock()
 
 	if _, has := s.notificationsProtocols[messageID]; has {
 		return errors.New("notifications protocol with message type already exists")
