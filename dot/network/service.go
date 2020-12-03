@@ -22,6 +22,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -70,6 +71,7 @@ type Service struct {
 	requestTracker         *requestTracker
 	errCh                  chan<- error
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
+	notificationsMu        sync.RWMutex
 
 	// Service interfaces
 	blockState   BlockState
@@ -212,6 +214,9 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
 ) error {
+	s.notificationsMu.Lock()
+	s.notificationsMu.Unlock()
+
 	if _, has := s.notificationsProtocols[messageID]; has {
 		return errors.New("notifications protocol with message type already exists")
 	}
@@ -282,6 +287,9 @@ func (s *Service) SendMessage(msg Message) {
 	)
 
 	// check if the message is part of a notifications protocol
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for msgID, prtl := range s.notificationsProtocols {
 		if msg.Type() != msgID || prtl == nil {
 			continue
