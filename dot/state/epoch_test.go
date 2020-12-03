@@ -84,7 +84,15 @@ func TestEpochState_EpochData(t *testing.T) {
 	require.NoError(t, err)
 	res, err := s.GetEpochData(2)
 	require.NoError(t, err)
-	require.Equal(t, info, res)
+	require.Equal(t, info.Randomness, res.Randomness)
+
+	for i, auth := range res.Authorities {
+		expected, err := info.Authorities[i].Encode()
+		require.NoError(t, err)
+		res, err := auth.Encode()
+		require.NoError(t, err)
+		require.Equal(t, expected, res)
+	}
 }
 
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {

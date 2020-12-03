@@ -55,11 +55,6 @@ type DigestHandler struct {
 	grandpaAuths           []*types.Authority // saved in case of pause
 }
 
-type babeChange struct {
-	auths   []*types.Authority
-	atBlock *big.Int
-}
-
 type grandpaChange struct {
 	auths   []*types.Authority
 	atBlock *big.Int
@@ -318,7 +313,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 	return nil
 }
 
-func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
+func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
 	od := &types.GrandpaOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -428,7 +423,11 @@ func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *ty
 	}
 
 	// set EpochState epoch data for upcoming epoch
-	return h.epochState.SetEpochData(currEpoch+1, od.ToEpochData())
+	data, err := od.ToEpochData()
+	if err != nil {
+		return err
+	}
+	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
 func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {

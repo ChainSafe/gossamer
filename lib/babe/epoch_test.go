@@ -67,9 +67,16 @@ func TestInitiateEpoch(t *testing.T) {
 	err = bs.initiateEpoch(2, testEpochLength+1)
 	require.NoError(t, err)
 	require.Equal(t, expected.randomness, bs.epochData.randomness)
-	require.Equal(t, expected.authorities, bs.epochData.authorities)
 	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
 	require.Equal(t, expected.threshold, bs.epochData.threshold)
+
+	for i, auth := range bs.epochData.authorities {
+		expAuth, err := expected.authorities[i].Encode() //nolint
+		require.NoError(t, err)
+		res, err := auth.Encode()
+		require.NoError(t, err)
+		require.Equal(t, expAuth, res)
+	}
 
 	// for epoch 3, set EpochData and ConfigData
 	edata = &types.EpochData{

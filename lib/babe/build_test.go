@@ -67,7 +67,7 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
 	babeService.slotToProof[slotNumber] = outAndProof
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber uint64) (*types.Block, Slot) {
+func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0

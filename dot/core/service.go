@@ -355,7 +355,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 // It also updates the BABE service and block verifier with the new runtime
-func (s *Service) handleRuntimeChanges(header *types.Header) error {
+func (s *Service) handleRuntimeChanges(_ *types.Header) error {
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
 		return err

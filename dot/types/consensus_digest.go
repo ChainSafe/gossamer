@@ -100,7 +100,7 @@ func (r *GrandpaResume) Encode() ([]byte, error) {
 // NextEpochData is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
 type NextEpochData struct {
-	Authorities []*Authority
+	Authorities []*AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
@@ -115,11 +115,16 @@ func (d *NextEpochData) Encode() ([]byte, error) {
 }
 
 // ToEpochData returns the NextEpochData as EpochData
-func (d *NextEpochData) ToEpochData() *EpochData {
-	return &EpochData{
-		Authorities: d.Authorities,
-		Randomness:  d.Randomness,
+func (d *NextEpochData) ToEpochData() (*EpochData, error) {
+	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
+	if err != nil {
+		return nil, err
 	}
+
+	return &EpochData{
+		Authorities: auths,
+		Randomness:  d.Randomness,
+	}, nil
 }
 
 // BABEOnDisabled represents a GRANDPA authority being disabled

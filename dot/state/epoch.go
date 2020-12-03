@@ -125,9 +125,9 @@ func loadEpochLength(db chaindb.Database) (uint64, error) {
 	return binary.LittleEndian.Uint64(data), nil
 }
 
-func (s *EpochState) GetEpochLength() uint64 {
-	return s.epochLength
-}
+// func (s *EpochState) GetEpochLength() uint64 {
+// 	return s.epochLength
+// }
 
 // SetCurrentEpoch sets the current epoch
 func (s *EpochState) SetCurrentEpoch(epoch uint64) error {
@@ -193,7 +193,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	return s.db.Put(epochDataKey(epoch), enc)
 }
 
-// GetEpochInfo returns the epoch data for a given epoch
+// GetEpochData returns the epoch data for a given epoch
 func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
@@ -243,7 +243,7 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 	return info.(*types.ConfigData), nil
 }
 
-// HasEpochData returns whether config data exists for a given epoch
+// HasConfigData returns whether config data exists for a given epoch
 func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 	return s.db.Has(configDataKey(epoch))
 }

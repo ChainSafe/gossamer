@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -364,8 +365,21 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	authA := &types.AuthorityRaw{
+		Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
+		Weight: 1,
+	}
+
+	authB := &types.AuthorityRaw{
+		Key:    keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(),
+		Weight: 1,
+	}
+
 	digest := &types.NextEpochData{
-		Authorities: []*types.Authority{},
+		Authorities: []*types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	}
 
@@ -384,10 +398,12 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(2)
 	require.NoError(t, err)
-	require.Equal(t, digest.ToEpochData(), stored)
+	res, err := digest.ToEpochData()
+	require.NoError(t, err)
+	require.Equal(t, res, stored)
 }
 
-func TestDigestHandler_HandleNextConfighData(t *testing.T) {
+func TestDigestHandler_HandleNextConfigData(t *testing.T) {
 	handler := newTestDigestHandler(t, true, false)
 	handler.Start()
 	defer handler.Stop()
