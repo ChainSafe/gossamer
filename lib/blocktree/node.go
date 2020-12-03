@@ -166,25 +166,6 @@ func (n *node) getLeaves(leaves []*node) []*node {
 	return leaves
 }
 
-// getAllDescendantsExcluding returns an array of the node's hash and all its descendants's hashes
-// except for the excluded node and its subtree
-func (n *node) getAllDescendantsExcluding(desc []Hash, excl Hash) []Hash {
-	if n == nil || n.hash == excl {
-		return desc
-	}
-
-	if desc == nil {
-		desc = []Hash{}
-	}
-
-	desc = append(desc, n.hash)
-	for _, child := range n.children {
-		desc = child.getAllDescendantsExcluding(desc, excl)
-	}
-
-	return desc
-}
-
 // getAllDescendants returns an array of the node's hash and all its descendants's hashes
 func (n *node) getAllDescendants(desc []Hash) []Hash {
 	if n == nil {
@@ -219,4 +200,44 @@ func deepCopy(nd *node) *node {
 		nCopy.parent = deepCopy(nd.parent)
 	}
 	return &nCopy
+}
+
+func (n *node) prune(finalized *node, pruned []Hash) []Hash {
+	if finalized == nil {
+		return pruned
+	}
+
+	if pruned == nil {
+		pruned = []Hash{}
+	}
+
+	// if this is a descedent of the finalized block, keep it
+	// all descendents of this block will also be descendents of the finalized block,
+	// so don't need to check any of those
+	if n.isDescendantOf(finalized) {
+		return pruned
+	}
+
+	// if it's not an ancestor the finalized block, prune it
+	if !finalized.isDescendantOf(n) {
+		pruned = append(pruned, n.hash)
+		n.parent.deleteChild(n)
+	}
+
+	// if this is an ancestor of the finalized block, keep it,
+	// and check its children
+	for _, child := range n.children {
+		pruned = child.prune(finalized, pruned)
+	}
+
+	return pruned
+}
+
+func (n *node) deleteChild(toDelete *node) {
+	for i, child := range n.children {
+		if child.hash == toDelete.hash {
+			n.children = append(n.children[:i], n.children[i+1:]...)
+			return
+		}
+	}
 }

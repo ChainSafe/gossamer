@@ -368,16 +368,27 @@ func TestBlockTree_Prune(t *testing.T) {
 
 	for {
 		bt, branches = createTestBlockTree(testHeader, 5, nil)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
 	}
 
-	testNode := bt.getNode(branches[0].hash).children[0]
-	expected := bt.head.getAllDescendantsExcluding(nil, testNode.hash)
-	pruned := bt.Prune(testNode.hash)
-	require.ElementsMatch(t, expected, pruned)
-	require.Equal(t, bt.head, testNode)
+	copy := bt.DeepCopy()
+
+	// pick some block to finalize
+	finalized := bt.head.children[0].children[0].children[0]
+	pruned := bt.Prune(finalized.hash)
+
+	for _, prunedHash := range pruned {
+		prunedNode := copy.getNode(prunedHash)
+		if prunedNode.isDescendantOf(finalized) {
+			t.Fatal("pruned node that's descendant of finalized node!!")
+		}
+
+		if finalized.isDescendantOf(prunedNode) {
+			t.Fatal("pruned an ancestor of the finalized node!!")
+		}
+	}
 }
 
 func TestBlockTree_DeepCopy(t *testing.T) {

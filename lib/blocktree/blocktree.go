@@ -144,24 +144,17 @@ func (bt *BlockTree) getNode(h Hash) *node {
 
 // Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
-func (bt *BlockTree) Prune(newRoot Hash) (pruned []Hash) {
-	if newRoot == bt.head.hash {
+func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
+	if finalized == bt.head.hash {
 		return pruned
 	}
 
-	n := bt.getNode(newRoot)
+	n := bt.getNode(finalized)
 	if n == nil {
 		return pruned
 	}
 
-	// get pruned nodes
-	pruned = bt.head.getAllDescendantsExcluding(nil, newRoot)
-
-	// set blocktree with new root node
-	next := newBlockTreeFromNode(n, bt.db)
-	*bt = *next
-
-	return pruned
+	return bt.head.prune(n, nil)
 }
 
 // String utilizes github.com/disiqueira/gotree to create a printable tree
