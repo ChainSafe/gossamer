@@ -55,7 +55,6 @@ func TestLoadConfigGssmr(t *testing.T) {
 
 // TestLoadConfigKsmcc tests loading the toml configuration file for ksmcc
 func TestLoadConfigKsmcc(t *testing.T) {
-	t.Skip()
 	cfg := dot.KsmccConfig()
 	require.NotNil(t, cfg)
 
