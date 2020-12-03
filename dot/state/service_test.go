@@ -151,12 +151,28 @@ func Test_ServicePruneStorage(t *testing.T) {
 	}
 
 	//var prunedArr []prunedBlock
-	var toPrune common.Hash
-	prunedArr := []common.Hash{}
-	numberToPrune := 1
+	var toFinalize common.Hash
 
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv)
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil)
+
+		err = serv.Storage.blockState.AddBlock(block)
+		require.NoError(t, err)
+
+		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		require.NoError(t, err)
+
+		// Only finalize a block at height 3
+		if i == 2 {
+			toFinalize = block.Header.Hash()
+		}
+	}
+
+	// add some blocks to prune, on a different chain from the finalized block
+	prunedArr := []prunedBlock{}
+	parentHash := serv.Block.GenesisHash()
+	for i := 0; i < 3; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -173,16 +189,12 @@ func Test_ServicePruneStorage(t *testing.T) {
 		rootHash, err = trieVal.Hash()
 		require.NoError(t, err)
 
-		// Only finalize the middle block.
-		if i == numberToPrune {
-			toPrune = block.Header.Hash()
-		}
+		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
+		parentHash = block.Header.Hash()
 	}
 
-	// Only finalize the middle block.
-	serv.Block.SetFinalizedHash(toPrune, 0, 0)
-
-	prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
+	// finalize a block
+	serv.Block.SetFinalizedHash(toFinalize, 0, 0)
 
 	time.Sleep(1 * time.Second)
 
