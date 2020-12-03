@@ -125,10 +125,6 @@ func loadEpochLength(db chaindb.Database) (uint64, error) {
 	return binary.LittleEndian.Uint64(data), nil
 }
 
-// func (s *EpochState) GetEpochLength() uint64 {
-// 	return s.epochLength
-// }
-
 // SetCurrentEpoch sets the current epoch
 func (s *EpochState) SetCurrentEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
@@ -174,7 +170,6 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, err
 		}
 
-		logger.Crit("GetEpochForBlock", "epochLength", s.epochLength)
 		return (babeHeader.SlotNumber / s.epochLength) + 1, nil
 	}
 
