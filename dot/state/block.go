@@ -444,10 +444,6 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 			return err
 		}
 
-		if des, _ := bs.IsDescendantOf(rem, hash); des {
-			continue
-		}
-
 		err = bs.DeleteBlock(rem)
 		if err != nil {
 			return err
