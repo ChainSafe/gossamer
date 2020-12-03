@@ -62,10 +62,14 @@ func TestInitiateEpoch(t *testing.T) {
 		randomness:     edata.Randomness,
 		authorities:    edata.Authorities,
 		authorityIndex: 0,
-		threshold:      threshold,
+		threshold:      bs.epochData.threshold,
 	}
 	err = bs.initiateEpoch(2, testEpochLength+1)
 	require.NoError(t, err)
+	require.Equal(t, expected.randomness, bs.epochData.randomness)
+	require.Equal(t, expected.authorities, bs.epochData.authorities)
+	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
+	require.Equal(t, expected.threshold, bs.epochData.threshold)
 
 	// for epoch 3, set EpochData and ConfigData
 	edata = &types.EpochData{
@@ -95,6 +99,7 @@ func TestInitiateEpoch(t *testing.T) {
 	}
 	err = bs.initiateEpoch(3, testEpochLength*2+1)
 	require.NoError(t, err)
+	require.Equal(t, expected, bs.epochData)
 
 	// assert slot lottery was run for epochs 0, 1 and 2
 	require.Equal(t, int(testEpochLength*3), len(bs.slotToProof))

@@ -21,6 +21,8 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,8 +67,16 @@ func TestEpochState_EpochData(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	auth := &types.Authority{
+		Key:    keyring.Alice().Public().(*sr25519.PublicKey),
+		Weight: 1,
+	}
+
 	info := &types.EpochData{
-		Authorities: []*types.Authority{},
+		Authorities: []*types.Authority{auth},
 		Randomness:  [32]byte{77},
 	}
 

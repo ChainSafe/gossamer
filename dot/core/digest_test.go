@@ -53,8 +53,6 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 		fg = &mockFinalityGadget{}
 	}
 
-	logger.Crit("newTestDigestHandler", "epochLength", stateSrvc.Epoch.GetEpochLength())
-
 	time.Sleep(time.Second)
 	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, bp, fg, &mockVerifier{})
 	require.NoError(t, err)

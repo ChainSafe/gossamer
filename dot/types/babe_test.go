@@ -71,3 +71,7 @@ func TestBABEAuthorities_ToRaw(t *testing.T) {
 		t.Fatalf("Fail: got %d expected %d", res.Weight, ad.Weight)
 	}
 }
+
+func TestEpochData(t *testing.T) {
+
+}
