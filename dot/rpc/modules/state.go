@@ -51,9 +51,9 @@ type StateRuntimeMetadataQuery common.Hash
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
-	Keys       []byte      `json:"keys"`
-	StartBlock common.Hash `json:"startBlock"`
-	Block      common.Hash `json:"block"`
+	Keys       []common.Hash `json:"keys"`
+	StartBlock common.Hash   `json:"startBlock"`
+	Block      common.Hash   `json:"block"`
 }
 
 // StateStorageKeysQuery field to store storage keys
@@ -375,8 +375,9 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *inter
 }
 
 // QueryStorage isn't implemented properly yet.
-func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) {
+func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // SubscribeRuntimeVersion isn't implemented properly yet.

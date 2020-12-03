@@ -19,6 +19,7 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -85,6 +86,22 @@ func BytesToHash(b []byte) Hash {
 	var h Hash
 	h.SetBytes(b)
 	return h
+}
+
+// UnmarshalJSON converts hex data to hash
+func (h *Hash) UnmarshalJSON(data []byte) error {
+	trimmedData := strings.Trim(string(data), "\"")
+
+	var err error
+	if *h, err = HexToHash(trimmedData); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON converts hash to hex data
+func (h *Hash) MarshalJSON() ([]byte, error) {
+	return json.Marshal(h.String())
 }
 
 // HexToHash turns a 0x prefixed hex string into type Hash
