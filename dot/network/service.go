@@ -135,10 +135,12 @@ func NewService(cfg *Config) (*Service, error) {
 	return network, err
 }
 
+// SetSyncer sets the Syncer used by the network service
 func (s *Service) SetSyncer(syncer Syncer) {
 	s.syncer = syncer
 }
 
+// SetTransactionHandler sets the TransactionHandler used by the network service
 func (s *Service) SetTransactionHandler(handler TransactionHandler) {
 	s.transactionHandler = handler
 }
