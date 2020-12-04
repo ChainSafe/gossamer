@@ -213,7 +213,4 @@ func Test_ServicePruneStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, false, ok)
 	}
-
-	err = serv.Stop()
-	require.NoError(t, err)
 }
