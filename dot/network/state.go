@@ -83,3 +83,8 @@ type Syncer interface {
 	// IsSynced exposes the internal synced state
 	IsSynced() bool
 }
+
+// TransactionHandler is the interface used by the transactions sub-protocol
+type TransactionHandler interface {
+	HandleTransactionMessage(*TransactionMessage) error
+}

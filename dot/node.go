@@ -263,21 +263,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// Network Service
-
-	// check if network service is enabled
-	if enabled := networkServiceEnabled(cfg); enabled {
-		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create network service: %s", err)
-		}
-		nodeSrvcs = append(nodeSrvcs, networkSrvc)
-	} else {
-		// do not create or append network service if network service is not enabled
-		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
-	}
-
 	// Core Service
 
 	// create core service and append core service to node services
@@ -285,10 +270,24 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
-	if networkSrvc != nil {
-		networkSrvc.SetMessageHandler(coreSrvc)
-	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+
+	// Network Service
+
+	// check if network service is enabled
+	if enabled := networkServiceEnabled(cfg); enabled {
+		// create network service and append network service to node services
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer, coreSrvc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create network service: %s", err)
+		}
+		nodeSrvcs = append(nodeSrvcs, networkSrvc)
+		coreSrvc.SetNetwork(networkSrvc)
+
+	} else {
+		// do not create or append network service if network service is not enabled
+		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
+	}
 
 	// System Service
 

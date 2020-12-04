@@ -21,9 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-// ProcessTransactionMessage validates each transaction in the message and
+// HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-func (s *Service) ProcessTransactionMessage(msg *network.TransactionMessage) error {
+func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
 	logger.Debug("received TransactionMessage")
 
 	// get transactions from message extrinsics

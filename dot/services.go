@@ -231,7 +231,7 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service, coreSrvc *core.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -244,17 +244,19 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 
 	// network service configuation
 	networkConfig := network.Config{
-		LogLvl:       cfg.Log.NetworkLvl,
-		BlockState:   stateSrvc.Block,
-		NetworkState: stateSrvc.Network,
-		BasePath:     cfg.Global.BasePath,
-		Roles:        cfg.Core.Roles,
-		Port:         cfg.Network.Port,
-		Bootnodes:    cfg.Network.Bootnodes,
-		ProtocolID:   cfg.Network.ProtocolID,
-		NoBootstrap:  cfg.Network.NoBootstrap,
-		NoMDNS:       cfg.Network.NoMDNS,
-		Syncer:       syncer,
+		LogLvl:             cfg.Log.NetworkLvl,
+		BlockState:         stateSrvc.Block,
+		NetworkState:       stateSrvc.Network,
+		BasePath:           cfg.Global.BasePath,
+		Roles:              cfg.Core.Roles,
+		Port:               cfg.Network.Port,
+		Bootnodes:          cfg.Network.Bootnodes,
+		ProtocolID:         cfg.Network.ProtocolID,
+		NoBootstrap:        cfg.Network.NoBootstrap,
+		NoMDNS:             cfg.Network.NoMDNS,
+		Syncer:             syncer,
+		TransactionHandler: coreSrvc,
+		MessageHandler:     coreSrvc,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
