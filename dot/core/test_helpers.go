@@ -198,6 +198,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	s, err := NewService(cfg)
 	require.Nil(t, err)
 
+	if net, ok := cfg.Network.(*network.Service); ok {
+		net.SetTransactionHandler(s)
+	}
+
 	return s
 }
 
@@ -216,9 +220,6 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	srvc, err := network.NewService(cfg)
-	require.NoError(t, err)
-
-	err = srvc.Start()
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

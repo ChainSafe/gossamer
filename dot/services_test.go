@@ -173,7 +173,7 @@ func TestCreateNetworkService(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.Nil(t, err)
 
-	networkSrvc, err := createNetworkService(cfg, stateSrvc, nil)
+	networkSrvc, err := createNetworkService(cfg, stateSrvc)
 	require.Nil(t, err)
 
 	// TODO: improve dot tests #687

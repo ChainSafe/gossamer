@@ -227,7 +227,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	)
 
 	var nodeSrvcs []services.Service
-	var networkSrvc *network.Service
 
 	// State Service
 
@@ -235,6 +234,22 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	stateSrvc, err := createStateService(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
+	}
+
+	// Network Service
+	var networkSrvc *network.Service
+
+	// check if network service is enabled
+	if enabled := networkServiceEnabled(cfg); enabled {
+		// create network service and append network service to node services
+		networkSrvc, err = createNetworkService(cfg, stateSrvc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create network service: %s", err)
+		}
+		nodeSrvcs = append(nodeSrvcs, networkSrvc)
+	} else {
+		// do not create or append network service if network service is not enabled
+		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
 	}
 
 	// create runtime
@@ -267,28 +282,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// Network Service
-
-	// check if network service is enabled
-	if enabled := networkServiceEnabled(cfg); enabled {
-		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create network service: %s", err)
-		}
-		nodeSrvcs = append(nodeSrvcs, networkSrvc)
-	} else {
-		// do not create or append network service if network service is not enabled
-		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
-	}
-
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
-	dh.SetFinalityGadget(fg)
 
 	// Core Service
 
@@ -297,10 +296,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
-	if networkSrvc != nil {
-		networkSrvc.SetMessageHandler(coreSrvc)
-	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+
+	if networkSrvc != nil {
+		networkSrvc.SetSyncer(syncer)
+		networkSrvc.SetTransactionHandler(coreSrvc)
+	}
 
 	// System Service
 

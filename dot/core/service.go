@@ -307,6 +307,10 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		Digest:         block.Header.Digest,
 	}
 
+	if s.net == nil {
+		return
+	}
+
 	s.net.SendMessage(msg)
 	return nil
 }
@@ -317,13 +321,6 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.Type()
 
 	switch msgType {
-	case network.TransactionMsgType: // 4
-		msg, ok := msg.(*network.TransactionMessage)
-		if !ok {
-			return ErrMessageCast("TransactionMessage")
-		}
-
-		err = s.ProcessTransactionMessage(msg)
 	default:
 		err = ErrUnsupportedMsgType(msgType)
 	}
@@ -523,6 +520,10 @@ func (s *Service) IsBlockProducer() bool {
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	if s.net == nil {
+		return nil
+	}
+
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.SendMessage(msg)
 	return nil

@@ -227,7 +227,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -250,7 +250,6 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 		ProtocolID:   cfg.Network.ProtocolID,
 		NoBootstrap:  cfg.Network.NoBootstrap,
 		NoMDNS:       cfg.Network.NoMDNS,
-		Syncer:       syncer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

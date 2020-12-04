@@ -73,7 +73,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Equal(t, expected, net.Message)
 }
 
-func TestService_ProcessTransactionMessage(t *testing.T) {
+func TestService_HandleTransactionMessage(t *testing.T) {
 	// this currently fails due to not being able to call validate_transaction
 
 	t.Skip()
@@ -102,7 +102,7 @@ func TestService_ProcessTransactionMessage(t *testing.T) {
 
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 
-	err = s.ProcessTransactionMessage(msg)
+	err = s.HandleTransactionMessage(msg)
 	require.Nil(t, err)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
