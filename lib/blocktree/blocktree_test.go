@@ -368,14 +368,69 @@ func TestBlockTree_Prune(t *testing.T) {
 
 	for {
 		bt, branches = createTestBlockTree(testHeader, 5, nil)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
 	}
 
-	testNode := bt.getNode(branches[0].hash).children[0]
-	expected := bt.head.getAllDescendantsExcluding(nil, testNode.hash)
-	pruned := bt.Prune(testNode.hash)
-	require.ElementsMatch(t, expected, pruned)
-	require.Equal(t, bt.head, testNode)
+	copy := bt.DeepCopy()
+
+	// pick some block to finalize
+	finalized := bt.head.children[0].children[0].children[0]
+	pruned := bt.Prune(finalized.hash)
+
+	for _, prunedHash := range pruned {
+		prunedNode := copy.getNode(prunedHash)
+		if prunedNode.isDescendantOf(finalized) {
+			t.Fatal("pruned node that's descendant of finalized node!!")
+		}
+
+		if finalized.isDescendantOf(prunedNode) {
+			t.Fatal("pruned an ancestor of the finalized node!!")
+		}
+	}
+}
+
+func TestBlockTree_DeepCopy(t *testing.T) {
+	bt, _ := createFlatTree(t, 8)
+
+	btCopy := bt.DeepCopy()
+
+	require.Equal(t, bt.db, btCopy.db)
+	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
+	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+}
+
+func equalNodeValue(nd *node, ndCopy *node) bool {
+	if nd.hash != ndCopy.hash {
+		return false
+	}
+	if nd.depth.Cmp(ndCopy.depth) != 0 {
+		return false
+	}
+	if nd.arrivalTime != ndCopy.arrivalTime {
+		return false
+	}
+	for i, child := range nd.children {
+		return equalNodeValue(child, ndCopy.children[i])
+	}
+	if nd.parent.hash != ndCopy.parent.hash {
+		return false
+	}
+	if nd.parent.arrivalTime != ndCopy.parent.arrivalTime {
+		return false
+	}
+	if nd.parent.depth.Cmp(ndCopy.parent.depth) != 0 {
+		return false
+	}
+	return true
+}
+func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
+	lmm := lm.toMap()
+	lmCopyM := lmCopy.toMap()
+	for key, val := range lmm {
+		lmCopyVal := lmCopyM[key]
+		return equalNodeValue(val, lmCopyVal)
+	}
+	return true
 }
