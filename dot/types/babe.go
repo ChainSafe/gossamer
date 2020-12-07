@@ -44,14 +44,6 @@ func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
 	return ad, nil
 }
 
-func BABEAuthoritiesToRaw(auths []*Authority) []*AuthorityRaw {
-	raw := make([]*AuthorityRaw, len(auths))
-	for i, auth := range auths {
-		raw[i] = auth.ToRaw()
-	}
-	return raw
-}
-
 // EpochData is the data provided for a BABE epoch
 type EpochData struct {
 	Authorities []*Authority

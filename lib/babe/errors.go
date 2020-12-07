@@ -39,5 +39,5 @@ var ErrNoBABEHeader = errors.New("no BABE header found for block")
 // ErrVRFOutputOverThreshold is returned when the vrf output for a block is invalid
 var ErrVRFOutputOverThreshold = errors.New("vrf output over threshold")
 
-// ErrInvalidBlockProducerIndexis returned when the producer of a block isn't in the authority set
+// ErrInvalidBlockProducerIndex is returned when the producer of a block isn't in the authority set
 var ErrInvalidBlockProducerIndex = errors.New("block producer is not in authority set")

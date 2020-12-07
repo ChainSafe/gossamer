@@ -116,7 +116,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
-	_, err = createBlockVerifier(cfg, stateSrvc)
+	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
 
@@ -143,7 +143,7 @@ func TestCreateSyncService(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
-	ver, err := createBlockVerifier(cfg, stateSrvc)
+	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
 	_, err = createSyncService(cfg, stateSrvc, nil, nil, ver, rt)

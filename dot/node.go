@@ -231,7 +231,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	ver, err := createBlockVerifier(cfg, stateSrvc)
+	ver, err := createBlockVerifier(stateSrvc)
 	if err != nil {
 		return nil, err
 	}

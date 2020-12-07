@@ -58,7 +58,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
 
-	cfg.GenesisAuthorities = types.BABEAuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
 	cfg.C1 = 1
 	cfg.C2 = 1
 
@@ -78,7 +78,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
 
-	cfg.GenesisAuthorities = types.BABEAuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
 	cfg.C1 = 1
 	cfg.C2 = 1
 
@@ -114,7 +114,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
 
-	cfg.GenesisAuthorities = types.BABEAuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
 	cfg.C1 = 1
 	cfg.C2 = 100
 

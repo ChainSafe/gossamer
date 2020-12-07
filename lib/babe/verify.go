@@ -66,6 +66,7 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 	// TODO: see issue #1205
 }
 
+// VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
@@ -80,7 +81,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		epochData, err := v.epochState.GetEpochData(epoch)
+		epochData, err := v.epochState.GetEpochData(epoch) //nolint
 		if err != nil {
 			return false, err
 		}

@@ -343,7 +343,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 	return grandpa.NewService(gsCfg)
 }
 
-func createBlockVerifier(cfg *Config, st *state.Service) (*babe.VerificationManager, error) {
+func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	ver, err := babe.NewVerificationManager(st.Block, st.Epoch)
 	if err != nil {
 		return nil, err
