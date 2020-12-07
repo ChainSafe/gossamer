@@ -36,13 +36,11 @@ func LocalhostFilter() *ipfilter.IPFilter {
 func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	ip, _, error := net.SplitHostPort(r.Request.RemoteAddr)
 	if error != nil {
-		logger.Error("unable to parse IP", "error")
 		return errors.New("unable to parse IP")
 	}
 	f := LocalhostFilter()
 	if allowed := f.Allowed(ip); allowed {
 		return nil
 	}
-	logger.Error("external HTTP request refuesed", "error")
 	return errors.New("external HTTP request refused")
 }
