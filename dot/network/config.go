@@ -66,7 +66,8 @@ type Config struct {
 	// NetworkState the network state's interface
 	NetworkState NetworkState
 
-	Syncer Syncer
+	Syncer             Syncer
+	TransactionHandler TransactionHandler
 
 	// Port the network port used for listening
 	Port uint32

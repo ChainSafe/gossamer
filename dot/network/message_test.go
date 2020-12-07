@@ -469,7 +469,7 @@ func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 	// 0x14 - byte array (of all extrinsics encoded) - len 5
 	// 0x10 - btye array (first extrinsic) - len 4
 	// 0x01020304 - value of array extrinsic array
-	expected, err := common.HexToBytes("0x04141001020304")
+	expected, err := common.HexToBytes("0x141001020304")
 	require.Nil(t, err)
 
 	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
@@ -490,7 +490,7 @@ func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	// 0x010203 - value of array first extrinsic array
 	// 0x10 - byte array (second extrinsic) len 4
 	// 0x04050607 - value of second extrinsic array
-	expected, err := common.HexToBytes("0x04240C0102031004050607")
+	expected, err := common.HexToBytes("0x240C0102031004050607")
 	require.Nil(t, err)
 
 	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
