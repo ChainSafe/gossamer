@@ -228,6 +228,15 @@ func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]b
 	return s.GetStorage(&header.StateRoot, key)
 }
 
+// GetStateRootFromBlock returns the state root hash of a given block hash
+func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+	header, err := s.blockState.GetHeader(*bhash)
+	if err != nil {
+		return nil, err
+	}
+	return &header.StateRoot, nil
+}
+
 // StorageRoot returns the root hash of the current storage trie
 func (s *StorageState) StorageRoot() (common.Hash, error) {
 	sr, err := s.blockState.BestBlockStateRoot()

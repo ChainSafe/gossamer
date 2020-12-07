@@ -144,24 +144,17 @@ func (bt *BlockTree) getNode(h Hash) *node {
 
 // Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
-func (bt *BlockTree) Prune(newRoot Hash) (pruned []Hash) {
-	if newRoot == bt.head.hash {
+func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
+	if finalized == bt.head.hash {
 		return pruned
 	}
 
-	n := bt.getNode(newRoot)
+	n := bt.getNode(finalized)
 	if n == nil {
 		return pruned
 	}
 
-	// get pruned nodes
-	pruned = bt.head.getAllDescendantsExcluding(nil, newRoot)
-
-	// set blocktree with new root node
-	next := newBlockTreeFromNode(n, bt.db)
-	*bt = *next
-
-	return pruned
+	return bt.head.prune(n, nil)
 }
 
 // String utilizes github.com/disiqueira/gotree to create a printable tree
@@ -289,4 +282,27 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 // GetAllBlocks returns all the blocks in the tree
 func (bt *BlockTree) GetAllBlocks() []Hash {
 	return bt.head.getAllDescendants(nil)
+}
+
+// DeepCopy returns a copy of the BlockTree
+func (bt *BlockTree) DeepCopy() *BlockTree {
+	// copy everything but pointers / arrays
+	btCopy := *bt
+	// copy head pointers and children array
+	if bt.head != nil {
+		btCopy.head = deepCopy(bt.head)
+	}
+	// copy leaves
+	if bt.leaves != nil {
+		btCopy.leaves = newEmptyLeafMap()
+
+		lMap := bt.leaves.toMap()
+		for hash, val := range lMap {
+			btCopy.leaves.store(hash, deepCopy(val))
+		}
+	}
+
+	// copy db
+	btCopy.db = bt.db
+	return &btCopy
 }
