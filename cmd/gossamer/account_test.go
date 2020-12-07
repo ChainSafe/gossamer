@@ -52,6 +52,8 @@ func TestAccountGenerate(t *testing.T) {
 func TestAccountGeneratePassword(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 
 	ctx, err := newTestContext(
 		"Test gossamer account --generate --password",
@@ -75,6 +77,8 @@ func TestAccountGeneratePassword(t *testing.T) {
 func TestAccountGenerateType(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 
 	ctx, err := newTestContext(
 		"Test gossamer account --generate --type",
@@ -98,6 +102,8 @@ func TestAccountGenerateType(t *testing.T) {
 func TestAccountImport(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 
 	ctx, err := newTestContext(
 		"Test gossamer account --import",
@@ -121,6 +127,8 @@ func TestAccountImport(t *testing.T) {
 func TestAccountList(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false"})
 
 	ctx, err := newTestContext(
 		"Test gossamer account --list",
