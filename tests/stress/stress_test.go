@@ -272,7 +272,7 @@ func TestSync_Restart(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case <-time.After(time.Second * 3):
+			case <-time.After(time.Second * 5):
 				idx := rand.Intn(numNodes)
 
 				errList := utils.StopNodes(t, nodes[idx:idx+1])

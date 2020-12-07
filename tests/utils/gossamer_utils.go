@@ -37,7 +37,7 @@ import (
 )
 
 var logger = log.New("pkg", "test/utils")
-var maxRetries = 16
+var maxRetries = 24
 
 // SetLogLevel sets the logging level for this package
 func SetLogLevel(lvl log.Lvl) {
