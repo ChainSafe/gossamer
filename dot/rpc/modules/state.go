@@ -23,7 +23,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/pkg/errors"
 )
 
 // StateCallRequest holds json fields
@@ -47,7 +46,38 @@ type StateStorageKeyRequest struct {
 }
 
 // StateRuntimeMetadataQuery is a hash value
-type StateRuntimeMetadataQuery common.Hash
+type StateRuntimeMetadataQuery struct {
+	Bhash common.Hash
+}
+
+// StateRuntimeVersionRequest is hash value
+type StateRuntimeVersionRequest struct {
+	Bhash common.Hash
+}
+
+// StatePairRequest holds json field
+type StatePairRequest struct {
+	Prefix string
+	Bhash  common.Hash
+}
+
+// StateStorageSizeRequest holds json field
+type StateStorageSizeRequest struct {
+	Key   string
+	Bhash common.Hash
+}
+
+// StateStorageHashRequest holds json field
+type StateStorageHashRequest struct {
+	Key   string
+	Bhash common.Hash
+}
+
+// StateStorageRequest holds json field
+type StateStorageRequest struct {
+	Key   string
+	Bhash common.Hash
+}
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
@@ -71,17 +101,43 @@ type StateKeysResponse [][]byte
 type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
-type StateStorageHashResponse common.Hash
+type StateStorageHashResponse struct {
+	StorageHash string
+}
+
+// StateChildStorageResponse is a hash value
+type StateChildStorageResponse struct {
+	StorageHash string
+}
+
+// StateChildStorageSizeResponse is a unint value
+type StateChildStorageSizeResponse struct {
+	Size uint64
+}
 
 // StateStorageSizeResponse the default size for response
-type StateStorageSizeResponse uint64
+type StateStorageSizeResponse struct {
+	StorageEntrySize uint64
+}
+
+// StateStorageResponse storage hash value
+type StateStorageResponse struct {
+	StorageValue string
+}
+
+// StatePairResponse is a key values
+type StatePairResponse struct {
+	keys []interface{}
+}
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse [][]byte
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
-type StateMetadataResponse string
+type StateMetadataResponse struct {
+	Metadata string
+}
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -125,23 +181,16 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 }
 
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
-func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
+func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *StatePairResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var (
 		stateRootHash *common.Hash
 		err           error
 	)
 
-	// Extract the params
-	pReq := *req
-	if len(pReq) < 1 {
-		return errors.New("required field missing in params")
-	}
-
-	reqBytes, _ := common.HexToBytes(pReq[0])
-	if len(pReq) > 1 && pReq[1] != "" {
-		hash, _ := common.HexToHash(pReq[1])
-		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(&hash)
+	reqBytes, _ := common.HexToBytes(req.Prefix)
+	if !req.Bhash.IsNil() {
+		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(&req.Bhash)
 		if err != nil {
 			return err
 		}
@@ -153,7 +202,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 			return err
 		}
 		for k, v := range pairs {
-			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+			res.keys = append(res.keys, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
 		}
 	} else {
 		// TODO this should return all keys with same prefix, currently only returning
@@ -163,9 +212,9 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 			return err
 		}
 		if resI != nil {
-			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
+			res.keys = append(res.keys, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
 		} else {
-			*res = []interface{}{}
+			res.keys = []interface{}{}
 		}
 	}
 
@@ -189,12 +238,12 @@ func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRe
 }
 
 // GetChildStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateStorageHashResponse) {
+func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
 // GetChildStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateStorageSizeResponse) {
+func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 }
 
@@ -204,16 +253,12 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (sm *StateModule) GetMetadata(r *http.Request, req *string, res *string) error {
+func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *StateMetadataResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
 	var bhash *common.Hash
-	if req != nil && len(*req) != 0 {
-		hash, err := common.HexToHash(*req)
-		if err != nil {
-			return err
-		}
+	if !req.Bhash.IsNil() {
 		bhash = new(common.Hash)
-		*bhash = hash
+		*bhash = req.Bhash
 	}
 
 	metadata, err := sm.coreAPI.GetMetadata(bhash)
@@ -222,26 +267,18 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *string, res *string) er
 	}
 
 	decoded, err := scale.Decode(metadata, []byte{})
-	*res = common.BytesToHex(decoded.([]byte))
+	res.Metadata = common.BytesToHex(decoded.([]byte))
 	return err
 }
 
 // GetRuntimeVersion Get the runtime version at a given block.
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
-func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *StateRuntimeVersionResponse) error {
-	var (
-		bhash *common.Hash
-		hash  common.Hash
-		err   error
-	)
-	if req != nil && len(*req) != 0 {
-		hash, err = common.HexToHash(*req)
-		if err != nil {
-			return err
-		}
+func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersionRequest, res *StateRuntimeVersionResponse) error {
+	var bhash *common.Hash
+	if !req.Bhash.IsNil() {
 		bhash = new(common.Hash)
-		*bhash = hash
+		*bhash = req.Bhash
 	}
 
 	rtVersion, err := sm.coreAPI.GetRuntimeVersion(bhash)
@@ -260,23 +297,15 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *Stat
 }
 
 // GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
-func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface{}) error {
-	pReq := *req
-	reqBytes, _ := common.HexToBytes(pReq[0]) // no need to catch error here
-
+func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
 	var (
-		item  []byte
-		bhash common.Hash
-		err   error
+		item []byte
+		err  error
 	)
 
-	if len(pReq) > 1 {
-		bhash, err = common.HexToHash(pReq[1])
-		if err != nil {
-			return err
-		}
-
-		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
+	if !req.Bhash.IsNil() {
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -288,9 +317,9 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 	}
 
 	if len(item) > 0 {
-		*res = common.BytesToHex(item)
+		res.StorageValue = common.BytesToHex(item)
 	} else {
-		*res = nil
+		*res = StateStorageResponse{}
 	}
 
 	return nil
@@ -299,23 +328,16 @@ func (sm *StateModule) GetStorage(r *http.Request, req *[]string, res *interface
 // GetStorageHash returns the hash of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is returned.
 //  TODO implement change storage trie so that block hash parameter works (See issue #834)
-func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *interface{}) error {
-	pReq := *req
-	reqBytes, _ := common.HexToBytes(pReq[0])
-
+func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageHashRequest, res *StateStorageHashResponse) error {
 	var (
-		item  []byte
-		bhash common.Hash
-		err   error
+		item []byte
+		err  error
 	)
 
-	if len(pReq) > 1 {
-		bhash, err = common.HexToHash(pReq[1])
-		if err != nil {
-			return err
-		}
+	reqBytes, _ := common.HexToBytes(req.Key)
 
-		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+	if !req.Bhash.IsNil() {
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -327,9 +349,9 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *inter
 	}
 
 	if len(item) > 0 {
-		*res = common.BytesToHash(item).String()
+		res.StorageHash = common.BytesToHash(item).String()
 	} else {
-		*res = nil
+		*res = StateStorageHashResponse{}
 	}
 
 	return nil
@@ -338,23 +360,16 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *[]string, res *inter
 // GetStorageSize returns the size of a storage entry at a block's state.
 //  If no block hash is provided, the latest value is used.
 // TODO implement change storage trie so that block hash parameter works (See issue #834)
-func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *interface{}) error {
-	pReq := *req
-	reqBytes, _ := common.HexToBytes(pReq[0])
-
+func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequest, res *StateStorageSizeResponse) error {
 	var (
-		item  []byte
-		bhash common.Hash
-		err   error
+		item []byte
+		err  error
 	)
 
-	if len(pReq) > 1 {
-		bhash, err = common.HexToHash(pReq[1])
-		if err != nil {
-			return err
-		}
+	reqBytes, _ := common.HexToBytes(req.Key)
 
-		item, err = sm.storageAPI.GetStorageByBlockHash(bhash, reqBytes)
+	if !req.Bhash.IsNil() {
+		item, err = sm.storageAPI.GetStorageByBlockHash(req.Bhash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -366,9 +381,9 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *[]string, res *inter
 	}
 
 	if len(item) > 0 {
-		*res = len(item)
+		*res = StateStorageSizeResponse{uint64(len(item))}
 	} else {
-		*res = nil
+		*res = StateStorageSizeResponse{}
 	}
 
 	return nil

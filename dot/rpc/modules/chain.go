@@ -28,10 +28,14 @@ import (
 )
 
 // ChainHashRequest Hash as a string
-type ChainHashRequest string
+type ChainHashRequest struct {
+	Bhash common.Hash
+}
 
 // ChainBlockNumberRequest interface can accept string, float64 or []
-type ChainBlockNumberRequest interface{}
+type ChainBlockNumberRequest struct {
+	Block interface{}
+}
 
 // ChainIntRequest represents an integer
 type ChainIntRequest uint64
@@ -79,11 +83,7 @@ func NewChainModule(api BlockAPI) *ChainModule {
 // GetBlock Get header and body of a relay chain block. If no block hash is provided,
 //  the latest block body will be returned.
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) error {
-	hash, err := cm.hashLookup(req)
-	if err != nil {
-		return err
-	}
-
+	hash := cm.hashLookup(req)
 	block, err := cm.blockAPI.GetBlockByHash(hash)
 	if err != nil {
 		return err
@@ -107,12 +107,12 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 //  the latest block hash gets returned.
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
 	// if request is empty, return highest hash
-	if *req == nil || reflect.ValueOf(*req).Len() == 0 {
+	if req.Block == nil || reflect.ValueOf(req.Block).Len() == 0 {
 		*res = cm.blockAPI.BestBlockHash().String()
 		return nil
 	}
 
-	val, err := cm.unwindRequest(*req)
+	val, err := cm.unwindRequest(req.Block)
 	// if result only returns 1 value, just use that (instead of array)
 	if len(val) == 1 {
 		*res = val[0]
@@ -154,11 +154,7 @@ func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *[]ChainIntR
 
 //GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
-	hash, err := cm.hashLookup(req)
-	if err != nil {
-		return err
-	}
-
+	hash := cm.hashLookup(req)
 	header, err := cm.blockAPI.GetHeader(hash)
 	if err != nil {
 		return err
@@ -186,12 +182,12 @@ func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res
 	return ErrSubscriptionTransport
 }
 
-func (cm *ChainModule) hashLookup(req *ChainHashRequest) (common.Hash, error) {
-	if len(*req) == 0 {
+func (cm *ChainModule) hashLookup(req *ChainHashRequest) common.Hash {
+	if req.Bhash.IsNil() {
 		hash := cm.blockAPI.BestBlockHash()
-		return hash, nil
+		return hash
 	}
-	return common.HexToHash(string(*req))
+	return req.Bhash
 }
 
 // unwindRequest takes request interface slice and makes call for each element
