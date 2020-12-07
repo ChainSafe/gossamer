@@ -7,14 +7,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
-// GrandpaAuthorityDataRaw represents a GRANDPA authority where their key is a byte array
-type GrandpaAuthorityDataRaw struct {
+// GrandpaAuthoritiesRaw represents a GRANDPA authority where their key is a byte array
+type GrandpaAuthoritiesRaw struct {
 	Key [ed25519.PublicKeyLength]byte
 	ID  uint64
 }
 
-// Decode will decode the Reader into a GrandpaAuthorityDataRaw
-func (a *GrandpaAuthorityDataRaw) Decode(r io.Reader) (*GrandpaAuthorityDataRaw, error) {
+// Decode will decode the Reader into a GrandpaAuthoritiesRaw
+func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, error) {
 	key, err := common.Read32Bytes(r)
 	if err != nil {
 		return nil, err
@@ -25,16 +25,16 @@ func (a *GrandpaAuthorityDataRaw) Decode(r io.Reader) (*GrandpaAuthorityDataRaw,
 		return nil, err
 	}
 
-	a = new(GrandpaAuthorityDataRaw)
+	a = new(GrandpaAuthoritiesRaw)
 	a.Key = key
 	a.ID = id
 
 	return a, nil
 }
 
-// FromRawEd25519 sets the Authority given GrandpaAuthorityDataRaw. It converts the byte representations of
+// FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
-func (a *Authority) FromRawEd25519(raw *GrandpaAuthorityDataRaw) error {
+func (a *Authority) FromRawEd25519(raw *GrandpaAuthoritiesRaw) error {
 	key, err := ed25519.NewPublicKey(raw.Key[:])
 	if err != nil {
 		return err
@@ -45,8 +45,8 @@ func (a *Authority) FromRawEd25519(raw *GrandpaAuthorityDataRaw) error {
 	return nil
 }
 
-// GrandpaAuthorityDataRawToAuthorityData turns a slice of GrandpaAuthorityDataRaw into a slice of Authority
-func GrandpaAuthorityDataRawToAuthorityData(adr []*GrandpaAuthorityDataRaw) ([]*Authority, error) {
+// GrandpaAuthoritiesRawToAuthorities turns a slice of GrandpaAuthoritiesRaw into a slice of Authority
+func GrandpaAuthoritiesRawToAuthorities(adr []*GrandpaAuthoritiesRaw) ([]*Authority, error) {
 	ad := make([]*Authority, len(adr))
 	for i, r := range adr {
 		ad[i] = new(Authority)
