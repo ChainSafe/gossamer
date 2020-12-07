@@ -46,27 +46,31 @@ func TestNode_GetLeaves(t *testing.T) {
 	require.ElementsMatch(t, expected, leaves)
 }
 
-func TestNode_GetAllDescendantsExcluding(t *testing.T) {
+func TestNode_Prune(t *testing.T) {
 	var bt *BlockTree
 	var branches []testBranch
 
 	for {
 		bt, branches = createTestBlockTree(testHeader, 5, nil)
-		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 0 {
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
 			break
 		}
 	}
 
-	excl := bt.getNode(branches[0].hash).children[0].hash
-	res := bt.head.getAllDescendantsExcluding(nil, excl)
+	copy := bt.DeepCopy()
 
-	// get all nodes of excluded sub-tree
-	exclSubTree := bt.getNode(branches[0].hash).children[0].getAllDescendants(nil)
+	// pick some block to finalize
+	finalized := bt.head.children[0].children[0].children[0]
+	pruned := bt.head.prune(finalized, nil)
 
-	// assert that there are no nodes in res that are in excluded sub-tree
-	for _, d := range res {
-		for _, e := range exclSubTree {
-			require.NotEqual(t, d, e)
+	for _, prunedHash := range pruned {
+		prunedNode := copy.getNode(prunedHash)
+		if prunedNode.isDescendantOf(finalized) {
+			t.Fatal("pruned node that's descendant of finalized node!!")
+		}
+
+		if finalized.isDescendantOf(prunedNode) {
+			t.Fatal("pruned an ancestor of the finalized node!!")
 		}
 	}
 }

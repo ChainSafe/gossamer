@@ -226,6 +226,11 @@ func (s *Service) Stop() error {
 	return nil
 }
 
+// SetNetwork sets the network interface for core
+func (s *Service) SetNetwork(net Network) {
+	s.net = net
+}
+
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	if s.storageState == nil {
@@ -323,6 +328,10 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		Digest:         block.Header.Digest,
 	}
 
+	if s.net == nil {
+		return
+	}
+
 	s.net.SendMessage(msg)
 	return nil
 }
@@ -332,13 +341,6 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.Type()
 
 	switch msgType {
-	case network.TransactionMsgType: // 4
-		msg, ok := msg.(*network.TransactionMessage)
-		if !ok {
-			return ErrMessageCast("TransactionMessage")
-		}
-
-		err = s.ProcessTransactionMessage(msg)
 	case network.ConsensusMsgType: // 5
 		msg, ok := msg.(*network.ConsensusMessage)
 		if !ok {
@@ -518,8 +520,18 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
-	ts, err := s.storageState.TrieState(nil)
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error) {
+	var stateRootHash *common.Hash
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		var err error
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -535,12 +547,34 @@ func (s *Service) IsBlockProducer() bool {
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	if s.net == nil {
+		return nil
+	}
+
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.SendMessage(msg)
 	return nil
 }
 
 //GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata() ([]byte, error) {
+func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
+	var (
+		stateRootHash *common.Hash
+		err           error
+	)
+
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	s.rt.SetContext(ts)
 	return s.rt.Metadata()
 }
