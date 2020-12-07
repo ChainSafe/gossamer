@@ -81,7 +81,6 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			}
 
 			err := sm.GetRuntimeVersion(nil, &req, &res)
-
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
