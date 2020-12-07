@@ -21,20 +21,27 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/stretchr/testify/require"
 )
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := chaindb.NewMemDatabase()
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 0,
-		Randomness: [32]byte{},
-	}
-
-	s, err := NewEpochStateFromGenesis(db, info)
+	s, err := NewEpochStateFromGenesis(db, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
+}
+
+func TestLoadStoreEpochLength(t *testing.T) {
+	db := chaindb.NewMemDatabase()
+	length := uint64(2222)
+	err := storeEpochLength(db, length)
+	require.NoError(t, err)
+
+	ret, err := loadEpochLength(db)
+	require.NoError(t, err)
+	require.Equal(t, length, ret)
 }
 
 func TestNewEpochStateFromGenesis(t *testing.T) {
@@ -54,44 +61,55 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 	require.Equal(t, uint64(2), epoch)
 }
 
-func TestEpochState_EpochInfo(t *testing.T) {
+func TestEpochState_EpochData(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	has, err := s.HasEpochInfo(1)
+	has, err := s.HasEpochData(1)
 	require.NoError(t, err)
 	require.True(t, has)
 
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 400,
-		Randomness: [32]byte{77},
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	auth := &types.Authority{
+		Key:    keyring.Alice().Public().(*sr25519.PublicKey),
+		Weight: 1,
 	}
 
-	err = s.SetEpochInfo(2, info)
+	info := &types.EpochData{
+		Authorities: []*types.Authority{auth},
+		Randomness:  [32]byte{77},
+	}
+
+	err = s.SetEpochData(2, info)
 	require.NoError(t, err)
-	res, err := s.GetEpochInfo(2)
+	res, err := s.GetEpochData(2)
 	require.NoError(t, err)
-	require.Equal(t, info, res)
+	require.Equal(t, info.Randomness, res.Randomness)
+
+	for i, auth := range res.Authorities {
+		expected, err := info.Authorities[i].Encode()
+		require.NoError(t, err)
+		res, err := auth.Encode()
+		require.NoError(t, err)
+		require.Equal(t, expected, res)
+	}
 }
 
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochInfo{
-		Duration:   200,
-		FirstBlock: 400,
+	info := &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
-	err := s.SetEpochInfo(2, info)
+	err := s.SetEpochData(2, info)
 	require.NoError(t, err)
 
-	info = &types.EpochInfo{
-		Duration:   100,
-		FirstBlock: 600,
+	info = &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
-	err = s.SetEpochInfo(3, info)
+	err = s.SetEpochData(3, info)
 	require.NoError(t, err)
 
 	start, err := s.GetStartSlotForEpoch(0)
@@ -102,25 +120,68 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), start)
 
-	err = s.SetCurrentEpoch(3)
-	require.NoError(t, err)
-
 	start, err = s.GetStartSlotForEpoch(2)
 	require.NoError(t, err)
-	require.Equal(t, uint64(201), start)
+	require.Equal(t, genesisBABEConfig.EpochLength+1, start)
+}
 
-	start, err = s.GetStartSlotForEpoch(3)
-	require.NoError(t, err)
-	require.Equal(t, uint64(401), start)
+func TestEpochState_ConfigData(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
 
-	err = s.SetCurrentEpoch(4)
+	data := &types.ConfigData{
+		C1:             1,
+		C2:             8,
+		SecondarySlots: true,
+	}
+
+	err := s.SetConfigData(1, data)
 	require.NoError(t, err)
 
-	start, err = s.GetStartSlotForEpoch(0)
+	ret, err := s.GetConfigData(1)
 	require.NoError(t, err)
-	require.Equal(t, uint64(501), start)
+	require.Equal(t, data, ret)
+}
 
-	start, err = s.GetStartSlotForEpoch(4)
+func TestEpochState_GetEpochForBlock(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+
+	babeHeader := &types.BabeHeader{
+		SlotNumber: 10,
+	}
+
+	enc := babeHeader.Encode()
+	digest := &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err := digest.Encode()
 	require.NoError(t, err)
-	require.Equal(t, uint64(501), start)
+
+	header := &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+
+	epoch, err := s.GetEpochForBlock(header)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), epoch)
+
+	babeHeader = &types.BabeHeader{
+		SlotNumber: 210,
+	}
+
+	enc = babeHeader.Encode()
+	digest = &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err = digest.Encode()
+	require.NoError(t, err)
+
+	header = &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+
+	epoch, err = s.GetEpochForBlock(header)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), epoch)
 }

@@ -38,7 +38,7 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -55,200 +55,9 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	}
 
 	time.Sleep(time.Second)
-	dh, err := NewDigestHandler(stateSrvc.Block, bp, fg, &mockVerifier{})
+	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, bp, fg, &mockVerifier{})
 	require.NoError(t, err)
 	return dh
-}
-
-func TestDigestHandler_BABEScheduledChange(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
-
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	sc := &types.BABEScheduledChange{
-		Auths: []*types.AuthorityRaw{
-			{Key: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
-		},
-		Delay: 3,
-	}
-
-	data, err := sc.Encode()
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	headers := addTestBlocksToState(t, 2, handler.blockState)
-	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
-	}
-
-	auths := handler.babe.Authorities()
-	require.Nil(t, auths)
-
-	// authorities should change on start of block 3 from start
-	headers = addTestBlocksToState(t, 1, handler.blockState)
-	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
-	}
-
-	time.Sleep(time.Millisecond * 100)
-	auths = handler.babe.Authorities()
-	require.Equal(t, 1, len(auths))
-}
-
-func TestDigestHandler_BABEForcedChange(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
-
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	fc := &types.BABEForcedChange{
-
-		Auths: []*types.AuthorityRaw{
-			{Key: kr.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 0},
-		},
-		Delay: 3,
-	}
-
-	data, err := fc.Encode()
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	addTestBlocksToState(t, 2, handler.blockState)
-	auths := handler.babe.Authorities()
-	require.Nil(t, auths)
-
-	// authorities should change on start of block 3 from start
-	addTestBlocksToState(t, 1, handler.blockState)
-	time.Sleep(time.Millisecond * 100)
-	auths = handler.babe.Authorities()
-	require.Equal(t, 1, len(auths))
-}
-
-func TestDigestHandler_BABEOnDisabled(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
-
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	handler.babe.SetAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
-	})
-
-	// try with ID that doesn't exist
-	od := &types.OnDisabled{
-		ID: 1,
-	}
-
-	data, err := od.Encode()
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	auths := handler.babe.Authorities()
-	require.Equal(t, 1, len(auths))
-
-	// try with ID that does exist
-	od = &types.OnDisabled{
-		ID: 0,
-	}
-
-	data, err = od.Encode()
-	require.NoError(t, err)
-
-	d = &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	auths = handler.babe.Authorities()
-	require.Equal(t, 0, len(auths))
-}
-
-func TestDigestHandler_BABEPauseAndResume(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
-
-	kr, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	handler.babe.SetAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*sr25519.PublicKey), Weight: 0},
-	})
-
-	p := &types.Pause{
-		Delay: 3,
-	}
-
-	data, err := p.Encode()
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	headers := addTestBlocksToState(t, 3, handler.blockState)
-	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
-	}
-
-	time.Sleep(time.Millisecond * 100)
-	auths := handler.babe.Authorities()
-	require.Equal(t, 0, len(auths))
-
-	r := &types.Resume{
-		Delay: 3,
-	}
-
-	data, err = r.Encode()
-	require.NoError(t, err)
-
-	d = &types.ConsensusDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d)
-	require.NoError(t, err)
-
-	addTestBlocksToState(t, 3, handler.blockState)
-	time.Sleep(time.Millisecond * 110)
-	auths = handler.babe.Authorities()
-	require.Equal(t, 1, len(auths))
 }
 
 func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
@@ -261,7 +70,7 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	require.NoError(t, err)
 
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{
+		Auths: []*types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
@@ -275,7 +84,7 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)
@@ -306,7 +115,7 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	require.NoError(t, err)
 
 	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{
+		Auths: []*types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
@@ -320,7 +129,7 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 2, handler.blockState)
@@ -347,7 +156,7 @@ func TestDigestHandler_GrandpaOnDisabled(t *testing.T) {
 	})
 
 	// try with ID that doesn't exist
-	od := &types.OnDisabled{
+	od := &types.GrandpaOnDisabled{
 		ID: 1,
 	}
 
@@ -359,14 +168,14 @@ func TestDigestHandler_GrandpaOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	auths := handler.grandpa.Authorities()
 	require.Equal(t, 1, len(auths))
 
 	// try with ID that does exist
-	od = &types.OnDisabled{
+	od = &types.GrandpaOnDisabled{
 		ID: 0,
 	}
 
@@ -378,7 +187,7 @@ func TestDigestHandler_GrandpaOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	auths = handler.grandpa.Authorities()
@@ -397,7 +206,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
 	})
 
-	p := &types.Pause{
+	p := &types.GrandpaPause{
 		Delay: 3,
 	}
 
@@ -409,7 +218,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 3, handler.blockState)
@@ -421,7 +230,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 	auths := handler.grandpa.Authorities()
 	require.Equal(t, 0, len(auths))
 
-	r := &types.Resume{
+	r := &types.GrandpaResume{
 		Delay: 3,
 	}
 
@@ -433,7 +242,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)
@@ -449,7 +258,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 
 	block := uint32(3)
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: block,
 	}
 
@@ -461,7 +270,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
@@ -475,7 +284,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	later := uint32(5)
 	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: later,
 	}
 
@@ -487,12 +296,12 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	earlier := uint32(3)
 	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthorityDataRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: earlier,
 	}
 
@@ -504,9 +313,121 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d)
+	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
 	require.Equal(t, uint64(earlier), next)
+}
+
+func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	digest := &types.BABEOnDisabled{
+		ID: 7,
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	err = handler.HandleConsensusDigest(d, nil)
+	require.NoError(t, err)
+	require.Equal(t, uint64(7), handler.babe.(*mockBlockProducer).disabled)
+}
+
+func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
+	babeHeader := &types.BabeHeader{
+		SlotNumber: slotNumber,
+	}
+
+	enc := babeHeader.Encode()
+	digest := &types.PreRuntimeDigest{
+		Data: enc,
+	}
+
+	encDigest, err := digest.Encode()
+	require.NoError(t, err)
+
+	return &types.Header{
+		Digest: [][]byte{encDigest},
+	}
+}
+
+func TestDigestHandler_HandleNextEpochData(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	authA := &types.AuthorityRaw{
+		Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
+		Weight: 1,
+	}
+
+	authB := &types.AuthorityRaw{
+		Key:    keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(),
+		Weight: 1,
+	}
+
+	digest := &types.NextEpochData{
+		Authorities: []*types.AuthorityRaw{authA, authB},
+		Randomness:  [32]byte{77, 88, 99},
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	header := createHeaderWithPreDigest(t, 10)
+
+	err = handler.HandleConsensusDigest(d, header)
+	require.NoError(t, err)
+
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(2)
+	require.NoError(t, err)
+	res, err := digest.ToEpochData()
+	require.NoError(t, err)
+	require.Equal(t, res, stored)
+}
+
+func TestDigestHandler_HandleNextConfigData(t *testing.T) {
+	handler := newTestDigestHandler(t, true, false)
+	handler.Start()
+	defer handler.Stop()
+
+	digest := &types.NextConfigData{
+		C1:             1,
+		C2:             8,
+		SecondarySlots: true,
+	}
+
+	data, err := digest.Encode()
+	require.NoError(t, err)
+
+	d := &types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              data,
+	}
+
+	header := createHeaderWithPreDigest(t, 10)
+
+	err = handler.HandleConsensusDigest(d, header)
+	require.NoError(t, err)
+
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(2)
+	require.NoError(t, err)
+	require.Equal(t, digest.ToConfigData(), stored)
 }

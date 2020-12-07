@@ -300,7 +300,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 				return err
 			}
 			addRawValue(key, v, gen)
-		case fmt.Sprintf("0x%x", runtime.BABEAuthorityDataKey()):
+		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {

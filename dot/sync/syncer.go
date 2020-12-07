@@ -483,7 +483,7 @@ func (s *Service) handleDigests(header *types.Header) error {
 				return errors.New("cannot cast invalid consensus digest item")
 			}
 
-			err = s.digestHandler.HandleConsensusDigest(cd)
+			err = s.digestHandler.HandleConsensusDigest(cd, header)
 			if err != nil {
 				return err
 			}

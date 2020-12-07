@@ -120,5 +120,5 @@ func TestFormatKey(t *testing.T) {
 	input := []string{"Babe", "Authorities"}
 	out, err := formatKey(input)
 	require.NoError(t, err)
-	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthorityDataKey()))
+	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
 }

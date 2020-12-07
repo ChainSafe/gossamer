@@ -75,14 +75,14 @@ var (
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 )
 
-// GrandpaAuthorityDataKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
-var GrandpaAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
+// GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
+var GrandpaAuthoritiesKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
 // BABEPrefix is the prefix for all BABE related storage values
 var BABEPrefix, _ = common.Twox128Hash([]byte("Babe"))
 
-// BABEAuthorityDataKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
-func BABEAuthorityDataKey() []byte {
+// BABEAuthoritiesKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
+func BABEAuthoritiesKey() []byte {
 	key, _ := common.Twox128Hash([]byte("Authorities"))
 	return append(BABEPrefix, key...)
 }

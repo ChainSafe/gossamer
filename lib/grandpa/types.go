@@ -78,8 +78,8 @@ func (v *Voter) String() string {
 	return fmt.Sprintf("[key=0x%x id=%d]", v.PublicKeyBytes(), v.id)
 }
 
-// NewVotersFromAuthorityData returns an array of Voters given an array of GrandpaAuthorityData
-func NewVotersFromAuthorityData(ad []*types.Authority) []*Voter {
+// NewVotersFromAuthorities returns an array of Voters given an array of GrandpaAuthorities
+func NewVotersFromAuthorities(ad []*types.Authority) []*Voter {
 	v := make([]*Voter, len(ad))
 
 	for i, d := range ad {

@@ -62,7 +62,7 @@ type BlockProducer interface {
 type DigestHandler interface {
 	Start()
 	Stop()
-	HandleConsensusDigest(*types.ConsensusDigest) error
+	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
 }
 
 // Verifier deals with block verification
