@@ -1,15 +1,23 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package modules
 
 import (
 	"errors"
-	"fmt"
-	"math/big"
 	"net/http"
-
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 var blockProducerStoppedMsg = "babe service stopped"
@@ -60,61 +68,4 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 		}
 	}
 	return err
-}
-
-// SetBlockProducerAuthorities dev rpc method that sets authorities for block producer
-func (m *DevModule) SetBlockProducerAuthorities(r *http.Request, req *[]interface{}, res *string) error {
-	ab := []*types.Authority{}
-	for _, v := range *req {
-		kb := crypto.PublicAddressToByteArray(common.Address(v.([]interface{})[0].(string)))
-		pk, err := sr25519.NewPublicKey(kb)
-		if err != nil {
-			return err
-		}
-		bd := &types.Authority{
-			Key:    pk,
-			Weight: uint64(v.([]interface{})[1].(float64)),
-		}
-		ab = append(ab, bd)
-	}
-
-	err := m.blockProducerAPI.SetAuthorities(ab)
-	*res = fmt.Sprintf("set %v block producer authorities", len(ab))
-	return err
-}
-
-// SetBABEEpochThreshold dev rpc method that sets BABE Epoch Threshold of the BABE Producer
-func (m *DevModule) SetBABEEpochThreshold(r *http.Request, req *string, res *string) error {
-	n := new(big.Int)
-	n, ok := n.SetString(*req, 10)
-	if !ok {
-		return fmt.Errorf("error setting threshold")
-	}
-	m.blockProducerAPI.SetThreshold(n)
-	*res = fmt.Sprintf("set BABE threshold to %v", n)
-
-	return nil
-}
-
-// SetBABERandomness dev rpc method to set BABE Randomness
-func (m *DevModule) SetBABERandomness(r *http.Request, req *[]string, res *string) error {
-	val := *req
-
-	reqB, err := common.HexToBytes(val[0])
-	if err != nil {
-		return err
-	}
-
-	if len(reqB) != types.RandomnessLength {
-		return fmt.Errorf("expected randomness value of %v bytes, received %v bytes", types.RandomnessLength, len(reqB))
-	}
-
-	b := [types.RandomnessLength]byte{}
-	for i := range b {
-		b[i] = reqB[i]
-	}
-	m.blockProducerAPI.SetRandomness(b)
-	*res = "updated BABE Randomness"
-
-	return nil
 }

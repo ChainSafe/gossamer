@@ -51,7 +51,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

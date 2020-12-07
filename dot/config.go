@@ -64,9 +64,6 @@ type LogConfig struct {
 // InitConfig is the configuration for the node initialization
 type InitConfig struct {
 	GenesisRaw string
-	// TestFirstEpoch determines whether to use test data for the first epoch
-	// If set to false, node initialization will load the babe configuration from the runtime to use as first epoch data
-	TestFirstEpoch bool
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
