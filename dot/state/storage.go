@@ -84,26 +84,51 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 		return
 	}
 
-	dbKey, _ := tr.Hash()
-	_ = s.baseDB.Del(dbKey[:])
+	hash, _ := tr.Hash()
+	_ = s.baseDB.Del(hash[:])
 	delete(s.tries, keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
-	// TODO: commit and free TrieState
+	var err error
 
 	s.lock.Lock()
-	var err error
 	// make copy of trie since ts.Free will clear the TrieState
 	s.tries[root], err = ts.t.DeepCopy()
 	if err != nil {
 		return err
 	}
+
 	s.lock.Unlock()
 
 	logger.Debug("stored trie in storage state", "root", root)
-	return s.StoreInDB(root)
+
+	// TODO: this needs to be optimized
+	// since BABE calls this after building a block, it's unable to proceed to the next block until
+	// this function completes. if this isn't in a goroutine it slows block times, but if it is, then
+	// it causes other problems when the block is handled in core.
+
+	// write raw trie key-values stored in db to *trie.Trie
+	// err = ts.Commit()
+	// if err != nil {
+	// 	logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
+	// }
+
+	// delete raw trie key-values from db
+	err = ts.Free()
+	if err != nil {
+		logger.Error("failed to delete TrieState db values", "state root", root, "error", err)
+	}
+
+	// store encoded *trie.Trie in database
+	err = s.StoreInDB(root)
+	if err != nil {
+		logger.Error("failed to store encoded trie in database", "state root", root, "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // TrieState returns the TrieState for a given state root.
@@ -201,6 +226,15 @@ func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]b
 	}
 
 	return s.GetStorage(&header.StateRoot, key)
+}
+
+// GetStateRootFromBlock returns the state root hash of a given block hash
+func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+	header, err := s.blockState.GetHeader(*bhash)
+	if err != nil {
+		return nil, err
+	}
+	return &header.StateRoot, nil
 }
 
 // StorageRoot returns the root hash of the current storage trie

@@ -23,7 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	log "github.com/ChainSafe/log15"
 )
 
 var maxUint64 = uint64(2^64) - 1
@@ -35,6 +34,7 @@ type DigestHandler struct {
 
 	// interfaces
 	blockState          BlockState
+	epochState          EpochState
 	grandpa             FinalityGadget
 	babe                BlockProducer
 	verifier            Verifier
@@ -47,24 +47,12 @@ type DigestHandler struct {
 	finalized   chan *types.Header
 	finalizedID byte
 
-	// BABE changes
-	babeScheduledChange *babeChange
-	babeForcedChange    *babeChange
-	babePause           *pause
-	babeResume          *resume
-	babeAuths           []*types.Authority // saved in case of pause
-
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
 	grandpaAuths           []*types.Authority // saved in case of pause
-}
-
-type babeChange struct {
-	auths   []*types.Authority
-	atBlock *big.Int
 }
 
 type grandpaChange struct {
@@ -81,7 +69,7 @@ type resume struct {
 }
 
 // NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
+func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
 	finalized := make(chan *types.Header, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
@@ -103,6 +91,7 @@ func NewDigestHandler(blockState BlockState, babe BlockProducer, grandpa Finalit
 		ctx:                 ctx,
 		cancel:              cancel,
 		blockState:          blockState,
+		epochState:          epochState,
 		grandpa:             grandpa,
 		babe:                babe,
 		verifier:            verifier,
@@ -162,23 +151,40 @@ func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
 }
 
 // HandleConsensusDigest is the function used by the syncer to handle a consensus digest
-func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest) error {
+func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
 	t := d.DataType()
 
-	switch t {
-	case types.ScheduledChangeType:
-		return h.handleScheduledChange(d)
-	case types.ForcedChangeType:
-		return h.handleForcedChange(d)
-	case types.OnDisabledType:
-		return h.handleOnDisabled(d)
-	case types.PauseType:
-		return h.handlePause(d)
-	case types.ResumeType:
-		return h.handleResume(d)
-	default:
-		return errors.New("invalid consensus digest data")
+	if d.ConsensusEngineID == types.GrandpaEngineID {
+		switch t {
+		case types.GrandpaScheduledChangeType:
+			return h.handleScheduledChange(d)
+		case types.GrandpaForcedChangeType:
+			return h.handleForcedChange(d)
+		case types.GrandpaOnDisabledType:
+			return h.handleGrandpaOnDisabled(d, header)
+		case types.GrandpaPauseType:
+			return h.handlePause(d)
+		case types.GrandpaResumeType:
+			return h.handleResume(d)
+		default:
+			return errors.New("invalid consensus digest data")
+		}
 	}
+
+	if d.ConsensusEngineID == types.BabeEngineID {
+		switch t {
+		case types.NextEpochDataType:
+			return h.handleNextEpochData(d, header)
+		case types.BABEOnDisabledType:
+			return h.handleBABEOnDisabled(d, header)
+		case types.NextConfigDataType:
+			return h.handleNextConfigData(d, header)
+		default:
+			return errors.New("invalid consensus digest data")
+		}
+	}
+
+	return errors.New("unknown consensus engine ID")
 }
 
 func (h *DigestHandler) handleBlockImport(ctx context.Context) {
@@ -191,10 +197,6 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 
 			if h.isFinalityAuthority {
 				h.handleGrandpaChangesOnImport(block.Header.Number)
-			}
-
-			if h.isBlockProducer {
-				h.handleBABEChangesOnImport(block.Header)
 			}
 		case <-ctx.Done():
 			return
@@ -213,66 +215,11 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 			if h.isFinalityAuthority {
 				h.handleGrandpaChangesOnFinalization(header.Number)
 			}
-
-			if h.isBlockProducer {
-				h.handleBABEChangesOnFinalization(header)
-			}
 		case <-ctx.Done():
 			return
 		}
 	}
 
-}
-
-func (h *DigestHandler) handleBABEChangesOnImport(header *types.Header) {
-	num := header.Number
-	resume := h.babeResume
-	if resume != nil && num.Cmp(resume.atBlock) == 0 {
-		err := h.babe.SetAuthorities(h.babeAuths)
-		if err != nil {
-			log.Warn("error setting authorities", "error", err)
-		}
-		h.verifier.SetAuthorityChangeAtBlock(header, h.babeAuths)
-		h.babeResume = nil
-	}
-
-	fc := h.babeForcedChange
-	if fc != nil && num.Cmp(fc.atBlock) == 0 {
-		err := h.babe.SetAuthorities(fc.auths)
-		if err != nil {
-			log.Warn("error setting authorities", "error", err)
-		}
-		h.verifier.SetAuthorityChangeAtBlock(header, fc.auths)
-		h.babeForcedChange = nil
-	}
-}
-
-func (h *DigestHandler) handleBABEChangesOnFinalization(header *types.Header) {
-	num := header.Number
-	pause := h.babePause
-	if pause != nil && num.Cmp(pause.atBlock) == 0 {
-		// save authority data for Resume
-		h.babeAuths = h.babe.Authorities()
-		err := h.babe.SetAuthorities([]*types.Authority{})
-		if err != nil {
-			log.Warn("error setting authorities", "error", err)
-		}
-		h.verifier.SetAuthorityChangeAtBlock(header, []*types.Authority{})
-		h.babePause = nil
-	}
-
-	sc := h.babeScheduledChange
-	if sc != nil && num.Cmp(sc.atBlock) == 0 {
-		err := h.babe.SetAuthorities(sc.auths)
-		if err != nil {
-			log.Warn("error setting authorities", "error", err)
-		}
-		h.verifier.SetAuthorityChangeAtBlock(header, sc.auths)
-		h.babeScheduledChange = nil
-	}
-
-	// if blocks get finalized before forced change takes place, disregard it
-	h.babeForcedChange = nil
 }
 
 func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
@@ -314,25 +261,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	if d.ConsensusEngineID == types.BabeEngineID {
-		if h.babeScheduledChange != nil {
-			return errors.New("already have scheduled change scheduled")
-		}
-
-		sc := &types.BABEScheduledChange{}
-		dec, err := scale.Decode(d.Data[1:], sc)
-		if err != nil {
-			return err
-		}
-		sc = dec.(*types.BABEScheduledChange)
-
-		c, err := newBABEChange(sc.Auths, sc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.babeScheduledChange = c
-	} else {
+	if d.ConsensusEngineID == types.GrandpaEngineID {
 		if h.grandpaScheduledChange != nil {
 			return errors.New("already have scheduled change scheduled")
 		}
@@ -361,25 +290,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	if d.ConsensusEngineID == types.BabeEngineID {
-		if h.babeForcedChange != nil {
-			return errors.New("already have forced change scheduled")
-		}
-
-		fc := &types.BABEForcedChange{}
-		dec, err := scale.Decode(d.Data[1:], fc)
-		if err != nil {
-			return err
-		}
-		fc = dec.(*types.BABEForcedChange)
-
-		c, err := newBABEChange(fc.Auths, fc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.babeForcedChange = c
-	} else {
+	if d.ConsensusEngineID == types.GrandpaEngineID {
 		if h.grandpaForcedChange != nil {
 			return errors.New("already have forced change scheduled")
 		}
@@ -402,41 +313,28 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 	return nil
 }
 
-func (h *DigestHandler) handleOnDisabled(d *types.ConsensusDigest) error {
-	od := &types.OnDisabled{}
+func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
+	od := &types.GrandpaOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
 		return err
 	}
-	od = dec.(*types.OnDisabled)
+	od = dec.(*types.GrandpaOnDisabled)
 
-	if d.ConsensusEngineID == types.BabeEngineID {
-		curr := h.babe.Authorities()
-		next := []*types.Authority{}
+	curr := h.grandpa.Authorities()
+	next := []*types.Authority{}
 
-		for i, auth := range curr {
-			if uint64(i) != od.ID {
-				next = append(next, auth)
-			}
+	for _, auth := range curr {
+		if auth.Weight != od.ID {
+			next = append(next, auth)
 		}
-
-		err := h.babe.SetAuthorities(next)
-		if err != nil {
-			return err
-		}
-	} else {
-		curr := h.grandpa.Authorities()
-		next := []*types.Authority{}
-
-		for _, auth := range curr {
-			if auth.Weight != od.ID {
-				next = append(next, auth)
-			}
-		}
-
-		h.grandpa.UpdateAuthorities(next)
 	}
 
+	// TODO: this needs to be updated not to remove the authority from the list,
+	// but to flag them as disabled. thus, if we are disabled, we should stop voting.
+	// if we receive vote or finalization messages, we should ignore anything signed by the
+	// disabled authority
+	h.grandpa.UpdateAuthorities(next)
 	return nil
 }
 
@@ -446,23 +344,17 @@ func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	p := &types.Pause{}
+	p := &types.GrandpaPause{}
 	dec, err := scale.Decode(d.Data[1:], p)
 	if err != nil {
 		return err
 	}
-	p = dec.(*types.Pause)
+	p = dec.(*types.GrandpaPause)
 
 	delay := big.NewInt(int64(p.Delay))
 
-	if d.ConsensusEngineID == types.BabeEngineID {
-		h.babePause = &pause{
-			atBlock: big.NewInt(-1).Add(curr.Number, delay),
-		}
-	} else {
-		h.grandpaPause = &pause{
-			atBlock: big.NewInt(-1).Add(curr.Number, delay),
-		}
+	h.grandpaPause = &pause{
+		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
 	return nil
@@ -474,30 +366,24 @@ func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	p := &types.Resume{}
+	p := &types.GrandpaResume{}
 	dec, err := scale.Decode(d.Data[1:], p)
 	if err != nil {
 		return err
 	}
-	p = dec.(*types.Resume)
+	p = dec.(*types.GrandpaResume)
 
 	delay := big.NewInt(int64(p.Delay))
 
-	if d.ConsensusEngineID == types.BabeEngineID {
-		h.babeResume = &resume{
-			atBlock: big.NewInt(-1).Add(curr.Number, delay),
-		}
-	} else {
-		h.grandpaResume = &resume{
-			atBlock: big.NewInt(-1).Add(curr.Number, delay),
-		}
+	h.grandpaResume = &resume{
+		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
 	return nil
 }
 
-func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
-	auths, err := types.GrandpaAuthorityDataRawToAuthorityData(raw)
+func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -510,16 +396,53 @@ func newGrandpaChange(raw []*types.GrandpaAuthorityDataRaw, delay uint32, currBl
 	}, nil
 }
 
-func newBABEChange(raw []*types.AuthorityRaw, delay uint32, currBlock *big.Int) (*babeChange, error) {
-	auths, err := types.BABEAuthorityRawToAuthority(raw)
+func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
+	od := &types.BABEOnDisabled{}
+	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	od = dec.(*types.BABEOnDisabled)
+
+	h.verifier.SetOnDisabled(od.ID, header)
+	h.babe.SetOnDisabled(od.ID)
+	return nil
+}
+
+func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
+	od := &types.NextEpochData{}
+	dec, err := scale.Decode(d.Data[1:], od)
+	if err != nil {
+		return err
+	}
+	od = dec.(*types.NextEpochData)
+
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
 	}
 
-	d := big.NewInt(int64(delay))
+	// set EpochState epoch data for upcoming epoch
+	data, err := od.ToEpochData()
+	if err != nil {
+		return err
+	}
+	return h.epochState.SetEpochData(currEpoch+1, data)
+}
 
-	return &babeChange{
-		auths:   auths,
-		atBlock: big.NewInt(-1).Add(currBlock, d),
-	}, nil
+func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
+	od := &types.NextConfigData{}
+	dec, err := scale.Decode(d.Data[1:], od)
+	if err != nil {
+		return err
+	}
+	od = dec.(*types.NextConfigData)
+
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	// set EpochState config data for upcoming epoch
+	return h.epochState.SetConfigData(currEpoch+1, od.ToConfigData())
 }

@@ -44,24 +44,23 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error {
-	return nil
-}
-
-func (v *mockVerifier) SetAuthorityChangeAtBlock(header *types.Header, auths []*types.Authority) {
-
-}
+func (v *mockVerifier) SetOnDisabled(_ uint64, _ *types.Header) {}
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	auths []*types.Authority
+	disabled uint64
 }
 
 // Start mocks starting
@@ -74,13 +73,8 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-func (bp *mockBlockProducer) Authorities() []*types.Authority {
-	return bp.auths
-}
-
-func (bp *mockBlockProducer) SetAuthorities(a []*types.Authority) error {
-	bp.auths = a
-	return nil
+func (bp *mockBlockProducer) SetOnDisabled(idx uint64) {
+	bp.disabled = idx
 }
 
 // GetBlockChannel returns a new channel
@@ -89,9 +83,7 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 }
 
 // SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) error {
-	return nil
-}
+func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) {}
 
 type mockNetwork struct {
 	Message network.Message
@@ -169,8 +161,9 @@ func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessag
 	return nil, nil
 }
 
-// NewTestService creates a new test core service
-func NewTestService(t *testing.T, cfg *Config) *Service {
+// NewTestService creates a new test core service using a pre-initialized stateSrvc object. If stateSrvc is nil then it
+// creates a new object.
+func NewTestService(t *testing.T, cfg *Config, stateSrvc *state.Service) *Service {
 	if cfg == nil {
 		cfg = &Config{
 			IsBlockProducer: false,
@@ -200,17 +193,18 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	cfg.LogLvl = 3
 
-	stateSrvc := state.NewService("", log.LvlInfo)
-	stateSrvc.UseMemDB()
+	if stateSrvc == nil {
+		stateSrvc = state.NewService("", log.LvlInfo)
+		stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
+		genesisData := new(genesis.Data)
+		tt := trie.NewEmptyTrie()
+		err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
+		require.Nil(t, err)
 
-	tt := trie.NewEmptyTrie()
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, firstEpochInfo)
-	require.Nil(t, err)
-
-	err = stateSrvc.Start()
-	require.Nil(t, err)
+		err = stateSrvc.Start()
+		require.Nil(t, err)
+	}
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = stateSrvc.Block
@@ -243,7 +237,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			BlockState:  stateSrvc.Block,
 		}
 		cfg.Network = createTestNetworkService(t, config)
-		require.NoError(t, err)
 	}
 
 	s, err := NewService(cfg)

@@ -35,13 +35,15 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var _ services.Service = &Service{}
+var (
+	_      services.Service = &Service{}
+	logger log.Logger       = log.New("pkg", "core")
+)
 
 // Service is an overhead layer that allows communication between the runtime,
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	logger log.Logger
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -131,7 +133,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilConsensusMessageHandler
 	}
 
-	logger := log.New("pkg", "core")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -155,7 +156,6 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		logger:                  logger,
 		ctx:                     ctx,
 		cancel:                  cancel,
 		rt:                      cfg.Runtime,
@@ -203,7 +203,7 @@ func (s *Service) Start() error {
 	go s.handleBlocks(ctx)
 
 	if s.isFinalityAuthority && s.finalityGadget != nil {
-		s.logger.Debug("routing finality gadget messages")
+		logger.Debug("routing finality gadget messages")
 		ctx, _ = context.WithCancel(s.ctx) //nolint
 		go s.sendVoteMessages(ctx)
 
@@ -224,6 +224,11 @@ func (s *Service) Stop() error {
 	close(s.blockAddCh)
 
 	return nil
+}
+
+// SetNetwork sets the network interface for core
+func (s *Service) SetNetwork(net Network) {
+	s.net = net
 }
 
 // StorageRoot returns the hash of the storage root
@@ -250,20 +255,16 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
-			if err := s.storageState.StoreInDB(block.Header.StateRoot); err != nil {
-				s.logger.Warn("failed to store storage trie in database", "error", err)
-			}
-
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				s.logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
 			if err := s.maintainTransactionPool(block); err != nil {
-				s.logger.Warn("failed to maintain transaction pool", "error", err)
+				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
 
 			if err := s.handleRuntimeChanges(block.Header); err != nil {
-				s.logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
+				logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -282,7 +283,7 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 
 			err := s.handleReceivedBlock(&block)
 			if err != nil {
-				s.logger.Warn("failed to handle block from BABE session", "err", err)
+				logger.Warn("failed to handle block from BABE session", "err", err)
 			}
 		case <-ctx.Done():
 			return
@@ -302,7 +303,7 @@ func (s *Service) HandleMessage(message network.Message) {
 
 	err := s.handleReceivedMessage(message)
 	if err != nil {
-		s.logger.Trace("failed to handle message from network service", "err", err)
+		logger.Trace("failed to handle message from network service", "err", err)
 	}
 }
 
@@ -317,7 +318,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return err
 	}
 
-	s.logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
+	logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
 
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
@@ -325,6 +326,10 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 		Digest:         block.Header.Digest,
+	}
+
+	if s.net == nil {
+		return
 	}
 
 	s.net.SendMessage(msg)
@@ -336,13 +341,6 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.Type()
 
 	switch msgType {
-	case network.TransactionMsgType: // 4
-		msg, ok := msg.(*network.TransactionMessage)
-		if !ok {
-			return ErrMessageCast("TransactionMessage")
-		}
-
-		err = s.ProcessTransactionMessage(msg)
 	case network.ConsensusMsgType: // 5
 		msg, ok := msg.(*network.ConsensusMessage)
 		if !ok {
@@ -359,7 +357,7 @@ func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
 // It also updates the BABE service and block verifier with the new runtime
-func (s *Service) handleRuntimeChanges(header *types.Header) error {
+func (s *Service) handleRuntimeChanges(_ *types.Header) error {
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
 		return err
@@ -371,9 +369,14 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 	}
 
 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+		logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
 		code, err := s.storageState.LoadCode(&sr)
 		if err != nil {
 			return err
+		}
+
+		if len(code) == 0 {
+			return ErrEmptyRuntimeCode
 		}
 
 		s.rt.Stop()
@@ -398,16 +401,10 @@ func (s *Service) handleRuntimeChanges(header *types.Header) error {
 		}
 
 		if s.isBlockProducer {
-			err = s.blockProducer.SetRuntime(s.rt)
-			if err != nil {
-				return err
-			}
+			s.blockProducer.SetRuntime(s.rt)
 		}
 
-		err = s.verifier.SetRuntimeChangeAtBlock(header, s.rt)
-		if err != nil {
-			return err
-		}
+		// TODO: set syncer runtime
 	}
 
 	return nil
@@ -446,11 +443,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range exts {
-			s.logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
 
 			txv, err := s.rt.ValidateTransaction(ext)
 			if err != nil {
-				s.logger.Trace("failed to validate transaction", "extrinsic", ext)
+				logger.Trace("failed to validate transaction", "extrinsic", ext)
 				continue
 			}
 
@@ -498,7 +495,7 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 		}
 
 		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
-		s.logger.Trace("moved transaction to queue", "hash", h)
+		logger.Trace("moved transaction to queue", "hash", h)
 	}
 
 	return nil
@@ -517,8 +514,18 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion() (*runtime.VersionAPI, error) {
-	ts, err := s.storageState.TrieState(nil)
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error) {
+	var stateRootHash *common.Hash
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		var err error
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ts, err := s.storageState.TrieState(stateRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -534,12 +541,34 @@ func (s *Service) IsBlockProducer() bool {
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
+	if s.net == nil {
+		return nil
+	}
+
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.SendMessage(msg)
 	return nil
 }
 
 //GetMetadata calls runtime Metadata_metadata function
-func (s *Service) GetMetadata() ([]byte, error) {
+func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
+	var (
+		stateRootHash *common.Hash
+		err           error
+	)
+
+	// If block hash is not nil then fetch the state root corresponding to the block.
+	if bhash != nil {
+		stateRootHash, err = s.storageState.GetStateRootFromBlock(bhash)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	s.rt.SetContext(ts)
 	return s.rt.Metadata()
 }

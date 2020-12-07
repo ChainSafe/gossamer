@@ -296,8 +296,8 @@ func TestLatestFinalizedRound(t *testing.T) {
 
 func TestFinalization_DeleteBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	all := bs.bt.GetAllBlocks()
 	AddBlocksToState(t, bs, 5)
+	before := bs.bt.GetAllBlocks()
 	leaves := bs.Leaves()
 
 	// pick block to finalize
@@ -305,9 +305,24 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 	err := bs.SetFinalizedHash(fin, 1, 1)
 	require.NoError(t, err)
 
+	after := bs.bt.GetAllBlocks()
+
+	isIn := func(arr []common.Hash, b common.Hash) bool {
+		for _, a := range arr {
+			if b == a {
+				return true
+			}
+		}
+		return false
+	}
+
 	// assert that every block except finalized has been deleted
-	for _, b := range all {
+	for _, b := range before {
 		if b == fin {
+			continue
+		}
+
+		if isIn(after, b) {
 			continue
 		}
 
