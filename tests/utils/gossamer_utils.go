@@ -204,7 +204,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		logger.Info("node started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
 	} else {
 		logger.Crit("node didn't start!", "err", err)
-		errFileContents, _ := ioutil.ReadFile(errfile)
+		errFileContents, _ := ioutil.ReadFile(errfile.Name())
 		t.Log(errFileContents)
 		return err
 	}
