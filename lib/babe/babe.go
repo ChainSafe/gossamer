@@ -274,15 +274,6 @@ func (b *Service) SetOnDisabled(authorityIndex uint64) {
 	}
 }
 
-// // Descriptor returns the Descriptor for the current Service.
-// func (b *Service) Descriptor() *Descriptor {
-// 	return &Descriptor{
-// 		Authorities: b.epochData.authorities,
-// 		Randomness:  b.epochData.randomness,
-// 		Threshold:   b.epochData.threshold,
-// 	}
-// }
-
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []*types.Authority {
 	return b.epochData.authorities
