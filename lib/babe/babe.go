@@ -53,6 +53,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	epochState       EpochState
+	epochLength      uint64
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
@@ -89,6 +90,7 @@ type ServiceConfig struct {
 	AuthData         []*types.Authority
 	Threshold        *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
+	EpochLength      uint64   // for development purposes; in slots
 	StartSlot        uint64   // slot to start at
 	Authority        bool
 }
@@ -125,6 +127,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		epochState:       cfg.EpochState,
+		epochLength:      cfg.EpochLength,
 		keypair:          cfg.Keypair,
 		rt:               cfg.Runtime,
 		transactionState: cfg.TransactionState,

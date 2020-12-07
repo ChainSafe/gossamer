@@ -97,6 +97,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		genesisData := new(genesis.Data)
 
+		if cfg.EpochLength > 0 {
+			firstEpochInfo.Duration = cfg.EpochLength
+		}
+
 		err = dbSrv.Initialize(genesisData, genesisHeader, tt, firstEpochInfo)
 		require.NoError(t, err)
 
