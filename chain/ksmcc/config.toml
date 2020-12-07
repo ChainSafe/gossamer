@@ -23,6 +23,7 @@ unlock = ""
 [core]
 roles = 1
 babe-authority = false
+epoch-length = 10
 grandpa-authority = false
 babe-threshold = ""
 

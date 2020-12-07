@@ -91,6 +91,7 @@ type CoreConfig struct {
 	GrandpaAuthority bool
 	BabeThreshold    *big.Int
 	SlotDuration     uint64
+	EpochLength      uint64
 	WasmInterpreter  string
 }
 
@@ -149,6 +150,7 @@ func GssmrConfig() *Config {
 		Core: CoreConfig{
 			Roles:            gssmr.DefaultRoles,
 			BabeAuthority:    gssmr.DefaultBabeAuthority,
+			EpochLength:      gssmr.DefaultEpochLength,
 			GrandpaAuthority: gssmr.DefaultGrandpaAuthority,
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 		},
@@ -200,6 +202,7 @@ func KsmccConfig() *Config {
 		},
 		Core: CoreConfig{
 			Roles:           ksmcc.DefaultRoles,
+			EpochLength:     ksmcc.DefaultEpochLength,
 			WasmInterpreter: ksmcc.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
