@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
@@ -111,7 +112,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		}
 	case wasmtime.Name:
 		rtCfg := &wasmtime.Config{
-			Imports: wasmtime.ImportsLegacyNodeRuntime,
+			Imports: wasmtime.ImportLegacyNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
@@ -192,7 +193,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.LegacyInstance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.LegacyInstance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -227,7 +228,7 @@ func createCoreService(cfg *Config, bp BlockProducer, fg core.FinalityGadget, ve
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -249,7 +250,6 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 		ProtocolID:  cfg.Network.ProtocolID,
 		NoBootstrap: cfg.Network.NoBootstrap,
 		NoMDNS:      cfg.Network.NoMDNS,
-		Syncer:      syncer,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -264,7 +264,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp BlockProducer, rt runtime.LegacyInstance, sysSrvc *system.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.LegacyInstance, sysSrvc *system.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -313,7 +313,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 		return nil, ErrInvalidKeystoreType
 	}
 
-	voters := grandpa.NewVotersFromAuthorityData(ad)
+	voters := grandpa.NewVotersFromAuthorities(ad)
 
 	keys := ks.Keypairs()
 	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
@@ -361,9 +361,9 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt runtime.LegacyInstan
 	}
 
 	descriptor := &babe.Descriptor{
-		AuthorityData: ad,
-		Randomness:    babeCfg.Randomness,
-		Threshold:     threshold,
+		Authorities: ad,
+		Randomness:  babeCfg.Randomness,
+		Threshold:   threshold,
 	}
 
 	ver, err := babe.NewVerificationManager(st.Block, descriptor)
@@ -375,7 +375,7 @@ func createBlockVerifier(cfg *Config, st *state.Service, rt runtime.LegacyInstan
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.LegacyInstance) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.LegacyInstance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
@@ -390,6 +390,6 @@ func createSyncService(cfg *Config, st *state.Service, bp BlockProducer, dh *cor
 	return sync.NewService(syncCfg)
 }
 
-func createDigestHandler(st *state.Service, bp BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, bp, nil, verifier)
+func createDigestHandler(st *state.Service, bp core.BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
+	return core.NewDigestHandler(st.Block, st.Epoch, bp, nil, verifier)
 }

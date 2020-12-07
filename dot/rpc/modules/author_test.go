@@ -252,7 +252,7 @@ func TestAuthorModule_HasKey_InvalidKeyType(t *testing.T) {
 	require.False(t, res)
 }
 
-func newCoreService(t *testing.T) *core.Service {
+func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlInfo)
@@ -263,18 +263,24 @@ func newCoreService(t *testing.T) *core.Service {
 	require.NoError(t, err)
 	ks.Acco.Insert(kr.Alice())
 
+	if srvc == nil {
+		srvc = newTestStateService(t)
+	}
+
 	cfg := &core.Config{
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
 		IsBlockProducer:  false,
+		BlockState:       srvc.Block,
+		StorageState:     srvc.Storage,
 	}
 
 	return core.NewTestService(t, cfg)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
-	cs := newCoreService(t)
+	cs := newCoreService(t, nil)
 	rt := wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 	return NewAuthorModule(nil, cs, rt, txq)
 }

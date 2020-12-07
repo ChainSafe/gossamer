@@ -59,8 +59,9 @@ type Config struct {
 	Roles byte
 
 	// Service interfaces
-	BlockState BlockState
-	Syncer     Syncer
+	BlockState         BlockState
+	Syncer             Syncer
+	TransactionHandler TransactionHandler
 
 	// Port the network port used for listening
 	Port uint32

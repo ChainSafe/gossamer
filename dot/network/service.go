@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -40,6 +41,7 @@ const (
 	syncID          = "/sync/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
+	transactionsID  = "/transactions/1"
 )
 
 var (
@@ -68,13 +70,15 @@ type Service struct {
 	requestTracker         *requestTracker
 	errCh                  chan<- error
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
+	notificationsMu        sync.RWMutex
 
 	// Service interfaces
-	blockState BlockState
-	syncer     Syncer
+	blockState         BlockState
+	syncer             Syncer
+	transactionHandler TransactionHandler
 
 	// Interface for inter-process communication
-	messageHandler MessageHandler
+	messageHandler MessageHandler // TODO: remove with cleanup
 
 	// Configuration options
 	noBootstrap bool
@@ -97,10 +101,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
-	if cfg.Syncer == nil {
-		return nil, errors.New("cannot have nil Syncer")
-	}
-
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -113,10 +113,11 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg:                    cfg,
 		host:                   host,
 		mdns:                   newMDNS(host),
-		gossip:                 newGossip(host),
+		gossip:                 newGossip(),
 		requestTracker:         newRequestTracker(logger),
 		blockState:             cfg.BlockState,
 		messageHandler:         cfg.MessageHandler,
+		transactionHandler:     cfg.TransactionHandler,
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
@@ -127,8 +128,26 @@ func NewService(cfg *Config) (*Service, error) {
 	return network, err
 }
 
+// SetSyncer sets the Syncer used by the network service
+func (s *Service) SetSyncer(syncer Syncer) {
+	s.syncer = syncer
+}
+
+// SetTransactionHandler sets the TransactionHandler used by the network service
+func (s *Service) SetTransactionHandler(handler TransactionHandler) {
+	s.transactionHandler = handler
+}
+
 // Start starts the network service
 func (s *Service) Start() error {
+	if s.syncer == nil {
+		return errors.New("service Syncer is nil")
+	}
+
+	if s.transactionHandler == nil {
+		return errors.New("service TransactionHandler is nil")
+	}
+
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
@@ -146,6 +165,20 @@ func (s *Service) Start() error {
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
+	)
+	if err != nil {
+		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+	}
+
+	// register transactions protocol
+	err = s.RegisterNotificationsProtocol(
+		transactionsID,
+		TransactionMsgType,
+		s.getTransactionHandshake,
+		decodeTransactionHandshake,
+		validateTransactionHandshake,
+		decodeTransactionMessage,
+		s.handleTransactionMessage,
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -201,6 +234,9 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
 ) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
 	if _, has := s.notificationsProtocols[messageID]; has {
 		return errors.New("notifications protocol with message type already exists")
 	}
@@ -257,6 +293,9 @@ func (s *Service) SendMessage(msg Message) {
 	)
 
 	// check if the message is part of a notifications protocol
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for msgID, prtl := range s.notificationsProtocols {
 		if msg.Type() != msgID || prtl == nil {
 			continue
@@ -459,21 +498,15 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) error {
 	}
 	s.messageHandler.HandleMessage(msg)
 
-	// check if gossip is enabled
-	if !s.noGossip {
-
-		// handle non-status message from peer with gossip submodule
-		s.gossip.handleMessage(msg, peer)
-	}
-
 	return nil
 }
 
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
+
 	return common.Health{
 		Peers:           s.host.peerCount(),
-		IsSyncing:       false, // TODO
+		IsSyncing:       !s.syncer.IsSynced(),
 		ShouldHavePeers: !s.noBootstrap,
 	}
 }
@@ -506,9 +539,4 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
-}
-
-//SetMessageHandler sets the given MessageHandler for this service
-func (s *Service) SetMessageHandler(handler MessageHandler) {
-	s.messageHandler = handler
 }

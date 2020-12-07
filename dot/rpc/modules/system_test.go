@@ -30,7 +30,7 @@ import (
 var (
 	testHealth = common.Health{
 		Peers:           0,
-		IsSyncing:       false,
+		IsSyncing:       true,
 		ShouldHavePeers: true,
 	}
 	testPeers = []common.PeerInfo{}
@@ -60,13 +60,24 @@ func (s *mockBlockState) GenesisHash() common.Hash {
 	return genesisHeader.Hash()
 }
 
+func (s *mockSyncer) IsSynced() bool {
+	return false
+}
+
+type mockTransactionHandler struct{}
+
+func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
+	return nil
+}
+
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		BasePath:   testDir,
-		BlockState: &mockBlockState{},
-		Syncer:     &mockSyncer{},
+		BlockState:         &mockBlockState{},
+		BasePath:           testDir,
+		Syncer:             &mockSyncer{},
+		TransactionHandler: &mockTransactionHandler{},
 	}
 
 	srv, err := network.NewService(cfg)

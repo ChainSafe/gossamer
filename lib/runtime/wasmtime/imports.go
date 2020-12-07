@@ -283,126 +283,82 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 }
 
-// ImportsNodeRuntime returns the imports for the v0.8 runtime
-func ImportsNodeRuntime(store *wasmtime.Store) []*wasmtime.Extern {
+// ImportNodeRuntime adds the imports for the v0.8 runtime to linker
+func ImportNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
 	lim := wasmtime.Limits{
 		Min: 20,
 		Max: wasmtime.LimitsMaxNone,
 	}
+
 	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
 
-	ext_logging_log_version_1 := wasmtime.WrapFunc(store, ext_logging_log_version_1)
-	ext_sandbox_instance_teardown_version_1 := wasmtime.WrapFunc(store, ext_sandbox_instance_teardown_version_1)
-	ext_sandbox_instantiate_version_1 := wasmtime.WrapFunc(store, ext_sandbox_instantiate_version_1)
-	ext_sandbox_invoke_version_1 := wasmtime.WrapFunc(store, ext_sandbox_invoke_version_1)
-	ext_sandbox_memory_get_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_get_version_1)
-	ext_sandbox_memory_new_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_new_version_1)
-	ext_sandbox_memory_set_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_set_version_1)
-	ext_sandbox_memory_teardown_version_1 := wasmtime.WrapFunc(store, ext_sandbox_memory_teardown_version_1)
-	ext_crypto_ed25519_generate_version_1 := wasmtime.WrapFunc(store, ext_crypto_ed25519_generate_version_1)
-	ext_crypto_ed25519_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_ed25519_verify_version_1)
-	ext_crypto_finish_batch_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_finish_batch_verify_version_1)
-	ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 := wasmtime.WrapFunc(store, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
-	ext_crypto_sr25519_generate_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_generate_version_1)
-	ext_crypto_sr25519_public_keys_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_public_keys_version_1)
-	ext_crypto_sr25519_sign_version_1 := wasmtime.WrapFunc(store, ext_crypto_sr25519_sign_version_1)
-	ext_crypto_sr25519_verify_version_2 := wasmtime.WrapFunc(store, ext_crypto_sr25519_verify_version_2)
-	ext_crypto_start_batch_verify_version_1 := wasmtime.WrapFunc(store, ext_crypto_start_batch_verify_version_1)
-	ext_trie_blake2_256_ordered_root_version_1 := wasmtime.WrapFunc(store, ext_trie_blake2_256_ordered_root_version_1)
-	ext_misc_print_hex_version_1 := wasmtime.WrapFunc(store, ext_misc_print_hex_version_1)
-	ext_misc_print_num_version_1 := wasmtime.WrapFunc(store, ext_misc_print_num_version_1)
-	ext_misc_print_utf8_version_1 := wasmtime.WrapFunc(store, ext_misc_print_utf8_version_1)
-	ext_misc_runtime_version_version_1 := wasmtime.WrapFunc(store, ext_misc_runtime_version_version_1)
-	ext_default_child_storage_clear_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_clear_version_1)
-	ext_default_child_storage_get_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_get_version_1)
-	ext_default_child_storage_root_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_root_version_1)
-	ext_default_child_storage_set_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_set_version_1)
-	ext_default_child_storage_storage_kill_version_1 := wasmtime.WrapFunc(store, ext_default_child_storage_storage_kill_version_1)
-	ext_allocator_free_version_1 := wasmtime.WrapFunc(store, ext_allocator_free_version_1)
-	ext_allocator_malloc_version_1 := wasmtime.WrapFunc(store, ext_allocator_malloc_version_1)
-	ext_hashing_blake2_128_version_1 := wasmtime.WrapFunc(store, ext_hashing_blake2_128_version_1)
-	ext_hashing_blake2_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_blake2_256_version_1)
-	ext_hashing_keccak_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_keccak_256_version_1)
-	ext_hashing_sha2_256_version_1 := wasmtime.WrapFunc(store, ext_hashing_sha2_256_version_1)
-	ext_hashing_twox_128_version_1 := wasmtime.WrapFunc(store, ext_hashing_twox_128_version_1)
-	ext_hashing_twox_64_version_1 := wasmtime.WrapFunc(store, ext_hashing_twox_64_version_1)
-	ext_offchain_is_validator_version_1 := wasmtime.WrapFunc(store, ext_offchain_is_validator_version_1)
-	ext_offchain_local_storage_compare_and_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_compare_and_set_version_1)
-	ext_offchain_local_storage_get_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_get_version_1)
-	ext_offchain_local_storage_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_local_storage_set_version_1)
-	ext_offchain_network_state_version_1 := wasmtime.WrapFunc(store, ext_offchain_network_state_version_1)
-	ext_offchain_random_seed_version_1 := wasmtime.WrapFunc(store, ext_offchain_random_seed_version_1)
-	ext_offchain_submit_transaction_version_1 := wasmtime.WrapFunc(store, ext_offchain_submit_transaction_version_1)
-	ext_storage_append_version_1 := wasmtime.WrapFunc(store, ext_storage_append_version_1)
-	ext_storage_changes_root_version_1 := wasmtime.WrapFunc(store, ext_storage_changes_root_version_1)
-	ext_storage_clear_version_1 := wasmtime.WrapFunc(store, ext_storage_clear_version_1)
-	ext_storage_clear_prefix_version_1 := wasmtime.WrapFunc(store, ext_storage_clear_prefix_version_1)
-	ext_storage_commit_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_commit_transaction_version_1)
-	ext_storage_get_version_1 := wasmtime.WrapFunc(store, ext_storage_get_version_1)
-	ext_storage_next_key_version_1 := wasmtime.WrapFunc(store, ext_storage_next_key_version_1)
-	ext_storage_read_version_1 := wasmtime.WrapFunc(store, ext_storage_read_version_1)
-	ext_storage_rollback_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_rollback_transaction_version_1)
-	ext_storage_root_version_1 := wasmtime.WrapFunc(store, ext_storage_root_version_1)
-	ext_storage_set_version_1 := wasmtime.WrapFunc(store, ext_storage_set_version_1)
-	ext_storage_start_transaction_version_1 := wasmtime.WrapFunc(store, ext_storage_start_transaction_version_1)
-	ext_offchain_index_set_version_1 := wasmtime.WrapFunc(store, ext_offchain_index_set_version_1)
-
-	return []*wasmtime.Extern{
-		mem.AsExtern(),
-		ext_logging_log_version_1.AsExtern(),
-		ext_sandbox_instance_teardown_version_1.AsExtern(),
-		ext_sandbox_instantiate_version_1.AsExtern(),
-		ext_sandbox_invoke_version_1.AsExtern(),
-		ext_sandbox_memory_get_version_1.AsExtern(),
-		ext_sandbox_memory_new_version_1.AsExtern(),
-		ext_sandbox_memory_set_version_1.AsExtern(),
-		ext_sandbox_memory_teardown_version_1.AsExtern(),
-		ext_crypto_ed25519_generate_version_1.AsExtern(),
-		ext_crypto_ed25519_verify_version_1.AsExtern(),
-		ext_crypto_finish_batch_verify_version_1.AsExtern(),
-		ext_crypto_secp256k1_ecdsa_recover_compressed_version_1.AsExtern(),
-		ext_crypto_sr25519_generate_version_1.AsExtern(),
-		ext_crypto_sr25519_public_keys_version_1.AsExtern(),
-		ext_crypto_sr25519_sign_version_1.AsExtern(),
-		ext_crypto_sr25519_verify_version_2.AsExtern(),
-		ext_crypto_start_batch_verify_version_1.AsExtern(),
-		ext_trie_blake2_256_ordered_root_version_1.AsExtern(),
-		ext_misc_print_hex_version_1.AsExtern(),
-		ext_misc_print_num_version_1.AsExtern(),
-		ext_misc_print_utf8_version_1.AsExtern(),
-		ext_misc_runtime_version_version_1.AsExtern(),
-		ext_default_child_storage_clear_version_1.AsExtern(),
-		ext_default_child_storage_get_version_1.AsExtern(),
-		ext_default_child_storage_root_version_1.AsExtern(),
-		ext_default_child_storage_set_version_1.AsExtern(),
-		ext_default_child_storage_storage_kill_version_1.AsExtern(),
-		ext_allocator_free_version_1.AsExtern(),
-		ext_allocator_malloc_version_1.AsExtern(),
-		ext_hashing_blake2_128_version_1.AsExtern(),
-		ext_hashing_blake2_256_version_1.AsExtern(),
-		ext_hashing_keccak_256_version_1.AsExtern(),
-		ext_hashing_sha2_256_version_1.AsExtern(),
-		ext_hashing_twox_128_version_1.AsExtern(),
-		ext_hashing_twox_64_version_1.AsExtern(),
-		ext_offchain_is_validator_version_1.AsExtern(),
-		ext_offchain_local_storage_compare_and_set_version_1.AsExtern(),
-		ext_offchain_local_storage_get_version_1.AsExtern(),
-		ext_offchain_local_storage_set_version_1.AsExtern(),
-		ext_offchain_network_state_version_1.AsExtern(),
-		ext_offchain_random_seed_version_1.AsExtern(),
-		ext_offchain_submit_transaction_version_1.AsExtern(),
-		ext_storage_append_version_1.AsExtern(),
-		ext_storage_changes_root_version_1.AsExtern(),
-		ext_storage_clear_version_1.AsExtern(),
-		ext_storage_clear_prefix_version_1.AsExtern(),
-		ext_storage_commit_transaction_version_1.AsExtern(),
-		ext_storage_get_version_1.AsExtern(),
-		ext_storage_next_key_version_1.AsExtern(),
-		ext_storage_read_version_1.AsExtern(),
-		ext_storage_rollback_transaction_version_1.AsExtern(),
-		ext_storage_root_version_1.AsExtern(),
-		ext_storage_set_version_1.AsExtern(),
-		ext_storage_start_transaction_version_1.AsExtern(),
-		ext_offchain_index_set_version_1.AsExtern(),
+	fns := []struct {
+		name string
+		fn   interface{}
+	}{
+		{"ext_logging_log_version_1", ext_logging_log_version_1},
+		{"ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1},
+		{"ext_sandbox_instantiate_version_1", ext_sandbox_instantiate_version_1},
+		{"ext_sandbox_invoke_version_1", ext_sandbox_invoke_version_1},
+		{"ext_sandbox_memory_get_version_1", ext_sandbox_memory_get_version_1},
+		{"ext_sandbox_memory_new_version_1", ext_sandbox_memory_new_version_1},
+		{"ext_sandbox_memory_set_version_1", ext_sandbox_memory_set_version_1},
+		{"ext_sandbox_memory_teardown_version_1", ext_sandbox_memory_teardown_version_1},
+		{"ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1},
+		{"ext_crypto_ed25519_verify_version_1", ext_crypto_ed25519_verify_version_1},
+		{"ext_crypto_finish_batch_verify_version_1", ext_crypto_finish_batch_verify_version_1},
+		{"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1},
+		{"ext_crypto_sr25519_public_keys_version_1", ext_crypto_sr25519_public_keys_version_1},
+		{"ext_offchain_local_storage_set_version_1", ext_offchain_local_storage_set_version_1},
+		{"ext_crypto_sr25519_sign_version_1", ext_crypto_sr25519_sign_version_1},
+		{"ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2},
+		{"ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1},
+		{"ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1},
+		{"ext_misc_print_hex_version_1", ext_misc_print_hex_version_1},
+		{"ext_misc_print_num_version_1", ext_misc_print_num_version_1},
+		{"ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1},
+		{"ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1},
+		{"ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1},
+		{"ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1},
+		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1},
+		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1},
+		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1},
+		{"ext_allocator_free_version_1", ext_allocator_free_version_1},
+		{"ext_allocator_malloc_version_1", ext_allocator_malloc_version_1},
+		{"ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1},
+		{"ext_hashing_blake2_256_version_1", ext_hashing_blake2_256_version_1},
+		{"ext_hashing_keccak_256_version_1", ext_hashing_keccak_256_version_1},
+		{"ext_hashing_sha2_256_version_1", ext_hashing_sha2_256_version_1},
+		{"ext_hashing_twox_128_version_1", ext_hashing_twox_128_version_1},
+		{"ext_hashing_twox_64_version_1", ext_hashing_twox_64_version_1},
+		{"ext_offchain_is_validator_version_1", ext_offchain_is_validator_version_1},
+		{"ext_offchain_local_storage_compare_and_set_version_1", ext_offchain_local_storage_compare_and_set_version_1},
+		{"ext_crypto_sr25519_generate_version_1", ext_crypto_sr25519_generate_version_1},
+		{"ext_offchain_local_storage_get_version_1", ext_offchain_local_storage_get_version_1},
+		{"ext_offchain_network_state_version_1", ext_offchain_network_state_version_1},
+		{"ext_offchain_random_seed_version_1", ext_offchain_random_seed_version_1},
+		{"ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1},
+		{"ext_storage_append_version_1", ext_storage_append_version_1},
+		{"ext_storage_changes_root_version_1", ext_storage_changes_root_version_1},
+		{"ext_storage_clear_version_1", ext_storage_clear_version_1},
+		{"ext_storage_clear_prefix_version_1", ext_storage_clear_prefix_version_1},
+		{"ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1},
+		{"ext_storage_get_version_1", ext_storage_get_version_1},
+		{"ext_storage_next_key_version_1", ext_storage_next_key_version_1},
+		{"ext_storage_read_version_1", ext_storage_read_version_1},
+		{"ext_storage_rollback_transaction_version_1", ext_storage_rollback_transaction_version_1},
+		{"ext_storage_root_version_1", ext_storage_root_version_1},
+		{"ext_storage_set_version_1", ext_storage_set_version_1},
+		{"ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1},
+		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1},
+		{"mem", mem},
 	}
+
+	linker := wasmtime.NewLinker(store)
+	for _, f := range fns {
+		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
+			return nil, err
+		}
+	}
+	return linker, nil
 }

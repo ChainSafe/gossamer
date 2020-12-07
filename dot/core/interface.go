@@ -58,11 +58,11 @@ type BlockState interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	StoreTrie(common.Hash, *state.TrieState) error
 	StoreInDB(root common.Hash) error
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*state.TrieState, error)
+	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
 
 // TransactionState is the interface for transaction state methods
@@ -85,18 +85,23 @@ type FinalityGadget interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetRuntime(runtime.LegacyInstance) error
-	Authorities() []*types.Authority
-	SetAuthorities([]*types.Authority) error
+	SetRuntime(runtime.LegacyInstance)
+	SetOnDisabled(authorityIndex uint64)
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
-	SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error
-	SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority)
+	SetOnDisabled(authorityIndex uint64, block *types.Header)
 }
 
 // Network is the interface for the network service
 type Network interface {
 	SendMessage(network.Message)
+}
+
+// EpochState is the interface for state.EpochState
+type EpochState interface {
+	GetEpochForBlock(header *types.Header) (uint64, error)
+	SetEpochData(epoch uint64, info *types.EpochData) error
+	SetConfigData(epoch uint64, info *types.ConfigData) error
 }

@@ -148,7 +148,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	s.storageState.StoreTrie(root, ts)
+	s.storageState.(*state.StorageState).StoreTrie(root, ts)
 	head := &types.Header{
 		ParentHash: s.blockState.BestBlockHash(),
 		Number:     big.NewInt(1),
@@ -179,9 +179,9 @@ func TestService_HasKey(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
-	svc := NewTestService(t, cfg)
+	s := NewTestService(t, cfg)
 
-	res, err := svc.HasKey(kr.Alice().Public().Hex(), "babe")
+	res, err := s.HasKey(kr.Alice().Public().Hex(), "babe")
 	require.NoError(t, err)
 	require.True(t, res)
 }
@@ -195,9 +195,9 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 	cfg := &Config{
 		Keystore: ks,
 	}
-	svc := NewTestService(t, cfg)
+	s := NewTestService(t, cfg)
 
-	res, err := svc.HasKey(kr.Alice().Public().Hex(), "xxxx")
+	res, err := s.HasKey(kr.Alice().Public().Hex(), "xxxx")
 	require.EqualError(t, err, "unknown key type: xxxx")
 	require.False(t, res)
 }
@@ -328,7 +328,6 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	err := s.maintainTransactionPool(&types.Block{
@@ -375,7 +374,6 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})

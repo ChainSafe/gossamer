@@ -146,7 +146,7 @@ func TestGossip(t *testing.T) {
 		t.Error("node A timeout waiting for message")
 	}
 
-	if hasSeenB, ok := nodeB.gossip.hasSeen.Load(TestMessage.IDString()); !ok || hasSeenB.(bool) == false {
+	if hasSeenB, ok := nodeB.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenB.(bool) == false {
 		t.Error(
 			"node B did not receive block request message from node A",
 			"\nreceived:", hasSeenB,
@@ -154,7 +154,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenC, ok := nodeC.gossip.hasSeen.Load(TestMessage.IDString()); !ok || hasSeenC.(bool) == false {
+	if hasSeenC, ok := nodeC.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenC.(bool) == false {
 		t.Error(
 			"node C did not receive block request message from node B",
 			"\nreceived:", hasSeenC,
@@ -162,7 +162,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenA, ok := nodeA.gossip.hasSeen.Load(TestMessage.IDString()); !ok || hasSeenA.(bool) == false {
+	if hasSeenA, ok := nodeA.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenA.(bool) == false {
 		t.Error(
 			"node A did not receive block request message from node C",
 			"\nreceived:", hasSeenA,

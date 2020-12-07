@@ -74,7 +74,7 @@ func (s *Service) DB() chaindb.Database {
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie, epochInfo *types.EpochInfo) error {
+func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie, babeCfg *types.BabeConfiguration) error {
 	var db chaindb.Database
 
 	// check database type
@@ -123,7 +123,7 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
 
-	epochState, err := NewEpochStateFromGenesis(db, epochInfo)
+	epochState, err := NewEpochStateFromGenesis(db, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %s", err)
 	}
@@ -160,7 +160,7 @@ func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, he
 	}
 
 	// write storage hash to database
-	err = StoreLatestStorageHash(db, t)
+	err = StoreLatestStorageHash(db, t.MustHash())
 	if err != nil {
 		return fmt.Errorf("failed to write storage hash to database: %s", err)
 	}
@@ -205,7 +205,7 @@ func (s *Service) Start() error {
 	// retrieve latest header
 	bestHash, err := LoadBestBlockHash(db)
 	if err != nil {
-		return fmt.Errorf("failed to get best block hash: %s", err)
+		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
 
 	logger.Trace("start", "best block hash", fmt.Sprintf("0x%x", bestHash))
@@ -214,24 +214,24 @@ func (s *Service) Start() error {
 	bt := blocktree.NewEmptyBlockTree(db)
 	err = bt.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load blocktree: %s", err)
+		return fmt.Errorf("failed to load blocktree: %w", err)
 	}
 
 	// create block state
 	s.Block, err = NewBlockState(db, bt)
 	if err != nil {
-		return fmt.Errorf("failed to create block state: %s", err)
+		return fmt.Errorf("failed to create block state: %w", err)
 	}
 
 	// create storage state
 	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie())
 	if err != nil {
-		return fmt.Errorf("failed to create storage state: %s", err)
+		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
 	stateRoot, err := LoadLatestStorageHash(s.db)
 	if err != nil {
-		return fmt.Errorf("cannot load latest storage root: %s", err)
+		return fmt.Errorf("cannot load latest storage root: %w", err)
 	}
 
 	logger.Debug("start", "latest state root", stateRoot)
@@ -239,14 +239,17 @@ func (s *Service) Start() error {
 	// load current storage state
 	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
-		return fmt.Errorf("failed to get state root from database: %s", err)
+		return fmt.Errorf("failed to get load storage trie from database: %w", err)
 	}
 
 	// create transaction queue
 	s.Transaction = NewTransactionState()
 
 	// create epoch state
-	s.Epoch = NewEpochState(db)
+	s.Epoch, err = NewEpochState(db)
+	if err != nil {
+		return fmt.Errorf("failed to create epoch state: %w", err)
+	}
 
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
@@ -268,10 +271,12 @@ func (s *Service) Stop() error {
 		return errTrieDoesNotExist(head)
 	}
 
-	err = StoreLatestStorageHash(s.db, t)
+	err = StoreLatestStorageHash(s.db, head)
 	if err != nil {
 		return err
 	}
+
+	logger.Debug("storing latest storage trie", "hash", head)
 
 	err = s.Storage.StoreInDB(head)
 	if err != nil {
@@ -296,5 +301,11 @@ func (s *Service) Stop() error {
 	close(s.closeCh)
 
 	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
+
+	err = s.db.Flush()
+	if err != nil {
+		return err
+	}
+
 	return s.db.Close()
 }

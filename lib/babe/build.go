@@ -172,7 +172,7 @@ func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 	return &types.BabeHeader{
 		VrfOutput:          outAndProof.output,
 		VrfProof:           outAndProof.proof,
-		BlockProducerIndex: b.authorityIndex,
+		BlockProducerIndex: b.epochData.authorityIndex,
 		SlotNumber:         slot.number,
 	}, nil
 }
