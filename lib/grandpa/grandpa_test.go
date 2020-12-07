@@ -41,9 +41,14 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 var kr, _ = keystore.NewEd25519Keyring()
@@ -60,7 +65,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

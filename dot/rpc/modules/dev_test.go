@@ -5,7 +5,6 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -21,9 +20,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := chaindb.NewMemDatabase()
 	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
 	require.NoError(t, err)
-	es, err := state.NewEpochStateFromGenesis(db, &types.EpochInfo{
-		Duration: 200,
-	})
+	es, err := state.NewEpochStateFromGenesis(db, genesisBABEConfig)
 	require.NoError(t, err)
 	return bs, es
 }
@@ -81,60 +78,4 @@ func TestDevControl_Network(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, networkStartedMsg, res)
 	require.False(t, net.IsStopped())
-}
-
-func TestDevModule_SetBlockProducerAuthorities(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
-	aBefore := bs.Authorities()
-	req := &[]interface{}{[]interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", float64(1)}}
-	var res string
-	err := m.SetBlockProducerAuthorities(nil, req, &res)
-	require.NoError(t, err)
-	require.Equal(t, "set 1 block producer authorities", res)
-	aAfter := bs.Authorities()
-	// authorities before and after should be different since they were changed
-	require.NotEqual(t, aBefore, aAfter)
-}
-
-func TestDevModule_SetBlockProducerAuthorities_NotFound(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
-	aBefore := bs.Authorities()
-
-	req := &[]interface{}{[]interface{}{"5FrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", float64(1)}}
-	var res string
-	err := m.SetBlockProducerAuthorities(nil, req, &res)
-	require.EqualError(t, err, "key not in BABE authority data")
-	aAfter := bs.Authorities()
-	// authorities before and after should be equal since they should not have changed (due to key error)
-	require.Equal(t, aBefore, aAfter)
-}
-
-func TestDevModule_SetBABEEpochThreshold(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
-	req := "123"
-	var res string
-	err := m.SetBABEEpochThreshold(nil, &req, &res)
-	require.NoError(t, err)
-	require.Equal(t, "set BABE threshold to 123", res)
-}
-
-func TestDevModule_SetBABERandomness(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
-	req := &[]string{"0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"}
-	var res string
-	err := m.SetBABERandomness(nil, req, &res)
-	require.NoError(t, err)
-}
-
-func TestDevModule_SetBABERandomness_WrongLength(t *testing.T) {
-	bs := newBABEService(t)
-	m := NewDevModule(bs, nil)
-	req := &[]string{"0x0001"}
-	var res string
-	err := m.SetBABERandomness(nil, req, &res)
-	require.EqualError(t, err, "expected randomness value of 32 bytes, received 2 bytes")
 }

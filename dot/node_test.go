@@ -41,9 +41,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 // TestInitNode
@@ -216,7 +221,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
 
-	err = stateSrvc.Initialize(gen.GenesisData(), header, trie.NewEmptyTrie(), firstEpochInfo)
+	err = stateSrvc.Initialize(gen.GenesisData(), header, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

@@ -328,7 +328,6 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	err := s.maintainTransactionPool(&types.Block{
@@ -375,7 +374,6 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
