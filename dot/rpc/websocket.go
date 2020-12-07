@@ -92,7 +92,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return true
 				}
 
-				logger.Error("external websocket request refused", "error")
+				logger.Debug("external websocket request refused", "error")
 				return false
 			}
 			return true
