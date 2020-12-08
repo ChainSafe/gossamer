@@ -76,7 +76,7 @@ type Config struct {
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
 
-	MessageHandler MessageHandler
+	//MessageHandler MessageHandler
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey

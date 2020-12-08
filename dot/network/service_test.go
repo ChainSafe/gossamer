@@ -132,20 +132,19 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA.noGossip = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
-
-	mmhB := new(MockMessageHandler)
 	configB := &Config{
-		BasePath:       basePathB,
-		Port:           7002,
-		RandSeed:       2,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
+	handler := newTestStreamHandler()
+	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
@@ -164,7 +163,7 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA.SendMessage(TestMessage)
 	time.Sleep(time.Second)
 
-	require.Equal(t, TestMessage, mmhB.Message)
+	require.Equal(t, TestMessage, handler.messages[nodeA.host.id()])
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {

@@ -27,10 +27,10 @@ type BlockState interface {
 	GenesisHash() common.Hash
 }
 
-// MessageHandler interface for handling message passing
-type MessageHandler interface {
-	HandleMessage(Message)
-}
+// // MessageHandler interface for handling message passing
+// type MessageHandler interface {
+// 	HandleMessage(Message)
+// }
 
 // Syncer is implemented by the syncing service
 type Syncer interface {
