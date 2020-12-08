@@ -148,7 +148,6 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	//s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -304,20 +303,6 @@ func (s *Service) SendMessage(msg Message) {
 	// broadcast message to connected peers
 	s.host.broadcast(msg)
 }
-
-// // handleStream starts reading from the inbound message stream and continues
-// // reading until the inbound message stream is closed or reset.
-// func (s *Service) handleStream(stream libp2pnetwork.Stream) {
-// 	conn := stream.Conn()
-// 	if conn == nil {
-// 		logger.Error("Failed to get connection from stream")
-// 		return
-// 	}
-
-// 	peer := conn.RemotePeer()
-// 	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
-// 	// the stream stays open until closed or reset
-// }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
@@ -484,18 +469,6 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 	return nil
 }
-
-// // handleMessage handles the message based on peer status and message type
-// // TODO: deprecate this handler, messages will be handled via their sub-protocols
-// func (s *Service) handleMessage(peer peer.ID, msg Message) error {
-// 	if s.messageHandler == nil {
-// 		logger.Crit("Failed to handle message", "error", "message handler is nil")
-// 		return nil
-// 	}
-// 	s.messageHandler.HandleMessage(msg)
-
-// 	return nil
-// }
 
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {

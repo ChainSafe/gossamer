@@ -19,8 +19,6 @@ package network
 import (
 	"errors"
 	"path"
-	//"strconv"
-	//"strings"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -75,8 +73,6 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
-
-	//MessageHandler MessageHandler
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey

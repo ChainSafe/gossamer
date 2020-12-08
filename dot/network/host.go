@@ -121,11 +121,6 @@ func (h *host) close() error {
 	return nil
 }
 
-// registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) {
-	h.h.Network().SetConnHandler(handler)
-}
-
 // registerStreamHandler registers the stream handler, appending the given sub-protocol to the main protocol ID
 func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork.Stream)) {
 	h.h.SetStreamHandler(h.protocolID+sub, handler)
@@ -211,7 +206,7 @@ func (h *host) broadcast(msg Message) {
 }
 
 // broadcastExcluding sends a message to each connected peer except specified peer
-func (h *host) broadcastExcluding(msg Message, peer peer.ID) {
+func (h *host) broadcastExcluding(msg Message, peer peer.ID) { //nolint
 	for _, p := range h.peers() {
 		if p != peer {
 			err := h.send(p, "", msg)
@@ -245,9 +240,8 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 }
 
 // closePeer closes the peer connection
-func (h *host) closePeer(peer peer.ID) error {
-	err := h.h.Network().ClosePeer(peer)
-	return err
+func (h *host) closePeer(peer peer.ID) error { //nolint
+	return h.h.Network().ClosePeer(peer)
 }
 
 // id returns the host id
@@ -258,16 +252,6 @@ func (h *host) id() peer.ID {
 // Peers returns connected peers
 func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
-}
-
-// peerConnected checks if peer is connected
-func (h *host) peerConnected(peer peer.ID) bool {
-	for _, p := range h.peers() {
-		if p == peer {
-			return true
-		}
-	}
-	return false
 }
 
 // peerCount returns the number of connected peers

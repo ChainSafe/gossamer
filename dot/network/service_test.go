@@ -56,7 +56,7 @@ func failedToDial(err error) bool {
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.BlockState == nil {
-		cfg.BlockState = &MockBlockState{}
+		cfg.BlockState = newMockBlockState(nil)
 	}
 
 	if cfg.TransactionHandler == nil {
@@ -102,14 +102,6 @@ func TestStartService(t *testing.T) {
 	}
 	node := createTestService(t, config)
 	node.Stop()
-}
-
-type MockMessageHandler struct {
-	Message Message
-}
-
-func (m *MockMessageHandler) HandleMessage(msg Message) {
-	m.Message = msg
 }
 
 // test broacast messages from core service
