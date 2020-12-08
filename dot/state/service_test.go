@@ -32,9 +32,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 // helper method to create and start test state service
@@ -61,7 +66,7 @@ func TestService_Start(t *testing.T) {
 
 	genesisData := new(genesis.Data)
 
-	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -81,7 +86,7 @@ func TestMemDB_Start(t *testing.T) {
 
 	genesisData := new(genesis.Data)
 
-	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -105,7 +110,7 @@ func TestService_BlockTree(t *testing.T) {
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
-	err = stateA.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = stateA.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateA.Start()
@@ -139,7 +144,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
-	err := serv.Initialize(genesisData, testGenesisHeader, tr, firstEpochInfo)
+	err := serv.Initialize(genesisData, testGenesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -208,7 +213,4 @@ func Test_ServicePruneStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, false, ok)
 	}
-
-	err = serv.Stop()
-	require.NoError(t, err)
 }

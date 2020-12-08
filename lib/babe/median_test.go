@@ -88,8 +88,8 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 	for i := 1; i <= depth; i++ {
 
 		// create proof that we can authorize this block
-		babeService.threshold = maxThreshold
-		babeService.authorityIndex = 0
+		babeService.epochData.threshold = maxThreshold
+		babeService.epochData.authorityIndex = 0
 		slotNumber := uint64(i)
 
 		outAndProof, err := babeService.runLottery(slotNumber)
@@ -157,8 +157,8 @@ func TestSlotTime(t *testing.T) {
 func TestEstimateCurrentSlot(t *testing.T) {
 	babeService := createTestService(t, nil)
 	// create proof that we can authorize this block
-	babeService.threshold = maxThreshold
-	babeService.authorityIndex = 0
+	babeService.epochData.threshold = maxThreshold
+	babeService.epochData.authorityIndex = 0
 	slotNumber := uint64(17)
 
 	outAndProof, err := babeService.runLottery(slotNumber)
@@ -175,7 +175,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	// create pre-digest
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),
-		duration: babeService.config.SlotDuration,
+		duration: babeService.slotDuration,
 		number:   slotNumber,
 	}
 
@@ -217,7 +217,7 @@ func TestGetCurrentSlot(t *testing.T) {
 	babeService := createTestService(t, nil)
 
 	// 100 blocks / 1000 ms/s
-	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(time.Now().Unix())-(babeService.config.SlotDuration/10))
+	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(time.Now().Unix())-(babeService.slotDuration/10))
 
 	res, err := babeService.getCurrentSlot()
 	if err != nil {

@@ -254,9 +254,14 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 func newTestStateService(t *testing.T) *state.Service {
@@ -269,7 +274,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc.UseMemDB()
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err := stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
