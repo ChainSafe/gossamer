@@ -75,7 +75,8 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			var req StateRuntimeVersionRequest
 
 			if test.params != "" {
-				req.Bhash, err = common.HexToHash(test.params)
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params)
 				require.NoError(t, err)
 			}
 
@@ -128,7 +129,8 @@ func TestStateModule_GetPairs(t *testing.T) {
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
-				req.Bhash, err = common.HexToHash(test.params[1])
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
 
@@ -189,7 +191,8 @@ func TestStateModule_GetStorage(t *testing.T) {
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
-				req.Bhash, err = common.HexToHash(test.params[1])
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
 
@@ -241,7 +244,8 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
-				req.Bhash, err = common.HexToHash(test.params[1])
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
 
@@ -292,7 +296,8 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
-				req.Bhash, err = common.HexToHash(test.params[1])
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
 				require.NoError(t, err)
 			}
 
@@ -333,7 +338,8 @@ func TestStateModule_GetMetadata(t *testing.T) {
 			var req StateRuntimeMetadataQuery
 
 			if test.params != "" {
-				req.Bhash, err = common.HexToHash(test.params)
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params)
 				require.NoError(t, err)
 			}
 

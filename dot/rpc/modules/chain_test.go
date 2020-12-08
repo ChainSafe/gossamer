@@ -44,12 +44,11 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 		Digest:         ChainBlockHeaderDigest{},
 	}
 
-	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{}
-
-	var err error
-	req.Bhash, err = common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
+	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
 	require.NoError(t, err)
+
+	res := &ChainBlockHeaderResponse{}
+	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetHeader(nil, req, res)
 	require.Nil(t, err)
@@ -68,9 +67,9 @@ func TestChainGetHeader_Latest(t *testing.T) {
 		Digest:         ChainBlockHeaderDigest{},
 	}
 	res := &ChainBlockHeaderResponse{}
-	req := ChainHashRequest{Bhash: common.Hash{}} // empty request should return latest hash
+	req := &ChainHashRequest{} // empty request should return latest hash
 
-	err := svc.GetHeader(nil, &req, res)
+	err := svc.GetHeader(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -80,12 +79,11 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	chain := newTestStateService(t)
 	svc := NewChainModule(chain.Block)
 
-	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{}
-
-	var err error
-	req.Bhash, err = common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
+	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
 	require.NoError(t, err)
+
+	res := &ChainBlockHeaderResponse{}
+	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetHeader(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())
@@ -108,12 +106,11 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 		},
 	}
 
-	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{}
-
-	var err error
-	req.Bhash, err = common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
+	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
 	require.NoError(t, err)
+
+	res := &ChainBlockResponse{}
+	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetBlock(nil, req, res)
 	require.Nil(t, err)
@@ -139,9 +136,9 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	}
 
 	res := &ChainBlockResponse{}
-	req := ChainHashRequest{common.Hash{}} // empty request should return latest block
+	req := &ChainHashRequest{} // empty request should return latest block
 
-	err := svc.GetBlock(nil, &req, res)
+	err := svc.GetBlock(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -151,12 +148,11 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 	chain := newTestStateService(t)
 	svc := NewChainModule(chain.Block)
 
-	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{}
-
-	var err error
-	req.Bhash, err = common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
+	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
 	require.NoError(t, err)
+
+	res := &ChainBlockResponse{}
+	req := &ChainHashRequest{Bhash: &bhash}
 
 	err = svc.GetBlock(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())

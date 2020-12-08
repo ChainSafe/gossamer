@@ -29,7 +29,7 @@ import (
 
 // ChainHashRequest Hash as a string
 type ChainHashRequest struct {
-	Bhash common.Hash
+	Bhash *common.Hash
 }
 
 // ChainBlockNumberRequest interface can accept string, float64 or []
@@ -183,11 +183,11 @@ func (cm *ChainModule) SubscribeNewHeads(r *http.Request, req *EmptyRequest, res
 }
 
 func (cm *ChainModule) hashLookup(req *ChainHashRequest) common.Hash {
-	if req.Bhash.IsNil() {
+	if req.Bhash == nil {
 		hash := cm.blockAPI.BestBlockHash()
 		return hash
 	}
-	return req.Bhash
+	return *req.Bhash
 }
 
 // unwindRequest takes request interface slice and makes call for each element
