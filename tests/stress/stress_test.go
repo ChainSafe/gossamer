@@ -76,7 +76,7 @@ func TestRestartNode(t *testing.T) {
 	err = utils.StartNodes(t, nodes)
 	require.NoError(t, err)
 
-	errList := utils.TearDown(t, nodes)
+	errList := utils.StopNodes(t, nodes)
 	require.Len(t, errList, 0)
 
 	err = utils.StartNodes(t, nodes)
@@ -272,7 +272,7 @@ func TestSync_Restart(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case <-time.After(time.Second * 3):
+			case <-time.After(time.Second * 5):
 				idx := rand.Intn(numNodes)
 
 				errList := utils.StopNodes(t, nodes[idx:idx+1])
