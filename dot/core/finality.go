@@ -50,11 +50,11 @@ func (s *Service) sendVoteMessages(ctx context.Context) {
 
 			msg, err := v.ToConsensusMessage()
 			if err != nil {
-				s.logger.Error("failed to convert VoteMessage to ConsensusMessage", "msg", msg)
+				logger.Error("failed to convert VoteMessage to ConsensusMessage", "msg", msg)
 				continue
 			}
 
-			s.logger.Debug("sending VoteMessage to network", "msg", msg)
+			logger.Debug("sending VoteMessage to network", "msg", msg)
 			s.net.SendMessage(msg)
 		case <-ctx.Done():
 			return
@@ -73,14 +73,14 @@ func (s *Service) sendFinalizationMessages(ctx context.Context) {
 				continue
 			}
 
-			s.logger.Info("finalized block!!!", "msg", v)
+			logger.Info("finalized block!!!", "msg", v)
 			msg, err := v.ToConsensusMessage()
 			if err != nil {
-				s.logger.Error("failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
+				logger.Error("failed to convert FinalizationMessage to ConsensusMessage", "msg", msg)
 				continue
 			}
 
-			s.logger.Debug("sending FinalityMessage to network", "msg", v)
+			logger.Debug("sending FinalityMessage to network", "msg", v)
 			s.net.SendMessage(msg)
 		case <-ctx.Done():
 			return

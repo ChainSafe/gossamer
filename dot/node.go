@@ -79,42 +79,30 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
-	var genEpochInfo *types.EpochInfo
-	if !cfg.Init.TestFirstEpoch {
-		// load genesis trie state for loading runtime info
-		genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to instantiate TrieState: %w", err)
-		}
-
-		err = genTrie.WriteTrieToDB()
-		if err != nil {
-			return fmt.Errorf("failed to write trie to db: %w", err)
-		}
-
-		// create genesis runtime
-		r, err := genesis.NewLegacyRuntimeFromGenesis(gen, genTrie) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to create genesis runtime: %w", err)
-		}
-
-		babeCfg, err := r.BabeConfiguration()
-		if err != nil {
-			return fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
-		}
-
-		genEpochInfo = &types.EpochInfo{
-			Duration:   babeCfg.EpochLength,
-			FirstBlock: 1,
-			Randomness: babeCfg.Randomness,
-		}
-
-		r.Stop()
-	} else {
-		genEpochInfo = &types.EpochInfo{
-			Duration: 200,
-		}
+	// load genesis state into database
+	genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
+	if err != nil {
+		return fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}
+
+	err = genTrie.WriteTrieToDB()
+	if err != nil {
+		return fmt.Errorf("failed to write trie to db: %w", err)
+	}
+
+	// create genesis runtime
+	r, err := genesis.NewLegacyRuntimeFromGenesis(gen, genTrie) //nolint
+	if err != nil {
+		return fmt.Errorf("failed to create genesis runtime: %w", err)
+	}
+
+	// load and store initial BABE epoch configuration
+	babeCfg, err := r.BabeConfiguration()
+	if err != nil {
+		return fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
+	}
+
+	r.Stop()
 
 	// declare genesis data
 	data := gen.GenesisData()
@@ -129,7 +117,7 @@ func InitNode(cfg *Config) error {
 	data.ProtocolID = cfg.Network.ProtocolID
 
 	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(data, header, t, genEpochInfo)
+	err = stateSrvc.Initialize(data, header, t, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
@@ -275,21 +263,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// Network Service
-
-	// check if network service is enabled
-	if enabled := networkServiceEnabled(cfg); enabled {
-		// create network service and append network service to node services
-		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create network service: %s", err)
-		}
-		nodeSrvcs = append(nodeSrvcs, networkSrvc)
-	} else {
-		// do not create or append network service if network service is not enabled
-		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
-	}
-
 	// Core Service
 
 	// create core service and append core service to node services
@@ -297,10 +270,24 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
-	if networkSrvc != nil {
-		networkSrvc.SetMessageHandler(coreSrvc)
-	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+
+	// Network Service
+
+	// check if network service is enabled
+	if enabled := networkServiceEnabled(cfg); enabled {
+		// create network service and append network service to node services
+		networkSrvc, err = createNetworkService(cfg, stateSrvc, syncer, coreSrvc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create network service: %s", err)
+		}
+		nodeSrvcs = append(nodeSrvcs, networkSrvc)
+		coreSrvc.SetNetwork(networkSrvc)
+
+	} else {
+		// do not create or append network service if network service is not enabled
+		logger.Debug("network service disabled", "network", enabled, "roles", cfg.Core.Roles)
+	}
 
 	// System Service
 

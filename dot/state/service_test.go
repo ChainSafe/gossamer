@@ -32,9 +32,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var firstEpochInfo = &types.EpochInfo{
-	Duration:   200,
-	FirstBlock: 0,
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
 }
 
 // helper method to create and start test state service
@@ -61,7 +66,7 @@ func TestService_Start(t *testing.T) {
 
 	genesisData := new(genesis.Data)
 
-	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -81,7 +86,7 @@ func TestMemDB_Start(t *testing.T) {
 
 	genesisData := new(genesis.Data)
 
-	err = state.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -105,7 +110,7 @@ func TestService_BlockTree(t *testing.T) {
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
-	err = stateA.Initialize(genesisData, genesisHeader, tr, firstEpochInfo)
+	err = stateA.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateA.Start()
@@ -139,7 +144,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 	genesisData := new(genesis.Data)
 
 	tr := trie.NewEmptyTrie()
-	err := serv.Initialize(genesisData, testGenesisHeader, tr, firstEpochInfo)
+	err := serv.Initialize(genesisData, testGenesisHeader, tr, genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -150,9 +155,11 @@ func Test_ServicePruneStorage(t *testing.T) {
 		dbKey []byte
 	}
 
-	var prunedArr []prunedBlock
+	//var prunedArr []prunedBlock
+	var toFinalize common.Hash
+
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv)
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil)
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -160,11 +167,23 @@ func Test_ServicePruneStorage(t *testing.T) {
 		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
 		require.NoError(t, err)
 
-		// Only finalize the head block.
+		// Only finalize a block at height 3
 		if i == 2 {
-			serv.Block.SetFinalizedHash(block.Header.Hash(), 0, 0)
-			break
+			toFinalize = block.Header.Hash()
 		}
+	}
+
+	// add some blocks to prune, on a different chain from the finalized block
+	prunedArr := []prunedBlock{}
+	parentHash := serv.Block.GenesisHash()
+	for i := 0; i < 3; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash)
+
+		err = serv.Storage.blockState.AddBlock(block)
+		require.NoError(t, err)
+
+		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
 		var trieVal *trie.Trie
@@ -176,7 +195,11 @@ func Test_ServicePruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
+		parentHash = block.Header.Hash()
 	}
+
+	// finalize a block
+	serv.Block.SetFinalizedHash(toFinalize, 0, 0)
 
 	time.Sleep(1 * time.Second)
 
@@ -190,7 +213,4 @@ func Test_ServicePruneStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, false, ok)
 	}
-
-	err = serv.Stop()
-	require.NoError(t, err)
 }

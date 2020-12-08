@@ -2,11 +2,12 @@ package types
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBABEAuthorityRaw(t *testing.T) {
@@ -16,58 +17,64 @@ func TestBABEAuthorityRaw(t *testing.T) {
 	buf.Write(data)
 
 	_, err := ad.Decode(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func TestBABEAuthority(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	ad := NewAuthority(kr.Alice().Public().(*sr25519.PublicKey), 77)
-	enc := ad.Encode()
+	enc, _ := ad.Encode()
 
 	buf := &bytes.Buffer{}
 	buf.Write(enc)
 
 	res := new(Authority)
 	err = res.DecodeSr25519(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res.Key.Encode(), ad.Key.Encode()) {
-		t.Fatalf("Fail: got %v expected %v", res.Key.Encode(), ad.Key.Encode())
-	}
-
-	if res.Weight != ad.Weight {
-		t.Fatalf("Fail: got %d expected %d", res.Weight, ad.Weight)
-	}
+	require.NoError(t, err)
+	require.Equal(t, res.Key.Encode(), ad.Key.Encode())
+	require.Equal(t, res.Weight, ad.Weight)
 }
 
-func TestBABEAuthorityData_ToRaw(t *testing.T) {
+func TestBABEAuthorities_ToRaw(t *testing.T) {
 	kr, err := keystore.NewSr25519Keyring()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	ad := NewAuthority(kr.Alice().Public().(*sr25519.PublicKey), 77)
 	raw := ad.ToRaw()
 
 	res := new(Authority)
 	err = res.FromRawSr25519(raw)
-	if err != nil {
-		t.Fatal(err)
+	require.NoError(t, err)
+	require.Equal(t, res.Key.Encode(), ad.Key.Encode())
+	require.Equal(t, res.Weight, ad.Weight)
+}
+
+func TestEpochData(t *testing.T) {
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	auth := &Authority{
+		Key:    kr.Alice().Public().(*sr25519.PublicKey),
+		Weight: 1,
 	}
 
-	if !reflect.DeepEqual(res.Key.Encode(), ad.Key.Encode()) {
-		t.Fatalf("Fail: got %v expected %v", res.Key.Encode(), ad.Key.Encode())
+	data := &EpochData{
+		Authorities: []*Authority{auth},
+		Randomness:  [32]byte{77},
 	}
 
-	if res.Weight != ad.Weight {
-		t.Fatalf("Fail: got %d expected %d", res.Weight, ad.Weight)
+	raw := data.ToEpochDataRaw()
+	unraw, err := raw.ToEpochData()
+	require.NoError(t, err)
+	require.Equal(t, data.Randomness, unraw.Randomness)
+
+	for i, auth := range unraw.Authorities {
+		expected, err := data.Authorities[i].Encode()
+		require.NoError(t, err)
+		res, err := auth.Encode()
+		require.NoError(t, err)
+		require.Equal(t, expected, res)
 	}
 }

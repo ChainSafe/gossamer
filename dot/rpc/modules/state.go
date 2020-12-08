@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/pkg/errors"
 )
 
 // StateCallRequest holds json fields
@@ -126,11 +127,28 @@ func NewStateModule(net NetworkAPI, storage StorageAPI, core CoreAPI) *StateModu
 // GetPairs returns the keys with prefix, leave empty to get all the keys.
 func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface{}) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	var (
+		stateRootHash *common.Hash
+		err           error
+	)
+
+	// Extract the params
 	pReq := *req
+	if len(pReq) < 1 {
+		return errors.New("required field missing in params")
+	}
+
 	reqBytes, _ := common.HexToBytes(pReq[0])
+	if len(pReq) > 1 && pReq[1] != "" {
+		hash, _ := common.HexToHash(pReq[1])
+		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(&hash)
+		if err != nil {
+			return err
+		}
+	}
 
 	if len(reqBytes) < 1 {
-		pairs, err := sm.storageAPI.Entries(nil)
+		pairs, err := sm.storageAPI.Entries(stateRootHash)
 		if err != nil {
 			return err
 		}
@@ -140,7 +158,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *[]string, res *[]interface
 	} else {
 		// TODO this should return all keys with same prefix, currently only returning
 		//  matches.  Implement when #837 is done.
-		resI, err := sm.storageAPI.GetStorage(nil, reqBytes)
+		resI, err := sm.storageAPI.GetStorage(stateRootHash, reqBytes)
 		if err != nil {
 			return err
 		}
@@ -186,12 +204,23 @@ func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res
 }
 
 // GetMetadata calls runtime Metadata_metadata function
-func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQuery, res *string) error {
+func (sm *StateModule) GetMetadata(r *http.Request, req *string, res *string) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	metadata, err := sm.coreAPI.GetMetadata()
+	var bhash *common.Hash
+	if req != nil && len(*req) != 0 {
+		hash, err := common.HexToHash(*req)
+		if err != nil {
+			return err
+		}
+		bhash = new(common.Hash)
+		*bhash = hash
+	}
+
+	metadata, err := sm.coreAPI.GetMetadata(bhash)
 	if err != nil {
 		return err
 	}
+
 	decoded, err := scale.Decode(metadata, []byte{})
 	*res = common.BytesToHex(decoded.([]byte))
 	return err
@@ -201,7 +230,25 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 //  If no block hash is provided, the latest version gets returned.
 // TODO currently only returns latest version, add functionality to lookup runtime by block hash (see issue #834)
 func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *StateRuntimeVersionResponse) error {
-	rtVersion, err := sm.coreAPI.GetRuntimeVersion()
+	var (
+		bhash *common.Hash
+		hash  common.Hash
+		err   error
+	)
+	if req != nil && len(*req) != 0 {
+		hash, err = common.HexToHash(*req)
+		if err != nil {
+			return err
+		}
+		bhash = new(common.Hash)
+		*bhash = hash
+	}
+
+	rtVersion, err := sm.coreAPI.GetRuntimeVersion(bhash)
+	if err != nil {
+		return err
+	}
+
 	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
 	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
 	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
@@ -209,7 +256,7 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *string, res *Stat
 	res.ImplVersion = rtVersion.RuntimeVersion.Impl_version
 	res.Apis = convertAPIs(rtVersion.API)
 
-	return err
+	return nil
 }
 
 // GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
