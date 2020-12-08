@@ -30,10 +30,13 @@ import (
 // Name represents the name of the interpreter
 const Name = "wasmtime"
 
-var _ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
+var (
+	_ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
+	_ gssmrruntime.Instance       = (*Instance)(nil)
 
-var ctx gssmrruntime.Context
-var logger = log.New("pkg", "runtime", "module", "go-wasmtime")
+	ctx    gssmrruntime.Context
+	logger = log.New("pkg", "runtime", "module", "go-wasmtime")
+)
 
 // Config represents a wasmer configuration
 type Config struct {
@@ -78,6 +81,24 @@ func NewLegacyInstanceFromFile(fp string, cfg *Config) (*LegacyInstance, error) 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	inst, err := NewLegacyInstanceFromFile(fp, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Instance{
+		inst: inst,
+	}, nil
+}
+
+// NewInstance instantiates a runtime from the given wasm bytecode
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
+	engine := wasmtime.NewEngine()
+	module, err := wasmtime.NewModule(engine, code)
+	if err != nil {
+		return nil, err
+	}
+
+	inst, err := newLegacyInstanceFromModule(module, engine, cfg)
 	if err != nil {
 		return nil, err
 	}

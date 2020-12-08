@@ -120,7 +120,7 @@ func (x *Bytes) Encode() ([]byte, error) {
 	return append([]byte{1}, value...), nil
 }
 
-// Decode return an optional Byte from scale encoded data
+// Decode return an optional Bytes from scale encoded data
 func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	exists, err := common.ReadByte(r)
 	if err != nil {
