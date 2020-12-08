@@ -37,7 +37,7 @@ import (
 )
 
 var logger = log.New("pkg", "test/utils")
-var maxRetries = 36
+var maxRetries = 24
 
 // SetLogLevel sets the logging level for this package
 func SetLogLevel(lvl log.Lvl) {
@@ -193,7 +193,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 
 	var started bool
 	for i := 0; i < maxRetries; i++ {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 5)
 		if err = CheckNodeStarted(t, "http://"+HOSTNAME+":"+node.RPCPort); err == nil {
 			started = true
 			break
@@ -204,6 +204,8 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		logger.Info("node started", "key", key, "cmd.Process.Pid", node.Process.Process.Pid)
 	} else {
 		logger.Crit("node didn't start!", "err", err)
+		errFileContents, _ := ioutil.ReadFile(errfile.Name())
+		t.Log(errFileContents)
 		return err
 	}
 
