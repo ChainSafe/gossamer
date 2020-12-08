@@ -99,6 +99,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		genesisData := new(genesis.Data)
 
+		if cfg.EpochLength > 0 {
+			genesisBABEConfig.EpochLength = cfg.EpochLength
+		}
+
 		err = dbSrv.Initialize(genesisData, genesisHeader, tt, genesisBABEConfig)
 		require.NoError(t, err)
 
@@ -169,6 +173,20 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 	_, err := CalculateThreshold(C1, C2, 3)
 	if err == nil {
 		t.Fatal("Fail: did not err for c>1")
+	}
+}
+
+func TestRunEpochLength(t *testing.T) {
+	babeService := createTestService(t, nil)
+	babeService.epochData.threshold = maxThreshold
+
+	outAndProof, err := babeService.runLottery(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if outAndProof == nil {
+		t.Fatal("proof was nil when over threshold")
 	}
 }
 
