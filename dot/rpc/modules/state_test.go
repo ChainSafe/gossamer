@@ -118,13 +118,13 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
-			var req StatePairRequest
+			req := StatePairRequest{}
 			var res StatePairResponse
 
 			// Convert human-readable param value to hex.
-			req.Prefix = test.params[0]
+			req.Prefix = &test.params[0]
 			if test.params[0] != "" && !strings.HasPrefix(test.params[0], "0x") {
-				req.Prefix = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				*req.Prefix = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
@@ -144,13 +144,13 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			// Verify expected values.
 			require.NoError(t, err)
-			sort.Slice(res.keys, func(i, j int) bool {
-				return res.keys[i].([]string)[0] < res.keys[j].([]string)[0]
+			sort.Slice(res.Keys, func(i, j int) bool {
+				return res.Keys[i].([]string)[0] < res.Keys[j].([]string)[0]
 			})
 
-			require.Equal(t, len(test.expected), len(res.keys))
+			require.Equal(t, len(test.expected), len(res.Keys))
 			for idx, val := range test.expected {
-				kv, _ := res.keys[idx].([]string)
+				kv, _ := res.Keys[idx].([]string)
 				require.Equal(t, len(kv), 2)
 
 				// Convert human-readable result value to hex.

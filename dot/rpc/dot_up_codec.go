@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/packages/rpc/json2"
 	"github.com/gorilla/rpc/v2"
+	//"github.com/gorilla/rpc/v2/json2"
 )
 
 // DotUpCodec for overridding default jsonCodec
