@@ -245,6 +245,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("comparing block...", numBlocks)
 	err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(numBlocks))
 	require.NoError(t, err, numBlocks)
+	time.Sleep(time.Second * 3)
 }
 
 func TestSync_Restart(t *testing.T) {
@@ -278,6 +279,8 @@ func TestSync_Restart(t *testing.T) {
 				errList := utils.StopNodes(t, nodes[idx:idx+1])
 				require.Len(t, errList, 0)
 
+				time.Sleep(time.Second * 2)
+
 				err = utils.StartNodes(t, nodes[idx:idx+1])
 				require.NoError(t, err)
 			case <-done:
@@ -291,7 +294,7 @@ func TestSync_Restart(t *testing.T) {
 		t.Log("comparing...", i)
 		err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(i))
 		require.NoError(t, err, i)
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 3)
 	}
 	close(done)
 	time.Sleep(time.Second * 3)

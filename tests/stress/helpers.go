@@ -214,7 +214,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
 		}
 
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	if err != nil {

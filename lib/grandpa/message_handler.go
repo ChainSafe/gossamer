@@ -42,6 +42,10 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
+	if msg == nil || len(msg.Data) == 0 {
+		return nil, nil
+	}
+
 	m, err := decodeMessage(msg)
 	if err != nil {
 		return nil, err
