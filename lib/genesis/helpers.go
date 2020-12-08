@@ -24,7 +24,6 @@ import (
 	"math/big"
 	"path/filepath"
 	"reflect"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -105,6 +104,22 @@ func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.L
 	cfg.Storage = storage
 
 	return wasmer.NewLegacyInstance(code, cfg)
+}
+
+// NewRuntimeFromGenesis creates a runtime instance from the genesis data
+func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instance, error) {
+	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	if codeStr == "" {
+		return nil, fmt.Errorf("cannot find :code in genesis")
+	}
+
+	code := common.MustHexToBytes(codeStr)
+	cfg := &wasmer.Config{
+		Imports: wasmer.ImportsNodeRuntime,
+	}
+	cfg.Storage = storage
+
+	return wasmer.NewInstance(code, cfg)
 }
 
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
@@ -229,17 +244,15 @@ func formatKey(key []string) (string, error) {
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
-		var fKey string
-		for _, v := range key {
-			fKey = fKey + v + " "
-		}
-		fKey = strings.Trim(fKey, " ")
-		fKey = strings.Title(fKey)
-		kb, err := common.Twox128Hash([]byte(fKey))
+		prefix, err := common.Twox128Hash([]byte(key[0]))
 		if err != nil {
 			return "", err
 		}
-		return common.BytesToHex(kb), nil
+		keydata, err := common.Twox128Hash([]byte(key[1]))
+		if err != nil {
+			return "", err
+		}
+		return common.BytesToHex(append(prefix, keydata...)), nil
 	}
 }
 
@@ -287,7 +300,7 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 				return err
 			}
 			addRawValue(key, v, gen)
-		case "0x886726f904d8372fdabb7707870c2fad":
+		case fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()):
 			// handle Babe Authorities
 			err := addAuthoritiesValues("babe", "authorities", crypto.Sr25519Type, v, gen)
 			if err != nil {
